@@ -113,6 +113,13 @@ func check_flashlight(enemy_pos: Vector2, enemy_facing_angle: float, enemy_fov_d
 	if player.has_method("get_flashlight_origin"):
 		flashlight_origin = player.get_flashlight_origin()
 
+	# Issue #640: Use the player's center position for wall checks.
+	# The barrel (flashlight_origin) may be inside a wall body when the player is flush
+	# against a wall. Raycasts from inside a wall don't detect it (hit_from_inside=false
+	# by default). The player center is always reliably outside walls, so we use it as
+	# a secondary check to verify the beam isn't blocked by a wall.
+	var player_center: Vector2 = player.global_position
+
 	# Quick distance pre-check: if the enemy is too far from the beam's farthest point,
 	# no sample point could be visible. Use sum of beam range + visibility range as max.
 	var dist_to_origin := flashlight_origin.distance_to(enemy_pos)
@@ -154,6 +161,13 @@ func check_flashlight(enemy_pos: Vector2, enemy_facing_angle: float, enemy_fov_d
 		if not _is_point_in_beam_cone(point, flashlight_origin, flashlight_dir):
 			continue
 		if raycast != null and not _check_beam_reaches_point(flashlight_origin, point, raycast):
+			continue
+
+		# Issue #640: Secondary wall check from the player center.
+		# When the barrel is at/inside a wall boundary, the barrel-to-point ray may not
+		# detect the wall. The player center is always outside walls (CharacterBody2D
+		# physics guarantee), so this catch-all check reliably blocks detection through walls.
+		if raycast != null and not _check_beam_reaches_point(player_center, point, raycast):
 			continue
 
 		# Detection confirmed — enemy can see a point on the flashlight beam
@@ -347,6 +361,13 @@ func is_position_lit(position: Vector2, player: Node2D, raycast: RayCast2D = nul
 	# Wall occlusion check (Issue #629): verify the beam actually reaches
 	# this position and isn't blocked by a wall.
 	if raycast != null and not _check_beam_reaches_point(flashlight_origin, position, raycast):
+		return false
+
+	# Issue #640: Secondary wall check from the player center.
+	# When the barrel is at/inside a wall boundary, the barrel-to-point ray may not
+	# detect the wall. The player center is always outside walls.
+	var player_center: Vector2 = player.global_position
+	if raycast != null and not _check_beam_reaches_point(player_center, position, raycast):
 		return false
 
 	return true

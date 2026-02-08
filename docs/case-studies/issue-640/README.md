@@ -15,7 +15,9 @@ When the player stands flush against a wall, the flashlight beam passes through 
 7. **User feedback (comment 3)** — "визуально всё правильно" (visually everything is correct), BUT two gameplay logic issues: (1) "враги ослепляются если игрок светит в них сквозь стену в упор" — enemies get blinded when the player shines at them through a wall at close range, (2) "враги видят фонарь если игрок светит сквозь стену в упор, хотя визуально свет не проходит" — enemies detect the flashlight through a wall at close range, even though visually the light doesn't pass through.
 8. **Fourth fix** — When wall-clamped, suppress blindness checks and enemy flashlight detection logic.
 9. **User feedback (comment 4)** — "враги всё ещё реагируют на невидимый за стеной луч фонаря" (enemies still react to the invisible flashlight beam behind the wall). Game logs `game_log_20260208_174653.txt` and `game_log_20260208_174718.txt` show Enemy3 and Enemy4 repeatedly detecting the flashlight beam through walls while the player stands flush.
-10. **Fifth fix (current)** — Root cause #6 identified: the wall detection only checked the center→barrel path, missing the case where the barrel is on the player's side but the beam direction immediately enters a wall. Added beam-direction wall detection within `BEAM_WALL_CLAMP_DISTANCE` (30px) of the barrel.
+10. **Fifth fix** — Root cause #6 identified: the wall detection only checked the center→barrel path, missing the case where the barrel is on the player's side but the beam direction immediately enters a wall. Added beam-direction wall detection within `BEAM_WALL_CLAMP_DISTANCE` (30px) of the barrel.
+11. **User feedback (comment 5)** — "не исправлено" (not fixed). Game log `game_log_20260208_184413.txt` shows enemies (Enemy1, Enemy2, Enemy3, Enemy4) still detecting flashlight through walls, with no wall-clamping log entries.
+12. **Sixth fix (current)** — Root cause #7 identified: `hit_from_inside=false` (Godot default) means raycasts starting inside a wall body don't detect it. When the barrel is at the wall boundary (floating-point edge case), both the center→barrel and beam-direction raycasts can miss the wall. Additionally, the detection component's `_check_beam_reaches_point()` casts from the barrel position which may be inside the wall. Added: (a) `hit_from_inside = true` on wall-clamping raycasts, (b) secondary player-center-based wall check in `FlashlightDetectionComponent` as catch-all defense.
 
 ## Root Cause Analysis
 
@@ -88,6 +90,30 @@ In the game logs, the player was at approximately `(727, 1040)` with the barrel 
 - `game_log_20260208_174653.txt` line 504+: Enemy3 and Enemy4 both detect flashlight with `estimated_pos=(734.561, 1014.97)`, triggering pursuit from IDLE state
 - `game_log_20260208_174718.txt` line 559+: Enemy4 detects flashlight with `estimated_pos=(757.4615, 1022.563)`, repeated detection events
 - No wall-clamping log entries appear in either log, confirming `_is_wall_clamped` was never set to `true`
+
+### Root Cause 7: Raycasts Don't Detect Walls When Starting Inside Them (hit_from_inside)
+
+Godot's `PhysicsRayQueryParameters2D.hit_from_inside` defaults to `false`. This means that if a ray STARTS inside a `CollisionShape2D`, it does not detect the collision. When the flashlight barrel is at the edge of or inside a wall body (common due to floating-point precision at wall boundaries), BOTH wall-detection raycasts can fail:
+
+1. **Center→barrel ray**: If the barrel position is exactly at the wall boundary (within floating-point epsilon), the ray may or may not detect the wall depending on precision.
+2. **Beam-direction ray**: If the barrel is inside the wall body, this ray starts inside the wall's `CollisionShape2D` and exits without detecting it — the wall is invisible to the raycast.
+
+Additionally, the `FlashlightDetectionComponent._check_beam_reaches_point()` casts from the barrel (flashlight_origin) to beam sample points. When the barrel is inside a wall, this ray doesn't detect the wall either, so beam points on the other side of the wall appear reachable — enemies detect the "invisible" beam.
+
+**Evidence from game log `game_log_20260208_184413.txt`:**
+- BuildingLevel, `Room2_WallBottom` at `(712, 1012)`, size `400×24` → bounding box: x:512-912, y:1000-1024
+- Player at `(817, 1040)` (16px below wall bottom at y=1024), barrel at approximately `(821, 1014)` (y=1014 is inside the wall body, between y=1000 and y=1024)
+- Enemies (Enemy1, Enemy2, Enemy3, Enemy4) repeatedly detect flashlight with `estimated_pos=(821.2, 1014.4)` and `beam_dir=(0.15, -0.99)`
+- No wall-clamping events in the log — `_is_wall_clamped` never becomes `true`
+
+**Second scenario in same log:**
+- Player at `(486, 1020)`, barrel at `(501, 999)` — pushed against `Room2_WallLeft` at x:500-524
+- Barrel x=501 is inside the wall body (between x=500 and x=524)
+- Enemy3 and Enemy4 detect flashlight with `estimated_pos=(501.2, 999.3)` and `beam_dir=(0.556, -0.831)`
+
+**Reference:**
+- [Godot Docs: PhysicsRayQueryParameters2D.hit_from_inside](https://docs.godotengine.org/en/4.3/classes/class_physicsrayqueryparameters2d.html)
+- [Godot Forum: intersect_ray doesn't work when ray starts inside body](https://forum.godotengine.org/t/problem-with-intersect-ray-method/52649)
 
 ## Solution (Fix 3)
 
@@ -166,6 +192,44 @@ var beam_result := space_state.intersect_ray(beam_query)
 
 This catches the case where the player faces a wall at an angle — the barrel stays on the player's side, but the beam direction immediately enters the wall body.
 
+## Solution (Fix 6) — hit_from_inside + Player-Center Wall Check
+
+Root cause #7 showed that raycasts from inside a wall don't detect it. Fix 6 applies two complementary measures:
+
+### 7. Enable `hit_from_inside` on Wall-Clamping Raycasts
+
+In `flashlight_effect.gd`, both wall-detection raycasts now set `hit_from_inside = true`:
+
+```gdscript
+query.hit_from_inside = true  # Center→barrel ray
+beam_query.hit_from_inside = true  # Beam-direction ray
+```
+
+This ensures the wall is detected even if the ray origin is at the wall boundary or inside the wall body.
+
+### 8. Player-Center Secondary Wall Check in Detection Component
+
+In `flashlight_detection_component.gd`, after the existing barrel-origin wall check, a secondary check from the **player center** is added:
+
+```gdscript
+# Issue #640: Secondary wall check from the player center.
+var player_center: Vector2 = player.global_position
+if raycast != null and not _check_beam_reaches_point(player_center, point, raycast):
+    continue
+```
+
+The player center (CharacterBody2D global_position) is always reliably outside walls — the physics engine guarantees no overlap with static bodies. A ray from the player center to a beam sample point will correctly detect any intervening wall, even when the barrel-origin ray doesn't.
+
+This check is applied in both `check_flashlight()` (enemy AI detection) and `is_position_lit()` (passage avoidance).
+
+### 9. Player-Center Secondary LOS Check for Blindness
+
+In `flashlight_effect.gd`, the `_has_line_of_sight_to()` function now casts two rays:
+1. From barrel to enemy (original check)
+2. From player center to enemy (new secondary check)
+
+If either ray hits a wall, the enemy is considered blocked and won't be blinded.
+
 ## Files in This Case Study
 
 | File | Description |
@@ -175,6 +239,7 @@ This catches the case where the player faces a wall at an angle — the barrel s
 | `game_log_20260208_172552.txt` | Game log from user's testing session — enemies blinded/detecting through wall |
 | `game_log_20260208_174653.txt` | Game log from user's testing session — enemies detecting flashlight through wall (attempt 4) |
 | `game_log_20260208_174718.txt` | Game log from user's testing session — enemies detecting flashlight through wall (attempt 4, continued) |
+| `game_log_20260208_184413.txt` | Game log from user's testing session — enemies still detecting through wall (attempt 5) |
 | `solution-draft-log-1.txt` | First AI solution draft execution log |
 | `solution-draft-log-2.txt` | Second AI solution draft execution log (with player center fix) |
 
@@ -195,3 +260,6 @@ This catches the case where the player faces a wall at an angle — the barrel s
 5. **Visual fixes and gameplay logic fixes are separate concerns** — fixing the visual rendering (light not passing through walls) is not the same as fixing the game logic (blindness and AI detection). Both must be addressed when an effect has gameplay consequences.
 6. **Barrel-offset origins are unreliable near walls** — when a game object is attached at an offset (barrel position), its global position can be past a wall the player is touching. All raycasts and checks that use this origin must account for the wall-clamped state.
 7. **Wall detection must check multiple directions** — checking only the center→barrel path misses walls that are in the beam's forward direction but not between center and barrel. Always verify the beam direction for nearby walls as well, especially when the player approaches at an angle.
+8. **`hit_from_inside` must be enabled for boundary-detection raycasts** — Godot's default `hit_from_inside = false` means raycasts starting inside a collision shape silently fail. When the ray origin can be at a wall boundary (barrel position), always set `hit_from_inside = true`.
+9. **Use the most reliable origin for wall checks** — the CharacterBody2D center position is guaranteed to be outside walls by the physics engine. When wall detection is critical, use the player center as a secondary or primary ray origin, not just the barrel position which can be inside walls.
+10. **Defense in depth for wall detection** — a single raycast is fragile at boundaries. Using multiple raycasts from different origins (barrel + player center) provides redundancy. If one misses due to floating-point or boundary conditions, the other catches it.

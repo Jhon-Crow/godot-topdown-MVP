@@ -250,6 +250,9 @@ func _clamp_light_to_walls() -> void:
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.create(player_center, intended_pos)
 	query.collision_mask = OBSTACLE_COLLISION_MASK
+	# Issue #640: Enable hit_from_inside so the ray detects walls even if player_center
+	# is at the edge of a wall body (possible with CharacterBody2D collision margins).
+	query.hit_from_inside = true
 	var result := space_state.intersect_ray(query)
 
 	if result.is_empty():
@@ -260,6 +263,9 @@ func _clamp_light_to_walls() -> void:
 		var beam_check_end := intended_pos + beam_direction * BEAM_WALL_CLAMP_DISTANCE
 		var beam_query := PhysicsRayQueryParameters2D.create(intended_pos, beam_check_end)
 		beam_query.collision_mask = OBSTACLE_COLLISION_MASK
+		# Issue #640: Enable hit_from_inside so we detect the wall even if the barrel
+		# is already inside the wall body (common at wall boundaries due to floating-point).
+		beam_query.hit_from_inside = true
 		var beam_result := space_state.intersect_ray(beam_query)
 
 		if beam_result.is_empty():
@@ -405,8 +411,13 @@ func _is_enemy_in_beam(enemy: Node2D) -> bool:
 
 
 ## Check line of sight from flashlight to target (walls block).
+## Issue #640: Uses two rays — one from the barrel and one from the player center.
+## The barrel may be inside a wall body, so its ray might not detect the wall.
+## The player center is always outside walls (CharacterBody2D physics guarantee).
 func _has_line_of_sight_to(target: Node2D) -> bool:
 	var space_state := get_world_2d().direct_space_state
+
+	# Check from barrel position
 	var query := PhysicsRayQueryParameters2D.create(
 		global_position,
 		target.global_position
@@ -414,7 +425,25 @@ func _has_line_of_sight_to(target: Node2D) -> bool:
 	query.collision_mask = OBSTACLE_COLLISION_MASK
 	query.exclude = [self]
 	var result := space_state.intersect_ray(query)
-	return result.is_empty()
+	if not result.is_empty():
+		return false
+
+	# Issue #640: Secondary check from player center to catch edge cases
+	# where the barrel is at/inside a wall boundary.
+	var player_model := get_parent()
+	if player_model != null:
+		var player := player_model.get_parent()
+		if player != null:
+			var center_query := PhysicsRayQueryParameters2D.create(
+				player.global_position,
+				target.global_position
+			)
+			center_query.collision_mask = OBSTACLE_COLLISION_MASK
+			var center_result := space_state.intersect_ray(center_query)
+			if not center_result.is_empty():
+				return false
+
+	return true
 
 
 ## Apply blindness effect to an enemy via StatusEffectsManager.
