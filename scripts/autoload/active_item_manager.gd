@@ -9,7 +9,8 @@ extends Node
 enum ActiveItemType {
 	NONE,              # No active item equipped
 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
-	TELEPORT_BRACERS   # Teleportation bracers - hold Space to aim, release to teleport
+	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
+	BFF_PENDANT        # BFF pendant - press Space to summon a friendly companion with M16
 }
 
 ## Currently selected active item type.
@@ -32,6 +33,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Teleport Bracers",
 		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+	},
+	ActiveItemType.BFF_PENDANT: {
+		"name": "BFF Pendant",
+		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
+		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
 	}
 }
 
@@ -123,3 +129,8 @@ func has_flashlight() -> bool:
 ## Check if teleport bracers are currently equipped.
 func has_teleport_bracers() -> bool:
 	return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+
+## Check if BFF pendant is currently equipped.
+func has_bff_pendant() -> bool:
+	return current_active_item == ActiveItemType.BFF_PENDANT

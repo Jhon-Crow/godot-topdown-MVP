@@ -81,7 +81,8 @@ class MockActiveItemManager:
 	const ActiveItemType := {
 		NONE = 0,
 		FLASHLIGHT = 1,
-		TELEPORT_BRACERS = 2
+		TELEPORT_BRACERS = 2,
+		BFF_PENDANT = 3
 	}
 
 	## Currently selected active item type
@@ -103,6 +104,11 @@ class MockActiveItemManager:
 			"name": "Teleport Bracers",
 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+		},
+		3: {
+			"name": "BFF Pendant",
+			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
+			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
 		}
 	}
 
@@ -163,6 +169,10 @@ class MockActiveItemManager:
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+	## Check if BFF pendant is currently equipped
+	func has_bff_pendant() -> bool:
+		return current_active_item == ActiveItemType.BFF_PENDANT
 
 
 var manager: MockActiveItemManager
@@ -280,11 +290,12 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 3,
-		"Should return 3 active item types")
+	assert_eq(types.size(), 4,
+		"Should return 4 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
+	assert_true(3 in types)
 
 
 func test_get_active_item_name_none() -> void:
@@ -465,7 +476,8 @@ class MockArmoryWithActiveItems:
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
-		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
+		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
+		3: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"}
 	}
 
 	## Applied active item type

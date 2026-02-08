@@ -304,6 +304,9 @@ func _ready() -> void:
 	# Initialize flashlight if active item manager has flashlight selected
 	_init_flashlight()
 
+	# Initialize BFF pendant if active item manager has it selected (Issue #674)
+	_init_bff_pendant()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -400,6 +403,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle flashlight input (hold Space to turn on, release to turn off)
 	_handle_flashlight_input()
+
+	# Handle BFF pendant input (press Space to summon companion, Issue #674)
+	_handle_bff_pendant_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -2925,4 +2931,121 @@ func is_flashlight_wall_clamped() -> bool:
 		return false
 	if _flashlight_node.has_method("is_wall_clamped"):
 		return _flashlight_node.is_wall_clamped()
+	return false
+
+
+# ============================================================================
+# BFF Pendant System (Issue #674)
+# ============================================================================
+
+## BFF companion scene path.
+const BFF_COMPANION_SCENE_PATH: String = "res://scenes/objects/BffCompanion.tscn"
+
+## Whether the BFF pendant is equipped (active item selected in armory).
+var _bff_pendant_equipped: bool = false
+
+## Whether the companion has already been summoned this battle (one charge per battle).
+var _bff_companion_summoned: bool = false
+
+## Reference to the summoned companion node.
+var _bff_companion_node: Node2D = null
+
+
+## Initialize the BFF pendant if the ActiveItemManager has it selected.
+func _init_bff_pendant() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.BffPendant] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_bff_pendant"):
+		FileLogger.info("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method")
+		return
+
+	if not active_item_manager.has_bff_pendant():
+		FileLogger.info("[Player.BffPendant] No BFF pendant selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.BffPendant] BFF pendant is selected, ready to summon companion")
+
+	# Verify companion scene exists
+	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
+		return
+
+	_bff_pendant_equipped = true
+	_bff_companion_summoned = false
+	FileLogger.info("[Player.BffPendant] BFF pendant equipped — press Space to summon companion")
+
+
+## Handle BFF pendant input: press Space to summon a companion (one charge per battle).
+func _handle_bff_pendant_input() -> void:
+	if not _bff_pendant_equipped:
+		return
+	if _bff_companion_summoned:
+		return
+
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		_summon_bff_companion()
+
+
+## Summon the BFF companion near the player.
+func _summon_bff_companion() -> void:
+	if _bff_companion_summoned:
+		return
+
+	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
+		return
+
+	var companion_scene: PackedScene = load(BFF_COMPANION_SCENE_PATH)
+	if companion_scene == null:
+		FileLogger.info("[Player.BffPendant] WARNING: Failed to load companion scene")
+		return
+
+	var companion := companion_scene.instantiate()
+
+	# Add to the current scene (not as child of player, so it moves independently)
+	get_tree().current_scene.add_child(companion)
+
+	# Spawn slightly behind and to the side of the player
+	var spawn_offset := Vector2(-50, 30)
+	if _player_model:
+		spawn_offset = spawn_offset.rotated(_player_model.rotation)
+	companion.global_position = global_position + spawn_offset
+
+	_bff_companion_node = companion
+	_bff_companion_summoned = true
+
+	# Connect companion death signal
+	if companion.has_signal("companion_died"):
+		companion.companion_died.connect(_on_bff_companion_died)
+
+	FileLogger.info("[Player.BffPendant] Companion summoned at position %s" % str(companion.global_position))
+
+
+## Called when the BFF companion dies.
+func _on_bff_companion_died() -> void:
+	FileLogger.info("[Player.BffPendant] Companion has been killed")
+	_bff_companion_node = null
+
+
+## Check if the BFF pendant is equipped.
+func has_bff_pendant() -> bool:
+	return _bff_pendant_equipped
+
+
+## Check if the BFF companion has been summoned.
+func is_bff_companion_summoned() -> bool:
+	return _bff_companion_summoned
+
+
+## Check if the BFF companion is currently alive.
+func is_bff_companion_alive() -> bool:
+	if _bff_companion_node == null:
+		return false
+	if not is_instance_valid(_bff_companion_node):
+		return false
+	if _bff_companion_node.has_method("is_alive"):
+		return _bff_companion_node.is_alive()
 	return false
