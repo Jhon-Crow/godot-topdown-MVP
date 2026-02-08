@@ -4,16 +4,20 @@ namespace GodotTopDownTemplate.Weapons;
 
 /// <summary>
 /// Creates and manages glow effects for laser sights.
-/// Adds a subtle aura (wider semi-transparent Line2D with additive blending)
-/// around the laser beam, and a small residual glow (PointLight2D) at the
-/// laser endpoint. All effects match the laser's color.
 ///
-/// This uses a "fake glow" approach compatible with the gl_compatibility renderer,
-/// since WorldEnvironment glow is not available in that rendering mode.
+/// Provides three visual components:
+/// 1. Multi-layered volumetric glow aura — multiple Line2D nodes with additive
+///    blending at progressively wider widths and lower opacities, creating a
+///    smooth radial falloff that looks like realistic laser scatter (Issue #654).
+/// 2. Endpoint glow — a PointLight2D with pixel-perfect circular texture at the
+///    laser hit point (Issue #652).
+/// 3. Dust particle animation — a GpuParticles2D with box emission stretched along
+///    the beam, simulating the laser being visible through atmospheric dust
+///    (Issue #654).
 ///
-/// The endpoint glow uses a pixel-perfect circular texture (via Image) to avoid
-/// the square artifact that GradientTexture2D produces. The approach follows the
-/// flashlight scatter light pattern from flashlight_effect.gd (Issue #644).
+/// All effects match the laser's color and use a "fake glow" approach compatible
+/// with the gl_compatibility renderer, since WorldEnvironment glow is not
+/// available in that rendering mode.
 ///
 /// Usage:
 ///   _laserGlow = new LaserGlowEffect();
@@ -23,16 +27,44 @@ namespace GodotTopDownTemplate.Weapons;
 /// </summary>
 public class LaserGlowEffect
 {
-    /// <summary>
-    /// Width of the glow aura line in pixels. Wide enough to be visible around
-    /// the 2px laser but not so wide as to look unrealistic.
-    /// </summary>
-    private const float GlowLineWidth = 8.0f;
+    // =========================================================================
+    // Glow layer configuration
+    // =========================================================================
 
     /// <summary>
-    /// Alpha (opacity) of the glow line. Visible but still subtle.
+    /// Definition for one glow layer (width in pixels, alpha opacity).
+    /// Layers are stacked with additive blending to produce volumetric falloff.
     /// </summary>
-    private const float GlowAlpha = 0.35f;
+    private struct GlowLayerDef
+    {
+        public float Width;
+        public float Alpha;
+        public int ZIndex;
+
+        public GlowLayerDef(float width, float alpha, int zIndex)
+        {
+            Width = width;
+            Alpha = alpha;
+            ZIndex = zIndex;
+        }
+    }
+
+    /// <summary>
+    /// Glow layers from innermost (bright, narrow) to outermost (dim, wide).
+    /// The additive blending causes overlapping layers to build up brightness
+    /// in the center while maintaining a smooth gradient toward the edges.
+    /// </summary>
+    private static readonly GlowLayerDef[] GlowLayers = new[]
+    {
+        new GlowLayerDef(4.0f, 0.6f, -1),   // Core boost — bright narrow halo
+        new GlowLayerDef(12.0f, 0.25f, -2),  // Inner glow — close aura
+        new GlowLayerDef(24.0f, 0.12f, -3),  // Mid glow — extended scatter
+        new GlowLayerDef(40.0f, 0.05f, -4),  // Outer glow — wide atmospheric haze
+    };
+
+    // =========================================================================
+    // Endpoint glow configuration
+    // =========================================================================
 
     /// <summary>
     /// Energy of the endpoint PointLight2D.
@@ -52,15 +84,54 @@ public class LaserGlowEffect
     /// </summary>
     private const int GlowTextureSize = 512;
 
+    // =========================================================================
+    // Dust particle configuration
+    // =========================================================================
+
     /// <summary>
-    /// The wider, semi-transparent Line2D that creates the glow aura around the laser.
+    /// Number of dust mote particles along the beam.
     /// </summary>
-    private Line2D? _glowLine;
+    private const int DustParticleAmount = 24;
+
+    /// <summary>
+    /// Lifetime of each dust particle in seconds.
+    /// </summary>
+    private const float DustParticleLifetime = 1.0f;
+
+    /// <summary>
+    /// Size of the dust mote texture in pixels (small soft circle).
+    /// </summary>
+    private const int DustTextureSize = 16;
+
+    /// <summary>
+    /// Vertical half-extent of the dust emission box (how far from beam center
+    /// particles can spawn, in pixels).
+    /// </summary>
+    private const float DustEmissionHalfHeight = 3.0f;
+
+    // =========================================================================
+    // Node references
+    // =========================================================================
+
+    /// <summary>
+    /// The multi-layered glow Line2D nodes (one per layer).
+    /// </summary>
+    private Line2D?[]? _glowLines;
 
     /// <summary>
     /// The PointLight2D at the laser endpoint for residual glow effect.
     /// </summary>
     private PointLight2D? _endpointGlow;
+
+    /// <summary>
+    /// Dust particle emitter along the beam.
+    /// </summary>
+    private GpuParticles2D? _dustParticles;
+
+    /// <summary>
+    /// The ParticleProcessMaterial for the dust emitter (cached for updates).
+    /// </summary>
+    private ParticleProcessMaterial? _dustMaterial;
 
     /// <summary>
     /// The parent node that owns this glow effect.
@@ -77,34 +148,38 @@ public class LaserGlowEffect
     {
         _parent = parent;
 
-        // Create the glow aura line (wider, semi-transparent, additive blending)
-        _glowLine = new Line2D
-        {
-            Name = "LaserGlow",
-            Width = GlowLineWidth,
-            DefaultColor = new Color(laserColor.R, laserColor.G, laserColor.B, GlowAlpha),
-            BeginCapMode = Line2D.LineCapMode.Round,
-            EndCapMode = Line2D.LineCapMode.Round,
-            ZIndex = -1 // Behind the main laser line
-        };
+        // Shared additive blending material for all glow layers
+        var additiveMaterial = new CanvasItemMaterial();
+        additiveMaterial.BlendMode = CanvasItemMaterial.BlendModeEnum.Add;
 
-        // Width curve for soft falloff from center — thicker in the middle, thin at edges
+        // Shared width curve for soft falloff at beam start/end
         var widthCurve = new Curve();
         widthCurve.AddPoint(new Vector2(0.0f, 0.0f)); // Start thin
         widthCurve.AddPoint(new Vector2(0.1f, 1.0f));  // Reach full width quickly
         widthCurve.AddPoint(new Vector2(0.9f, 1.0f));  // Stay full width
         widthCurve.AddPoint(new Vector2(1.0f, 0.0f));  // End thin
-        _glowLine.WidthCurve = widthCurve;
 
-        // Additive blending for soft, realistic glow
-        var glowMaterial = new CanvasItemMaterial();
-        glowMaterial.BlendMode = CanvasItemMaterial.BlendModeEnum.Add;
-        _glowLine.Material = glowMaterial;
-
-        _glowLine.AddPoint(Vector2.Zero);
-        _glowLine.AddPoint(Vector2.Right * 500.0f);
-
-        parent.AddChild(_glowLine);
+        // Create multi-layered glow lines
+        _glowLines = new Line2D[GlowLayers.Length];
+        for (int i = 0; i < GlowLayers.Length; i++)
+        {
+            var layer = GlowLayers[i];
+            var line = new Line2D
+            {
+                Name = $"LaserGlow_{i}",
+                Width = layer.Width,
+                DefaultColor = new Color(laserColor.R, laserColor.G, laserColor.B, layer.Alpha),
+                BeginCapMode = Line2D.LineCapMode.Round,
+                EndCapMode = Line2D.LineCapMode.Round,
+                ZIndex = layer.ZIndex,
+                WidthCurve = widthCurve,
+                Material = additiveMaterial
+            };
+            line.AddPoint(Vector2.Zero);
+            line.AddPoint(Vector2.Right * 500.0f);
+            parent.AddChild(line);
+            _glowLines[i] = line;
+        }
 
         // Create endpoint glow (PointLight2D with circular radial gradient)
         // Uses a pixel-perfect circular texture to avoid the square artifact
@@ -119,8 +194,10 @@ public class LaserGlowEffect
             Texture = CreateCircularGlowTexture(),
             Visible = true
         };
-
         parent.AddChild(_endpointGlow);
+
+        // Create dust particle emitter along the beam
+        CreateDustParticles(parent, laserColor);
     }
 
     /// <summary>
@@ -131,11 +208,17 @@ public class LaserGlowEffect
     /// <param name="endPoint">End point of the laser (local coordinates, from raycast).</param>
     public void Update(Vector2 startPoint, Vector2 endPoint)
     {
-        // Sync glow line points with main laser
-        if (_glowLine != null)
+        // Sync all glow layers with main laser
+        if (_glowLines != null)
         {
-            _glowLine.SetPointPosition(0, startPoint);
-            _glowLine.SetPointPosition(1, endPoint);
+            foreach (var line in _glowLines)
+            {
+                if (line != null)
+                {
+                    line.SetPointPosition(0, startPoint);
+                    line.SetPointPosition(1, endPoint);
+                }
+            }
         }
 
         // Move endpoint glow to the laser hit point
@@ -143,6 +226,9 @@ public class LaserGlowEffect
         {
             _endpointGlow.Position = endPoint;
         }
+
+        // Update dust particle emitter position, rotation, and extent
+        UpdateDustParticles(startPoint, endPoint);
     }
 
     /// <summary>
@@ -152,14 +238,26 @@ public class LaserGlowEffect
     /// <param name="visible">Whether the glow should be visible.</param>
     public void SetVisible(bool visible)
     {
-        if (_glowLine != null)
+        if (_glowLines != null)
         {
-            _glowLine.Visible = visible;
+            foreach (var line in _glowLines)
+            {
+                if (line != null)
+                {
+                    line.Visible = visible;
+                }
+            }
         }
 
         if (_endpointGlow != null)
         {
             _endpointGlow.Visible = visible;
+        }
+
+        if (_dustParticles != null)
+        {
+            _dustParticles.Visible = visible;
+            _dustParticles.Emitting = visible;
         }
     }
 
@@ -169,10 +267,16 @@ public class LaserGlowEffect
     /// </summary>
     public void Cleanup()
     {
-        if (_glowLine != null && GodotObject.IsInstanceValid(_glowLine))
+        if (_glowLines != null)
         {
-            _glowLine.QueueFree();
-            _glowLine = null;
+            foreach (var line in _glowLines)
+            {
+                if (line != null && GodotObject.IsInstanceValid(line))
+                {
+                    line.QueueFree();
+                }
+            }
+            _glowLines = null;
         }
 
         if (_endpointGlow != null && GodotObject.IsInstanceValid(_endpointGlow))
@@ -181,7 +285,139 @@ public class LaserGlowEffect
             _endpointGlow = null;
         }
 
+        if (_dustParticles != null && GodotObject.IsInstanceValid(_dustParticles))
+        {
+            _dustParticles.QueueFree();
+            _dustParticles = null;
+        }
+
+        _dustMaterial = null;
         _parent = null;
+    }
+
+    // =========================================================================
+    // Private helpers
+    // =========================================================================
+
+    /// <summary>
+    /// Creates the dust particle emitter (GpuParticles2D) that spawns small
+    /// glowing motes along the laser beam, simulating dust catching the light.
+    /// The emission box is stretched along the beam direction and updated each
+    /// frame in <see cref="UpdateDustParticles"/>.
+    /// </summary>
+    private void CreateDustParticles(Node2D parent, Color laserColor)
+    {
+        // Build a color ramp: fade in → full brightness → fade out
+        var colorRamp = new Gradient();
+        colorRamp.SetColor(0, new Color(1.0f, 1.0f, 1.0f, 0.0f)); // start transparent
+        colorRamp.AddPoint(0.15f, new Color(1.0f, 1.0f, 1.0f, 0.8f)); // fade in
+        colorRamp.AddPoint(0.5f, new Color(1.0f, 1.0f, 1.0f, 1.0f));  // full brightness
+        colorRamp.AddPoint(0.85f, new Color(1.0f, 1.0f, 1.0f, 0.8f)); // begin fade
+        colorRamp.SetColor(1, new Color(1.0f, 1.0f, 1.0f, 0.0f)); // end transparent
+
+        // Particle process material
+        _dustMaterial = new ParticleProcessMaterial
+        {
+            EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
+            EmissionBoxExtents = new Vector3(100.0f, DustEmissionHalfHeight, 0.0f),
+            Direction = new Vector3(0.0f, -1.0f, 0.0f),
+            Spread = 180.0f,
+            InitialVelocityMin = 3.0f,
+            InitialVelocityMax = 10.0f,
+            Gravity = new Vector3(0.0f, 0.0f, 0.0f),
+            ScaleMin = 0.5f,
+            ScaleMax = 1.5f,
+            ColorRamp = new GradientTexture1D { Gradient = colorRamp },
+            LifetimeRandomness = 0.3f,
+        };
+
+        // Additive blending material for particles
+        var particleMaterial = new CanvasItemMaterial();
+        particleMaterial.BlendMode = CanvasItemMaterial.BlendModeEnum.Add;
+
+        _dustParticles = new GpuParticles2D
+        {
+            Name = "LaserDustParticles",
+            ProcessMaterial = _dustMaterial,
+            Amount = DustParticleAmount,
+            Lifetime = DustParticleLifetime,
+            Explosiveness = 0.0f,
+            Randomness = 0.5f,
+            Emitting = true,
+            Texture = CreateDustTexture(laserColor),
+            Material = particleMaterial,
+            ZIndex = -1,
+            Visible = true
+        };
+
+        parent.AddChild(_dustParticles);
+    }
+
+    /// <summary>
+    /// Updates the dust particle emitter to follow the laser beam.
+    /// Positions at beam midpoint, rotates to beam angle, and stretches
+    /// the emission box to cover the beam length.
+    /// </summary>
+    private void UpdateDustParticles(Vector2 startPoint, Vector2 endPoint)
+    {
+        if (_dustParticles == null || _dustMaterial == null)
+            return;
+
+        var beamVector = endPoint - startPoint;
+        var beamLength = beamVector.Length();
+
+        if (beamLength < 1.0f)
+        {
+            _dustParticles.Visible = false;
+            return;
+        }
+
+        _dustParticles.Visible = true;
+        _dustParticles.Position = (startPoint + endPoint) / 2.0f;
+        _dustParticles.Rotation = beamVector.Angle();
+        _dustMaterial.EmissionBoxExtents = new Vector3(beamLength / 2.0f, DustEmissionHalfHeight, 0.0f);
+    }
+
+    /// <summary>
+    /// Creates a small soft circular texture for dust mote particles.
+    /// The texture is a white circle with smooth alpha falloff, tinted
+    /// by the laser color.
+    /// </summary>
+    private static ImageTexture CreateDustTexture(Color laserColor)
+    {
+        var image = Image.CreateEmpty(DustTextureSize, DustTextureSize, false, Image.Format.Rgba8);
+        float center = DustTextureSize / 2.0f;
+        float maxRadius = center;
+
+        for (int y = 0; y < DustTextureSize; y++)
+        {
+            for (int x = 0; x < DustTextureSize; x++)
+            {
+                float dx = x - center;
+                float dy = y - center;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy);
+                float normalizedDist = distance / maxRadius;
+
+                // Soft circular falloff
+                float alpha;
+                if (normalizedDist <= 0.3f)
+                {
+                    alpha = 1.0f; // Bright core
+                }
+                else if (normalizedDist <= 0.8f)
+                {
+                    alpha = Mathf.Lerp(1.0f, 0.0f, (normalizedDist - 0.3f) / 0.5f);
+                }
+                else
+                {
+                    alpha = 0.0f;
+                }
+
+                image.SetPixel(x, y, new Color(laserColor.R, laserColor.G, laserColor.B, alpha));
+            }
+        }
+
+        return ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>
