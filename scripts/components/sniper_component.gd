@@ -83,17 +83,21 @@ static func count_walls(enemy: Node2D, target_pos: Vector2) -> int:
 
 
 ## Perform sniper hitscan shot - sequential raycasts with wall penetration.
+## @param extra_exclude_rids: Additional RIDs to exclude (e.g., enemy's HitArea).
 static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector2,
-		hitscan_range_val: float, damage: float, max_penetrations: int) -> Vector2:
+		hitscan_range_val: float, damage: float, max_penetrations: int,
+		extra_exclude_rids: Array[RID] = []) -> Vector2:
 	var space := enemy.get_world_2d().direct_space_state
 	var end_pos := spawn_pos + direction * hitscan_range_val
 	var walls_penetrated := 0
 	var bullet_end := end_pos
 	var current_pos := spawn_pos
-	var exclude_rids: Array[RID] = [enemy.get_rid()]  # Exclude self
+	var exclude_rids: Array[RID] = [enemy.get_rid()]  # Exclude self (CharacterBody2D)
+	for rid in extra_exclude_rids:
+		exclude_rids.append(rid)
 	var damaged_ids: Dictionary = {}
 
-	# Combined mask: Layer 1 (player) + Layer 2 (enemies) + Layer 4 (walls)
+	# Combined mask: Layer 1 (player=1) + Layer 2 (enemies=2) + Layer 3 (walls=4)
 	var combined_mask := 4 + 2 + 1
 
 	for _i in range(50):  # Safety limit
@@ -140,8 +144,10 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 			var fl: Node = enemy.get_node_or_null("/root/FileLogger")
 			if fl and fl.has_method("log_enemy"):
 				fl.log_enemy(enemy.name, "HITSCAN HIT: %s at %s (dmg=%.0f)" % [target.name, str(hit_pos), damage])
-			# Try damage methods in order of specificity
-			if target.has_method("on_hit_with_info"):
+			# Try damage methods in order of specificity (pass hitscan damage)
+			if target.has_method("on_hit_with_bullet_info"):
+				target.on_hit_with_bullet_info(-direction.normalized(), null, false, false, damage)
+			elif target.has_method("on_hit_with_info"):
 				target.on_hit_with_info(-direction.normalized(), null)
 			elif target.has_method("on_hit"):
 				target.on_hit()
@@ -216,19 +222,24 @@ static func create_laser() -> Line2D:
 
 
 ## Update sniper laser sight position and direction (global coordinates since top_level=true).
+## @param extra_exclude_rids: Additional RIDs to exclude (e.g., enemy's HitArea).
 static func update_laser(laser: Line2D, enemy: Node2D, weapon_forward: Vector2,
-		muzzle_offset: Vector2, hitscan_range_val: float) -> void:
+		muzzle_offset: Vector2, hitscan_range_val: float,
+		extra_exclude_rids: Array[RID] = []) -> void:
 	if laser == null:
 		return
 
 	var space := enemy.get_world_2d().direct_space_state
 	var start := enemy.global_position + muzzle_offset
 	var end_pos := start + weapon_forward * hitscan_range_val
-	# Mask: layer 1 (player) + layer 2 (enemies) + layer 4 (walls) = 7
+	# Mask: layer 1 (player=1) + layer 2 (enemies=2) + layer 3 (walls=4)
+	var exclude: Array[RID] = [enemy.get_rid()]
+	for rid in extra_exclude_rids:
+		exclude.append(rid)
 	var query := PhysicsRayQueryParameters2D.create(start, end_pos, 4 + 2 + 1)
 	query.collide_with_areas = true
 	query.collide_with_bodies = true
-	query.exclude = [enemy.get_rid()]  # Exclude self from laser raycast
+	query.exclude = exclude
 	var result := space.intersect_ray(query)
 
 	var laser_end: Vector2

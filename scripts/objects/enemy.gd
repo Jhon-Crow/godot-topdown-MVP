@@ -1247,7 +1247,8 @@ func _process_ai_state(delta: float) -> void:
 
 	# SECOND PRIORITY: If player is vulnerable but NOT close, pursue them aggressively
 	# This makes enemies rush toward vulnerable players to exploit the weakness
-	if player_is_vulnerable and _can_see_player and _player and not player_close:
+	# Snipers don't pursue — they hold position and shoot from range (Issue #581)
+	if not _is_sniper and player_is_vulnerable and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		# Only log once per pursuit decision to avoid spam
 		var pursue_key := "last_pursue_vuln_frame"
@@ -3840,17 +3841,15 @@ func _shoot() -> void:
 	if not _should_shoot_at_target(target_position):
 		if _is_sniper: _log_to_file("SNIPER _shoot: blocked - _should_shoot_at_target()=false")
 		return
-
-	# Calculate bullet spawn position at weapon muzzle first
-	# We need this to calculate the correct bullet direction
+	# Calculate bullet spawn position and aim direction
 	var weapon_forward := _get_weapon_forward_direction()
-	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	var to_target := (target_position - global_position).normalized()
-	# Snipers use body rotation for aim check (avoids weapon sprite transform lag)
-	var aim_check_dir := weapon_forward
+	var aim_check_dir := weapon_forward  # Snipers override: body rotation (avoids weapon sprite lag)
 	if _is_sniper:
 		aim_check_dir = Vector2.from_angle(rotation)
+	# Snipers: spawn hitscan from body rotation direction to match shot direction
+	var bullet_spawn_pos := _get_bullet_spawn_position(aim_check_dir if _is_sniper else weapon_forward)
+
+	var to_target := (target_position - global_position).normalized()
 	# Check if weapon is aimed at target within tolerance (Issue #254, #344)
 	var aim_dot := aim_check_dir.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
@@ -3954,7 +3953,10 @@ func _update_sniper_laser() -> void:
 	_sniper_laser.visible = true
 	# Use body rotation for laser direction (consistent with shoot direction)
 	var wf := Vector2.from_angle(rotation) if not _can_see_player else _get_weapon_forward_direction()
-	SniperComponent.update_laser(_sniper_laser, self, wf, _get_bullet_spawn_position(wf) - global_position, _sniper_hitscan_range)
+	# Exclude own HitArea from laser raycast to prevent it terminating at self
+	var extra_rids: Array[RID] = []
+	if _hit_area: extra_rids.append(_hit_area.get_rid())
+	SniperComponent.update_laser(_sniper_laser, self, wf, _get_bullet_spawn_position(wf) - global_position, _sniper_hitscan_range, extra_rids)
 
 func _calculate_sniper_spread(_direction: Vector2) -> float:
 	if _player == null: return 15.0
@@ -3964,7 +3966,10 @@ func _count_walls_to_target(target_pos: Vector2) -> int:
 	return SniperComponent.count_walls(self, target_pos)
 
 func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
-	var bullet_end := SniperComponent.perform_hitscan(self, direction, spawn_pos, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations)
+	# Exclude own HitArea from hitscan to prevent self-damage
+	var extra_rids: Array[RID] = []
+	if _hit_area: extra_rids.append(_hit_area.get_rid())
+	var bullet_end := SniperComponent.perform_hitscan(self, direction, spawn_pos, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations, extra_rids)
 	SniperComponent.spawn_tracer(get_tree(), spawn_pos, bullet_end)
 	var shake_mgr: Node = get_node_or_null("/root/ScreenShakeManager")
 	if shake_mgr and shake_mgr.has_method("shake") and _player and global_position.distance_to(_player.global_position) < 1000.0:
@@ -3997,14 +4002,19 @@ func _process_sniper_combat_state(delta: float) -> void:
 
 func _process_sniper_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO; _sniper_update_detection_delay(delta)
-	# If sniper can see the player directly, transition to COMBAT for proper engagement
-	if _can_see_player and _player:
-		_log_to_file("SNIPER: leaving IN_COVER - direct LOS to player"); _transition_to_combat(); return
+	# Snipers STAY in cover and shoot from there — they don't leave cover just because they see the player.
 	# Only re-seek cover if player is dangerously close (half viewport distance)
 	if _sniper_retreat_cooldown <= 0.0 and _player:
 		var dist := global_position.distance_to(_player.global_position)
 		if dist < get_viewport_rect().size.length() * 0.5:
 			_has_valid_cover = false; _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
+	# Shoot at visible player from cover
+	if _can_see_player and _player:
+		_aim_at_player()
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_log_to_file("SNIPER: shooting from cover at visible player"); _shoot(); _shoot_timer = 0.0
+		return
+	# Shoot through walls at suspected position
 	if _memory and _memory.has_target():
 		var suspected_pos: Vector2 = _memory.suspected_position
 		var walls := SniperComponent.count_walls(self, suspected_pos)
