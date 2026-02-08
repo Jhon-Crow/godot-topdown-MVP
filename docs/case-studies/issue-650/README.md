@@ -212,3 +212,56 @@ transition theory (double `move_and_slide`, nav map sync) does not apply here.
 4. **Coordinator only regenerates waypoints when needed** — If the coordinator determines
    that coordination is active (≥2 enemies), it regenerates waypoints with sector constraints.
    Otherwise, the original solo waypoints are used as-is.
+
+## Fourth Crash Report (NavigationServer2D Segfault During Physics)
+
+### Symptoms
+After the third fix (deferred coordinator + WeakRef), the game still crashes when an enemy
+enters SEARCHING state. Crash log: `crash-logs/game_log_20260208_191327.txt`.
+
+### Root Cause Analysis (Cross-Log Pattern Discovery)
+
+Analysis of **all 5 crash logs** (4 crashes + 1 clean exit) revealed a common operation
+present in every crash that was not yet addressed by fixes #1-#3:
+
+**`_generate_search_waypoints()` calls `NavigationServer2D.map_get_closest_point()` synchronously
+during `_physics_process()` via `_is_waypoint_navigable()`.**
+
+The function chain:
+1. `_transition_to_searching()` (called from `_physics_process` via GLOBAL STUCK or state machine)
+2. → `_generate_search_waypoints()` (generates waypoints)
+3. → `_is_waypoint_navigable()` (called in a tight loop, up to 100 iterations)
+4. → `NavigationServer2D.map_get_closest_point()` (native engine call)
+
+This means during a single `_physics_process` frame, the engine was making up to 100
+`NavigationServer2D.map_get_closest_point()` calls synchronously. In Godot 4.3, NavigationServer2D
+operations during the physics step can cause native segfaults when the navigation map hasn't
+fully synced or when internal RID references are in flux.
+
+**Evidence across all crashes:**
+
+| Crash | Trigger | NavServer calls during physics | Time to crash |
+|-------|---------|-------------------------------|---------------|
+| Log 2 | LastChance expire (4 enemies) | 4× `_generate_search_waypoints` | ~1 second |
+| Log 3 | LastChance expire (4 enemies) | 4× `_generate_search_waypoints` | < 1 second |
+| Log 4 | LastChance expire (6 enemies) | 6× `_generate_search_waypoints` | < 1 second |
+| Log 5 | GLOBAL STUCK (1 enemy) | 1× `_generate_search_waypoints` | 0 frames |
+
+Fix #3 deferred only the **coordinator setup** (static Dictionary + `instance_from_id`), but
+`_generate_search_waypoints()` was still called synchronously inside `_transition_to_searching()`.
+
+### Fix Applied (Fourth Pass)
+
+1. **Deferred waypoint generation** — `_transition_to_searching()` no longer calls
+   `_generate_search_waypoints()`. Instead, it only sets state variables and logs the transition.
+
+2. **Unified deferred initialization** — `_deferred_search_init()` replaces the separate
+   `_deferred_coordinator_setup()`. When `_search_init_frames` reaches 0 in
+   `_process_searching_state()`, it calls `call_deferred("_deferred_search_init")` which:
+   - Generates waypoints (NavigationServer2D calls — safe on idle frame)
+   - Registers with group search coordinator
+   - Regenerates sector waypoints if coordination is active
+
+3. **Complete isolation from physics** — No NavigationServer2D calls remain in the
+   `_transition_to_searching()` → `_physics_process()` execution path. All navigation
+   queries are deferred to idle frames via `call_deferred()`.
