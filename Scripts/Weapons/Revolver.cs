@@ -5,6 +5,35 @@ using GodotTopDownTemplate.Projectiles;
 namespace GodotTopDownTemplate.Weapons;
 
 /// <summary>
+/// Revolver reload state for multi-step cylinder loading (Issue #626).
+/// Reload sequence: R (open cylinder, eject casings) → F×N (insert cartridges) → R (close cylinder)
+/// </summary>
+public enum RevolverReloadState
+{
+    /// <summary>
+    /// Not reloading - normal operation.
+    /// </summary>
+    NotReloading,
+
+    /// <summary>
+    /// Cylinder is open - casings have been ejected.
+    /// Player can insert cartridges with F or close cylinder with R.
+    /// </summary>
+    CylinderOpen,
+
+    /// <summary>
+    /// Cylinder is open and at least one cartridge has been inserted.
+    /// Player can insert more cartridges with F or close cylinder with R.
+    /// </summary>
+    Loading,
+
+    /// <summary>
+    /// Cylinder is being closed - reload completing.
+    /// </summary>
+    Closing
+}
+
+/// <summary>
 /// RSh-12 heavy revolver - semi-automatic high-caliber revolver.
 /// Features:
 /// - Semi-automatic fire (one shot per click)
@@ -16,6 +45,7 @@ namespace GodotTopDownTemplate.Weapons;
 /// - 5-round cylinder (12.7mm caliber)
 /// - Pistol casings (longer than standard)
 /// - Very loud (alerts enemies at long range)
+/// - Multi-step reload: open cylinder → insert cartridges → close cylinder (Issue #626)
 /// Reference: https://news.rambler.ru/weapon/40992656-slonoboy-russkiy-revolver-kotoryy-sposoben-unichtozhit-bronetransporter/
 /// </summary>
 public partial class Revolver : BaseWeapon
@@ -83,6 +113,43 @@ public partial class Revolver : BaseWeapon
     /// </summary>
     private const float RevolverMuzzleFlashScale = 1.5f;
 
+    /// <summary>
+    /// Current reload state for multi-step cylinder reload (Issue #626).
+    /// </summary>
+    public RevolverReloadState ReloadState { get; private set; } = RevolverReloadState.NotReloading;
+
+    /// <summary>
+    /// Number of cartridges loaded into the cylinder during the current reload.
+    /// Tracks how many F presses have been made since opening the cylinder.
+    /// </summary>
+    public int CartridgesLoadedThisReload { get; private set; } = 0;
+
+    /// <summary>
+    /// Number of spent casings that were ejected when cylinder was opened.
+    /// Used for spawning casing effects.
+    /// </summary>
+    private int _spentCasingsToEject = 0;
+
+    /// <summary>
+    /// Signal emitted when the reload state changes.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadStateChangedEventHandler(int newState);
+
+    /// <summary>
+    /// Signal emitted when a cartridge is inserted into the cylinder.
+    /// Provides the number of cartridges loaded so far and the cylinder capacity.
+    /// </summary>
+    [Signal]
+    public delegate void CartridgeInsertedEventHandler(int loaded, int capacity);
+
+    /// <summary>
+    /// Signal emitted when casings are ejected from the cylinder.
+    /// Provides the number of casings ejected.
+    /// </summary>
+    [Signal]
+    public delegate void CasingsEjectedEventHandler(int count);
+
     public override void _Ready()
     {
         base._Ready();
@@ -100,7 +167,8 @@ public partial class Revolver : BaseWeapon
             GD.Print("[Revolver] No RevolverSprite node (visual model not yet added)");
         }
 
-        GD.Print("[Revolver] RSh-12 initialized - heavy revolver ready");
+        int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
+        GD.Print($"[Revolver] RSh-12 initialized - heavy revolver ready, cylinder capacity={cylinderCapacity}");
     }
 
     public override void _Process(double delta)
@@ -205,6 +273,13 @@ public partial class Revolver : BaseWeapon
     /// <returns>True if the weapon fired successfully.</returns>
     public override bool Fire(Vector2 direction)
     {
+        // Cannot fire while cylinder is open (Issue #626)
+        if (ReloadState != RevolverReloadState.NotReloading)
+        {
+            GD.Print("[Revolver] Cannot fire - cylinder is open");
+            return false;
+        }
+
         // Check for empty cylinder - play click sound
         if (CurrentAmmo <= 0)
         {
@@ -439,4 +514,214 @@ public partial class Revolver : BaseWeapon
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    #region Multi-Step Cylinder Reload (Issue #626)
+
+    /// <summary>
+    /// Gets the cylinder capacity (number of chambers in the revolver).
+    /// </summary>
+    public int CylinderCapacity => WeaponData?.MagazineSize ?? 5;
+
+    /// <summary>
+    /// Whether the cylinder can be opened for reloading.
+    /// Can open when not already reloading and either cylinder is not full or has spent casings.
+    /// </summary>
+    public bool CanOpenCylinder => ReloadState == RevolverReloadState.NotReloading
+                                   && !IsReloading;
+
+    /// <summary>
+    /// Whether a cartridge can be inserted into the cylinder.
+    /// Requires cylinder to be open and not yet full, with spare ammo available.
+    /// </summary>
+    public bool CanInsertCartridge => (ReloadState == RevolverReloadState.CylinderOpen
+                                      || ReloadState == RevolverReloadState.Loading)
+                                     && CurrentAmmo < CylinderCapacity
+                                     && MagazineInventory.HasSpareAmmo;
+
+    /// <summary>
+    /// Whether the cylinder can be closed.
+    /// Requires cylinder to be open (with or without cartridges loaded).
+    /// </summary>
+    public bool CanCloseCylinder => ReloadState == RevolverReloadState.CylinderOpen
+                                    || ReloadState == RevolverReloadState.Loading;
+
+    /// <summary>
+    /// Step 1: Open the cylinder and eject spent casings (Issue #626).
+    /// Called when player presses R with the revolver equipped.
+    /// Spent casings fall out (visual effect), cylinder is now empty and open.
+    /// </summary>
+    /// <returns>True if the cylinder was opened successfully.</returns>
+    public bool OpenCylinder()
+    {
+        if (!CanOpenCylinder)
+        {
+            return false;
+        }
+
+        // Track how many spent rounds to eject as casings
+        int cylinderCapacity = CylinderCapacity;
+        _spentCasingsToEject = cylinderCapacity - CurrentAmmo;
+
+        // Empty the cylinder - all rounds (spent casings) fall out
+        // The current ammo represents live rounds still in the cylinder
+        // When opening, we dump everything (spent casings already fired are gone)
+        // Set ammo to 0 - player needs to reload cartridges
+        CurrentAmmo = 0;
+        CartridgesLoadedThisReload = 0;
+
+        // Update reload state
+        ReloadState = RevolverReloadState.CylinderOpen;
+
+        // Spawn spent casings falling out
+        if (_spentCasingsToEject > 0)
+        {
+            SpawnEjectedCasings(_spentCasingsToEject);
+            EmitSignal(SignalName.CasingsEjected, _spentCasingsToEject);
+        }
+
+        EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        EmitSignal(SignalName.ReloadStarted);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[Revolver] Cylinder opened - ejected {_spentCasingsToEject} spent casings");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Step 2: Insert one cartridge into the cylinder and rotate it (Issue #626).
+    /// Called when player presses F with the cylinder open.
+    /// Can be pressed up to CylinderCapacity times (5 for RSh-12).
+    /// Consumes one round from reserve ammunition.
+    /// </summary>
+    /// <returns>True if a cartridge was inserted successfully.</returns>
+    public bool InsertCartridge()
+    {
+        if (!CanInsertCartridge)
+        {
+            if (CurrentAmmo >= CylinderCapacity)
+            {
+                GD.Print("[Revolver] Cylinder is full - cannot insert more cartridges");
+            }
+            else if (!MagazineInventory.HasSpareAmmo)
+            {
+                GD.Print("[Revolver] No spare ammo - cannot insert cartridge");
+            }
+            return false;
+        }
+
+        // Consume one round from spare magazines
+        // Find a spare magazine with ammo and take one round from it
+        bool consumed = false;
+        foreach (var mag in MagazineInventory.SpareMagazines)
+        {
+            if (mag.CurrentAmmo > 0)
+            {
+                mag.CurrentAmmo--;
+                consumed = true;
+                break;
+            }
+        }
+
+        if (!consumed)
+        {
+            GD.Print("[Revolver] Failed to consume ammo from spare magazines");
+            return false;
+        }
+
+        // Add one round to the cylinder
+        CurrentAmmo++;
+        CartridgesLoadedThisReload++;
+
+        // Update state to Loading (at least one cartridge inserted)
+        ReloadState = RevolverReloadState.Loading;
+
+        EmitSignal(SignalName.CartridgeInserted, CartridgesLoadedThisReload, CylinderCapacity);
+        EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[Revolver] Cartridge inserted ({CartridgesLoadedThisReload}/{CylinderCapacity}), ammo: {CurrentAmmo}/{CylinderCapacity}, reserve: {ReserveAmmo}");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Step 3: Close the cylinder to complete the reload (Issue #626).
+    /// Called when player presses R with the cylinder open (after inserting cartridges).
+    /// Weapon is now ready to fire.
+    /// </summary>
+    /// <returns>True if the cylinder was closed successfully.</returns>
+    public bool CloseCylinder()
+    {
+        if (!CanCloseCylinder)
+        {
+            return false;
+        }
+
+        ReloadState = RevolverReloadState.NotReloading;
+        IsReloading = false;
+
+        EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        EmitSignal(SignalName.ReloadFinished);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[Revolver] Cylinder closed - {CurrentAmmo}/{CylinderCapacity} rounds loaded, ready to fire");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Spawns casings falling from the opened cylinder.
+    /// When the cylinder opens, spent casings fall out due to gravity.
+    /// They drop downward (not ejected forcefully like semi-auto pistols).
+    /// </summary>
+    /// <param name="count">Number of casings to spawn.</param>
+    private void SpawnEjectedCasings(int count)
+    {
+        if (CasingScene == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            var casing = CasingScene.Instantiate<RigidBody2D>();
+            // Casings fall from the cylinder position with slight random spread
+            float randomOffsetX = (float)GD.RandRange(-8.0f, 8.0f);
+            float randomOffsetY = (float)GD.RandRange(-5.0f, 5.0f);
+            casing.GlobalPosition = GlobalPosition + new Vector2(randomOffsetX, randomOffsetY);
+
+            // Casings fall downward with slight random horizontal drift (gravity drop, not ejection)
+            float horizontalDrift = (float)GD.RandRange(-30.0f, 30.0f);
+            float downwardSpeed = (float)GD.RandRange(40.0f, 80.0f);
+            casing.LinearVelocity = new Vector2(horizontalDrift, downwardSpeed);
+
+            // Light spin as casings tumble
+            casing.AngularVelocity = (float)GD.RandRange(-10.0f, 10.0f);
+
+            // Set caliber data on the casing for appearance
+            if (WeaponData?.Caliber != null)
+            {
+                casing.Set("caliber_data", WeaponData.Caliber);
+            }
+
+            GetTree().CurrentScene.AddChild(casing);
+        }
+    }
+
+    /// <summary>
+    /// Override StartReload to use cylinder-based reload instead of magazine swap.
+    /// The base class timed reload is not used for the revolver.
+    /// </summary>
+    public override void StartReload()
+    {
+        // Revolver uses multi-step cylinder reload, not timed reload
+        // This method is intentionally empty - reload is handled by
+        // OpenCylinder(), InsertCartridge(), and CloseCylinder()
+    }
+
+    #endregion
 }
