@@ -100,6 +100,39 @@ The solution adds aggression as a new status effect while keeping changes minima
 - **Retaliation mechanic**: When an enemy is hit and the attacker has an enemy instance ID,
   the victim becomes aggressive toward the attacker. This creates mutual hostility chains.
 
+## Owner Feedback & Bug Fixes (PR #687 Review)
+
+The repo owner (Jhon-Crow) identified several visual/behavioral issues in the initial implementation:
+
+> "Визуально и значок и моделька газовой выглядит так же как светошумовая и взрывается так же, а должна не взрываться, а выпускать облако красноватого газа."
+> (Translation: "Visually both the icon and the gas grenade model look the same as the flashbang and it explodes the same way, but it should not explode — it should release a reddish gas cloud.")
+
+### Root Causes Identified
+
+1. **Sprite too similar to flashbang**: Both used simple green-tinted circles (~16x16).
+   - **Fix**: Created a distinct dark red/maroon canister sprite with metallic top.
+
+2. **Explosion-like blink effect**: `GrenadeBase._update_blink_effect()` made the grenade blink green/white as the timer counted down — identical to explosive grenades.
+   - **Fix**: Overrode `_update_blink_effect()` with a smooth reddish pulse that intensifies as gas release approaches (sinusoidal, not blinking).
+
+3. **PowerFantasy explosion triggered**: `GrenadeBase._explode()` called `PowerFantasyEffectsManager.on_grenade_exploded()` which triggered an explosion visual shockwave effect.
+   - **Fix**: Overrode `_explode()` to skip the PowerFantasy effect entirely.
+
+4. **Casing scatter on gas release**: `_on_explode()` called `_scatter_casings()` which scattered casings like a real explosion.
+   - **Fix**: Removed `_scatter_casings()` call from `_on_explode()`.
+
+5. **Gas cloud was green instead of reddish**: Cloud visual used `Color(0.3, 0.9, 0.3, 0.35)` (green).
+   - **Fix**: Changed to `Color(0.9, 0.25, 0.2, 0.35)` (reddish).
+
+6. **Enemy aggression tint was green**: `StatusEffectsManager` applied `Color(0.5, 1.0, 0.5, 1.0)` (green) tint.
+   - **Fix**: Changed to `Color(1.0, 0.5, 0.45, 1.0)` (reddish) to match gas color.
+
+### Timeline
+
+1. Initial implementation: Green gas cloud, green tints, explosion-like behavior
+2. Owner review: Identified visual/behavioral issues
+3. Fix: Reddish color scheme, distinct canister sprite, gas-release behavior (no explosion)
+
 ## Online Research
 
 No existing Godot plugins or libraries specifically handle temporary faction switching.
@@ -114,10 +147,11 @@ seen in games like:
 
 | File | Change |
 |---|---|
-| `scripts/projectiles/aggression_gas_grenade.gd` | New grenade class |
-| `scripts/effects/aggression_cloud.gd` | New persistent gas cloud |
+| `scripts/projectiles/aggression_gas_grenade.gd` | New grenade class — overrides blink/explode for gas-release behavior |
+| `scripts/effects/aggression_cloud.gd` | New persistent reddish gas cloud |
 | `scripts/components/aggression_component.gd` | Aggression targeting component (extracted from enemy.gd) |
 | `scenes/projectiles/AggressionGasGrenade.tscn` | New grenade scene |
-| `scripts/autoload/status_effects_manager.gd` | Add aggression effect |
+| `assets/sprites/weapons/aggression_gas_grenade.png` | Dark red canister sprite (distinct from flashbang) |
+| `scripts/autoload/status_effects_manager.gd` | Add aggression effect with reddish tint |
 | `scripts/objects/enemy.gd` | Minimal aggression integration (delegates to component) |
 | `scripts/autoload/grenade_manager.gd` | Register new grenade type |

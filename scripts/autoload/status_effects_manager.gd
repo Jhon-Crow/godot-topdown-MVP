@@ -263,7 +263,7 @@ func _remove_stun_visual(entity: Object) -> void:
 func _apply_aggression_visual(entity: Node2D) -> void:
 	if not entity.has_meta("_aggression_tint"):
 		_save_original_modulate(entity)
-		_apply_tint(entity, Color(0.5, 1.0, 0.5, 1.0))  # Green tint
+		_apply_tint(entity, Color(1.0, 0.5, 0.45, 1.0))  # Reddish tint
 		entity.set_meta("_aggression_tint", true)
 
 

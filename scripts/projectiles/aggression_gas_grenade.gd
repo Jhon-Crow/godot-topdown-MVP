@@ -2,7 +2,8 @@ extends GrenadeBase
 class_name AggressionGasGrenade
 ## Aggression gas grenade that releases a cloud making enemies fight each other.
 ##
-## After 4 seconds, releases a gas cloud (slightly larger than frag grenade radius).
+## After 4 seconds, releases a reddish gas cloud (slightly larger than frag radius).
+## Unlike explosive grenades, this does NOT explode — it hisses and releases gas.
 ## Enemies inside the cloud become aggressive toward other enemies for 10 seconds.
 ## The aggression effect refreshes if enemies touch the gas again.
 ## The gas cloud dissipates after 20 seconds.
@@ -14,6 +15,7 @@ class_name AggressionGasGrenade
 ## - атакованные враги воспринимают агрессоров как врагов и тоже отстреливаются
 ## - эффект длится 10 секунд и обновляется при повторном контакте
 ## - газ рассеивается через 20 секунд
+## - не взрывается, а выпускает облако красноватого газа
 
 ## Effect radius for the gas cloud (slightly larger than frag grenade's 225px).
 @export var effect_radius: float = 300.0
@@ -24,22 +26,74 @@ class_name AggressionGasGrenade
 ## Duration of aggression effect on each enemy (seconds).
 @export var aggression_duration: float = 10.0
 
+## Hiss visual pulse timer for gas release countdown.
+var _hiss_timer: float = 0.0
+
 
 func _ready() -> void:
 	super._ready()
 	# Uses default 4 second fuse from GrenadeBase
 
 
-## Override to define the explosion effect - spawn gas cloud.
+## Override blink effect — gas grenade does NOT blink like an explosive.
+## Instead it emits a subtle reddish pulsing hiss effect.
+func _update_blink_effect(delta: float) -> void:
+	if not _sprite:
+		return
+
+	# Gentle reddish pulse that intensifies as gas release approaches
+	_hiss_timer += delta
+	var pulse_speed: float
+	if _time_remaining < 1.0:
+		pulse_speed = 8.0
+	elif _time_remaining < 2.0:
+		pulse_speed = 4.0
+	elif _time_remaining < 3.0:
+		pulse_speed = 2.0
+	else:
+		pulse_speed = 1.0
+
+	# Smooth sinusoidal pulse between normal and reddish tint
+	var pulse := (sin(_hiss_timer * pulse_speed * TAU) + 1.0) * 0.5
+	var r := lerpf(1.0, 1.0, pulse)
+	var g := lerpf(1.0, 0.6, pulse)
+	var b := lerpf(1.0, 0.5, pulse)
+	_sprite.modulate = Color(r, g, b, 1.0)
+
+
+## Override to define the gas release effect — NOT an explosion.
 func _on_explode() -> void:
 	# Spawn the persistent aggression gas cloud
 	_spawn_aggression_cloud()
-
-	# Scatter shell casings lightly (non-lethal grenade)
-	_scatter_casings(effect_radius * 0.3)
+	# No casing scatter — this is a gas release, not an explosion
 
 
-## Override explosion sound - gas release is quieter than explosive grenades.
+## Override the base _explode to skip PowerFantasy explosion effect.
+## Gas grenade releases gas quietly, it does not produce an explosive shockwave.
+func _explode() -> void:
+	if _has_exploded:
+		return
+	_has_exploded = true
+
+	FileLogger.info("[AggressionGasGrenade] Gas released at %s!" % str(global_position))
+
+	# NO PowerFantasy explosion effect — gas release is not an explosion
+
+	# Play gas release sound (quiet hiss, not explosion)
+	_play_explosion_sound()
+
+	# Call gas release effect
+	_on_explode()
+
+	# Emit signal
+	exploded.emit(global_position, self)
+
+	# Destroy grenade after a short delay for effects
+	await get_tree().create_timer(0.1).timeout
+	queue_free()
+
+
+## Override explosion sound — gas release is a quiet hiss, not a boom.
 func _play_explosion_sound() -> void:
 	# Play gas release sound via AudioManager
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -54,7 +108,7 @@ func _play_explosion_sound() -> void:
 		if viewport:
 			var size := viewport.get_visible_rect().size
 			viewport_diagonal = sqrt(size.x * size.x + size.y * size.y)
-		# Gas release is quieter - 1x viewport instead of 2x
+		# Gas release is quieter — 1x viewport instead of 2x
 		var sound_range := viewport_diagonal * 1.0
 		# 1 = EXPLOSION type, 2 = NEUTRAL source
 		sound_propagation.emit_sound(1, global_position, 2, self, sound_range)
@@ -65,7 +119,7 @@ func _get_effect_radius() -> float:
 	return effect_radius
 
 
-## Spawn the persistent aggression gas cloud at the explosion position.
+## Spawn the persistent aggression gas cloud at the gas release position.
 func _spawn_aggression_cloud() -> void:
 	var cloud := AggressionCloud.new()
 	cloud.name = "AggressionCloud"
@@ -80,14 +134,3 @@ func _spawn_aggression_cloud() -> void:
 	FileLogger.info("[AggressionGasGrenade] Gas cloud spawned at %s (radius=%.0f, duration=%.0fs)" % [
 		str(global_position), effect_radius, cloud_duration
 	])
-
-
-## Spawn visual gas release effect at explosion position.
-func _spawn_gas_release_effect() -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-
-	if impact_manager and impact_manager.has_method("spawn_gas_effect"):
-		impact_manager.spawn_gas_effect(global_position, effect_radius)
-	else:
-		# The AggressionCloud handles its own visual, so no fallback needed here
-		pass

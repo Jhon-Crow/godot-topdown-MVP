@@ -1,17 +1,19 @@
 extends Node2D
 class_name AggressionCloud
-## Persistent gas cloud that causes enemies to become aggressive toward each other.
+## Persistent reddish gas cloud that causes enemies to become aggressive toward each other.
 ##
-## Spawned by AggressionGasGrenade on detonation.
+## Spawned by AggressionGasGrenade on gas release (NOT explosion).
 ## - Radius: 300px (slightly larger than frag grenade's 225px)
 ## - Duration: 20 seconds before dissipating
 ## - Effect: Enemies in the cloud become aggressive for 10 seconds (refreshable)
+## - Visual: Reddish semi-transparent gas cloud
 ##
 ## Per issue #675 requirements:
 ## - облако газа (чуть больше радиуса поражения наступательной гранаты)
 ## - враги начинают воспринимать других врагов как врагов
 ## - эффект длится 10 секунд и обновляется при повторном контакте с газом
 ## - газ рассеивается через 20 секунд
+## - облако красноватого газа
 
 ## Radius of the gas cloud in pixels.
 @export var cloud_radius: float = 300.0
@@ -86,7 +88,7 @@ func _setup_detection_area() -> void:
 func _setup_cloud_visual() -> void:
 	_cloud_visual = Sprite2D.new()
 	_cloud_visual.texture = _create_cloud_texture(int(cloud_radius))
-	_cloud_visual.modulate = Color(0.3, 0.9, 0.3, 0.35)  # Green semi-transparent gas
+	_cloud_visual.modulate = Color(0.9, 0.25, 0.2, 0.35)  # Reddish semi-transparent gas
 	_cloud_visual.z_index = -1  # Draw below characters
 	add_child(_cloud_visual)
 
@@ -160,8 +162,8 @@ func _create_cloud_texture(radius: int) -> ImageTexture:
 				# Soft falloff from center - denser in the middle
 				var alpha := 1.0 - (distance / radius)
 				alpha = alpha * alpha  # Quadratic falloff for softer edges
-				# Green gas color with alpha
-				image.set_pixel(x, y, Color(0.3, 0.8, 0.3, alpha))
+				# Reddish gas color with alpha
+				image.set_pixel(x, y, Color(0.85, 0.2, 0.15, alpha))
 			else:
 				image.set_pixel(x, y, Color(0, 0, 0, 0))
 
