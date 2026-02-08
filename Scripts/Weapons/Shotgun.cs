@@ -1883,6 +1883,17 @@ public partial class Shotgun : BaseWeapon
     public Vector2 AimDirection => _aimDirection;
 
     /// <summary>
+    /// Override CanFire for the shotgun's tube magazine system.
+    /// The shotgun uses ShellsInTube instead of CurrentAmmo (which is always 0
+    /// because the MagazineInventory CurrentMagazine is a placeholder for reserve shells).
+    /// Without this override, CanFire returns false and the player cannot shoot.
+    /// </summary>
+    public override bool CanFire => ShellsInTube > 0 &&
+                                     ActionState == ShotgunActionState.Ready &&
+                                     ReloadState == ShotgunReloadState.NotReloading &&
+                                     _fireTimer <= 0;
+
+    /// <summary>
     /// Gets whether the shotgun is ready to fire.
     /// </summary>
     public bool IsReadyToFire => ActionState == ShotgunActionState.Ready &&
