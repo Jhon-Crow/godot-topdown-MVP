@@ -387,6 +387,8 @@ var _grenade_component: EnemyGrenadeComponent = null
 
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
+var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #583).
+var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 
 ## Note: DeathAnimationComponent, EnemyGrenadeComponent, MacheteComponent are available via class_name declarations.
 
@@ -488,6 +490,7 @@ func _configure_weapon_type() -> void:
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
 	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
+	_is_rpg_weapon = c.get("is_rpg", false)  # Issue #583: RPG flag
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -3827,8 +3830,8 @@ func _shoot() -> void:
 
 	var target_position := _player.global_position
 
-	# Apply lead prediction if enabled
-	if enable_lead_prediction:
+	# Apply lead prediction if enabled (not for RPG - fires at position directly)
+	if enable_lead_prediction and not _is_rpg_weapon:
 		target_position = _calculate_lead_prediction()
 
 	# Check if the shot should be taken (friendly fire and cover checks)
@@ -3857,7 +3860,7 @@ func _shoot() -> void:
 	if _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)  # Issue #455: Add muzzle flash effect
-	_spawn_casing(direction, weapon_forward)
+	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
 	# Play sound
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
@@ -3865,9 +3868,14 @@ func _shoot() -> void:
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
-	_play_delayed_shell_sound()
+	if not _is_rpg_weapon: _play_delayed_shell_sound()  # Issue #583: no shell sound for RPG
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	# Issue #583: RPG enemy switches to PM after firing rocket
+	if _is_rpg_weapon and not _rpg_fired:
+		_rpg_fired = true
+		_switch_to_secondary_weapon()
+		return
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
@@ -3890,7 +3898,6 @@ func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
 	var spread := _initial_spread if _shot_count <= _spread_threshold else minf(_initial_spread + (_shot_count - _spread_threshold) * _spread_increment, _max_spread)
 	if spread > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread), deg_to_rad(spread)))
 	_spawn_projectile(direction, spawn_pos)
-
 
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
@@ -4572,38 +4579,15 @@ func set_player_ammo_empty(is_empty: bool) -> void:
 	if is_empty != old: _log_to_file("Player ammo empty: %s -> %s" % [old, is_empty])
 
 func is_under_fire() -> bool: return _under_fire
-
-## Check if enemy is in cover.
-func is_in_cover() -> bool:
-	return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
-
-## Get current ammo in magazine.
-func get_current_ammo() -> int:
-	return _current_ammo
-
-## Get reserve ammo.
-func get_reserve_ammo() -> int:
-	return _reserve_ammo
-
-## Get total ammo (current + reserve).
-func get_total_ammo() -> int:
-	return _current_ammo + _reserve_ammo
-
-## Check if enemy is currently reloading.
-func is_reloading() -> bool:
-	return _is_reloading
-
-## Check if enemy has any ammo left.
-func has_ammo() -> bool:
-	return _current_ammo > 0 or _reserve_ammo > 0
-
-## Get current player visibility ratio (for debugging).
-## Returns 0.0 if player is completely hidden, 1.0 if fully visible.
-func get_player_visibility_ratio() -> float:
-	return _player_visibility_ratio
+func is_in_cover() -> bool: return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
+func get_current_ammo() -> int: return _current_ammo
+func get_reserve_ammo() -> int: return _reserve_ammo
+func get_total_ammo() -> int: return _current_ammo + _reserve_ammo
+func is_reloading() -> bool: return _is_reloading
+func has_ammo() -> bool: return _current_ammo > 0 or _reserve_ammo > 0
+func get_player_visibility_ratio() -> float: return _player_visibility_ratio
 
 ## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
@@ -4844,7 +4828,6 @@ func set_stunned(stunned: bool) -> void:
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
 
-
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	_log_to_file("Flashbang: blind=%.1fs, stun=%.1fs" % [blindness_duration, stun_duration])
@@ -4859,7 +4842,6 @@ func _update_flashbang_timers(delta: float) -> void:
 	if _stun_timer > 0.0:
 		_stun_timer -= delta
 		if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
-
 
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 
@@ -4963,12 +4945,7 @@ func _update_grenade_danger_detection() -> void:
 func _calculate_grenade_evasion_target() -> void:
 	if _grenade_avoidance: _grenade_avoidance.calculate_evasion_target(_nav_agent)
 
-## Get the number of grenades remaining.
-func get_grenades_remaining() -> int:
-	if _grenade_component:
-		return _grenade_component.grenades_remaining
-	return 0
-
+func get_grenades_remaining() -> int: return _grenade_component.grenades_remaining if _grenade_component else 0
 func add_grenades(count: int) -> void:
 	if _grenade_component: _grenade_component.add_grenades(count)
 
@@ -4979,6 +4956,29 @@ func _setup_machete_component() -> void:
 	_machete.configure_from_weapon_config(WeaponConfigComponent.get_config(weapon_type)); add_child(_machete)
 	_current_ammo = 0; _reserve_ammo = 0; _is_reloading = false
 	full_health_color = Color(0.7, 0.15, 0.15, 1.0); _update_health_visual()
+
+## Switch from RPG to secondary weapon (PM pistol) after firing rocket (Issue #583).
+func _switch_to_secondary_weapon() -> void:
+	var c := WeaponConfigComponent.get_config(weapon_type)
+	var switch_type: int = c.get("switch_weapon_type", 0)
+	# Reconfigure to secondary weapon (PM)
+	var sc := WeaponConfigComponent.get_config(switch_type)
+	shoot_cooldown = sc["shoot_cooldown"]; bullet_speed = sc["bullet_speed"]; magazine_size = sc["magazine_size"]
+	bullet_spawn_offset = sc["bullet_spawn_offset"]; weapon_loudness = sc["weapon_loudness"]
+	if sc.get("bullet_scene_path", "") != "":
+		var s := load(sc["bullet_scene_path"]) as PackedScene
+		if s: bullet_scene = s
+	if sc.get("casing_scene_path", "") != "":
+		var s := load(sc["casing_scene_path"]) as PackedScene
+		if s: casing_scene = s
+	if sc.get("caliber_path", "") != "": _caliber_data = load(sc["caliber_path"])
+	_is_shotgun_weapon = sc.get("is_shotgun", false); _is_rpg_weapon = false
+	_spread_threshold = sc.get("spread_threshold", 3); _initial_spread = sc.get("initial_spread", 0.5)
+	_spread_increment = sc.get("spread_increment", 0.6); _max_spread = sc.get("max_spread", 4.0)
+	_spread_reset_time = sc.get("spread_reset_time", 0.25); _shot_count = 0; _spread_timer = 0.0
+	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size
+	_is_reloading = false; _reload_timer = 0.0
+	print("[Enemy] RPG fired, switched to %s" % WeaponConfigComponent.get_type_name(switch_type))
 
 ## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
 func _connect_casing_pusher_signals() -> void:
