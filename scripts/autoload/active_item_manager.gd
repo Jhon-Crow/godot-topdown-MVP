@@ -7,9 +7,10 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,            # No active item equipped
-	FLASHLIGHT,      # Tactical flashlight - illuminates in weapon direction
-	BREAKER_BULLETS  # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone
+	NONE,              # No active item equipped
+	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
+	BREAKER_BULLETS    # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone
 }
 
 ## Currently selected active item type.
@@ -27,6 +28,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+	},
+	ActiveItemType.TELEPORT_BRACERS: {
+		"name": "Teleport Bracers",
+		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
+		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
 	},
 	ActiveItemType.BREAKER_BULLETS: {
 		"name": "Breaker Bullets",
@@ -118,6 +124,11 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if teleport bracers are currently equipped.
+func has_teleport_bracers() -> bool:
+	return current_active_item == ActiveItemType.TELEPORT_BRACERS
 
 
 ## Check if breaker bullets are currently equipped.
