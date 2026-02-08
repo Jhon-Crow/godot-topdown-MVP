@@ -76,8 +76,9 @@ public abstract partial class BaseWeapon : Node2D
 
     /// <summary>
     /// Whether the weapon can currently fire.
+    /// Virtual so weapons with non-standard ammo systems (e.g. Shotgun's tube magazine) can override.
     /// </summary>
-    public bool CanFire => CurrentAmmo > 0 && !IsReloading && _fireTimer <= 0;
+    public virtual bool CanFire => CurrentAmmo > 0 && !IsReloading && _fireTimer <= 0;
 
     /// <summary>
     /// Whether the weapon is currently reloading.
@@ -103,7 +104,7 @@ public abstract partial class BaseWeapon : Node2D
     public bool IsInReloadSequence { get; set; }
 
 
-    private float _fireTimer;
+    protected float _fireTimer;
     private float _reloadTimer;
 
     /// <summary>
