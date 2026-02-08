@@ -2913,3 +2913,16 @@ func get_flashlight_origin() -> Vector2:
 	if not is_instance_valid(_flashlight_node):
 		return global_position
 	return _flashlight_node.global_position
+
+
+## Check if the flashlight beam is wall-clamped (Issue #640).
+## When the player stands flush against a wall, the beam is blocked and should not
+## blind enemies or be detected through the wall.
+func is_flashlight_wall_clamped() -> bool:
+	if not _flashlight_equipped or _flashlight_node == null:
+		return false
+	if not is_instance_valid(_flashlight_node):
+		return false
+	if _flashlight_node.has_method("is_wall_clamped"):
+		return _flashlight_node.is_wall_clamped()
+	return false
