@@ -7,8 +7,9 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,        # No active item equipped
-	FLASHLIGHT   # Tactical flashlight - illuminates in weapon direction
+	NONE,           # No active item equipped
+	FLASHLIGHT,     # Tactical flashlight - illuminates in weapon direction
+	HOMING_BULLETS  # Homing bullets - press Space to make bullets steer toward nearest enemy
 }
 
 ## Currently selected active item type.
@@ -26,6 +27,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+	},
+	ActiveItemType.HOMING_BULLETS: {
+		"name": "Homing Bullets",
+		"icon_path": "",
+		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
 	}
 }
 
@@ -112,3 +118,8 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if homing bullets are currently equipped.
+func has_homing_bullets() -> bool:
+	return current_active_item == ActiveItemType.HOMING_BULLETS
