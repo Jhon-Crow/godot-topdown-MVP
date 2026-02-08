@@ -147,6 +147,28 @@ namespace GodotTopdown.Scripts.Autoload
         }
 
         /// <summary>
+        /// Issue #692: Set the thrower of a grenade for self-damage prevention.
+        /// The thrower's instance ID will be excluded from explosion damage and shrapnel hits.
+        /// </summary>
+        public void SetThrower(RigidBody2D grenade, long throwerId)
+        {
+            if (grenade == null)
+            {
+                GD.PrintErr("[GrenadeTimerHelper] ERROR: grenade is null");
+                return;
+            }
+
+            var timer = grenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+            if (timer == null)
+            {
+                LogToFile("[GrenadeTimerHelper] WARNING: No GrenadeTimer found on " + grenade.Name);
+                return;
+            }
+
+            timer.SetThrower(throwerId);
+        }
+
+        /// <summary>
         /// Log message to FileLogger if available.
         /// </summary>
         private void LogToFile(string message)

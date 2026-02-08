@@ -28,6 +28,10 @@ var direction: Vector2 = Vector2.RIGHT
 ## Used to prevent self-damage during initial explosion.
 var source_id: int = -1
 
+## Issue #692: Instance ID of the enemy who threw the grenade.
+## Used to prevent shrapnel from hitting the thrower.
+var thrower_id: int = -1
+
 ## Timer tracking remaining lifetime.
 var _time_alive: float = 0.0
 
@@ -105,6 +109,10 @@ func _on_body_entered(body: Node2D) -> void:
 	if source_id == body.get_instance_id():
 		return
 
+	# Issue #692: Don't hit the enemy who threw the grenade
+	if thrower_id >= 0 and thrower_id == body.get_instance_id():
+		return
+
 	# Check if this is a dead enemy - shrapnel should pass through dead entities
 	if body.has_method("is_alive") and not body.is_alive():
 		return
@@ -132,6 +140,10 @@ func _on_area_entered(area: Area2D) -> void:
 		var parent: Node = area.get_parent()
 		if parent and source_id == parent.get_instance_id():
 			return  # Don't hit the source
+
+		# Issue #692: Don't hit the enemy who threw the grenade
+		if parent and thrower_id >= 0 and thrower_id == parent.get_instance_id():
+			return  # Don't hit the thrower
 
 		# Check if the parent is dead
 		if parent and parent.has_method("is_alive") and not parent.is_alive():

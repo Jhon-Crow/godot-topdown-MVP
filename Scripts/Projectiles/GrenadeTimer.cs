@@ -79,6 +79,13 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         public bool HasExploded { get; private set; } = false;
 
+        /// <summary>
+        /// Issue #692: Instance ID of the enemy who threw this grenade.
+        /// Used to prevent self-damage from own grenade explosion and shrapnel.
+        /// -1 means no thrower tracked (e.g., player-thrown grenades).
+        /// </summary>
+        public long ThrowerId { get; private set; } = -1;
+
         private float _timeRemaining = 0.0f;
         private RigidBody2D? _grenadeBody = null;
         private Vector2 _previousVelocity = Vector2.Zero;
@@ -86,6 +93,15 @@ namespace GodotTopdown.Scripts.Projectiles
 
         // Landing detection threshold (same as GDScript)
         private const float LandingVelocityThreshold = 50.0f;
+
+        // Issue #692: Minimum arming distance (must match GDScript MIN_ARMING_DISTANCE in frag_grenade.gd)
+        private const float MinArmingDistance = 80.0f;
+
+        // Issue #692: Spawn position for arming distance calculation
+        private Vector2 _spawnPosition = Vector2.Zero;
+
+        // Issue #692: Whether the grenade has traveled far enough to arm impact explosion
+        private bool _impactArmed = false;
 
         // Type-specific default values from scene files
         // These are used as fallback when GDScript property access fails in exports
@@ -161,6 +177,9 @@ namespace GodotTopdown.Scripts.Projectiles
             // incorrect default values (e.g., Frag using Flashbang's 400 radius).
             SetTypeBasedDefaults();
 
+            // Issue #692: Record spawn position for arming distance calculation
+            _spawnPosition = _grenadeBody.GlobalPosition;
+
             // Connect to body_entered signal for impact detection
             _grenadeBody.BodyEntered += OnBodyEntered;
 
@@ -188,6 +207,15 @@ namespace GodotTopdown.Scripts.Projectiles
             if (IsThrown && !_grenadeBody.Freeze)
             {
                 ApplyGroundFriction((float)delta);
+
+                // Issue #692: Check if grenade has traveled far enough to arm impact explosion
+                if (!_impactArmed && Type == GrenadeType.Frag)
+                {
+                    if (_grenadeBody.GlobalPosition.DistanceTo(_spawnPosition) >= MinArmingDistance)
+                    {
+                        _impactArmed = true;
+                    }
+                }
             }
 
             // Timer countdown for Flashbang grenades
@@ -263,6 +291,16 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
+        /// Issue #692: Set the instance ID of the enemy who threw this grenade.
+        /// The thrower will be excluded from explosion damage and shrapnel hits.
+        /// </summary>
+        public void SetThrower(long throwerId)
+        {
+            ThrowerId = throwerId;
+            LogToFile($"[GrenadeTimer] Thrower set to instance ID: {throwerId}");
+        }
+
+        /// <summary>
         /// Apply ground friction to slow down the grenade.
         /// CRITICAL: This replicates the GDScript _physics_process() friction logic
         /// because GDScript may not run in exported builds!
@@ -306,6 +344,19 @@ namespace GodotTopdown.Scripts.Projectiles
             // Only explode if grenade has been thrown
             if (!IsThrown)
                 return;
+
+            // Issue #692: Don't explode on impact until grenade has traveled MIN_ARMING_DISTANCE
+            // from spawn point. This prevents self-kills when grenade hits nearby furniture/obstacles.
+            // Must match the GDScript check in frag_grenade.gd.
+            if (!_impactArmed)
+            {
+                if (_grenadeBody != null)
+                {
+                    float dist = _grenadeBody.GlobalPosition.DistanceTo(_spawnPosition);
+                    LogToFile($"[GrenadeTimer] Impact with {body.Name} ignored - not armed yet (dist={dist:F1} < {MinArmingDistance:F1})");
+                }
+                return;
+            }
 
             // Trigger explosion on solid body contact
             // Note: Check TileMap for legacy Godot 4 and TileMapLayer for newer versions
@@ -357,6 +408,7 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Apply Frag grenade explosion damage.
+        /// Issue #692: Excludes the thrower from explosion damage to prevent self-kills.
         /// </summary>
         private void ApplyFragExplosion(Vector2 position)
         {
@@ -368,6 +420,13 @@ namespace GodotTopdown.Scripts.Projectiles
             {
                 if (enemy is Node2D enemyNode)
                 {
+                    // Issue #692: Skip the enemy who threw this grenade
+                    if (ThrowerId >= 0 && (long)enemyNode.GetInstanceId() == ThrowerId)
+                    {
+                        LogToFile($"[GrenadeTimer] Skipping thrower (instance ID: {ThrowerId}) - self-damage prevention");
+                        continue;
+                    }
+
                     float distance = position.DistanceTo(enemyNode.GlobalPosition);
                     if (distance <= EffectRadius)
                     {
@@ -778,6 +837,7 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Spawn shrapnel for Frag grenades.
+        /// Issue #692: Sets source_id and thrower_id on shrapnel to prevent self-damage.
         /// </summary>
         private void SpawnShrapnel(Vector2 position)
         {
@@ -792,6 +852,9 @@ namespace GodotTopdown.Scripts.Projectiles
             int shrapnelCount = 4;
             float angleStep = Mathf.Tau / shrapnelCount;
 
+            // Issue #692: Get grenade instance ID for shrapnel source tracking
+            long grenadeInstanceId = _grenadeBody?.GetInstanceId() ?? -1;
+
             for (int i = 0; i < shrapnelCount; i++)
             {
                 float baseAngle = i * angleStep;
@@ -805,12 +868,19 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     shrapnelNode.GlobalPosition = position + direction * 10.0f;
                     shrapnelNode.Set("direction", direction);
+                    // Issue #692: Set source_id so shrapnel doesn't hit the grenade itself
+                    shrapnelNode.Set("source_id", grenadeInstanceId);
+                    // Issue #692: Set thrower_id so shrapnel doesn't hit the enemy who threw it
+                    if (ThrowerId >= 0)
+                    {
+                        shrapnelNode.Set("thrower_id", ThrowerId);
+                    }
 
                     GetTree().CurrentScene.AddChild(shrapnel);
                 }
             }
 
-            LogToFile($"[GrenadeTimer] Spawned {shrapnelCount} shrapnel pieces");
+            LogToFile($"[GrenadeTimer] Spawned {shrapnelCount} shrapnel pieces (source_id: {grenadeInstanceId}, thrower_id: {ThrowerId})");
         }
 
         /// <summary>

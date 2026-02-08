@@ -46,6 +46,11 @@ var _spawn_position: Vector2 = Vector2.ZERO
 ## Issue #657: Whether the grenade has traveled far enough to arm impact explosion.
 var _impact_armed: bool = false
 
+## Issue #692: Instance ID of the enemy who threw this grenade.
+## Used to prevent self-damage from own grenade explosion and shrapnel.
+## -1 means no thrower tracked (e.g., player-thrown grenades).
+var thrower_id: int = -1
+
 ## Track the previous freeze state to detect when grenade is released.
 ## FIX for Issue #432: When C# code sets Freeze=false directly without calling
 ## throw methods, _is_thrown was never set to true, preventing explosion.
@@ -289,6 +294,7 @@ func _get_effect_radius() -> float:
 
 
 ## Find all enemies within the effect radius.
+## Issue #692: Excludes the thrower from explosion damage to prevent self-kills.
 func _get_enemies_in_radius() -> Array:
 	var enemies_in_range: Array = []
 
@@ -297,6 +303,10 @@ func _get_enemies_in_radius() -> Array:
 
 	for enemy in enemies:
 		if enemy is Node2D and is_in_effect_radius(enemy.global_position):
+			# Issue #692: Skip the enemy who threw this grenade
+			if thrower_id >= 0 and enemy.get_instance_id() == thrower_id:
+				FileLogger.info("[FragGrenade] Skipping thrower (instance ID: %d) - self-damage prevention" % thrower_id)
+				continue
 			# Check line of sight for explosion damage
 			if _has_line_of_sight_to(enemy):
 				enemies_in_range.append(enemy)
@@ -402,6 +412,8 @@ func _spawn_shrapnel() -> void:
 		shrapnel.global_position = global_position + direction * 10.0  # Slight offset from center
 		shrapnel.direction = direction
 		shrapnel.source_id = get_instance_id()
+		# Issue #692: Pass thrower_id so shrapnel doesn't hit the enemy who threw it
+		shrapnel.thrower_id = thrower_id
 
 		# Add to scene
 		get_tree().current_scene.add_child(shrapnel)
