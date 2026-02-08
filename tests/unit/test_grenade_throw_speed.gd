@@ -1,5 +1,5 @@
 extends GutTest
-## Unit tests for grenade throw speed and trajectory visualization (Issue #615).
+## Unit tests for grenade throw speed and trajectory visualization (Issues #615, #638).
 ##
 ## Verifies that the trajectory preview (_Draw) uses the same physics formula
 ## as the actual throw (ThrowSimpleGrenade), ensuring the landing indicator
@@ -12,6 +12,11 @@ extends GutTest
 ## 2. GODOT DEFAULT LINEAR_DAMP — Godot 4.x project default physics/2d/default_linear_damp
 ##    is 0.1. With linear_damp=0.0 in COMBINE mode, effective damping was 0.0 + 0.1 = 0.1.
 ##    Fixed by setting linear_damp_mode to REPLACE so 0.0 means exactly zero damping.
+##
+## FIX for Issue #638: The #615 fix removed friction from grenade_base.gd but missed
+## that frag_grenade.gd has its own _physics_process() override with friction code.
+## This caused frag grenades to still have double friction (~64% of target distance).
+## Fixed by removing the GDScript friction from frag_grenade.gd's override.
 ##
 ## With both fixes, v = sqrt(2*F*d) works correctly for the uniform C# friction model.
 
@@ -246,3 +251,52 @@ func test_no_compensation_needed_with_single_friction() -> void:
 	var distance_no_comp := (speed_no_comp * speed_no_comp) / (2.0 * friction)
 	assert_almost_eq(distance_no_comp, target, 0.1,
 		"No compensation should be needed with single friction")
+
+
+# ============================================================================
+# Tests: Frag grenade double friction prevention (Issue #638)
+# ============================================================================
+
+
+func test_frag_grenade_single_friction_gives_correct_distance() -> void:
+	## Issue #638: Frag grenade should reach the same distance as other grenades
+	## when using single C# friction. Previously, frag_grenade.gd's _physics_process()
+	## override applied friction in GDScript PLUS C# GrenadeTimer, causing double
+	## friction and only ~64% of target distance.
+	var target := 539.1  # From game log: actual distance in Issue #638
+	var speed := calculate_throw_speed(target, FRAG_FRICTION)
+	var actual_distance := calculate_landing_distance(speed, FRAG_FRICTION)
+	assert_almost_eq(actual_distance, target, 0.1,
+		"Frag grenade with single friction should reach target distance")
+
+
+func test_frag_double_friction_causes_64_percent_undershoot() -> void:
+	## Demonstrates the Issue #638 root cause: frag_grenade.gd applied velocity-dependent
+	## friction (avg ~0.75x) on top of C# uniform friction (1.0x), giving ~1.75x total.
+	## From game log: speed=549.5, friction=280, traveled=345.3 vs target=539.1 (64%).
+	var target := 539.1
+	var speed := calculate_throw_speed(target, FRAG_FRICTION)  # 549.5
+
+	# With ~1.75x effective friction (GDScript 0.75x avg + C# 1.0x):
+	var double_friction_distance := calculate_landing_distance(speed, FRAG_FRICTION * 1.75)
+	# Should be roughly 57% of target (actual was 64% due to velocity-dependent ramp)
+	assert_true(double_friction_distance < target * 0.70,
+		"Double friction (1.75x) should cause undershoot to <70%% (got %.1f vs %.1f)" % [
+			double_friction_distance, target])
+
+
+func test_all_grenade_types_use_same_formula() -> void:
+	## Issue #638 regression test: All grenade types should achieve consistent
+	## distance accuracy when using the same physics formula.
+	## The formula v = sqrt(2*F*d) should work for flashbang (F=300),
+	## frag (F=280), and defensive (F=300) grenades alike.
+	var distances := [100.0, 300.0, 500.0, 800.0]
+	var frictions := [300.0, 280.0, 300.0]  # flashbang, frag, defensive
+	var labels := ["Flashbang", "Frag", "Defensive"]
+
+	for i in range(frictions.size()):
+		for target in distances:
+			var speed := calculate_throw_speed(target, frictions[i])
+			var actual := calculate_landing_distance(speed, frictions[i])
+			assert_almost_eq(actual, target, 0.1,
+				"%s at %.0fpx should reach target (got %.1f)" % [labels[i], target, actual])
