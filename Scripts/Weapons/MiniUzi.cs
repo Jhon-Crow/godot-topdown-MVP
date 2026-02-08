@@ -29,6 +29,11 @@ public partial class MiniUzi : BaseWeapon
     private Line2D? _laserSight;
 
     /// <summary>
+    /// Glow effect for the laser sight (aura + endpoint glow).
+    /// </summary>
+    private LaserGlowEffect? _laserGlow;
+
+    /// <summary>
     /// Whether the laser sight is enabled (true only in Power Fantasy mode).
     /// </summary>
     private bool _laserSightEnabled = false;
@@ -486,6 +491,10 @@ public partial class MiniUzi : BaseWeapon
         _laserSight.AddPoint(Vector2.Right * 500.0f);
 
         AddChild(_laserSight);
+
+        // Create glow effect (aura + endpoint glow)
+        _laserGlow = new LaserGlowEffect();
+        _laserGlow.Create(this, _laserSightColor);
     }
 
     /// <summary>
@@ -530,6 +539,9 @@ public partial class MiniUzi : BaseWeapon
         // Update the laser sight line points (in local coordinates)
         _laserSight.SetPointPosition(0, Vector2.Zero);
         _laserSight.SetPointPosition(1, endPoint);
+
+        // Sync glow effect with laser
+        _laserGlow?.Update(Vector2.Zero, endPoint);
     }
 
     #endregion
