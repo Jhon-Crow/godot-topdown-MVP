@@ -104,7 +104,30 @@ The game cycles through scenes: BuildingLevel, TestTier, CastleLevel, Tutorial, 
 4. Restored BuildingLevel's original name ("Building Level"/"Здание") in the levels menu
 5. Updated level navigation arrays in all level scripts to include CityLevel as the last level
 
+### Bug 5: Snipers Stuck in COMBAT - Don't Shoot or Seek Cover (Post-Fix Regression)
+
+**Root cause:** The previous fix (Bug 1) extracted sniper combat/cover state processing into `SniperComponent` static methods that used `enemy.call("_method_name")` to invoke enemy instance methods (`_transition_to_seeking_cover`, `_log_to_file`, `_shoot`, `_aim_at_player`). These `call()` invocations failed silently in exported Godot builds, leaving snipers permanently stuck in COMBAT state without ever shooting or seeking cover.
+
+**Evidence from game log (game_log_20260209_005606.txt):**
+```
+[00:56:20] [SniperEnemy1] State: IDLE -> COMBAT
+[00:56:21] [SniperEnemy1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT
+[00:56:30] [SniperEnemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT
+[00:57:02] [SniperEnemy1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT
+```
+Key findings:
+1. SniperEnemy1 entered COMBAT at 00:56:20 and remained stuck there for 42+ seconds
+2. Zero "SNIPER:" prefixed log messages in entire log (SniperComponent's `enemy.call("_log_to_file")` never produced output)
+3. Zero state transitions after IDLE -> COMBAT (no SEEKING_COVER, no IN_COVER)
+4. Zero shots fired by snipers despite being in COMBAT with visible player
+5. ROT_CHANGE logs consistently show `state=COMBAT`, confirming snipers never left COMBAT
+
+**Why call() failed:** `SniperComponent.process_combat_state()` used `enemy.call("_transition_to_seeking_cover")` where `enemy` is typed as `Node2D`. While GDScript supports dynamic dispatch, the `call()` pattern through static methods on typed references can fail silently in exported/optimized Godot builds due to method resolution differences between editor and export.
+
+**Fix:** Inlined the sniper combat and cover state logic directly into `enemy.gd`'s `_process_sniper_combat_state()` and `_process_sniper_in_cover_state()` methods, replacing `enemy.call()` with direct method calls (`_transition_to_seeking_cover()`, `_log_to_file()`, `_shoot()`, `_aim_at_player()`). Also improved the combat flow: snipers now shoot at visible player BEFORE seeking cover (shoot-then-cover pattern) instead of immediately fleeing without firing.
+
 ## Data Files
 
 - `game_log_20260208_183844.txt` - Original game log from issue report (5541 lines)
 - `game_log_20260208_193854.txt` - Second game log showing City map missing (1704 lines)
+- `game_log_20260209_005606.txt` - Third game log showing snipers stuck in COMBAT (2870 lines)

@@ -4993,7 +4993,75 @@ func _calculate_sniper_spread(_direction: Vector2) -> float:
 	return SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
 func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	SniperComponent.shoot_hitscan(self, direction, spawn_pos, _hit_area, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations, _player)
+## Sniper COMBAT state: shoot first if possible, then seek cover.
+## Inlined from SniperComponent to avoid call() failures in exported builds.
+## Root cause (Issue #665): SniperComponent.process_combat_state() used enemy.call()
+## to invoke _transition_to_seeking_cover/_log_to_file, but these calls failed silently
+## in exported Godot builds, leaving snipers stuck in COMBAT without shooting or hiding.
 func _process_sniper_combat_state(delta: float) -> void:
-	SniperComponent.process_combat_state(self, delta)
+	_combat_state_timer += delta
+	velocity = Vector2.ZERO
+	# Update detection delay timer
+	if not _detection_delay_elapsed:
+		_detection_timer += delta
+		if _detection_timer >= _get_effective_detection_delay():
+			_detection_delay_elapsed = true
+			_log_to_file("SNIPER: detection delay elapsed (%.2fs)" % _detection_timer)
+	# If we can see the player and are ready, shoot BEFORE seeking cover
+	if _can_see_player and _player:
+		_aim_at_player()
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_log_to_file("SNIPER: shooting at visible player from combat")
+			_shoot(); _shoot_timer = 0.0
+	elif not _can_see_player and _memory and _memory.has_target():
+		# Shoot through walls at suspected position
+		var suspected_pos: Vector2 = _memory.suspected_position
+		var walls := SniperComponent.count_walls(self, suspected_pos)
+		SniperComponent._rotate_toward(self, suspected_pos)
+		if walls <= _sniper_max_wall_penetrations and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_log_to_file("SNIPER: shooting through %d walls from combat" % walls)
+			_shoot(); _shoot_timer = 0.0
+	# After attempting to shoot, seek cover if available
+	if enable_cover:
+		_log_to_file("SNIPER: seeking cover from combat state")
+		_transition_to_seeking_cover()
+		return
+	# Fallback: if no player contact for too long, search
+	if not _can_see_player and _combat_state_timer > 5.0:
+		_transition_to_searching(global_position)
+
+## Sniper IN_COVER state: stay in cover and shoot at player.
+## Inlined from SniperComponent to avoid call() failures in exported builds.
 func _process_sniper_in_cover_state(delta: float) -> void:
-	SniperComponent.process_in_cover_state(self, delta)
+	velocity = Vector2.ZERO
+	# Update detection delay timer
+	if not _detection_delay_elapsed:
+		_detection_timer += delta
+		if _detection_timer >= _get_effective_detection_delay():
+			_detection_delay_elapsed = true
+			_log_to_file("SNIPER: detection delay elapsed in cover (%.2fs)" % _detection_timer)
+	# Retreat if player is dangerously close (half viewport distance)
+	if _sniper_retreat_cooldown <= 0.0 and _player:
+		var dist := global_position.distance_to(_player.global_position)
+		if dist < get_viewport_rect().size.length() * 0.5:
+			_has_valid_cover = false
+			_sniper_retreat_cooldown = SniperComponent.RETREAT_COOLDOWN_TIME
+			_log_to_file("SNIPER: player too close (%.0f), re-seeking cover" % dist)
+			_transition_to_seeking_cover()
+			return
+	# Shoot at visible player from cover
+	if _can_see_player and _player:
+		_aim_at_player()
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_log_to_file("SNIPER: shooting from cover at visible player")
+			_shoot(); _shoot_timer = 0.0
+		return
+	# Shoot through walls at suspected position
+	if _memory and _memory.has_target():
+		var suspected_pos: Vector2 = _memory.suspected_position
+		var walls := SniperComponent.count_walls(self, suspected_pos)
+		if walls <= _sniper_max_wall_penetrations and walls > 0:
+			SniperComponent._rotate_toward(self, suspected_pos)
+			if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+				_log_to_file("SNIPER: shooting from cover through %d walls" % walls)
+				_shoot(); _shoot_timer = 0.0

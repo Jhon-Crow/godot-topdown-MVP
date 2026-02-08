@@ -60,12 +60,17 @@ class MockSniperEnemy:
 		_current_state = AIState.COMBAT
 		_combat_state_timer = 0.0
 
-	## Simulate the sniper combat state behavior (Issue #665 Bug 1 fix)
+	## Simulate the sniper combat state behavior (Issue #665 fix)
+	## Shoot first if possible, then seek cover.
 	func process_sniper_combat(delta: float) -> void:
 		_combat_state_timer += delta
-		# Issue #665 Fix: Snipers should immediately seek cover when entering combat.
+		# Shoot at visible player before seeking cover
+		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_log("SNIPER: shooting at visible player from combat")
+			_shoot()
+		# Then seek cover
 		if enable_cover:
-			_log("SNIPER: entering combat, seeking cover immediately")
+			_log("SNIPER: seeking cover from combat state")
 			_transition_to_seeking_cover()
 			return
 		# Fallback: if cover is disabled, shoot from current position
@@ -157,9 +162,9 @@ func after_each() -> void:
 # ============================================================================
 
 
-## Regression test: Snipers must seek cover immediately when entering combat.
-## Bug: Snipers stayed in COMBAT state indefinitely, shooting from the open.
-## Fix: _process_sniper_combat_state() transitions to SEEKING_COVER when enable_cover=true.
+## Regression test: Snipers must seek cover when entering combat.
+## Bug: Snipers stayed in COMBAT state indefinitely, never seeking cover or shooting.
+## Fix: _process_sniper_combat_state() inlined to avoid call() failures, shoots then seeks cover.
 func test_sniper_seeks_cover_immediately_on_combat_issue_665() -> void:
 	sniper.enter_combat()
 	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
@@ -177,6 +182,19 @@ func test_sniper_logs_cover_seeking_issue_665() -> void:
 		"Sniper should log the cover-seeking transition")
 	assert_true(sniper._logged_messages[0].contains("seeking cover"),
 		"Log should mention seeking cover")
+
+
+## Snipers shoot at visible player BEFORE seeking cover (shoot-then-cover pattern).
+func test_sniper_shoots_before_seeking_cover_issue_665() -> void:
+	sniper.enter_combat()
+	sniper._can_see_player = true
+	sniper._detection_delay_elapsed = true
+	sniper._shoot_timer = sniper.shoot_cooldown + 1.0
+	sniper.process_sniper_combat(0.016)
+	assert_eq(sniper._shots_fired, 1,
+		"Issue #665: Sniper must shoot at visible player before seeking cover")
+	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.SEEKING_COVER,
+		"Issue #665: Sniper must seek cover after shooting")
 
 
 ## Snipers with cover disabled should still shoot from current position.
