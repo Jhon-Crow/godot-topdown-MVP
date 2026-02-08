@@ -118,6 +118,14 @@ public partial class Player : BaseCharacter
     private bool _isReloadingSequence = false;
 
     /// <summary>
+    /// Whether a semi-automatic shoot input has been buffered.
+    /// When the player clicks while the fire timer is still active,
+    /// the click is buffered and consumed as soon as the weapon can fire.
+    /// This prevents lost inputs when clicking faster than the fire rate allows.
+    /// </summary>
+    private bool _semiAutoShootBuffered = false;
+
+    /// <summary>
     /// Tracks ammo count when reload sequence started (at step 1 after R pressed).
     /// Used to determine if there was a bullet in the chamber.
     /// </summary>
@@ -1143,12 +1151,36 @@ public partial class Player : BaseCharacter
             isAutomatic = assaultRifle.CurrentFireMode == FireMode.Automatic;
         }
 
+        // For semi-automatic weapons, buffer click inputs so fast clicking works.
+        // When the player clicks while the fire timer is still active, the click
+        // is buffered and consumed as soon as the weapon can fire again.
+        // This prevents lost inputs when clicking faster than the fire rate allows.
+        if (!isAutomatic && Input.IsActionJustPressed("shoot"))
+        {
+            _semiAutoShootBuffered = true;
+        }
+
         // Determine if shooting input is active
-        bool shootInputActive = isAutomatic ? Input.IsActionPressed("shoot") : Input.IsActionJustPressed("shoot");
+        bool shootInputActive;
+        if (isAutomatic)
+        {
+            shootInputActive = Input.IsActionPressed("shoot");
+        }
+        else
+        {
+            // For semi-auto: fire if we have a buffered click and weapon can fire
+            shootInputActive = _semiAutoShootBuffered && CurrentWeapon.CanFire;
+        }
 
         if (!shootInputActive)
         {
             return;
+        }
+
+        // Consume the buffered input for semi-auto weapons
+        if (!isAutomatic)
+        {
+            _semiAutoShootBuffered = false;
         }
 
         // Check if weapon is empty before trying to shoot (not in reload sequence)
