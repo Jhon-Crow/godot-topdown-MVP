@@ -35,6 +35,15 @@ class MockFlashlightEffect:
 	## Safety margin (pixels) to pull the light back from a wall hit point.
 	const WALL_SAFETY_MARGIN: float = 2.0
 
+	## Scatter light energy (Issue #644).
+	const SCATTER_LIGHT_ENERGY: float = 0.4
+
+	## Scatter light texture scale (Issue #644).
+	const SCATTER_LIGHT_TEXTURE_SCALE: float = 3.0
+
+	## Scatter light color (Issue #644).
+	const SCATTER_LIGHT_COLOR: Color = Color(1.0, 1.0, 0.92, 1.0)
+
 	## Whether the flashlight is on.
 	var _is_on: bool = false
 
@@ -64,6 +73,12 @@ class MockFlashlightEffect:
 
 	## The PointLight2D position after clamping (local coordinates relative to flashlight).
 	var point_light_position: Vector2 = Vector2.ZERO
+
+	## Mock: scatter light position (Issue #644).
+	var scatter_light_position: Vector2 = Vector2.ZERO
+
+	## Mock: scatter light visible state (Issue #644).
+	var scatter_light_visible: bool = false
 
 	## Set mock line of sight.
 	func set_mock_line_of_sight(enabled: bool) -> void:
@@ -167,6 +182,22 @@ class MockFlashlightEffect:
 	## Get blinded enemies dictionary (for testing).
 	func get_blinded_enemies() -> Dictionary:
 		return _blinded_enemies
+
+	## Update scatter light position based on beam direction and wall hit (Issue #644).
+	## Mirrors the logic from flashlight_effect.gd _update_scatter_light_position().
+	func update_scatter_light_position() -> void:
+		if not _is_on:
+			scatter_light_visible = false
+			return
+
+		scatter_light_visible = true
+		var beam_direction := Vector2.RIGHT.rotated(global_rotation)
+		var beam_end := global_position + beam_direction * BEAM_RANGE
+
+		if _mock_wall_hit_pos != null:
+			scatter_light_position = _mock_wall_hit_pos
+		else:
+			scatter_light_position = beam_end
 
 
 var flashlight: MockFlashlightEffect
@@ -759,3 +790,118 @@ func test_wall_clamping_no_effect_when_light_at_player() -> void:
 
 	assert_eq(flashlight.point_light_position, Vector2.ZERO,
 		"PointLight2D should stay at zero when flashlight is at player center")
+
+
+# ============================================================================
+# Scatter Light Tests (Issue #644)
+# ============================================================================
+
+
+func test_scatter_light_energy_constant() -> void:
+	assert_eq(flashlight.SCATTER_LIGHT_ENERGY, 0.4,
+		"Scatter light energy should be 0.4 (subtle ambient glow)")
+
+
+func test_scatter_light_texture_scale_constant() -> void:
+	assert_eq(flashlight.SCATTER_LIGHT_TEXTURE_SCALE, 3.0,
+		"Scatter light texture scale should be 3.0")
+
+
+func test_scatter_light_color_is_warm_white() -> void:
+	assert_eq(flashlight.SCATTER_LIGHT_COLOR, Color(1.0, 1.0, 0.92, 1.0),
+		"Scatter light color should be warm white matching beam tint")
+
+
+func test_scatter_light_energy_lower_than_main_beam() -> void:
+	assert_true(flashlight.SCATTER_LIGHT_ENERGY < flashlight.LIGHT_ENERGY,
+		"Scatter light energy (%.1f) should be much lower than main beam (%.1f)" % [
+			flashlight.SCATTER_LIGHT_ENERGY, flashlight.LIGHT_ENERGY])
+
+
+func test_scatter_light_at_wall_hit_position() -> void:
+	flashlight.global_position = Vector2(100, 100)
+	flashlight.global_rotation = 0.0  # Pointing right
+	flashlight.turn_on()
+
+	# Wall hit at 400 pixels to the right
+	flashlight.set_mock_wall_hit(Vector2(500, 100))
+	flashlight.update_scatter_light_position()
+
+	assert_eq(flashlight.scatter_light_position, Vector2(500, 100),
+		"Scatter light should be at wall hit position")
+
+
+func test_scatter_light_at_max_range_when_no_wall() -> void:
+	flashlight.global_position = Vector2(100, 100)
+	flashlight.global_rotation = 0.0  # Pointing right
+	flashlight.turn_on()
+
+	# No wall hit
+	flashlight.set_mock_wall_hit(null)
+	flashlight.update_scatter_light_position()
+
+	assert_eq(flashlight.scatter_light_position, Vector2(700, 100),
+		"Scatter light should be at max beam range (100 + 600 = 700) when no wall hit")
+
+
+func test_scatter_light_follows_beam_direction() -> void:
+	flashlight.global_position = Vector2(0, 0)
+	flashlight.global_rotation = PI / 2  # Pointing down
+	flashlight.turn_on()
+
+	flashlight.set_mock_wall_hit(null)
+	flashlight.update_scatter_light_position()
+
+	# Beam points down, so scatter light should be at (0, 600)
+	assert_almost_eq(flashlight.scatter_light_position.x, 0.0, 0.01,
+		"Scatter light X should be ~0 when beam points down")
+	assert_almost_eq(flashlight.scatter_light_position.y, 600.0, 0.01,
+		"Scatter light Y should be ~600 when beam points down")
+
+
+func test_scatter_light_hidden_when_flashlight_off() -> void:
+	flashlight.turn_off()
+	flashlight.update_scatter_light_position()
+
+	assert_false(flashlight.scatter_light_visible,
+		"Scatter light should be hidden when flashlight is off")
+
+
+func test_scatter_light_visible_when_flashlight_on() -> void:
+	flashlight.turn_on()
+	flashlight.set_mock_wall_hit(null)
+	flashlight.update_scatter_light_position()
+
+	assert_true(flashlight.scatter_light_visible,
+		"Scatter light should be visible when flashlight is on")
+
+
+func test_scatter_light_at_diagonal_wall_hit() -> void:
+	flashlight.global_position = Vector2(0, 0)
+	flashlight.global_rotation = PI / 4  # Pointing bottom-right at 45 degrees
+	flashlight.turn_on()
+
+	# Wall at diagonal position
+	flashlight.set_mock_wall_hit(Vector2(200, 200))
+	flashlight.update_scatter_light_position()
+
+	assert_eq(flashlight.scatter_light_position, Vector2(200, 200),
+		"Scatter light should follow diagonal wall hit position")
+
+
+func test_scatter_light_updates_when_wall_hit_changes() -> void:
+	flashlight.global_position = Vector2(0, 0)
+	flashlight.global_rotation = 0.0
+	flashlight.turn_on()
+
+	# First: wall at 300 pixels
+	flashlight.set_mock_wall_hit(Vector2(300, 0))
+	flashlight.update_scatter_light_position()
+	assert_eq(flashlight.scatter_light_position, Vector2(300, 0),
+		"Scatter light should be at first wall hit")
+
+	# Wall moves to 500 pixels (e.g. door opened)
+	flashlight.set_mock_wall_hit(Vector2(500, 0))
+	flashlight.update_scatter_light_position()
+	assert_eq(flashlight.scatter_light_position, Vector2(500, 0),
+		"Scatter light should update to new wall position")
