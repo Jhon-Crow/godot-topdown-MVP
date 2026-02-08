@@ -155,6 +155,18 @@ const VOLUME_ASVK_SHOT: float = -2.0
 ## Volume for ASVK bolt-action sounds.
 const VOLUME_ASVK_BOLT: float = -3.0
 
+## RSh-12 revolver sounds (Issue #626).
+## Cylinder open - uses pistol bolt sound (взвод затвора пистолета) for the cylinder release.
+const REVOLVER_CYLINDER_OPEN: String = "res://assets/audio/взвод затвора пистолета.wav"
+## Cylinder close - uses PM reload action 2 (второе действие перезарядки) for the snap shut.
+const REVOLVER_CYLINDER_CLOSE: String = "res://assets/audio/второе действие перезарядки.mp3"
+## Cartridge insert - uses shotgun shell load sound adapted for single round insertion.
+const REVOLVER_CARTRIDGE_INSERT: String = "res://assets/audio/зарядил один патрон в дробовик.mp3"
+## Cylinder rotate - uses PM reload action 1 (первое действие перезарядки) for mechanical click.
+const REVOLVER_CYLINDER_ROTATE: String = "res://assets/audio/первое действие перезарядки.mp3"
+## Volume for revolver reload actions.
+const VOLUME_REVOLVER_RELOAD: float = -3.0
+
 ## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
 const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
 
@@ -334,6 +346,11 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(ASVK_BOLT_STEP_2)
 	all_sounds.append(ASVK_BOLT_STEP_3)
 	all_sounds.append(ASVK_BOLT_STEP_4)
+	# RSh-12 revolver sounds (Issue #626)
+	all_sounds.append(REVOLVER_CYLINDER_OPEN)
+	all_sounds.append(REVOLVER_CYLINDER_CLOSE)
+	all_sounds.append(REVOLVER_CARTRIDGE_INSERT)
+	all_sounds.append(REVOLVER_CYLINDER_ROTATE)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -819,6 +836,38 @@ func play_asvk_bolt_step(step: int) -> void:
 			sound_path = ASVK_BOLT_STEP_4
 	if sound_path != "":
 		play_sound_with_priority(sound_path, VOLUME_ASVK_BOLT, SoundPriority.CRITICAL)
+
+
+# ============================================================================
+# RSh-12 Revolver sounds (Issue #626)
+# ============================================================================
+
+## Plays the revolver cylinder open sound (release mechanism).
+## Uses pistol bolt sound for the cylinder swing-out.
+## @param position: World position for 2D audio.
+func play_revolver_cylinder_open(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CYLINDER_OPEN, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver cylinder close sound (snap shut).
+## Uses PM reload action 2 for the cylinder closing snap.
+## @param position: World position for 2D audio.
+func play_revolver_cylinder_close(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CYLINDER_CLOSE, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver cartridge insertion sound.
+## Uses shotgun shell load sound adapted for single round insertion.
+## @param position: World position for 2D audio.
+func play_revolver_cartridge_insert(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CARTRIDGE_INSERT, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver cylinder rotation click sound.
+## Uses PM reload action 1 for the mechanical click.
+## @param position: World position for 2D audio.
+func play_revolver_cylinder_rotate(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CYLINDER_ROTATE, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
 
 
 # ============================================================================

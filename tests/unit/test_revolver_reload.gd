@@ -1,7 +1,9 @@
 extends GutTest
 ## Unit tests for Revolver multi-step cylinder reload mechanics (Issue #626).
 ##
-## Tests the revolver reload sequence: open cylinder → insert cartridges → close cylinder.
+## Tests the revolver reload sequence:
+## R (open cylinder) → RMB drag up (insert cartridge) → scroll wheel (rotate cylinder)
+## → repeat insert+rotate → R (close cylinder).
 ## Uses mock classes to test logic without requiring Godot scene tree or C# runtime.
 
 
@@ -34,6 +36,7 @@ class MockRevolverReload:
 	var casings_ejected_count: int = 0
 	var reload_started_emitted: bool = false
 	var reload_finished_emitted: bool = false
+	var cylinder_rotations: int = 0
 
 
 	func can_open_cylinder() -> bool:
@@ -117,6 +120,17 @@ class MockRevolverReload:
 		if on_ammo_changed:
 			on_ammo_changed.call(current_ammo, reserve_ammo)
 
+		return true
+
+
+	func can_rotate_cylinder() -> bool:
+		return reload_state == CYLINDER_OPEN or reload_state == LOADING
+
+
+	func rotate_cylinder(direction: int) -> bool:
+		if not can_rotate_cylinder():
+			return false
+		cylinder_rotations += 1
 		return true
 
 
@@ -354,27 +368,29 @@ func test_close_cylinder_without_loading_any() -> void:
 
 func test_full_reload_sequence_5_cartridges() -> void:
 	## Test the complete issue #626 sequence:
-	## 1. Open cylinder (casings fall out)
-	## 2. Insert cartridge → rotate cylinder (5 times)
-	## 3. Close cylinder
+	## 1. R key: Open cylinder (casings fall out)
+	## 2. RMB drag up: Insert cartridge, then scroll wheel: rotate cylinder (5 times)
+	## 3. R key: Close cylinder
 
 	revolver.current_ammo = 0  # Empty cylinder
 	revolver.reserve_ammo = 10
 
-	# Step 1: Open cylinder
+	# Step 1: Open cylinder (R key)
 	assert_true(revolver.open_cylinder(), "Should open cylinder")
 	assert_eq(revolver.reload_state, MockRevolverReload.CYLINDER_OPEN, "Should be CylinderOpen")
 	assert_eq(revolver.casings_ejected_count, 5, "Should eject 5 spent casings")
 
-	# Step 2: Insert 5 cartridges (one per F press)
+	# Step 2: Insert 5 cartridges (one per RMB drag up) with cylinder rotation (scroll wheel)
 	for i in range(5):
 		assert_true(revolver.insert_cartridge(), "Should insert cartridge %d" % (i + 1))
 		assert_eq(revolver.current_ammo, i + 1, "Ammo should be %d" % (i + 1))
+		if i < 4:  # Rotate after each insert except the last
+			assert_true(revolver.rotate_cylinder(1), "Should rotate cylinder")
 
 	assert_eq(revolver.reload_state, MockRevolverReload.LOADING, "Should be Loading")
 	assert_eq(revolver.cartridges_loaded_this_reload, 5, "Should have loaded 5 cartridges")
 
-	# Step 3: Close cylinder
+	# Step 3: Close cylinder (R key)
 	assert_true(revolver.close_cylinder(), "Should close cylinder")
 	assert_eq(revolver.reload_state, MockRevolverReload.NOT_RELOADING, "Should be NotReloading")
 	assert_eq(revolver.current_ammo, 5, "Should have full cylinder (5 rounds)")
@@ -525,3 +541,70 @@ func test_callback_on_casings_ejected() -> void:
 	revolver.open_cylinder()
 
 	assert_eq(ejected, 4, "Callback should report 4 casings ejected")
+
+
+# ============================================================================
+# Cylinder Rotation Tests (scroll wheel)
+# ============================================================================
+
+
+func test_can_rotate_cylinder_when_open() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.can_rotate_cylinder(), "Should be able to rotate when cylinder is open")
+
+
+func test_can_rotate_cylinder_when_loading() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_true(revolver.can_rotate_cylinder(), "Should be able to rotate during loading")
+
+
+func test_cannot_rotate_cylinder_when_not_reloading() -> void:
+	assert_false(revolver.can_rotate_cylinder(), "Should not rotate when not reloading")
+
+
+func test_rotate_cylinder_clockwise() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.rotate_cylinder(1), "Should rotate clockwise")
+	assert_eq(revolver.cylinder_rotations, 1, "Should track 1 rotation")
+
+
+func test_rotate_cylinder_counter_clockwise() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.rotate_cylinder(-1), "Should rotate counter-clockwise")
+	assert_eq(revolver.cylinder_rotations, 1, "Should track 1 rotation")
+
+
+func test_multiple_rotations() -> void:
+	revolver.open_cylinder()
+
+	for i in range(5):
+		revolver.rotate_cylinder(1)
+
+	assert_eq(revolver.cylinder_rotations, 5, "Should track 5 rotations")
+
+
+func test_full_sequence_with_rotation() -> void:
+	## Test complete sequence: R → (RMB drag up + scroll) × 5 → R
+
+	revolver.current_ammo = 0
+	revolver.reserve_ammo = 10
+
+	# Open cylinder (R)
+	revolver.open_cylinder()
+
+	# Insert and rotate 5 times (RMB drag up + scroll wheel)
+	for i in range(5):
+		revolver.insert_cartridge()  # RMB drag up
+		revolver.rotate_cylinder(1)  # Scroll wheel
+
+	# Close cylinder (R)
+	revolver.close_cylinder()
+
+	assert_eq(revolver.current_ammo, 5, "Should have full cylinder")
+	assert_eq(revolver.cylinder_rotations, 5, "Should have rotated 5 times")
+	assert_eq(revolver.reserve_ammo, 5, "Reserve should be 5")

@@ -885,8 +885,9 @@ func cancel_reload() -> void:
 
 
 ## Handle revolver multi-step cylinder reload input (Issue #626).
-## Sequence: R (open cylinder) → F×N (insert cartridges) → R (close cylinder).
-## The reload logic is handled by the C# Revolver class.
+## R key: Open/close cylinder. RMB drag up and scroll wheel are handled by Revolver.cs.
+## Sequence: R (open cylinder) → RMB drag up (insert cartridge) → scroll (rotate cylinder)
+## → repeat insert+rotate → R (close cylinder).
 func _handle_revolver_reload_input() -> void:
 	var revolver: Node = get_node_or_null("Revolver")
 	if revolver == null:
@@ -894,7 +895,6 @@ func _handle_revolver_reload_input() -> void:
 
 	# Get current reload state from revolver (0=NotReloading, 1=CylinderOpen, 2=Loading, 3=Closing)
 	var reload_state: int = revolver.get("ReloadState")
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 
 	match reload_state:
 		0:  # NotReloading
@@ -902,38 +902,19 @@ func _handle_revolver_reload_input() -> void:
 			if Input.is_action_just_pressed("reload"):
 				if revolver.call("OpenCylinder"):
 					_is_reloading_sequence = true
-					# Play cylinder open sound (reuse mag out sound)
-					if audio_manager and audio_manager.has_method("play_reload_mag_out"):
-						audio_manager.play_reload_mag_out(global_position)
 					# Start arm animation for cylinder open
 					_start_reload_anim_phase(ReloadAnimPhase.GRAB_MAGAZINE, RELOAD_ANIM_GRAB_DURATION)
 					reload_sequence_progress.emit(1, 3)
 					reload_started.emit()
-					FileLogger.info("[Player] Revolver: cylinder opened")
-		1, 2:  # CylinderOpen or Loading
-			if Input.is_action_just_pressed("reload_step"):
-				# F press: Insert cartridge into cylinder
-				if revolver.call("InsertCartridge"):
-					var loaded: int = revolver.get("CartridgesLoadedThisReload")
-					var capacity: int = revolver.get("CylinderCapacity")
-					# Play cartridge insert sound (reuse mag in sound)
-					if audio_manager and audio_manager.has_method("play_reload_mag_in"):
-						audio_manager.play_reload_mag_in(global_position)
-					# Animate arm for cartridge insertion
-					_start_reload_anim_phase(ReloadAnimPhase.INSERT_MAGAZINE, RELOAD_ANIM_INSERT_DURATION)
-					reload_sequence_progress.emit(2, 3)
-					# Update ammo display from revolver
+					# Update ammo display (cylinder emptied)
 					var current_ammo: int = revolver.get("CurrentAmmo")
-					var reserve_ammo: int = revolver.get("ReserveAmmo")
 					ammo_changed.emit(current_ammo, max_ammo)
-					FileLogger.info("[Player] Revolver: cartridge inserted (%d/%d)" % [loaded, capacity])
-			elif Input.is_action_just_pressed("reload"):
-				# R press: Close cylinder to finish reload
+					FileLogger.info("[Player] Revolver: cylinder opened (R key)")
+		1, 2:  # CylinderOpen or Loading
+			# R press: Close cylinder to finish reload
+			if Input.is_action_just_pressed("reload"):
 				if revolver.call("CloseCylinder"):
 					_is_reloading_sequence = false
-					# Play cylinder close sound (reuse bolt sound)
-					if audio_manager and audio_manager.has_method("play_m16_bolt"):
-						audio_manager.play_m16_bolt(global_position)
 					# Animate arm return
 					_start_reload_anim_phase(ReloadAnimPhase.PULL_BOLT, RELOAD_ANIM_BOLT_DURATION)
 					reload_sequence_progress.emit(3, 3)
@@ -945,7 +926,12 @@ func _handle_revolver_reload_input() -> void:
 					var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 					if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
 						sound_propagation.emit_player_reload_complete(global_position, self)
-					FileLogger.info("[Player] Revolver: cylinder closed, reload complete")
+					FileLogger.info("[Player] Revolver: cylinder closed (R key), reload complete")
+			# Note: RMB drag up (insert cartridge) and scroll wheel (rotate cylinder)
+			# are handled directly by Revolver.cs in _Process() and _Input()
+			# Update ammo display if cartridges were loaded via RMB drag
+			var current_ammo: int = revolver.get("CurrentAmmo")
+			ammo_changed.emit(current_ammo, max_ammo)
 
 
 ## Called when hit by a projectile.

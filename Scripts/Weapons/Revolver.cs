@@ -6,7 +6,8 @@ namespace GodotTopDownTemplate.Weapons;
 
 /// <summary>
 /// Revolver reload state for multi-step cylinder loading (Issue #626).
-/// Reload sequence: R (open cylinder, eject casings) → F×N (insert cartridges) → R (close cylinder)
+/// Reload sequence: R (open cylinder, eject casings) → RMB drag up (insert cartridge)
+/// → scroll wheel (rotate cylinder) → repeat → R (close cylinder)
 /// </summary>
 public enum RevolverReloadState
 {
@@ -17,13 +18,13 @@ public enum RevolverReloadState
 
     /// <summary>
     /// Cylinder is open - casings have been ejected.
-    /// Player can insert cartridges with F or close cylinder with R.
+    /// Player can insert cartridges with RMB drag up, rotate with scroll, or close with R.
     /// </summary>
     CylinderOpen,
 
     /// <summary>
     /// Cylinder is open and at least one cartridge has been inserted.
-    /// Player can insert more cartridges with F or close cylinder with R.
+    /// Player can insert more cartridges with RMB drag up, rotate with scroll, or close with R.
     /// </summary>
     Loading,
 
@@ -45,11 +46,18 @@ public enum RevolverReloadState
 /// - 5-round cylinder (12.7mm caliber)
 /// - Pistol casings (longer than standard)
 /// - Very loud (alerts enemies at long range)
-/// - Multi-step reload: open cylinder → insert cartridges → close cylinder (Issue #626)
+/// - Multi-step reload: R (open) → RMB drag up (insert) → scroll (rotate) → R (close) (Issue #626)
 /// Reference: https://news.rambler.ru/weapon/40992656-slonoboy-russkiy-revolver-kotoryy-sposoben-unichtozhit-bronetransporter/
 /// </summary>
 public partial class Revolver : BaseWeapon
 {
+    /// <summary>
+    /// Minimum drag distance to register a gesture (in pixels).
+    /// Same threshold as shotgun for consistent feel.
+    /// </summary>
+    [Export]
+    public float MinDragDistance { get; set; } = 30.0f;
+
     /// <summary>
     /// Reference to the Sprite2D node for the weapon visual.
     /// </summary>
@@ -59,6 +67,16 @@ public partial class Revolver : BaseWeapon
     /// Current aim direction based on mouse position.
     /// </summary>
     private Vector2 _aimDirection = Vector2.Right;
+
+    /// <summary>
+    /// Position where RMB drag started for gesture detection.
+    /// </summary>
+    private Vector2 _dragStartPosition = Vector2.Zero;
+
+    /// <summary>
+    /// Whether a RMB drag gesture is currently active.
+    /// </summary>
+    private bool _isDragging = false;
 
     /// <summary>
     /// Current aim angle in radians. Used for sensitivity-based aiming
@@ -187,6 +205,119 @@ public partial class Revolver : BaseWeapon
 
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
+
+        // Handle RMB drag gestures for cartridge insertion (Issue #626)
+        HandleDragGestures();
+    }
+
+    /// <summary>
+    /// Handles mouse scroll wheel input for cylinder rotation (Issue #626).
+    /// Scroll up or down rotates the cylinder by one position while it's open.
+    /// </summary>
+    public override void _Input(InputEvent @event)
+    {
+        base._Input(@event);
+
+        // Handle scroll wheel for cylinder rotation while cylinder is open
+        if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed)
+        {
+            if (ReloadState == RevolverReloadState.CylinderOpen
+                || ReloadState == RevolverReloadState.Loading)
+            {
+                if (mouseButton.ButtonIndex == MouseButton.WheelUp
+                    || mouseButton.ButtonIndex == MouseButton.WheelDown)
+                {
+                    int direction = mouseButton.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
+                    RotateCylinder(direction);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles RMB drag gestures for cartridge insertion (Issue #626).
+    /// Follows the same pattern as shotgun pump-action:
+    /// Hold RMB and drag UP (screen coordinates, negative Y) to insert a cartridge.
+    /// </summary>
+    private void HandleDragGestures()
+    {
+        bool rawRMBState = Input.IsMouseButtonPressed(MouseButton.Right);
+
+        if (rawRMBState)
+        {
+            if (!_isDragging)
+            {
+                _dragStartPosition = GetGlobalMousePosition();
+                _isDragging = true;
+            }
+            else
+            {
+                // Check for mid-drag gesture completion (continuous gesture without releasing RMB)
+                Vector2 currentPosition = GetGlobalMousePosition();
+                Vector2 dragVector = currentPosition - _dragStartPosition;
+
+                if (TryProcessDragGesture(dragVector))
+                {
+                    // Gesture processed - reset drag start for next gesture
+                    _dragStartPosition = currentPosition;
+                }
+            }
+        }
+        else if (_isDragging)
+        {
+            // RMB released - evaluate the drag gesture
+            Vector2 dragEnd = GetGlobalMousePosition();
+            Vector2 dragVector = dragEnd - _dragStartPosition;
+            _isDragging = false;
+
+            TryProcessDragGesture(dragVector);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to process a drag gesture for cartridge insertion.
+    /// Drag UP (negative Y in screen coordinates) while cylinder is open inserts a cartridge.
+    /// </summary>
+    /// <returns>True if a gesture was processed.</returns>
+    private bool TryProcessDragGesture(Vector2 dragVector)
+    {
+        // Must be primarily vertical and meet minimum distance
+        if (dragVector.Length() < MinDragDistance)
+        {
+            return false;
+        }
+
+        // Must be primarily vertical (not horizontal)
+        if (Mathf.Abs(dragVector.Y) <= Mathf.Abs(dragVector.X))
+        {
+            return false;
+        }
+
+        // Drag UP = negative Y in screen coordinates
+        bool isDragUp = dragVector.Y < 0;
+
+        if (!isDragUp)
+        {
+            return false;
+        }
+
+        // Only process during cylinder open states
+        if (ReloadState != RevolverReloadState.CylinderOpen
+            && ReloadState != RevolverReloadState.Loading)
+        {
+            return false;
+        }
+
+        // Insert a cartridge
+        if (InsertCartridge())
+        {
+            // Play cartridge insert sound via AudioManager
+            PlayCartridgeInsertSound();
+            GD.Print("[Revolver] RMB drag up - cartridge inserted");
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -579,6 +710,9 @@ public partial class Revolver : BaseWeapon
             EmitSignal(SignalName.CasingsEjected, _spentCasingsToEject);
         }
 
+        // Play cylinder open sound
+        PlayCylinderOpenSound();
+
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ReloadStarted);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
@@ -590,9 +724,9 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Step 2: Insert one cartridge into the cylinder and rotate it (Issue #626).
-    /// Called when player presses F with the cylinder open.
-    /// Can be pressed up to CylinderCapacity times (5 for RSh-12).
+    /// Step 2: Insert one cartridge into the cylinder (Issue #626).
+    /// Called when player drags RMB up with the cylinder open.
+    /// Can be done up to CylinderCapacity times (5 for RSh-12).
     /// Consumes one round from reserve ammunition.
     /// </summary>
     /// <returns>True if a cartridge was inserted successfully.</returns>
@@ -663,6 +797,9 @@ public partial class Revolver : BaseWeapon
         ReloadState = RevolverReloadState.NotReloading;
         IsReloading = false;
 
+        // Play cylinder close sound
+        PlayCylinderCloseSound();
+
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ReloadFinished);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
@@ -671,6 +808,82 @@ public partial class Revolver : BaseWeapon
         GD.Print($"[Revolver] Cylinder closed - {CurrentAmmo}/{CylinderCapacity} rounds loaded, ready to fire");
 
         return true;
+    }
+
+    /// <summary>
+    /// Rotate the cylinder by one position (Issue #626).
+    /// Called when player scrolls the mouse wheel while the cylinder is open.
+    /// This is a purely visual/mechanical action - it doesn't load ammo,
+    /// it just turns the cylinder to the next chamber position.
+    /// </summary>
+    /// <param name="direction">1 for clockwise, -1 for counter-clockwise.</param>
+    /// <returns>True if the cylinder was rotated.</returns>
+    public bool RotateCylinder(int direction)
+    {
+        if (ReloadState != RevolverReloadState.CylinderOpen
+            && ReloadState != RevolverReloadState.Loading)
+        {
+            return false;
+        }
+
+        // Play cylinder rotation click sound
+        PlayCylinderRotateSound();
+
+        GD.Print($"[Revolver] Cylinder rotated {(direction > 0 ? "clockwise" : "counter-clockwise")}");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Plays the cylinder open sound via AudioManager.
+    /// Uses pistol bolt sound (взвод затвора пистолета) for the cylinder release mechanism.
+    /// </summary>
+    public void PlayCylinderOpenSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_revolver_cylinder_open"))
+        {
+            audioManager.Call("play_revolver_cylinder_open", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the cylinder close sound via AudioManager.
+    /// Uses PM reload action 2 (второе действие перезарядки) for the cylinder snap.
+    /// </summary>
+    public void PlayCylinderCloseSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_revolver_cylinder_close"))
+        {
+            audioManager.Call("play_revolver_cylinder_close", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the cartridge insertion sound via AudioManager.
+    /// Uses shotgun load shell sound (зарядил один патрон в дробовик) adapted for revolver.
+    /// </summary>
+    private void PlayCartridgeInsertSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_revolver_cartridge_insert"))
+        {
+            audioManager.Call("play_revolver_cartridge_insert", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the cylinder rotation click sound via AudioManager.
+    /// Uses PM reload action 1 (первое действие перезарядки) for a mechanical click.
+    /// </summary>
+    private void PlayCylinderRotateSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_revolver_cylinder_rotate"))
+        {
+            audioManager.Call("play_revolver_cylinder_rotate", GlobalPosition);
+        }
     }
 
     /// <summary>
