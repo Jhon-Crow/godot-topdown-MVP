@@ -219,6 +219,14 @@ public partial class Revolver : BaseWeapon
     private bool _isManuallyHammerCocked = false;
 
     /// <summary>
+    /// Signal emitted when the cylinder state changes (Issue #691).
+    /// Used by the cylinder HUD to update the display.
+    /// Emitted on fire, reload, cylinder rotation, hammer state changes.
+    /// </summary>
+    [Signal]
+    public delegate void CylinderStateChangedEventHandler();
+
+    /// <summary>
     /// Timer for the delay between hammer cock and actual shot (Issue #661).
     /// The hammer cocks and cylinder rotates first, then the shot fires.
     /// </summary>
@@ -300,25 +308,22 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Handles mouse scroll wheel input for cylinder rotation (Issue #626).
-    /// Scroll up or down rotates the cylinder by one position while it's open.
+    /// Handles mouse scroll wheel input for cylinder rotation (Issue #626, #691).
+    /// Scroll up or down rotates the cylinder by one position.
+    /// Works both during reload (Issue #626) and outside reload (Issue #691).
     /// </summary>
     public override void _Input(InputEvent @event)
     {
         base._Input(@event);
 
-        // Handle scroll wheel for cylinder rotation while cylinder is open
+        // Handle scroll wheel for cylinder rotation (Issue #691: also outside reload)
         if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed)
         {
-            if (ReloadState == RevolverReloadState.CylinderOpen
-                || ReloadState == RevolverReloadState.Loading)
+            if (mouseButton.ButtonIndex == MouseButton.WheelUp
+                || mouseButton.ButtonIndex == MouseButton.WheelDown)
             {
-                if (mouseButton.ButtonIndex == MouseButton.WheelUp
-                    || mouseButton.ButtonIndex == MouseButton.WheelDown)
-                {
-                    int direction = mouseButton.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
-                    RotateCylinder(direction);
-                }
+                int direction = mouseButton.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
+                RotateCylinder(direction);
             }
         }
     }
@@ -548,6 +553,7 @@ public partial class Revolver : BaseWeapon
 
         // Emit HammerCocked signal as a separate event (Issue #661 requirement #2)
         EmitSignal(SignalName.HammerCocked);
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print("[Revolver] Hammer cocked, cylinder rotated - shot pending");
 
@@ -559,6 +565,28 @@ public partial class Revolver : BaseWeapon
     /// Used by Player.cs to check if the revolver can fire instantly.
     /// </summary>
     public bool IsManuallyHammerCocked => _isManuallyHammerCocked;
+
+    /// <summary>
+    /// Whether the hammer is cocked (either manually or auto-cocked) (Issue #691).
+    /// Used by the cylinder HUD: red = cocked (instant shot), yellow = uncocked (will rotate).
+    /// </summary>
+    public bool IsHammerCocked => _isHammerCocked || _isManuallyHammerCocked;
+
+    /// <summary>
+    /// Current chamber index the cylinder is pointing at (Issue #691).
+    /// Used by the cylinder HUD to highlight the active slot.
+    /// </summary>
+    public int CurrentChamberIndex => _currentChamberIndex;
+
+    /// <summary>
+    /// Per-chamber occupancy state (Issue #691).
+    /// Returns a copy of the chamber array. True = live round, false = empty.
+    /// Used by the cylinder HUD to display which chambers have rounds.
+    /// </summary>
+    public bool[] GetChamberStates()
+    {
+        return (bool[])_chamberOccupied.Clone();
+    }
 
     /// <summary>
     /// Manually cocks the hammer by pressing RMB (Issue #649).
@@ -615,6 +643,7 @@ public partial class Revolver : BaseWeapon
 
         // Emit HammerCocked signal
         EmitSignal(SignalName.HammerCocked);
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly");
 
@@ -664,6 +693,8 @@ public partial class Revolver : BaseWeapon
             }
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
+            // Issue #691: Notify UI of cylinder state change
+            EmitSignal(SignalName.CylinderStateChanged);
         }
     }
 
@@ -813,6 +844,8 @@ public partial class Revolver : BaseWeapon
                 _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
             }
             TriggerScreenShake(spreadDirection);
+            // Issue #691: Notify UI of cylinder state change
+            EmitSignal(SignalName.CylinderStateChanged);
         }
 
         return result;
@@ -954,6 +987,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.ReloadStarted);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cylinder opened - ejected {_spentCasingsToEject} spent casings, {CurrentAmmo}/{cylinderCapacity} live rounds remain");
 
@@ -1018,6 +1052,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cartridge inserted ({CartridgesLoadedThisReload}/{CylinderCapacity}), ammo: {CurrentAmmo}/{CylinderCapacity}, reserve: {ReserveAmmo}");
 
@@ -1047,6 +1082,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.ReloadFinished);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cylinder closed - {CurrentAmmo}/{CylinderCapacity} rounds loaded, ready to fire");
 
@@ -1054,17 +1090,19 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Rotate the cylinder by one position (Issue #626).
-    /// Called when player scrolls the mouse wheel while the cylinder is open.
-    /// This is a purely visual/mechanical action - it doesn't load ammo,
-    /// it just turns the cylinder to the next chamber position.
+    /// Rotate the cylinder by one position (Issue #626, #691).
+    /// Called when player scrolls the mouse wheel.
+    /// During reload: rotates to the next chamber for cartridge insertion.
+    /// Outside reload (Issue #691): rotates the cylinder freely (e.g., for Russian roulette style selection).
+    /// Cannot rotate while hammer is cocked (pending shot or manually cocked).
     /// </summary>
     /// <param name="direction">1 for clockwise, -1 for counter-clockwise.</param>
     /// <returns>True if the cylinder was rotated.</returns>
     public bool RotateCylinder(int direction)
     {
-        if (ReloadState != RevolverReloadState.CylinderOpen
-            && ReloadState != RevolverReloadState.Loading)
+        // Issue #691: Allow rotation both during reload and outside of it.
+        // Cannot rotate while hammer is cocked (shot pending or manually cocked).
+        if (_isHammerCocked || _isManuallyHammerCocked)
         {
             return false;
         }
@@ -1073,14 +1111,21 @@ public partial class Revolver : BaseWeapon
         int capacity = _chamberOccupied.Length > 0 ? _chamberOccupied.Length : CylinderCapacity;
         _currentChamberIndex = ((_currentChamberIndex + direction) % capacity + capacity) % capacity;
 
-        // Issue #668: Only unblock insertion if the destination chamber is empty.
+        // Issue #668: Only unblock insertion if the destination chamber is empty (during reload).
         // Issue #659: Rotating moves to the next chamber for insertion.
-        _cartridgeInsertionBlocked = _chamberOccupied.Length > 0
-                                     && _currentChamberIndex < _chamberOccupied.Length
-                                     && _chamberOccupied[_currentChamberIndex];
+        if (ReloadState == RevolverReloadState.CylinderOpen
+            || ReloadState == RevolverReloadState.Loading)
+        {
+            _cartridgeInsertionBlocked = _chamberOccupied.Length > 0
+                                         && _currentChamberIndex < _chamberOccupied.Length
+                                         && _chamberOccupied[_currentChamberIndex];
+        }
 
         // Play cylinder rotation click sound
         PlayCylinderRotateSound();
+
+        // Issue #691: Notify UI of cylinder state change
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cylinder rotated {(direction > 0 ? "clockwise" : "counter-clockwise")} to chamber {_currentChamberIndex} (occupied: {(_chamberOccupied.Length > 0 && _currentChamberIndex < _chamberOccupied.Length ? _chamberOccupied[_currentChamberIndex] : false)})");
 
