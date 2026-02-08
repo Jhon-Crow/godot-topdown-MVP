@@ -2570,11 +2570,11 @@ public partial class Player : BaseCharacter
         // Calculate throw speed needed to reach target (using physics)
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
         // FIX for issue #615: Removed the 1.16x compensation factor.
-        // Root cause: GDScript grenade_base.gd and C# GrenadeTimer.cs were BOTH applying
-        // friction simultaneously (double friction), causing grenades to travel only ~59% of
-        // target distance. The 1.16x factor was a partial workaround for this double friction.
-        // Now that grenade_base.gd skips friction when GrenadeTimer is present, single uniform
-        // friction applies and the formula v = sqrt(2*F*d) works correctly without compensation.
+        // Root causes: (1) GDScript + C# were BOTH applying friction (double friction), and
+        // (2) Godot's default linear_damp=0.1 in COMBINE mode added hidden damping.
+        // Fix: GDScript friction removed entirely (C# GrenadeTimer is sole friction source),
+        // and linear_damp_mode set to REPLACE so linear_damp=0 means zero damping.
+        // v = sqrt(2*F*d) now works correctly without any compensation factor.
         float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
 
         // Clamp to grenade's max throw speed
@@ -3927,9 +3927,9 @@ public partial class Player : BaseCharacter
             if (throwDistance < 10.0f) throwDistance = 10.0f;
 
             // Calculate throw speed needed to reach target
-            // FIX for issue #615: No compensation factor needed. Double friction was the root
-            // cause (GDScript + C# both applying friction). Now that grenade_base.gd skips
-            // friction when GrenadeTimer handles it, v = sqrt(2*F*d) works correctly.
+            // FIX for issue #615: No compensation factor needed. Root causes were double friction
+            // (GDScript + C# both applying) and Godot default linear_damp=0.1. GDScript friction
+            // was removed entirely; C# GrenadeTimer is sole friction source. v = sqrt(2*F*d) works.
             float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
