@@ -59,7 +59,7 @@ const FIREARMS: Dictionary = {
 	},
 	"ak_gl": {
 		"name": "AK + GL",
-		"icon_path": "res://assets/sprites/weapons/ak_gl_topdown.png",
+		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
 		"unlocked": true,
 		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
 	},
