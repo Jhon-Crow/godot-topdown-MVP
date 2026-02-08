@@ -190,31 +190,15 @@ var _has_valid_cover: bool = false  ## Has valid cover
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
 
-## Flank target position.
-var _flank_target: Vector2 = Vector2.ZERO
-
-## Threat sphere Area2D for detecting nearby bullets.
-var _threat_sphere: Area2D = null
-
-## Bullets currently in threat sphere.
-var _bullets_in_threat_sphere: Array = []
-
-## Timer for threat reaction delay - time since first bullet entered threat sphere.
-var _threat_reaction_timer: float = 0.0
-
-## Whether the threat reaction delay has elapsed (enemy can react to bullets).
-var _threat_reaction_delay_elapsed: bool = false
-
-## Memory timer for bullets that passed through threat sphere (allows reaction after fast bullets exit).
-var _threat_memory_timer: float = 0.0
-## Duration to remember bullet passage (longer than reaction delay for complete reaction).
-const THREAT_MEMORY_DURATION: float = 0.5
-
-## Current retreat mode determined by damage taken.
-var _retreat_mode: RetreatMode = RetreatMode.FULL_HP
-
-## Hits taken this retreat/combat encounter. Resets on IDLE or retreat completion.
-var _hits_taken_in_encounter: int = 0
+var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
+var _threat_sphere: Area2D = null  ## Threat sphere Area2D for detecting nearby bullets
+var _bullets_in_threat_sphere: Array = []  ## Bullets currently in threat sphere
+var _threat_reaction_timer: float = 0.0  ## Time since first bullet entered threat sphere
+var _threat_reaction_delay_elapsed: bool = false  ## Whether enemy can react to bullets
+var _threat_memory_timer: float = 0.0  ## Memory timer for bullets that passed through threat sphere
+const THREAT_MEMORY_DURATION: float = 0.5  ## Duration to remember bullet passage
+var _retreat_mode: RetreatMode = RetreatMode.FULL_HP  ## Current retreat mode determined by damage taken
+var _hits_taken_in_encounter: int = 0  ## Hits taken this encounter, resets on IDLE or retreat completion
 
 var _retreat_turn_timer: float = 0.0  ## Periodic cover turn timer
 const RETREAT_TURN_DURATION: float = 0.8  ## Duration to face cover (sec)
@@ -361,6 +345,7 @@ var _killed_by_penetration: bool = false
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
+var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -450,6 +435,8 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
+	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
 	# Unlimited search zone is activated AFTER enemy detects and loses player
 
@@ -597,9 +584,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _memory:
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes reload sounds a high-risk action when enemies are nearby.
+		# React to vulnerable player sound - pursue (high-risk for reload actions)
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
 			# Leave cover/defensive state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
@@ -1256,10 +1241,7 @@ func _process_ai_state(delta: float) -> void:
 
 			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
-			# CRITICAL: Force the model to face the player immediately so that
-			# _get_weapon_forward_direction() returns the correct aim direction.
-			# Without this, the weapon transform would still reflect the old direction
-			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			# CRITICAL: Force model to face player for correct aim direction (issue #264)
 			_force_model_to_face_direction(direction_to_player)
 
 			# Shoot with priority - still respects weapon fire rate cooldown
@@ -1370,9 +1352,7 @@ func _process_combat_state(delta: float) -> void:
 		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
 			tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed); return
-	# Check for suppression - transition to retreating behavior
-	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
-	# ignore suppression and continue the attack - this is the best time to strike!
+	# Check suppression (ignore during vulnerability pursuit)
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
 		_combat_exposed = false
 		_combat_approaching = false
@@ -1678,7 +1658,6 @@ func _process_in_cover_state(delta: float) -> void:
 		return
 
 	# NOTE: ASSAULT state transition removed per issue #169
-	# Enemies now stay in IN_COVER instead of transitioning to coordinated assault
 
 	# Decision making based on player distance and visibility
 	if _player:
@@ -4559,6 +4538,7 @@ func _update_debug_label() -> void:
 			else: t += "\n(%s DIRECT)" % s
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
+	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4835,11 +4815,13 @@ func _setup_flashbang_status() -> void:
 
 func _on_blinded_changed(blinded: bool) -> void:
 	_is_blinded = blinded
+	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
 	if blinded:
 		_can_see_player = false; _continuous_visibility_timer = 0.0
 
 func _on_stunned_changed(stunned: bool) -> void:
 	_is_stunned = stunned
+	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned:
 		velocity = Vector2.ZERO
 
