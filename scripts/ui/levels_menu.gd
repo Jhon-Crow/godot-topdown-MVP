@@ -11,8 +11,8 @@ signal back_pressed
 ## Level metadata: name, scene path, description, preview color, enemy count.
 const LEVELS: Array[Dictionary] = [
 	{
-		"name": "City",
-		"name_ru": "Город",
+		"name": "Building Level",
+		"name_ru": "Здание",
 		"path": "res://scenes/levels/BuildingLevel.tscn",
 		"description": "Hotline Miami style building with interconnected rooms and corridors. Features a grenadier enemy.",
 		"preview_color": Color(0.35, 0.25, 0.2, 1.0),
@@ -59,6 +59,16 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.85, 0.75, 0.55, 1.0),
 		"enemy_count": 8,
 		"map_size": "2400x2000"
+	},
+	{
+		"name": "City",
+		"name_ru": "Город",
+		"path": "res://scenes/levels/CityLevel.tscn",
+		"description": "Urban warfare with sniper enemies. Watch out for red laser sights!",
+		"preview_color": Color(0.25, 0.22, 0.2, 1.0),
+		"preview_accent": Color(0.4, 0.35, 0.3, 1.0),
+		"enemy_count": 10,
+		"map_size": "6000x5000"
 	}
 ]
 

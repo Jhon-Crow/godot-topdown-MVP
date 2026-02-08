@@ -90,6 +90,21 @@ The shot fired (sound propagated) but no "HITSCAN HIT" log appeared, indicating 
 | `scripts/components/weapon_config_component.gd` | Added SNIPER (type 4) weapon configuration | All |
 | `Scripts/Characters/Player.cs` | Added `on_hit_with_bullet_info` method for damage delivery | Bug 3 |
 
+### Bug 4: City Map (Город) Missing
+
+**Root cause:** The City level (`CityLevel.tscn` and `city_level.gd`) was created in PR #582 (commit `d205b85f`) as part of the sniper enemy feature. However, PR #582 was never merged to `main`. When PR #666 was created from `main` to fix sniper bugs, it did not include the City level files because they only existed on the unmerged PR #582 branch. Additionally, the `BuildingLevel` was incorrectly labeled as "City"/"Город" in the levels menu, causing confusion.
+
+**Evidence from game log (game_log_20260208_193854.txt):**
+The game cycles through scenes: BuildingLevel, TestTier, CastleLevel, Tutorial, BeachLevel — but never CityLevel. The owner expected to see "Город" (City) as a separate urban map with sniper enemies, not as a label for BuildingLevel.
+
+**Fix:**
+1. Copied `CityLevel.tscn` (6000x5000 urban map with 28 buildings, 2 snipers, 8 regular enemies) from PR #582 branch
+2. Copied `city_level.gd` (884 lines, M16 default weapon, replay support) from PR #582 branch
+3. Added "City"/"Город" entry to levels menu pointing to `CityLevel.tscn`
+4. Restored BuildingLevel's original name ("Building Level"/"Здание") in the levels menu
+5. Updated level navigation arrays in all level scripts to include CityLevel as the last level
+
 ## Data Files
 
 - `game_log_20260208_183844.txt` - Original game log from issue report (5541 lines)
+- `game_log_20260208_193854.txt` - Second game log showing City map missing (1704 lines)

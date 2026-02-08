@@ -1197,6 +1197,8 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):
