@@ -186,8 +186,8 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 	return true
 
 
-## Execute a throw using the grenade bag system.
-func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bool) -> void:
+## Execute a throw using the grenade bag system. cooldown_override overrides throw_cooldown if > 0.
+func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bool, cooldown_override: float = 0.0) -> void:
 	var next_scene := _get_next_grenade_scene()
 	if next_scene == null:
 		return
@@ -254,12 +254,12 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 	# Consume from bag
 	_consume_grenade()
 
-	_cooldown = throw_cooldown
+	_cooldown = cooldown_override if cooldown_override > 0.0 else throw_cooldown
 	_is_throwing = false
 	_reset_triggers()
 	grenade_thrown.emit(grenade, target)
-	_log("Grenadier threw %s! Target: %s, Distance: %.0f, %d remaining" % [
-		grenade_type_name, str(target), dist, grenades_remaining
+	_log("Grenadier threw %s! Target: %s, Distance: %.0f, %d remaining, cooldown=%.1fs" % [
+		grenade_type_name, str(target), dist, grenades_remaining, _cooldown
 	])
 
 	# Set a safety timer to clear blocking state if grenade signal is missed
@@ -314,3 +314,74 @@ func has_grenades() -> bool:
 ## Get the number of grenades remaining in the bag.
 func get_bag_size() -> int:
 	return _grenade_bag.size()
+
+
+## Proactive passage throw (Issue #604): Throw a grenade before entering a passage/corridor.
+## Called from enemy.gd during PURSUING state when moving toward a waypoint.
+## Returns true if a grenade was thrown.
+func try_passage_throw(enemy_pos: Vector2, next_waypoint: Vector2, space_state: PhysicsDirectSpaceState2D,
+		is_alive: bool, is_stunned: bool, is_blinded: bool) -> bool:
+	if not enabled or _grenade_bag.is_empty() or _is_throwing or _blocking_passage:
+		return false
+	if not is_alive or is_stunned or is_blinded or _enemy == null:
+		return false
+	# Use passage cooldown (shorter than combat cooldown) for proactive throws
+	if _cooldown > 0.0:
+		return false
+
+	var dir_to_waypoint := (next_waypoint - enemy_pos).normalized()
+	var dist_to_waypoint := enemy_pos.distance_to(next_waypoint)
+
+	# Only check when waypoint is at a reasonable distance (not too close, not too far)
+	if dist_to_waypoint < 80.0 or dist_to_waypoint > 500.0:
+		return false
+
+	# Raycast from enemy to next waypoint to detect walls/obstacles in the path
+	var query := PhysicsRayQueryParameters2D.create(enemy_pos, next_waypoint)
+	query.collision_mask = 0b100  # Layer 3: obstacles/walls
+	query.exclude = [_enemy]
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return false  # No wall ahead, no need to throw
+
+	var wall_pos: Vector2 = result.position
+	var wall_dist := enemy_pos.distance_to(wall_pos)
+
+	# Wall must be close enough that we're about to enter the passage (within 200px)
+	if wall_dist > 200.0 or wall_dist < 40.0:
+		return false
+
+	# Calculate throw target: beyond the wall, into the passage/room on the other side
+	# Throw to a point 150-300px past the wall along movement direction
+	var throw_distance := clampf(dist_to_waypoint, 275.0, max_throw_distance)
+	var throw_target := enemy_pos + dir_to_waypoint * throw_distance
+
+	# Verify throw target is far enough for safety
+	var target_dist := enemy_pos.distance_to(throw_target)
+	var next_scene := _get_next_grenade_scene()
+	if next_scene == null:
+		return false
+	var blast_radius := _get_blast_radius_for_scene(next_scene)
+	if target_dist < blast_radius + safety_margin:
+		return false
+
+	# Check throw path isn't completely blocked (grenade should arc over low cover)
+	if not _path_clear(throw_target):
+		# Try throwing slightly to the sides
+		var perp := Vector2(-dir_to_waypoint.y, dir_to_waypoint.x)
+		var alt_target := throw_target + perp * 80.0
+		if _path_clear(alt_target) and enemy_pos.distance_to(alt_target) >= blast_radius + safety_margin:
+			throw_target = alt_target
+		else:
+			alt_target = throw_target - perp * 80.0
+			if _path_clear(alt_target) and enemy_pos.distance_to(alt_target) >= blast_radius + safety_margin:
+				throw_target = alt_target
+			else:
+				return false
+
+	_log("Passage throw: wall at %.0fpx, throwing %s to %s (dist=%.0f)" % [
+		wall_dist, _get_next_grenade_type_name(), str(throw_target), target_dist])
+
+	_execute_grenadier_throw(throw_target, is_alive, is_stunned, is_blinded, passage_throw_cooldown)
+	return true

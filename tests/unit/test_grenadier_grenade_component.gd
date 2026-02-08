@@ -430,3 +430,66 @@ func test_rebuild_changes_difficulty_loadout() -> void:
 		"Hard should have 0 flashbangs")
 	assert_eq(bag.count_type(MockGrenadierBag.GrenadeType.DEFENSIVE), 1,
 		"Hard should have 1 defensive")
+
+
+# ============================================================================
+# Passage Throw Logic Tests (Issue #604)
+# ============================================================================
+
+
+func test_passage_throw_not_possible_when_empty_bag() -> void:
+	# Empty bag should not allow passage throw
+	assert_false(bag.has_grenades(),
+		"Empty bag cannot throw passage grenade")
+
+
+func test_passage_throw_not_possible_when_blocking() -> void:
+	bag.build_bag_normal()
+	bag.set_blocking(true)
+
+	assert_true(bag.is_blocking_passage(),
+		"Grenadier should not passage-throw while already blocking a passage")
+
+
+func test_passage_throw_consumes_grenade_from_bag() -> void:
+	bag.build_bag_normal()
+	var initial_size := bag.get_bag_size()
+
+	# Simulate a passage throw consuming a grenade
+	var consumed := bag.consume()
+	bag.set_blocking(true)
+
+	assert_eq(consumed, MockGrenadierBag.GrenadeType.FLASHBANG,
+		"Passage throw should consume least dangerous grenade first (flashbang)")
+	assert_eq(bag.get_bag_size(), initial_size - 1,
+		"Bag should have one less grenade after passage throw")
+
+
+func test_passage_throw_uses_priority_order() -> void:
+	bag.build_bag_normal()
+
+	# First 3 passage throws should use flashbangs
+	for i in range(3):
+		var type := bag.consume()
+		assert_eq(type, MockGrenadierBag.GrenadeType.FLASHBANG,
+			"Passage throw %d should use flashbang" % (i + 1))
+
+	# After flashbangs, passage throws should use offensive grenades
+	var type := bag.consume()
+	assert_eq(type, MockGrenadierBag.GrenadeType.OFFENSIVE,
+		"After flashbangs exhausted, passage throw should use offensive grenade")
+
+
+func test_passage_throw_hard_difficulty_order() -> void:
+	bag.build_bag_hard()
+
+	# First 7 passage throws should use offensive (small radius)
+	for i in range(7):
+		var type := bag.consume()
+		assert_eq(type, MockGrenadierBag.GrenadeType.OFFENSIVE,
+			"Hard mode passage throw %d should use offensive" % (i + 1))
+
+	# Last should be defensive (large radius)
+	var type := bag.consume()
+	assert_eq(type, MockGrenadierBag.GrenadeType.DEFENSIVE,
+		"Hard mode last passage throw should use defensive")

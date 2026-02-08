@@ -932,7 +932,7 @@ max_health = 2
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
-grenade_throw_cooldown = 5.0
+grenade_throw_cooldown = 3.0
 
 [node name="Enemy6" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1950, 450)

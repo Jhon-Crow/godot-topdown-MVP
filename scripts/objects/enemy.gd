@@ -1364,8 +1364,6 @@ func _process_combat_state(delta: float) -> void:
 		return
 
 	# NOTE: ASSAULT state transition removed per issue #169
-	# Enemies now stay in COMBAT instead of transitioning to coordinated assault
-
 	# If can't see player, pursue them (move cover-to-cover toward player)
 	# But only after minimum time has elapsed to prevent rapid state thrashing
 	# when visibility flickers at wall/obstacle edges
@@ -1955,8 +1953,12 @@ func _process_pursuing_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
-	# NOTE: ASSAULT state transition removed per issue #169
-	# Enemies now stay in PURSUING instead of transitioning to coordinated assault
+	# Issue #604: Grenadier proactive passage throw - throw before entering passage/cover
+	if is_grenadier and _grenade_component is GrenadierGrenadeComponent and _nav_agent and not _nav_agent.is_navigation_finished():
+		var wp := _nav_agent.get_next_path_position()
+		var ss := get_world_2d().direct_space_state
+		if ss and (_grenade_component as GrenadierGrenadeComponent).try_passage_throw(global_position, wp, ss, _is_alive, _is_stunned, _is_blinded):
+			velocity = Vector2.ZERO; return  # Wait for grenade to explode
 
 	# If can see player and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -4855,9 +4857,12 @@ func _setup_grenade_component() -> void:
 	_grenade_component.throw_delay = grenade_throw_delay; _grenade_component.min_throw_distance = grenade_min_throw_distance
 	_grenade_component.debug_logging = grenade_debug_logging; _grenade_component.safety_margin = grenade_safety_margin
 	add_child(_grenade_component); _grenade_component.initialize()
-	if is_grenadier:  # Connect grenadier signals for ally coordination (Issue #604)
+	if is_grenadier:  # Connect grenadier signals + vest visual (Issue #604)
 		var gc := _grenade_component as GrenadierGrenadeComponent
 		gc.grenade_incoming.connect(_on_grenadier_grenade_incoming); gc.grenade_exploded_safe.connect(_on_grenadier_grenade_exploded)
+		if _enemy_model:  # Add grenade vest overlay sprite
+			var vest := Sprite2D.new(); vest.texture = load("res://assets/sprites/characters/enemy/grenadier_vest.png")
+			vest.name = "GrenadierVest"; vest.z_index = 2; vest.position = Vector2(-4, 0); _enemy_model.add_child(vest)
 
 func _update_grenade_triggers(delta: float) -> void:
 	if _grenade_component == null: return
@@ -4939,15 +4944,9 @@ func _update_grenade_danger_detection() -> void:
 func _calculate_grenade_evasion_target() -> void:
 	if _grenade_avoidance: _grenade_avoidance.calculate_evasion_target(_nav_agent)
 
-## Get the number of grenades remaining.
-func get_grenades_remaining() -> int:
-	if _grenade_component:
-		return _grenade_component.grenades_remaining
-	return 0
-
+func get_grenades_remaining() -> int: return _grenade_component.grenades_remaining if _grenade_component else 0
 func add_grenades(count: int) -> void:
 	if _grenade_component: _grenade_component.add_grenades(count)
-
 # Grenadier Coordination (Issue #604)
 func _on_grenadier_grenade_incoming(grenade_pos: Vector2, effect_radius: float, fuse_time: float) -> void:
 	var parent := get_parent()
