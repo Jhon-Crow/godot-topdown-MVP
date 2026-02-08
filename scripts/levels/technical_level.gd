@@ -1,12 +1,12 @@
 extends Node2D
-## Technical facility level scene for the Godot Top-Down Template.
+## Technical corridor level scene for the Godot Top-Down Template.
 ##
-## This scene is a labyrinth of technical rooms (enclosed spaces).
+## This scene is a narrow long corridor with technical infrastructure.
 ## Features:
-## - Compact technical facility layout (~1600x1600 pixels)
-## - Multiple enclosed rooms connected by corridors (labyrinth style)
+## - Narrow elongated corridor layout (4000x600 pixels)
+## - Single long corridor with dividers and cover objects
 ## - 4 enemies: 3 with rifles (PM), 1 with shotgun, all unarmored (1-2 HP)
-## - Clear room boundaries with walls and doorways
+## - Tight combat in confined space
 ## - Score tracking with Hotline Miami style ranking system
 
 ## Reference to the enemy count label.
@@ -85,9 +85,9 @@ func _get_or_create_replay_manager() -> Node:
 
 
 func _ready() -> void:
-	print("TechnicalLevel loaded - Labyrinth of Technical Rooms")
-	print("Facility size: ~1600x1600 pixels")
-	print("Clear all rooms to win!")
+	print("TechnicalLevel loaded - Technical Corridor")
+	print("Corridor size: 4000x600 pixels")
+	print("Fight through the corridor to win!")
 	print("Press Q for quick restart")
 
 	# Setup navigation mesh for enemy pathfinding
@@ -182,10 +182,10 @@ func _setup_exit_zone() -> void:
 		return
 
 	_exit_zone = exit_zone_scene.instantiate()
-	# Position exit at the bottom center near player spawn
-	_exit_zone.position = Vector2(800, 1480)
+	# Position exit at the far right end of the corridor
+	_exit_zone.position = Vector2(3850, 300)
 	_exit_zone.zone_width = 80.0
-	_exit_zone.zone_height = 60.0
+	_exit_zone.zone_height = 80.0
 
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 
@@ -195,7 +195,7 @@ func _setup_exit_zone() -> void:
 	else:
 		add_child(_exit_zone)
 
-	print("[TechnicalLevel] Exit zone created at position (800, 1480)")
+	print("[TechnicalLevel] Exit zone created at position (3850, 300)")
 
 
 ## Called when the player reaches the exit zone after clearing the level.
@@ -295,9 +295,9 @@ func _setup_navigation() -> void:
 
 	var floor_outline: PackedVector2Array = PackedVector2Array([
 		Vector2(64, 64),
-		Vector2(1536, 64),
-		Vector2(1536, 1536),
-		Vector2(64, 1536)
+		Vector2(3936, 64),
+		Vector2(3936, 536),
+		Vector2(64, 536)
 	])
 	nav_poly.add_outline(floor_outline)
 
@@ -513,7 +513,7 @@ func _on_enemy_died() -> void:
 		GameManager.register_kill()
 
 	if _current_enemy_count <= 0:
-		print("All enemies eliminated! Facility cleared!")
+		print("All enemies eliminated! Corridor cleared!")
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
@@ -784,7 +784,7 @@ func _show_victory_message() -> void:
 
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "FACILITY CLEARED!"
+	victory_label.text = "CORRIDOR CLEARED!"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)

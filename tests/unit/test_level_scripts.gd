@@ -190,9 +190,9 @@ class MockTechnicalLevel extends MockLevelBase:
 	## Technical level-specific constants.
 	var level_name: String = "TechnicalLevel"
 
-	## Technical facility dimensions (~1600x1600 pixels).
-	var map_width: int = 1600
-	var map_height: int = 1600
+	## Technical corridor dimensions (4000x600 pixels, narrow long corridor).
+	var map_width: int = 4000
+	var map_height: int = 600
 
 	## Default enemy count for technical level (3 rifle + 1 shotgun).
 	var default_enemy_count: int = 4
@@ -442,10 +442,10 @@ func test_technical_level_name() -> void:
 
 
 func test_technical_level_map_dimensions() -> void:
-	assert_eq(technical_level.map_width, 1600,
-		"Technical map width should be 1600")
-	assert_eq(technical_level.map_height, 1600,
-		"Technical map height should be 1600")
+	assert_eq(technical_level.map_width, 4000,
+		"Technical map width should be 4000")
+	assert_eq(technical_level.map_height, 600,
+		"Technical map height should be 600")
 
 
 func test_technical_level_default_enemy_count() -> void:
@@ -453,11 +453,9 @@ func test_technical_level_default_enemy_count() -> void:
 		"Technical level should have 4 enemies by default")
 
 
-func test_technical_level_smaller_than_building() -> void:
-	assert_lt(technical_level.map_width, building_level.map_width,
-		"Technical level should be smaller than building level")
+func test_technical_level_narrower_than_building() -> void:
 	assert_lt(technical_level.map_height, building_level.map_height,
-		"Technical level should be smaller than building level")
+		"Technical corridor should be narrower than building level")
 
 
 func test_technical_level_fewer_enemies_than_building() -> void:

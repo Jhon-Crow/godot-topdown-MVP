@@ -124,11 +124,11 @@ class MockLevelsMenu:
 			"name": "Technical Facility",
 			"name_ru": "Техзона",
 			"path": "res://scenes/levels/TechnicalLevel.tscn",
-			"description": "Labyrinth of enclosed technical rooms. Tight corridors and compact spaces.",
+			"description": "Narrow technical corridor. Fight through tight confined spaces.",
 			"preview_color": Color(0.15, 0.15, 0.2, 1.0),
 			"preview_accent": Color(0.3, 0.35, 0.5, 1.0),
 			"enemy_count": 4,
-			"map_size": "1600x1600"
+			"map_size": "4000x600"
 		},
 		{
 			"name": "Building Level",
@@ -1242,8 +1242,8 @@ func test_map_size_beach() -> void:
 
 
 func test_map_size_technical_facility() -> void:
-	assert_eq(levels_menu.get_map_size("Technical Facility"), "1600x1600",
-		"Technical Facility map size should be 1600x1600")
+	assert_eq(levels_menu.get_map_size("Technical Facility"), "4000x600",
+		"Technical Facility map size should be 4000x600")
 
 
 # ============================================================================
