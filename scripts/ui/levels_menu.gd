@@ -21,8 +21,8 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "1920x1080"
 	},
 	{
-		"name": "City",
-		"name_ru": "Город",
+		"name": "Building Level",
+		"name_ru": "Здание",
 		"path": "res://scenes/levels/BuildingLevel.tscn",
 		"description": "Hotline Miami style building with interconnected rooms and corridors. Features a grenadier enemy.",
 		"preview_color": Color(0.35, 0.25, 0.2, 1.0),
