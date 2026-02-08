@@ -35,6 +35,9 @@ var _is_slow_active: bool = false
 ## Whether the saturation boost effect is currently active.
 var _is_saturation_active: bool = false
 
+## Issue #597: When true, skip Engine.time_scale changes (used during replay playback).
+var replay_mode: bool = false
+
 
 func _ready() -> void:
 	# Connect to scene tree changes to reset effects on scene reload
@@ -100,13 +103,15 @@ func _start_slow_effect() -> void:
 	_slow_timer = SLOW_DURATION
 	if not _is_slow_active:
 		_is_slow_active = true
-		Engine.time_scale = SLOW_TIME_SCALE
+		if not replay_mode:
+			Engine.time_scale = SLOW_TIME_SCALE
 
 
 ## Ends the time slowdown effect.
 func _end_slow_effect() -> void:
 	_is_slow_active = false
-	Engine.time_scale = 1.0
+	if not replay_mode:
+		Engine.time_scale = 1.0
 
 
 ## Starts or resets the saturation boost effect.

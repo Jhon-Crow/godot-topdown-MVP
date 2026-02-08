@@ -31,6 +31,7 @@ PowerFantasyEffectsManager="*res://scripts/autoload/power_fantasy_effects_manage
 ProgressManager="*res://scripts/autoload/progress_manager.gd"
 ReplayManager="*res://Scripts/Autoload/ReplayManager.cs"
 ActiveItemManager="*res://scripts/autoload/active_item_manager.gd"
+FlashbangPlayerEffectsManager="*res://scripts/autoload/flashbang_player_effects_manager.gd"
 
 [application]
 
