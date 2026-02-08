@@ -415,7 +415,7 @@ public partial class AKGL : BaseWeapon
         // With ground_friction = 280 and target distance = 1.5 * viewportWidth:
         float targetDistance = viewportWidth * 1.5f;
         float groundFriction = 280.0f;
-        float launchSpeed = Mathf.Sqrt(2.0f * targetDistance * groundFriction);
+        float launchSpeed = Mathf.Sqrt(2.0f * targetDistance * groundFriction) * 2.0f;
 
         // Spawn the VOG grenade
         var grenade = GrenadeScene.Instantiate<RigidBody2D>();
