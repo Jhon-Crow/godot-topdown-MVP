@@ -5,11 +5,15 @@ extends GutTest
 ## as the actual throw (ThrowSimpleGrenade), ensuring the landing indicator
 ## matches where the grenade actually lands.
 ##
-## FIX for Issue #615: The 1.16x compensation factor was removed because the
-## actual root cause was DOUBLE FRICTION — both GDScript (grenade_base.gd) and
-## C# (GrenadeTimer.cs) were applying friction simultaneously, causing grenades
-## to travel only ~59% of the target distance. Now grenade_base.gd skips friction
-## when GrenadeTimer handles it, so v = sqrt(2*F*d) works correctly.
+## FIX for Issue #615: Two root causes were found:
+## 1. DOUBLE FRICTION — GDScript (grenade_base.gd) and C# (GrenadeTimer.cs) were
+##    both applying friction simultaneously. Fixed by removing GDScript friction
+##    entirely and letting C# handle it exclusively.
+## 2. GODOT DEFAULT LINEAR_DAMP — Godot 4.x project default physics/2d/default_linear_damp
+##    is 0.1. With linear_damp=0.0 in COMBINE mode, effective damping was 0.0 + 0.1 = 0.1.
+##    Fixed by setting linear_damp_mode to REPLACE so 0.0 means exactly zero damping.
+##
+## With both fixes, v = sqrt(2*F*d) works correctly for the uniform C# friction model.
 
 
 # ============================================================================
