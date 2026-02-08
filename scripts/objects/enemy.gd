@@ -1600,12 +1600,12 @@ func _process_seeking_cover_state(_delta: float) -> void:
 	if not _has_valid_cover:
 		_find_cover_position()
 		if not _has_valid_cover:
-			if _is_sniper:
-				_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
+			# Issue #665: Snipers without cover fight from COMBAT (not fake IN_COVER)
 			_transition_to_combat(); return
 
 	if _is_sniper and _has_valid_cover and _cover_position.distance_to(_initial_position) > 500.0:
-		_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
+		# Issue #665: Cover too far from initial position — fight from current position
+		_transition_to_combat(); return
 
 	if not _is_visible_from_player():
 		_transition_to_in_cover(); _log_debug("Hidden from player, entering cover state"); return
@@ -1614,7 +1614,6 @@ func _process_seeking_cover_state(_delta: float) -> void:
 		if _is_visible_from_player():
 			_has_valid_cover = false; _find_cover_position()
 			if not _has_valid_cover:
-				if _is_sniper: _cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
 				_transition_to_combat(); return
 	_move_to_target_nav(_cover_position, combat_move_speed)
 	if _can_see_player and _player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -4938,7 +4937,7 @@ func _calculate_sniper_spread(_direction: Vector2) -> float:
 	return 15.0 if _player == null else SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
 func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	SniperComponent.shoot_hitscan(self, direction, spawn_pos, _hit_area, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations, _player)
-## Sniper COMBAT state: shoot if possible, then seek cover (Issue #665).
+## Sniper COMBAT state: shoot at player, seek cover if available (Issue #665).
 ## Inlined to avoid call() failures in exported builds.
 func _process_sniper_combat_state(delta: float) -> void:
 	_combat_state_timer += delta; velocity = Vector2.ZERO
@@ -4946,19 +4945,27 @@ func _process_sniper_combat_state(delta: float) -> void:
 	if _can_see_player and _player:
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting at visible player from combat"); _shoot(); _shoot_timer = 0.0
+			_log_to_file("SNIPER: shooting at visible player"); _shoot(); _shoot_timer = 0.0
 	elif not _can_see_player and _memory and _memory.has_target():
 		var suspected_pos: Vector2 = _memory.suspected_position
 		var walls := SniperComponent.count_walls(self, suspected_pos)
 		SniperComponent._rotate_toward(self, suspected_pos)
 		if walls <= _sniper_max_wall_penetrations and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_log_to_file("SNIPER: shooting through %d walls" % walls); _shoot(); _shoot_timer = 0.0
-	if enable_cover: _log_to_file("SNIPER: seeking cover"); _transition_to_seeking_cover(); return
+	# Issue #665: Only seek cover if not already tried and failed (prevents COMBAT<->SEEKING_COVER loop)
+	if enable_cover and _has_valid_cover: _log_to_file("SNIPER: seeking cover"); _transition_to_seeking_cover(); return
+	if enable_cover and not _has_valid_cover:
+		_find_cover_position()
+		if _has_valid_cover: _log_to_file("SNIPER: found cover, moving"); _transition_to_seeking_cover(); return
 	if not _can_see_player and _combat_state_timer > 5.0: _transition_to_searching(global_position)
 
 ## Sniper IN_COVER state: stay in cover and shoot at player (Issue #665).
 func _process_sniper_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO; _sniper_update_detection(delta)
+	# Issue #665: Validate cover — if player can see us, we're not really in cover
+	if _is_visible_from_player():
+		_has_valid_cover = false; _log_to_file("SNIPER: exposed in cover, returning to combat")
+		_transition_to_combat(); return
 	if _sniper_retreat_cooldown <= 0.0 and _player:
 		var dist := global_position.distance_to(_player.global_position)
 		if dist < get_viewport_rect().size.length() * 0.5:

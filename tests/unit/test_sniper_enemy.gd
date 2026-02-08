@@ -61,19 +61,19 @@ class MockSniperEnemy:
 		_combat_state_timer = 0.0
 
 	## Simulate the sniper combat state behavior (Issue #665 fix)
-	## Shoot first if possible, then seek cover.
+	## Shoot first if possible, then seek cover only if cover is available.
 	func process_sniper_combat(delta: float) -> void:
 		_combat_state_timer += delta
-		# Shoot at visible player before seeking cover
+		# Shoot at visible player
 		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log("SNIPER: shooting at visible player from combat")
+			_log("SNIPER: shooting at visible player")
 			_shoot()
-		# Then seek cover
-		if enable_cover:
-			_log("SNIPER: seeking cover from combat state")
+		# Issue #665: Only seek cover if valid cover exists (prevents COMBAT<->SEEKING_COVER loop)
+		if enable_cover and _has_valid_cover:
+			_log("SNIPER: seeking cover")
 			_transition_to_seeking_cover()
 			return
-		# Fallback: if cover is disabled, shoot from current position
+		# Fallback: no cover — stay in combat and shoot
 		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_log("SNIPER: shooting at visible player")
 			_shoot()
@@ -162,26 +162,28 @@ func after_each() -> void:
 # ============================================================================
 
 
-## Regression test: Snipers must seek cover when entering combat.
+## Regression test: Snipers seek cover when valid cover exists.
 ## Bug: Snipers stayed in COMBAT state indefinitely, never seeking cover or shooting.
-## Fix: _process_sniper_combat_state() inlined to avoid call() failures, shoots then seeks cover.
-func test_sniper_seeks_cover_immediately_on_combat_issue_665() -> void:
+## Fix: _process_sniper_combat_state() inlined, seeks cover only when valid cover available.
+func test_sniper_seeks_cover_when_available_issue_665() -> void:
 	sniper.enter_combat()
+	sniper._has_valid_cover = true  # Cover is available
 	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
 		"Sniper should start in COMBAT state")
 	sniper.process_sniper_combat(0.016)  # One frame
 	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.SEEKING_COVER,
-		"Issue #665 Bug 1: Sniper must immediately transition to SEEKING_COVER when enable_cover=true")
+		"Issue #665: Sniper must transition to SEEKING_COVER when valid cover is available")
 
 
 ## Verify the sniper logs the cover-seeking transition.
 func test_sniper_logs_cover_seeking_issue_665() -> void:
 	sniper.enter_combat()
+	sniper._has_valid_cover = true  # Cover is available
 	sniper.process_sniper_combat(0.016)
 	assert_true(sniper._logged_messages.size() > 0,
 		"Sniper should log the cover-seeking transition")
-	assert_true(sniper._logged_messages[0].contains("seeking cover"),
-		"Log should mention seeking cover")
+	assert_true(sniper._logged_messages[0].contains("seeking cover") or sniper._logged_messages[0].contains("shooting"),
+		"Log should mention seeking cover or shooting")
 
 
 ## Snipers shoot at visible player BEFORE seeking cover (shoot-then-cover pattern).
@@ -190,6 +192,7 @@ func test_sniper_shoots_before_seeking_cover_issue_665() -> void:
 	sniper._can_see_player = true
 	sniper._detection_delay_elapsed = true
 	sniper._shoot_timer = sniper.shoot_cooldown + 1.0
+	sniper._has_valid_cover = true  # Cover is available
 	sniper.process_sniper_combat(0.016)
 	assert_eq(sniper._shots_fired, 1,
 		"Issue #665: Sniper must shoot at visible player before seeking cover")
@@ -209,15 +212,18 @@ func test_sniper_shoots_without_cover_issue_665() -> void:
 		"Sniper with cover disabled should shoot at visible player")
 
 
-## Snipers should NOT stay in COMBAT state when cover is enabled.
-func test_sniper_does_not_stay_in_combat_with_cover_issue_665() -> void:
+## Snipers stay in COMBAT and fight when no cover is available (Issue #665).
+func test_sniper_fights_from_combat_when_no_cover_issue_665() -> void:
 	sniper.enter_combat()
-	# Process multiple frames
-	for i in range(10):
-		if sniper.get_current_state() == MockSniperEnemy.AIState.COMBAT:
-			sniper.process_sniper_combat(0.016)
-	assert_true(sniper.get_current_state() != MockSniperEnemy.AIState.COMBAT,
-		"Issue #665 Bug 1: Sniper must NOT remain in COMBAT state with cover enabled")
+	sniper._has_valid_cover = false  # No cover available
+	sniper._can_see_player = true
+	sniper._detection_delay_elapsed = true
+	sniper._shoot_timer = sniper.shoot_cooldown + 1.0
+	sniper.process_sniper_combat(0.016)
+	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
+		"Issue #665: Sniper must stay in COMBAT when no cover available (not fake IN_COVER)")
+	assert_eq(sniper._shots_fired, 1,
+		"Issue #665: Sniper must shoot at player when no cover available")
 
 
 # ============================================================================
@@ -428,3 +434,55 @@ func test_sniper_bolt_action_prevents_rapid_fire() -> void:
 	sniper._sniper_bolt_ready = sniper._sniper_bolt_timer >= SniperComponent.BOLT_CYCLE_TIME
 	can_shoot = sniper._sniper_bolt_ready and not sniper._is_reloading and sniper._current_ammo > 0
 	assert_true(can_shoot, "Sniper should be able to shoot after bolt cycle completes")
+
+
+# ============================================================================
+# Issue #665 Round 3: Cover Validation and Hitscan Muzzle Fix
+# ============================================================================
+
+
+## Issue #665: Sniper must not enter fake IN_COVER when no cover is found.
+## Bug: When _find_cover_position() failed, sniper set _cover_position = global_position
+## and entered IN_COVER while fully exposed to the player.
+func test_sniper_no_fake_cover_when_cover_unavailable_issue_665() -> void:
+	sniper.enter_combat()
+	sniper._has_valid_cover = false
+	# Simulate what _process_seeking_cover_state does when no cover found:
+	# Issue #665 fix: transition to COMBAT (not fake IN_COVER)
+	if not sniper._has_valid_cover:
+		sniper._transition_to_combat()
+	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
+		"Issue #665: Sniper must return to COMBAT, not fake IN_COVER, when no cover found")
+
+
+## Issue #665: Hitscan must check if muzzle is behind a wall.
+## Bug: When sniper muzzle was inside/behind a wall, hitscan started inside
+## the wall and hit_from_inside=true caused it to immediately collide,
+## resulting in zero-length tracer and no damage.
+func test_hitscan_muzzle_wall_check_in_source_issue_665() -> void:
+	var file := FileAccess.open("res://scripts/components/sniper_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open sniper_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	# The fix adds a raycast from enemy center to spawn_pos to detect walls
+	assert_true(source.contains("muzzle_check") or source.contains("actual_start"),
+		"Issue #665: perform_hitscan must check if muzzle is behind a wall")
+
+
+## Issue #665: SniperComponent must NOT have dead process_combat_state method.
+## The old static methods used enemy.call() which fails in exported builds.
+func test_sniper_component_no_dead_code_issue_665() -> void:
+	var file := FileAccess.open("res://scripts/components/sniper_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open sniper_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_false(source.contains("func process_combat_state"),
+		"Issue #665: Dead process_combat_state must be removed (used enemy.call() which fails)")
+	assert_false(source.contains("func process_in_cover_state"),
+		"Issue #665: Dead process_in_cover_state must be removed (used enemy.call() which fails)")

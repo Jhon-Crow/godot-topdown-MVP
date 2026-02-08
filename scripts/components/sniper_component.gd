@@ -91,17 +91,33 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 		hitscan_range_val: float, damage: float, max_penetrations: int,
 		extra_exclude_rids: Array[RID] = []) -> Vector2:
 	var space := enemy.get_world_2d().direct_space_state
-	var end_pos := spawn_pos + direction * hitscan_range_val
 	var walls_penetrated := 0
-	var bullet_end := end_pos
-	var current_pos := spawn_pos
 	var exclude_rids: Array[RID] = [enemy.get_rid()]  # Exclude self (CharacterBody2D)
 	for rid in extra_exclude_rids:
 		exclude_rids.append(rid)
 	var damaged_ids: Dictionary = {}
+	var hit_any_character := false
 
 	# Combined mask: Layer 1 (player=1) + Layer 2 (enemies=2) + Layer 3 (walls=4)
 	var combined_mask := 4 + 2 + 1
+
+	# Issue #665 fix: Check if muzzle (spawn_pos) is inside or behind a wall relative
+	# to the enemy center. If so, start the hitscan from the enemy center and
+	# pre-exclude that wall to avoid the bullet getting stuck in adjacent walls.
+	var actual_start := spawn_pos
+	var muzzle_check := PhysicsRayQueryParameters2D.create(enemy.global_position, spawn_pos, 4)
+	muzzle_check.collide_with_bodies = true
+	muzzle_check.collide_with_areas = false
+	muzzle_check.exclude = exclude_rids
+	var muzzle_result := space.intersect_ray(muzzle_check)
+	if muzzle_result:
+		# Muzzle is behind a wall — start from enemy center instead
+		actual_start = enemy.global_position
+		exclude_rids.append(muzzle_result["rid"])  # Pre-exclude the adjacent wall
+
+	var end_pos := actual_start + direction * hitscan_range_val
+	var bullet_end := end_pos
+	var current_pos := actual_start
 
 	for _i in range(50):  # Safety limit
 		var query := PhysicsRayQueryParameters2D.create(current_pos, end_pos, combined_mask)
@@ -134,6 +150,7 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 				break
 
 		# Enemy/player hit — support GDScript and C# damage methods
+		hit_any_character = true
 		var instance_id := collider.get_instance_id()
 		if instance_id not in damaged_ids:
 			damaged_ids[instance_id] = true
@@ -166,6 +183,13 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 
 		exclude_rids.append(result["rid"])
 		current_pos = hit_pos + direction * 5.0
+
+	# Issue #665: Log diagnostic when hitscan misses all characters
+	if not hit_any_character:
+		var fl: Node = enemy.get_node_or_null("/root/FileLogger")
+		if fl and fl.has_method("log_enemy"):
+			var dist := actual_start.distance_to(bullet_end)
+			fl.log_enemy(enemy.name, "HITSCAN MISS: walls=%d, range=%.0f, start=%s, end=%s" % [walls_penetrated, dist, str(actual_start), str(bullet_end)])
 
 	return bullet_end
 
@@ -288,74 +312,6 @@ static func shoot_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector2,
 
 ## Sniper retreat cooldown time in seconds.
 const RETREAT_COOLDOWN_TIME: float = 3.0
-
-
-## Sniper COMBAT state: seek cover immediately on detection (Issue #665 fix).
-## This is the core fix for Bug 1: snipers now hide instead of standing in the open.
-static func process_combat_state(enemy: Node2D, delta: float) -> void:
-	enemy._combat_state_timer += delta
-	enemy.velocity = Vector2.ZERO
-	_update_detection_delay(enemy, delta)
-	# Issue #665 Fix: Snipers immediately seek cover when entering combat.
-	if enemy.enable_cover:
-		enemy.call("_log_to_file", "SNIPER: entering combat, seeking cover immediately")
-		enemy.call("_transition_to_seeking_cover")
-		return
-	# Fallback: if cover is disabled, shoot from current position
-	if not enemy._can_see_player:
-		if enemy._memory and enemy._memory.has_target():
-			var suspected_pos: Vector2 = enemy._memory.suspected_position
-			var walls := count_walls(enemy, suspected_pos)
-			_rotate_toward(enemy, suspected_pos)
-			if walls <= enemy._sniper_max_wall_penetrations and enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown:
-				enemy.call("_log_to_file", "SNIPER: shooting through %d walls" % walls)
-				enemy.call("_shoot"); enemy._shoot_timer = 0.0
-		elif enemy._combat_state_timer > 5.0:
-			enemy.call("_transition_to_searching", enemy.global_position)
-		return
-	enemy.call("_aim_at_player")
-	if enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown:
-		enemy.call("_log_to_file", "SNIPER: shooting at visible player")
-		enemy.call("_shoot"); enemy._shoot_timer = 0.0
-
-
-## Sniper IN_COVER state: stay in cover and shoot at suspected/known positions.
-static func process_in_cover_state(enemy: Node2D, delta: float) -> void:
-	enemy.velocity = Vector2.ZERO
-	_update_detection_delay(enemy, delta)
-	# Only re-seek cover if player is dangerously close (half viewport distance)
-	if enemy._sniper_retreat_cooldown <= 0.0 and enemy._player:
-		var dist := enemy.global_position.distance_to(enemy._player.global_position)
-		if dist < enemy.get_viewport_rect().size.length() * 0.5:
-			enemy._has_valid_cover = false
-			enemy._sniper_retreat_cooldown = RETREAT_COOLDOWN_TIME
-			enemy.call("_transition_to_seeking_cover")
-			return
-	# Shoot at visible player from cover
-	if enemy._can_see_player and enemy._player:
-		enemy.call("_aim_at_player")
-		if enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown:
-			enemy.call("_log_to_file", "SNIPER: shooting from cover at visible player")
-			enemy.call("_shoot"); enemy._shoot_timer = 0.0
-		return
-	# Shoot through walls at suspected position
-	if enemy._memory and enemy._memory.has_target():
-		var suspected_pos: Vector2 = enemy._memory.suspected_position
-		var walls := count_walls(enemy, suspected_pos)
-		if walls <= enemy._sniper_max_wall_penetrations and walls > 0:
-			_rotate_toward(enemy, suspected_pos)
-			if enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown:
-				enemy.call("_log_to_file", "SNIPER: shooting from cover through %d walls" % walls)
-				enemy.call("_shoot"); enemy._shoot_timer = 0.0
-
-
-## Update sniper detection delay timer.
-static func _update_detection_delay(enemy: Node2D, delta: float) -> void:
-	if enemy._detection_delay_elapsed: return
-	enemy._detection_timer += delta
-	if enemy._detection_timer >= enemy.call("_get_effective_detection_delay"):
-		enemy._detection_delay_elapsed = true
-		enemy.call("_log_to_file", "SNIPER: detection delay elapsed (%.2fs)" % enemy._detection_timer)
 
 
 ## Smooth rotation toward target position for sniper enemies.
