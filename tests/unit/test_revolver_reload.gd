@@ -1,0 +1,610 @@
+extends GutTest
+## Unit tests for Revolver multi-step cylinder reload mechanics (Issue #626).
+##
+## Tests the revolver reload sequence:
+## R (open cylinder) → RMB drag up (insert cartridge) → scroll wheel (rotate cylinder)
+## → repeat insert+rotate → R (close cylinder).
+## Uses mock classes to test logic without requiring Godot scene tree or C# runtime.
+
+
+# Mock implementation that mirrors the Revolver reload behavior
+class MockRevolverReload:
+	## Reload states matching RevolverReloadState enum
+	const NOT_RELOADING = 0
+	const CYLINDER_OPEN = 1
+	const LOADING = 2
+	const CLOSING = 3
+
+	var reload_state: int = NOT_RELOADING
+	var current_ammo: int = 5
+	var cylinder_capacity: int = 5
+	var cartridges_loaded_this_reload: int = 0
+	var is_reloading: bool = false
+
+	## Spare ammo stored as individual rounds (simplified from magazine system)
+	var reserve_ammo: int = 10
+
+	## Callbacks for signal simulation
+	var on_reload_state_changed: Callable
+	var on_cartridge_inserted: Callable
+	var on_casings_ejected: Callable
+	var on_reload_started: Callable
+	var on_reload_finished: Callable
+	var on_ammo_changed: Callable
+
+	## Track events for assertions
+	var casings_ejected_count: int = 0
+	var reload_started_emitted: bool = false
+	var reload_finished_emitted: bool = false
+	var cylinder_rotations: int = 0
+
+
+	func can_open_cylinder() -> bool:
+		return reload_state == NOT_RELOADING and not is_reloading
+
+
+	func can_insert_cartridge() -> bool:
+		return (reload_state == CYLINDER_OPEN or reload_state == LOADING) \
+			and current_ammo < cylinder_capacity \
+			and reserve_ammo > 0
+
+
+	func can_close_cylinder() -> bool:
+		return reload_state == CYLINDER_OPEN or reload_state == LOADING
+
+
+	func open_cylinder() -> bool:
+		if not can_open_cylinder():
+			return false
+
+		# Track spent casings (cylinder capacity minus current live rounds)
+		var spent_casings := cylinder_capacity - current_ammo
+		casings_ejected_count = spent_casings
+
+		# Empty the cylinder
+		current_ammo = 0
+		cartridges_loaded_this_reload = 0
+
+		# Update state
+		reload_state = CYLINDER_OPEN
+		reload_started_emitted = true
+
+		if on_casings_ejected:
+			on_casings_ejected.call(spent_casings)
+		if on_reload_state_changed:
+			on_reload_state_changed.call(reload_state)
+		if on_reload_started:
+			on_reload_started.call()
+		if on_ammo_changed:
+			on_ammo_changed.call(current_ammo, reserve_ammo)
+
+		return true
+
+
+	func insert_cartridge() -> bool:
+		if not can_insert_cartridge():
+			return false
+
+		# Consume one round from reserve
+		reserve_ammo -= 1
+
+		# Add one round to cylinder
+		current_ammo += 1
+		cartridges_loaded_this_reload += 1
+
+		# Update state to Loading
+		reload_state = LOADING
+
+		if on_cartridge_inserted:
+			on_cartridge_inserted.call(cartridges_loaded_this_reload, cylinder_capacity)
+		if on_reload_state_changed:
+			on_reload_state_changed.call(reload_state)
+		if on_ammo_changed:
+			on_ammo_changed.call(current_ammo, reserve_ammo)
+
+		return true
+
+
+	func close_cylinder() -> bool:
+		if not can_close_cylinder():
+			return false
+
+		reload_state = NOT_RELOADING
+		is_reloading = false
+		reload_finished_emitted = true
+
+		if on_reload_state_changed:
+			on_reload_state_changed.call(reload_state)
+		if on_reload_finished:
+			on_reload_finished.call()
+		if on_ammo_changed:
+			on_ammo_changed.call(current_ammo, reserve_ammo)
+
+		return true
+
+
+	func can_rotate_cylinder() -> bool:
+		return reload_state == CYLINDER_OPEN or reload_state == LOADING
+
+
+	func rotate_cylinder(direction: int) -> bool:
+		if not can_rotate_cylinder():
+			return false
+		cylinder_rotations += 1
+		return true
+
+
+var revolver: MockRevolverReload
+
+
+func before_each() -> void:
+	revolver = MockRevolverReload.new()
+
+
+func after_each() -> void:
+	revolver = null
+
+
+# ============================================================================
+# Open Cylinder Tests
+# ============================================================================
+
+
+func test_can_open_cylinder_when_not_reloading() -> void:
+	assert_true(revolver.can_open_cylinder(), "Should be able to open cylinder when not reloading")
+
+
+func test_cannot_open_cylinder_when_already_open() -> void:
+	revolver.open_cylinder()
+
+	assert_false(revolver.can_open_cylinder(), "Should not be able to open cylinder when already open")
+
+
+func test_open_cylinder_sets_state_to_cylinder_open() -> void:
+	revolver.open_cylinder()
+
+	assert_eq(revolver.reload_state, MockRevolverReload.CYLINDER_OPEN,
+		"Reload state should be CylinderOpen after opening")
+
+
+func test_open_cylinder_empties_ammo() -> void:
+	revolver.current_ammo = 3  # 3 live rounds, 2 spent
+	revolver.open_cylinder()
+
+	assert_eq(revolver.current_ammo, 0, "Cylinder should be empty after opening")
+
+
+func test_open_cylinder_ejects_correct_number_of_casings() -> void:
+	revolver.current_ammo = 2  # 2 live rounds, 3 spent
+	revolver.open_cylinder()
+
+	assert_eq(revolver.casings_ejected_count, 3, "Should eject 3 spent casings (5 - 2)")
+
+
+func test_open_cylinder_with_full_cylinder_ejects_zero_casings() -> void:
+	revolver.current_ammo = 5  # Full cylinder, no spent casings
+	revolver.open_cylinder()
+
+	assert_eq(revolver.casings_ejected_count, 0, "Should eject 0 casings from full cylinder")
+
+
+func test_open_cylinder_with_empty_cylinder_ejects_all_casings() -> void:
+	revolver.current_ammo = 0  # All 5 chambers are spent
+	revolver.open_cylinder()
+
+	assert_eq(revolver.casings_ejected_count, 5, "Should eject 5 casings from empty cylinder")
+
+
+func test_open_cylinder_emits_reload_started() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.reload_started_emitted, "Should emit reload started signal")
+
+
+func test_open_cylinder_resets_cartridges_loaded_counter() -> void:
+	revolver.open_cylinder()
+
+	assert_eq(revolver.cartridges_loaded_this_reload, 0,
+		"Cartridges loaded counter should be 0 after opening")
+
+
+# ============================================================================
+# Insert Cartridge Tests
+# ============================================================================
+
+
+func test_can_insert_cartridge_when_cylinder_open() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.can_insert_cartridge(), "Should be able to insert when cylinder is open")
+
+
+func test_cannot_insert_cartridge_when_not_reloading() -> void:
+	assert_false(revolver.can_insert_cartridge(), "Should not insert cartridge when not reloading")
+
+
+func test_insert_cartridge_adds_one_round() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_eq(revolver.current_ammo, 1, "Should have 1 round after inserting one cartridge")
+
+
+func test_insert_cartridge_consumes_reserve_ammo() -> void:
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_eq(revolver.reserve_ammo, 9, "Reserve ammo should decrease by 1")
+
+
+func test_insert_cartridge_increments_loaded_counter() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_eq(revolver.cartridges_loaded_this_reload, 1,
+		"Cartridges loaded counter should be 1")
+
+
+func test_insert_multiple_cartridges() -> void:
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+
+	for i in range(3):
+		revolver.insert_cartridge()
+
+	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds after 3 insertions")
+	assert_eq(revolver.cartridges_loaded_this_reload, 3, "Should have loaded 3 cartridges")
+	assert_eq(revolver.reserve_ammo, 7, "Reserve should be 7 (10 - 3)")
+
+
+func test_insert_all_five_cartridges() -> void:
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+
+	for i in range(5):
+		assert_true(revolver.insert_cartridge(), "Should insert cartridge %d" % (i + 1))
+
+	assert_eq(revolver.current_ammo, 5, "Cylinder should be full (5 rounds)")
+	assert_eq(revolver.cartridges_loaded_this_reload, 5, "Should have loaded 5 cartridges")
+
+
+func test_cannot_insert_more_than_cylinder_capacity() -> void:
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+
+	for i in range(5):
+		revolver.insert_cartridge()
+
+	assert_false(revolver.insert_cartridge(), "Should not insert 6th cartridge (cylinder full)")
+	assert_eq(revolver.current_ammo, 5, "Should still have 5 rounds")
+
+
+func test_cannot_insert_when_no_reserve_ammo() -> void:
+	revolver.reserve_ammo = 2
+	revolver.open_cylinder()
+
+	revolver.insert_cartridge()
+	revolver.insert_cartridge()
+
+	assert_false(revolver.insert_cartridge(), "Should not insert with no reserve ammo")
+	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds")
+	assert_eq(revolver.reserve_ammo, 0, "Reserve should be 0")
+
+
+func test_insert_cartridge_sets_state_to_loading() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_eq(revolver.reload_state, MockRevolverReload.LOADING,
+		"State should be Loading after inserting cartridge")
+
+
+# ============================================================================
+# Close Cylinder Tests
+# ============================================================================
+
+
+func test_can_close_cylinder_when_open() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.can_close_cylinder(), "Should be able to close when cylinder is open")
+
+
+func test_can_close_cylinder_when_loading() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_true(revolver.can_close_cylinder(), "Should be able to close during loading")
+
+
+func test_cannot_close_cylinder_when_not_reloading() -> void:
+	assert_false(revolver.can_close_cylinder(), "Should not close when not reloading")
+
+
+func test_close_cylinder_sets_state_to_not_reloading() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+	revolver.close_cylinder()
+
+	assert_eq(revolver.reload_state, MockRevolverReload.NOT_RELOADING,
+		"State should be NotReloading after closing")
+
+
+func test_close_cylinder_preserves_loaded_ammo() -> void:
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+
+	revolver.insert_cartridge()
+	revolver.insert_cartridge()
+	revolver.insert_cartridge()
+
+	revolver.close_cylinder()
+
+	assert_eq(revolver.current_ammo, 3, "Should preserve 3 loaded rounds after closing")
+
+
+func test_close_cylinder_emits_reload_finished() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+	revolver.close_cylinder()
+
+	assert_true(revolver.reload_finished_emitted, "Should emit reload finished signal")
+
+
+func test_close_cylinder_without_loading_any() -> void:
+	revolver.open_cylinder()
+	revolver.close_cylinder()
+
+	assert_eq(revolver.current_ammo, 0, "Should have 0 rounds if closed without loading")
+	assert_eq(revolver.reload_state, MockRevolverReload.NOT_RELOADING,
+		"Should be NotReloading")
+
+
+# ============================================================================
+# Full Reload Sequence Tests
+# ============================================================================
+
+
+func test_full_reload_sequence_5_cartridges() -> void:
+	## Test the complete issue #626 sequence:
+	## 1. R key: Open cylinder (casings fall out)
+	## 2. RMB drag up: Insert cartridge, then scroll wheel: rotate cylinder (5 times)
+	## 3. R key: Close cylinder
+
+	revolver.current_ammo = 0  # Empty cylinder
+	revolver.reserve_ammo = 10
+
+	# Step 1: Open cylinder (R key)
+	assert_true(revolver.open_cylinder(), "Should open cylinder")
+	assert_eq(revolver.reload_state, MockRevolverReload.CYLINDER_OPEN, "Should be CylinderOpen")
+	assert_eq(revolver.casings_ejected_count, 5, "Should eject 5 spent casings")
+
+	# Step 2: Insert 5 cartridges (one per RMB drag up) with cylinder rotation (scroll wheel)
+	for i in range(5):
+		assert_true(revolver.insert_cartridge(), "Should insert cartridge %d" % (i + 1))
+		assert_eq(revolver.current_ammo, i + 1, "Ammo should be %d" % (i + 1))
+		if i < 4:  # Rotate after each insert except the last
+			assert_true(revolver.rotate_cylinder(1), "Should rotate cylinder")
+
+	assert_eq(revolver.reload_state, MockRevolverReload.LOADING, "Should be Loading")
+	assert_eq(revolver.cartridges_loaded_this_reload, 5, "Should have loaded 5 cartridges")
+
+	# Step 3: Close cylinder (R key)
+	assert_true(revolver.close_cylinder(), "Should close cylinder")
+	assert_eq(revolver.reload_state, MockRevolverReload.NOT_RELOADING, "Should be NotReloading")
+	assert_eq(revolver.current_ammo, 5, "Should have full cylinder (5 rounds)")
+	assert_eq(revolver.reserve_ammo, 5, "Reserve should be 5 (10 - 5)")
+
+
+func test_partial_reload_3_cartridges() -> void:
+	## Test partial reload: only insert 3 cartridges instead of 5
+
+	revolver.current_ammo = 0
+	revolver.reserve_ammo = 10
+
+	revolver.open_cylinder()
+
+	# Insert only 3 cartridges
+	for i in range(3):
+		revolver.insert_cartridge()
+
+	revolver.close_cylinder()
+
+	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds after partial reload")
+	assert_eq(revolver.reserve_ammo, 7, "Reserve should be 7 (10 - 3)")
+
+
+func test_reload_with_partially_spent_cylinder() -> void:
+	## Test reload when only 2 of 5 rounds were fired
+
+	revolver.current_ammo = 3  # 3 live rounds remaining, 2 spent
+	revolver.reserve_ammo = 10
+
+	revolver.open_cylinder()
+	assert_eq(revolver.casings_ejected_count, 2, "Should eject 2 spent casings")
+	assert_eq(revolver.current_ammo, 0, "Cylinder should be empty after opening")
+
+	# Reload to full
+	for i in range(5):
+		revolver.insert_cartridge()
+
+	revolver.close_cylinder()
+
+	assert_eq(revolver.current_ammo, 5, "Should have full cylinder")
+	assert_eq(revolver.reserve_ammo, 5, "Reserve should be 5 (10 - 5)")
+
+
+func test_reload_with_limited_reserve() -> void:
+	## Test reload when reserve ammo is less than cylinder capacity
+
+	revolver.current_ammo = 0
+	revolver.reserve_ammo = 3
+
+	revolver.open_cylinder()
+
+	# Try to insert 5 but only 3 available
+	var inserted := 0
+	for i in range(5):
+		if revolver.insert_cartridge():
+			inserted += 1
+
+	assert_eq(inserted, 3, "Should only insert 3 (limited by reserve)")
+	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds")
+	assert_eq(revolver.reserve_ammo, 0, "Reserve should be 0")
+
+	revolver.close_cylinder()
+	assert_eq(revolver.current_ammo, 3, "Should preserve 3 rounds after closing")
+
+
+func test_multiple_reloads_preserve_ammo() -> void:
+	## Test that ammo is properly tracked across multiple reload cycles
+
+	revolver.current_ammo = 5
+	revolver.reserve_ammo = 15  # 3 full reloads worth
+
+	# First cycle: fire 3 rounds, reload to full
+	revolver.current_ammo = 2  # Fired 3 rounds
+	revolver.open_cylinder()
+	for i in range(5):
+		revolver.insert_cartridge()
+	revolver.close_cylinder()
+	assert_eq(revolver.current_ammo, 5, "Should be full after first reload")
+	assert_eq(revolver.reserve_ammo, 10, "Reserve should be 10 (15 - 5)")
+
+	# Second cycle: fire all 5, reload to full
+	revolver.current_ammo = 0  # Fired all 5
+	revolver.open_cylinder()
+	for i in range(5):
+		revolver.insert_cartridge()
+	revolver.close_cylinder()
+	assert_eq(revolver.current_ammo, 5, "Should be full after second reload")
+	assert_eq(revolver.reserve_ammo, 5, "Reserve should be 5 (10 - 5)")
+
+
+func test_cannot_fire_during_reload() -> void:
+	## Verify that the reload state blocks firing (state check)
+	revolver.open_cylinder()
+
+	assert_ne(revolver.reload_state, MockRevolverReload.NOT_RELOADING,
+		"Reload state should not be NotReloading during reload")
+
+
+# ============================================================================
+# Edge Case Tests
+# ============================================================================
+
+
+func test_open_cylinder_with_zero_reserve_still_opens() -> void:
+	## Player should be able to open cylinder even with no reserve
+	## (to inspect or for tactical reasons)
+	revolver.current_ammo = 3
+	revolver.reserve_ammo = 0
+
+	assert_true(revolver.open_cylinder(), "Should open cylinder even with no reserve")
+	assert_eq(revolver.reload_state, MockRevolverReload.CYLINDER_OPEN, "Should be CylinderOpen")
+
+
+func test_close_immediately_after_open() -> void:
+	## Player opens cylinder then immediately closes without loading
+	revolver.current_ammo = 3
+	revolver.reserve_ammo = 10
+
+	revolver.open_cylinder()
+	revolver.close_cylinder()
+
+	assert_eq(revolver.current_ammo, 0,
+		"Should have 0 rounds (casings fell out, nothing loaded)")
+	assert_eq(revolver.reload_state, MockRevolverReload.NOT_RELOADING, "Should be NotReloading")
+
+
+func test_callback_on_cartridge_insert() -> void:
+	var insert_count := 0
+	var insert_capacity := 0
+	revolver.on_cartridge_inserted = func(loaded: int, capacity: int):
+		insert_count = loaded
+		insert_capacity = capacity
+
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_eq(insert_count, 1, "Callback should report 1 cartridge loaded")
+	assert_eq(insert_capacity, 5, "Callback should report capacity of 5")
+
+
+func test_callback_on_casings_ejected() -> void:
+	var ejected := 0
+	revolver.on_casings_ejected = func(count: int):
+		ejected = count
+
+	revolver.current_ammo = 1  # 4 spent, 1 live
+	revolver.open_cylinder()
+
+	assert_eq(ejected, 4, "Callback should report 4 casings ejected")
+
+
+# ============================================================================
+# Cylinder Rotation Tests (scroll wheel)
+# ============================================================================
+
+
+func test_can_rotate_cylinder_when_open() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.can_rotate_cylinder(), "Should be able to rotate when cylinder is open")
+
+
+func test_can_rotate_cylinder_when_loading() -> void:
+	revolver.open_cylinder()
+	revolver.insert_cartridge()
+
+	assert_true(revolver.can_rotate_cylinder(), "Should be able to rotate during loading")
+
+
+func test_cannot_rotate_cylinder_when_not_reloading() -> void:
+	assert_false(revolver.can_rotate_cylinder(), "Should not rotate when not reloading")
+
+
+func test_rotate_cylinder_clockwise() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.rotate_cylinder(1), "Should rotate clockwise")
+	assert_eq(revolver.cylinder_rotations, 1, "Should track 1 rotation")
+
+
+func test_rotate_cylinder_counter_clockwise() -> void:
+	revolver.open_cylinder()
+
+	assert_true(revolver.rotate_cylinder(-1), "Should rotate counter-clockwise")
+	assert_eq(revolver.cylinder_rotations, 1, "Should track 1 rotation")
+
+
+func test_multiple_rotations() -> void:
+	revolver.open_cylinder()
+
+	for i in range(5):
+		revolver.rotate_cylinder(1)
+
+	assert_eq(revolver.cylinder_rotations, 5, "Should track 5 rotations")
+
+
+func test_full_sequence_with_rotation() -> void:
+	## Test complete sequence: R → (RMB drag up + scroll) × 5 → R
+
+	revolver.current_ammo = 0
+	revolver.reserve_ammo = 10
+
+	# Open cylinder (R)
+	revolver.open_cylinder()
+
+	# Insert and rotate 5 times (RMB drag up + scroll wheel)
+	for i in range(5):
+		revolver.insert_cartridge()  # RMB drag up
+		revolver.rotate_cylinder(1)  # Scroll wheel
+
+	# Close cylinder (R)
+	revolver.close_cylinder()
+
+	assert_eq(revolver.current_ammo, 5, "Should have full cylinder")
+	assert_eq(revolver.cylinder_rotations, 5, "Should have rotated 5 times")
+	assert_eq(revolver.reserve_ammo, 5, "Reserve should be 5")
