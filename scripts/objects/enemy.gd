@@ -305,8 +305,7 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
 
-## [Memory System Issue #297] Tracks suspected player position with confidence (0=none, 1=visual).
-## High(>0.8):direct pursuit, Med(0.5-0.8):cautious approach, Low(<0.5):return to patrol/guard.
+## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 var _memory: EnemyMemory = null
 
 ## Confidence values for different detection sources.
@@ -316,8 +315,7 @@ const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
 
-## Communication range for enemy-to-enemy information sharing.
-## 660px with direct line of sight, 300px without line of sight.
+## Communication range for intel sharing: 660px w/ LOS, 300px without.
 const INTEL_SHARE_RANGE_LOS: float = 660.0
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
 
@@ -329,8 +327,7 @@ const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
 
-## [Ally Death Observation Issue #409] Enemy enters SEARCHING when witnessing ally death.
-## Observing enemy estimates player location based on bullet travel direction.
+## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
 const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
 var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
@@ -455,8 +452,7 @@ func _initialize_ammo() -> void:
 	_is_reloading = false
 	_reload_timer = 0.0
 
-## Configure weapon parameters based on weapon type using WeaponConfigComponent.
-## Loads player-like bullet scenes and caliber data (Issue #417 PR feedback).
+## Configure weapon type from WeaponConfigComponent (bullet scenes, caliber; #417).
 func _configure_weapon_type() -> void:
 	var c := WeaponConfigComponent.get_config(weapon_type)
 	shoot_cooldown = c["shoot_cooldown"]; bullet_speed = c["bullet_speed"]; magazine_size = c["magazine_size"]
@@ -526,9 +522,7 @@ func _setup_threat_sphere() -> void:
 	_threat_sphere.area_entered.connect(_on_threat_area_entered)
 	_threat_sphere.area_exited.connect(_on_threat_area_exited)
 
-## Register this enemy as a listener for in-game sound propagation.
-## This allows the enemy to react to sounds like gunshots even when not in direct combat.
-## Uses call_deferred to ensure SoundPropagation autoload is fully initialized.
+## Register as sound propagation listener (call_deferred for autoload init).
 func _register_sound_listener() -> void:
 	call_deferred("_deferred_register_sound_listener")
 
@@ -759,7 +753,8 @@ func _initialize_goap_state() -> void:
 		"has_prediction": false, "prediction_confidence": 0.0,  # [#298]
 		# Flashlight detection states (Issue #574)
 		"flashlight_detected": false,
-		"passage_lit_by_flashlight": false
+		"passage_lit_by_flashlight": false,
+		"grenadier_throw_ready": false  # Issue #657: Grenadier GOAP throw
 	}
 
 ## Initialize the enemy memory, prediction, and flashlight detection systems (Issue #297, #298, #574).
@@ -939,8 +934,7 @@ func _update_goap_state() -> void:
 		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
 		# Check if the next navigation waypoint is lit by the flashlight
 		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
-## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
-## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
+## Update model rotation (#347, #386, #397): priority player > combat/pursuit > corner > velocity > idle.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
@@ -1964,6 +1958,8 @@ func _process_pursuing_state(delta: float) -> void:
 		var ss := get_world_2d().direct_space_state
 		if ss and (_grenade_component as GrenadierGrenadeComponent).try_passage_throw(global_position, wp, ss, _is_alive, _is_stunned, _is_blinded):
 			velocity = Vector2.ZERO; return  # Wait for grenade to explode
+	# Issue #657: Non-grenadier allies wait for nearby grenadier to throw before advancing
+	if not is_grenadier and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
 
 	# If can see player and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -2218,8 +2214,7 @@ func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
 	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
 
-## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
-## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
+## Process SEARCHING state - waypoint scanning (#322, #330: engaged enemies search infinitely).
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
 	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
@@ -3007,9 +3002,7 @@ func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Ve
 
 ## Check if the enemy should shoot at the target (bullet spawn, friendly fire, cover).
 func _should_shoot_at_target(target_position: Vector2) -> bool:
-	# Check if the immediate path to bullet spawn is clear
-	# This prevents shooting into walls the enemy is flush against
-	# Use weapon forward direction since that's where bullets actually spawn and travel
+	# Check path to bullet spawn is clear (prevents shooting into walls; uses weapon forward)
 	var weapon_direction := _get_weapon_forward_direction()
 	if not _is_bullet_spawn_clear(weapon_direction):
 		return false
@@ -3053,9 +3046,7 @@ func _can_hit_player_from_current_position() -> bool:
 	# Check if the shot would be blocked by cover
 	return _is_shot_clear_of_cover(_player.global_position)
 
-## Count the number of enemies currently in combat-related states.
-## Includes COMBAT, PURSUING, ASSAULT, IN_COVER (if can see player).
-## Used to determine if multi-enemy assault should be triggered.
+## Count enemies in combat states (COMBAT/PURSUING/ASSAULT/IN_COVER) for assault trigger.
 func _count_enemies_in_combat() -> int:
 	var count := 0
 	var enemies := get_tree().get_nodes_in_group("enemies")
@@ -3086,11 +3077,9 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find cover closer to player for PURSUING state. Penalizes same-obstacle covers, requires min progress,
-## verifies clear path (Issue #93).
+## Find pursuit cover toward player (penalizes same-obstacle, min progress, clear path; #93).
 func _find_pursuit_cover_toward_player() -> void:
-	# Use memory-based target position instead of direct player position (Issue #297)
-	# This allows pursuing toward a suspected position even when player is not visible
+	# Use memory-based target (not direct position) to pursue suspected position (#297)
 	var target_pos := _get_target_position()
 
 	# If no valid target and no player, can't pursue
@@ -4910,14 +4899,14 @@ func _can_see_position(pos: Vector2) -> bool:
 	var result := not _raycast.is_colliding()
 	_raycast.target_position = orig
 	return result
-
 func _update_grenade_world_state() -> void:
 	if _grenade_component == null:
 		_goap_world_state["has_grenades"] = false; _goap_world_state["grenades_remaining"] = 0
-		_goap_world_state["ready_to_throw_grenade"] = false; return
+		_goap_world_state["ready_to_throw_grenade"] = false; _goap_world_state["grenadier_throw_ready"] = false; return
+	var rdy := _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
 	_goap_world_state["has_grenades"] = _grenade_component.grenades_remaining > 0
 	_goap_world_state["grenades_remaining"] = _grenade_component.grenades_remaining
-	_goap_world_state["ready_to_throw_grenade"] = _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
+	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = is_grenadier and rdy
 
 ## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:
@@ -4967,6 +4956,19 @@ func _start_waiting_for_grenadier(wt: float) -> void: _waiting_for_grenadier = t
 func _stop_waiting_for_grenadier() -> void: _waiting_for_grenadier = false; _grenadier_wait_timer = 0.0
 func get_is_grenadier() -> bool: return is_grenadier
 func is_waiting_for_grenade() -> bool: return _waiting_for_grenadier
+## Issue #657: Non-idle allies near a pursuing grenadier with grenades wait for it to throw.
+func _should_wait_for_nearby_grenadier() -> bool:
+	if is_grenadier or _current_state == AIState.IDLE: return false
+	var parent := get_parent(); if parent == null: return false
+	for ally in parent.get_children():
+		if ally == self or not is_instance_valid(ally): continue
+		if not (ally.has_method("get_is_grenadier") and ally.get_is_grenadier()): continue
+		if not (ally.has_method("get_grenades_remaining") and ally.get_grenades_remaining() > 0): continue
+		if global_position.distance_to(ally.global_position) >= 400.0: continue
+		if ally.has_method("is_blocking_passage_grenade") and ally.is_blocking_passage_grenade(): return true
+		if ally.get("_current_state") == AIState.PURSUING: _start_waiting_for_grenadier(3.0); return true
+	return false
+func is_blocking_passage_grenade() -> bool: return _grenade_component is GrenadierGrenadeComponent and (_grenade_component as GrenadierGrenadeComponent).is_blocking_passage()
 
 ## Setup machete melee component (Issue #579).
 func _setup_machete_component() -> void:
