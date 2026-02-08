@@ -55,6 +55,22 @@ Since this is a 2D top-down game with a multi-sprite player model (Body, Head, L
 - **Charges system**: 2 charges per battle (not per level), resets on level restart
 - **Duration**: 4 seconds per activation, with smooth fade-in/fade-out transitions
 
+## Bug Fix Analysis (Follow-up)
+
+### User Report
+User (Jhon-Crow) reported: "не работает, нет даже значка в armory (только знак вопроса)" — "doesn't work, no icon in armory (only question mark)"
+
+### Root Causes Identified
+1. **Missing icon asset**: `icon_path: ""` in ACTIVE_ITEM_DATA — no icon file was created, so the armory showed "?" placeholder. The `_create_active_item_slot` function in `armory_menu.gd` shows "?" when `icon_path` is empty or file doesn't exist.
+2. **CI failure**: `enemy.gd` exceeded the 5000-line Architecture Best Practices CI check limit (5003 lines after our 5 lines were added to a file already at 5000 lines on main).
+3. **Hardcoded enum magic number**: `_pending_active_item_type == 2` in armory_menu.gd was fragile, and became incorrect when upstream added `TELEPORT_BRACERS` at enum position 2 (shifting `INVISIBILITY_SUIT` to position 3).
+
+### Fixes Applied
+1. **Created `invisibility_suit_icon.png`**: 64x48 pixel-art icon of a cloaked figure with blue ripple effect, matching the existing icon style (flashlight is 64x48).
+2. **Reduced `enemy.gd` line count**: Condensed 3-line doc comments into single lines (3 instances), reordered null-check before invisibility check to eliminate redundant guard (saved 7 total lines, from 5005 to 4998).
+3. **Data-driven activation hint**: Added `"activation_hint"` field to `ACTIVE_ITEM_DATA` dictionary, replaced hardcoded enum comparison with `item_data.get("activation_hint", ...)`.
+4. **Merged upstream main**: Incorporated `TELEPORT_BRACERS` active item alongside `INVISIBILITY_SUIT`, updated test mocks.
+
 ## References
 - [Almost Invisible Character Shader](https://godotshaders.com/shader/almost-invisible-character/) — Base reference for chromatic distortion approach
 - [Transparent Ripples Shader](https://godotshaders.com/shader/transparent-ripples/) — Ripple pattern reference
