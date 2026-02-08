@@ -2196,9 +2196,11 @@ func _mark_zone_visited(pos: Vector2) -> void:
 ## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
-	# Issue #650: Defer navigation for 2 frames after transition to let nav map sync
+	# Issue #650: Defer navigation + waypoint generation for 2 frames (avoids NavigationServer2D segfaults)
 	if _search_init_frames > 0:
-		_search_init_frames -= 1; velocity = Vector2.ZERO; return
+		_search_init_frames -= 1; velocity = Vector2.ZERO
+		if _search_init_frames == 0: call_deferred("_deferred_search_init")
+		return
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle: _log_to_file("SEARCHING timeout %.1fs" % _search_state_timer); _transition_to_idle(); return  # Issue #330
 	if _can_see_player: _log_to_file("SEARCHING: Player spotted!"); _transition_to_combat(); return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
@@ -2614,31 +2616,27 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position  # Issue #354
 	_scan_targets.clear(); _scan_target_index = 0; _scan_pause_timer = 0.0  # Issue #650: Reset scan state
-	_search_init_frames = 2  # Issue #650: Defer navigation for 2 frames to let nav map sync
-	# Issue #650: Generate waypoints using solo pattern first (safe during physics frame).
-	# Coordinator registration is deferred to avoid engine-level issues during physics processing.
-	_generate_search_waypoints()
-	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
-	_log_debug(msg); _log_to_file(msg)
-	# Defer coordinator setup to next idle frame (avoids static Dictionary + instance_from_id during physics)
-	call_deferred("_deferred_coordinator_setup", center_position)
+	_search_init_frames = 2  # Issue #650: Defer waypoint generation (NavigationServer2D segfault fix)
+	_log_to_file("SEARCHING started: center=%s, radius=%.0f (deferred init)" % [_search_center, _search_radius])
 
-## Issue #650: Deferred coordinator setup - runs on the next idle frame, not during physics.
-## This avoids potential engine-level crashes from static Dictionary access and instance_from_id()
-## during _physics_process when multiple enemies are processing simultaneously.
-func _deferred_coordinator_setup(center_position: Vector2) -> void:
-	if not is_instance_valid(self) or not _is_alive:
+## Issue #650: Deferred search initialization — generates waypoints + coordinator setup.
+## Runs on idle frame after _search_init_frames reaches 0, NOT during _physics_process.
+## This avoids NavigationServer2D.map_get_closest_point() segfaults during physics.
+func _deferred_search_init() -> void:
+	if not is_instance_valid(self) or not _is_alive or _current_state != AIState.SEARCHING:
 		return
-	if _current_state != AIState.SEARCHING:
-		return  # Enemy already left SEARCHING before deferred call ran
+	# Step 1: Generate waypoints (calls NavigationServer2D — safe on idle frame)
+	_generate_search_waypoints()
+	# Step 2: Register with group search coordinator
 	if _group_search_coordinator != null:
 		_group_search_coordinator.unregister_enemy(self)
-	_group_search_coordinator = GroupSearchCoordinator.get_or_create(center_position)
+	_group_search_coordinator = GroupSearchCoordinator.get_or_create(_search_center)
 	_group_search_coordinator.register_enemy(self)
-	# Regenerate waypoints with sector coordination if applicable
 	if _group_search_coordinator.is_coordinated():
-		_generate_search_waypoints()
-		_log_to_file("SEARCHING: Coordinator joined (coordinated: %d enemies, waypoints=%d)" % [_group_search_coordinator.get_enemy_count(), _search_waypoints.size()])
+		_generate_search_waypoints()  # Regenerate with sector coordination
+		_log_to_file("SEARCHING: Init complete (coordinated: %d enemies, waypoints=%d)" % [_group_search_coordinator.get_enemy_count(), _search_waypoints.size()])
+	else:
+		_log_to_file("SEARCHING: Init complete (solo, waypoints=%d)" % _search_waypoints.size())
 
 ## Issue #650: Unregister from group search coordinator when leaving SEARCHING state.
 func _unregister_from_group_search() -> void:
