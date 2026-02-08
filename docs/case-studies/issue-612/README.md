@@ -155,15 +155,9 @@ After flanking is aborted due to both sides being behind walls, the fallback goe
 
 ## Solution: Round 2
 
-### Fix 6: Wall-Blocked Pursuit Detection (2-second timer)
+### Fix 6: ~~Wall-Blocked Pursuit Detection (2-second timer)~~ → Replaced in Round 3
 
-Added `_wall_blocked_pursuit_timer` that accumulates when the enemy is in PURSUING without making navigation progress (< 15px movement). After 2 seconds, if:
-- `_can_see_player = true` but `_can_hit_player = false` (player behind wall), OR
-- Navigation is finished but player is not visible (target unreachable)
-
-...the enemy transitions to SEARCHING instead of waiting for the 4-second GLOBAL STUCK timer.
-
-The timer persists across COMBAT ↔ PURSUING cycles (not reset on state transitions), so rapid cycling still accumulates toward the threshold.
+~~Added `_wall_blocked_pursuit_timer`...~~ This fix was **reverted in Round 3** because it was too aggressive — enemies would give up pursuing after just 2 seconds when the player simply went around a corner (normal pursuit behavior). See Round 3 below.
 
 ### Fix 7: Flank Fail Escalation to SEARCHING
 
@@ -175,6 +169,56 @@ After: `PURSUING → flank abort → PURSUING → flank abort → SEARCHING (exp
 ### Fix 8: COMBAT Clear-Shot Timeout Uses SEARCHING Fallback
 
 When COMBAT state times out finding a clear shot and flanking is exhausted (`_flank_fail_count >= FLANK_FAIL_MAX_COUNT`), transition to SEARCHING instead of PURSUING.
+
+## Game Log Analysis: Third Round (game_log_20260208_161508.txt)
+
+Game log `logs/game_log_20260208_161508.txt` (32563 lines, ~10 min gameplay) reveals:
+
+### Previous Fix Validation (Round 2)
+
+The wall-blocked pursuit detection from Round 2 was firing too aggressively. In 10 minutes of gameplay:
+- **24 "PURSUING wall-blocked" events** — ALL with `can_see=false, can_hit=false`
+- Every single event was a false positive: the enemy simply couldn't see the player (normal after going around a corner) and was navigating via the NavMesh
+- Enemies gave up pursuit after just 2 seconds, even though they were actively navigating toward the player's last known position
+
+### Root Cause: GLOBAL STUCK Timer Resets During COMBAT State
+
+The real issue from Round 2 (COMBAT↔PURSUING cycling at walls) was NOT fixed by adding a separate wall-blocked timer. The actual bug was in the existing GLOBAL STUCK timer (Issue #367):
+
+```gdscript
+if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
+    # accumulate timer...
+else:
+    # Not in PURSUING/FLANKING - RESET stuck detection
+    _global_stuck_timer = 0.0  # <-- BUG: resets every frame during COMBAT
+```
+
+When enemies cycle COMBAT↔PURSUING at a wall:
+- PURSUING for 0.3s: timer accumulates to ~0.3s
+- COMBAT for 0.5s: timer **resets to 0** (enters else branch)
+- PURSUING for 0.3s: timer accumulates to ~0.3s
+- COMBAT for 0.5s: timer **resets to 0** again
+- ...and so on indefinitely — timer never reaches the 4.0s threshold
+
+## Solution: Round 3
+
+### Fix 6 (Revised): Expand GLOBAL STUCK Detection to Include COMBAT State
+
+Instead of a separate wall-blocked timer, expanded the existing GLOBAL STUCK detection (Issue #367) to also track COMBAT state:
+
+```gdscript
+if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING or _current_state == AIState.COMBAT:
+```
+
+This way, the 4-second GLOBAL STUCK timer accumulates continuously across COMBAT↔PURSUING cycles. An enemy stuck at a wall cycling between states will now be correctly detected and transitioned to SEARCHING.
+
+Additionally, `_transition_to_pursuing()` no longer resets `_global_stuck_timer`, only `_global_stuck_last_position`. This ensures the timer persists across COMBAT→PURSUING transitions while still measuring progress from the current position.
+
+**Benefits over the removed wall-blocked timer:**
+- Uses the proven GLOBAL_STUCK_DISTANCE_THRESHOLD (30px vs 15px) — less likely to false-positive on slow navigation
+- Uses the longer GLOBAL_STUCK_MAX_TIME (4s vs 2s) — gives enemies time to navigate around corners
+- No false positives on `can_see=false` (normal pursuit) — only triggers on genuine stuck behavior
+- Simpler code: removed 4 variables and 24 lines of duplicate stuck detection logic
 
 ## Online Research
 
@@ -191,3 +235,4 @@ When COMBAT state times out finding a clear shot and flanking is exhausted (`_fl
 - `tests/unit/test_wall_avoidance.gd` - Unit tests for wall avoidance fixes
 - `docs/case-studies/issue-612/logs/game_log_20260207_223120.txt` - User-provided game log (Round 1)
 - `docs/case-studies/issue-612/logs/game_log_20260208_152148.txt` - User-provided game log (Round 2)
+- `docs/case-studies/issue-612/logs/game_log_20260208_161508.txt` - User-provided game log (Round 3)

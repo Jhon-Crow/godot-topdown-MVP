@@ -286,45 +286,93 @@ func test_flank_fail_escalation_issue_612() -> void:
 
 
 # ============================================================================
-# Wall-Blocked Pursuit Detection Tests (Issue #612 - game_log_20260208)
+# Global Stuck Detection with COMBAT State (Issue #612 - Round 3)
 # ============================================================================
+# The GLOBAL STUCK timer now includes COMBAT state to catch enemies cycling
+# COMBAT↔PURSUING at walls. Previously, the timer reset during COMBAT frames,
+# allowing enemies to stay stuck indefinitely while rapidly cycling states.
 
 
-## Test wall-blocked pursuit timer accumulates when enemy doesn't move.
-## Simulates enemy stuck at wall during PURSUING state.
-func test_wall_blocked_pursuit_timer_accumulates_issue_612() -> void:
+## Test GLOBAL STUCK timer accumulates across COMBAT↔PURSUING cycles.
+## Simulates enemy stuck at wall with rapid state cycling observed in game logs.
+func test_global_stuck_accumulates_across_combat_pursuing_cycles_issue_612() -> void:
+	# Simulate: PURSUING for 0.3s -> COMBAT for 0.5s -> PURSUING for 0.3s -> ...
+	# In the old code, timer reset to 0 during COMBAT. Now it continues.
 	var timer: float = 0.0
-	var max_time: float = 2.0
-	var threshold: float = 15.0
-	var last_pos := Vector2(500, 500)
-	var current_pos := Vector2(502, 501)  # Moved only ~2.2px — below threshold
-
-	var moved := current_pos.distance_to(last_pos)
-	assert_true(moved < threshold,
-		"Movement below threshold should trigger timer accumulation")
-
-	# Simulate 3 seconds of physics frames (60fps * 3s = 180 frames at ~0.0167s each)
+	var max_time: float = 4.0  # GLOBAL_STUCK_MAX_TIME
+	var threshold: float = 30.0  # GLOBAL_STUCK_DISTANCE_THRESHOLD
+	var wall_pos := Vector2(888, 880)  # Enemy stuck at wall
+	var last_pos := wall_pos
 	var delta := 1.0 / 60.0
-	for i in range(180):
-		if moved < threshold:
-			timer += delta
+	var can_see_player := false
+	var can_hit_player := false
 
+	# Simulate 10 cycles of PURSUING(0.3s) -> COMBAT(0.5s) = ~8s total
+	# Enemy doesn't move significantly during any of this
+	for cycle in range(10):
+		# PURSUING phase: 0.3s = 18 frames
+		for i in range(18):
+			var moved := wall_pos.distance_to(last_pos)
+			if moved < threshold and not (can_see_player and can_hit_player):
+				timer += delta
+
+		# COMBAT phase: 0.5s = 30 frames — NOW timer continues (Issue #612 fix)
+		for i in range(30):
+			var moved := wall_pos.distance_to(last_pos)
+			if moved < threshold and not (can_see_player and can_hit_player):
+				timer += delta
+
+		# Transition back to PURSUING — only position resets, NOT timer
+		last_pos = wall_pos
+
+	# After 10 cycles of 0.8s each = 8s, timer should have reached 4s threshold
 	assert_true(timer >= max_time,
-		"After 3s without progress, timer should exceed 2s threshold")
+		"GLOBAL STUCK timer should accumulate across COMBAT↔PURSUING cycles")
 
 
-## Test wall-blocked pursuit timer resets when enemy makes progress.
-func test_wall_blocked_pursuit_timer_resets_on_progress_issue_612() -> void:
-	var timer: float = 1.5  # Accumulated 1.5 seconds
-	var threshold: float = 15.0
+## Test GLOBAL STUCK timer would NOT accumulate in old code (COMBAT resets timer).
+## This test demonstrates the bug that the fix addresses.
+func test_old_global_stuck_fails_on_combat_cycling_issue_612() -> void:
+	# Old behavior: timer resets to 0 when entering COMBAT state
+	var timer: float = 0.0
+	var max_time: float = 4.0
+	var threshold: float = 30.0
+	var wall_pos := Vector2(888, 880)
+	var last_pos := wall_pos
+	var delta := 1.0 / 60.0
+
+	# Simulate 10 cycles with old behavior (timer resets during COMBAT)
+	var max_timer_reached := false
+	for cycle in range(10):
+		# PURSUING phase: 0.3s = 18 frames — timer accumulates
+		for i in range(18):
+			var moved := wall_pos.distance_to(last_pos)
+			if moved < threshold:
+				timer += delta
+			if timer >= max_time:
+				max_timer_reached = true
+
+		# COMBAT phase: OLD behavior — timer RESETS
+		timer = 0.0
+		last_pos = wall_pos
+
+	# In old code, timer never reaches 4s because it resets every 0.3s
+	assert_false(max_timer_reached,
+		"Old behavior: timer should never reach 4s with 0.3s PURSUING phases")
+
+
+## Test GLOBAL STUCK timer resets when enemy makes genuine progress.
+func test_global_stuck_resets_on_movement_progress_issue_612() -> void:
+	var timer: float = 3.5  # Almost at the 4s threshold
+	var threshold: float = 30.0
 	var last_pos := Vector2(500, 500)
-	var current_pos := Vector2(520, 510)  # Moved ~22.4px — above threshold
+	var current_pos := Vector2(535, 510)  # Moved ~38px — above threshold
 
 	var moved := current_pos.distance_to(last_pos)
 	assert_true(moved >= threshold,
-		"Movement above threshold should count as progress")
+		"Movement of 38px should be above the 30px threshold")
 
-	# Reset timer when progress detected
+	# When enemy moves, timer and position both reset
 	if moved >= threshold:
 		timer = 0.0
 		last_pos = current_pos
@@ -335,72 +383,29 @@ func test_wall_blocked_pursuit_timer_resets_on_progress_issue_612() -> void:
 		"Last position should update on progress")
 
 
-## Test wall-blocked pursuit detects "player behind wall" scenario.
-## When can_see_player=true but can_hit=false, enemy should give up faster.
-func test_wall_blocked_detects_player_behind_wall_issue_612() -> void:
-	var can_see_player := true
-	var can_hit_player := false
-	var timer_expired := true  # Timer exceeded WALL_BLOCKED_PURSUIT_MAX_TIME
-
-	# The condition for triggering wall-blocked search
-	var player_behind_wall := can_see_player and not can_hit_player
-	var should_search := timer_expired and player_behind_wall
-
-	assert_true(should_search,
-		"Should transition to SEARCHING when stuck + can see but can't hit player")
-
-
-## Test wall-blocked pursuit timer persists across COMBAT<->PURSUING cycles.
-## Simulates the rapid state cycling observed in game logs.
-func test_wall_blocked_timer_persists_across_state_cycles_issue_612() -> void:
-	# Simulate: PURSUING for 0.3s -> COMBAT for 0.5s -> PURSUING for 0.3s -> ...
+## Test GLOBAL STUCK timer does NOT accumulate when enemy has line of fire.
+## If enemy can see AND hit the player, the stuck timer should not increment.
+func test_global_stuck_pauses_during_active_combat_issue_612() -> void:
 	var timer: float = 0.0
-	var threshold: float = 15.0
-	var wall_pos := Vector2(888, 880)  # Enemy stuck at wall
+	var threshold: float = 30.0
+	var wall_pos := Vector2(888, 880)
 	var last_pos := wall_pos
 	var delta := 1.0 / 60.0
 
-	# Cycle 1: PURSUING for 0.3s (18 frames at 60fps)
-	for i in range(18):
+	# Enemy is stationary but has direct line of fire
+	var can_see := true
+	var can_hit := true
+
+	# Simulate 5 seconds of combat with direct player contact
+	for i in range(300):
 		var moved := wall_pos.distance_to(last_pos)
 		if moved < threshold:
-			timer += delta
-	# COMBAT for 0.5s — timer pauses (only runs in PURSUING)
-	# Re-enter PURSUING: last_pos = current pos (which is still wall_pos)
-	last_pos = wall_pos
+			if not (can_see and can_hit):
+				timer += delta
 
-	# Cycle 2: PURSUING for 0.3s
-	for i in range(18):
-		var moved := wall_pos.distance_to(last_pos)
-		if moved < threshold:
-			timer += delta
-	last_pos = wall_pos
-
-	# Cycle 3: PURSUING for 0.3s
-	for i in range(18):
-		var moved := wall_pos.distance_to(last_pos)
-		if moved < threshold:
-			timer += delta
-	last_pos = wall_pos
-
-	# Cycle 4: PURSUING for 0.3s
-	for i in range(18):
-		var moved := wall_pos.distance_to(last_pos)
-		if moved < threshold:
-			timer += delta
-
-	# After 4 cycles of 0.3s PURSUING each = 1.2s accumulated
-	assert_almost_eq(timer, 1.2, 0.05,
-		"Timer should accumulate ~1.2s across 4 PURSUING phases of 0.3s each")
-
-	# Need ~7 cycles to reach 2.0s threshold
-	for i in range(50):  # 3 more cycles worth of frames
-		var moved := wall_pos.distance_to(last_pos)
-		if moved < threshold:
-			timer += delta
-
-	assert_true(timer >= 2.0,
-		"Timer should eventually exceed 2.0s threshold even with short PURSUING phases")
+	# Timer should not have accumulated because enemy has player contact
+	assert_almost_eq(timer, 0.0, 0.01,
+		"GLOBAL STUCK timer should NOT accumulate when enemy has line of fire")
 
 
 ## Test that flank fail count triggers SEARCHING fallback (Issue #612).

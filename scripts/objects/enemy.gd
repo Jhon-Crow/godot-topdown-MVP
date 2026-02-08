@@ -255,10 +255,6 @@ var _global_stuck_timer: float = 0.0  ## Stuck timer (Issue #367: Global stuck d
 var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Last position
 const GLOBAL_STUCK_MAX_TIME: float = 4.0  ## Max stuck time
 const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Min move distance
-var _wall_blocked_pursuit_timer: float = 0.0  ## Issue #612: Timer tracking how long enemy pursues without making nav progress
-const WALL_BLOCKED_PURSUIT_MAX_TIME: float = 2.0  ## Issue #612: Max time pursuing without nav progress before giving up
-var _wall_blocked_pursuit_last_pos: Vector2 = Vector2.ZERO  ## Issue #612: Last position for wall-blocked detection
-const WALL_BLOCKED_PURSUIT_THRESHOLD: float = 15.0  ## Issue #612: Min movement to count as progress
 var _assault_wait_timer: float = 0.0  ## Assault wait timer (Assault State)
 const ASSAULT_WAIT_DURATION: float = 5.0  ## Pre-assault wait (sec)
 var _assault_ready: bool = false  ## Assault wait complete
@@ -802,9 +798,11 @@ func _physics_process(delta: float) -> void:
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
-	# Issue #367: Global position-based stuck detection for PURSUING/FLANKING states.
+	# Issue #367: Global position-based stuck detection for PURSUING/FLANKING/COMBAT states.
 	# If enemy stays in same position for too long without direct player contact, force SEARCHING.
-	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
+	# Issue #612: Include COMBAT state — enemies stuck at walls cycle COMBAT↔PURSUING rapidly,
+	# resetting the timer each cycle. By tracking COMBAT too, the timer accumulates correctly.
+	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING or _current_state == AIState.COMBAT:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
 			# Not making significant progress - increment stuck timer
@@ -827,7 +825,7 @@ func _physics_process(delta: float) -> void:
 			_global_stuck_timer = 0.0
 			_global_stuck_last_position = global_position
 	else:
-		# Not in PURSUING/FLANKING - reset stuck detection
+		# Not in PURSUING/FLANKING/COMBAT - reset stuck detection
 		_global_stuck_timer = 0.0
 		_global_stuck_last_position = global_position
 
@@ -1924,30 +1922,6 @@ func _process_pursuing_state(delta: float) -> void:
 	# NOTE: ASSAULT state transition removed per issue #169
 	# Enemies now stay in PURSUING instead of transitioning to coordinated assault
 
-	# Issue #612: Detect wall-blocked pursuit — when enemy is pursuing but not making
-	# navigation progress (e.g. stuck at a wall with the player on the other side),
-	# give up faster than the 4-second GLOBAL STUCK timer.
-	if _player and not _pursuit_approaching and not _has_pursuit_cover:
-		var wall_blocked_moved := global_position.distance_to(_wall_blocked_pursuit_last_pos)
-		if wall_blocked_moved < WALL_BLOCKED_PURSUIT_THRESHOLD:
-			_wall_blocked_pursuit_timer += delta
-			if _wall_blocked_pursuit_timer >= WALL_BLOCKED_PURSUIT_MAX_TIME:
-				# Check if we can see the player but can't hit them — classic "player behind wall" scenario
-				var player_behind_wall := _can_see_player and not _can_hit_player_from_current_position()
-				# Also trigger if we simply can't see the player at all and nav has no path
-				var nav_finished := _nav_agent != null and _nav_agent.is_navigation_finished()
-				if player_behind_wall or (nav_finished and not _can_see_player):
-					_log_to_file("PURSUING wall-blocked: pos=%s for %.1fs, can_see=%s, can_hit=%s -> SEARCHING (Issue #612)" % [global_position, _wall_blocked_pursuit_timer, _can_see_player, _can_hit_player_from_current_position()])
-					_wall_blocked_pursuit_timer = 0.0
-					_wall_blocked_pursuit_last_pos = global_position
-					_has_pursuit_cover = false
-					_pursuit_approaching = false
-					_transition_to_searching(global_position)
-					return
-		else:
-			_wall_blocked_pursuit_timer = 0.0
-			_wall_blocked_pursuit_last_pos = global_position
-
 	# If can see player and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
 	# when visibility flickers at wall/obstacle edges
@@ -2616,12 +2590,10 @@ func _transition_to_pursuing() -> void:
 	_current_cover_obstacle = null
 	# Reset state duration timer (prevents rapid state thrashing)
 	_pursuing_state_timer = 0.0
-	# Reset global stuck detection (Issue #367)
-	_global_stuck_timer = 0.0
+	# Issue #612: Do NOT reset global stuck timer when re-entering PURSUING from COMBAT,
+	# as enemies cycling COMBAT↔PURSUING at walls need the timer to accumulate.
+	# Only reset position reference so progress is measured from current position.
 	_global_stuck_last_position = global_position
-	# Issue #612: Reset wall-blocked pursuit detection (but keep timer if re-entering PURSUING
-	# from a brief COMBAT state at the same position — this allows accumulation across cycles)
-	_wall_blocked_pursuit_last_pos = global_position
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -2645,8 +2617,6 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_current_state = AIState.SEARCHING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
-	# Issue #612: Reset wall-blocked pursuit timer
-	_wall_blocked_pursuit_timer = 0.0
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
