@@ -4821,10 +4821,8 @@ func set_blinded(blinded: bool) -> void:
 
 func set_stunned(stunned: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_stunned(stunned)
-
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
-
 func _setup_aggression_component() -> void:  ## [Issue #675]
 	_aggression = AggressionComponent.new(); _aggression.name = "AggressionComponent"; add_child(_aggression)
 	_aggression.aggression_changed.connect(func(a): if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
