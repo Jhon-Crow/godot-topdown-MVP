@@ -1164,10 +1164,11 @@ func _process_ai_state(delta: float) -> void:
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
+	# NOTE: Snipers skip snap-aim; they rotate slowly and fire through normal combat state
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if is_distraction_enabled and not is_confused and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if not _is_sniper and is_distraction_enabled and not is_confused and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1213,7 +1214,8 @@ func _process_ai_state(delta: float) -> void:
 			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
 
 	# Issue #318: Also block vulnerability attacks during confusion period
-	if player_is_vulnerable and not is_confused and _can_see_player and _player and player_close:
+	# Snipers don't snap-aim; they engage through normal slow-rotation combat state
+	if not _is_sniper and player_is_vulnerable and not is_confused and _can_see_player and _player and player_close:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -3868,7 +3870,7 @@ func _shoot() -> void:
 		var spread_deg := _calculate_sniper_spread(direction)
 		if spread_deg > 0.0:
 			direction = direction.rotated(randf_range(-deg_to_rad(spread_deg), deg_to_rad(spread_deg)))
-		_log_to_file("SNIPER FIRED: spread=%.1f deg, pos=%s, dir=%s, can_see=%s" % [spread_deg, bullet_spawn_pos, direction, _can_see_player])
+		_log_to_file("SNIPER FIRED: spread=%.1f deg, pos=(%.0f,%.0f), dir=(%.2f,%.2f), can_see=%s" % [spread_deg, bullet_spawn_pos.x, bullet_spawn_pos.y, direction.x, direction.y, _can_see_player])
 		_shoot_sniper_hitscan(direction, bullet_spawn_pos)
 		_sniper_bolt_ready = false
 		_sniper_bolt_timer = 0.0
@@ -3995,16 +3997,14 @@ func _process_sniper_combat_state(delta: float) -> void:
 
 func _process_sniper_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO; _sniper_update_detection_delay(delta)
+	# If sniper can see the player directly, transition to COMBAT for proper engagement
+	if _can_see_player and _player:
+		_log_to_file("SNIPER: leaving IN_COVER - direct LOS to player"); _transition_to_combat(); return
 	# Only re-seek cover if player is dangerously close (half viewport distance)
 	if _sniper_retreat_cooldown <= 0.0 and _player:
 		var dist := global_position.distance_to(_player.global_position)
 		if dist < get_viewport_rect().size.length() * 0.5:
 			_has_valid_cover = false; _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
-	if _can_see_player and _player:
-		_aim_at_player()
-		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting from cover"); _shoot(); _shoot_timer = 0.0
-		return
 	if _memory and _memory.has_target():
 		var suspected_pos: Vector2 = _memory.suspected_position
 		var walls := SniperComponent.count_walls(self, suspected_pos)

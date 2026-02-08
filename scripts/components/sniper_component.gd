@@ -136,6 +136,10 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 					and not target.has_method("on_hit") and not target.has_method("TakeDamage"):
 				if target.get_parent():
 					target = target.get_parent()
+			# Log the hit for diagnostics
+			var fl: Node = enemy.get_node_or_null("/root/FileLogger")
+			if fl and fl.has_method("log_enemy"):
+				fl.log_enemy(enemy.name, "HITSCAN HIT: %s at %s (dmg=%.0f)" % [target.name, str(hit_pos), damage])
 			# Try damage methods in order of specificity
 			if target.has_method("on_hit_with_info"):
 				target.on_hit_with_info(-direction.normalized(), null)
@@ -156,7 +160,7 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 static func spawn_tracer(scene_tree: SceneTree, start_pos: Vector2, end_pos: Vector2) -> void:
 	var tracer := Line2D.new()
 	tracer.name = "SniperTracer"
-	tracer.width = 5.0
+	tracer.width = 8.0
 	tracer.z_index = 90
 	tracer.z_as_relative = false  # Use absolute z_index to render above game elements
 	tracer.top_level = true
@@ -168,14 +172,22 @@ static func spawn_tracer(scene_tree: SceneTree, start_pos: Vector2, end_pos: Vec
 	tracer.width_curve = width_curve
 
 	var gradient := Gradient.new()
-	gradient.set_color(0, Color(0.9, 0.9, 0.85, 0.8))
-	gradient.add_point(0.5, Color(0.7, 0.7, 0.65, 0.5))
-	gradient.set_color(gradient.get_point_count() - 1, Color(0.5, 0.5, 0.5, 0.2))
+	gradient.set_color(0, Color(1.0, 1.0, 0.8, 1.0))  # Bright start
+	gradient.add_point(0.5, Color(0.8, 0.8, 0.7, 0.7))  # Mid fade
+	gradient.set_color(gradient.get_point_count() - 1, Color(0.6, 0.6, 0.55, 0.3))  # Tail
 	tracer.gradient = gradient
+
+	# Unshaded material for visibility in dark mode
+	var mat := CanvasItemMaterial.new()
+	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	tracer.material = mat
 
 	tracer.add_point(start_pos)
 	tracer.add_point(end_pos)
 
+	if scene_tree.current_scene == null:
+		tracer.queue_free()
+		return
 	scene_tree.current_scene.add_child(tracer)
 
 	# Fade out and remove
@@ -212,9 +224,11 @@ static func update_laser(laser: Line2D, enemy: Node2D, weapon_forward: Vector2,
 	var space := enemy.get_world_2d().direct_space_state
 	var start := enemy.global_position + muzzle_offset
 	var end_pos := start + weapon_forward * hitscan_range_val
-	var query := PhysicsRayQueryParameters2D.create(start, end_pos, 4)
-	query.collide_with_areas = false
+	# Mask: layer 1 (player) + layer 2 (enemies) + layer 4 (walls) = 7
+	var query := PhysicsRayQueryParameters2D.create(start, end_pos, 4 + 2 + 1)
+	query.collide_with_areas = true
 	query.collide_with_bodies = true
+	query.exclude = [enemy.get_rid()]  # Exclude self from laser raycast
 	var result := space.intersect_ray(query)
 
 	var laser_end: Vector2
