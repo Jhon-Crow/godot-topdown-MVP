@@ -9,6 +9,8 @@ extends RefCounted
 ## Added: "bullet_scene_path", "casing_scene_path", "caliber_path", "is_shotgun", "pellet_count_min", "pellet_count_max", "spread_angle"
 ## Added (Issue #516): "spread_threshold", "initial_spread", "spread_increment", "max_spread", "spread_reset_time"
 ## for progressive spread on single-bullet weapons (same as player weapons).
+## Added (Issue #583): RPG (type 4) with "is_rpg", "rpg_explosion_radius", "rpg_explosion_damage", "switch_weapon_type"
+## and PM pistol (type 5) for RPG enemy weapon switching.
 const WEAPON_CONFIGS := {
 	0: {  # RIFLE (M16) - uses same bullets as player's AssaultRifle
 		"shoot_cooldown": 0.1,
@@ -100,6 +102,52 @@ const WEAPON_CONFIGS := {
 		"dodge_speed": 400.0,
 		"dodge_distance": 120.0,
 		"sneak_speed_multiplier": 0.6
+	},
+	4: {  # RPG - rocket launcher, single shot then switches to PM (Issue #583)
+		"shoot_cooldown": 2.0,  # Slow RPG fire (only 1 shot anyway)
+		"bullet_speed": 800.0,  # Rocket speed (slower than bullets)
+		"magazine_size": 1,  # Only 1 RPG round
+		"bullet_spawn_offset": 35.0,
+		"weapon_loudness": 2500.0,  # Very loud rocket launch
+		"sprite_path": "",  # Default sprite
+		"bullet_scene_path": "res://scenes/projectiles/RpgRocket.tscn",
+		"casing_scene_path": "",  # No casings for RPG
+		"caliber_path": "",  # Rocket has no caliber
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		"spread_threshold": 0,
+		"initial_spread": 0.0,
+		"spread_increment": 0.0,
+		"max_spread": 0.0,
+		"spread_reset_time": 0.0,
+		# RPG-specific config
+		"is_rpg": true,
+		"rpg_explosion_radius": 150.0,
+		"rpg_explosion_damage": 3,
+		# PM config to switch to after RPG shot
+		"switch_weapon_type": 5
+	},
+	5: {  # PM (Makarov pistol) - used by RPG enemy after switching (Issue #583)
+		"shoot_cooldown": 0.3,  # Semi-auto pistol
+		"bullet_speed": 1000.0,  # Makarov PM speed
+		"magazine_size": 9,  # PM magazine
+		"bullet_spawn_offset": 25.0,
+		"weapon_loudness": 1469.0,
+		"sprite_path": "",  # Default sprite
+		"bullet_scene_path": "res://scenes/projectiles/Bullet9mm.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_9x18.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		"spread_threshold": 2,
+		"initial_spread": 1.0,
+		"spread_increment": 0.8,
+		"max_spread": 5.0,
+		"spread_reset_time": 0.3
 	}
 }
 
@@ -118,4 +166,6 @@ static func get_type_name(weapon_type: int) -> String:
 		1: return "SHOTGUN"
 		2: return "UZI"
 		3: return "MACHETE"
+		4: return "RPG"
+		5: return "PM"
 		_: return "UNKNOWN"
