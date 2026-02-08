@@ -92,8 +92,55 @@ Enemy ghosts: Sprite2D nodes added to level root
 | `tests/unit/test_active_item_manager.gd` | Add tests for AI_HELMET type |
 | `tests/unit/test_helmet_effect.gd` | **NEW** — Unit tests for helmet effect |
 
+## Bug Report: "не работает" (Doesn't Work)
+
+### Timeline Reconstruction
+
+1. User selected AI Helmet from the Armory Menu (log line: `[ActiveItemManager] Active item changed from None to AI Helmet`)
+2. Level restarted automatically (standard behavior when changing active items)
+3. Player.cs `_Ready()` was called — initialized flashlight check (logged: `[Player.Flashlight] No flashlight selected`)
+4. **No AI Helmet initialization occurred** — zero helmet-related log entries after level restart
+5. User pressed Space during gameplay — nothing happened (no helmet activation logged)
+
+### Root Cause Analysis
+
+The game log from the user's session (`game_log_20260209_015706.txt`) revealed that:
+
+- **All level scenes use the C# Player** (`scenes/characters/csharp/Player.tscn` → `Scripts/Characters/Player.cs`)
+- **The initial implementation only added helmet integration to the GDScript Player** (`scripts/characters/player.gd`)
+- The C# `Player.cs` had zero helmet-related code: no field declarations, no `InitAIHelmet()`, no `HandleAIHelmetInput()`
+- The `ActiveItemManager.gd` (GDScript autoload) correctly tracked the AI Helmet selection
+- The `HelmetEffect.gd` (GDScript) was never instantiated because no code called it
+
+**Evidence:** In the 3900+ line game log, the only helmet-related entry was:
+```
+[ActiveItemManager] Active item changed from None to AI Helmet
+```
+There were zero entries containing "AIHelmet", "HelmetEffect", or any initialization/activation messages.
+
+### Fix Applied
+
+Added AI Helmet integration to `Scripts/Characters/Player.cs` following the exact same pattern as the Flashlight integration (Issue #546):
+
+| Component | Flashlight (existing) | AI Helmet (added) |
+|-----------|----------------------|-------------------|
+| Fields | `_flashlightEquipped`, `_flashlightNode` | `_aiHelmetEquipped`, `_aiHelmetNode` |
+| Init | `InitFlashlight()` | `InitAIHelmet()` |
+| Input | `HandleFlashlightInput()` (hold) | `HandleAIHelmetInput()` (just_pressed) |
+| Helpers | `is_flashlight_on()` | `is_ai_helmet_active()`, `get_ai_helmet_charges()` |
+| Scene attachment | PlayerModel (child) | Level root (child) |
+
+Key difference: The helmet attaches to the **level root** (not PlayerModel) so ghost drawings use global coordinates, matching the GDScript implementation.
+
+### Compatibility Notes
+
+- Enemies are GDScript `CharacterBody2D` nodes in the "enemies" group — compatible with `helmet_effect.gd`
+- The C# Player calls GDScript methods via `Call("activate")` / `Call("is_active")` etc., matching the cross-language pattern used by flashlight
+- Both GDScript `player.gd` and C# `Player.cs` now have helmet integration for full variant coverage
+
 ## References
 
 - Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/671
 - Flashlight PR: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/551
 - Godot CharacterBody2D velocity: https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html
+- User bug report: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/684#issuecomment-3868506415
