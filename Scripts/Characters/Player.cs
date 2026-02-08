@@ -1111,6 +1111,16 @@ public partial class Player : BaseCharacter
             HandleShootingInput();
         }
 
+        // Handle revolver manual hammer cocking with RMB (Issue #649)
+        // RMB instantly cocks the hammer so the next LMB fires without delay.
+        // Only when not preparing grenade (G not held) and not in sniper scope.
+        if (CurrentWeapon is Revolver revolverForCock && !sniperScopeConsumedInput
+            && _grenadeState == GrenadeState.Idle
+            && Input.IsActionJustPressed("grenade_throw"))
+        {
+            revolverForCock.ManualCockHammer();
+        }
+
         // Handle revolver multi-step cylinder reload (Issue #626)
         // Must be checked before standard reload to prevent R-F-R sequence from intercepting
         if (CurrentWeapon is Revolver)
