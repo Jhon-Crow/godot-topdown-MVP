@@ -313,6 +313,7 @@ const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
 const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
+const SOUND_CASING_KICK_CONFIDENCE: float = 0.5  ## Issue #693: Casing kick - lower than reload
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
 
 ## Communication range for intel sharing: 660px w/ LOS, 300px without.
@@ -557,12 +558,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
 	# This sound propagates through walls and alerts enemies even behind cover.
 	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
-		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 
 		# Set player vulnerability state - reloading
 		_goap_world_state["player_reloading"] = true
@@ -589,12 +586,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
 	# This sound has shorter range than reload but still propagates through walls.
 	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
-		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 
 		# Set player vulnerability state - out of ammo
 		_goap_world_state["player_ammo_empty"] = true
@@ -629,15 +622,19 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			_log_to_file("EVADING_GRENADE (from sound): escaping from %s" % position)
 		return
 
+	# Issue #693: Casing kick sound (CASING_KICK = 8) - same range as reload (900px)
+	if sound_type == 8:
+		_log_to_file("Heard CASING_KICK at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
+		_last_known_player_position = position
+		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
+		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		return
+
 	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
 	# This sound propagates through walls and signals enemies to become cautious.
 	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
-		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, dist=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
 
 		# Clear player vulnerability state - reload finished, player is armed again
 		_goap_world_state["player_reloading"] = false
@@ -3910,7 +3907,6 @@ func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
 	var spread := _initial_spread if _shot_count <= _spread_threshold else minf(_initial_spread + (_shot_count - _spread_threshold) * _spread_increment, _max_spread)
 	if spread > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread), deg_to_rad(spread)))
 	_spawn_projectile(direction, spawn_pos)
-
 
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
