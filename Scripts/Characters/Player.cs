@@ -1111,8 +1111,17 @@ public partial class Player : BaseCharacter
             HandleShootingInput();
         }
 
-        // Handle reload sequence input (R-F-R)
-        HandleReloadSequenceInput();
+        // Handle revolver multi-step cylinder reload (Issue #626)
+        // Must be checked before standard reload to prevent R-F-R sequence from intercepting
+        if (CurrentWeapon is Revolver)
+        {
+            HandleRevolverReloadInput();
+        }
+        else
+        {
+            // Handle reload sequence input (R-F-R) for non-revolver weapons
+            HandleReloadSequenceInput();
+        }
 
         // Handle fire mode toggle (B key for burst/auto toggle)
         if (Input.IsActionJustPressed("toggle_fire_mode"))
@@ -1288,6 +1297,15 @@ public partial class Player : BaseCharacter
         if (shotgun != null && (shotgun.ReloadState != ShotgunReloadState.NotReloading || shotgun.IsDragging))
         {
             // Keep current rotation locked - don't follow mouse
+            return;
+        }
+
+        // TACTICAL RELOAD for revolver (Issue #626): Lock rotation while cylinder is open
+        // or when dragging (RMB held for cartridge insertion gesture).
+        var revolverForRotation = GetNodeOrNull<Revolver>("Revolver");
+        if (revolverForRotation != null && revolverForRotation.ReloadState != RevolverReloadState.NotReloading)
+        {
+            // Keep current rotation locked during cylinder reload
             return;
         }
 
@@ -1613,6 +1631,14 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Skip R-F-R reload for Revolver - it uses multi-step cylinder reload (Issue #626)
+        // R key: open/close cylinder. RMB drag up: insert cartridge. Scroll: rotate cylinder.
+        // Handled by HandleRevolverReloadInput() and Revolver.cs input handlers.
+        if (CurrentWeapon is Revolver)
+        {
+            return;
+        }
+
         // Can't reload if magazine is full (and not in reload sequence)
         if (!_isReloadingSequence && CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
         {
@@ -1626,7 +1652,8 @@ public partial class Player : BaseCharacter
         }
 
         // Check if this is a pistol-type weapon that uses R->R reload (2-step) instead of R->F->R (3-step)
-        bool isPistolReload = CurrentWeapon is MakarovPM || CurrentWeapon is Revolver;
+        // Note: Revolver is excluded above - it uses multi-step cylinder reload (Issue #626)
+        bool isPistolReload = CurrentWeapon is MakarovPM;
 
         // Handle R key (first and third step, or both steps for pistol)
         if (Input.IsActionJustPressed("reload"))
@@ -1725,6 +1752,64 @@ public partial class Player : BaseCharacter
                 StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
                 ResetReloadSequence();
             }
+        }
+    }
+
+    /// <summary>
+    /// Handles revolver multi-step cylinder reload input (Issue #626).
+    /// R key: Open cylinder (if closed) or close cylinder (if open).
+    /// RMB drag up (insert cartridge) and scroll wheel (rotate cylinder)
+    /// are handled directly by Revolver.cs in _Process() and _Input().
+    /// Sequence: R (open) → RMB drag up (insert) → scroll (rotate) → repeat → R (close).
+    /// </summary>
+    private void HandleRevolverReloadInput()
+    {
+        var revolver = CurrentWeapon as Revolver;
+        if (revolver == null)
+        {
+            return;
+        }
+
+        // Only handle R key press - drag and scroll are handled by Revolver.cs
+        if (!Input.IsActionJustPressed("reload"))
+        {
+            return;
+        }
+
+        switch (revolver.ReloadState)
+        {
+            case RevolverReloadState.NotReloading:
+                // R press: Open cylinder to begin reload
+                if (revolver.OpenCylinder())
+                {
+                    _isReloadingSequence = true;
+                    // Start arm animation for cylinder open
+                    StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
+                    EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
+                    EmitSignal(SignalName.ReloadStarted);
+                    LogToFile("[Player] Revolver: cylinder opened (R key)");
+                }
+                break;
+
+            case RevolverReloadState.CylinderOpen:
+            case RevolverReloadState.Loading:
+                // R press: Close cylinder to finish reload
+                if (revolver.CloseCylinder())
+                {
+                    _isReloadingSequence = false;
+                    // Animate arm return
+                    StartReloadAnimPhase(ReloadAnimPhase.ReturnIdle, ReloadAnimReturnDuration);
+                    EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);
+                    EmitSignal(SignalName.ReloadCompleted);
+                    // Emit sound propagation for reload completion
+                    var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+                    if (soundPropagation != null && soundPropagation.HasMethod("emit_player_reload_complete"))
+                    {
+                        soundPropagation.Call("emit_player_reload_complete", GlobalPosition, this);
+                    }
+                    LogToFile("[Player] Revolver: cylinder closed (R key), reload complete");
+                }
+                break;
         }
     }
 
