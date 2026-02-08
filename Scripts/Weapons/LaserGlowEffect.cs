@@ -384,7 +384,7 @@ public class LaserGlowEffect
             // Use local coordinates so particles move with the parent node.
             // Without this, particles use global coordinates and lag behind
             // when the weapon/player moves (Issue #694).
-            UseLocalCoordinates = true
+            LocalCoords = true
         };
 
         parent.AddChild(_dustParticles);

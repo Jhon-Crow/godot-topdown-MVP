@@ -73,7 +73,7 @@ within the same frame.
 ### Why GpuParticles2D dust particles DO lag
 
 The `GpuParticles2D` node (`LaserDustParticles`) was created with the default
-`UseLocalCoordinates = false` (corresponding to `local_coords = false` in
+`LocalCoords = false` (corresponding to `local_coords = false` in
 GDScript). This means:
 
 1. **Particles use global (world) coordinates** for their positions
@@ -112,19 +112,19 @@ trailing/lagging glow behind the beam.
 
 ### Fix Applied
 
-Set `UseLocalCoordinates = true` on the `GpuParticles2D` node:
+Set `LocalCoords = true` on the `GpuParticles2D` node:
 
 ```csharp
 _dustParticles = new GpuParticles2D
 {
     // ... other properties ...
-    UseLocalCoordinates = true  // Fix: particles move with parent (Issue #694)
+    LocalCoords = true  // Fix: particles move with parent (Issue #694)
 };
 ```
 
 ### Why This Fixes the Issue
 
-With `UseLocalCoordinates = true`:
+With `LocalCoords = true`:
 1. Particles are emitted and live in the **parent node's local coordinate space**
 2. When the parent (weapon → player) moves, **all particles** (existing and new)
    move with it
@@ -153,7 +153,7 @@ positions.
 
 | File | Change |
 |------|--------|
-| `Scripts/Weapons/LaserGlowEffect.cs` | Added `UseLocalCoordinates = true` to GpuParticles2D |
+| `Scripts/Weapons/LaserGlowEffect.cs` | Added `LocalCoords = true` to GpuParticles2D |
 
 ## References
 
@@ -161,5 +161,5 @@ positions.
 - [PR #655](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/655) — PR that introduced the glow effect
 - [Issue #654](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/654) — original glow feature request
 - [Godot Issue #70748](https://github.com/godotengine/godot/issues/70748) — GPUParticles2D jittering in global coordinates
-- [Godot GPUParticles2D docs](https://docs.godotengine.org/en/stable/classes/class_gpuparticles2d.html) — UseLocalCoordinates property
+- [Godot GPUParticles2D docs](https://docs.godotengine.org/en/stable/classes/class_gpuparticles2d.html) — LocalCoords property
 - [Godot Issue #71480](https://github.com/godotengine/godot/issues/71480) — local_coords rotation issues
