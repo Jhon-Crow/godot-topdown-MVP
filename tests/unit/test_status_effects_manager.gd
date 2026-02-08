@@ -528,6 +528,73 @@ func test_very_small_delta_reduces_effect_correctly() -> void:
 
 
 # ============================================================================
+# Modular Sprite Tint Tests (Issue #602)
+# ============================================================================
+
+
+## Mock entity with modular sprites (like enemies with Body/Head/Arms).
+class MockModularEntity:
+	extends RefCounted
+
+	var name: String = "TestModularEntity"
+	var _is_blinded: bool = false
+	var _is_stunned: bool = false
+	var _instance_id: int
+	var _all_sprites_modulate: Color = Color(0.9, 0.2, 0.2, 1.0)
+	var set_all_sprites_called: int = 0
+
+	func _init() -> void:
+		_instance_id = randi()
+
+	func get_instance_id() -> int:
+		return _instance_id
+
+	func set_blinded(value: bool) -> void:
+		_is_blinded = value
+
+	func set_stunned(value: bool) -> void:
+		_is_stunned = value
+
+	func is_blinded() -> bool:
+		return _is_blinded
+
+	func is_stunned() -> bool:
+		return _is_stunned
+
+	func has_method(method_name: String) -> bool:
+		return method_name in ["set_blinded", "set_stunned", "_set_all_sprites_modulate"]
+
+	func _set_all_sprites_modulate(color: Color) -> void:
+		_all_sprites_modulate = color
+		set_all_sprites_called += 1
+
+
+func test_modular_entity_has_set_all_sprites_method() -> void:
+	var modular := MockModularEntity.new()
+
+	assert_true(modular.has_method("_set_all_sprites_modulate"),
+		"Modular entity should have _set_all_sprites_modulate method")
+
+
+func test_blindness_on_modular_entity_calls_method() -> void:
+	var modular := MockModularEntity.new()
+
+	manager.apply_blindness(modular, 5.0)
+
+	assert_true(modular.is_blinded(),
+		"Modular entity should be blinded")
+
+
+func test_stun_on_modular_entity_calls_method() -> void:
+	var modular := MockModularEntity.new()
+
+	manager.apply_stun(modular, 3.0)
+
+	assert_true(modular.is_stunned(),
+		"Modular entity should be stunned")
+
+
+# ============================================================================
 # _find_sprite Tests (Issue #584 fix)
 # ============================================================================
 

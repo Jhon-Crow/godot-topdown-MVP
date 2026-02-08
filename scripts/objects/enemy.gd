@@ -346,6 +346,7 @@ var _killed_by_penetration: bool = false
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
+var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -435,6 +436,8 @@ func _ready() -> void:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 	_init_death_animation()
+	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
+	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -4815,11 +4818,13 @@ func _setup_flashbang_status() -> void:
 
 func _on_blinded_changed(blinded: bool) -> void:
 	_is_blinded = blinded
+	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
 	if blinded:
 		_can_see_player = false; _continuous_visibility_timer = 0.0
 
 func _on_stunned_changed(stunned: bool) -> void:
 	_is_stunned = stunned
+	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned:
 		velocity = Vector2.ZERO
 
@@ -4841,21 +4846,18 @@ func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> 
 func _setup_grenade_component() -> void:
 	if not enable_grenade_throwing: return
 	if is_grenadier:
-		var gc := GrenadierGrenadeComponent.new(); gc.enabled = true
-		_grenade_component = gc
+		_grenade_component = GrenadierGrenadeComponent.new(); _grenade_component.enabled = true
 	else:
 		_grenade_component = EnemyGrenadeComponent.new()
-		_grenade_component.grenade_count = grenade_count; _grenade_component.grenade_scene = grenade_scene
-		_grenade_component.enabled = enable_grenade_throwing
-	_grenade_component.name = "GrenadeComponent"
-	_grenade_component.throw_cooldown = grenade_throw_cooldown; _grenade_component.inaccuracy = grenade_inaccuracy
-	_grenade_component.max_throw_distance = grenade_max_throw_distance; _grenade_component.throw_delay = grenade_throw_delay
-	_grenade_component.min_throw_distance = grenade_min_throw_distance; _grenade_component.debug_logging = grenade_debug_logging
-	_grenade_component.safety_margin = grenade_safety_margin
+		_grenade_component.grenade_count = grenade_count; _grenade_component.grenade_scene = grenade_scene; _grenade_component.enabled = enable_grenade_throwing
+	_grenade_component.name = "GrenadeComponent"; _grenade_component.throw_cooldown = grenade_throw_cooldown
+	_grenade_component.inaccuracy = grenade_inaccuracy; _grenade_component.max_throw_distance = grenade_max_throw_distance
+	_grenade_component.throw_delay = grenade_throw_delay; _grenade_component.min_throw_distance = grenade_min_throw_distance
+	_grenade_component.debug_logging = grenade_debug_logging; _grenade_component.safety_margin = grenade_safety_margin
 	add_child(_grenade_component); _grenade_component.initialize()
-	if is_grenadier:  # Connect grenadier signals for ally coordination
-		(_grenade_component as GrenadierGrenadeComponent).grenade_incoming.connect(_on_grenadier_grenade_incoming)
-		(_grenade_component as GrenadierGrenadeComponent).grenade_exploded_safe.connect(_on_grenadier_grenade_exploded)
+	if is_grenadier:  # Connect grenadier signals for ally coordination (Issue #604)
+		var gc := _grenade_component as GrenadierGrenadeComponent
+		gc.grenade_incoming.connect(_on_grenadier_grenade_incoming); gc.grenade_exploded_safe.connect(_on_grenadier_grenade_exploded)
 
 func _update_grenade_triggers(delta: float) -> void:
 	if _grenade_component == null: return
@@ -4960,10 +4962,8 @@ func _on_grenadier_grenade_exploded() -> void:
 	for ally in parent.get_children():
 		if ally == self or not is_instance_valid(ally): continue
 		if ally.has_method("_stop_waiting_for_grenadier"): ally._stop_waiting_for_grenadier()
-func _start_waiting_for_grenadier(wait_time: float) -> void:
-	_waiting_for_grenadier = true; _grenadier_wait_timer = min(wait_time, 8.0)
-func _stop_waiting_for_grenadier() -> void:
-	_waiting_for_grenadier = false; _grenadier_wait_timer = 0.0
+func _start_waiting_for_grenadier(wt: float) -> void: _waiting_for_grenadier = true; _grenadier_wait_timer = min(wt, 8.0)
+func _stop_waiting_for_grenadier() -> void: _waiting_for_grenadier = false; _grenadier_wait_timer = 0.0
 func get_is_grenadier() -> bool: return is_grenadier
 func is_waiting_for_grenade() -> bool: return _waiting_for_grenadier
 
