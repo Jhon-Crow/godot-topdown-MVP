@@ -98,8 +98,55 @@ Additionally, `_on_death()` did not unregister from the coordinator, leaving sta
 - Crash occurs within 1-2 seconds of enemies entering SEARCHING state
 - No "sector" or "coordinator" debug messages visible (coordinator logging was off by default)
 
-### Fix Applied
+### Fix Applied (First Pass)
 1. Added `_unregister_from_group_search()` to all 8 missing state transition functions
 2. Added `_unregister_from_group_search()` to `_on_death()` for cleanup when enemy dies while searching
 3. Added division-by-zero guard in `get_sector_angles()` for edge case with empty coordinator
 4. Added 3 new edge case unit tests (empty coordinator, nonexistent enemy unregister, double unregister)
+
+## Second Crash Report (Native Crash on Bulk SEARCHING Transition)
+
+### Symptoms
+After the first fix, the repo owner reported the game still crashes when search begins.
+A new crash log was provided (`crash-logs/game_log_20260208_173955.txt`).
+
+### Root Cause Analysis
+
+**Crash pattern:** Log shows 6 enemies entering SEARCHING simultaneously at 17:40:17
+after LastChance effect ends. The log ends abruptly at line 1088 with no error messages,
+indicating a native crash (segfault) rather than a GDScript error.
+
+**Contributing factors identified:**
+
+1. **Double `move_and_slide()` call** — `_process_searching_state()` called `move_and_slide()`
+   inline (line 2253), and then `_physics_process()` called it again (line 899). With 6 enemies
+   simultaneously starting navigation, this meant 12 collision processing calls per frame in
+   the first physics tick, overwhelming the physics engine.
+
+2. **No navigation deferral** — Enemies started requesting navigation paths immediately
+   in the same physics frame they transitioned. When `_reset_all_enemy_memory()` is called
+   from `_process()` (via LastChance manager), enemies transition to SEARCHING before
+   `_physics_process()` runs. The first `_physics_process()` call then hits NavigationServer2D
+   for 6 enemies simultaneously with potentially stale navigation maps.
+
+3. **Stale coordinators across scene reloads** — `GroupSearchCoordinator._active_coordinators`
+   is a static Dictionary that persists across scene loads. If enemies are freed without proper
+   cleanup, stale coordinators with invalid enemy references accumulate.
+
+4. **Missing `_exit_tree()` cleanup** — When enemies are removed from the scene tree
+   (e.g., level reload), they weren't unregistered from the coordinator.
+
+**Same pattern in `_process_evading_grenade_state()`** — Also had inline `move_and_slide()`
+calls duplicating the `_physics_process()` call.
+
+### Fix Applied (Second Pass)
+1. **Removed double `move_and_slide()`** from `_process_searching_state()` and
+   `_process_evading_grenade_state()` — velocity is set, but `move_and_slide()` is only
+   called once per frame in `_physics_process()` (line 899)
+2. **Added 2-frame navigation deferral** via `_search_init_frames` counter — enemies wait
+   2 physics frames after transition before starting navigation, allowing nav map to sync
+3. **Stale coordinator cleanup** in `get_or_create()` — validates enemy references and
+   removes coordinators where all registered enemies are invalid
+4. **Added `_exit_tree()`** to enemy.gd — calls `_unregister_from_group_search()` when
+   enemy is removed from scene tree
+5. **Added null/validity checks** in `register_enemy()` and `unregister_enemy()`
