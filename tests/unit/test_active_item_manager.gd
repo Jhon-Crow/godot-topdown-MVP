@@ -59,7 +59,7 @@ func test_active_item_data_has_homing_bullets() -> void:
 	var item_data := {
 		2: {
 			"name": "Homing Bullets",
-			"icon_path": "",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
 			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
 		}
 	}
@@ -133,7 +133,7 @@ class MockActiveItemManager:
 		},
 		2: {
 			"name": "Homing Bullets",
-			"icon_path": "",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
 			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
 		}
 	}

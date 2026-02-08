@@ -213,6 +213,12 @@ const HOMING_DURATION: float = 1.0
 ## Timer tracking remaining homing effect duration.
 var _homing_timer: float = 0.0
 
+## Path to the homing bullets activation sound.
+const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
+
+## AudioStreamPlayer for homing activation sound.
+var _homing_audio_player: AudioStreamPlayer = null
+
 
 func _ready() -> void:
 	FileLogger.info("[Player] Initializing player...")
@@ -2974,18 +2980,22 @@ func is_flashlight_wall_clamped() -> bool:
 func _init_homing_bullets() -> void:
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager == null:
+		FileLogger.info("[Player.Homing] ActiveItemManager not found")
 		return
 
 	if not active_item_manager.has_method("has_homing_bullets"):
+		FileLogger.info("[Player.Homing] ActiveItemManager missing has_homing_bullets method")
 		return
 
 	if not active_item_manager.has_homing_bullets():
+		FileLogger.info("[Player.Homing] No homing bullets selected in ActiveItemManager")
 		return
 
 	_homing_equipped = true
 	_homing_charges = HOMING_MAX_CHARGES
 	_homing_active = false
 	_homing_timer = 0.0
+	_setup_homing_audio()
 
 	FileLogger.info("[Player.Homing] Homing bullets equipped, charges: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
 
@@ -3012,6 +3022,7 @@ func _handle_homing_input(delta: float) -> void:
 			_homing_active = true
 			_homing_timer = HOMING_DURATION
 			_homing_charges -= 1
+			_play_homing_sound()
 			homing_activated.emit()
 			homing_charges_changed.emit(_homing_charges, HOMING_MAX_CHARGES)
 			FileLogger.info("[Player.Homing] Homing activated! Duration: %ss, charges remaining: %d/%d" % [HOMING_DURATION, _homing_charges, HOMING_MAX_CHARGES])
@@ -3030,3 +3041,23 @@ func get_homing_charges() -> int:
 ## Get maximum homing charges.
 func get_max_homing_charges() -> int:
 	return HOMING_MAX_CHARGES
+
+
+## Set up the audio player for homing activation sound.
+func _setup_homing_audio() -> void:
+	if ResourceLoader.exists(HOMING_SOUND_PATH):
+		var stream = load(HOMING_SOUND_PATH)
+		if stream:
+			_homing_audio_player = AudioStreamPlayer.new()
+			_homing_audio_player.stream = stream
+			_homing_audio_player.volume_db = -3.0
+			add_child(_homing_audio_player)
+			FileLogger.info("[Player.Homing] Homing activation sound loaded")
+	else:
+		FileLogger.info("[Player.Homing] Homing activation sound not found: %s" % HOMING_SOUND_PATH)
+
+
+## Play the homing activation sound.
+func _play_homing_sound() -> void:
+	if _homing_audio_player and is_instance_valid(_homing_audio_player):
+		_homing_audio_player.play()
