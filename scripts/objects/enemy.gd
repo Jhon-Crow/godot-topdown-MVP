@@ -2230,29 +2230,27 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			if _nav_agent == null: _transition_to_idle(); return  # Issue #650: Safety check
-			if not _search_nav_target_set: _nav_agent.target_position = target_waypoint; _search_nav_target_set = true  # Issue #650: Set once per waypoint
-			if _nav_agent.is_navigation_finished():
-				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1; _search_nav_target_set = false
-				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
+			# Issue #650 Fix #6: Direct movement to waypoints — NO NavigationAgent2D calls.
+			# Search waypoints are pre-validated as navigable during deferred init, so we move
+			# directly toward them. This eliminates all NavigationServer2D queries from _physics_process,
+			# preventing native segfaults when multiple enemies search the same area simultaneously.
+			# Inspired by FEAR AI approach: simple direct movement for short-distance search patrol.
+			var dir := (target_waypoint - global_position).normalized()
+			velocity = dir * move_speed * 0.7
+			# Issue #354: Stuck detection
+			var progress := global_position.distance_to(_search_last_progress_position)
+			if progress < SEARCH_PROGRESS_THRESHOLD:
+				_search_stuck_timer += delta
+				if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
+					_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
+					_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1; _search_nav_target_set = false
+					_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
+					_search_last_progress_position = global_position; return
 			else:
-				var next_pos := _nav_agent.get_next_path_position()
-				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7  # Issue #650: Removed inline move_and_slide (handled by _physics_process)
-				# Issue #354: Stuck detection
-				var progress := global_position.distance_to(_search_last_progress_position)
-				if progress < SEARCH_PROGRESS_THRESHOLD:
-					_search_stuck_timer += delta
-					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
-						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
-						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1; _search_nav_target_set = false
-						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
-						_search_last_progress_position = global_position; return
-				else:
-					_search_stuck_timer = 0.0; _search_last_progress_position = global_position
-				if dir.length() > 0.1:
-					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
-					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
+				_search_stuck_timer = 0.0; _search_last_progress_position = global_position
+			if dir.length() > 0.1:
+				rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
+				_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
 	else:
 		# Issue #650: Realistic scanning - look at randomized targets with pauses
 		if _scan_targets.is_empty():
