@@ -4407,41 +4407,18 @@ func _reset() -> void:
 	_register_sound_listener()
 
 ## Disables hit area collision so bullets pass through dead enemies.
-## Uses multiple approaches due to Godot engine limitations with Area2D collision toggling.
 func _disable_hit_area_collision() -> void:
-	# Approach 1: Disable the CollisionShape2D itself
-	# This is the most reliable way to prevent collision detection
-	if _hit_collision_shape:
-		_hit_collision_shape.set_deferred("disabled", true)
-
-	# Approach 2: Move to unused collision layers
-	# This prevents any interaction even if shape disabling fails
+	if _hit_collision_shape: _hit_collision_shape.set_deferred("disabled", true)
 	if _hit_area:
-		_hit_area.set_deferred("collision_layer", 0)
-		_hit_area.set_deferred("collision_mask", 0)
-
-	# Approach 3: Disable monitorable/monitoring (original approach)
-	# Kept as additional safety measure
-	if _hit_area:
-		_hit_area.set_deferred("monitorable", false)
-		_hit_area.set_deferred("monitoring", false)
+		_hit_area.set_deferred("collision_layer", 0); _hit_area.set_deferred("collision_mask", 0)
+		_hit_area.set_deferred("monitorable", false); _hit_area.set_deferred("monitoring", false)
 
 ## Re-enables hit area collision after respawning.
-## Restores all collision properties to their original values.
 func _enable_hit_area_collision() -> void:
-	# Re-enable CollisionShape2D
-	if _hit_collision_shape:
-		_hit_collision_shape.disabled = false
-
-	# Restore original collision layers
+	if _hit_collision_shape: _hit_collision_shape.disabled = false
 	if _hit_area:
-		_hit_area.collision_layer = _original_hit_area_layer
-		_hit_area.collision_mask = _original_hit_area_mask
-
-	# Re-enable monitorable/monitoring
-	if _hit_area:
-		_hit_area.monitorable = true
-		_hit_area.monitoring = true
+		_hit_area.collision_layer = _original_hit_area_layer; _hit_area.collision_mask = _original_hit_area_mask
+		_hit_area.monitorable = true; _hit_area.monitoring = true
 
 ## Returns whether this enemy is currently alive.
 ## Used by bullets to check if they should pass through or hit.
@@ -4727,52 +4704,24 @@ func _is_player_distracted() -> bool:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
 
-## Set a navigation target and get the direction to follow the path.
-## Uses NavigationAgent2D for proper pathfinding around obstacles.
-## Returns the direction to move, or Vector2.ZERO if navigation is not available.
+## Get navigation direction to target, or Vector2.ZERO if navigation unavailable.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
-	if _nav_agent == null:
-		# Fall back to direct movement if no navigation agent
-		return (target_pos - global_position).normalized()
-
-	# Set the target for navigation
+	if _nav_agent == null: return (target_pos - global_position).normalized()
 	_nav_agent.target_position = target_pos
+	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
+	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
-	# Check if navigation is finished
-	if _nav_agent.is_navigation_finished():
-		return Vector2.ZERO
-
-	# Get the next position in the path
-	var next_pos: Vector2 = _nav_agent.get_next_path_position()
-
-	# Calculate direction to next path position
-	var direction: Vector2 = (next_pos - global_position).normalized()
-	return direction
-
-## Move toward a target position using NavigationAgent2D pathfinding.
-## This is the primary movement function that should be used instead of direct velocity assignment.
-## Returns true if movement was applied, false if target was reached or navigation unavailable.
+## Move toward target using NavigationAgent2D. Returns true if movement applied.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
-
-	if direction == Vector2.ZERO:
-		velocity = Vector2.ZERO
-		return false
-
-	# Apply additional wall avoidance on top of navigation path for tight corners
+	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
-
-	velocity = direction * speed
-	rotation = direction.angle()
-	return true
+	velocity = direction * speed; rotation = direction.angle(); return true
 
 ## Check if the navigation agent has a valid path to the target.
 func _has_nav_path_to(target_pos: Vector2) -> bool:
-	if _nav_agent == null:
-		return false
-
-	_nav_agent.target_position = target_pos
-	return not _nav_agent.is_navigation_finished()
+	if _nav_agent == null: return false
+	_nav_agent.target_position = target_pos; return not _nav_agent.is_navigation_finished()
 
 ## Get distance to target along the navigation path (more accurate than straight-line).
 func _get_nav_path_distance(target_pos: Vector2) -> float:
@@ -4983,85 +4932,54 @@ func _on_casing_pusher_body_exited(body: Node2D) -> void:
 		var idx := _overlapping_casings.find(body)
 		if idx >= 0: _overlapping_casings.remove_at(idx)
 
-## --- Sniper functions (Issue #581/#665) - delegates to SniperComponent ---
-func _setup_sniper_laser() -> void:
-	_sniper_laser = SniperComponent.create_laser(); add_child(_sniper_laser)
-func _update_sniper_laser() -> void:
-	SniperComponent.update_enemy_laser(self, _sniper_laser, _is_alive, _can_see_player, _hit_area, _sniper_hitscan_range)
+func _setup_sniper_laser() -> void: _sniper_laser = SniperComponent.create_laser(); add_child(_sniper_laser)
+func _update_sniper_laser() -> void: SniperComponent.update_enemy_laser(self, _sniper_laser, _is_alive, _can_see_player, _hit_area, _sniper_hitscan_range)
 func _calculate_sniper_spread(_direction: Vector2) -> float:
-	if _player == null: return 15.0
-	return SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
+	return 15.0 if _player == null else SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
 func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 	SniperComponent.shoot_hitscan(self, direction, spawn_pos, _hit_area, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations, _player)
-## Sniper COMBAT state: shoot first if possible, then seek cover.
-## Inlined from SniperComponent to avoid call() failures in exported builds.
-## Root cause (Issue #665): SniperComponent.process_combat_state() used enemy.call()
-## to invoke _transition_to_seeking_cover/_log_to_file, but these calls failed silently
-## in exported Godot builds, leaving snipers stuck in COMBAT without shooting or hiding.
+## Sniper COMBAT state: shoot if possible, then seek cover (Issue #665).
+## Inlined to avoid call() failures in exported builds.
 func _process_sniper_combat_state(delta: float) -> void:
-	_combat_state_timer += delta
-	velocity = Vector2.ZERO
-	# Update detection delay timer
-	if not _detection_delay_elapsed:
-		_detection_timer += delta
-		if _detection_timer >= _get_effective_detection_delay():
-			_detection_delay_elapsed = true
-			_log_to_file("SNIPER: detection delay elapsed (%.2fs)" % _detection_timer)
-	# If we can see the player and are ready, shoot BEFORE seeking cover
+	_combat_state_timer += delta; velocity = Vector2.ZERO
+	_sniper_update_detection(delta)
 	if _can_see_player and _player:
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting at visible player from combat")
-			_shoot(); _shoot_timer = 0.0
+			_log_to_file("SNIPER: shooting at visible player from combat"); _shoot(); _shoot_timer = 0.0
 	elif not _can_see_player and _memory and _memory.has_target():
-		# Shoot through walls at suspected position
 		var suspected_pos: Vector2 = _memory.suspected_position
 		var walls := SniperComponent.count_walls(self, suspected_pos)
 		SniperComponent._rotate_toward(self, suspected_pos)
 		if walls <= _sniper_max_wall_penetrations and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting through %d walls from combat" % walls)
-			_shoot(); _shoot_timer = 0.0
-	# After attempting to shoot, seek cover if available
-	if enable_cover:
-		_log_to_file("SNIPER: seeking cover from combat state")
-		_transition_to_seeking_cover()
-		return
-	# Fallback: if no player contact for too long, search
-	if not _can_see_player and _combat_state_timer > 5.0:
-		_transition_to_searching(global_position)
+			_log_to_file("SNIPER: shooting through %d walls" % walls); _shoot(); _shoot_timer = 0.0
+	if enable_cover: _log_to_file("SNIPER: seeking cover"); _transition_to_seeking_cover(); return
+	if not _can_see_player and _combat_state_timer > 5.0: _transition_to_searching(global_position)
 
-## Sniper IN_COVER state: stay in cover and shoot at player.
-## Inlined from SniperComponent to avoid call() failures in exported builds.
+## Sniper IN_COVER state: stay in cover and shoot at player (Issue #665).
 func _process_sniper_in_cover_state(delta: float) -> void:
-	velocity = Vector2.ZERO
-	# Update detection delay timer
-	if not _detection_delay_elapsed:
-		_detection_timer += delta
-		if _detection_timer >= _get_effective_detection_delay():
-			_detection_delay_elapsed = true
-			_log_to_file("SNIPER: detection delay elapsed in cover (%.2fs)" % _detection_timer)
-	# Retreat if player is dangerously close (half viewport distance)
+	velocity = Vector2.ZERO; _sniper_update_detection(delta)
 	if _sniper_retreat_cooldown <= 0.0 and _player:
 		var dist := global_position.distance_to(_player.global_position)
 		if dist < get_viewport_rect().size.length() * 0.5:
-			_has_valid_cover = false
-			_sniper_retreat_cooldown = SniperComponent.RETREAT_COOLDOWN_TIME
-			_log_to_file("SNIPER: player too close (%.0f), re-seeking cover" % dist)
-			_transition_to_seeking_cover()
-			return
-	# Shoot at visible player from cover
+			_has_valid_cover = false; _sniper_retreat_cooldown = SniperComponent.RETREAT_COOLDOWN_TIME
+			_log_to_file("SNIPER: player too close (%.0f), re-seeking cover" % dist); _transition_to_seeking_cover(); return
 	if _can_see_player and _player:
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting from cover at visible player")
-			_shoot(); _shoot_timer = 0.0
+			_log_to_file("SNIPER: shooting from cover"); _shoot(); _shoot_timer = 0.0
 		return
-	# Shoot through walls at suspected position
 	if _memory and _memory.has_target():
 		var suspected_pos: Vector2 = _memory.suspected_position
 		var walls := SniperComponent.count_walls(self, suspected_pos)
 		if walls <= _sniper_max_wall_penetrations and walls > 0:
 			SniperComponent._rotate_toward(self, suspected_pos)
 			if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-				_log_to_file("SNIPER: shooting from cover through %d walls" % walls)
-				_shoot(); _shoot_timer = 0.0
+				_log_to_file("SNIPER: shooting through %d walls from cover" % walls); _shoot(); _shoot_timer = 0.0
+
+## Update sniper detection delay timer (shared by combat and cover states).
+func _sniper_update_detection(delta: float) -> void:
+	if _detection_delay_elapsed: return
+	_detection_timer += delta
+	if _detection_timer >= _get_effective_detection_delay():
+		_detection_delay_elapsed = true; _log_to_file("SNIPER: detection delay elapsed (%.2fs)" % _detection_timer)
