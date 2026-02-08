@@ -135,6 +135,9 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Detected weapon sprite offset for ghost creation.</summary>
         private Vector2 _playerWeaponSpriteOffset = new(20, 0);
 
+        /// <summary>Recorded enemy weapon types (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE) for ghost creation.</summary>
+        private readonly List<int> _enemyWeaponTypes = new();
+
         /// <summary>Replay ghost nodes.</summary>
         private Node2D? _ghostPlayer;
         private readonly List<Node2D> _ghostEnemies = new();
@@ -355,6 +358,24 @@ namespace GodotTopDownTemplate.Autoload
             // Detect player weapon for ghost creation later
             DetectPlayerWeapon(player);
 
+            // Record enemy weapon types for ghost creation later
+            _enemyWeaponTypes.Clear();
+            foreach (var enemy in _enemies)
+            {
+                if (enemy != null && IsInstanceValid(enemy))
+                {
+                    var weaponTypeVar = enemy.Get("weapon_type");
+                    int weaponType = weaponTypeVar.VariantType != Variant.Type.Nil
+                        ? weaponTypeVar.AsInt32()
+                        : 0; // Default to RIFLE
+                    _enemyWeaponTypes.Add(weaponType);
+                }
+                else
+                {
+                    _enemyWeaponTypes.Add(0); // Default to RIFLE
+                }
+            }
+
             // Connect to ImpactEffectsManager signals for recording blood/hits
             ConnectImpactSignals();
 
@@ -371,8 +392,10 @@ namespace GodotTopDownTemplate.Autoload
             for (int i = 0; i < _enemies.Count; i++)
             {
                 var enemy = _enemies[i];
+                int wtype = i < _enemyWeaponTypes.Count ? _enemyWeaponTypes[i] : 0;
+                string wtypeName = wtype switch { 0 => "RIFLE", 1 => "SHOTGUN", 2 => "UZI", 3 => "MACHETE", _ => "UNKNOWN" };
                 if (enemy != null && IsInstanceValid(enemy))
-                    LogToFile($"  Enemy {i}: {enemy.Name}");
+                    LogToFile($"  Enemy {i}: {enemy.Name} (weapon_type={wtype}/{wtypeName})");
                 else
                     LogToFile($"  Enemy {i}: INVALID");
             }
@@ -585,6 +608,7 @@ namespace GodotTopDownTemplate.Autoload
         {
             _frames.Clear();
             _footprintSnapshots.Clear();
+            _enemyWeaponTypes.Clear();
             _recordingTime = 0.0f;
             _isRecording = false;
             LogToFile("Replay data cleared");
@@ -1416,6 +1440,8 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>
         /// Detects the weapon type equipped by the player and stores the
         /// texture path so the ghost player can display the correct weapon.
+        /// Uses CurrentWeapon property name as the primary detection method,
+        /// with child node name lookup as fallback.
         /// </summary>
         private void DetectPlayerWeapon(Node2D? player)
         {
@@ -1426,35 +1452,73 @@ namespace GodotTopDownTemplate.Autoload
                 return;
             }
 
-            if (player.GetNodeOrNull("MiniUzi") != null)
+            // Primary detection: use CurrentWeapon property name (most reliable,
+            // works even when weapon is equipped by C# Player._Ready() before
+            // the level script runs).
+            string weaponName = "";
+            var currentWeapon = player.Get("CurrentWeapon").AsGodotObject() as Node;
+            if (currentWeapon != null && IsInstanceValid(currentWeapon))
             {
-                _playerWeaponTexturePath = "res://assets/sprites/weapons/mini_uzi_topdown.png";
-                _playerWeaponSpriteOffset = new Vector2(15, 0);
-                LogToFile("Detected player weapon: Mini UZI");
+                weaponName = currentWeapon.Name;
             }
-            else if (player.GetNodeOrNull("Shotgun") != null)
+
+            // Fallback: check child node names directly
+            if (string.IsNullOrEmpty(weaponName))
             {
-                _playerWeaponTexturePath = "res://assets/sprites/weapons/shotgun_topdown.png";
-                _playerWeaponSpriteOffset = new Vector2(20, 0);
-                LogToFile("Detected player weapon: Shotgun");
+                string[] knownWeapons = { "Revolver", "MakarovPM", "MiniUzi", "Shotgun",
+                                          "SniperRifle", "SilencedPistol", "AssaultRifle" };
+                foreach (var name in knownWeapons)
+                {
+                    if (player.GetNodeOrNull(name) != null)
+                    {
+                        weaponName = name;
+                        break;
+                    }
+                }
             }
-            else if (player.GetNodeOrNull("SniperRifle") != null)
+
+            switch (weaponName)
             {
-                _playerWeaponTexturePath = "res://assets/sprites/weapons/asvk_topdown.png";
-                _playerWeaponSpriteOffset = new Vector2(25, 0);
-                LogToFile("Detected player weapon: Sniper Rifle (ASVK)");
-            }
-            else if (player.GetNodeOrNull("SilencedPistol") != null)
-            {
-                _playerWeaponTexturePath = "res://assets/sprites/weapons/silenced_pistol_topdown.png";
-                _playerWeaponSpriteOffset = new Vector2(15, 0);
-                LogToFile("Detected player weapon: Silenced Pistol");
-            }
-            else
-            {
-                _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
-                _playerWeaponSpriteOffset = new Vector2(20, 0);
-                LogToFile("Detected player weapon: Assault Rifle (default)");
+                case "MiniUzi":
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/mini_uzi_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(15, 0);
+                    LogToFile("Detected player weapon: Mini UZI");
+                    break;
+                case "Shotgun":
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/shotgun_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(20, 0);
+                    LogToFile("Detected player weapon: Shotgun");
+                    break;
+                case "SniperRifle":
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/asvk_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(25, 0);
+                    LogToFile("Detected player weapon: Sniper Rifle (ASVK)");
+                    break;
+                case "SilencedPistol":
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/silenced_pistol_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(15, 0);
+                    LogToFile("Detected player weapon: Silenced Pistol");
+                    break;
+                case "Revolver":
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/revolver_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(15, 0);
+                    LogToFile("Detected player weapon: Revolver");
+                    break;
+                case "MakarovPM":
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/makarov_pm_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(15, 0);
+                    LogToFile("Detected player weapon: Makarov PM");
+                    break;
+                case "AssaultRifle":
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(20, 0);
+                    LogToFile("Detected player weapon: Assault Rifle");
+                    break;
+                default:
+                    _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
+                    _playerWeaponSpriteOffset = new Vector2(20, 0);
+                    LogToFile($"Detected player weapon: unknown '{weaponName}', using Assault Rifle (default)");
+                    break;
             }
         }
 
@@ -2157,7 +2221,8 @@ namespace GodotTopDownTemplate.Autoload
             {
                 for (int i = 0; i < _frames[0].Enemies.Count; i++)
                 {
-                    var ghostEnemy = CreateEnemyGhost();
+                    int weaponType = i < _enemyWeaponTypes.Count ? _enemyWeaponTypes[i] : 0;
+                    var ghostEnemy = CreateEnemyGhost(weaponType);
                     if (ghostEnemy != null)
                     {
                         ghostContainer.AddChild(ghostEnemy);
@@ -2226,7 +2291,11 @@ namespace GodotTopDownTemplate.Autoload
             LogToFile($"Added weapon sprite to ghost player: {_playerWeaponTexturePath}");
         }
 
-        private Node2D? CreateEnemyGhost()
+        /// <summary>
+        /// Creates an enemy ghost with the correct weapon sprite.
+        /// </summary>
+        /// <param name="weaponType">Weapon type (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE).</param>
+        private Node2D? CreateEnemyGhost(int weaponType = 0)
         {
             var enemyScene = GD.Load<PackedScene>("res://scenes/objects/Enemy.tscn");
             if (enemyScene != null)
@@ -2236,6 +2305,11 @@ namespace GodotTopDownTemplate.Autoload
                 ghost.ProcessMode = ProcessModeEnum.Always;
                 DisableNodeProcessing(ghost);
                 SetGhostModulate(ghost, new Color(1.0f, 1.0f, 1.0f, 0.9f));
+
+                // Apply the correct weapon sprite based on recorded weapon type.
+                // Enemy.tscn defaults to RIFLE sprite; only change if different.
+                ApplyEnemyWeaponSprite(ghost, weaponType);
+
                 return ghost;
             }
 
@@ -2247,6 +2321,39 @@ namespace GodotTopDownTemplate.Autoload
             sprite.Texture = ImageTexture.CreateFromImage(img);
             fallback.AddChild(sprite);
             return fallback;
+        }
+
+        /// <summary>
+        /// Applies the correct weapon sprite texture to a ghost enemy based on weapon type.
+        /// Weapon type 0 (RIFLE) uses the default sprite already in the scene.
+        /// </summary>
+        private void ApplyEnemyWeaponSprite(Node2D ghost, int weaponType)
+        {
+            if (weaponType == 0) return; // RIFLE is the default, no change needed
+
+            // Map weapon type to sprite path (matches WeaponConfigComponent constants)
+            string? spritePath = weaponType switch
+            {
+                1 => "res://assets/sprites/weapons/shotgun_topdown.png",     // SHOTGUN
+                2 => "res://assets/sprites/weapons/mini_uzi_topdown.png",    // UZI
+                3 => "res://assets/sprites/weapons/machete_topdown.png",     // MACHETE
+                _ => null
+            };
+
+            if (spritePath == null || !ResourceLoader.Exists(spritePath)) return;
+
+            // Find the weapon sprite in the enemy scene (EnemyModel/WeaponMount/WeaponSprite)
+            var weaponSprite = ghost.GetNodeOrNull<Sprite2D>("EnemyModel/WeaponMount/WeaponSprite");
+
+            if (weaponSprite != null)
+            {
+                var texture = GD.Load<Texture2D>(spritePath);
+                if (texture != null)
+                {
+                    weaponSprite.Texture = texture;
+                    LogToFile($"Applied weapon sprite to ghost enemy: {spritePath}");
+                }
+            }
         }
 
         private Node2D? CreateProjectileGhost(string type, string texturePath = "")

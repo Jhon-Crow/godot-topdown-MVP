@@ -6,7 +6,9 @@ extends Node
 ##
 ## Recording captures:
 ## - Player position, rotation, model scale, and health color
+## - Player weapon type (for correct weapon display in replay, Issue #667)
 ## - Enemy positions, rotations, alive state, and health color
+## - Enemy weapon types (for correct weapon display in replay, Issue #667)
 ## - Bullet positions and rotations
 ## - Grenade positions
 ## - Sound events (shots, hits, deaths) with positions
@@ -27,7 +29,7 @@ const MAX_RECORDING_DURATION: float = 300.0  # 5 minutes
 ## - player_model_scale: Vector2
 ## - player_alive: bool
 ## - player_color: Color (health-based sprite color)
-## - enemies: Array of {position, rotation, alive, color}
+## - enemies: Array of {position, rotation, alive, color} (weapon types stored separately)
 ## - bullets: Array of {position, rotation}
 ## - grenades: Array of {position}
 ## - events: Array of {type, position, ...} event dictionaries
@@ -40,6 +42,14 @@ const MAX_RECORDING_DURATION: float = 300.0  # 5 minutes
 
 ## All recorded frames for the current/last level.
 var _frames: Array = []
+
+## Weapon types recorded from enemies at recording start (indexed by enemy index).
+## Used to configure ghost enemy weapon sprites during playback.
+var _enemy_weapon_types: Array = []
+
+## Player weapon scene name recorded at recording start (e.g. "AssaultRifle", "Shotgun").
+## Used to load the correct weapon scene for the ghost player during playback.
+var _player_weapon_scene_name: String = ""
 
 ## Current recording time.
 var _recording_time: float = 0.0
@@ -178,6 +188,17 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 	_player = player
 	_enemies = enemies.duplicate()
 
+	# Capture enemy weapon types at recording start (Issue #667)
+	_enemy_weapon_types.clear()
+	for enemy in enemies:
+		if enemy and is_instance_valid(enemy) and enemy.get("weapon_type") != null:
+			_enemy_weapon_types.append(enemy.weapon_type)
+		else:
+			_enemy_weapon_types.append(0)  # Default to RIFLE
+
+	# Capture player weapon scene name at recording start (Issue #667)
+	_player_weapon_scene_name = _detect_player_weapon_name(player)
+
 	# Detailed logging for debugging
 	var player_name: String = player.name if player else "NULL"
 	var player_valid: bool = player != null and is_instance_valid(player)
@@ -186,17 +207,19 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 	_log_to_file("=== REPLAY RECORDING STARTED ===")
 	_log_to_file("Level: %s" % level_name)
 	_log_to_file("Player: %s (valid: %s)" % [player_name, player_valid])
+	_log_to_file("Player weapon: %s" % _player_weapon_scene_name)
 	_log_to_file("Enemies count: %d" % enemies.size())
 
 	# Log each enemy for debugging
 	for i in range(enemies.size()):
 		var enemy: Node = enemies[i]
 		if enemy and is_instance_valid(enemy):
-			_log_to_file("  Enemy %d: %s" % [i, enemy.name])
+			var wtype: int = _enemy_weapon_types[i] if i < _enemy_weapon_types.size() else 0
+			_log_to_file("  Enemy %d: %s (weapon_type=%d/%s)" % [i, enemy.name, wtype, WeaponConfigComponent.get_type_name(wtype)])
 		else:
 			_log_to_file("  Enemy %d: INVALID" % i)
 
-	print("[ReplayManager] Recording started: Level=%s, Player=%s, Enemies=%d" % [level_name, player_name, enemies.size()])
+	print("[ReplayManager] Recording started: Level=%s, Player=%s (weapon=%s), Enemies=%d" % [level_name, player_name, _player_weapon_scene_name, enemies.size()])
 
 
 ## Stops recording and saves the replay data.
@@ -809,7 +832,9 @@ func _create_ghost_entities(level: Node2D) -> void:
 	# Create ghost enemies (one for each recorded enemy)
 	if not _frames.is_empty() and not _frames[0].enemies.is_empty():
 		for i in range(_frames[0].enemies.size()):
-			var ghost_enemy := _create_enemy_ghost()
+			# Issue #667: Pass recorded weapon type for correct weapon sprite
+			var wtype: int = _enemy_weapon_types[i] if i < _enemy_weapon_types.size() else 0
+			var ghost_enemy := _create_enemy_ghost(wtype)
 			if ghost_enemy:
 				ghost_container.add_child(ghost_enemy)
 				_ghost_enemies.append(ghost_enemy)
@@ -820,6 +845,7 @@ func _create_ghost_entities(level: Node2D) -> void:
 
 ## Creates a ghost representation of the player.
 ## Issue #544 fix 6: Player model looks the same as during gameplay.
+## Issue #667: Player weapon is loaded from recorded weapon scene name.
 func _create_player_ghost() -> Node2D:
 	# Try to load the player scene and create a visual-only copy
 	var player_scene: PackedScene = load("res://scenes/characters/Player.tscn")
@@ -830,6 +856,9 @@ func _create_player_ghost() -> Node2D:
 
 		# Disable all scripts/processing - we only want visuals
 		_disable_node_processing(ghost)
+
+		# Issue #667: Attach the correct weapon scene to the ghost player's WeaponMount.
+		_attach_player_weapon_to_ghost(ghost)
 
 		# Issue #544 fix 6: Do NOT apply a global modulate override.
 		# The health color will be set per-frame via _apply_color_to_ghost_sprites()
@@ -846,6 +875,39 @@ func _create_player_ghost() -> Node2D:
 	sprite.texture = ImageTexture.create_from_image(img)
 	ghost.add_child(sprite)
 	return ghost
+
+
+## Attaches the recorded weapon scene to the ghost player's WeaponMount (Issue #667).
+## Loads the weapon scene, disables scripts, and adds it as a visual-only child.
+func _attach_player_weapon_to_ghost(ghost: Node2D) -> void:
+	if _player_weapon_scene_name == "":
+		return
+
+	var scene_path: String = WEAPON_SCENE_PATHS.get(_player_weapon_scene_name, "")
+	if scene_path == "" or not ResourceLoader.exists(scene_path):
+		_log_to_file("Could not find weapon scene for '%s'" % _player_weapon_scene_name)
+		return
+
+	var weapon_scene: PackedScene = load(scene_path)
+	if weapon_scene == null:
+		return
+
+	var weapon_node: Node2D = weapon_scene.instantiate()
+	weapon_node.name = _player_weapon_scene_name
+	weapon_node.process_mode = Node.PROCESS_MODE_ALWAYS
+
+	# Disable all scripts/processing on the weapon - visual only
+	_disable_node_processing(weapon_node)
+
+	# Add weapon to the player's WeaponMount for correct positioning
+	var weapon_mount: Node2D = ghost.get_node_or_null("PlayerModel/WeaponMount")
+	if weapon_mount:
+		weapon_mount.add_child(weapon_node)
+	else:
+		# Fallback: add directly to ghost
+		ghost.add_child(weapon_node)
+
+	_log_to_file("Attached weapon '%s' to ghost player" % _player_weapon_scene_name)
 
 
 ## Creates a trailing line that follows the player ghost contour (Issue #544 fix 7).
@@ -872,7 +934,9 @@ func _create_player_trail() -> Line2D:
 
 
 ## Creates a ghost representation of an enemy.
-func _create_enemy_ghost() -> Node2D:
+## @param enemy_weapon_type: Weapon type index (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE).
+##   Used to set the correct weapon sprite on the ghost (Issue #667).
+func _create_enemy_ghost(enemy_weapon_type: int = 0) -> Node2D:
 	# Try to load the enemy scene
 	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
 	if enemy_scene:
@@ -882,6 +946,10 @@ func _create_enemy_ghost() -> Node2D:
 
 		# Disable all scripts/processing
 		_disable_node_processing(ghost)
+
+		# Issue #667: Apply correct weapon sprite based on recorded weapon type.
+		# The default Enemy.tscn has a rifle sprite, so only change for non-rifle weapons.
+		_apply_enemy_weapon_sprite(ghost, enemy_weapon_type)
 
 		# Issue #544 fix 3: Do NOT apply a global modulate override.
 		# The health color will be set per-frame via _apply_color_to_ghost_sprites().
@@ -897,6 +965,22 @@ func _create_enemy_ghost() -> Node2D:
 	sprite.texture = ImageTexture.create_from_image(img)
 	ghost.add_child(sprite)
 	return ghost
+
+
+## Applies the correct weapon sprite to a ghost enemy based on weapon type (Issue #667).
+func _apply_enemy_weapon_sprite(ghost: Node2D, weapon_type_idx: int) -> void:
+	var config := WeaponConfigComponent.get_config(weapon_type_idx)
+	var sprite_path: String = config.get("sprite_path", "")
+	var weapon_sprite: Sprite2D = ghost.get_node_or_null("EnemyModel/WeaponMount/WeaponSprite")
+	if weapon_sprite == null:
+		return
+	if sprite_path != "" and ResourceLoader.exists(sprite_path):
+		var tex := load(sprite_path) as Texture2D
+		if tex:
+			weapon_sprite.texture = tex
+	# For MACHETE (is_melee), ensure the weapon sprite is visible (Issue #595 compat)
+	if config.get("is_melee", false):
+		weapon_sprite.visible = true
 
 
 ## Creates a ghost representation of a projectile.
@@ -1338,7 +1422,34 @@ func clear_replay() -> void:
 	_frames.clear()
 	_recording_time = 0.0
 	_is_recording = false
+	_enemy_weapon_types.clear()
+	_player_weapon_scene_name = ""
 	_log_to_file("Replay data cleared")
+
+
+## Detects the player's equipped weapon scene name (Issue #667).
+## Checks for known weapon child nodes added by level scripts.
+## Returns the weapon node name (e.g. "AssaultRifle", "Shotgun") or "" if none found.
+func _detect_player_weapon_name(player: Node2D) -> String:
+	if player == null or not is_instance_valid(player):
+		return ""
+	# Check known weapon names in order (same order as player.gd detection)
+	for weapon_name in ["Revolver", "MiniUzi", "SilencedPistol", "SniperRifle", "Shotgun", "MakarovPM", "AssaultRifle"]:
+		if player.get_node_or_null(weapon_name) != null:
+			return weapon_name
+	return ""
+
+
+## Mapping from weapon scene names to their .tscn paths (Issue #667).
+const WEAPON_SCENE_PATHS := {
+	"AssaultRifle": "res://scenes/weapons/csharp/AssaultRifle.tscn",
+	"Shotgun": "res://scenes/weapons/csharp/Shotgun.tscn",
+	"MiniUzi": "res://scenes/weapons/csharp/MiniUzi.tscn",
+	"SniperRifle": "res://scenes/weapons/csharp/SniperRifle.tscn",
+	"Revolver": "res://scenes/weapons/csharp/Revolver.tscn",
+	"SilencedPistol": "res://scenes/weapons/csharp/SilencedPistol.tscn",
+	"MakarovPM": "res://scenes/weapons/csharp/MakarovPM.tscn",
+}
 
 
 ## Log a message to the file logger if available.
