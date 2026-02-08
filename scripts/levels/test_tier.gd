@@ -5,7 +5,7 @@ extends Node2D
 ## Features:
 ## - Large map (4000x2960 playable area) with multiple combat zones
 ## - Various cover types (low walls, barricades, crates, pillars)
-## - 10 enemies in strategic positions (6 guards, 4 patrols)
+## - 12 enemies in strategic positions (6 guards, 4 patrols, 2 RPG)
 ## - Enemies do not respawn after death
 ## - Visual indicators for cover positions
 ## - Ammo counter with color-coded warnings

@@ -716,26 +716,6 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="RpgEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(2000, 300)
-behavior_mode = 1
-weapon_type = 4
-min_health = 1
-max_health = 2
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="RpgEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(4200, 1050)
-behavior_mode = 1
-weapon_type = 4
-min_health = 1
-max_health = 2
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
 [node name="ZoneLabels" type="Node2D" parent="Environment"]
 
 [node name="ShotgunLabel" type="Label" parent="Environment/ZoneLabels"]

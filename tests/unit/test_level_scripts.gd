@@ -240,8 +240,8 @@ class MockCastleLevel extends MockLevelBase:
 	var map_width: int = 6000
 	var map_height: int = 2560
 
-	## Default enemy count for castle level.
-	var default_enemy_count: int = 15
+	## Default enemy count for castle level (13 enemies: shotguns, uzis, patrols, lower).
+	var default_enemy_count: int = 13
 
 	## Castle-specific weapon ammo multiplier (2x for all weapons).
 	var ammo_multiplier: int = 2
@@ -287,8 +287,8 @@ class MockTestTier extends MockLevelBase:
 	var map_width: int = 4000
 	var map_height: int = 2960
 
-	## Default enemy count for test tier (10 enemies).
-	var default_enemy_count: int = 10
+	## Default enemy count for test tier (12 enemies: 6 guards, 4 patrols, 2 RPG).
+	var default_enemy_count: int = 12
 
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
@@ -589,8 +589,8 @@ func test_castle_level_map_larger_than_building() -> void:
 
 
 func test_castle_level_default_enemy_count() -> void:
-	assert_eq(castle_level.default_enemy_count, 15,
-		"Castle level should have 15 enemies by default")
+	assert_eq(castle_level.default_enemy_count, 13,
+		"Castle level should have 13 enemies by default")
 
 
 func test_castle_level_more_enemies_than_building() -> void:
@@ -606,16 +606,16 @@ func test_castle_level_more_enemies_than_building() -> void:
 func test_castle_level_initialize_sets_enemy_count() -> void:
 	castle_level.initialize()
 
-	assert_eq(castle_level._initial_enemy_count, 15,
-		"Should track 15 enemies after initialization")
-	assert_eq(castle_level._current_enemy_count, 15,
+	assert_eq(castle_level._initial_enemy_count, 13,
+		"Should track 13 enemies after initialization")
+	assert_eq(castle_level._current_enemy_count, 13,
 		"Current enemy count should match initial count")
 
 
 func test_castle_level_all_enemies_killed() -> void:
 	castle_level.initialize()
 
-	for i in range(15):
+	for i in range(13):
 		castle_level.on_enemy_died()
 
 	assert_eq(castle_level._current_enemy_count, 0,
@@ -632,8 +632,8 @@ func test_castle_level_partial_kills() -> void:
 	for i in range(7):
 		castle_level.on_enemy_died()
 
-	assert_eq(castle_level._current_enemy_count, 8,
-		"8 enemies should remain after killing 7 of 15")
+	assert_eq(castle_level._current_enemy_count, 6,
+		"6 enemies should remain after killing 7 of 13")
 	assert_false(castle_level._level_cleared,
 		"Level should NOT be cleared with enemies remaining")
 
@@ -706,13 +706,13 @@ func test_test_tier_map_dimensions() -> void:
 
 
 func test_test_tier_default_enemy_count() -> void:
-	assert_eq(test_tier.default_enemy_count, 10,
-		"TestTier should have 10 enemies by default")
+	assert_eq(test_tier.default_enemy_count, 12,
+		"TestTier should have 12 enemies by default")
 
 
-func test_test_tier_same_enemy_count_as_building() -> void:
-	assert_eq(test_tier.default_enemy_count, building_level.default_enemy_count,
-		"TestTier and Building should have the same default enemy count (10)")
+func test_test_tier_more_enemies_than_building() -> void:
+	assert_gt(test_tier.default_enemy_count, building_level.default_enemy_count,
+		"TestTier should have more enemies than Building (12 vs 10, includes RPG enemies)")
 
 
 # ============================================================================
@@ -723,14 +723,14 @@ func test_test_tier_same_enemy_count_as_building() -> void:
 func test_test_tier_initialize_sets_enemy_count() -> void:
 	test_tier.initialize()
 
-	assert_eq(test_tier._initial_enemy_count, 10,
-		"Should track 10 enemies after initialization")
+	assert_eq(test_tier._initial_enemy_count, 12,
+		"Should track 12 enemies after initialization")
 
 
 func test_test_tier_all_enemies_killed_clears_level() -> void:
 	test_tier.initialize()
 
-	for i in range(10):
+	for i in range(12):
 		test_tier.on_enemy_died()
 
 	assert_eq(test_tier._current_enemy_count, 0,
@@ -750,8 +750,8 @@ func test_test_tier_kill_tracking() -> void:
 
 	assert_eq(test_tier._kills, 3,
 		"Kill count should be 3 after 3 enemy deaths")
-	assert_eq(test_tier._current_enemy_count, 7,
-		"7 enemies should remain")
+	assert_eq(test_tier._current_enemy_count, 9,
+		"9 enemies should remain")
 
 
 # ============================================================================
@@ -1100,7 +1100,7 @@ func test_castle_level_full_flow() -> void:
 	castle_level.initialize()
 
 	# Kill all enemies
-	for i in range(15):
+	for i in range(13):
 		castle_level.on_enemy_died()
 
 	assert_true(castle_level._level_cleared, "Level should be cleared")
@@ -1117,7 +1117,7 @@ func test_test_tier_full_flow() -> void:
 	test_tier.initialize()
 
 	# Kill all enemies
-	for i in range(10):
+	for i in range(12):
 		test_tier.on_enemy_died()
 
 	assert_true(test_tier._level_cleared, "Level should be cleared")
@@ -1138,19 +1138,19 @@ func test_test_tier_full_flow() -> void:
 func test_level_complete_with_accuracy_tracking() -> void:
 	test_tier.initialize()
 
-	# Simulate combat: 15 shots, 10 hits, 10 kills
+	# Simulate combat: 15 shots, 12 hits, 12 kills
 	for i in range(15):
 		test_tier.register_shot()
-	for i in range(10):
+	for i in range(12):
 		test_tier.register_hit()
 		test_tier.on_enemy_died()
 
 	assert_true(test_tier.is_level_complete(),
 		"Level should be complete")
-	assert_almost_eq(test_tier.get_accuracy(), 66.67, 0.1,
-		"Accuracy should be ~66.67%")
-	assert_eq(test_tier._kills, 10,
-		"Kill count should be 10")
+	assert_almost_eq(test_tier.get_accuracy(), 80.0, 0.1,
+		"Accuracy should be ~80.0%")
+	assert_eq(test_tier._kills, 12,
+		"Kill count should be 12")
 
 
 func test_all_levels_track_accuracy_consistently() -> void:
