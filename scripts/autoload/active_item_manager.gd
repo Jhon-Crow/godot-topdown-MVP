@@ -7,9 +7,10 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,        # No active item equipped
-	FLASHLIGHT,  # Tactical flashlight - illuminates in weapon direction
-	FORCE_FIELD  # Force field - reflects all projectiles for 8 seconds (1 charge per fight)
+	NONE,              # No active item equipped
+	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
+	FORCE_FIELD        # Force field - reflects all projectiles, 8 sec depletable charge
 }
 
 ## Currently selected active item type.
@@ -28,10 +29,15 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
 	},
+	ActiveItemType.TELEPORT_BRACERS: {
+		"name": "Teleport Bracers",
+		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
+		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+	},
 	ActiveItemType.FORCE_FIELD: {
 		"name": "Force Field",
 		"icon_path": "",
-		"description": "Press Space to activate a glowing force field that reflects all projectiles. 1 charge per fight, lasts 8 seconds."
+		"description": "Hold Space to activate a glowing force field that reflects all projectiles. 8 second charge, depletable. Shows progress bar."
 	}
 }
 
@@ -118,6 +124,11 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if teleport bracers are currently equipped.
+func has_teleport_bracers() -> bool:
+	return current_active_item == ActiveItemType.TELEPORT_BRACERS
 
 
 ## Check if a force field is currently equipped.
