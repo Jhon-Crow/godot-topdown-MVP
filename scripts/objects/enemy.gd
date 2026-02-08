@@ -29,8 +29,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), SNIPER (ASVK hitscan, Issue #581).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, SNIPER }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -102,6 +102,16 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var grenade_inaccuracy: float = 0.15  ## Throw inaccuracy (radians)
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
+
+## Sniper state (Issue #581/#665). Configured by _configure_weapon_type for weapon_type == SNIPER.
+var _is_sniper: bool = false
+var _sniper_hitscan_range: float = 5000.0
+var _sniper_hitscan_damage: float = 50.0
+var _sniper_max_wall_penetrations: int = 2
+var _sniper_laser: Line2D = null
+var _sniper_bolt_timer: float = 0.0
+var _sniper_bolt_ready: bool = true
+var _sniper_retreat_cooldown: float = 0.0  # Cooldown for COMBAT<->SEEKING_COVER thrashing
 
 signal hit  ## Enemy hit
 signal died  ## Enemy died
@@ -438,6 +448,7 @@ func _ready() -> void:
 	_init_death_animation()
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
+	if _is_sniper: _setup_sniper_laser()  # Sniper laser sight (Issue #581)
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -477,7 +488,11 @@ func _configure_weapon_type() -> void:
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
 	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
-	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
+	_is_sniper = c.get("is_sniper", false)
+	if _is_sniper:
+		_sniper_hitscan_range = c.get("hitscan_range", 5000.0); _sniper_hitscan_damage = c.get("hitscan_damage", 50.0); _sniper_max_wall_penetrations = c.get("max_wall_penetrations", 2)
+		rotation_speed = c.get("rotation_speed", 1.0); reload_time = 4.0; enable_flanking = false; enable_cover = true; behavior_mode = BehaviorMode.GUARD; total_magazines = 10  # Snipers carry more ammo
+	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else (" (hitscan)" if _is_sniper else "")])
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -823,6 +838,11 @@ func _physics_process(delta: float) -> void:
 	_shoot_timer += delta
 
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
+
+	if _is_sniper and not _sniper_bolt_ready:
+		_sniper_bolt_timer += delta
+		if _sniper_bolt_timer >= SniperComponent.BOLT_CYCLE_TIME: _sniper_bolt_ready = true
+	if _is_sniper and _sniper_retreat_cooldown > 0.0: _sniper_retreat_cooldown -= delta
 	# Update reload timer
 	_update_reload(delta)
 
@@ -882,6 +902,7 @@ func _physics_process(delta: float) -> void:
 		_grenadier_wait_timer -= delta
 		if _grenadier_wait_timer <= 0.0: _stop_waiting_for_grenadier()
 	_update_enemy_model_rotation()
+	if _is_sniper: _update_sniper_laser()  # Update sniper laser sight (Issue #581)
 	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting
 		velocity = Vector2.ZERO; _update_debug_label(); _update_walk_animation(delta)
 		_apply_machete_attack_animation(); move_and_slide(); _push_casings()
@@ -1148,6 +1169,7 @@ func _finish_reload() -> void:
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
 	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
+	if _is_sniper and not _sniper_bolt_ready: return false  # Bolt-action check
 	# Can't shoot if reloading
 	if _is_reloading:
 		return false
@@ -1182,12 +1204,12 @@ func _process_ai_state(delta: float) -> void:
 		_transition_to_evading_grenade()
 		return
 
-	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
-	# NOTE: Disabled during memory reset confusion period (Issue #318)
+	# HIGHEST PRIORITY: Player distracted - shoot immediately (Hard mode, Issue #318)
+	# Snipers skip snap-aim; they rotate slowly and fire through normal combat state
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if is_distraction_enabled and not is_confused and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if not _is_sniper and is_distraction_enabled and not is_confused and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1232,8 +1254,8 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "ammo_empty"
 			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
 
-	# Issue #318: Also block vulnerability attacks during confusion period
-	if player_is_vulnerable and not is_confused and _can_see_player and _player and player_close:
+	# Issue #318: Block vulnerability attacks during confusion; snipers skip snap-aim
+	if not _is_sniper and player_is_vulnerable and not is_confused and _can_see_player and _player and player_close:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1263,9 +1285,8 @@ func _process_ai_state(delta: float) -> void:
 			# Return early - we've taken the highest priority action
 			return
 
-	# SECOND PRIORITY: If player is vulnerable but NOT close, pursue them aggressively
-	# This makes enemies rush toward vulnerable players to exploit the weakness
-	if player_is_vulnerable and _can_see_player and _player and not player_close:
+	# SECOND PRIORITY: Pursue vulnerable player (snipers hold position, Issue #581)
+	if not _is_sniper and player_is_vulnerable and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		# Only log once per pursuit decision to avoid spam
 		var pursue_key := "last_pursue_vuln_frame"
@@ -1339,6 +1360,7 @@ func _process_idle_state(delta: float) -> void:
 
 ## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
+	if _is_sniper: _process_sniper_combat_state(delta); return
 	_combat_state_timer += delta
 	# Issue #579/#595: Machete melee combat with attack animation
 	if _is_melee_weapon and _machete and _player:
@@ -1582,45 +1604,32 @@ func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector
 ## Process SEEKING_COVER state - moving to cover position.
 func _process_seeking_cover_state(_delta: float) -> void:
 	if not _has_valid_cover:
-		# Try to find cover
 		_find_cover_position()
 		if not _has_valid_cover:
-			# No cover found, stay in combat
-			_transition_to_combat()
-			return
+			if _is_sniper:
+				_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
+			_transition_to_combat(); return
 
-	# Check if we're already hidden from the player (the main goal)
+	if _is_sniper and _has_valid_cover and _cover_position.distance_to(_initial_position) > 500.0:
+		_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
+
 	if not _is_visible_from_player():
-		_transition_to_in_cover()
-		_log_debug("Hidden from player, entering cover state")
-		return
-
-	# Move towards cover
+		_transition_to_in_cover(); _log_debug("Hidden from player, entering cover state"); return
 	var distance: float = global_position.distance_to(_cover_position)
-
 	if distance < 10.0:
-		# Reached the cover position, but still visible - try to find better cover
 		if _is_visible_from_player():
-			_has_valid_cover = false
-			_find_cover_position()
+			_has_valid_cover = false; _find_cover_position()
 			if not _has_valid_cover:
-				# No better cover found, stay in combat
-				_transition_to_combat()
-				return
-
-	# Use navigation-based pathfinding to move toward cover
+				if _is_sniper: _cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
+				_transition_to_combat(); return
 	_move_to_target_nav(_cover_position, combat_move_speed)
-
-	# Can still shoot while moving to cover (only after detection delay)
 	if _can_see_player and _player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-		_aim_at_player()
-		_shoot()
-		_shoot_timer = 0.0
+		_aim_at_player(); _shoot(); _shoot_timer = 0.0
 
 ## Process IN_COVER state. Under fire->suppressed, close->COMBAT, far+can hit->stay and shoot, far+can't hit->PURSUING.
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
-
+	if _is_sniper: _process_sniper_in_cover_state(delta); return
 	# If still under fire, stay suppressed
 	if _under_fire:
 		_transition_to_suppressed()
@@ -2600,6 +2609,10 @@ func _transition_to_suppressed() -> void:
 
 ## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
+	if _is_sniper:  # Snipers don't pursue (Issue #581)
+		if _has_valid_cover: _transition_to_seeking_cover()
+		else: _transition_to_combat()
+		return
 	_current_state = AIState.PURSUING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -3002,28 +3015,21 @@ func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Ve
 
 ## Check if the enemy should shoot at the target (bullet spawn, friendly fire, cover).
 func _should_shoot_at_target(target_position: Vector2) -> bool:
-	# Check if the immediate path to bullet spawn is clear
-	# This prevents shooting into walls the enemy is flush against
-	# Use weapon forward direction since that's where bullets actually spawn and travel
+	# Snipers shoot through walls (hitscan with wall penetration), skip obstacle checks
+	if _is_sniper:
+		return _is_firing_line_clear_of_friendlies(target_position)
+	# Check if bullet spawn is clear (not blocked by wall enemy is flush against)
 	var weapon_direction := _get_weapon_forward_direction()
-	if not _is_bullet_spawn_clear(weapon_direction):
-		return false
-
+	if not _is_bullet_spawn_clear(weapon_direction): return false
 	# Check if friendlies are in the way
-	if not _is_firing_line_clear_of_friendlies(target_position):
-		return false
-
+	if not _is_firing_line_clear_of_friendlies(target_position): return false
 	# Check if cover blocks the shot
-	if not _is_shot_clear_of_cover(target_position):
-		return false
-
+	if not _is_shot_clear_of_cover(target_position): return false
 	return true
 
 ## Check if the player is close (within CLOSE_COMBAT_DISTANCE).
 func _is_player_close() -> bool:
-	if _player == null:
-		return false
-	return global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE
+	return _player != null and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE
 
 ## Get target position: visible player > memory > last known > stay in place (Issue #297, #318).
 func _get_target_position() -> Vector2:
@@ -3036,16 +3042,8 @@ func _get_target_position() -> Vector2:
 	return global_position  # No valid target - stay in place
 
 ## Check if the enemy can hit the player from their current position.
-## Returns true if there's a clear line of fire to the player.
 func _can_hit_player_from_current_position() -> bool:
-	if _player == null:
-		return false
-
-	# Check if we can see the player
-	if not _can_see_player:
-		return false
-
-	# Check if the shot would be blocked by cover
+	if _player == null or not _can_see_player: return false
 	return _is_shot_clear_of_cover(_player.global_position)
 
 ## Count the number of enemies currently in combat-related states.
@@ -3311,13 +3309,9 @@ func _find_cover_position() -> void:
 
 			# Only consider hidden positions unless we have no choice
 			if is_hidden or not found_hidden_cover:
-				# Score based on:
-				# 1. Whether position is hidden (highest priority)
-				# 2. Distance from enemy (closer is better)
-				# 3. Position relative to player (behind cover from player's view)
-				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
-
-				var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
+				# Score: hidden (highest priority) + distance + blocking position
+				var hidden_score: float = 10.0 if is_hidden else 0.0
+				var distance_score: float = 1.0 - clampf(cover_pos.distance_to(_initial_position) / 500.0, 0.0, 1.0) if _is_sniper else 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
 
 				# Check if this position is on the far side of obstacle from player
 				var cover_direction := (cover_pos - player_pos).normalized()
@@ -3849,50 +3843,38 @@ func _aim_at_player() -> void:
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
-	if bullet_scene == null or _player == null:
-		return
-
-	# Check if we can shoot (have ammo and not reloading)
-	if not _can_shoot():
-		return
-
+	if _player == null: return
+	if not _is_sniper and bullet_scene == null: return
+	if not _can_shoot(): return
 	var target_position := _player.global_position
-
-	# Apply lead prediction if enabled
-	if enable_lead_prediction:
-		target_position = _calculate_lead_prediction()
-
-	# Check if the shot should be taken (friendly fire and cover checks)
-	if not _should_shoot_at_target(target_position):
-		return
-
-	# Calculate bullet spawn position at weapon muzzle first
-	# We need this to calculate the correct bullet direction
+	if _is_sniper and not _can_see_player and _memory and _memory.has_target():
+		target_position = _memory.suspected_position
+	if enable_lead_prediction: target_position = _calculate_lead_prediction()
+	if not _should_shoot_at_target(target_position): return
 	var weapon_forward := _get_weapon_forward_direction()
-	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
+	var aim_check_dir := Vector2.from_angle(rotation) if _is_sniper else weapon_forward
+	var bullet_spawn_pos := _get_bullet_spawn_position(aim_check_dir if _is_sniper else weapon_forward)
 	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
-	var aim_dot := weapon_forward.dot(to_target)
+	var aim_dot := aim_check_dir.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
 		return
-
-	var direction := weapon_forward  # Barrel direction for realistic behavior
-	# Fire projectiles and spawn casing
-	if _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	var direction := aim_check_dir if _is_sniper else weapon_forward
+	if _is_sniper:
+		var spread_deg := _calculate_sniper_spread(direction)
+		if spread_deg > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread_deg), deg_to_rad(spread_deg)))
+		_shoot_sniper_hitscan(direction, bullet_spawn_pos); _sniper_bolt_ready = false; _sniper_bolt_timer = 0.0
+	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)  # Issue #455: Add muzzle flash effect
 	_spawn_casing(direction, weapon_forward)
 	# Play sound
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
-		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
+		if _is_sniper and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()
+		elif _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
@@ -4996,3 +4978,18 @@ func _on_casing_pusher_body_exited(body: Node2D) -> void:
 	if body is RigidBody2D:
 		var idx := _overlapping_casings.find(body)
 		if idx >= 0: _overlapping_casings.remove_at(idx)
+
+## --- Sniper functions (Issue #581/#665) - delegates to SniperComponent ---
+func _setup_sniper_laser() -> void:
+	_sniper_laser = SniperComponent.create_laser(); add_child(_sniper_laser)
+func _update_sniper_laser() -> void:
+	SniperComponent.update_enemy_laser(self, _sniper_laser, _is_alive, _can_see_player, _hit_area, _sniper_hitscan_range)
+func _calculate_sniper_spread(_direction: Vector2) -> float:
+	if _player == null: return 15.0
+	return SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
+func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
+	SniperComponent.shoot_hitscan(self, direction, spawn_pos, _hit_area, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations, _player)
+func _process_sniper_combat_state(delta: float) -> void:
+	SniperComponent.process_combat_state(self, delta)
+func _process_sniper_in_cover_state(delta: float) -> void:
+	SniperComponent.process_in_cover_state(self, delta)

@@ -100,6 +100,32 @@ const WEAPON_CONFIGS := {
 		"dodge_speed": 400.0,
 		"dodge_distance": 120.0,
 		"sneak_speed_multiplier": 0.6
+	},
+	4: {  # SNIPER (ASVK) - hitscan with wall penetration (Issue #581/#665)
+		"shoot_cooldown": 3.0,
+		"bullet_speed": 10000.0,
+		"magazine_size": 5,
+		"bullet_spawn_offset": 45.0,
+		"weapon_loudness": 3000.0,
+		"sprite_path": "res://assets/sprites/weapons/asvk_topdown.png",
+		"bullet_scene_path": "",  # Sniper uses hitscan, not projectiles
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_127x108.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		"spread_threshold": 0,
+		"initial_spread": 0.0,
+		"spread_increment": 0.0,
+		"max_spread": 0.0,
+		"spread_reset_time": 0.0,
+		# Sniper-specific config
+		"is_sniper": true,
+		"hitscan_range": 5000.0,
+		"hitscan_damage": 50.0,
+		"max_wall_penetrations": 2,
+		"rotation_speed": 1.0  # Very slow rotation (matching player ASVK: ~25x slower)
 	}
 }
 
@@ -118,4 +144,5 @@ static func get_type_name(weapon_type: int) -> String:
 		1: return "SHOTGUN"
 		2: return "UZI"
 		3: return "MACHETE"
+		4: return "SNIPER"
 		_: return "UNKNOWN"

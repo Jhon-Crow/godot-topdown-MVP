@@ -2029,6 +2029,22 @@ public partial class Player : BaseCharacter
         TakeDamage(1);
     }
 
+    /// <summary>
+    /// Called when hit by a hitscan or projectile with full bullet information and explicit damage (Issue #665).
+    /// Used by enemy sniper hitscan to deal correct damage amount (50 instead of hardcoded 1).
+    /// </summary>
+    /// <param name="hitDirection">Direction the bullet was traveling.</param>
+    /// <param name="caliberData">Caliber resource for effect scaling (can be null).</param>
+    /// <param name="hasRicocheted">Whether the bullet ricocheted.</param>
+    /// <param name="hasPenetrated">Whether the bullet penetrated a wall.</param>
+    /// <param name="damage">Damage amount to apply.</param>
+    public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData, bool hasRicocheted, bool hasPenetrated, float damage = 1.0f)
+    {
+        _lastHitDirection = hitDirection;
+        _lastCaliberData = caliberData;
+        TakeDamage(damage);
+    }
+
     /// <inheritdoc/>
     public override void TakeDamage(float amount)
     {
