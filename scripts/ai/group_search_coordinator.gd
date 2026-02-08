@@ -63,6 +63,10 @@ var _enemy_sectors: Dictionary = {}
 ## Ordered list of enemy instance IDs for sector assignment.
 var _enemy_order: Array[int] = []
 
+## WeakRef map for safe enemy validity checking (avoids instance_from_id crashes).
+## Key: enemy instance ID, Value: WeakRef to enemy node.
+var _enemy_refs: Dictionary = {}
+
 ## Shared visited zones across all coordinated enemies.
 var _shared_visited_zones: Dictionary = {}
 
@@ -77,19 +81,22 @@ func _init(center_pos: Vector2 = Vector2.ZERO) -> void:
 ## Get or create a coordinator for a search center position.
 ## Groups nearby centers within GROUP_DISTANCE_THRESHOLD.
 static func get_or_create(search_center: Vector2) -> GroupSearchCoordinator:
-	# Issue #650: Clean up stale coordinators (enemies from previous scene loads)
+	# Issue #650: Clean up stale coordinators (enemies from previous scene loads).
+	# Uses WeakRef instead of instance_from_id() to avoid potential engine crashes.
 	var stale_keys: Array = []
 	for key in _active_coordinators.keys():
 		var coord: GroupSearchCoordinator = _active_coordinators[key]
 		if coord == null:
 			stale_keys.append(key)
 			continue
-		# Check if any registered enemies are still valid
+		# Check if any registered enemies are still valid via WeakRef
 		var has_valid_enemy := false
 		for enemy_id in coord._enemy_order:
-			if instance_from_id(enemy_id) != null:
-				has_valid_enemy = true
-				break
+			if coord._enemy_refs.has(enemy_id):
+				var ref: WeakRef = coord._enemy_refs[enemy_id]
+				if ref.get_ref() != null:
+					has_valid_enemy = true
+					break
 		if not has_valid_enemy and not coord._enemy_order.is_empty():
 			stale_keys.append(key)
 			continue
@@ -114,6 +121,7 @@ func register_enemy(enemy: Node) -> int:
 	var sector_index := _enemy_order.size()
 	_enemy_order.append(id)
 	_enemy_sectors[id] = sector_index
+	_enemy_refs[id] = weakref(enemy)  # Store WeakRef for safe validity checking
 	# Reassign all sectors when a new enemy joins
 	_reassign_sectors()
 	_log("Registered enemy %d, assigned sector %d/%d" % [id, sector_index, _enemy_order.size()])
@@ -129,6 +137,7 @@ func unregister_enemy(enemy: Node) -> void:
 		return
 	_enemy_sectors.erase(id)
 	_enemy_order.erase(id)
+	_enemy_refs.erase(id)
 	_reassign_sectors()
 	_log("Unregistered enemy %d, %d enemies remain" % [id, _enemy_order.size()])
 	# Clean up coordinator if no enemies remain

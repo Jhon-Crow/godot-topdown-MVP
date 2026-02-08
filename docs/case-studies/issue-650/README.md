@@ -150,3 +150,65 @@ calls duplicating the `_physics_process()` call.
 4. **Added `_exit_tree()`** to enemy.gd — calls `_unregister_from_group_search()` when
    enemy is removed from scene tree
 5. **Added null/validity checks** in `register_enemy()` and `unregister_enemy()`
+
+## Third Crash Report (Single Enemy SEARCHING Transition)
+
+### Symptoms
+After the second fix, the repo owner reported the game still crashes when search begins.
+A new crash log was provided (`crash-logs/game_log_20260208_191327.txt`).
+
+### Root Cause Analysis
+
+**Crash pattern:** Unlike the previous crashes (bulk 6-enemy transitions), this crash occurs
+with a **single enemy** (Enemy4) transitioning from PURSUING to SEARCHING via the global stuck
+detection mechanism. The log shows:
+1. Enemy4 stuck at (780.9, 901.8) for 4.0 seconds, triggering `GLOBAL STUCK` detection
+2. `_transition_to_searching()` completes successfully (log: "SEARCHING started, waypoints=5")
+3. One more physics frame processes (ROT_CHANGE logged for Enemy4)
+4. Enemy1 transitions COMBAT → PURSUING (normal state change)
+5. Log ends abruptly — native crash (segfault)
+
+**Key difference from previous crashes:** Only 1 enemy transitions to SEARCHING, so the bulk
+transition theory (double `move_and_slide`, nav map sync) does not apply here.
+
+**Identified root causes:**
+
+1. **`instance_from_id()` usage in `get_or_create()`** — Called during `_physics_process` to
+   validate enemy references in the static coordinator dictionary. Godot 4.3 has known issues
+   with `instance_from_id()` (see [godotengine/godot#108246](https://github.com/godotengine/godot/issues/108246),
+   [godotengine/godot#32383](https://github.com/godotengine/godot/issues/32383)):
+   - Instance IDs can be reused after an object is freed, causing `instance_from_id()` to
+     return an unrelated object
+   - In release builds, accessing freed object memory can cause segfaults without GDScript
+     error messages
+
+2. **Static Dictionary access during `_physics_process`** — `GroupSearchCoordinator.get_or_create()`
+   iterates `_active_coordinators` (a static Dictionary) and calls methods on RefCounted objects
+   during `_physics_process`. If a coordinator's internal state is inconsistent (e.g., from a
+   previous frame's partial cleanup), this could cause engine-level corruption.
+
+3. **Synchronous coordinator registration during physics frame** — The coordinator setup
+   (`get_or_create`, `register_enemy`, `_generate_search_waypoints`) was all done inline
+   in `_transition_to_searching()` which runs inside `_physics_process`. This heavy operation
+   during physics processing could interact poorly with the engine's internal state.
+
+### Fix Applied (Third Pass)
+
+1. **Deferred coordinator registration** — `_transition_to_searching()` now only sets up basic
+   state and generates waypoints using the original solo spiral pattern. Coordinator registration
+   is deferred to the next idle frame via `call_deferred("_deferred_coordinator_setup")`. This
+   completely isolates coordinator code from `_physics_process` execution.
+
+2. **Replaced `instance_from_id()` with WeakRef pattern** — `get_or_create()` now uses
+   `WeakRef.get_ref()` to check enemy validity instead of `instance_from_id()`. WeakRef is
+   the recommended Godot pattern for safely tracking object lifecycle without the risks of
+   instance ID reuse or freed object access.
+
+3. **Safety guards in deferred setup** — `_deferred_coordinator_setup()` checks:
+   - `is_instance_valid(self)` — enemy hasn't been freed
+   - `_is_alive` — enemy hasn't died
+   - `_current_state == AIState.SEARCHING` — enemy hasn't already left SEARCHING
+
+4. **Coordinator only regenerates waypoints when needed** — If the coordinator determines
+   that coordination is active (≥2 enemies), it regenerates waypoints with sector constraints.
+   Otherwise, the original solo waypoints are used as-is.
