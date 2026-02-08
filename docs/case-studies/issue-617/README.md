@@ -71,6 +71,54 @@ Added `ak_gl` weapon registration to all 7 missing integration points:
 
 Also merged main branch to resolve the `enemy.gd` line count CI failure (5006 → 4982 lines).
 
+## Round 2: User Feedback (2026-02-08)
+
+After the weapon registration fix was applied and CI passed, the user (Jhon-Crow) tested again and reported three issues:
+
+### Feedback 1: Wrong weapon model and icon
+> "модель автомата и значок должны быть такие"
+
+The initial implementation used placeholder sprites (72x20px pixel art for topdown, no icon). The user provided reference photos of the actual AK with GP-25:
+- Topdown view: 1530x1260px photo of AK-103 with GP-25
+- Icon: 1000x1000px side profile photo
+
+**Fix**: Replaced `ak_gl_topdown.png` with the provided photo, added `ak_gl_icon.png`, updated AKGL.tscn with scale factor (0.052) to match in-game weapon sizes, and updated `armory_menu.gd` to reference the icon file.
+
+### Feedback 2: VOG grenade too slow
+> "ВОГ (граната) должна лететь в 2 раза быстрее"
+
+The initial launch speed was calculated as `sqrt(2 * d * friction)` ≈ 980 px/s to travel 1.5 viewports. User wanted 2x faster flight.
+
+**Fix**: Multiplied `launchSpeed` by 2.0 in `AKGL.cs:FireGrenadeLauncher()`. New speed ≈ 1960 px/s.
+
+### Feedback 3: Ammo counter not working
+> "счётчик патронов не работает"
+
+**Root cause**: The AKGL weapon was registered in the selection pipeline but **missing from the weapon detection chains** that connect weapon signals to the HUD ammo display. Each level script has a chain of `get_node_or_null()` calls to find the player's weapon and connect its `AmmoChanged` signal to the ammo label. AKGL was absent from all of these chains.
+
+**Affected locations (9 total across 5 files)**:
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `LevelInitFallback.cs` | `ConnectWeaponSignals()` | C# fallback weapon detection |
+| `beach_level.gd` | Ammo counter init | Primary weapon signal connection |
+| `beach_level.gd` | Magazine label | Magazine display detection |
+| `beach_level.gd` | `weapon_names` + `_setup_selected_weapon()` | Weapon equip pipeline |
+| `building_level.gd` | Ammo counter init | Primary weapon signal connection |
+| `building_level.gd` | Magazine label | Magazine display detection |
+| `castle_level.gd` | Ammo counter init | Primary weapon signal connection |
+| `castle_level.gd` | Magazine label | Magazine display detection |
+| `test_tier.gd` | Ammo counter init | Primary weapon signal connection |
+| `test_tier.gd` | Magazine label | Magazine display detection |
+
+**Fix**: Added `AKGL` to all weapon detection chains (between `AssaultRifle` and `MakarovPM`).
+
+### Key insight: Two-layer integration gap
+
+The initial fix (Round 1) addressed **weapon selection pipeline** registration (GameManager, ArmoryMenu, level `_setup_selected_weapon()`). Round 2 revealed a second layer: **HUD signal connection pipeline**. The weapon could be selected and equipped, but the ammo display never connected because the HUD code didn't know to look for `AKGL` nodes.
+
+This is a pattern of **n-layer registration**: adding a new weapon requires changes in both the selection layer AND the display layer.
+
 ## Lessons Learned
 
 1. **Multi-layer registration patterns need checklists**: When a codebase requires changes in 6+ files for a single feature, the implementation should include a verification checklist to avoid partial registration.
@@ -80,3 +128,7 @@ Also merged main branch to resolve the `enemy.gd` line count CI failure (5006 �
 3. **No-error-is-not-no-bug**: The game ran perfectly with no crashes or errors. The weapon simply wasn't available. This type of silent omission is harder to detect than a crash.
 
 4. **Placeholder entries should be documented**: The `ak47: "Coming soon"` placeholder in the armory menu was close to but different from the actual `ak_gl` weapon ID, creating ambiguity about whether the weapon was already partially registered.
+
+5. **Registration has multiple layers**: Even after fixing weapon selection, the HUD signal connection layer was still broken. Each weapon needs to be added to both the selection pipeline AND the display pipeline — these are separate code paths with independent weapon lists.
+
+6. **Search for ALL weapon detection patterns**: When adding a weapon, grep for all `get_node_or_null` calls that reference other weapons to find every place the new weapon needs to be added.
