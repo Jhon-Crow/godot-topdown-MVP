@@ -417,6 +417,54 @@ class InterceptPredictedPositionAction extends GOAPAction:
 		return 2.0  # Low confidence — less worthwhile
 
 
+## Action to investigate when enemy detects the player's flashlight beam (Issue #574).
+## When an enemy sees the flashlight shining, they immediately know the approximate
+## direction the light is coming from and can estimate the player's position.
+## This action has high priority (low cost) because the flashlight is a strong
+## directional indicator of the player's location.
+class InvestigateFlashlightAction extends GOAPAction:
+	func _init() -> void:
+		super._init("investigate_flashlight", 1.3)
+		preconditions = {
+			"flashlight_detected": true,
+			"player_visible": false
+		}
+		effects = {
+			"is_pursuing": true,
+			"player_visible": true  # Goal: reach flashlight source and find player
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Flashlight gives a very clear directional indicator — high priority
+		if world_state.get("flashlight_detected", false):
+			return 0.9  # Lower cost than most investigation actions
+		return 100.0  # Should never happen if preconditions are correct
+
+
+## Action to avoid a passage illuminated by the player's flashlight (Issue #574).
+## When the enemy's next navigation waypoint is lit by the flashlight beam,
+## and an alternative route exists, the enemy will reroute to avoid the lit passage.
+## This makes enemies tactically avoid walking into the player's line of sight
+## when they can approach from a different direction.
+class AvoidFlashlightPassageAction extends GOAPAction:
+	func _init() -> void:
+		super._init("avoid_flashlight_passage", 2.0)
+		preconditions = {
+			"passage_lit_by_flashlight": true,
+			"player_visible": false
+		}
+		effects = {
+			"passage_lit_by_flashlight": false,  # Rerouted around lit passage
+			"is_pursuing": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Moderate cost — avoiding lit passages is smart but not always necessary
+		if world_state.get("passage_lit_by_flashlight", false):
+			return 1.5  # Prefer avoidance over direct approach through lit area
+		return 100.0  # Should never happen if preconditions are correct
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -444,4 +492,7 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(InvestigateAllyDeathAction.new())
 	# Player prediction action (Issue #298)
 	actions.append(InterceptPredictedPositionAction.new())
+	# Flashlight detection actions (Issue #574)
+	actions.append(InvestigateFlashlightAction.new())
+	actions.append(AvoidFlashlightPassageAction.new())
 	return actions

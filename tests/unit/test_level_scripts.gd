@@ -241,6 +241,13 @@ class MockBuildingLevel extends MockLevelBase:
 	## Default enemy count for building level.
 	var default_enemy_count: int = 10
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
 
@@ -291,6 +298,13 @@ class MockCastleLevel extends MockLevelBase:
 	## Castle-specific weapon ammo multiplier (2x for all weapons).
 	var ammo_multiplier: int = 2
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Level ordering.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/TechnicalLevel.tscn",
@@ -332,6 +346,13 @@ class MockTestTier extends MockLevelBase:
 	## Map dimensions (4000x2960 playable area).
 	var map_width: int = 4000
 	var map_height: int = 2960
+
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
 
 	## Default enemy count for test tier (10 enemies).
 	var default_enemy_count: int = 10
@@ -378,6 +399,13 @@ class MockBeachLevel extends MockLevelBase:
 
 	## Default enemy count for beach level (8 enemies).
 	var default_enemy_count: int = 8
+
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
 
 	## Whether the score screen is currently shown.
 	var _score_shown: bool = false
@@ -830,6 +858,70 @@ func test_castle_double_magazines_from_1() -> void:
 
 	assert_eq(result, 2,
 		"1 starting magazine * 2 = 2 magazines for castle")
+
+
+# ============================================================================
+# Makarov PM 2.5x Ammo Multiplier Tests (Issue #636)
+# ============================================================================
+
+
+func test_pm_ammo_multiplier_building() -> void:
+	assert_almost_eq(building_level.pm_ammo_multiplier, 2.5, 0.01,
+		"Building level PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_castle() -> void:
+	assert_almost_eq(castle_level.pm_ammo_multiplier, 2.5, 0.01,
+		"Castle level PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_test_tier() -> void:
+	assert_almost_eq(test_tier.pm_ammo_multiplier, 2.5, 0.01,
+		"TestTier PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_beach() -> void:
+	assert_almost_eq(beach_level.pm_ammo_multiplier, 2.5, 0.01,
+		"BeachLevel PM ammo multiplier should be 2.5x")
+
+
+func test_pm_magazines_from_4() -> void:
+	var result := building_level.get_pm_magazine_count(4)
+
+	assert_eq(result, 10,
+		"4 starting magazines * 2.5 = 10 magazines for MakarovPM")
+
+
+func test_pm_magazines_from_2() -> void:
+	var result := building_level.get_pm_magazine_count(2)
+
+	assert_eq(result, 5,
+		"2 starting magazines * 2.5 = 5 magazines for MakarovPM")
+
+
+func test_pm_magazines_from_1() -> void:
+	var result := building_level.get_pm_magazine_count(1)
+
+	assert_true(result == 2 or result == 3,
+		"1 starting magazine * 2.5 = 2 or 3 (rounded) magazines for MakarovPM")
+
+
+func test_pm_multiplier_consistent_across_levels() -> void:
+	var pm_count_4: int = building_level.get_pm_magazine_count(4)
+	assert_eq(pm_count_4, castle_level.get_pm_magazine_count(4),
+		"Building and Castle PM magazine count should match for 4 starting mags")
+	assert_eq(pm_count_4, test_tier.get_pm_magazine_count(4),
+		"Building and TestTier PM magazine count should match for 4 starting mags")
+	assert_eq(pm_count_4, beach_level.get_pm_magazine_count(4),
+		"Building and Beach PM magazine count should match for 4 starting mags")
+
+
+func test_pm_multiplier_greater_than_castle_base() -> void:
+	var pm_mags: int = castle_level.get_pm_magazine_count(4)
+	var castle_mags: int = castle_level.get_castle_magazine_count(4)
+
+	assert_gt(pm_mags, castle_mags,
+		"PM 2.5x magazines (%d) should be more than Castle 2x (%d)" % [pm_mags, castle_mags])
 
 
 # ============================================================================
@@ -1494,3 +1586,207 @@ func test_beach_level_combo_colors_match_other_levels() -> void:
 	for combo in [1, 3, 5, 7, 10]:
 		assert_eq(beach_level.get_combo_color(combo), building_level.get_combo_color(combo),
 			"Beach and Building combo color should match at combo %d" % combo)
+
+
+# ============================================================================
+# BeachLevel Full Flow Tests (Issue #596 - Ammo Counter Fix)
+# ============================================================================
+
+
+func test_beach_level_full_flow() -> void:
+	beach_level.initialize()
+
+	# Kill all enemies
+	for i in range(8):
+		beach_level.on_enemy_died()
+
+	assert_true(beach_level._level_cleared, "Level should be cleared")
+	assert_true(beach_level.exit_zone_activated, "Exit zone should be activated")
+
+	# Player reaches exit
+	beach_level.on_player_reached_exit()
+
+	assert_true(beach_level._level_completed, "Level should be completed")
+	assert_true(beach_level.score_screen_shown, "Score screen should be shown")
+
+
+func test_beach_level_exit_without_clearing_does_nothing() -> void:
+	beach_level.initialize()
+
+	# Kill only some enemies
+	for i in range(4):
+		beach_level.on_enemy_died()
+
+	# Player reaches exit (but level not cleared)
+	beach_level.on_player_reached_exit()
+
+	assert_false(beach_level._level_completed,
+		"Level should NOT be completed when enemies remain")
+	assert_false(beach_level.score_screen_shown,
+		"Score screen should NOT be shown")
+
+
+func test_beach_level_prevents_duplicate_completion() -> void:
+	beach_level.initialize()
+
+	for i in range(8):
+		beach_level.on_enemy_died()
+
+	beach_level.on_player_reached_exit()
+	var first_completed := beach_level._level_completed
+
+	# Second call should be a no-op
+	beach_level.score_screen_shown = false
+	beach_level.on_player_reached_exit()
+
+	assert_true(first_completed,
+		"First completion should succeed")
+	assert_false(beach_level.score_screen_shown,
+		"Second completion call should not re-show score screen")
+
+
+# ============================================================================
+# BeachLevel Ammo / Game Over Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_game_over_no_ammo_with_enemies() -> void:
+	beach_level.initialize()
+
+	assert_true(beach_level.should_show_game_over(0, 0),
+		"Beach level should show game over with no ammo and enemies remaining")
+
+
+func test_beach_level_game_over_not_with_current_ammo() -> void:
+	beach_level.initialize()
+
+	assert_false(beach_level.should_show_game_over(8, 0),
+		"Beach level should NOT show game over with current ammo")
+
+
+func test_beach_level_game_over_not_with_reserve_ammo() -> void:
+	beach_level.initialize()
+
+	assert_false(beach_level.should_show_game_over(0, 16),
+		"Beach level should NOT show game over with reserve ammo")
+
+
+func test_beach_level_game_over_not_when_cleared() -> void:
+	beach_level.initialize()
+	for i in range(8):
+		beach_level.on_enemy_died()
+
+	assert_false(beach_level.should_show_game_over(0, 0),
+		"Beach level should NOT show game over when all enemies are dead")
+
+
+func test_beach_level_game_over_not_shown_twice() -> void:
+	beach_level.initialize()
+
+	beach_level.show_game_over_message()
+	assert_true(beach_level._game_over_shown,
+		"Game over should be shown")
+
+	assert_false(beach_level.should_show_game_over(0, 0),
+		"Beach level should NOT show game over again")
+
+
+func test_beach_level_death_message_not_shown_after_game_over() -> void:
+	beach_level.initialize()
+
+	beach_level.show_game_over_message()
+	beach_level.show_death_message()
+
+	assert_true(beach_level.game_over_message_shown,
+		"Game over message should be shown")
+	assert_false(beach_level.death_message_shown,
+		"Death message should NOT be shown after game over already shown")
+
+
+# ============================================================================
+# BeachLevel Accuracy Tracking Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_accuracy_zero_shots() -> void:
+	assert_eq(beach_level.get_accuracy(), 0.0,
+		"Beach level accuracy with no shots should be 0.0%")
+
+
+func test_beach_level_accuracy_all_hits() -> void:
+	beach_level.register_shot()
+	beach_level.register_shot()
+	beach_level.register_hit()
+	beach_level.register_hit()
+
+	assert_almost_eq(beach_level.get_accuracy(), 100.0, 0.01,
+		"Beach level accuracy should be 100% when all shots hit")
+
+
+func test_beach_level_accuracy_consistent_with_other_levels() -> void:
+	building_level.initialize()
+	beach_level.initialize()
+
+	for level in [building_level, beach_level]:
+		level.register_shot()
+		level.register_shot()
+		level.register_hit()
+
+	assert_almost_eq(building_level.get_accuracy(), beach_level.get_accuracy(), 0.01,
+		"Beach and Building accuracy should be consistent for same inputs")
+
+
+# ============================================================================
+# BeachLevel Rank Color Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_rank_colors_match_other_levels() -> void:
+	for rank in ["S", "A+", "A", "B", "C", "D", "F"]:
+		var beach_color := beach_level.get_rank_color(rank)
+		var building_color := building_level.get_rank_color(rank)
+
+		assert_eq(beach_color, building_color,
+			"Beach and Building rank color should match for rank %s" % rank)
+
+
+# ============================================================================
+# BeachLevel Next Level Path Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_is_last_in_ordering() -> void:
+	var next := beach_level.get_next_level_path("res://scenes/levels/BeachLevel.tscn")
+
+	assert_eq(next, "",
+		"BeachLevel should be the last level (no next)")
+
+
+func test_beach_level_after_castle() -> void:
+	var next := beach_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
+
+	assert_eq(next, "res://scenes/levels/BeachLevel.tscn",
+		"Next level after CastleLevel should be BeachLevel")
+
+
+# ============================================================================
+# BeachLevel Level Complete with Accuracy (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_complete_with_accuracy_tracking() -> void:
+	beach_level.initialize()
+
+	# Simulate combat: 12 shots, 8 hits, 8 kills
+	for i in range(12):
+		beach_level.register_shot()
+	for i in range(8):
+		beach_level.register_hit()
+		beach_level.on_enemy_died()
+
+	assert_true(beach_level.is_level_complete(),
+		"Beach level should be complete")
+	assert_almost_eq(beach_level.get_accuracy(), 66.67, 0.1,
+		"Beach level accuracy should be ~66.67%")
+	assert_eq(beach_level._kills, 8,
+		"Beach level kill count should be 8")

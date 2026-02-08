@@ -118,6 +118,14 @@ public partial class Player : BaseCharacter
     private bool _isReloadingSequence = false;
 
     /// <summary>
+    /// Whether a semi-automatic shoot input has been buffered.
+    /// When the player clicks while the fire timer is still active,
+    /// the click is buffered and consumed as soon as the weapon can fire.
+    /// This prevents lost inputs when clicking faster than the fire rate allows.
+    /// </summary>
+    private bool _semiAutoShootBuffered = false;
+
+    /// <summary>
     /// Tracks ammo count when reload sequence started (at step 1 after R pressed).
     /// Used to determine if there was a bullet in the chamber.
     /// </summary>
@@ -595,6 +603,27 @@ public partial class Player : BaseCharacter
     /// Reference to the flashlight effect node (child of PlayerModel).
     /// </summary>
     private Node2D? _flashlightNode = null;
+
+    /// <summary>
+    /// Whether the GDScript methods (turn_on/turn_off) are available on the flashlight node.
+    /// If false, C# directly controls the PointLight2D as a fallback.
+    /// </summary>
+    private bool _flashlightHasScript = false;
+
+    /// <summary>
+    /// Direct reference to the PointLight2D child (used as fallback when GDScript not loaded).
+    /// </summary>
+    private PointLight2D? _flashlightPointLight = null;
+
+    /// <summary>
+    /// Whether the flashlight is currently on (tracked in C# for fallback mode).
+    /// </summary>
+    private bool _flashlightIsOn = false;
+
+    /// <summary>
+    /// Light energy when the flashlight is on (matches flashlight_effect.gd LIGHT_ENERGY).
+    /// </summary>
+    private const float FlashlightEnergy = 8.0f;
 
     #endregion
 
@@ -1122,12 +1151,36 @@ public partial class Player : BaseCharacter
             isAutomatic = assaultRifle.CurrentFireMode == FireMode.Automatic;
         }
 
+        // For semi-automatic weapons, buffer click inputs so fast clicking works.
+        // When the player clicks while the fire timer is still active, the click
+        // is buffered and consumed as soon as the weapon can fire again.
+        // This prevents lost inputs when clicking faster than the fire rate allows.
+        if (!isAutomatic && Input.IsActionJustPressed("shoot"))
+        {
+            _semiAutoShootBuffered = true;
+        }
+
         // Determine if shooting input is active
-        bool shootInputActive = isAutomatic ? Input.IsActionPressed("shoot") : Input.IsActionJustPressed("shoot");
+        bool shootInputActive;
+        if (isAutomatic)
+        {
+            shootInputActive = Input.IsActionPressed("shoot");
+        }
+        else
+        {
+            // For semi-auto: fire if we have a buffered click and weapon can fire
+            shootInputActive = _semiAutoShootBuffered && CurrentWeapon.CanFire;
+        }
 
         if (!shootInputActive)
         {
             return;
+        }
+
+        // Consume the buffered input for semi-auto weapons
+        if (!isAutomatic)
+        {
+            _semiAutoShootBuffered = false;
         }
 
         // Check if weapon is empty before trying to shoot (not in reload sequence)
@@ -1248,6 +1301,10 @@ public partial class Player : BaseCharacter
         {
             aimDirection = sniperRifle.AimDirection;
         }
+        else if (CurrentWeapon is Revolver revolver)
+        {
+            aimDirection = revolver.AimDirection;
+        }
         else
         {
             // Fallback: calculate direction to mouse cursor
@@ -1301,6 +1358,7 @@ public partial class Player : BaseCharacter
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
         var makarovPM = GetNodeOrNull<BaseWeapon>("MakarovPM");
+        var revolver = GetNodeOrNull<BaseWeapon>("Revolver");
 
         if (sniperRifle != null)
         {
@@ -1316,6 +1374,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Shotgun;
             LogToFile("[Player] Detected weapon: Shotgun (Shotgun pose)");
+        }
+        else if (revolver != null)
+        {
+            detectedType = WeaponType.Pistol;
+            LogToFile("[Player] Detected weapon: RSh-12 Revolver (Pistol pose)");
         }
         else if (silencedPistol != null)
         {
@@ -1563,7 +1626,7 @@ public partial class Player : BaseCharacter
         }
 
         // Check if this is a pistol-type weapon that uses R->R reload (2-step) instead of R->F->R (3-step)
-        bool isPistolReload = CurrentWeapon is MakarovPM;
+        bool isPistolReload = CurrentWeapon is MakarovPM || CurrentWeapon is Revolver;
 
         // Handle R key (first and third step, or both steps for pistol)
         if (Input.IsActionJustPressed("reload"))
@@ -2075,6 +2138,10 @@ public partial class Player : BaseCharacter
                 scenePath = "res://scenes/weapons/csharp/SniperRifle.tscn";
                 weaponNodeName = "SniperRifle";
                 break;
+            case "revolver":
+                scenePath = "res://scenes/weapons/csharp/Revolver.tscn";
+                weaponNodeName = "Revolver";
+                break;
             case "makarov_pm":
                 scenePath = "res://scenes/weapons/csharp/MakarovPM.tscn";
                 weaponNodeName = "MakarovPM";
@@ -2569,13 +2636,13 @@ public partial class Player : BaseCharacter
 
         // Calculate throw speed needed to reach target (using physics)
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        // FIX for issue #428: Apply 16% compensation factor to account for:
-        // 1. Discrete time integration error from Godot's 60 FPS Euler integration (~0.8%)
-        // 2. Additional physics damping effects in Godot's RigidBody2D (~12.5%)
-        // Empirically tested: grenades travel ~86% of calculated distance without compensation.
-        // Factor of 1.16 (≈ 1/0.86) brings actual landing position to match target cursor position.
-        const float physicsCompensationFactor = 1.16f;
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * physicsCompensationFactor);
+        // FIX for issue #615: Removed the 1.16x compensation factor.
+        // Root causes: (1) GDScript + C# were BOTH applying friction (double friction), and
+        // (2) Godot's default linear_damp=0.1 in COMBINE mode added hidden damping.
+        // Fix: GDScript friction removed entirely (C# GrenadeTimer is sole friction source),
+        // and linear_damp_mode set to REPLACE so linear_damp=0 means zero damping.
+        // v = sqrt(2*F*d) now works correctly without any compensation factor.
+        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
 
         // Clamp to grenade's max throw speed
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
@@ -3636,6 +3703,24 @@ public partial class Player : BaseCharacter
             _flashlightNode.Position = new Vector2(BulletSpawnOffset, 0);
             _flashlightEquipped = true;
             LogToFile($"[Player.Flashlight] Flashlight equipped and attached to PlayerModel at offset ({(int)BulletSpawnOffset}, 0)");
+
+            // Check if GDScript methods are available
+            _flashlightHasScript = _flashlightNode.HasMethod("turn_on");
+            LogToFile($"[Player.Flashlight] GDScript methods available: {_flashlightHasScript}");
+
+            // Get direct reference to PointLight2D for fallback control
+            _flashlightPointLight = _flashlightNode.GetNodeOrNull<PointLight2D>("PointLight2D");
+            if (_flashlightPointLight != null)
+            {
+                // Start with light off
+                _flashlightPointLight.Visible = false;
+                _flashlightPointLight.Energy = 0.0f;
+                LogToFile($"[Player.Flashlight] PointLight2D found, shadow={_flashlightPointLight.ShadowEnabled}");
+            }
+            else
+            {
+                LogToFile("[Player.Flashlight] WARNING: PointLight2D child not found in flashlight scene");
+            }
         }
         else
         {
@@ -3647,6 +3732,7 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Handle flashlight input: hold Space to turn on, release to turn off.
+    /// Uses GDScript methods when available, falls back to direct PointLight2D control.
     /// </summary>
     private void HandleFlashlightInput()
     {
@@ -3662,18 +3748,85 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
-            if (_flashlightNode.HasMethod("turn_on"))
+            if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_on");
+            }
+            else if (!_flashlightIsOn)
+            {
+                // C# fallback: directly control PointLight2D
+                _flashlightIsOn = true;
+                if (_flashlightPointLight != null)
+                {
+                    _flashlightPointLight.Visible = true;
+                    _flashlightPointLight.Energy = FlashlightEnergy;
+                }
             }
         }
         else
         {
-            if (_flashlightNode.HasMethod("turn_off"))
+            if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_off");
             }
+            else if (_flashlightIsOn)
+            {
+                // C# fallback: directly control PointLight2D
+                _flashlightIsOn = false;
+                if (_flashlightPointLight != null)
+                {
+                    _flashlightPointLight.Visible = false;
+                    _flashlightPointLight.Energy = 0.0f;
+                }
+            }
         }
+    }
+
+    /// <summary>
+    /// Check if the player's flashlight is currently on (Issue #574).
+    /// Used by enemy AI to detect the flashlight beam and estimate player position.
+    /// Method name follows GDScript naming convention for cross-language compatibility
+    /// with the flashlight detection system that uses has_method("is_flashlight_on") checks.
+    /// </summary>
+    public bool is_flashlight_on()
+    {
+        if (!_flashlightEquipped || _flashlightNode == null)
+            return false;
+        if (!IsInstanceValid(_flashlightNode))
+            return false;
+        if (_flashlightHasScript && _flashlightNode.HasMethod("is_on"))
+            return (bool)_flashlightNode.Call("is_on");
+        return _flashlightIsOn;
+    }
+
+    /// <summary>
+    /// Get the flashlight beam direction as a normalized Vector2 (Issue #574).
+    /// The beam direction matches the player model's facing direction.
+    /// Returns Vector2.Zero if flashlight is off or not equipped.
+    /// Method name follows GDScript naming convention for cross-language compatibility.
+    /// </summary>
+    public Vector2 get_flashlight_direction()
+    {
+        if (!is_flashlight_on())
+            return Vector2.Zero;
+        if (_playerModel == null)
+            return Vector2.Zero;
+        return Vector2.Right.Rotated(_playerModel.GlobalRotation);
+    }
+
+    /// <summary>
+    /// Get the flashlight beam origin position in global coordinates (Issue #574).
+    /// This is the weapon barrel position where the flashlight is attached.
+    /// Returns GlobalPosition if flashlight is off or not equipped.
+    /// Method name follows GDScript naming convention for cross-language compatibility.
+    /// </summary>
+    public Vector2 get_flashlight_origin()
+    {
+        if (!is_flashlight_on() || _flashlightNode == null)
+            return GlobalPosition;
+        if (!IsInstanceValid(_flashlightNode))
+            return GlobalPosition;
+        return _flashlightNode.GlobalPosition;
     }
 
     #endregion
@@ -3880,6 +4033,9 @@ public partial class Player : BaseCharacter
             if (throwDistance < 10.0f) throwDistance = 10.0f;
 
             // Calculate throw speed needed to reach target
+            // FIX for issue #615: No compensation factor needed. Root causes were double friction
+            // (GDScript + C# both applying) and Godot default linear_damp=0.1. GDScript friction
+            // was removed entirely; C# GrenadeTimer is sole friction source. v = sqrt(2*F*d) works.
             float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
@@ -3926,6 +4082,8 @@ public partial class Player : BaseCharacter
                 throwSpeed = MinThrowSpeed * 0.5f;
             }
 
+            // FIX for issue #615: No compensation factor needed. Double friction was the root
+            // cause. With single C# friction, the formula works correctly.
             landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
         }
 

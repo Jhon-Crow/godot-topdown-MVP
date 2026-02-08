@@ -51,6 +51,12 @@ const FIREARMS: Dictionary = {
 		"unlocked": true,
 		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom)."
 	},
+	"revolver": {
+		"name": "RSh-12",
+		"icon_path": "res://assets/sprites/weapons/revolver_icon.png",
+		"unlocked": true,
+		"description": "RSh-12 heavy revolver - 12.7x55mm STs-130, 20 damage, penetrates walls (200px), weak ricochet, strong recoil. 5-round cylinder. Comfortable aiming like silenced pistol."
+	},
 	"ak47": {
 		"name": "???",
 		"icon_path": "",
@@ -72,7 +78,8 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 	"shotgun": "res://resources/weapons/ShotgunData.tres",
 	"mini_uzi": "res://resources/weapons/MiniUziData.tres",
 	"silenced_pistol": "res://resources/weapons/SilencedPistolData.tres",
-	"sniper": "res://resources/weapons/SniperRifleData.tres"
+	"sniper": "res://resources/weapons/SniperRifleData.tres",
+	"revolver": "res://resources/weapons/RevolverData.tres"
 }
 
 ## Maximum number of visible weapon rows before accordion hides the rest.

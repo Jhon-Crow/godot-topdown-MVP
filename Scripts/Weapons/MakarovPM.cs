@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -13,7 +14,7 @@ namespace GodotTopDownTemplate.Weapons;
 /// - Does not penetrate walls
 /// - Standard loudness (not silenced)
 /// - Moderate recoil with extended recovery
-/// - No laser sight or special effects
+/// - Blue laser sight in Power Fantasy mode
 /// Reference: https://ru.wikipedia.org/wiki/Pistolet_Makarova
 /// </summary>
 public partial class MakarovPM : BaseWeapon
@@ -22,6 +23,21 @@ public partial class MakarovPM : BaseWeapon
     /// Reference to the Sprite2D node for the weapon visual.
     /// </summary>
     private Sprite2D? _weaponSprite;
+
+    /// <summary>
+    /// Reference to the Line2D node for the laser sight (Power Fantasy mode only).
+    /// </summary>
+    private Line2D? _laserSight;
+
+    /// <summary>
+    /// Whether the laser sight is enabled (true only in Power Fantasy mode).
+    /// </summary>
+    private bool _laserSightEnabled = false;
+
+    /// <summary>
+    /// Color of the laser sight (blue in Power Fantasy mode).
+    /// </summary>
+    private Color _laserSightColor = new Color(0.0f, 0.5f, 1.0f, 0.6f);
 
     /// <summary>
     /// Current aim direction based on mouse position.
@@ -87,6 +103,21 @@ public partial class MakarovPM : BaseWeapon
         {
             GD.Print("[MakarovPM] No MakarovSprite node (visual model not yet added)");
         }
+
+        // Check for Power Fantasy mode - enable blue laser sight
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
+            if (shouldForceBlueLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
+                _laserSightColor = blueColorVariant.AsColor();
+                CreateLaserSight();
+                GD.Print($"[MakarovPM] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
     }
 
     public override void _Process(double delta)
@@ -105,6 +136,12 @@ public partial class MakarovPM : BaseWeapon
 
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
+
+        // Update laser sight (Power Fantasy mode)
+        if (_laserSightEnabled && _laserSight != null)
+        {
+            UpdateLaserSight();
+        }
     }
 
     /// <summary>
@@ -352,7 +389,170 @@ public partial class MakarovPM : BaseWeapon
     }
 
     /// <summary>
+    /// Stun duration in seconds applied to enemies hit by PM bullets (Issue #592).
+    /// 100ms provides a brief flinch effect on hit.
+    /// </summary>
+    private const float StunDurationOnHit = 0.1f;
+
+    /// <summary>
+    /// Override SpawnBullet to set StunDuration on PM bullets (Issue #592).
+    /// Enemies hit by PM bullets are briefly stunned (100ms).
+    /// </summary>
+    protected override void SpawnBullet(Vector2 direction)
+    {
+        if (BulletScene == null)
+        {
+            return;
+        }
+
+        // Check if the bullet spawn path is blocked by a wall
+        var (isBlocked, hitPosition, hitNormal) = CheckBulletSpawnPath(direction);
+
+        Vector2 spawnPosition;
+        if (isBlocked)
+        {
+            spawnPosition = GlobalPosition + direction * 2.0f;
+        }
+        else
+        {
+            spawnPosition = GlobalPosition + direction * BulletSpawnOffset;
+        }
+
+        var bulletNode = BulletScene.Instantiate<Node2D>();
+        bulletNode.GlobalPosition = spawnPosition;
+
+        // Try to cast to C# Bullet type for direct property access
+        var bullet = bulletNode as Bullet;
+
+        if (bullet != null)
+        {
+            bullet.Direction = direction;
+            if (WeaponData != null)
+            {
+                bullet.Speed = WeaponData.BulletSpeed;
+                bullet.Damage = WeaponData.Damage;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bullet.ShooterId = owner.GetInstanceId();
+            }
+            bullet.ShooterPosition = GlobalPosition;
+            bullet.StunDuration = StunDurationOnHit;
+        }
+        else
+        {
+            // GDScript bullet fallback
+            if (bulletNode.HasMethod("SetDirection"))
+            {
+                bulletNode.Call("SetDirection", direction);
+            }
+            else
+            {
+                bulletNode.Set("Direction", direction);
+                bulletNode.Set("direction", direction);
+            }
+
+            if (WeaponData != null)
+            {
+                bulletNode.Set("Speed", WeaponData.BulletSpeed);
+                bulletNode.Set("speed", WeaponData.BulletSpeed);
+                bulletNode.Set("Damage", WeaponData.Damage);
+                bulletNode.Set("damage", WeaponData.Damage);
+            }
+
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bulletNode.Set("ShooterId", owner.GetInstanceId());
+                bulletNode.Set("shooter_id", owner.GetInstanceId());
+            }
+
+            bulletNode.Set("ShooterPosition", GlobalPosition);
+            bulletNode.Set("shooter_position", GlobalPosition);
+            bulletNode.Set("StunDuration", StunDurationOnHit);
+            bulletNode.Set("stun_duration", StunDurationOnHit);
+        }
+
+        GetTree().CurrentScene.AddChild(bulletNode);
+
+        // Spawn muzzle flash effect
+        SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
+
+        // Spawn casing
+        SpawnCasing(direction, WeaponData?.Caliber);
+    }
+
+    /// <summary>
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    #region Power Fantasy Laser Sight
+
+    /// <summary>
+    /// Creates the laser sight Line2D programmatically (Power Fantasy mode only).
+    /// </summary>
+    private void CreateLaserSight()
+    {
+        _laserSight = new Line2D
+        {
+            Name = "LaserSight",
+            Width = 2.0f,
+            DefaultColor = _laserSightColor,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round
+        };
+
+        _laserSight.AddPoint(Vector2.Zero);
+        _laserSight.AddPoint(Vector2.Right * 500.0f);
+
+        AddChild(_laserSight);
+    }
+
+    /// <summary>
+    /// Updates the laser sight visualization (Power Fantasy mode only).
+    /// The laser shows where bullets will go, accounting for current spread/recoil.
+    /// </summary>
+    private void UpdateLaserSight()
+    {
+        if (_laserSight == null)
+        {
+            return;
+        }
+
+        // Apply recoil offset to aim direction for laser visualization
+        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+
+        // Calculate maximum laser length based on viewport size
+        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser
+        Vector2 endPoint = laserDirection * maxLaserLength;
+
+        // Raycast to find obstacles
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState != null)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(
+                GlobalPosition,
+                GlobalPosition + endPoint,
+                4 // Collision mask for obstacles
+            );
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                Vector2 hitPosition = (Vector2)result["position"];
+                endPoint = hitPosition - GlobalPosition;
+            }
+        }
+
+        // Update the laser sight line points (in local coordinates)
+        _laserSight.SetPointPosition(0, Vector2.Zero);
+        _laserSight.SetPointPosition(1, endPoint);
+    }
+
+    #endregion
 }
