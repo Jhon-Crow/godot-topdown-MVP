@@ -94,6 +94,17 @@ func _ready() -> void:
 	_setup_navigation()
 
 	# Find and connect to all enemies
+	# Use call_deferred to ensure all child instances (Enemy scenes) have their
+	# scripts fully initialized before we check for signals. This fixes an issue
+	# where has_signal("died") returns false during scene transitions because
+	# child instance scripts may not be resolved yet when the parent _ready() runs.
+	call_deferred("_deferred_setup")
+
+
+## Deferred setup called after all child nodes are fully initialized.
+## This ensures instanced scenes (like Enemy.tscn) have their scripts loaded
+## and signals registered before we try to connect to them.
+func _deferred_setup() -> void:
 	_setup_enemy_tracking()
 
 	# Find the enemy count label
@@ -392,21 +403,67 @@ func _setup_enemy_tracking() -> void:
 	_log_to_file("Found Environment/Enemies node with %d children" % enemies_node.get_child_count())
 	_enemies.clear()
 	for child in enemies_node.get_children():
+		# Check for both lowercase "died" (GDScript) and PascalCase "Died" (C#) signals
 		var has_died_signal := child.has_signal("died")
+		var has_died_signal_cs := child.has_signal("Died")
 		var script_attached := child.get_script() != null
-		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
+		var script_path := ""
+		if script_attached:
+			var script_res = child.get_script()
+			if script_res and script_res.resource_path != "":
+				script_path = script_res.resource_path
+			elif script_res:
+				script_path = str(script_res)
+		_log_to_file("Child '%s': type=%s, script=%s (%s), has_died=%s, has_Died=%s, is_ready=%s" % [
+			child.name, child.get_class(), script_attached, script_path,
+			has_died_signal, has_died_signal_cs, child.is_inside_tree()])
+
 		if has_died_signal:
 			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
 			if child.has_signal("died_with_info"):
 				child.died_with_info.connect(_on_enemy_died_with_info)
+		elif has_died_signal_cs:
+			# Fallback: connect to PascalCase "Died" signal (C# naming convention)
+			_enemies.append(child)
+			child.connect("Died", _on_enemy_died)
+			if child.has_signal("died_with_info"):
+				child.connect("died_with_info", _on_enemy_died_with_info)
+			_log_to_file("Child '%s': connected via PascalCase 'Died' signal" % child.name)
+		elif child.is_in_group("enemies"):
+			# Last resort: if the node is in the "enemies" group, track it anyway
+			# and try to connect when it becomes ready
+			_enemies.append(child)
+			_log_to_file("Child '%s': in 'enemies' group but no died signal, tracking anyway" % child.name)
+			if not child.is_node_ready():
+				child.ready.connect(_on_enemy_ready.bind(child), CONNECT_ONE_SHOT)
+				_log_to_file("Child '%s': waiting for ready signal to connect died" % child.name)
+
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
+		elif child.has_signal("Hit"):
+			child.connect("Hit", _on_enemy_hit)
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Called when an enemy node becomes ready (deferred connection fallback).
+func _on_enemy_ready(enemy: Node) -> void:
+	if enemy.has_signal("died") and not enemy.died.is_connected(_on_enemy_died):
+		enemy.died.connect(_on_enemy_died)
+		if enemy.has_signal("died_with_info") and not enemy.died_with_info.is_connected(_on_enemy_died_with_info):
+			enemy.died_with_info.connect(_on_enemy_died_with_info)
+		_log_to_file("Child '%s': connected died signal after ready" % enemy.name)
+	elif enemy.has_signal("Died") and not enemy.is_connected("Died", _on_enemy_died):
+		enemy.connect("Died", _on_enemy_died)
+		_log_to_file("Child '%s': connected Died signal after ready" % enemy.name)
+	if enemy.has_signal("hit") and not enemy.hit.is_connected(_on_enemy_hit):
+		enemy.hit.connect(_on_enemy_hit)
+	elif enemy.has_signal("Hit") and not enemy.is_connected("Hit", _on_enemy_hit):
+		enemy.connect("Hit", _on_enemy_hit)
 
 
 ## Configure silenced pistol ammo based on enemy count.
