@@ -2532,6 +2532,13 @@ func _transition_to_flanking() -> bool:
 	# Initialize flank side only once per flanking maneuver
 	# Choose the side based on which direction has fewer obstacles
 	_flank_side = _choose_best_flank_side()
+	# Issue #612: If both flank sides are behind walls, abort flanking immediately
+	if is_nan(_flank_side):
+		_log_to_file("Flanking aborted: both sides behind walls (Issue #612)")
+		_flank_fail_count += 1
+		_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
+		_transition_to_combat() if _can_see_player else _transition_to_pursuing()
+		return false
 	_flank_side_initialized = true
 	_calculate_flank_position()
 
@@ -3408,6 +3415,8 @@ func _choose_best_flank_side() -> float:
 			return -1.0
 		if not rrv and not lrv:
 			_log_to_file("Warning: No valid flank position (both sides behind walls)")
+			# Issue #612: Signal failure — return NAN so caller can abort flanking
+			return NAN
 
 	# Choose closer side
 	return 1.0 if global_position.distance_squared_to(right_flank_pos) < global_position.distance_squared_to(left_flank_pos) else -1.0

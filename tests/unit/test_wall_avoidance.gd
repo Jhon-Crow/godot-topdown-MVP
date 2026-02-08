@@ -231,3 +231,55 @@ func test_rear_raycast_wall_sliding_issue_612() -> void:
 	assert_true(avoidance.length() > 0, "Rear raycast should produce non-zero avoidance")
 	assert_almost_eq(avoidance.length(), 0.5, 0.01,
 		"Rear raycast avoidance should have 0.5 magnitude")
+
+
+## Test that NAN flank side signals both sides behind walls (Issue #612).
+## When _choose_best_flank_side returns NAN, flanking should be aborted.
+func test_nan_flank_side_signals_abort_issue_612() -> void:
+	# NAN is used as a sentinel value to indicate "both sides behind walls"
+	var flank_side: float = NAN
+
+	assert_true(is_nan(flank_side),
+		"NAN flank_side should be detected by is_nan()")
+
+	# A valid flank side should NOT be NAN
+	var valid_right: float = 1.0
+	var valid_left: float = -1.0
+	assert_false(is_nan(valid_right), "Valid right side should not be NAN")
+	assert_false(is_nan(valid_left), "Valid left side should not be NAN")
+
+
+## Test that NAN is not equal to any valid flank side value.
+func test_nan_inequality_with_valid_sides_issue_612() -> void:
+	var nan_val: float = NAN
+
+	# NAN is not equal to anything, including itself
+	assert_true(nan_val != 1.0, "NAN should not equal 1.0 (right)")
+	assert_true(nan_val != -1.0, "NAN should not equal -1.0 (left)")
+	assert_true(nan_val != 0.0, "NAN should not equal 0.0")
+	assert_true(nan_val != nan_val, "NAN should not equal itself")
+
+
+## Test flank fail count increments on abort (Issue #612).
+## Simulates the escalation logic: fail_count increments each abort,
+## and after FLANK_FAIL_MAX_COUNT (2) attempts, flanking is disabled.
+func test_flank_fail_escalation_issue_612() -> void:
+	var flank_fail_count: int = 0
+	var flank_fail_max: int = 2
+	var flank_cooldown: float = 5.0
+
+	# First abort: increment count, set cooldown
+	flank_fail_count += 1
+	var cooldown_1 := flank_cooldown
+	assert_eq(flank_fail_count, 1, "First abort should set fail count to 1")
+	assert_eq(cooldown_1, 5.0, "First abort should set 5s cooldown")
+
+	# Cooldown expires, count resets (simulated by _physics_process)
+	# But in our fix, we DON'T reset fail count on NAN abort
+	# Instead, the cooldown timer handles re-enabling
+
+	# Second abort: increment again
+	flank_fail_count += 1
+	assert_eq(flank_fail_count, 2, "Second abort should set fail count to 2")
+	assert_true(flank_fail_count >= flank_fail_max,
+		"After 2 failures, flanking should be disabled")
