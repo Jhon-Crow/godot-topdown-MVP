@@ -300,87 +300,57 @@ var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
 
 ## Maximum time to spend finding a clear shot before giving up (seconds).
 const CLEAR_SHOT_MAX_TIME: float = 3.0
-
 ## Distance to move when exiting cover to find a clear shot.
 const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
-
 ## --- Sound-Based Detection ---
 ## Last known sound source position (for investigation when player not visible).
 var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
-
 ## [Memory System Issue #297] Tracks suspected player position with confidence (0=none, 1=visual).
 ## High(>0.8):direct pursuit, Med(0.5-0.8):cautious approach, Low(<0.5):return to patrol/guard.
 var _memory: EnemyMemory = null
-
 ## Confidence values for different detection sources.
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
 const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
-
 ## Communication range for enemy-to-enemy information sharing.
 ## 660px with direct line of sight, 300px without line of sight.
 const INTEL_SHARE_RANGE_LOS: float = 660.0
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
-
 ## Timer for periodic intel sharing (to avoid per-frame overhead).
 var _intel_share_timer: float = 0.0
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
-
 ## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
-
 ## [Ally Death Observation Issue #409] Enemy enters SEARCHING when witnessing ally death.
 ## Observing enemy estimates player location based on bullet travel direction.
 const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
 var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
 var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
-
-## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
-var _killed_by_ricochet: bool = false
-
-## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
-var _killed_by_penetration: bool = false
-
+var _killed_by_ricochet: bool = false  ## [Score Tracking] Killed by ricochet bullet.
+var _killed_by_penetration: bool = false  ## Killed by wall-penetrating bullet.
 ## [Status Effects] Component handles blindness and stun (Issue #432, #328)
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
-
-## [Grenade Avoidance - Issue #407] Component handles avoidance logic
-var _grenade_avoidance: GrenadeAvoidanceComponent = null
+var _grenade_avoidance: GrenadeAvoidanceComponent = null  ## [Grenade Avoidance - Issue #407]
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
-
-## Maximum time to spend evading before giving up (seconds).
-const GRENADE_EVASION_MAX_TIME: float = 4.0
-
-## State to return to after grenade evasion completes.
-var _pre_evasion_state: AIState = AIState.IDLE
-
+const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Maximum evasion time (seconds).
+var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion.
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
-
-## [Issue #574] Flashlight detection component — detects player flashlight beam.
-var _flashlight_detection: FlashlightDetectionComponent = null
-
-## Last hit direction (used for death animation).
-var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Death animation component reference.
-var _death_animation: Node = null
-
-## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
-var _grenade_component: EnemyGrenadeComponent = null
-
+var _flashlight_detection: FlashlightDetectionComponent = null  ## [Issue #574] Flashlight detection.
+var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (death animation).
+var _death_animation: Node = null  ## Death animation component reference.
+var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (Issue #377).
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
-
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 
