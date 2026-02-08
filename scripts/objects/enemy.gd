@@ -90,9 +90,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 ## Scale multiplier for enemy model (1.3 matches player size).
 @export var enemy_model_scale: float = 1.3
 
-# Grenadier Configuration (Issue #604)
-@export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type.
-
+@export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -380,8 +378,6 @@ var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 
-## Note: DeathAnimationComponent, EnemyGrenadeComponent, MacheteComponent, GrenadierGrenadeComponent are available via class_name declarations.
-
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
@@ -438,18 +434,11 @@ func _ready() -> void:
 	if _enemy_model:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-	# Initialize death animation component
 	_init_death_animation()
-	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
-	# Unlimited search zone is activated AFTER enemy detects and loses player
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
-	if is_grenadier:
-		# Grenadiers always have exactly 2 HP (unarmored, Issue #604)
-		_max_health = 2
-	else:
-		_max_health = randi_range(min_health, max_health)
+	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
 	_current_health = _max_health
 	_is_alive = true
 
@@ -886,14 +875,11 @@ func _physics_process(delta: float) -> void:
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
 
-	# Issue #604: Grenadier wait timer and early return when waiting
-	if _waiting_for_grenadier:
+	if _waiting_for_grenadier:  # Issue #604: Allies wait for grenadier's grenade
 		_grenadier_wait_timer -= delta
 		if _grenadier_wait_timer <= 0.0: _stop_waiting_for_grenadier()
-
 	_update_enemy_model_rotation()
-
-	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting for grenade
+	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting
 		velocity = Vector2.ZERO; _update_debug_label(); _update_walk_animation(delta)
 		_apply_machete_attack_animation(); move_and_slide(); _push_casings()
 		if debug_label_enabled: queue_redraw()
@@ -4850,11 +4836,8 @@ func is_stunned() -> bool: return _is_stunned
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
 
-
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
-
-## Setup the grenade component. Called from _ready().
-## For grenadiers, uses GrenadierGrenadeComponent with grenade bag system (Issue #604).
+## Setup the grenade component. Called from _ready(). Grenadiers use GrenadierGrenadeComponent (Issue #604).
 func _setup_grenade_component() -> void:
 	if not enable_grenade_throwing: return
 	if is_grenadier:
@@ -4979,10 +4962,8 @@ func _on_grenadier_grenade_exploded() -> void:
 		if ally.has_method("_stop_waiting_for_grenadier"): ally._stop_waiting_for_grenadier()
 func _start_waiting_for_grenadier(wait_time: float) -> void:
 	_waiting_for_grenadier = true; _grenadier_wait_timer = min(wait_time, 8.0)
-	_log_to_file("[Grenadier] %s waiting for grenade (%.1fs)" % [name, _grenadier_wait_timer])
 func _stop_waiting_for_grenadier() -> void:
 	_waiting_for_grenadier = false; _grenadier_wait_timer = 0.0
-	_log_to_file("[Grenadier] %s proceeding after grenade explosion" % name)
 func get_is_grenadier() -> bool: return is_grenadier
 func is_waiting_for_grenade() -> bool: return _waiting_for_grenadier
 
