@@ -7,8 +7,9 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,        # No active item equipped
-	FLASHLIGHT   # Tactical flashlight - illuminates in weapon direction
+	NONE,            # No active item equipped
+	FLASHLIGHT,      # Tactical flashlight - illuminates in weapon direction
+	BREAKER_BULLETS  # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone
 }
 
 ## Currently selected active item type.
@@ -26,6 +27,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+	},
+	ActiveItemType.BREAKER_BULLETS: {
+		"name": "Breaker Bullets",
+		"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
+		"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
 	}
 }
 
@@ -112,3 +118,8 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if breaker bullets are currently equipped.
+func has_breaker_bullets() -> bool:
+	return current_active_item == ActiveItemType.BREAKER_BULLETS
