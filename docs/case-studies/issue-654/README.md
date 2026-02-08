@@ -33,48 +33,91 @@ The project uses `gl_compatibility` renderer (no WorldEnvironment glow available
   - 1x endpoint PointLight2D (pixel-perfect circular texture)
 - Integrated into 6 weapon files
 
+## Root Cause Analysis (v2 fixes)
+
+The initial v1 implementation had multiple issues preventing glow visibility:
+
+### 1. Z-Index Problem (Critical)
+Glow layers had negative z_index (-1 to -4), placing them **behind** the game world
+floor/walls (default z_index=0). Wider glow extending beyond the laser core was
+occluded by map tiles rendering on top of it.
+
+**Fix:** Changed all glow layers to z_index=0 (same level as game world). The weapon
+sprite at z_index=1 still renders correctly above the glow.
+
+### 2. Alpha Values Too Low (Critical)
+With additive blending, alpha values of 0.05-0.12 for outer layers produced
+essentially invisible results against dark game environments. The additive mode
+adds color values, so low alpha on a dark background produces near-zero visible
+change.
+
+**Fix:** Increased alpha values across all layers (0.8, 0.4, 0.2, 0.1) and slightly
+increased widths (6/14/28/48px) for more prominent volumetric effect.
+
+### 3. Dust Particles Too Small
+16x16 particle textures with 0.5-1.5x scale were barely visible at game zoom levels.
+The emission height was too narrow (3px), constraining particles too close to the
+beam center.
+
+**Fix:** Increased texture to 32px, scale range to 0.8-2.0x, emission height to 6px,
+particle count to 32, and lifetime to 1.2s for more visible floating dust motes.
+
+### 4. No Diagnostic Logging
+Zero `GD.Print` calls in `LaserGlowEffect` made it impossible to verify whether effects
+were actually being created and updated during gameplay.
+
+**Fix:** Added optional diagnostic logging (disabled by default via `_diagnosticLogging`
+flag) to Create(), layer creation, and dust particle creation methods.
+
+### 5. Endpoint Glow Insufficiently Bright
+Endpoint PointLight2D energy (0.4) and scale (0.3) were too subtle to provide
+a clearly visible laser dot at the hit point.
+
+**Fix:** Increased energy to 0.7 and scale to 0.35 for more prominent endpoint dot.
+
+## Game Log Evidence
+User-provided log (`game_log_20260208_190200.txt`) confirms:
+- Engine: Godot 4.3-stable, gl_compatibility renderer
+- Export build (Debug=false)
+- Weapons tested: AssaultRifle (m16), SilencedPistol
+- Zero error messages related to glow/laser
+- Zero diagnostic messages (confirming no logging existed)
+
 ## Solution Approach
 
 ### Part 1: Enhanced Volumetric Glow (Multi-Layered Line2D)
 
-Replace the single glow Line2D with **multiple layered Line2D nodes**:
-- Each layer uses additive blending (`CanvasItemMaterial.BlendModeEnum.Add`)
-- Progressively wider widths and lower alpha values
-- Layers stack to create a smooth volumetric falloff effect
+Multiple layered Line2D nodes with progressively wider widths and lower alpha values:
 
-**Glow layers (4 total):**
-| Layer | Width | Alpha | Purpose |
-|-------|-------|-------|---------|
-| Core boost | 4px | 0.6 | Brighten the beam core |
-| Inner glow | 12px | 0.25 | Close glow around beam |
-| Mid glow | 24px | 0.12 | Extended glow |
-| Outer glow | 40px | 0.05 | Subtle wide atmospheric glow |
+**Glow layers (4 total) — v2 values:**
+| Layer | Width | Alpha | Z-Index | Purpose |
+|-------|-------|-------|---------|---------|
+| Core boost | 6px | 0.8 | 0 | Bright narrow halo around beam |
+| Inner glow | 14px | 0.4 | 0 | Close aura around beam |
+| Mid glow | 28px | 0.2 | 0 | Extended scatter light |
+| Outer glow | 48px | 0.1 | 0 | Wide atmospheric haze |
 
 All layers have:
 - Additive blending material
 - Round cap modes
 - WidthCurve for soft endpoint falloff
-- ZIndex behind the main laser
+- Z-index 0 (visible above floor, below weapon sprite)
 
 ### Part 2: Dust Particle Animation (GPUParticles2D)
 
-Add a `GpuParticles2D` node with box emission shape stretched along the laser beam:
+`GpuParticles2D` with box emission shape stretched along the laser beam:
 
-**Approach:**
-1. Position GPUParticles2D at beam midpoint
-2. Rotate to match beam angle
-3. Stretch EmissionBoxExtents.x to half beam length
-4. Update position/rotation/extents every frame as beam moves
-
-**Particle settings:**
-- Amount: 20-30 particles
-- Lifetime: 0.8-1.2 seconds
-- Slow velocity (5-15 px/s) for floating dust feel
+**Particle settings (v2):**
+- Amount: 32 particles
+- Lifetime: 1.2 seconds
+- Texture: 32x32 soft circle (laser-colored)
+- Scale: 0.8-2.0x random
+- Velocity: 2-8 px/s (slow floating)
 - No gravity (particles float freely)
-- Small scale (1-3 pixels)
-- Color ramp with fade-in and fade-out
+- Emission height: 6px from beam center
+- Color ramp: fade-in / full brightness / fade-out
 - Additive blending for glow feel
-- Small random spread from beam center
+- Z-index 0
 
 ### Alternatives Considered
 
@@ -94,7 +137,7 @@ Add a `GpuParticles2D` node with box emission shape stretched along the laser be
 ## Files Modified
 | File | Change |
 |------|--------|
-| `Scripts/Weapons/LaserGlowEffect.cs` | Multi-layered glow + dust particles |
+| `Scripts/Weapons/LaserGlowEffect.cs` | Multi-layered glow + dust particles (v2 fixes) |
 
 No changes needed to weapon files — the existing `Create()`, `Update()`, `SetVisible()`, `Cleanup()` API is preserved.
 

@@ -28,6 +28,16 @@ namespace GodotTopDownTemplate.Weapons;
 public class LaserGlowEffect
 {
     // =========================================================================
+    // Diagnostic logging (disabled by default, enable for debugging)
+    // =========================================================================
+
+    /// <summary>
+    /// Enable verbose diagnostic logging for glow effect creation and updates.
+    /// Set to true in code or via reflection to debug glow visibility issues.
+    /// </summary>
+    private static bool _diagnosticLogging = false;
+
+    // =========================================================================
     // Glow layer configuration
     // =========================================================================
 
@@ -53,13 +63,16 @@ public class LaserGlowEffect
     /// Glow layers from innermost (bright, narrow) to outermost (dim, wide).
     /// The additive blending causes overlapping layers to build up brightness
     /// in the center while maintaining a smooth gradient toward the edges.
+    /// Z-index 0 keeps glow at the same level as the game world, ensuring
+    /// it is visible above floor/walls. The weapon sprite at z_index=1 renders
+    /// on top of the glow, which is the correct layering order.
     /// </summary>
     private static readonly GlowLayerDef[] GlowLayers = new[]
     {
-        new GlowLayerDef(4.0f, 0.6f, -1),   // Core boost — bright narrow halo
-        new GlowLayerDef(12.0f, 0.25f, -2),  // Inner glow — close aura
-        new GlowLayerDef(24.0f, 0.12f, -3),  // Mid glow — extended scatter
-        new GlowLayerDef(40.0f, 0.05f, -4),  // Outer glow — wide atmospheric haze
+        new GlowLayerDef(6.0f, 0.8f, 0),    // Core boost — bright narrow halo
+        new GlowLayerDef(14.0f, 0.4f, 0),   // Inner glow — close aura
+        new GlowLayerDef(28.0f, 0.2f, 0),   // Mid glow — extended scatter
+        new GlowLayerDef(48.0f, 0.1f, 0),   // Outer glow — wide atmospheric haze
     };
 
     // =========================================================================
@@ -68,15 +81,16 @@ public class LaserGlowEffect
 
     /// <summary>
     /// Energy of the endpoint PointLight2D.
-    /// Matches the scatter light energy used in flashlight_effect.gd (0.4).
+    /// Higher than flashlight_effect.gd scatter (0.4) to make laser dot clearly
+    /// visible as a glowing point at the hit location.
     /// </summary>
-    private const float EndpointGlowEnergy = 0.4f;
+    private const float EndpointGlowEnergy = 0.7f;
 
     /// <summary>
     /// Texture scale of the endpoint PointLight2D. Small scale for a tight dot,
     /// similar to flashlight scatter but smaller since laser dot is subtler.
     /// </summary>
-    private const float EndpointGlowTextureScale = 0.3f;
+    private const float EndpointGlowTextureScale = 0.35f;
 
     /// <summary>
     /// Size of the circular glow texture in pixels.
@@ -91,23 +105,24 @@ public class LaserGlowEffect
     /// <summary>
     /// Number of dust mote particles along the beam.
     /// </summary>
-    private const int DustParticleAmount = 24;
+    private const int DustParticleAmount = 32;
 
     /// <summary>
     /// Lifetime of each dust particle in seconds.
     /// </summary>
-    private const float DustParticleLifetime = 1.0f;
+    private const float DustParticleLifetime = 1.2f;
 
     /// <summary>
-    /// Size of the dust mote texture in pixels (small soft circle).
+    /// Size of the dust mote texture in pixels (soft circle).
+    /// Larger than a single pixel to be visible at game zoom levels.
     /// </summary>
-    private const int DustTextureSize = 16;
+    private const int DustTextureSize = 32;
 
     /// <summary>
     /// Vertical half-extent of the dust emission box (how far from beam center
     /// particles can spawn, in pixels).
     /// </summary>
-    private const float DustEmissionHalfHeight = 3.0f;
+    private const float DustEmissionHalfHeight = 6.0f;
 
     // =========================================================================
     // Node references
@@ -148,6 +163,9 @@ public class LaserGlowEffect
     {
         _parent = parent;
 
+        if (_diagnosticLogging)
+            GD.Print($"[LaserGlowEffect] Creating glow for {parent.Name}, color=({laserColor.R:F2},{laserColor.G:F2},{laserColor.B:F2},{laserColor.A:F2})");
+
         // Shared additive blending material for all glow layers
         var additiveMaterial = new CanvasItemMaterial();
         additiveMaterial.BlendMode = CanvasItemMaterial.BlendModeEnum.Add;
@@ -179,6 +197,9 @@ public class LaserGlowEffect
             line.AddPoint(Vector2.Right * 500.0f);
             parent.AddChild(line);
             _glowLines[i] = line;
+
+            if (_diagnosticLogging)
+                GD.Print($"[LaserGlowEffect]   Layer {i}: width={layer.Width}px, alpha={layer.Alpha:F2}, z_index={layer.ZIndex}");
         }
 
         // Create endpoint glow (PointLight2D with circular radial gradient)
@@ -198,6 +219,9 @@ public class LaserGlowEffect
 
         // Create dust particle emitter along the beam
         CreateDustParticles(parent, laserColor);
+
+        if (_diagnosticLogging)
+            GD.Print($"[LaserGlowEffect] Created {GlowLayers.Length} glow layers + endpoint light + dust particles for {parent.Name}");
     }
 
     /// <summary>
@@ -310,9 +334,9 @@ public class LaserGlowEffect
         // Build a color ramp: fade in → full brightness → fade out
         var colorRamp = new Gradient();
         colorRamp.SetColor(0, new Color(1.0f, 1.0f, 1.0f, 0.0f)); // start transparent
-        colorRamp.AddPoint(0.15f, new Color(1.0f, 1.0f, 1.0f, 0.8f)); // fade in
+        colorRamp.AddPoint(0.15f, new Color(1.0f, 1.0f, 1.0f, 0.9f)); // fade in
         colorRamp.AddPoint(0.5f, new Color(1.0f, 1.0f, 1.0f, 1.0f));  // full brightness
-        colorRamp.AddPoint(0.85f, new Color(1.0f, 1.0f, 1.0f, 0.8f)); // begin fade
+        colorRamp.AddPoint(0.85f, new Color(1.0f, 1.0f, 1.0f, 0.9f)); // begin fade
         colorRamp.SetColor(1, new Color(1.0f, 1.0f, 1.0f, 0.0f)); // end transparent
 
         // Particle process material
@@ -322,13 +346,13 @@ public class LaserGlowEffect
             EmissionBoxExtents = new Vector3(100.0f, DustEmissionHalfHeight, 0.0f),
             Direction = new Vector3(0.0f, -1.0f, 0.0f),
             Spread = 180.0f,
-            InitialVelocityMin = 3.0f,
-            InitialVelocityMax = 10.0f,
+            InitialVelocityMin = 2.0f,
+            InitialVelocityMax = 8.0f,
             Gravity = new Vector3(0.0f, 0.0f, 0.0f),
-            ScaleMin = 0.5f,
-            ScaleMax = 1.5f,
+            ScaleMin = 0.8f,
+            ScaleMax = 2.0f,
             ColorRamp = new GradientTexture1D { Gradient = colorRamp },
-            LifetimeRandomness = 0.3f,
+            LifetimeRandomness = 0.4f,
         };
 
         // Additive blending material for particles
@@ -346,11 +370,14 @@ public class LaserGlowEffect
             Emitting = true,
             Texture = CreateDustTexture(laserColor),
             Material = particleMaterial,
-            ZIndex = -1,
+            ZIndex = 0,
             Visible = true
         };
 
         parent.AddChild(_dustParticles);
+
+        if (_diagnosticLogging)
+            GD.Print($"[LaserGlowEffect] Dust particles created: amount={DustParticleAmount}, lifetime={DustParticleLifetime}s, texture={DustTextureSize}px");
     }
 
     /// <summary>
