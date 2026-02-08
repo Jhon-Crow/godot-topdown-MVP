@@ -71,6 +71,41 @@ User (Jhon-Crow) reported: "не работает, нет даже значка 
 3. **Data-driven activation hint**: Added `"activation_hint"` field to `ACTIVE_ITEM_DATA` dictionary, replaced hardcoded enum comparison with `item_data.get("activation_hint", ...)`.
 4. **Merged upstream main**: Incorporated `TELEPORT_BRACERS` active item alongside `INVISIBILITY_SUIT`, updated test mocks.
 
+## Critical Bug Fix: C# vs GDScript Player Script (Iteration 3)
+
+### User Report (2nd feedback)
+User (Jhon-Crow) reported again: "не работает" (doesn't work) — with game logs showing the invisibility suit was selected in ActiveItemManager but had no effect in gameplay.
+
+### Root Cause Analysis
+**The invisibility suit code was added to the wrong file.** The implementation was placed in `scripts/characters/player.gd` (GDScript), but the actual runtime player is controlled by `Scripts/Characters/Player.cs` (C#).
+
+**Evidence from game logs:**
+1. Logs show `[Player.TeleportBracers] No teleport bracers selected in ActiveItemManager` — this message only exists in `Player.cs`, proving C# is the active runtime script
+2. Logs show `[Player.Flashlight] No flashlight selected in ActiveItemManager` — also only in `Player.cs`
+3. **No** `[Player.Invisibility]` messages appear in the logs at all, because the GDScript `_init_invisibility_suit()` never executes
+4. `[ActiveItemManager] Active item changed from None to Invisibility` confirms the item selection works, but the C# player doesn't know about it
+
+**Architecture insight:** The project uses a dual-script pattern where both `player.gd` and `Player.cs` exist. The `.tscn` scene references `player.gd`, but Godot 4's C# integration overrides it with the matching C# class `Player`. All runtime behavior comes from `Player.cs`.
+
+### Fix Applied
+1. **Added invisibility suit initialization to `Player.cs`** (`InitInvisibilitySuit()`) — follows the exact same pattern as flashlight and teleport bracers:
+   - Gets `ActiveItemManager` from `/root/ActiveItemManager`
+   - Checks `has_invisibility_suit()` via `Call()` (GDScript interop)
+   - Loads `invisibility_suit_effect.gd` via `SetScript()` on a new `Node`
+   - Loads `invisibility_hud.gd` via `SetScript()` on a new `CanvasLayer`
+   - Connects GDScript signals using `Callable.From<int>()`
+
+2. **Added input handling to `Player.cs`** (`HandleInvisibilitySuitInput()`) — uses `Input.IsActionJustPressed("flashlight_toggle")` (Space key), checks `is_active` property, calls `activate()` on the GDScript effect
+
+3. **Added `is_invisible()` public method to `Player.cs`** — snake_case for GDScript interop, delegates to the GDScript effect's `is_invisible()` method. The enemy's `_check_player_visibility()` calls `_player.has_method("is_invisible")` which now finds the C# method.
+
+### Key Lesson Learned
+In Godot 4 C# projects with dual-script patterns, always verify which script (GDScript or C#) is actually active at runtime by checking the game logs. The `.tscn` file may reference GDScript, but the C# class takes priority.
+
+## Game Logs
+- `logs/game_log_20260209_015516.txt` — First user report (icon missing, no invisibility)
+- `logs/game_log_20260209_023610.txt` — Second user report (icon fixed, but invisibility still not working)
+
 ## References
 - [Almost Invisible Character Shader](https://godotshaders.com/shader/almost-invisible-character/) — Base reference for chromatic distortion approach
 - [Transparent Ripples Shader](https://godotshaders.com/shader/transparent-ripples/) — Ripple pattern reference
