@@ -627,6 +627,46 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Teleport Bracers System (Issue #672)
+
+    /// <summary>
+    /// Whether teleport bracers are equipped (active item selected in armory).
+    /// </summary>
+    private bool _teleportBracersEquipped = false;
+
+    /// <summary>
+    /// Whether the player is currently aiming the teleport (Space held).
+    /// </summary>
+    private bool _teleportAiming = false;
+
+    /// <summary>
+    /// Current number of teleport charges remaining.
+    /// </summary>
+    private int _teleportCharges = 6;
+
+    /// <summary>
+    /// Maximum number of teleport charges.
+    /// </summary>
+    private const int MaxTeleportCharges = 6;
+
+    /// <summary>
+    /// The computed safe teleport target position (updated each frame while aiming).
+    /// </summary>
+    private Vector2 _teleportTargetPosition = Vector2.Zero;
+
+    /// <summary>
+    /// Player collision radius for teleport safety checks (matches Player.tscn CircleShape2D).
+    /// </summary>
+    private const float PlayerCollisionRadius = 16.0f;
+
+    /// <summary>
+    /// Signal emitted when teleport charges change.
+    /// </summary>
+    [Signal]
+    public delegate void TeleportChargesChangedEventHandler(int current, int maximum);
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -868,6 +908,9 @@ public partial class Player : BaseCharacter
 
         // Initialize flashlight if active item manager has flashlight selected (Issue #546)
         InitFlashlight();
+
+        // Initialize teleport bracers if active item manager has them selected (Issue #672)
+        InitTeleportBracers();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1131,6 +1174,9 @@ public partial class Player : BaseCharacter
 
         // Handle flashlight input (hold Space to turn on, release to turn off) (Issue #546)
         HandleFlashlightInput();
+
+        // Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #672)
+        HandleTeleportBracersInput();
     }
 
     /// <summary>
@@ -3916,6 +3962,267 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Teleport Bracers Methods (Issue #672)
+
+    /// <summary>
+    /// Initialize the teleport bracers if the ActiveItemManager has them selected.
+    /// </summary>
+    private void InitTeleportBracers()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.TeleportBracers] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_teleport_bracers"))
+        {
+            LogToFile("[Player.TeleportBracers] ActiveItemManager missing has_teleport_bracers method");
+            return;
+        }
+
+        bool hasTeleportBracers = (bool)activeItemManager.Call("has_teleport_bracers");
+        if (!hasTeleportBracers)
+        {
+            LogToFile("[Player.TeleportBracers] No teleport bracers selected in ActiveItemManager");
+            return;
+        }
+
+        _teleportBracersEquipped = true;
+        _teleportCharges = MaxTeleportCharges;
+        LogToFile($"[Player.TeleportBracers] Teleport bracers equipped with {_teleportCharges} charges");
+
+        // Emit initial charge count for UI
+        EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+    }
+
+    /// <summary>
+    /// Handle teleport bracers input: hold Space to aim, release to teleport.
+    /// While Space is held, shows targeting reticle with player silhouette.
+    /// On release, teleports player to the safe target position.
+    /// </summary>
+    private void HandleTeleportBracersInput()
+    {
+        if (!_teleportBracersEquipped)
+        {
+            return;
+        }
+
+        if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            // Space held — enter/continue aiming mode
+            if (!_teleportAiming && _teleportCharges > 0)
+            {
+                _teleportAiming = true;
+                LogToFile("[Player.TeleportBracers] Aiming started");
+            }
+
+            if (_teleportAiming)
+            {
+                // Update target position each frame
+                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
+                QueueRedraw();
+            }
+        }
+        else if (_teleportAiming)
+        {
+            // Space released — execute teleport
+            _teleportAiming = false;
+            ExecuteTeleport();
+        }
+    }
+
+    /// <summary>
+    /// Execute the teleport to the current target position.
+    /// Decrements charges and emits signal for UI update.
+    /// </summary>
+    private void ExecuteTeleport()
+    {
+        if (_teleportCharges <= 0)
+        {
+            LogToFile("[Player.TeleportBracers] No charges remaining");
+            QueueRedraw();
+            return;
+        }
+
+        Vector2 oldPosition = GlobalPosition;
+        GlobalPosition = _teleportTargetPosition;
+        _teleportCharges--;
+
+        EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+        LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
+
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Find a safe teleport destination that doesn't place the player inside walls.
+    /// The reticle should "skip through" walls — if the cursor is past a wall,
+    /// the teleport lands on the far side of the wall, not before it.
+    /// Uses multiple raycasts to find clear space beyond obstacles.
+    /// </summary>
+    /// <param name="fromPos">The player's current position.</param>
+    /// <param name="cursorPos">The mouse cursor position (intended target).</param>
+    /// <returns>A safe teleport destination position.</returns>
+    private Vector2 GetSafeTeleportPosition(Vector2 fromPos, Vector2 cursorPos)
+    {
+        var spaceState = GetWorld2D().DirectSpaceState;
+        if (spaceState == null)
+        {
+            LogToFile("[Player.TeleportBracers] Warning: Could not get DirectSpaceState");
+            return cursorPos;
+        }
+
+        // Check if cursor position is directly accessible (no wall between player and cursor)
+        var directQuery = PhysicsRayQueryParameters2D.Create(fromPos, cursorPos, 4); // mask 4 = obstacles
+        directQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+        var directResult = spaceState.IntersectRay(directQuery);
+
+        if (directResult.Count == 0)
+        {
+            // No wall in the way — check if cursor position itself is inside a wall
+            return EnsureNotInsideWall(spaceState, cursorPos);
+        }
+
+        // Wall detected between player and cursor.
+        // "Skip through" the wall: find clear space on the far side.
+        Vector2 wallHitPos = (Vector2)directResult["position"];
+        Vector2 direction = (cursorPos - fromPos).Normalized();
+        float totalDistance = fromPos.DistanceTo(cursorPos);
+        float wallDistance = fromPos.DistanceTo(wallHitPos);
+
+        // Probe from just past the wall hit point to the cursor, looking for open space
+        float probeStart = wallDistance + PlayerCollisionRadius + 2.0f;
+        float step = PlayerCollisionRadius;
+
+        // Start from cursor position and work backward to find the closest valid position to cursor
+        Vector2 bestPosition = fromPos + direction * Mathf.Max(wallDistance - PlayerCollisionRadius - 2.0f, 0.0f);
+
+        for (float dist = probeStart; dist <= totalDistance + step; dist += step)
+        {
+            float clampedDist = Mathf.Min(dist, totalDistance);
+            Vector2 testPos = fromPos + direction * clampedDist;
+
+            // Check if this position is inside a wall using shape query
+            if (!IsPositionInsideWall(spaceState, testPos))
+            {
+                // Found clear space beyond the wall — verify we can raycast from there
+                // back to the cursor (no additional walls in between)
+                bestPosition = testPos;
+
+                // Now find the best position closest to the cursor
+                // Continue scanning forward to get as close to cursor as possible
+                Vector2 lastGoodPos = testPos;
+                for (float fwdDist = clampedDist + step; fwdDist <= totalDistance; fwdDist += step)
+                {
+                    Vector2 fwdTestPos = fromPos + direction * fwdDist;
+                    if (!IsPositionInsideWall(spaceState, fwdTestPos))
+                    {
+                        lastGoodPos = fwdTestPos;
+                    }
+                    else
+                    {
+                        // Hit another wall, stop here
+                        break;
+                    }
+                }
+
+                // Also test exact cursor position
+                if (!IsPositionInsideWall(spaceState, cursorPos))
+                {
+                    lastGoodPos = cursorPos;
+                }
+
+                return lastGoodPos;
+            }
+        }
+
+        // Could not find clear space beyond the wall — teleport to just before it
+        return bestPosition;
+    }
+
+    /// <summary>
+    /// Check if a position is inside a wall using a point shape query.
+    /// Tests 4 points around the position at the player's collision radius.
+    /// </summary>
+    private bool IsPositionInsideWall(PhysicsDirectSpaceState2D spaceState, Vector2 position)
+    {
+        // Test points at cardinal directions from position (at player radius)
+        Vector2[] testOffsets = {
+            new Vector2(PlayerCollisionRadius, 0),
+            new Vector2(-PlayerCollisionRadius, 0),
+            new Vector2(0, PlayerCollisionRadius),
+            new Vector2(0, -PlayerCollisionRadius)
+        };
+
+        // Use a short raycast from center to each offset point
+        // If any hits a wall, the position is too close to/inside a wall
+        foreach (var offset in testOffsets)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(position, position + offset, 4);
+            query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                float hitDist = position.DistanceTo((Vector2)result["position"]);
+                if (hitDist < PlayerCollisionRadius)
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Also test from the center outward in more directions for better coverage
+        var centerQuery = PhysicsRayQueryParameters2D.Create(
+            position + new Vector2(0, -1), position + new Vector2(0, 1), 4);
+        centerQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+        var centerResult = spaceState.IntersectRay(centerQuery);
+        if (centerResult.Count > 0)
+        {
+            float hitDist = position.DistanceTo((Vector2)centerResult["position"]);
+            if (hitDist < 2.0f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Ensure a position is not inside a wall. If it is, nudge it to safety.
+    /// </summary>
+    private Vector2 EnsureNotInsideWall(PhysicsDirectSpaceState2D spaceState, Vector2 position)
+    {
+        if (!IsPositionInsideWall(spaceState, position))
+        {
+            return position;
+        }
+
+        // Position is inside wall — try nudging in cardinal directions
+        float nudgeDistance = PlayerCollisionRadius + 5.0f;
+        Vector2[] nudgeDirections = {
+            Vector2.Up, Vector2.Down, Vector2.Left, Vector2.Right,
+            new Vector2(-1, -1).Normalized(), new Vector2(1, -1).Normalized(),
+            new Vector2(-1, 1).Normalized(), new Vector2(1, 1).Normalized()
+        };
+
+        foreach (var dir in nudgeDirections)
+        {
+            Vector2 nudgedPos = position + dir * nudgeDistance;
+            if (!IsPositionInsideWall(spaceState, nudgedPos))
+            {
+                return nudgedPos;
+            }
+        }
+
+        // Could not find safe position, return original
+        return position;
+    }
+
+    #endregion
+
     #region Logging
 
     /// <summary>
@@ -4042,12 +4349,19 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Override _Draw to visualize grenade trajectory.
+    /// Override _Draw to visualize grenade trajectory and teleport reticle.
     /// In simple mode: Always shows trajectory preview (semi-transparent arc).
     /// In complex mode: Only shows when debug mode is enabled (F7).
+    /// Teleport bracers: Shows targeting line and player silhouette at target.
     /// </summary>
     public override void _Draw()
     {
+        // Draw teleport targeting reticle if aiming (Issue #672)
+        if (_teleportAiming && _teleportBracersEquipped)
+        {
+            DrawTeleportReticle();
+        }
+
         // Determine if we should draw trajectory
         bool isSimpleAiming = _grenadeState == GrenadeState.SimpleAiming;
         bool isComplexAiming = _grenadeState == GrenadeState.Aiming;
@@ -4237,6 +4551,71 @@ public partial class Player : BaseCharacter
         }
         // Default: Flashbang effect radius (FlashbangGrenade.tscn)
         return 400.0f;
+    }
+
+    /// <summary>
+    /// Draw the teleport targeting reticle with player silhouette at target position (Issue #672).
+    /// Shows a dashed line from player to target and a player-shaped outline at the destination.
+    /// </summary>
+    private void DrawTeleportReticle()
+    {
+        Vector2 localTarget = ToLocal(_teleportTargetPosition);
+
+        // Colors for the teleport reticle
+        Color lineColor = new Color(0.4f, 0.8f, 1.0f, 0.5f);  // Cyan semi-transparent
+        Color silhouetteColor;
+        if (_teleportCharges > 0)
+        {
+            silhouetteColor = new Color(0.4f, 0.8f, 1.0f, 0.6f);  // Cyan
+        }
+        else
+        {
+            silhouetteColor = new Color(1.0f, 0.3f, 0.3f, 0.4f);  // Red (no charges)
+        }
+
+        // Draw dashed line from player to target
+        DrawTrajectoryLine(Vector2.Zero, localTarget, lineColor, 2.0f);
+
+        // Draw player silhouette at target position
+        // Body circle (matches PlayerCollisionRadius = 16)
+        DrawCircleOutline(localTarget, PlayerCollisionRadius, silhouetteColor, 2.5f);
+
+        // Draw body shape inside the circle (simplified player contour)
+        // Head (small circle above center)
+        Vector2 headOffset = new Vector2(-6, -2);  // Matches Player.tscn Head position
+        DrawCircleOutline(localTarget + headOffset, 6.0f, silhouetteColor, 2.0f);
+
+        // Body (rectangle shape)
+        Vector2 bodyCenter = localTarget + new Vector2(-4, 0);  // Matches Body position
+        float bw = 5.0f, bh = 8.0f;
+        DrawLine(bodyCenter + new Vector2(-bw, -bh), bodyCenter + new Vector2(bw, -bh), silhouetteColor, 2.0f);
+        DrawLine(bodyCenter + new Vector2(bw, -bh), bodyCenter + new Vector2(bw, bh), silhouetteColor, 2.0f);
+        DrawLine(bodyCenter + new Vector2(bw, bh), bodyCenter + new Vector2(-bw, bh), silhouetteColor, 2.0f);
+        DrawLine(bodyCenter + new Vector2(-bw, bh), bodyCenter + new Vector2(-bw, -bh), silhouetteColor, 2.0f);
+
+        // Arms (two small lines)
+        // Left arm
+        DrawLine(localTarget + new Vector2(18, 4), localTarget + new Vector2(24, 8), silhouetteColor, 2.0f);
+        // Right arm
+        DrawLine(localTarget + new Vector2(-8, 4), localTarget + new Vector2(-2, 8), silhouetteColor, 2.0f);
+
+        // Draw charge count near the target
+        // Show remaining charges as small dots around the silhouette
+        for (int i = 0; i < MaxTeleportCharges; i++)
+        {
+            float angle = (float)i / MaxTeleportCharges * Mathf.Tau - Mathf.Pi / 2.0f;
+            Vector2 dotPos = localTarget + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (PlayerCollisionRadius + 10.0f);
+            Color dotColor;
+            if (i < _teleportCharges)
+            {
+                dotColor = new Color(0.4f, 1.0f, 0.8f, 0.8f);  // Green-cyan (available)
+            }
+            else
+            {
+                dotColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);  // Gray (used)
+            }
+            DrawCircleOutline(dotPos, 3.0f, dotColor, 2.0f);
+        }
     }
 
     /// <summary>
