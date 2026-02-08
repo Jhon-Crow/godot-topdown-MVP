@@ -66,6 +66,51 @@ When selected, the player's weapon fires breaker bullets with the following beha
 - Check `ActiveItemManager.has_breaker_bullets()` in player
 - No special input needed (passive item)
 
+## Bug Report Analysis (PR #690 Feedback)
+
+### User Report
+The user (Jhon-Crow) reported on 2026-02-08 that breaker bullets "don't work" and provided
+a game log file (`game_log_20260209_014244.txt`).
+
+### Root Cause Analysis
+
+**Timeline from game log:**
+1. `01:42:44` — Level loads, Player initializes
+2. `01:42:53` — User selects "Breaker Bullets" in armory menu
+3. `01:42:53` — `[ActiveItemManager] Active item changed from None to Breaker Bullets`
+4. `01:42:54` — Level restarts, Player re-initializes
+5. `01:42:54` — `[Player.Flashlight] No flashlight selected` log appears
+6. **NO `[Player.BreakerBullets]` log appears — neither "active" nor "not selected"**
+7. Bullets fire normally (wall penetration, ricochet) — no breaker behavior
+
+**Root Cause:** The Player scene (`scenes/characters/csharp/Player.tscn`) uses a **C# script**
+(`Scripts/Characters/Player.cs`), NOT the GDScript file (`scripts/characters/player.gd`).
+
+All level scenes reference the C# Player:
+```
+scenes/levels/BuildingLevel.tscn → scenes/characters/csharp/Player.tscn → Scripts/Characters/Player.cs
+```
+
+The original implementation added `_init_breaker_bullets()` and `_breaker_bullets_active` to
+`player.gd`, which is never loaded by the actual game. The `Player.cs` script never had any
+breaker bullets integration.
+
+**Evidence from the log:**
+- The `_init_breaker_bullets()` function has two possible log outputs ("active" and "not selected")
+- Neither appears in the log, confirming the function never executes
+- The flashlight init in `Player.cs` (`InitFlashlight()`) DOES log, confirming C# is the runtime
+
+### Fix Applied
+
+1. Added `InitBreakerBullets()` to `Player.cs` following the exact pattern of `InitFlashlight()`
+   and `InitTeleportBracers()` — checks ActiveItemManager via `has_breaker_bullets()` method call
+2. Added `IsBreakerBulletActive` property to `BaseWeapon.cs` — set on weapon during init
+3. `BaseWeapon.SpawnBullet()` now sets `is_breaker_bullet = true` on spawned bullets when active
+4. `EquipWeapon()` propagates the breaker flag to newly equipped weapons
+
+### Additional Fix: Icon
+Replaced the yellow oval icon with a proper bullet + explosion/shrapnel icon.
+
 ## Known Components That Could Help
 
 ### Godot Engine Features
