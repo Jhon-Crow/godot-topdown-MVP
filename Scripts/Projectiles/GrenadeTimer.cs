@@ -148,6 +148,14 @@ namespace GodotTopdown.Scripts.Projectiles
                 return;
             }
 
+            // FIX for Issue #615: Ensure linear_damp_mode is REPLACE so linear_damp=0
+            // means exactly zero damping. In COMBINE mode (Godot default), linear_damp=0
+            // still adds the project default (0.1), causing ~13% distance shortfall.
+            // This is set redundantly with GDScript _ready() as a safety measure for exports
+            // where GDScript may not run.
+            _grenadeBody.LinearDampMode = RigidBody2D.DampMode.Replace;
+            _grenadeBody.LinearDamp = 0.0f;
+
             // FIX for Issue #432: Apply type-based defaults BEFORE logging.
             // GDScript Get() calls may fail silently in exports, leaving us with
             // incorrect default values (e.g., Frag using Flashbang's 400 radius).
