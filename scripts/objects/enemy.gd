@@ -287,6 +287,7 @@ var _scan_targets: Array[Dictionary] = []  ## [Issue #650] Realistic scan target
 var _scan_target_index: int = 0  ## [Issue #650] Current scan target index
 var _scan_pause_timer: float = 0.0  ## [Issue #650] Pause timer between scan looks
 var _search_init_frames: int = 0  ## [Issue #650] Frame counter to defer navigation after transition
+var _search_nav_target_set: bool = false  ## [Issue #650] Whether nav target was set for current waypoint
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
@@ -2205,21 +2206,22 @@ func _process_searching_state(delta: float) -> void:
 	if _can_see_player: _log_to_file("SEARCHING: Player spotted!"); _transition_to_combat(); return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
 		if _search_radius < SEARCH_MAX_RADIUS:
-			_search_radius += SEARCH_RADIUS_EXPANSION; _generate_search_waypoints()
-			_log_to_file("SEARCHING: Expand ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
-			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS: return
+			_search_radius += SEARCH_RADIUS_EXPANSION; _search_nav_target_set = false
+			_search_init_frames = 1; velocity = Vector2.ZERO  # Issue #650: Defer waypoint regeneration
+			_log_to_file("SEARCHING: Expand ring r=%.0f (deferred regen)" % _search_radius); return
 		else:
 			if _has_left_idle:  # Issue #330/#405: Relocate center, clear zones, continue
 				var old_center := _search_center; _search_center = global_position
 				_search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_visited_zones.clear()
-				_generate_search_waypoints()
-				_log_to_file("SEARCHING: Relocated %s->%s (wps=%d)" % [old_center, _search_center, _search_waypoints.size()]); return
+				_search_nav_target_set = false; _search_init_frames = 1; velocity = Vector2.ZERO  # Issue #650: Defer
+				_log_to_file("SEARCHING: Relocated %s->%s (deferred regen)" % [old_center, _search_center]); return
 			_log_to_file("SEARCHING: Max radius, returning to IDLE"); _transition_to_idle(); return
 	if _search_waypoints.is_empty():
 		if _has_left_idle:  # Issue #330/#405: Regenerate from current position
 			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
-			_search_visited_zones.clear(); _generate_search_waypoints()
-			_log_to_file("SEARCHING: No wps, relocated %s->%s (wps=%d)" % [old, _search_center, _search_waypoints.size()]); return
+			_search_visited_zones.clear(); _search_nav_target_set = false
+			_search_init_frames = 1; velocity = Vector2.ZERO  # Issue #650: Defer waypoint regeneration
+			_log_to_file("SEARCHING: No wps, relocated %s->%s (deferred regen)" % [old, _search_center]); return
 		_transition_to_idle(); return
 	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
 	var dist := global_position.distance_to(target_waypoint)
@@ -2229,9 +2231,9 @@ func _process_searching_state(delta: float) -> void:
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
 			if _nav_agent == null: _transition_to_idle(); return  # Issue #650: Safety check
-			_nav_agent.target_position = target_waypoint
+			if not _search_nav_target_set: _nav_agent.target_position = target_waypoint; _search_nav_target_set = true  # Issue #650: Set once per waypoint
 			if _nav_agent.is_navigation_finished():
-				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1; _search_nav_target_set = false
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
@@ -2243,7 +2245,7 @@ func _process_searching_state(delta: float) -> void:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
 						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
-						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1; _search_nav_target_set = false
 						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 						_search_last_progress_position = global_position; return
 				else:
@@ -2270,7 +2272,7 @@ func _process_searching_state(delta: float) -> void:
 				if _scan_pause_timer >= pause_dur:
 					_scan_target_index += 1; _scan_pause_timer = 0.0
 		else:
-			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1; _search_nav_target_set = false
 			_search_moving_to_waypoint = true; _scan_targets.clear()
 			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
@@ -2615,7 +2617,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position  # Issue #354
-	_scan_targets.clear(); _scan_target_index = 0; _scan_pause_timer = 0.0  # Issue #650: Reset scan state
+	_scan_targets.clear(); _scan_target_index = 0; _scan_pause_timer = 0.0; _search_nav_target_set = false  # Issue #650: Reset scan/nav state
 	_search_init_frames = 2  # Issue #650: Defer waypoint generation (NavigationServer2D segfault fix)
 	_log_to_file("SEARCHING started: center=%s, radius=%.0f (deferred init)" % [_search_center, _search_radius])
 
@@ -2625,8 +2627,8 @@ func _transition_to_searching(center_position: Vector2) -> void:
 func _deferred_search_init() -> void:
 	if not is_instance_valid(self) or not _is_alive or _current_state != AIState.SEARCHING:
 		return
-	# Step 1: Generate waypoints (calls NavigationServer2D — safe on idle frame)
-	_generate_search_waypoints()
+	if _nav_agent: _nav_agent.avoidance_enabled = false  # Issue #650: Disable avoidance during SEARCHING (prevents segfaults with multiple agents)
+	_generate_search_waypoints()  # Step 1: Generate waypoints (calls NavigationServer2D — safe on idle frame)
 	# Step 2: Register with group search coordinator
 	if _group_search_coordinator != null:
 		_group_search_coordinator.unregister_enemy(self)
@@ -2643,6 +2645,7 @@ func _unregister_from_group_search() -> void:
 	if _group_search_coordinator != null:
 		_group_search_coordinator.unregister_enemy(self); _group_search_coordinator = null
 	_scan_targets.clear()
+	if _nav_agent: _nav_agent.avoidance_enabled = true  # Issue #650: Re-enable avoidance after SEARCHING
 
 ## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
 func _transition_to_evading_grenade() -> void:

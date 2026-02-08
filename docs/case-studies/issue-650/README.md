@@ -265,3 +265,77 @@ Fix #3 deferred only the **coordinator setup** (static Dictionary + `instance_fr
 3. **Complete isolation from physics** — No NavigationServer2D calls remain in the
    `_transition_to_searching()` → `_physics_process()` execution path. All navigation
    queries are deferred to idle frames via `call_deferred()`.
+
+## Fifth Crash Report (NavigationAgent2D Avoidance + Repeated Path Computation)
+
+### Symptoms
+After the fourth fix (deferred waypoint generation), the game still crashes ~1 second after
+multiple enemies enter SEARCHING state. Crash log: `crash-logs/game_log_20260209_012831.txt`.
+
+Unlike previous crashes (which happened during init), this crash occurs during **normal
+SEARCHING movement** after deferred init completes successfully.
+
+### Root Cause Analysis
+
+**Two contributing factors identified:**
+
+#### Factor 1: NavigationAgent2D avoidance processing during SEARCHING
+
+The `Enemy.tscn` scene has `avoidance_enabled = true` on the NavigationAgent2D node. When
+4+ enemies enter SEARCHING state in the same area (~100px radius), the avoidance system
+actively processes interactions between all nearby agents every physics frame. The avoidance
+system runs partly on NavigationServer2D's internal thread, and concurrent path queries from
+multiple agents during `_physics_process` can cause native segfaults in Godot 4.3.
+
+Enemy positions in the crash log confirm the searching enemies were close together:
+- Enemy1: searching at (700, 750)
+- Enemy2: searching at (799, 664)
+- Enemy3: searching at (802, 661)
+- Enemy4: searching at (799, 664)
+
+All 4 enemies are within the `neighbor_distance = 100.0` configured on the NavigationAgent2D,
+meaning the avoidance system was actively computing interactions between them.
+
+#### Factor 2: Redundant `target_position` assignment every frame
+
+`_process_searching_state()` set `_nav_agent.target_position = target_waypoint` **every
+physics frame** (line 2232). In Godot 4.3, setting `target_position` triggers a path
+recalculation. With 4 enemies doing this simultaneously every frame, that's 4 path
+recalculations per physics tick, plus 4 avoidance computations.
+
+#### Factor 3: Synchronous waypoint regeneration during physics
+
+When enemies exhaust their 5 initial waypoints and need to expand the search radius,
+`_generate_search_waypoints()` was called synchronously from within `_process_searching_state()`,
+calling `NavigationServer2D.map_get_closest_point()` up to 100 times during `_physics_process`.
+
+### Evidence
+
+| Crash | Trigger | Deferred Init | Time to Crash | Cause |
+|-------|---------|---------------|---------------|-------|
+| Log 6 | LastChance (4 enemies) | Completed OK | ~1 second | Avoidance + repeated target_position |
+
+**Timeline from log:**
+1. `01:29:59` — LastChance effect ends, 4 enemies enter SEARCHING
+2. `01:29:59` — All 4 deferred inits complete: "Init complete (solo, waypoints=5)"
+3. `01:29:59-01:30:00` — Normal SEARCHING movement (corner checks, waypoint following)
+4. `01:30:00` — Native crash (log ends abruptly at line 2858)
+
+### Fix Applied (Fifth Pass)
+
+1. **Disabled NavigationAgent2D avoidance during SEARCHING** — `_deferred_search_init()`
+   sets `_nav_agent.avoidance_enabled = false` before generating waypoints. Avoidance is
+   re-enabled in `_unregister_from_group_search()` when leaving SEARCHING state. This
+   eliminates the concurrent avoidance computation that contributed to native segfaults.
+
+2. **Cache nav target to avoid redundant path recalculation** — Added
+   `_search_nav_target_set` flag. `_nav_agent.target_position` is only set once per
+   waypoint (when `_search_nav_target_set` is false), not every frame. The flag is reset
+   when advancing to the next waypoint. This reduces NavigationServer2D path computations
+   from 4×60/s to 4×(once per waypoint change).
+
+3. **Deferred waypoint regeneration** — When enemies exhaust their waypoints and need to
+   expand the search radius or relocate the search center, `_generate_search_waypoints()`
+   is no longer called synchronously. Instead, `_search_init_frames = 1` is set, which
+   triggers the same deferred initialization path (`_deferred_search_init()`) on the next
+   idle frame.
