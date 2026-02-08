@@ -117,9 +117,32 @@ Trigger fires → safe distance check passes (target is far enough)
 - If grenade hits obstacle before 80px, impact is logged but ignored — grenade continues
 - This is a safety net that prevents self-kills even if the obstacle check is bypassed
 
-**Why both fixes are needed:**
-- Fix 1 prevents most self-kill scenarios by not throwing when obstacles are near
-- Fix 2 is a safety net for edge cases where the obstacle check might miss:
-  - Obstacles with unusual collision shapes
-  - Physics engine edge cases with CCD
-  - Moving obstacles that appear after the check but before the throw
+**Phase 2 Resolution: Removed `_spawn_area_clear()`, kept arming distance only**
+
+The `_spawn_area_clear()` 100px raycast check was **too aggressive**: when the grenadier is positioned near furniture (common in indoor maps), the check blocks ALL throw directions, completely preventing grenade throws. This was confirmed by `game_log_20260208_185121.txt` which shows ZERO `[EnemyGrenade]` throw attempts after the fix was applied.
+
+The `MIN_ARMING_DISTANCE` (80px) in `frag_grenade.gd` alone is sufficient to prevent self-kills: the grenade bounces off nearby furniture without exploding and continues to the target.
+
+## Phase 3: Grenadier Stopped Throwing + Enemy Coordination (PR #658 comment 2)
+
+### Problem
+
+Two issues reported after Phase 2 fix:
+1. Grenadier completely stopped throwing grenades
+2. Non-idle enemies near the grenadier should wait for it to throw before flanking
+
+### Root Cause 1: _spawn_area_clear() Blocks All Throws
+
+**Evidence from `game_log_20260208_185121.txt`:**
+- ZERO `[EnemyGrenade]` log entries in the entire 8073-line log
+- Compare with `game_log_20260208_175336.txt` (before fix): regular `[EnemyGrenade]` entries at lines 79, 90-91, 387-398, etc.
+- Grenadier spawns at (1700, 350) — an indoor area surrounded by furniture
+- The 100px raycast in all directions hits nearby desks/walls, blocking every throw attempt
+
+**Fix:** Removed `_spawn_area_clear()` entirely from both `try_throw()` and `try_passage_throw()`. The `MIN_ARMING_DISTANCE` in `frag_grenade.gd` is the sole self-kill prevention mechanism.
+
+### Root Cause 2: No Pre-Throw Coordination
+
+Existing coordination only triggers AFTER the grenadier throws (`grenade_incoming` signal). Non-grenadier enemies in PURSUING state don't know the grenadier is about to throw and rush ahead.
+
+**Fix:** Added `_should_wait_for_nearby_grenadier()` check in PURSUING state. Non-grenadier enemies within 400px of a pursuing grenadier with grenades will wait (up to 3s) for the grenadier to throw first. Also checks `is_blocking_passage()` for when the grenade is in flight.

@@ -275,13 +275,6 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 		_log("Throw path blocked to %s" % target)
 		return false
 
-	# Issue #657: Check for obstacles near the spawn point that could cause
-	# the grenade to explode immediately and kill the thrower
-	var throw_dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
-	if not _spawn_area_clear(throw_dir):
-		_log("Obstacle near spawn point - skipping throw to avoid self-kill")
-		return false
-
 	_execute_throw(target, is_alive, is_stunned, is_blinded)
 	return true
 
@@ -306,40 +299,6 @@ func _get_blast_radius() -> float:
 	temp_grenade.queue_free()
 
 	return radius
-
-
-## Issue #657: Check that the grenade spawn area is free of obstacles.
-## The grenade spawns at enemy_pos + dir * 40. If an obstacle (desk, furniture, wall)
-## is within that zone, a frag grenade will explode on impact and kill the thrower.
-## Raycasts from the enemy outward in the throw direction (and slightly to the sides)
-## to detect obstacles within the arming distance (100px).
-func _spawn_area_clear(throw_dir: Vector2) -> bool:
-	if _enemy == null:
-		return true
-	var space := _enemy.get_world_2d().direct_space_state
-	if space == null:
-		return true
-	var origin := _enemy.global_position
-	# Check distance slightly beyond spawn offset (40px spawn + 60px safety = 100px)
-	var check_dist := 100.0
-	var check_end := origin + throw_dir * check_dist
-	var query := PhysicsRayQueryParameters2D.create(origin, check_end)
-	query.collision_mask = 4  # Layer 3: obstacles/walls
-	query.exclude = [_enemy]
-	var result := space.intersect_ray(query)
-	if not result.is_empty():
-		return false
-	# Also check slightly to the sides (grenade has a collision shape width)
-	var perp := Vector2(-throw_dir.y, throw_dir.x)
-	for offset in [perp * 15.0, perp * -15.0]:
-		var side_end := origin + offset + throw_dir * check_dist
-		var side_query := PhysicsRayQueryParameters2D.create(origin + offset, side_end)
-		side_query.collision_mask = 4
-		side_query.exclude = [_enemy]
-		var side_result := space.intersect_ray(side_query)
-		if not side_result.is_empty():
-			return false
-	return true
 
 
 func _path_clear(target: Vector2) -> bool:

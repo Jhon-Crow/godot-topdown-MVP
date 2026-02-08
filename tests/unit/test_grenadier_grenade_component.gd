@@ -838,3 +838,114 @@ func test_can_impact_explode_false_when_already_impacted() -> void:
 func test_min_arming_distance_constant() -> void:
 	assert_eq(MockFragGrenadeArming.MIN_ARMING_DISTANCE, 80.0,
 		"MIN_ARMING_DISTANCE should be 80px (twice the spawn offset of 40px)")
+
+
+# ============================================================================
+# Ally Coordination Tests (Issue #657 - Pre-Throw Waiting)
+# ============================================================================
+
+
+class MockAllyCoordination:
+	## Mirrors the _should_wait_for_nearby_grenadier logic for unit testing.
+	var is_grenadier: bool = false
+	var current_state: int = 0  # 0=IDLE, 7=PURSUING
+	var position: Vector2 = Vector2.ZERO
+	var allies: Array = []
+
+	func should_wait() -> bool:
+		if is_grenadier or current_state == 0: return false  # Grenadiers don't wait; IDLE enemies don't wait
+		for ally in allies:
+			if not ally.is_grenadier: continue
+			if ally.grenades <= 0: continue
+			if position.distance_to(ally.position) >= 400.0: continue
+			if ally.blocking_passage: return true
+			if ally.pursuing: return true
+		return false
+
+
+class MockGrenadierAlly:
+	var is_grenadier: bool = true
+	var grenades: int = 8
+	var position: Vector2 = Vector2.ZERO
+	var blocking_passage: bool = false
+	var pursuing: bool = false
+
+
+func test_ally_does_not_wait_when_idle() -> void:
+	var coord := MockAllyCoordination.new()
+	coord.current_state = 0  # IDLE
+	coord.position = Vector2(100, 100)
+	var grenadier := MockGrenadierAlly.new()
+	grenadier.position = Vector2(150, 100)
+	grenadier.pursuing = true
+	coord.allies = [grenadier]
+
+	assert_false(coord.should_wait(),
+		"IDLE enemies should not wait for grenadier")
+
+
+func test_ally_waits_when_pursuing_near_grenadier() -> void:
+	var coord := MockAllyCoordination.new()
+	coord.current_state = 7  # PURSUING
+	coord.position = Vector2(100, 100)
+	var grenadier := MockGrenadierAlly.new()
+	grenadier.position = Vector2(200, 100)  # 100px away
+	grenadier.pursuing = true
+	coord.allies = [grenadier]
+
+	assert_true(coord.should_wait(),
+		"PURSUING ally near a pursuing grenadier with grenades should wait")
+
+
+func test_ally_does_not_wait_when_grenadier_far() -> void:
+	var coord := MockAllyCoordination.new()
+	coord.current_state = 7  # PURSUING
+	coord.position = Vector2(100, 100)
+	var grenadier := MockGrenadierAlly.new()
+	grenadier.position = Vector2(600, 100)  # 500px away (> 400)
+	grenadier.pursuing = true
+	coord.allies = [grenadier]
+
+	assert_false(coord.should_wait(),
+		"Ally should not wait when grenadier is too far (>400px)")
+
+
+func test_ally_does_not_wait_when_grenadier_has_no_grenades() -> void:
+	var coord := MockAllyCoordination.new()
+	coord.current_state = 7  # PURSUING
+	coord.position = Vector2(100, 100)
+	var grenadier := MockGrenadierAlly.new()
+	grenadier.position = Vector2(200, 100)
+	grenadier.grenades = 0
+	grenadier.pursuing = true
+	coord.allies = [grenadier]
+
+	assert_false(coord.should_wait(),
+		"Ally should not wait when grenadier has no grenades left")
+
+
+func test_ally_waits_when_grenadier_blocking_passage() -> void:
+	var coord := MockAllyCoordination.new()
+	coord.current_state = 7  # PURSUING
+	coord.position = Vector2(100, 100)
+	var grenadier := MockGrenadierAlly.new()
+	grenadier.position = Vector2(200, 100)
+	grenadier.blocking_passage = true
+	coord.allies = [grenadier]
+
+	assert_true(coord.should_wait(),
+		"Ally should wait when grenadier is blocking a passage with active grenade")
+
+
+func test_grenadier_does_not_wait_for_another_grenadier() -> void:
+	var coord := MockAllyCoordination.new()
+	coord.is_grenadier = true
+	coord.current_state = 7  # PURSUING
+	coord.position = Vector2(100, 100)
+	var grenadier := MockGrenadierAlly.new()
+	grenadier.position = Vector2(200, 100)
+	grenadier.pursuing = true
+	coord.allies = [grenadier]
+
+	assert_false(coord.should_wait(),
+		"Grenadier should not wait for another grenadier")
