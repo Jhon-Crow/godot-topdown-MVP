@@ -162,7 +162,10 @@ var _map_grenade_config: Dictionary = {
 	"Bunker": {"grenade_count": 3, "enemy_probability": 0.5, "grenade_type": "frag"},
 
 	# Boss/Advanced maps - maximum grenades
-	"BossLevel": {"grenade_count": 3, "enemy_probability": 0.6, "grenade_type": "frag"}
+	"BossLevel": {"grenade_count": 3, "enemy_probability": 0.6, "grenade_type": "frag"},
+
+	# City/Building level - grenadier uses own bag, regular enemies get standard grenades (Issue #604)
+	"BuildingLevel": {"grenade_count": 1, "enemy_probability": 0.15, "grenade_type": "frag"}
 }
 
 ## Difficulty modifiers for grenade probability.

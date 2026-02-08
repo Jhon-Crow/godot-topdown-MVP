@@ -81,7 +81,8 @@ func activate_timer() -> void:
 	FileLogger.info("[FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)")
 
 
-## Override _physics_process to disable blinking (no timer countdown for frag grenades).
+## Override _physics_process to handle freeze detection and disable blinking
+## (no timer countdown for frag grenades).
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
@@ -96,34 +97,14 @@ func _physics_process(delta: float) -> void:
 			_is_thrown = true
 			FileLogger.info("[FragGrenade] Detected unfreeze - enabling impact detection (fallback)")
 
-	# Apply velocity-dependent ground friction to slow down
-	# FIX for issue #435: Grenade should maintain speed for most of flight,
-	# only slowing down noticeably at the very end of its path.
-	# At high velocities: reduced friction (grenade maintains speed)
-	# At low velocities: full friction (grenade slows to stop)
-	if linear_velocity.length() > 0:
-		var current_speed := linear_velocity.length()
-
-		# Calculate friction multiplier based on velocity
-		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
-		# Below friction_ramp_velocity: smoothly ramp up to full friction
-		var friction_multiplier: float
-		if current_speed >= friction_ramp_velocity:
-			# High speed: minimal friction to maintain velocity
-			friction_multiplier = min_friction_multiplier
-		else:
-			# Low speed: smoothly increase friction from min to full (1.0)
-			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
-			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
-			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
-			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
-
-		var effective_friction := ground_friction * friction_multiplier
-		var friction_force := linear_velocity.normalized() * effective_friction * delta
-		if friction_force.length() > linear_velocity.length():
-			linear_velocity = Vector2.ZERO
-		else:
-			linear_velocity -= friction_force
+	# FIX for Issue #638: Ground friction is handled exclusively by C# GrenadeTimer.
+	# Previously, this override applied velocity-dependent friction in GDScript,
+	# creating DOUBLE FRICTION with C# GrenadeTimer.ApplyGroundFriction().
+	# This caused frag grenades to travel only ~64% of their target distance.
+	# The fix in Issue #615 removed friction from grenade_base.gd but missed
+	# this override in frag_grenade.gd.
+	# C# GrenadeTimer.ApplyGroundFriction() applies uniform friction: F = ground_friction * delta
+	# This matches the throw speed formula: v = sqrt(2 * F * d), d = v² / (2 * F)
 
 	# Check for landing (grenade comes to near-stop after being thrown)
 	if not _has_landed and _timer_active:
