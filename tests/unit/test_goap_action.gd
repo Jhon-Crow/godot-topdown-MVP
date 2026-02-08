@@ -176,3 +176,80 @@ func test_to_string_format() -> void:
 
 	assert_true(str_result.contains("test_action"), "String should contain action name")
 	assert_true(str_result.contains("2.5"), "String should contain cost")
+
+
+# ============================================================================
+# ThrowGrenadeAction Tests (Issue #657)
+# ============================================================================
+
+
+func test_throw_grenade_action_initialization() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+
+	assert_eq(action.action_name, "throw_grenade", "Action name should be 'throw_grenade'")
+	assert_eq(action.cost, 0.3, "Base cost should be 0.3")
+
+
+func test_throw_grenade_action_preconditions() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+
+	assert_true(action.preconditions.has("has_grenades"), "Should require has_grenades")
+	assert_eq(action.preconditions["has_grenades"], true, "has_grenades should be true")
+	assert_true(action.preconditions.has("grenadier_throw_ready"), "Should require grenadier_throw_ready")
+	assert_eq(action.preconditions["grenadier_throw_ready"], true, "grenadier_throw_ready should be true")
+
+
+func test_throw_grenade_action_effects() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+
+	assert_true(action.effects.has("grenade_thrown"), "Should have grenade_thrown effect")
+	assert_eq(action.effects["grenade_thrown"], true, "grenade_thrown should be true")
+	assert_true(action.effects.has("player_engaged"), "Should have player_engaged effect")
+
+
+func test_throw_grenade_action_valid_when_ready() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+	var state := {"has_grenades": true, "grenadier_throw_ready": true}
+
+	assert_true(action.is_valid(state), "Should be valid when grenadier has grenades and is ready")
+
+
+func test_throw_grenade_action_invalid_when_no_grenades() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+	var state := {"has_grenades": false, "grenadier_throw_ready": true}
+
+	assert_false(action.is_valid(state), "Should be invalid when no grenades")
+
+
+func test_throw_grenade_action_invalid_when_not_ready() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+	var state := {"has_grenades": true, "grenadier_throw_ready": false}
+
+	assert_false(action.is_valid(state), "Should be invalid when not ready to throw")
+
+
+func test_throw_grenade_action_low_cost_when_ready() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+	var state := {"grenadier_throw_ready": true}
+
+	assert_eq(action.get_cost(null, state), 0.2,
+		"Cost should be 0.2 when grenadier is ready to throw")
+
+
+func test_throw_grenade_action_high_cost_when_not_ready() -> void:
+	var action := EnemyActions.ThrowGrenadeAction.new()
+	var state := {"grenadier_throw_ready": false}
+
+	assert_eq(action.get_cost(null, state), 100.0,
+		"Cost should be 100.0 when grenadier is not ready")
+
+
+func test_throw_grenade_action_in_create_all_actions() -> void:
+	var actions := EnemyActions.create_all_actions()
+	var found := false
+	for action in actions:
+		if action.action_name == "throw_grenade":
+			found = true
+			break
+
+	assert_true(found, "ThrowGrenadeAction should be included in create_all_actions()")
