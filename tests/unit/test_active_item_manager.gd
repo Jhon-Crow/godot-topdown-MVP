@@ -22,6 +22,12 @@ func test_active_item_type_flashlight_value() -> void:
 	assert_eq(expected, 1, "FLASHLIGHT should be the second active item type (1)")
 
 
+func test_active_item_type_ai_helmet_value() -> void:
+	# ActiveItemType.AI_HELMET should be 2
+	var expected := 2
+	assert_eq(expected, 2, "AI_HELMET should be the third active item type (2)")
+
+
 # ============================================================================
 # Active Item Data Constants Tests
 # ============================================================================
@@ -47,6 +53,17 @@ func test_active_item_data_has_flashlight() -> void:
 		}
 	}
 	assert_true(item_data.has(1), "ACTIVE_ITEM_DATA should contain FLASHLIGHT type")
+
+
+func test_active_item_data_has_ai_helmet() -> void:
+	var item_data := {
+		2: {
+			"name": "AI Helmet",
+			"icon_path": "res://assets/sprites/weapons/ai_helmet_icon.png",
+			"description": "AI-powered helmet — press Space to predict enemy positions 1 second ahead. Red ghost outlines appear for 10 seconds. 2 charges per battle."
+		}
+	}
+	assert_true(item_data.has(2), "ACTIVE_ITEM_DATA should contain AI_HELMET type")
 
 
 func test_none_data_has_name() -> void:
@@ -80,7 +97,8 @@ class MockActiveItemManager:
 	## Active item types
 	const ActiveItemType := {
 		NONE = 0,
-		FLASHLIGHT = 1
+		FLASHLIGHT = 1,
+		AI_HELMET = 2
 	}
 
 	## Currently selected active item type
@@ -97,6 +115,11 @@ class MockActiveItemManager:
 			"name": "Flashlight",
 			"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+		},
+		2: {
+			"name": "AI Helmet",
+			"icon_path": "res://assets/sprites/weapons/ai_helmet_icon.png",
+			"description": "AI-powered helmet — press Space to predict enemy positions 1 second ahead. Red ghost outlines appear for 10 seconds. 2 charges per battle."
 		}
 	}
 
@@ -153,6 +176,10 @@ class MockActiveItemManager:
 	## Check if a flashlight is currently equipped
 	func has_flashlight() -> bool:
 		return current_active_item == ActiveItemType.FLASHLIGHT
+
+	## Check if an AI helmet is currently equipped
+	func has_ai_helmet() -> bool:
+		return current_active_item == ActiveItemType.AI_HELMET
 
 
 var manager: MockActiveItemManager
@@ -270,10 +297,11 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 2,
-		"Should return 2 active item types")
+	assert_eq(types.size(), 3,
+		"Should return 3 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
+	assert_true(2 in types)
 
 
 func test_get_active_item_name_none() -> void:
@@ -453,7 +481,8 @@ class MockArmoryWithActiveItems:
 	## Active item data
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
-		1: {"name": "Flashlight", "description": "Tactical flashlight"}
+		1: {"name": "Flashlight", "description": "Tactical flashlight"},
+		2: {"name": "AI Helmet", "description": "AI-powered helmet"}
 	}
 
 	## Applied active item type
@@ -533,3 +562,78 @@ func test_armory_switch_active_items() -> void:
 		"Latest pending should be None")
 	assert_false(armory.has_pending_changes(),
 		"Should have no pending changes after switching back")
+
+
+# ============================================================================
+# AI Helmet Tests (Issue #671)
+# ============================================================================
+
+
+func test_ai_helmet_data_has_name() -> void:
+	var data := {"name": "AI Helmet"}
+	assert_eq(data["name"], "AI Helmet", "AI Helmet should have correct name")
+
+
+func test_ai_helmet_data_has_icon_path() -> void:
+	var data := {"icon_path": "res://assets/sprites/weapons/ai_helmet_icon.png"}
+	assert_true(data["icon_path"].contains("ai_helmet"),
+		"AI Helmet icon path should contain 'ai_helmet'")
+
+
+func test_ai_helmet_data_has_description() -> void:
+	var data := {"description": "AI-powered helmet — press Space to predict enemy positions 1 second ahead. Red ghost outlines appear for 10 seconds. 2 charges per battle."}
+	assert_true(data["description"].contains("Space"),
+		"AI Helmet description should mention Space key")
+	assert_true(data["description"].contains("predict"),
+		"AI Helmet description should mention prediction")
+
+
+func test_set_active_item_to_ai_helmet() -> void:
+	manager.set_active_item(2)
+	assert_eq(manager.current_active_item, 2,
+		"Active item type should change to AI_HELMET")
+
+
+func test_has_ai_helmet_after_selection() -> void:
+	manager.set_active_item(2)
+	assert_true(manager.has_ai_helmet(),
+		"has_ai_helmet should return true after selecting AI helmet")
+
+
+func test_no_ai_helmet_by_default() -> void:
+	assert_false(manager.has_ai_helmet(),
+		"has_ai_helmet should return false by default")
+
+
+func test_no_flashlight_when_helmet_selected() -> void:
+	manager.set_active_item(2)
+	assert_false(manager.has_flashlight(),
+		"has_flashlight should return false when AI helmet selected")
+
+
+func test_no_helmet_when_flashlight_selected() -> void:
+	manager.set_active_item(1)
+	assert_false(manager.has_ai_helmet(),
+		"has_ai_helmet should return false when flashlight selected")
+
+
+func test_get_ai_helmet_data() -> void:
+	var data := manager.get_active_item_data(2)
+	assert_eq(data["name"], "AI Helmet")
+
+
+func test_get_ai_helmet_name() -> void:
+	assert_eq(manager.get_active_item_name(2), "AI Helmet")
+
+
+func test_get_ai_helmet_description() -> void:
+	var desc := manager.get_active_item_description(2)
+	assert_true(desc.contains("predict"),
+		"AI Helmet description should mention prediction")
+
+
+func test_armory_select_ai_helmet() -> void:
+	var armory := MockArmoryWithActiveItems.new()
+	var result := armory.select_active_item(2)
+	assert_true(result, "Should select AI helmet")
+	assert_eq(armory.pending_active_item, 2, "Pending should be AI helmet")

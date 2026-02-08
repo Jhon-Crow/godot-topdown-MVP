@@ -8,7 +8,8 @@ extends Node
 ## Active item types available in the game.
 enum ActiveItemType {
 	NONE,        # No active item equipped
-	FLASHLIGHT   # Tactical flashlight - illuminates in weapon direction
+	FLASHLIGHT,  # Tactical flashlight - illuminates in weapon direction
+	AI_HELMET    # AI-powered helmet - predicts enemy positions 1 second ahead
 }
 
 ## Currently selected active item type.
@@ -26,6 +27,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+	},
+	ActiveItemType.AI_HELMET: {
+		"name": "AI Helmet",
+		"icon_path": "res://assets/sprites/weapons/ai_helmet_icon.png",
+		"description": "AI-powered helmet — press Space to predict enemy positions 1 second ahead. Red ghost outlines appear for 10 seconds. 2 charges per battle."
 	}
 }
 
@@ -112,3 +118,8 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if an AI helmet is currently equipped.
+func has_ai_helmet() -> bool:
+	return current_active_item == ActiveItemType.AI_HELMET
