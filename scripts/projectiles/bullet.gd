@@ -118,6 +118,10 @@ const MAX_PENETRATION_CHANCE_AT_DISTANCE: float = 0.3  # 30% max at viewport dis
 ## Shooter's position at the time of firing (for distance-based penetration).
 var shooter_position: Vector2 = Vector2.ZERO
 
+## Duration in seconds to stun enemies on hit (0 = no stun effect).
+## Set by weapons like MakarovPM and SilencedPistol via Node.Set().
+var stun_duration: float = 0.0
+
 
 func _ready() -> void:
 	# Connect to collision signals
@@ -371,6 +375,10 @@ func _on_area_entered(area: Area2D) -> void:
 			area.on_hit_with_info(direction, caliber_data)
 		else:
 			area.on_hit()
+
+		# Apply stun effect if configured (e.g., MakarovPM, SilencedPistol)
+		if stun_duration > 0 and parent:
+			_apply_stun_effect(parent)
 
 		# Trigger hit effects if this is a player bullet hitting an enemy
 		if _is_player_bullet():
@@ -626,6 +634,18 @@ func _trigger_player_hit_effects() -> void:
 	var hit_effects_manager: Node = get_node_or_null("/root/HitEffectsManager")
 	if hit_effects_manager and hit_effects_manager.has_method("on_player_hit_enemy"):
 		hit_effects_manager.on_player_hit_enemy()
+
+
+## Applies stun effect to the hit enemy via StatusEffectsManager.
+## Used by weapons like MakarovPM (100ms) and SilencedPistol (600ms).
+func _apply_stun_effect(enemy: Node) -> void:
+	if stun_duration <= 0:
+		return
+	if not enemy is Node2D:
+		return
+	var status_effects_manager: Node = get_node_or_null("/root/StatusEffectsManager")
+	if status_effects_manager and status_effects_manager.has_method("apply_stun"):
+		status_effects_manager.apply_stun(enemy, stun_duration)
 
 
 ## Returns the current ricochet count.

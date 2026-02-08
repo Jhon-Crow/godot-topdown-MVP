@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -385,6 +386,101 @@ public partial class MakarovPM : BaseWeapon
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Stun duration in seconds applied to enemies hit by PM bullets (Issue #592).
+    /// 100ms provides a brief flinch effect on hit.
+    /// </summary>
+    private const float StunDurationOnHit = 0.1f;
+
+    /// <summary>
+    /// Override SpawnBullet to set StunDuration on PM bullets (Issue #592).
+    /// Enemies hit by PM bullets are briefly stunned (100ms).
+    /// </summary>
+    protected override void SpawnBullet(Vector2 direction)
+    {
+        if (BulletScene == null)
+        {
+            return;
+        }
+
+        // Check if the bullet spawn path is blocked by a wall
+        var (isBlocked, hitPosition, hitNormal) = CheckBulletSpawnPath(direction);
+
+        Vector2 spawnPosition;
+        if (isBlocked)
+        {
+            spawnPosition = GlobalPosition + direction * 2.0f;
+        }
+        else
+        {
+            spawnPosition = GlobalPosition + direction * BulletSpawnOffset;
+        }
+
+        var bulletNode = BulletScene.Instantiate<Node2D>();
+        bulletNode.GlobalPosition = spawnPosition;
+
+        // Try to cast to C# Bullet type for direct property access
+        var bullet = bulletNode as Bullet;
+
+        if (bullet != null)
+        {
+            bullet.Direction = direction;
+            if (WeaponData != null)
+            {
+                bullet.Speed = WeaponData.BulletSpeed;
+                bullet.Damage = WeaponData.Damage;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bullet.ShooterId = owner.GetInstanceId();
+            }
+            bullet.ShooterPosition = GlobalPosition;
+            bullet.StunDuration = StunDurationOnHit;
+        }
+        else
+        {
+            // GDScript bullet fallback
+            if (bulletNode.HasMethod("SetDirection"))
+            {
+                bulletNode.Call("SetDirection", direction);
+            }
+            else
+            {
+                bulletNode.Set("Direction", direction);
+                bulletNode.Set("direction", direction);
+            }
+
+            if (WeaponData != null)
+            {
+                bulletNode.Set("Speed", WeaponData.BulletSpeed);
+                bulletNode.Set("speed", WeaponData.BulletSpeed);
+                bulletNode.Set("Damage", WeaponData.Damage);
+                bulletNode.Set("damage", WeaponData.Damage);
+            }
+
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bulletNode.Set("ShooterId", owner.GetInstanceId());
+                bulletNode.Set("shooter_id", owner.GetInstanceId());
+            }
+
+            bulletNode.Set("ShooterPosition", GlobalPosition);
+            bulletNode.Set("shooter_position", GlobalPosition);
+            bulletNode.Set("StunDuration", StunDurationOnHit);
+            bulletNode.Set("stun_duration", StunDurationOnHit);
+        }
+
+        GetTree().CurrentScene.AddChild(bulletNode);
+
+        // Spawn muzzle flash effect
+        SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
+
+        // Spawn casing
+        SpawnCasing(direction, WeaponData?.Caliber);
     }
 
     /// <summary>

@@ -110,7 +110,9 @@ var _sniper_max_wall_penetrations: int = 2
 var _sniper_laser: Line2D = null
 var _sniper_bolt_timer: float = 0.0
 var _sniper_bolt_ready: bool = true
+var _sniper_retreat_cooldown: float = 0.0  # Prevents COMBAT<->SEEKING_COVER thrashing
 const SNIPER_BOLT_CYCLE_TIME: float = 2.0
+const SNIPER_RETREAT_COOLDOWN_TIME: float = 3.0  # Seconds before sniper can retreat again
 
 signal hit  ## Enemy hit
 signal died  ## Enemy died
@@ -355,6 +357,7 @@ var _killed_by_penetration: bool = false
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
+var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -444,6 +447,8 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
+	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 	if _is_sniper: _setup_sniper_laser()  # Sniper laser sight (Issue #581)
 	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
 	# Unlimited search zone is activated AFTER enemy detects and loses player
@@ -489,7 +494,7 @@ func _configure_weapon_type() -> void:
 	_is_sniper = c.get("is_sniper", false)
 	if _is_sniper:
 		_sniper_hitscan_range = c.get("hitscan_range", 5000.0); _sniper_hitscan_damage = c.get("hitscan_damage", 50.0); _sniper_max_wall_penetrations = c.get("max_wall_penetrations", 2)
-		rotation_speed = c.get("rotation_speed", 1.0); reload_time = 4.0; enable_flanking = false; enable_cover = true; behavior_mode = BehaviorMode.GUARD
+		rotation_speed = c.get("rotation_speed", 1.0); reload_time = 4.0; enable_flanking = false; enable_cover = true; behavior_mode = BehaviorMode.GUARD; total_magazines = 10  # Snipers carry more ammo
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else (" (hitscan)" if _is_sniper else "")])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -804,6 +809,7 @@ func _physics_process(delta: float) -> void:
 	if _is_sniper and not _sniper_bolt_ready:  # Bolt-action cycling (Issue #581)
 		_sniper_bolt_timer += delta
 		if _sniper_bolt_timer >= SNIPER_BOLT_CYCLE_TIME: _sniper_bolt_ready = true
+	if _is_sniper and _sniper_retreat_cooldown > 0.0: _sniper_retreat_cooldown -= delta  # Retreat cooldown
 
 	# Update reload timer
 	_update_reload(delta)
@@ -1563,12 +1569,12 @@ func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector
 ## Process SEEKING_COVER state - moving to cover position.
 func _process_seeking_cover_state(_delta: float) -> void:
 	if not _has_valid_cover:
-		# Try to find cover
 		_find_cover_position()
 		if not _has_valid_cover:
-			# No cover found, stay in combat
-			_transition_to_combat()
-			return
+			if _is_sniper:
+				# Sniper: go to IN_COVER at current position to avoid COMBAT<->SEEKING_COVER thrashing
+				_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
+			_transition_to_combat(); return
 
 	# Check if we're already hidden from the player (the main goal)
 	if not _is_visible_from_player():
@@ -1585,9 +1591,9 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			_has_valid_cover = false
 			_find_cover_position()
 			if not _has_valid_cover:
-				# No better cover found, stay in combat
-				_transition_to_combat()
-				return
+				if _is_sniper:
+					_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
+				_transition_to_combat(); return
 
 	# Use navigation-based pathfinding to move toward cover
 	_move_to_target_nav(_cover_position, combat_move_speed)
@@ -3807,6 +3813,10 @@ func _shoot() -> void:
 
 	var target_position := _player.global_position
 
+	# Snipers shooting through walls aim at memory target, not player position
+	if _is_sniper and not _can_see_player and _memory and _memory.has_target():
+		target_position = _memory.suspected_position
+
 	# Apply lead prediction if enabled
 	if enable_lead_prediction:
 		target_position = _calculate_lead_prediction()
@@ -3948,17 +3958,19 @@ func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 func _process_sniper_combat_state(delta: float) -> void:
 	_combat_state_timer += delta; velocity = Vector2.ZERO
 	_sniper_update_detection_delay(delta)
-	if _under_fire and enable_cover:
-		_log_to_file("SNIPER: retreating - under fire"); _transition_to_seeking_cover(); return
-	if _can_see_player and _player and enable_cover:
-		var dist := global_position.distance_to(_player.global_position)
-		if dist < get_viewport_rect().size.length():
-			_log_to_file("SNIPER: retreating, player too close (%.0f)" % dist); _transition_to_seeking_cover(); return
+	# Retreat to cover if under fire or player too close (with cooldown to prevent thrashing)
+	if _sniper_retreat_cooldown <= 0.0 and enable_cover:
+		if _under_fire:
+			_log_to_file("SNIPER: retreating - under fire"); _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
+		if _can_see_player and _player:
+			var dist := global_position.distance_to(_player.global_position)
+			if dist < get_viewport_rect().size.length():
+				_log_to_file("SNIPER: retreating, player too close (%.0f)" % dist); _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
 	if not _can_see_player:
 		if _memory and _memory.has_target():
 			var suspected_pos: Vector2 = _memory.suspected_position
 			var walls := SniperComponent.count_walls(self, suspected_pos)
-			_aim_at_player()
+			_sniper_rotate_toward(suspected_pos)
 			if walls <= _sniper_max_wall_penetrations and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 				_log_to_file("SNIPER: shooting through %d walls at %s" % [walls, suspected_pos]); _shoot(); _shoot_timer = 0.0
 		elif _combat_state_timer > 5.0: _transition_to_searching(global_position)
@@ -3969,11 +3981,12 @@ func _process_sniper_combat_state(delta: float) -> void:
 
 func _process_sniper_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO; _sniper_update_detection_delay(delta)
-	if _is_visible_from_player() and _under_fire:
-		_has_valid_cover = false; _transition_to_seeking_cover(); return
-	if _player:
-		if global_position.distance_to(_player.global_position) < get_viewport_rect().size.length():
-			_has_valid_cover = false; _transition_to_seeking_cover(); return
+	# Re-seek cover if flanked under fire or player too close (with cooldown)
+	if _sniper_retreat_cooldown <= 0.0:
+		if _is_visible_from_player() and _under_fire:
+			_has_valid_cover = false; _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
+		if _player and global_position.distance_to(_player.global_position) < get_viewport_rect().size.length():
+			_has_valid_cover = false; _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
 	if _can_see_player and _player:
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -4791,11 +4804,13 @@ func _setup_flashbang_status() -> void:
 
 func _on_blinded_changed(blinded: bool) -> void:
 	_is_blinded = blinded
+	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
 	if blinded:
 		_can_see_player = false; _continuous_visibility_timer = 0.0
 
 func _on_stunned_changed(stunned: bool) -> void:
 	_is_stunned = stunned
+	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned:
 		velocity = Vector2.ZERO
 

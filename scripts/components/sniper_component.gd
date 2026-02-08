@@ -90,11 +90,11 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 	var walls_penetrated := 0
 	var bullet_end := end_pos
 	var current_pos := spawn_pos
-	var exclude_rids: Array[RID] = []
+	var exclude_rids: Array[RID] = [enemy.get_rid()]  # Exclude self
 	var damaged_ids: Dictionary = {}
 
-	# Combined mask: Layer 2 (enemies) + Layer 4 (walls)
-	var combined_mask := 4 + 2
+	# Combined mask: Layer 1 (player) + Layer 2 (enemies) + Layer 4 (walls)
+	var combined_mask := 4 + 2 + 1
 
 	for _i in range(50):  # Safety limit
 		var query := PhysicsRayQueryParameters2D.create(current_pos, end_pos, combined_mask)
@@ -146,7 +146,8 @@ static func spawn_tracer(scene_tree: SceneTree, start_pos: Vector2, end_pos: Vec
 	var tracer := Line2D.new()
 	tracer.name = "SniperTracer"
 	tracer.width = 5.0
-	tracer.z_index = 10
+	tracer.z_index = 90
+	tracer.z_as_relative = false  # Use absolute z_index to render above game elements
 	tracer.top_level = true
 
 	var width_curve := Curve.new()
@@ -176,12 +177,13 @@ static func spawn_tracer(scene_tree: SceneTree, start_pos: Vector2, end_pos: Vec
 static func create_laser() -> Line2D:
 	var laser := Line2D.new()
 	laser.name = "SniperLaser"
-	laser.width = 3.0
-	laser.default_color = Color(1.0, 0.0, 0.0, 0.7)  # Bright red laser
+	laser.width = 4.0
+	laser.default_color = Color(1.0, 0.0, 0.0, 0.9)  # Bright red laser, high alpha
 	laser.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	laser.end_cap_mode = Line2D.LINE_CAP_ROUND
 	laser.points = PackedVector2Array([Vector2.ZERO, Vector2(500, 0)])
 	laser.z_index = 100  # Above all game elements for visibility
+	laser.z_as_relative = false  # Use absolute z_index to render above everything
 	laser.top_level = true  # Use global coordinates to avoid parent rotation double-transform
 	# Make unshaded for visibility in dark mode
 	var mat := CanvasItemMaterial.new()

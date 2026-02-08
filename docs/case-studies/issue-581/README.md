@@ -213,6 +213,38 @@ Pure utility functions that only access `Node2D`-level properties (like `global_
 - `spawn_tracer()` — smoke tracer line effect
 - `spawn_casing()` — bullet casing ejection
 
+## Round 6 Analysis — State Thrashing, Hitscan Damage, Laser Visibility
+
+### Evidence from game log `game_log_20260208_084047.txt`
+
+The round 5 fixes (inlining state logic + aim tolerance) worked — snipers now fire (`SNIPER FIRED` entries confirm shots). But three critical bugs remain:
+
+### Root Cause A: COMBAT<->SEEKING_COVER State Thrashing (Critical)
+
+Both snipers oscillate between `COMBAT` and `SEEKING_COVER` states ~150+ times in 5 seconds when the player enters 1 viewport distance. The cycle:
+1. `_process_sniper_combat_state` detects player too close → `_transition_to_seeking_cover()`
+2. `_process_seeking_cover_state` fails to find cover → `_transition_to_combat()`
+3. Repeat every physics frame
+
+**Fix:** Added `_sniper_retreat_cooldown` (3.0s) to prevent re-triggering retreat. When no cover is found, snipers transition to `IN_COVER` at current position instead of back to `COMBAT`.
+
+### Root Cause B: Hitscan Cannot Hit Player (Critical)
+
+`SniperComponent.perform_hitscan()` used collision mask `4 + 2` (layers 2=enemies, 3=walls), but the **player is on layer 1** (value 1). The hitscan raycast never intersects the player's collision body.
+
+**Fix:** Changed mask to `4 + 2 + 1 = 7` (layers 1=player, 2=enemies, 3=walls). Also added `enemy.get_rid()` to exclude list to prevent self-hits.
+
+### Root Cause C: Aim Misalignment When Shooting Through Walls
+
+`_shoot()` compared body rotation direction against `(_player.global_position - global_position).normalized()`, but when shooting through walls, the sniper is aimed at `_memory.suspected_position`, not the player's current position. This caused the 30° aim tolerance check to fail with angles 37-177° off target.
+
+**Fix:** When `_can_see_player = false` and memory has a target, use `_memory.suspected_position` instead of `_player.global_position` for the aim check.
+
+### Additional fixes:
+- **Laser visibility:** Set `z_as_relative = false` on laser Line2D so z_index=100 is absolute, not relative to parent. Increased alpha to 0.9 and width to 4px.
+- **Tracer visibility:** Set `z_as_relative = false` on tracers with z_index=90.
+- **Ammo depletion:** Snipers now carry 10 magazines (was 5, default), giving 50 rounds total for sustained engagement.
+
 ## Game Logs
 
 See `round5-logs/` and root directory for game log files from the issue author's testing.
@@ -221,5 +253,5 @@ See `round5-logs/` and root directory for game log files from the issue author's
 
 - ASVK rifle: Russian anti-materiel rifle, 12.7x108mm caliber
 - Existing player ASVK implementation: `Scripts/Weapons/SniperRifle.cs` (1796 lines)
-- Enemy AI base: `scripts/objects/enemy.gd` (4954 lines)
+- Enemy AI base: `scripts/objects/enemy.gd` (4969 lines)
 - Weapon configs: `scripts/components/weapon_config_component.gd`
