@@ -757,7 +757,8 @@ func _initialize_goap_state() -> void:
 		"has_prediction": false, "prediction_confidence": 0.0,  # [#298]
 		# Flashlight detection states (Issue #574)
 		"flashlight_detected": false,
-		"passage_lit_by_flashlight": false
+		"passage_lit_by_flashlight": false,
+		"grenadier_throw_ready": false  # Issue #657: Grenadier GOAP throw
 	}
 
 ## Initialize the enemy memory, prediction, and flashlight detection systems (Issue #297, #298, #574).
@@ -4908,14 +4909,14 @@ func _can_see_position(pos: Vector2) -> bool:
 	var result := not _raycast.is_colliding()
 	_raycast.target_position = orig
 	return result
-
 func _update_grenade_world_state() -> void:
 	if _grenade_component == null:
 		_goap_world_state["has_grenades"] = false; _goap_world_state["grenades_remaining"] = 0
-		_goap_world_state["ready_to_throw_grenade"] = false; return
+		_goap_world_state["ready_to_throw_grenade"] = false; _goap_world_state["grenadier_throw_ready"] = false; return
+	var rdy := _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
 	_goap_world_state["has_grenades"] = _grenade_component.grenades_remaining > 0
 	_goap_world_state["grenades_remaining"] = _grenade_component.grenades_remaining
-	_goap_world_state["ready_to_throw_grenade"] = _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
+	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = is_grenadier and rdy
 
 ## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:

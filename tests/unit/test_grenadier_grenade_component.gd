@@ -493,3 +493,199 @@ func test_passage_throw_hard_difficulty_order() -> void:
 	var type := bag.consume()
 	assert_eq(type, MockGrenadierBag.GrenadeType.DEFENSIVE,
 		"Hard mode last passage throw should use defensive")
+
+
+# ============================================================================
+# Trigger 8: Direct Sight Tests (Issue #657)
+# ============================================================================
+
+
+class MockGrenadierTriggers:
+	## Mirrors grenadier T8 and T9 triggers for unit testing.
+	const DIRECT_SIGHT_DELAY := 0.5
+	const LOW_SUSPICION_DELAY := 1.0
+
+	var _direct_sight_timer: float = 0.0
+	var _player_in_throw_range: bool = false
+	var _low_suspicion_timer: float = 0.0
+	var enabled: bool = true
+	var grenades_remaining: int = 8
+	var _cooldown: float = 0.0
+	var _is_throwing: bool = false
+
+	func _t8() -> bool:
+		return _player_in_throw_range and _direct_sight_timer >= DIRECT_SIGHT_DELAY
+
+	func _t9() -> bool:
+		return _low_suspicion_timer >= LOW_SUSPICION_DELAY
+
+	func update_t8(delta: float, can_see: bool, dist_in_range: bool) -> void:
+		if can_see and dist_in_range:
+			_player_in_throw_range = true
+			_direct_sight_timer += delta
+		else:
+			_player_in_throw_range = false
+			_direct_sight_timer = 0.0
+
+	func update_t9(delta: float, has_target: bool, can_see: bool) -> void:
+		if has_target and not can_see:
+			_low_suspicion_timer += delta
+		else:
+			_low_suspicion_timer = 0.0
+
+	func reset_triggers() -> void:
+		_direct_sight_timer = 0.0
+		_player_in_throw_range = false
+		_low_suspicion_timer = 0.0
+
+
+var triggers: MockGrenadierTriggers
+
+
+func test_t8_false_when_not_in_range() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._player_in_throw_range = false
+	triggers._direct_sight_timer = 10.0
+
+	assert_false(triggers._t8(),
+		"T8 should be false when player is not in throw range")
+
+
+func test_t8_false_when_timer_below_delay() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._player_in_throw_range = true
+	triggers._direct_sight_timer = 0.4
+
+	assert_false(triggers._t8(),
+		"T8 should be false when sight timer is below DIRECT_SIGHT_DELAY (0.5s)")
+
+
+func test_t8_true_when_in_range_and_timer_met() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._player_in_throw_range = true
+	triggers._direct_sight_timer = 0.5
+
+	assert_true(triggers._t8(),
+		"T8 should be true when player in range and sight timer >= DIRECT_SIGHT_DELAY")
+
+
+func test_t8_true_with_long_sight() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._player_in_throw_range = true
+	triggers._direct_sight_timer = 3.0
+
+	assert_true(triggers._t8(),
+		"T8 should be true with extended line of sight")
+
+
+func test_t8_update_resets_when_player_not_visible() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers.update_t8(0.1, true, true)
+	triggers.update_t8(0.1, true, true)
+	assert_true(triggers._direct_sight_timer > 0.0, "Timer should accumulate")
+
+	triggers.update_t8(0.1, false, true)
+	assert_eq(triggers._direct_sight_timer, 0.0,
+		"T8 timer should reset when player not visible")
+	assert_false(triggers._player_in_throw_range,
+		"Player should not be in range when not visible")
+
+
+func test_t8_update_resets_when_distance_out_of_range() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers.update_t8(0.5, true, true)
+	assert_true(triggers._t8(), "T8 should be true when in range")
+
+	triggers.update_t8(0.1, true, false)
+	assert_false(triggers._t8(),
+		"T8 should be false when distance is out of range")
+
+
+func test_t8_boundary_just_below_delay() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._player_in_throw_range = true
+	triggers._direct_sight_timer = 0.499
+
+	assert_false(triggers._t8(),
+		"T8 should be false just below DIRECT_SIGHT_DELAY")
+
+
+# ============================================================================
+# Trigger 9: Low Suspicion Tests (Issue #657)
+# ============================================================================
+
+
+func test_t9_false_when_timer_zero() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._low_suspicion_timer = 0.0
+
+	assert_false(triggers._t9(),
+		"T9 should be false when suspicion timer is 0")
+
+
+func test_t9_false_when_timer_below_delay() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._low_suspicion_timer = 0.9
+
+	assert_false(triggers._t9(),
+		"T9 should be false when suspicion timer is below LOW_SUSPICION_DELAY (1.0s)")
+
+
+func test_t9_true_when_timer_meets_delay() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._low_suspicion_timer = 1.0
+
+	assert_true(triggers._t9(),
+		"T9 should be true when suspicion timer >= LOW_SUSPICION_DELAY")
+
+
+func test_t9_true_with_high_suspicion_timer() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._low_suspicion_timer = 5.0
+
+	assert_true(triggers._t9(),
+		"T9 should be true with high suspicion timer")
+
+
+func test_t9_update_resets_when_no_target() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers.update_t9(0.5, true, false)
+	triggers.update_t9(0.6, true, false)
+	assert_true(triggers._t9(), "T9 should be true after 1.1s")
+
+	triggers.update_t9(0.1, false, false)
+	assert_eq(triggers._low_suspicion_timer, 0.0,
+		"T9 timer should reset when no memory target")
+
+
+func test_t9_update_resets_when_player_visible() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers.update_t9(1.5, true, false)
+	assert_true(triggers._t9(), "T9 should be true after 1.5s")
+
+	triggers.update_t9(0.1, true, true)
+	assert_eq(triggers._low_suspicion_timer, 0.0,
+		"T9 timer should reset when player is visible")
+
+
+func test_t9_boundary_just_below_delay() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._low_suspicion_timer = 0.999
+
+	assert_false(triggers._t9(),
+		"T9 should be false just below LOW_SUSPICION_DELAY")
+
+
+func test_reset_clears_t8_and_t9() -> void:
+	triggers = MockGrenadierTriggers.new()
+	triggers._direct_sight_timer = 5.0
+	triggers._player_in_throw_range = true
+	triggers._low_suspicion_timer = 5.0
+
+	triggers.reset_triggers()
+
+	assert_false(triggers._t8(), "T8 should be false after reset")
+	assert_false(triggers._t9(), "T9 should be false after reset")
+	assert_eq(triggers._direct_sight_timer, 0.0, "Direct sight timer should be 0")
+	assert_false(triggers._player_in_throw_range, "Player in range should be false")
+	assert_eq(triggers._low_suspicion_timer, 0.0, "Low suspicion timer should be 0")
