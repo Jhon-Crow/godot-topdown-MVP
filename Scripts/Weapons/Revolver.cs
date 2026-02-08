@@ -238,22 +238,33 @@ public partial class Revolver : BaseWeapon
     /// Handles RMB drag gestures for cartridge insertion (Issue #626).
     /// Follows the same pattern as shotgun pump-action:
     /// Hold RMB and drag UP (screen coordinates, negative Y) to insert a cartridge.
+    /// Uses viewport mouse position (screen coords) for reliable gesture detection
+    /// regardless of camera zoom level.
     /// </summary>
     private void HandleDragGestures()
     {
+        // Only process drag gestures while cylinder is open
+        if (ReloadState != RevolverReloadState.CylinderOpen
+            && ReloadState != RevolverReloadState.Loading)
+        {
+            _isDragging = false;
+            return;
+        }
+
         bool rawRMBState = Input.IsMouseButtonPressed(MouseButton.Right);
 
         if (rawRMBState)
         {
             if (!_isDragging)
             {
-                _dragStartPosition = GetGlobalMousePosition();
+                // Use viewport mouse position (screen coordinates) for consistent drag detection
+                _dragStartPosition = GetViewport().GetMousePosition();
                 _isDragging = true;
             }
             else
             {
                 // Check for mid-drag gesture completion (continuous gesture without releasing RMB)
-                Vector2 currentPosition = GetGlobalMousePosition();
+                Vector2 currentPosition = GetViewport().GetMousePosition();
                 Vector2 dragVector = currentPosition - _dragStartPosition;
 
                 if (TryProcessDragGesture(dragVector))
@@ -266,7 +277,7 @@ public partial class Revolver : BaseWeapon
         else if (_isDragging)
         {
             // RMB released - evaluate the drag gesture
-            Vector2 dragEnd = GetGlobalMousePosition();
+            Vector2 dragEnd = GetViewport().GetMousePosition();
             Vector2 dragVector = dragEnd - _dragStartPosition;
             _isDragging = false;
 
@@ -281,7 +292,7 @@ public partial class Revolver : BaseWeapon
     /// <returns>True if a gesture was processed.</returns>
     private bool TryProcessDragGesture(Vector2 dragVector)
     {
-        // Must be primarily vertical and meet minimum distance
+        // Must meet minimum distance threshold (in screen pixels)
         if (dragVector.Length() < MinDragDistance)
         {
             return false;
@@ -301,19 +312,12 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Only process during cylinder open states
-        if (ReloadState != RevolverReloadState.CylinderOpen
-            && ReloadState != RevolverReloadState.Loading)
-        {
-            return false;
-        }
-
         // Insert a cartridge
         if (InsertCartridge())
         {
             // Play cartridge insert sound via AudioManager
             PlayCartridgeInsertSound();
-            GD.Print("[Revolver] RMB drag up - cartridge inserted");
+            GD.Print($"[Revolver] RMB drag up - cartridge inserted (drag: {dragVector.Y:F0}px)");
             return true;
         }
 
@@ -434,8 +438,8 @@ public partial class Revolver : BaseWeapon
             PlayRevolverShotSound();
             // Emit gunshot sound for in-game sound propagation (very loud)
             EmitGunshotSound();
-            // Play shell casing sound with delay (heavy pistol casings)
-            PlayShellCasingDelayed();
+            // Note: No casing ejection on fire - revolver keeps spent casings in the cylinder
+            // until the player opens it (casings eject in OpenCylinder → SpawnEjectedCasings)
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
         }
@@ -518,20 +522,6 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Plays heavy pistol shell casing sound with a delay.
-    /// The RSh-12 ejects larger casings than standard pistols.
-    /// </summary>
-    private async void PlayShellCasingDelayed()
-    {
-        await ToSignal(GetTree().CreateTimer(0.12), "timeout");
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_shell_pistol"))
-        {
-            audioManager.Call("play_shell_pistol", GlobalPosition);
-        }
-    }
-
-    /// <summary>
     /// Triggers heavy screen shake based on shooting direction.
     /// RSh-12 has strong recoil close to sniper rifle, with extended recovery time.
     /// </summary>
@@ -578,7 +568,7 @@ public partial class Revolver : BaseWeapon
         {
             PlayRevolverShotSound();
             EmitGunshotSound();
-            PlayShellCasingDelayed();
+            // No casing ejection - spent casings stay in cylinder
             TriggerScreenShake(spreadDirection);
         }
 
@@ -586,44 +576,14 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Override SpawnCasing for RSh-12-specific casing ejection behavior.
-    /// RSh-12 casings are pistol-sized but longer and slightly wider (12.7mm).
-    /// They eject with moderate force - between pistol and sniper rifle ejection.
+    /// Override SpawnCasing to suppress casing ejection during normal fire.
+    /// Revolvers keep spent casings in the cylinder - they only fall out when
+    /// the player opens the cylinder (handled by SpawnEjectedCasings in OpenCylinder).
     /// </summary>
     protected override void SpawnCasing(Vector2 direction, Resource? caliber)
     {
-        if (CasingScene == null)
-        {
-            return;
-        }
-
-        // Calculate casing spawn position (near the weapon, slightly offset)
-        Vector2 casingSpawnPosition = GlobalPosition + direction * (BulletSpawnOffset * 0.5f);
-
-        var casing = CasingScene.Instantiate<RigidBody2D>();
-        casing.GlobalPosition = casingSpawnPosition;
-
-        // Calculate ejection direction to the right of the weapon
-        Vector2 weaponRight = new Vector2(-direction.Y, direction.X);
-
-        // Eject to the right with some randomness
-        float randomAngle = (float)GD.RandRange(-0.3f, 0.3f);
-        Vector2 ejectionDirection = weaponRight.Rotated(randomAngle);
-
-        // RSh-12: Moderate-fast ejection speed (between pistol 120-180 and sniper 300-400)
-        float ejectionSpeed = (float)GD.RandRange(180.0f, 260.0f);
-        casing.LinearVelocity = ejectionDirection * ejectionSpeed;
-
-        // Add initial spin for realism (heavy casing)
-        casing.AngularVelocity = (float)GD.RandRange(-18.0f, 18.0f);
-
-        // Set caliber data on the casing for appearance
-        if (caliber != null)
-        {
-            casing.Set("caliber_data", caliber);
-        }
-
-        GetTree().CurrentScene.AddChild(casing);
+        // Intentionally empty - revolvers don't eject casings when firing.
+        // Spent casings stay in the cylinder until the player opens it.
     }
 
     /// <summary>
@@ -692,11 +652,8 @@ public partial class Revolver : BaseWeapon
         int cylinderCapacity = CylinderCapacity;
         _spentCasingsToEject = cylinderCapacity - CurrentAmmo;
 
-        // Empty the cylinder - all rounds (spent casings) fall out
-        // The current ammo represents live rounds still in the cylinder
-        // When opening, we dump everything (spent casings already fired are gone)
-        // Set ammo to 0 - player needs to reload cartridges
-        CurrentAmmo = 0;
+        // Live rounds stay in the cylinder - only spent casings fall out
+        // CurrentAmmo is NOT reset to 0 - the player only needs to reload empty chambers
         CartridgesLoadedThisReload = 0;
 
         // Update reload state
@@ -718,7 +675,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
 
-        GD.Print($"[Revolver] Cylinder opened - ejected {_spentCasingsToEject} spent casings");
+        GD.Print($"[Revolver] Cylinder opened - ejected {_spentCasingsToEject} spent casings, {CurrentAmmo}/{cylinderCapacity} live rounds remain");
 
         return true;
     }

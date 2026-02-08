@@ -114,6 +114,32 @@ The critical fix was in `Scripts/Characters/Player.cs`:
 - Added full sequence test with rotation
 - Updated comments to reflect new RMB drag up + scroll wheel input scheme
 
+### Iteration 3: Bug Fixes (PR #634 feedback round 2)
+
+#### Bugs Reported by @Jhon-Crow (game_log_20260208_171528.txt)
+
+**Bug 1: Casings eject when shooting**
+- **Symptom:** Visual casings fly out of the revolver every time the player fires
+- **Root Cause:** `base.Fire()` in `BaseWeapon.cs` calls `SpawnCasing()` on every shot, and the Revolver's `SpawnCasing()` override was spawning casings. Additionally, `PlayShellCasingDelayed()` was called in `Fire()`.
+- **Fix:** Override `SpawnCasing()` to do nothing during fire (revolvers keep spent casings in the cylinder). Removed `PlayShellCasingDelayed()` from `Fire()` and `FireChamberBullet()`.
+
+**Bug 2: RMB drag up not inserting cartridges properly**
+- **Symptom:** After first RMB drag up, reload behavior was unexpected. Game log shows NO cartridge insertion messages despite user performing RMB drag gestures.
+- **Root Cause (A):** `HandleDragGestures()` used `GetGlobalMousePosition()` (world coordinates) which can be affected by camera zoom, making the 30px `MinDragDistance` threshold unreliable.
+- **Root Cause (B):** `OpenCylinder()` was setting `CurrentAmmo = 0`, dumping ALL rounds (including live ones). Revolvers should keep live rounds in the cylinder — only spent casings should fall out.
+- **Fix (A):** Changed to `GetViewport().GetMousePosition()` (screen coordinates) for reliable drag detection regardless of camera zoom. Added early exit in `HandleDragGestures()` when cylinder is not open.
+- **Fix (B):** Removed `CurrentAmmo = 0` from `OpenCylinder()` — live rounds now stay in the cylinder. Player only needs to reload empty chambers.
+
+**Bug 3: No tutorial for revolver**
+- **Symptom:** Selecting revolver in armory and entering tutorial shows no weapon-specific reload instructions, and ammo counter doesn't work.
+- **Root Cause:** `tutorial_level.gd` had no revolver case in `_setup_selected_weapon()`, `_connect_player_signals()`, `_setup_ammo_tracking()`, or `_update_prompt_text()`.
+- **Fix:** Added complete revolver support to tutorial:
+  - Weapon equipping in `_setup_selected_weapon()` (loads Revolver.tscn)
+  - Signal connections for `ReloadCompleted` and `AmmoChanged`
+  - `CartridgeInserted` signal connection for real-time ammo counter during cylinder reload
+  - Reload tutorial text: `[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]`
+
 ## Attached Data
 
 - `game_log_20260208_160452.txt` - Game log showing the original problem (revolver reloading like M16)
+- `logs/game_log_20260208_171528.txt` - Game log from iteration 2, showing bugs 1-3
