@@ -20,8 +20,8 @@ class MockWindowLightManager:
 	## Primary light color (cool blue moonlight).
 	const LIGHT_COLOR: Color = Color(0.4, 0.5, 0.9, 1.0)
 
-	## Primary light energy (very low — v6 reduced from 0.15 to 0.08).
-	const LIGHT_ENERGY: float = 0.08
+	## Primary light energy (low — v7 increased from 0.08 to 0.12, Issue #642).
+	const LIGHT_ENERGY: float = 0.12
 
 	## Primary light texture scale (large for early-fadeout gradient — no visible edges).
 	const LIGHT_TEXTURE_SCALE: float = 6.0
@@ -30,8 +30,8 @@ class MockWindowLightManager:
 	## DirectionalLight2D covers the entire scene uniformly — no edges.
 	const AMBIENT_COLOR: Color = Color(0.35, 0.45, 0.85, 1.0)
 
-	## Ambient moonlight energy (extremely faint — 0.04).
-	const AMBIENT_ENERGY: float = 0.04
+	## Ambient moonlight energy (faint — v7 increased from 0.04 to 0.06, Issue #642).
+	const AMBIENT_ENERGY: float = 0.06
 
 	## Window visual color (semi-transparent blue).
 	const WINDOW_COLOR: Color = Color(0.3, 0.4, 0.7, 0.6)
@@ -374,7 +374,7 @@ func test_total_window_light_energy_much_less_than_flash() -> void:
 		manager.create_window_light(pair[0], pair[1])
 	var ambient := manager.create_map_ambient()
 
-	# Total energy: 11 primary lights (0.08 each) + 1 ambient (0.04) = 0.92
+	# Total energy: 11 primary lights (0.12 each) + 1 ambient (0.06) = 1.38
 	var total_energy: float = manager.get_light_count() * manager.LIGHT_ENERGY + ambient.energy
 	assert_true(total_energy < manager.MUZZLE_FLASH_ENERGY,
 		"Total window energy (%.2f) should be less than muzzle flash (%.1f)" % [
@@ -509,15 +509,15 @@ func test_all_window_positions_on_exterior_walls() -> void:
 
 
 func test_window_light_constant_values() -> void:
-	assert_eq(manager.LIGHT_ENERGY, 0.08,
-		"Light energy constant should be 0.08")
+	assert_eq(manager.LIGHT_ENERGY, 0.12,
+		"Light energy constant should be 0.12")
 	assert_eq(manager.LIGHT_TEXTURE_SCALE, 6.0,
 		"Light texture scale constant should be 6.0")
 
 
 func test_ambient_light_constant_values() -> void:
-	assert_eq(manager.AMBIENT_ENERGY, 0.04,
-		"Ambient energy constant should be 0.04")
+	assert_eq(manager.AMBIENT_ENERGY, 0.06,
+		"Ambient energy constant should be 0.06")
 
 
 func test_window_visual_color_is_blue() -> void:

@@ -310,8 +310,8 @@ func _setup_window_lights() -> void:
 	# Scene-wide ambient moonlight using DirectionalLight2D.
 	# DirectionalLight2D illuminates the entire scene uniformly with NO visible
 	# edges (unlike PointLight2D which has a finite circular boundary).
-	# Energy is extremely low (0.04) so it only provides barely-visible wall
-	# outlines without washing out the scene or hiding weapon muzzle flashes.
+	# Energy is very low (0.06) so it provides visible wall outlines
+	# without washing out the scene or hiding weapon muzzle flashes.
 	_create_ambient_moonlight(windows_node)
 
 	print("[BuildingLevel] Window lights placed in corridors without enemies (Issue #593)")
@@ -326,7 +326,7 @@ func _setup_window_lights() -> void:
 ## Light gradient uses an early-fadeout design: the radial gradient reaches
 ## absolute zero at 55% of the radius, leaving 45% of the texture as pure black
 ## buffer. This ensures NO visible edges even against the near-black CanvasModulate.
-## Combined with large texture_scale (6.0) and low energy (0.08), the light
+## Combined with large texture_scale (6.0) and low energy (0.12), the light
 ## dissipates naturally with no perceptible boundary.
 ## @param parent: Parent node to add the window to.
 ## @param pos: Position of the window on the wall.
@@ -368,7 +368,7 @@ func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> vo
 	var light := PointLight2D.new()
 	light.name = "MoonLight"
 	light.color = Color(0.4, 0.5, 0.9, 1.0)  # Cool blue moonlight
-	light.energy = 0.08  # Very low — large texture_scale compensates for coverage
+	light.energy = 0.12  # Low — slightly brighter (Issue #642), large texture_scale compensates for coverage
 	# Shadows enabled so interior walls cast natural shadows from the moonlight
 	light.shadow_enabled = true
 	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
@@ -430,7 +430,7 @@ func _create_ambient_moonlight(parent: Node2D) -> void:
 	var ambient := DirectionalLight2D.new()
 	ambient.name = "AmbientMoonlight"
 	ambient.color = Color(0.35, 0.45, 0.85, 1.0)  # Subtle blue moonlight tint
-	ambient.energy = 0.04  # Extremely faint — just enough for wall outlines
+	ambient.energy = 0.06  # Faint — slightly brighter (Issue #642) for better wall outline visibility
 	ambient.shadow_enabled = false  # Must pass through all walls for uniform glow
 	parent.add_child(ambient)
 
