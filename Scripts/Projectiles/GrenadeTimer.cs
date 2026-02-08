@@ -153,7 +153,7 @@ namespace GodotTopdown.Scripts.Projectiles
             // still adds the project default (0.1), causing ~13% distance shortfall.
             // This is set redundantly with GDScript _ready() as a safety measure for exports
             // where GDScript may not run.
-            _grenadeBody.LinearDampMode = RigidBody2D.DampModeEnum.Replace;
+            _grenadeBody.LinearDampMode = RigidBody2D.DampMode.Replace;
             _grenadeBody.LinearDamp = 0.0f;
 
             // FIX for Issue #432: Apply type-based defaults BEFORE logging.
