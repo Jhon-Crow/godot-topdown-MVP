@@ -41,6 +41,15 @@ func _ready() -> void:
 	print("Beach size: ~2400x2000 pixels")
 	print("Clear all enemies to win!")
 	_setup_navigation()
+	# Use call_deferred to ensure all child instances (Enemy scenes) have their
+	# scripts fully initialized before we check for signals. This fixes an issue
+	# where has_signal("died") returns false during scene transitions because
+	# child instance scripts may not be resolved yet when the parent _ready() runs.
+	call_deferred("_deferred_setup")
+
+
+## Deferred setup called after all child nodes are fully initialized.
+func _deferred_setup() -> void:
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()

@@ -100,6 +100,17 @@ func _ready() -> void:
 	_setup_navigation()
 
 	# Find and connect to all enemies
+	# Use call_deferred to ensure all child instances (Enemy scenes) have their
+	# scripts fully initialized before we check for signals. This fixes an issue
+	# where has_signal("died") returns false during scene transitions because
+	# child instance scripts may not be resolved yet when the parent _ready() runs.
+	call_deferred("_deferred_setup")
+
+
+## Deferred setup called after all child nodes are fully initialized.
+## This ensures instanced scenes (like Enemy.tscn) have their scripts loaded
+## and signals registered before we try to connect to them.
+func _deferred_setup() -> void:
 	_setup_enemy_tracking()
 
 	# Find the enemy count label
