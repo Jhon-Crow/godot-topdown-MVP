@@ -184,6 +184,36 @@ public partial class Revolver : BaseWeapon
     [Signal]
     public delegate void CasingsEjectedEventHandler(int count);
 
+    /// <summary>
+    /// Signal emitted when the hammer is cocked before firing (Issue #661).
+    /// This is a separate event so that other systems can react to it
+    /// (e.g., animations, UI feedback, enemy awareness).
+    /// </summary>
+    [Signal]
+    public delegate void HammerCockedEventHandler();
+
+    /// <summary>
+    /// Whether the hammer is currently cocked and waiting to fire (Issue #661).
+    /// </summary>
+    private bool _isHammerCocked = false;
+
+    /// <summary>
+    /// Timer for the delay between hammer cock and actual shot (Issue #661).
+    /// The hammer cocks and cylinder rotates first, then the shot fires.
+    /// </summary>
+    private float _hammerCockTimer = 0.0f;
+
+    /// <summary>
+    /// Direction stored when hammer was cocked, used for the delayed shot (Issue #661).
+    /// </summary>
+    private Vector2 _pendingShotDirection = Vector2.Zero;
+
+    /// <summary>
+    /// Delay in seconds between hammer cock and shot (Issue #661).
+    /// Short enough to feel responsive, long enough for the cock sound to be heard.
+    /// </summary>
+    private const float HammerCockDelay = 0.15f;
+
     public override void _Ready()
     {
         base._Ready();
@@ -217,6 +247,18 @@ public partial class Revolver : BaseWeapon
         {
             float recoveryAmount = RecoilRecoverySpeed * (float)delta;
             _recoilOffset = Mathf.MoveToward(_recoilOffset, 0, recoveryAmount);
+        }
+
+        // Handle hammer cock delay timer (Issue #661)
+        // After cocking the hammer, wait a short delay then fire the shot
+        if (_isHammerCocked && _hammerCockTimer > 0)
+        {
+            _hammerCockTimer -= (float)delta;
+            if (_hammerCockTimer <= 0)
+            {
+                ExecuteShot(_pendingShotDirection);
+                _isHammerCocked = false;
+            }
         }
 
         // Update aim direction and weapon sprite rotation
@@ -415,18 +457,25 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Fires the RSh-12 revolver in semi-automatic mode.
-    /// Heavy revolver with strong recoil and screen shake.
-    /// Very loud - alerts enemies at long range.
+    /// Fires the RSh-12 revolver in semi-automatic mode (Issue #661).
+    /// When the player presses LMB, the hammer cocks and the cylinder rotates first,
+    /// then after a short delay the shot fires. This gives the revolver a distinctive
+    /// mechanical feel with audible hammer cock and cylinder rotation before each shot.
     /// </summary>
     /// <param name="direction">Direction to fire (uses aim direction).</param>
-    /// <returns>True if the weapon fired successfully.</returns>
+    /// <returns>True if the fire sequence was initiated successfully.</returns>
     public override bool Fire(Vector2 direction)
     {
         // Cannot fire while cylinder is open (Issue #626)
         if (ReloadState != RevolverReloadState.NotReloading)
         {
             GD.Print("[Revolver] Cannot fire - cylinder is open");
+            return false;
+        }
+
+        // Cannot fire while hammer is already cocked and waiting to fire
+        if (_isHammerCocked)
+        {
             return false;
         }
 
@@ -443,13 +492,53 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
+        // Issue #661: Cock the hammer and rotate the cylinder before firing.
+        // The actual shot happens after a short delay (HammerCockDelay).
+        _isHammerCocked = true;
+        _hammerCockTimer = HammerCockDelay;
+        _pendingShotDirection = direction;
+
+        // Play hammer cock sound
+        PlayHammerCockSound();
+
+        // Play cylinder rotation sound (different variants for variety)
+        PlayCylinderRotateSound();
+
+        // Emit HammerCocked signal as a separate event (Issue #661 requirement #2)
+        EmitSignal(SignalName.HammerCocked);
+
+        GD.Print("[Revolver] Hammer cocked, cylinder rotated - shot pending");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Executes the actual shot after the hammer cock delay (Issue #661).
+    /// Called from _Process when the hammer cock timer expires.
+    /// </summary>
+    /// <param name="direction">Direction to fire.</param>
+    private void ExecuteShot(Vector2 direction)
+    {
+        // Re-check conditions (state may have changed during delay)
+        if (ReloadState != RevolverReloadState.NotReloading)
+        {
+            GD.Print("[Revolver] Shot cancelled - cylinder was opened during hammer cock");
+            return;
+        }
+
+        if (CurrentAmmo <= 0 || WeaponData == null || BulletScene == null)
+        {
+            GD.Print("[Revolver] Shot cancelled - conditions changed during hammer cock");
+            return;
+        }
+
         // Apply recoil offset to aim direction
         Vector2 spreadDirection = ApplySpread(_aimDirection);
         bool result = base.Fire(spreadDirection);
 
         if (result)
         {
-            // Play heavy revolver shot sound (uses PM shot as base, louder)
+            // Play heavy revolver shot sound
             PlayRevolverShotSound();
             // Emit gunshot sound for in-game sound propagation (very loud)
             EmitGunshotSound();
@@ -460,8 +549,6 @@ public partial class Revolver : BaseWeapon
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
         }
-
-        return result;
     }
 
     /// <summary>
@@ -492,6 +579,19 @@ public partial class Revolver : BaseWeapon
         _timeSinceLastShot = 0;
 
         return result;
+    }
+
+    /// <summary>
+    /// Plays the revolver hammer cock sound via AudioManager (Issue #661).
+    /// Called before each shot to give the revolver its distinctive mechanical feel.
+    /// </summary>
+    private void PlayHammerCockSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_revolver_hammer_cock"))
+        {
+            audioManager.Call("play_revolver_hammer_cock", GlobalPosition);
+        }
     }
 
     /// <summary>
@@ -575,6 +675,8 @@ public partial class Revolver : BaseWeapon
 
     /// <summary>
     /// Fires the bullet in the chamber during reload sequence.
+    /// Note: Chamber bullet fires immediately without hammer cock delay,
+    /// since the hammer is already in a ready state during reload sequence.
     /// </summary>
     public override bool FireChamberBullet(Vector2 direction)
     {
