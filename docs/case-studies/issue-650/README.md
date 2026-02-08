@@ -339,3 +339,91 @@ calling `NavigationServer2D.map_get_closest_point()` up to 100 times during `_ph
    is no longer called synchronously. Instead, `_search_init_frames = 1` is set, which
    triggers the same deferred initialization path (`_deferred_search_init()`) on the next
    idle frame.
+
+## Sixth Crash Report (NavigationAgent2D get_next_path_position During Movement)
+
+### Symptoms
+After the fifth fix (avoidance disabled + cached nav target + deferred regen), the game
+still crashes ~1 second after enemies enter SEARCHING state. Two crash logs provided:
+- `crash-logs/game_log_20260209_012831.txt` (crash log #5, re-tested)
+- `crash-logs/game_log_20260209_024401.txt` (crash log #6)
+
+### Root Cause Analysis
+
+**The critical insight:** All previous fixes addressed NavigationServer2D calls during
+*initialization* (waypoint generation, coordinator setup) or *configuration* (avoidance,
+target_position setting). But the **ongoing movement** still used NavigationAgent2D methods
+synchronously every physics frame:
+
+```
+_nav_agent.is_navigation_finished()  -- every frame per enemy
+_nav_agent.get_next_path_position()  -- every frame per enemy
+```
+
+With 3 enemies simultaneously in SEARCHING state in the same ~150px area, these calls
+produce 3×60 = 180 NavigationServer2D queries per second from `_physics_process`. The
+Godot 4.3 NavigationServer2D has known thread-safety issues where concurrent navigation
+queries from multiple agents can trigger native segfaults.
+
+**Evidence from crash log #6 (`game_log_20260209_024401.txt`):**
+
+| Time | Event |
+|------|-------|
+| `02:44:13` | 3 enemies (Enemy2,3,4) enter SEARCHING with deferred init |
+| `02:44:13` | All 3 complete init: "Init complete (solo, waypoints=5)" |
+| `02:44:13-14` | Normal waypoint movement (corner checks, rotation) |
+| `02:44:14` | Native crash (log ends at line 463) |
+
+Time to crash: ~1 second after search movement begins.
+
+### Key Insight: FEAR AI Approach
+
+Research into professional game AI implementations (particularly F.E.A.R. by Monolith,
+GDC 2006 "Three States and a Plan" by Jeff Orkin) revealed that:
+
+1. **Short-distance patrol/search movement uses simple direct movement**, not pathfinding
+2. **Expensive pathfinding (A*) is reserved for long-distance navigation** (pursuing across
+   the map, reaching distant cover points)
+3. **Search waypoints are typically within a small radius** (100-500px) where direct
+   movement is sufficient and obstacles are already validated during waypoint generation
+
+This insight directly applies to our problem: search waypoints are generated within
+a 100-500px radius and are already validated as navigable by `_is_waypoint_navigable()`
+during `_deferred_search_init()`. Using NavigationAgent2D for this short-distance
+movement is both unnecessary and dangerous.
+
+### Fix Applied (Sixth Pass)
+
+**Replaced NavigationAgent2D pathfinding with direct movement during SEARCHING state.**
+
+The old code (lines 2233-2255) used `_nav_agent.target_position`, `.is_navigation_finished()`,
+and `.get_next_path_position()` to navigate to each waypoint. The new code simply computes
+the direction vector from the enemy's position to the target waypoint and sets velocity
+directly:
+
+```gdscript
+# OLD: NavigationAgent2D-based (crashes with 3+ simultaneous enemies)
+_nav_agent.target_position = target_waypoint
+if _nav_agent.is_navigation_finished(): ...
+else: var next_pos := _nav_agent.get_next_path_position()
+
+# NEW: Direct movement (no NavigationServer2D calls in physics)
+var dir := (target_waypoint - global_position).normalized()
+velocity = dir * move_speed * 0.7
+```
+
+This completely eliminates ALL NavigationServer2D calls from the SEARCHING
+`_physics_process` loop. The stuck detection system (Issue #354) handles cases where
+direct movement gets blocked by obstacles — enemies skip the waypoint after 2 seconds
+of no progress.
+
+### Summary of All 6 Crash Fixes
+
+| Fix # | Root Cause | Solution |
+|-------|-----------|----------|
+| 1 | Missing coordinator cleanup on state transitions | Added `_unregister_from_group_search()` to all 10 transitions |
+| 2 | Double `move_and_slide()` + no navigation deferral | Removed inline `move_and_slide()`, added 2-frame init delay |
+| 3 | `instance_from_id()` crash during physics | Replaced with WeakRef + deferred coordinator setup |
+| 4 | `_generate_search_waypoints()` during physics | Deferred all waypoint generation to idle frames |
+| 5 | NavigationAgent2D avoidance + repeated target_position | Disabled avoidance, cached nav target, deferred regen |
+| 6 | `get_next_path_position()` called every frame during movement | **Replaced with direct movement — zero NavigationServer2D calls** |
