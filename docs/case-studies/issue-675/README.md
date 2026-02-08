@@ -116,7 +116,8 @@ seen in games like:
 |---|---|
 | `scripts/projectiles/aggression_gas_grenade.gd` | New grenade class |
 | `scripts/effects/aggression_cloud.gd` | New persistent gas cloud |
+| `scripts/components/aggression_component.gd` | Aggression targeting component (extracted from enemy.gd) |
 | `scenes/projectiles/AggressionGasGrenade.tscn` | New grenade scene |
 | `scripts/autoload/status_effects_manager.gd` | Add aggression effect |
-| `scripts/objects/enemy.gd` | Add aggression targeting |
+| `scripts/objects/enemy.gd` | Minimal aggression integration (delegates to component) |
 | `scripts/autoload/grenade_manager.gd` | Register new grenade type |
