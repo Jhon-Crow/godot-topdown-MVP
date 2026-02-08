@@ -195,7 +195,7 @@ occluder = SubResource("OccluderPolygon2D_divider_v")
 [node name="Cover" type="Node2D" parent="Environment"]
 
 [node name="Crate1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(600, 200)
+position = Vector2(350, 200)
 collision_layer = 4
 collision_mask = 0
 
@@ -287,7 +287,7 @@ occluder = SubResource("OccluderPolygon2D_cover_crate")
 [node name="Enemies" type="Node2D" parent="Environment"]
 
 [node name="Enemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(900, 350)
+position = Vector2(500, 300)
 behavior_mode = 1
 weapon_type = 0
 min_health = 1
@@ -297,12 +297,12 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Enemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(1800, 200)
+position = Vector2(800, 200)
 behavior_mode = 0
 weapon_type = 0
 min_health = 1
 max_health = 2
-patrol_offsets = Array[Vector2]([Vector2(200, 0), Vector2(-200, 0)])
+patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true

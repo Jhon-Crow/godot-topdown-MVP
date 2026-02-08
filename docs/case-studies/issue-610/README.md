@@ -48,7 +48,7 @@ For this level:
 4. **Enemy count:** 4 (3 RIFLE + 1 SHOTGUN) - spaced along the corridor length
 5. **Placement:** The new level becomes the first level (simplest/easiest)
 
-### Corridor Layout
+### Corridor Layout (v3)
 
 ```
 4000px wide x 600px tall
@@ -56,24 +56,26 @@ Player spawns at left (200, 300), Exit at right (3850, 300)
 
 +---------+-------+---------+-------+---------+-------+----------+
 |         |D1     |         |       |         |D3     |          |
-| [SPAWN] | |     | [E2]    |  D2   | [E3]    | |     | [E4]     |
-|         | |     |         |  |    |         | |     |    [EXIT] |
-| [E1]    |       |         |  |    |         |       |          |
+| [SPAWN] | |     |         |  D2   | [E3]    | |     | [E4]     |
+| [E1]    | |     |         |  |    |         | |     |    [EXIT] |
+|   [E2]  |       |         |  |    |         |       |          |
 +---------+-------+---------+-------+---------+-------+----------+
 
 D1, D2, D3 = Interior divider walls (partial height)
-E1 = RIFLE enemy at (900, 350)
-E2 = RIFLE enemy at (1800, 200) - patrols
+E1 = RIFLE enemy at (500, 300) - middle of starting room
+E2 = RIFLE enemy at (800, 200) - right part of starting room, patrols
 E3 = RIFLE enemy at (2600, 400)
 E4 = SHOTGUN enemy at (3400, 250)
 ```
 
 Cover objects: 3 crates (64x64) + 2 pipe sections (24x120)
+- Crate1 at (350, 200) - provides cover between spawn and Enemy1
 
 ## Revision History
 
 - **v1:** Square labyrinth layout (1600x1600px with 6 rooms). Feedback: "should be a narrow long corridor, not the same level as all the others"
-- **v2:** Narrow corridor layout (4000x600px). Completely redesigned to be a unique elongated corridor shape.
+- **v2:** Narrow corridor layout (4000x600px). Completely redesigned to be a unique elongated corridor shape. Feedback: "no exit from starting room, move 2 enemies to starting room"
+- **v3:** Moved 2 enemies (Enemy1 and Enemy2) into the starting room (left of Divider1). Enemy1 at (500, 300) in the middle, Enemy2 at (800, 200) in the right part. Adjusted cover placement.
 
 ## References
 
