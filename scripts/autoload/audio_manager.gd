@@ -155,17 +155,32 @@ const VOLUME_ASVK_SHOT: float = -2.0
 ## Volume for ASVK bolt-action sounds.
 const VOLUME_ASVK_BOLT: float = -3.0
 
-## RSh-12 revolver sounds (Issue #626).
-## Cylinder open - uses pistol bolt sound (взвод затвора пистолета) for the cylinder release.
-const REVOLVER_CYLINDER_OPEN: String = "res://assets/audio/взвод затвора пистолета.wav"
-## Cylinder close - uses PM reload action 2 (второе действие перезарядки) for the snap shut.
-const REVOLVER_CYLINDER_CLOSE: String = "res://assets/audio/второе действие перезарядки.mp3"
-## Cartridge insert - uses shotgun shell load sound adapted for single round insertion.
-const REVOLVER_CARTRIDGE_INSERT: String = "res://assets/audio/зарядил один патрон в дробовик.mp3"
-## Cylinder rotate - uses PM reload action 1 (первое действие перезарядки) for mechanical click.
-const REVOLVER_CYLINDER_ROTATE: String = "res://assets/audio/первое действие перезарядки.mp3"
+## RSh-12 revolver sounds (Issue #626) - using dedicated revolver audio files.
+## Cylinder open click.
+const REVOLVER_CYLINDER_OPEN: String = "res://assets/audio/Щелчок при открытии барабана револьвера.mp3"
+## Cylinder close click.
+const REVOLVER_CYLINDER_CLOSE: String = "res://assets/audio/Щелчок при закрытии барабана револьвера.mp3"
+## Cartridge insertion into cylinder.
+const REVOLVER_CARTRIDGE_INSERT: String = "res://assets/audio/заряжание патрона в револьвер.mp3"
+## Cylinder rotation sounds (3 variants for variety).
+const REVOLVER_CYLINDER_ROTATE_1: String = "res://assets/audio/звук вращения барабана 1.mp3"
+const REVOLVER_CYLINDER_ROTATE_2: String = "res://assets/audio/звук вращения барабана 2.mp3"
+const REVOLVER_CYLINDER_ROTATE_3: String = "res://assets/audio/звук вращения барабана 3.mp3"
+## Casings ejection from cylinder.
+const REVOLVER_CASINGS_EJECT: String = "res://assets/audio/высыпание гильз из револьвера.mp3"
+## Empty revolver click (no ammo).
+const REVOLVER_EMPTY_CLICK: String = "res://assets/audio/Щелчок пустого револьвера.mp3"
+## Hammer cock sound.
+const REVOLVER_HAMMER_COCK: String = "res://assets/audio/взведение курка револьвера.mp3"
+## Revolver shot sounds (4 variants for variety).
+const REVOLVER_SHOT_1: String = "res://assets/audio/звук выстрела револьвера.mp3"
+const REVOLVER_SHOT_2: String = "res://assets/audio/звук выстрела револьвера 2.mp3"
+const REVOLVER_SHOT_3: String = "res://assets/audio/звук выстрела револьвера 3.mp3"
+const REVOLVER_SHOT_4: String = "res://assets/audio/звук выстрела револьвера 4.mp3"
 ## Volume for revolver reload actions.
 const VOLUME_REVOLVER_RELOAD: float = -3.0
+## Volume for revolver shot.
+const VOLUME_REVOLVER_SHOT: float = 0.0
 
 ## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
 const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
@@ -350,7 +365,16 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(REVOLVER_CYLINDER_OPEN)
 	all_sounds.append(REVOLVER_CYLINDER_CLOSE)
 	all_sounds.append(REVOLVER_CARTRIDGE_INSERT)
-	all_sounds.append(REVOLVER_CYLINDER_ROTATE)
+	all_sounds.append(REVOLVER_CYLINDER_ROTATE_1)
+	all_sounds.append(REVOLVER_CYLINDER_ROTATE_2)
+	all_sounds.append(REVOLVER_CYLINDER_ROTATE_3)
+	all_sounds.append(REVOLVER_CASINGS_EJECT)
+	all_sounds.append(REVOLVER_EMPTY_CLICK)
+	all_sounds.append(REVOLVER_HAMMER_COCK)
+	all_sounds.append(REVOLVER_SHOT_1)
+	all_sounds.append(REVOLVER_SHOT_2)
+	all_sounds.append(REVOLVER_SHOT_3)
+	all_sounds.append(REVOLVER_SHOT_4)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -842,32 +866,56 @@ func play_asvk_bolt_step(step: int) -> void:
 # RSh-12 Revolver sounds (Issue #626)
 # ============================================================================
 
-## Plays the revolver cylinder open sound (release mechanism).
-## Uses pistol bolt sound for the cylinder swing-out.
+## Plays the revolver cylinder open sound.
 ## @param position: World position for 2D audio.
 func play_revolver_cylinder_open(position: Vector2) -> void:
 	play_sound_2d_with_priority(REVOLVER_CYLINDER_OPEN, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
 
 
-## Plays the revolver cylinder close sound (snap shut).
-## Uses PM reload action 2 for the cylinder closing snap.
+## Plays the revolver cylinder close sound.
 ## @param position: World position for 2D audio.
 func play_revolver_cylinder_close(position: Vector2) -> void:
 	play_sound_2d_with_priority(REVOLVER_CYLINDER_CLOSE, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
 
 
 ## Plays the revolver cartridge insertion sound.
-## Uses shotgun shell load sound adapted for single round insertion.
 ## @param position: World position for 2D audio.
 func play_revolver_cartridge_insert(position: Vector2) -> void:
 	play_sound_2d_with_priority(REVOLVER_CARTRIDGE_INSERT, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
 
 
-## Plays the revolver cylinder rotation click sound.
-## Uses PM reload action 1 for the mechanical click.
+## Plays the revolver cylinder rotation sound (random variant from 3).
 ## @param position: World position for 2D audio.
 func play_revolver_cylinder_rotate(position: Vector2) -> void:
-	play_sound_2d_with_priority(REVOLVER_CYLINDER_ROTATE, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+	var variants := [REVOLVER_CYLINDER_ROTATE_1, REVOLVER_CYLINDER_ROTATE_2, REVOLVER_CYLINDER_ROTATE_3]
+	var sound_path: String = variants[randi() % variants.size()]
+	play_sound_2d_with_priority(sound_path, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver casings ejection sound (when cylinder opens).
+## @param position: World position for 2D audio.
+func play_revolver_casings_eject(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CASINGS_EJECT, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver empty click sound (no ammo).
+## @param position: World position for 2D audio.
+func play_revolver_empty_click(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_EMPTY_CLICK, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver hammer cock sound.
+## @param position: World position for 2D audio.
+func play_revolver_hammer_cock(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_HAMMER_COCK, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver shot sound (random variant from 4).
+## @param position: World position for 2D audio.
+func play_revolver_shot(position: Vector2) -> void:
+	var variants := [REVOLVER_SHOT_1, REVOLVER_SHOT_2, REVOLVER_SHOT_3, REVOLVER_SHOT_4]
+	var sound_path: String = variants[randi() % variants.size()]
+	play_sound_2d_with_priority(sound_path, position, VOLUME_REVOLVER_SHOT, SoundPriority.CRITICAL)
 
 
 # ============================================================================

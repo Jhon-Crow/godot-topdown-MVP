@@ -474,20 +474,20 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Plays the empty gun click sound.
+    /// Plays the revolver empty click sound (no ammo).
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_revolver_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            audioManager.Call("play_revolver_empty_click", GlobalPosition);
         }
     }
 
     /// <summary>
     /// Plays the RSh-12 revolver shot sound via AudioManager.
-    /// Uses PM shot sound as a base (heavy pistol shot).
+    /// Uses dedicated revolver shot sounds (random variant).
     /// </summary>
     private void PlayRevolverShotSound()
     {
@@ -497,10 +497,9 @@ public partial class Revolver : BaseWeapon
             return;
         }
 
-        // Use PM shot sound for now (heavy pistol shot)
-        if (audioManager.HasMethod("play_pm_shot"))
+        if (audioManager.HasMethod("play_revolver_shot"))
         {
-            audioManager.Call("play_pm_shot", GlobalPosition);
+            audioManager.Call("play_revolver_shot", GlobalPosition);
         }
     }
 
@@ -703,15 +702,16 @@ public partial class Revolver : BaseWeapon
         // Update reload state
         ReloadState = RevolverReloadState.CylinderOpen;
 
-        // Spawn spent casings falling out
+        // Play cylinder open sound
+        PlayCylinderOpenSound();
+
+        // Spawn spent casings falling out and play ejection sound
         if (_spentCasingsToEject > 0)
         {
             SpawnEjectedCasings(_spentCasingsToEject);
+            PlayCasingsEjectSound();
             EmitSignal(SignalName.CasingsEjected, _spentCasingsToEject);
         }
-
-        // Play cylinder open sound
-        PlayCylinderOpenSound();
 
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ReloadStarted);
@@ -836,7 +836,6 @@ public partial class Revolver : BaseWeapon
 
     /// <summary>
     /// Plays the cylinder open sound via AudioManager.
-    /// Uses pistol bolt sound (взвод затвора пистолета) for the cylinder release mechanism.
     /// </summary>
     public void PlayCylinderOpenSound()
     {
@@ -849,7 +848,6 @@ public partial class Revolver : BaseWeapon
 
     /// <summary>
     /// Plays the cylinder close sound via AudioManager.
-    /// Uses PM reload action 2 (второе действие перезарядки) for the cylinder snap.
     /// </summary>
     public void PlayCylinderCloseSound()
     {
@@ -862,7 +860,6 @@ public partial class Revolver : BaseWeapon
 
     /// <summary>
     /// Plays the cartridge insertion sound via AudioManager.
-    /// Uses shotgun load shell sound (зарядил один патрон в дробовик) adapted for revolver.
     /// </summary>
     private void PlayCartridgeInsertSound()
     {
@@ -874,8 +871,7 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Plays the cylinder rotation click sound via AudioManager.
-    /// Uses PM reload action 1 (первое действие перезарядки) for a mechanical click.
+    /// Plays the cylinder rotation sound via AudioManager (random variant).
     /// </summary>
     private void PlayCylinderRotateSound()
     {
@@ -883,6 +879,18 @@ public partial class Revolver : BaseWeapon
         if (audioManager != null && audioManager.HasMethod("play_revolver_cylinder_rotate"))
         {
             audioManager.Call("play_revolver_cylinder_rotate", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the casings ejection sound via AudioManager.
+    /// </summary>
+    private void PlayCasingsEjectSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_revolver_casings_eject"))
+        {
+            audioManager.Call("play_revolver_casings_eject", GlobalPosition);
         }
     }
 
