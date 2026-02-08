@@ -116,6 +116,9 @@ var _player_original_colors: Dictionary = {}
 ## Whether the visual effects are currently fading out (Issue #442).
 var _is_fading_out: bool = false
 
+## Issue #597: When true, skip time freeze and process_mode changes (used during replay playback).
+var replay_mode: bool = false
+
 ## The time when the fade-out started (in real time seconds).
 var _fade_out_start_time: float = 0.0
 
@@ -406,16 +409,17 @@ func _start_last_chance_effect(duration_seconds: float = FREEZE_DURATION_REAL_SE
 	_log("  - Sepia intensity: %.2f" % SEPIA_INTENSITY)
 	_log("  - Brightness: %.2f" % BRIGHTNESS)
 
-	if not is_grenade:
-		# CRITICAL: Push all threatening bullets away from player BEFORE freezing time
-		# This gives the player a fighting chance to survive
-		_push_threatening_bullets_away()
+	if not replay_mode:
+		if not is_grenade:
+			# CRITICAL: Push all threatening bullets away from player BEFORE freezing time
+			# This gives the player a fighting chance to survive
+			_push_threatening_bullets_away()
 
-		# Grant temporary invulnerability to player during time freeze
-		_grant_player_invulnerability()
+			# Grant temporary invulnerability to player during time freeze
+			_grant_player_invulnerability()
 
-	# Freeze time for everything except the player
-	_freeze_time()
+		# Freeze time for everything except the player
+		_freeze_time()
 
 	# Apply visual effects
 	_apply_visual_effects()
@@ -648,13 +652,14 @@ func _end_last_chance_effect() -> void:
 	_is_effect_active = false
 	_log("Ending last chance effect")
 
-	# CRITICAL: Reset enemy memory BEFORE unfreezing time (Issue #318)
-	# This ensures enemies forget the player's position during the freeze,
-	# treating the player's movement as a "teleport" they couldn't see
-	_reset_all_enemy_memory()
+	if not replay_mode:
+		# CRITICAL: Reset enemy memory BEFORE unfreezing time (Issue #318)
+		# This ensures enemies forget the player's position during the freeze,
+		# treating the player's movement as a "teleport" they couldn't see
+		_reset_all_enemy_memory()
 
-	# Restore normal time
-	_unfreeze_time()
+		# Restore normal time
+		_unfreeze_time()
 
 	# Start visual effects fade-out animation instead of removing instantly (Issue #442)
 	_start_fade_out()
@@ -1303,8 +1308,9 @@ func reset_effects() -> void:
 
 	if _is_effect_active:
 		_is_effect_active = false
-		# Restore normal time
-		_unfreeze_time()
+		# Restore normal time (skip during replay - Issue #597)
+		if not replay_mode:
+			_unfreeze_time()
 
 	# Reset fade-out state (Issue #442)
 	_is_fading_out = false
