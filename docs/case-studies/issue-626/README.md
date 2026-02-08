@@ -39,26 +39,55 @@ The owner clarified the desired input scheme:
 
 ## Root Cause Analysis
 
-The initial implementation had two fundamental problems:
+The implementation had **four** fundamental problems:
 
-### 1. Wrong Input Mapping
-The F key (`reload_step`) was used for cartridge insertion. This was inconsistent with the existing interaction paradigm in the game, where:
-- The shotgun uses **RMB drag gestures** for pump-action mechanics
-- The F key is used for bolt-action rifle reload steps
-- The revolver, as a cylinder weapon, should use a different input than magazine-based weapons
+### 1. Wrong Player File Modified (CRITICAL)
+**The most critical bug:** The project has TWO player implementations:
+- `scripts/characters/player.gd` (GDScript) — modified with revolver reload logic
+- `Scripts/Characters/Player.cs` (C#) — the **actual runtime player**, NOT modified
 
-### 2. Missing Gesture Detection
-The Revolver.cs class had no RMB drag gesture detection or scroll wheel input handling. All input was delegated to player.gd, which only checked keyboard inputs. The shotgun (Shotgun.cs) already had a complete gesture detection system with `HandleDragGestures()`, `TryProcessMidDragGesture()`, and `ProcessDragGesture()` methods that the revolver should have followed as a pattern.
+The game runs the C# Player.cs at runtime. All revolver reload changes were made to the GDScript player.gd, which is not the active player script. Evidence from the game log:
+- Log shows `[Player] Detected weapon: RSh-12 Revolver (Pistol pose)` — this message comes from **Player.cs line 1349**, NOT from player.gd (which says "Revolver pose")
+- Log shows standard magazine reload animations (GrabMagazine → InsertMagazine → ReturnIdle) with no revolver-specific messages
 
-### 3. No Revolver-Specific Audio
-The implementation used generic sounds (magazine in/out, M16 bolt) that are inappropriate for a revolver cylinder mechanism. The game has suitable sounds that could be repurposed:
-- Pistol bolt sound → cylinder open
-- Shotgun shell load → cartridge insert
-- PM reload actions → cylinder rotate / close
+In Player.cs, the Revolver was treated as a pistol with R→R (2-step) magazine swap:
+```csharp
+bool isPistolReload = CurrentWeapon is MakarovPM || CurrentWeapon is Revolver;  // Line 1597
+```
+This sent the Revolver through the same reload path as the Makarov PM pistol.
+
+### 2. Wrong Input Mapping (in early iterations)
+The F key (`reload_step`) was used for cartridge insertion, inconsistent with the game's gesture-based paradigm where shotgun uses RMB drag gestures.
+
+### 3. Missing Gesture Detection (in Revolver.cs)
+Added RMB drag and scroll wheel detection following the Shotgun.cs pattern.
+
+### 4. No Revolver-Specific Audio
+Generic sounds (magazine in/out, M16 bolt) are inappropriate for a revolver cylinder mechanism.
 
 ## Solution
 
-### Changes Made
+### Key Fix: Player.cs Reload Routing (Issue #626)
+
+The critical fix was in `Scripts/Characters/Player.cs`:
+
+1. **Skip standard reload for Revolver** in `HandleReloadSequenceInput()`:
+   ```csharp
+   if (CurrentWeapon is Revolver) { return; }
+   ```
+
+2. **Route R key to cylinder reload** via new `HandleRevolverReloadInput()` method:
+   - R press when `NotReloading` → calls `revolver.OpenCylinder()`
+   - R press when `CylinderOpen` or `Loading` → calls `revolver.CloseCylinder()`
+
+3. **Lock player rotation during cylinder reload** in `UpdatePlayerModelRotation()` (tactical reload pattern, matching shotgun behavior)
+
+4. **Remove Revolver from pistol reload group**:
+   ```csharp
+   bool isPistolReload = CurrentWeapon is MakarovPM;  // Revolver excluded
+   ```
+
+### Other Changes
 
 #### `Scripts/Weapons/Revolver.cs`
 - Added RMB drag gesture detection in `_Process()` via `HandleDragGestures()`
@@ -68,9 +97,8 @@ The implementation used generic sounds (magazine in/out, M16 bolt) that are inap
 - `OpenCylinder()` and `CloseCylinder()` now play their respective sounds directly
 
 #### `scripts/characters/player.gd`
-- Simplified `_handle_revolver_reload_input()` to only handle R key (open/close)
-- Removed F key (`reload_step`) handling for cartridge insertion
-- RMB drag and scroll wheel inputs are now handled by Revolver.cs directly
+- Added `_handle_revolver_reload_input()` to handle R key (open/close) for GDScript path
+- RMB drag and scroll wheel inputs are handled by Revolver.cs directly
 
 #### `scripts/autoload/audio_manager.gd`
 - Added revolver audio constants using existing sound files:
