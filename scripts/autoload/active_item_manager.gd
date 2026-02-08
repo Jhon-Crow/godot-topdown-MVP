@@ -7,9 +7,10 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,        # No active item equipped
-	FLASHLIGHT,  # Tactical flashlight - illuminates in weapon direction
-	AI_HELMET    # AI-powered helmet - predicts enemy positions 1 second ahead
+	NONE,              # No active item equipped
+	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+	AI_HELMET,         # AI-powered helmet - predicts enemy positions 1 second ahead
+	TELEPORT_BRACERS   # Teleportation bracers - hold Space to aim, release to teleport
 }
 
 ## Currently selected active item type.
@@ -32,6 +33,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "AI Helmet",
 		"icon_path": "res://assets/sprites/weapons/ai_helmet_icon.png",
 		"description": "AI-powered helmet — press Space to predict enemy positions 1 second ahead. Red ghost outlines appear for 10 seconds. 2 charges per battle."
+	},
+	ActiveItemType.TELEPORT_BRACERS: {
+		"name": "Teleport Bracers",
+		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
+		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
 	}
 }
 
@@ -123,3 +129,8 @@ func has_flashlight() -> bool:
 ## Check if an AI helmet is currently equipped.
 func has_ai_helmet() -> bool:
 	return current_active_item == ActiveItemType.AI_HELMET
+
+
+## Check if teleport bracers are currently equipped.
+func has_teleport_bracers() -> bool:
+	return current_active_item == ActiveItemType.TELEPORT_BRACERS
