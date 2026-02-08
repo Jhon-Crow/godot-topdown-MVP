@@ -343,6 +343,9 @@ func _ready() -> void:
 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
 	_init_invisibility_suit()
 
+	# Initialize active item progress bar (Issue #700)
+	_init_active_item_progress_bar()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -3206,3 +3209,76 @@ func _reset_all_enemy_memories(reason: String) -> void:
 
 	if reset_count > 0:
 		FileLogger.info("[Player] Reset memory for %d enemies (%s - Issue #723)" % [reset_count, reason])
+
+
+# ============================================================================
+# Active Item Progress Bar (Issue #700)
+# ============================================================================
+
+## Reference to the progress bar node displayed above the player.
+var _active_item_progress_bar: Node2D = null
+
+
+## Initialize the progress bar for the current active item.
+## Called during _ready() after active item initialization.
+## Shows a segmented charge bar for charge-limited items (e.g., teleport bracers).
+func _init_active_item_progress_bar() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	# Currently no GDScript active items have limited usage
+	# (flashlight is unlimited). Progress bar infrastructure is ready
+	# for future limited items. When a charge-limited or time-limited
+	# active item is added to the GDScript player, call:
+	#   _show_active_item_charge_bar(current_charges, max_charges)
+	# or:
+	#   _show_active_item_timer_bar(time_remaining, max_time)
+	FileLogger.info("[Player.ProgressBar] Active item progress bar initialized (Issue #700)")
+
+
+## Create and attach the progress bar node if not already present.
+func _ensure_progress_bar_node() -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		return
+
+	_active_item_progress_bar = ActiveItemProgressBar.new()
+	_active_item_progress_bar.name = "ActiveItemProgressBar"
+	add_child(_active_item_progress_bar)
+
+
+## Show a segmented charge bar above the player.
+## @param current_charges: Number of charges remaining.
+## @param max_charges: Maximum number of charges.
+func _show_active_item_charge_bar(current_charges: int, max_charges: int) -> void:
+	_ensure_progress_bar_node()
+	_active_item_progress_bar.show_bar(
+		ActiveItemProgressBar.DisplayMode.SEGMENTED,
+		float(current_charges),
+		float(max_charges)
+	)
+
+
+## Show a continuous timer bar above the player.
+## @param time_remaining: Time remaining in seconds.
+## @param max_time: Maximum time in seconds.
+func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void:
+	_ensure_progress_bar_node()
+	_active_item_progress_bar.show_bar(
+		ActiveItemProgressBar.DisplayMode.CONTINUOUS,
+		time_remaining,
+		max_time
+	)
+
+
+## Update the progress bar value.
+## @param current: New current value.
+func _update_active_item_bar(current: float) -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		_active_item_progress_bar.update_value(current)
+
+
+## Hide the progress bar.
+func _hide_active_item_bar() -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		_active_item_progress_bar.hide_bar()

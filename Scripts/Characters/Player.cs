@@ -4183,6 +4183,9 @@ public partial class Player : BaseCharacter
 
         // Emit initial charge count for UI
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+
+        // Draw initial charge progress bar (Issue #700)
+        QueueRedraw();
     }
 
     /// <summary>
@@ -4907,6 +4910,12 @@ public partial class Player : BaseCharacter
     /// </summary>
     public override void _Draw()
     {
+        // Draw teleport bracers charge bar above player (Issue #700)
+        if (_teleportBracersEquipped)
+        {
+            DrawTeleportChargeBar();
+        }
+
         // Draw teleport targeting reticle if aiming (Issue #672)
         if (_teleportAiming && _teleportBracersEquipped)
         {
@@ -5102,6 +5111,61 @@ public partial class Player : BaseCharacter
         }
         // Default: Flashbang effect radius (FlashbangGrenade.tscn)
         return 400.0f;
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar above the player for teleport bracers (Issue #700).
+    /// Shows remaining charges as filled segments and used charges as empty segments.
+    /// </summary>
+    private void DrawTeleportChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxTeleportCharges;
+        int filledCount = _teleportCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f)
+            segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+
+        // Choose fill color based on charge percentage
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);  // Green
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);  // Yellow
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);  // Red
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            // Draw background
+            DrawRect(segRect, bgColor);
+
+            // Draw fill or empty
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+
+            // Draw border
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
     }
 
     /// <summary>
