@@ -35,6 +35,17 @@ var _has_impacted: bool = false
 ## Track if we've started throwing (to avoid impact during initial spawn).
 var _is_thrown: bool = false
 
+## Issue #657: Minimum distance grenade must travel from spawn point before
+## impact explosion is armed. Prevents self-kills when grenade hits nearby
+## furniture/obstacles immediately after being thrown.
+const MIN_ARMING_DISTANCE := 80.0
+
+## Issue #657: Position where the grenade was spawned (for arming distance check).
+var _spawn_position: Vector2 = Vector2.ZERO
+
+## Issue #657: Whether the grenade has traveled far enough to arm impact explosion.
+var _impact_armed: bool = false
+
 ## Track the previous freeze state to detect when grenade is released.
 ## FIX for Issue #432: When C# code sets Freeze=false directly without calling
 ## throw methods, _is_thrown was never set to true, preventing explosion.
@@ -43,6 +54,9 @@ var _was_frozen: bool = true
 
 func _ready() -> void:
 	super._ready()
+
+	# Issue #657: Record spawn position for arming distance calculation
+	_spawn_position = global_position
 
 	# Frag grenade is slightly lighter - increase max throw speed slightly
 	# (5% increase for "slightly lighter")
@@ -106,6 +120,11 @@ func _physics_process(delta: float) -> void:
 	# C# GrenadeTimer.ApplyGroundFriction() applies uniform friction: F = ground_friction * delta
 	# This matches the throw speed formula: v = sqrt(2 * F * d), d = v² / (2 * F)
 
+	# Issue #657: Check if grenade has traveled far enough to arm impact explosion
+	if not _impact_armed and _is_thrown:
+		if global_position.distance_to(_spawn_position) >= MIN_ARMING_DISTANCE:
+			_impact_armed = true
+
 	# Check for landing (grenade comes to near-stop after being thrown)
 	if not _has_landed and _timer_active:
 		var current_speed := linear_velocity.length()
@@ -158,6 +177,11 @@ func _on_body_entered(body: Node) -> void:
 
 	# Only explode on impact if we've been thrown and haven't exploded yet
 	if _is_thrown and not _has_impacted and not _has_exploded:
+		# Issue #657: Don't explode on impact until grenade has traveled MIN_ARMING_DISTANCE
+		# from spawn point. This prevents self-kills when grenade hits nearby furniture.
+		if not _impact_armed:
+			FileLogger.info("[FragGrenade] Impact with %s ignored - grenade not armed yet (dist=%.1f < %.1f)" % [body.name, global_position.distance_to(_spawn_position), MIN_ARMING_DISTANCE])
+			return
 		# Trigger impact explosion on wall/obstacle/enemy hit
 		# StaticBody2D = walls, obstacles, furniture
 		# TileMap = terrain tiles
