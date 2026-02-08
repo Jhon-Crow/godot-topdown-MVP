@@ -81,7 +81,8 @@ class MockActiveItemManager:
 	const ActiveItemType := {
 		NONE = 0,
 		FLASHLIGHT = 1,
-		TELEPORT_BRACERS = 2
+		TELEPORT_BRACERS = 2,
+		FORCE_FIELD = 3
 	}
 
 	## Currently selected active item type
@@ -103,6 +104,11 @@ class MockActiveItemManager:
 			"name": "Teleport Bracers",
 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+		},
+		3: {
+			"name": "Force Field",
+			"icon_path": "",
+			"description": "Hold Space to activate a glowing force field that reflects all projectiles. 8 second charge, depletable. Shows progress bar."
 		}
 	}
 
@@ -163,6 +169,10 @@ class MockActiveItemManager:
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+	## Check if force field is currently equipped
+	func has_force_field() -> bool:
+		return current_active_item == ActiveItemType.FORCE_FIELD
 
 
 var manager: MockActiveItemManager
@@ -280,11 +290,12 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 3,
-		"Should return 3 active item types")
+	assert_eq(types.size(), 4,
+		"Should return 4 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
+	assert_true(3 in types)
 
 
 func test_get_active_item_name_none() -> void:
@@ -465,7 +476,8 @@ class MockArmoryWithActiveItems:
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
-		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
+		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
+		3: {"name": "Force Field", "description": "Hold Space to activate force field"}
 	}
 
 	## Applied active item type
@@ -545,3 +557,162 @@ func test_armory_switch_active_items() -> void:
 		"Latest pending should be None")
 	assert_false(armory.has_pending_changes(),
 		"Should have no pending changes after switching back")
+
+
+# ============================================================================
+# Force Field Tests
+# ============================================================================
+
+
+func test_has_force_field_after_selection() -> void:
+	manager.set_active_item(3)
+	assert_true(manager.has_force_field(),
+		"has_force_field should return true after selecting force field")
+
+
+func test_no_force_field_by_default() -> void:
+	assert_false(manager.has_force_field(),
+		"Force field should not be equipped by default")
+
+
+func test_force_field_data_has_name() -> void:
+	var data := manager.get_active_item_data(3)
+	assert_eq(data["name"], "Force Field", "Force Field should have correct name")
+
+
+func test_force_field_data_has_description() -> void:
+	var data := manager.get_active_item_data(3)
+	assert_true(data["description"].contains("Space"),
+		"Force field description should mention Space key")
+
+
+func test_armory_select_force_field() -> void:
+	var armory := MockArmoryWithActiveItems.new()
+	var result := armory.select_active_item(3)
+	assert_true(result, "Should select force field")
+	assert_eq(armory.pending_active_item, 3, "Pending should be force field")
+
+
+# ============================================================================
+# Force Field Effect Tests (Mock)
+# ============================================================================
+
+
+class MockForceFieldEffect:
+	## Total charge in seconds.
+	const MAX_CHARGE: float = 8.0
+
+	## Whether the force field is currently active.
+	var _is_active: bool = false
+
+	## Remaining charge in seconds.
+	var _charge_remaining: float = MAX_CHARGE
+
+	## Whether the charge has been fully depleted.
+	var _depleted: bool = false
+
+	func activate() -> void:
+		if _is_active:
+			return
+		if _depleted or _charge_remaining <= 0:
+			return
+		_is_active = true
+
+	func deactivate() -> void:
+		if not _is_active:
+			return
+		_is_active = false
+
+	func is_active() -> bool:
+		return _is_active
+
+	func has_charge() -> bool:
+		return not _depleted and _charge_remaining > 0
+
+	func get_charge_remaining() -> float:
+		return _charge_remaining
+
+	func get_charge_fraction() -> float:
+		return _charge_remaining / MAX_CHARGE
+
+	## Simulate delta time passing while active.
+	func simulate_delta(delta: float) -> void:
+		if not _is_active:
+			return
+		_charge_remaining -= delta
+		if _charge_remaining <= 0:
+			_charge_remaining = 0.0
+			_depleted = true
+			deactivate()
+
+
+func test_force_field_starts_inactive() -> void:
+	var ff := MockForceFieldEffect.new()
+	assert_false(ff.is_active(), "Force field should start inactive")
+
+
+func test_force_field_starts_with_full_charge() -> void:
+	var ff := MockForceFieldEffect.new()
+	assert_eq(ff.get_charge_remaining(), 8.0, "Should start with 8s charge")
+	assert_eq(ff.get_charge_fraction(), 1.0, "Fraction should be 1.0")
+
+
+func test_force_field_activate() -> void:
+	var ff := MockForceFieldEffect.new()
+	ff.activate()
+	assert_true(ff.is_active(), "Should be active after activation")
+
+
+func test_force_field_deactivate() -> void:
+	var ff := MockForceFieldEffect.new()
+	ff.activate()
+	ff.deactivate()
+	assert_false(ff.is_active(), "Should be inactive after deactivation")
+
+
+func test_force_field_charge_depletes() -> void:
+	var ff := MockForceFieldEffect.new()
+	ff.activate()
+	ff.simulate_delta(3.0)
+	assert_true(ff.is_active(), "Should still be active with charge remaining")
+	assert_eq(ff.get_charge_remaining(), 5.0, "Should have 5s remaining")
+
+
+func test_force_field_partial_use() -> void:
+	var ff := MockForceFieldEffect.new()
+	# Use 2 seconds
+	ff.activate()
+	ff.simulate_delta(2.0)
+	ff.deactivate()
+	assert_eq(ff.get_charge_remaining(), 6.0, "Should have 6s remaining after 2s use")
+	assert_true(ff.has_charge(), "Should still have charge")
+
+	# Use 3 more seconds
+	ff.activate()
+	ff.simulate_delta(3.0)
+	ff.deactivate()
+	assert_eq(ff.get_charge_remaining(), 3.0, "Should have 3s remaining after 5s total use")
+
+
+func test_force_field_full_depletion() -> void:
+	var ff := MockForceFieldEffect.new()
+	ff.activate()
+	ff.simulate_delta(8.0)
+	assert_false(ff.is_active(), "Should auto-deactivate when depleted")
+	assert_false(ff.has_charge(), "Should have no charge")
+	assert_eq(ff.get_charge_remaining(), 0.0, "Remaining should be 0")
+
+
+func test_force_field_cannot_activate_when_depleted() -> void:
+	var ff := MockForceFieldEffect.new()
+	ff.activate()
+	ff.simulate_delta(8.0)  # Fully deplete
+	ff.activate()  # Try to activate again
+	assert_false(ff.is_active(), "Should not activate when depleted")
+
+
+func test_force_field_charge_fraction() -> void:
+	var ff := MockForceFieldEffect.new()
+	ff.activate()
+	ff.simulate_delta(4.0)
+	assert_eq(ff.get_charge_fraction(), 0.5, "Fraction should be 0.5 after half depletion")

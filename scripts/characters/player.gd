@@ -2991,7 +2991,8 @@ func _init_force_field() -> void:
 	FileLogger.info("[Player.ForceField] Force field equipped and attached to Player")
 
 
-## Handle force field input: press Space to activate (one-time activation per charge).
+## Handle force field input: hold Space to activate, release to deactivate.
+## Charge depletes while held and can be used in portions.
 func _handle_force_field_input() -> void:
 	if not _force_field_equipped or _force_field_node == null:
 		return
@@ -2999,12 +3000,14 @@ func _handle_force_field_input() -> void:
 	if not is_instance_valid(_force_field_node):
 		return
 
-	# Activate on Space press (only if not already active and has charges)
-	if Input.is_action_just_pressed("flashlight_toggle"):
-		if _force_field_node.has_method("is_active") and not _force_field_node.is_active():
-			if _force_field_node.has_method("has_charges") and _force_field_node.has_charges():
-				if _force_field_node.has_method("activate"):
-					_force_field_node.activate()
+	if Input.is_action_pressed("flashlight_toggle"):
+		# Activate while Space is held (if charge remaining)
+		if not _force_field_node.is_active() and _force_field_node.has_charge():
+			_force_field_node.activate()
+	else:
+		# Deactivate when Space is released
+		if _force_field_node.is_active():
+			_force_field_node.deactivate()
 
 
 ## Check if the player's force field is currently active (Issue #676).
