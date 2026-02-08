@@ -11,9 +11,10 @@ signal back_pressed
 ## Level metadata: name, scene path, description, preview color, enemy count.
 const LEVELS: Array[Dictionary] = [
 	{
-		"name": "Building Level",
+		"name": "City",
+		"name_ru": "Город",
 		"path": "res://scenes/levels/BuildingLevel.tscn",
-		"description": "Hotline Miami style building with interconnected rooms and corridors.",
+		"description": "Hotline Miami style building with interconnected rooms and corridors. Features a grenadier enemy.",
 		"preview_color": Color(0.35, 0.25, 0.2, 1.0),
 		"preview_accent": Color(0.6, 0.4, 0.3, 1.0),
 		"enemy_count": 10,
