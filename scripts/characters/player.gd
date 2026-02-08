@@ -404,7 +404,7 @@ func _physics_process(delta: float) -> void:
 	# Handle flashlight input (hold Space to turn on, release to turn off)
 	_handle_flashlight_input()
 
-	# Handle force field input (press Space to activate)
+	# Handle force field input (hold Space to activate, release to deactivate)
 	_handle_force_field_input()
 
 
