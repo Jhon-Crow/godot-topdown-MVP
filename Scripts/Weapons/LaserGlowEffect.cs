@@ -61,18 +61,19 @@ public class LaserGlowEffect
 
     /// <summary>
     /// Glow layers from innermost (bright, narrow) to outermost (dim, wide).
-    /// The additive blending causes overlapping layers to build up brightness
-    /// in the center while maintaining a smooth gradient toward the edges.
-    /// Z-index 0 keeps glow at the same level as the game world, ensuring
-    /// it is visible above floor/walls. The weapon sprite at z_index=1 renders
-    /// on top of the glow, which is the correct layering order.
+    /// Alpha values follow a steep Gaussian-like falloff so that the glow is
+    /// concentrated near the beam core and fades smoothly outward, producing
+    /// a continuous volumetric effect (not discrete blobs). The additive blending
+    /// causes overlapping layers to build up brightness in the center.
+    /// Z-index 0 keeps glow visible above floor/walls. The weapon sprite at
+    /// z_index=1 renders on top of the glow, which is the correct layering order.
     /// </summary>
     private static readonly GlowLayerDef[] GlowLayers = new[]
     {
-        new GlowLayerDef(6.0f, 0.8f, 0),    // Core boost — bright narrow halo
-        new GlowLayerDef(14.0f, 0.4f, 0),   // Inner glow — close aura
-        new GlowLayerDef(28.0f, 0.2f, 0),   // Mid glow — extended scatter
-        new GlowLayerDef(48.0f, 0.1f, 0),   // Outer glow — wide atmospheric haze
+        new GlowLayerDef(6.0f, 0.6f, 0),    // Core boost — tight bright halo around beam
+        new GlowLayerDef(14.0f, 0.15f, 0),  // Inner glow — visible soft aura
+        new GlowLayerDef(28.0f, 0.05f, 0),  // Mid glow — subtle extended scatter
+        new GlowLayerDef(48.0f, 0.02f, 0),  // Outer glow — barely perceptible atmospheric haze
     };
 
     // =========================================================================
@@ -103,26 +104,32 @@ public class LaserGlowEffect
     // =========================================================================
 
     /// <summary>
-    /// Number of dust mote particles along the beam.
+    /// Number of dust mote particles along the beam. High count with tiny
+    /// particles creates the subtle shimmer of laser light on atmospheric dust,
+    /// rather than the discrete blob effect that fewer large particles produce.
     /// </summary>
-    private const int DustParticleAmount = 32;
+    private const int DustParticleAmount = 80;
 
     /// <summary>
-    /// Lifetime of each dust particle in seconds.
+    /// Lifetime of each dust particle in seconds. Shorter lifetime keeps
+    /// particles flickering and refreshing, simulating brief dust glints.
     /// </summary>
-    private const float DustParticleLifetime = 1.2f;
+    private const float DustParticleLifetime = 0.8f;
 
     /// <summary>
-    /// Size of the dust mote texture in pixels (soft circle).
-    /// Larger than a single pixel to be visible at game zoom levels.
+    /// Size of the dust mote texture in pixels. Small size (6px) ensures
+    /// particles appear as tiny specks rather than visible orbs. Combined with
+    /// scale 0.3-0.8x, final rendered size is 2-5 pixels — matching real-world
+    /// appearance of dust catching laser light.
     /// </summary>
-    private const int DustTextureSize = 32;
+    private const int DustTextureSize = 6;
 
     /// <summary>
     /// Vertical half-extent of the dust emission box (how far from beam center
-    /// particles can spawn, in pixels).
+    /// particles can spawn, in pixels). Small value keeps dust motes close to
+    /// the beam, reinforcing the laser line rather than scattering around it.
     /// </summary>
-    private const float DustEmissionHalfHeight = 6.0f;
+    private const float DustEmissionHalfHeight = 2.0f;
 
     // =========================================================================
     // Node references
@@ -171,10 +178,11 @@ public class LaserGlowEffect
         additiveMaterial.BlendMode = CanvasItemMaterial.BlendModeEnum.Add;
 
         // Shared width curve for soft falloff at beam start/end
+        // Tight ramp (5%/95%) gives a crisp laser-like beam
         var widthCurve = new Curve();
         widthCurve.AddPoint(new Vector2(0.0f, 0.0f)); // Start thin
-        widthCurve.AddPoint(new Vector2(0.1f, 1.0f));  // Reach full width quickly
-        widthCurve.AddPoint(new Vector2(0.9f, 1.0f));  // Stay full width
+        widthCurve.AddPoint(new Vector2(0.05f, 1.0f)); // Reach full width quickly
+        widthCurve.AddPoint(new Vector2(0.95f, 1.0f)); // Stay full width
         widthCurve.AddPoint(new Vector2(1.0f, 0.0f));  // End thin
 
         // Create multi-layered glow lines
@@ -331,12 +339,13 @@ public class LaserGlowEffect
     /// </summary>
     private void CreateDustParticles(Node2D parent, Color laserColor)
     {
-        // Build a color ramp: fade in → full brightness → fade out
+        // Build a color ramp: gentle fade in → subtle peak → fade out
+        // Low peak alpha (0.4) ensures particles are subtle accents, not blobs
         var colorRamp = new Gradient();
         colorRamp.SetColor(0, new Color(1.0f, 1.0f, 1.0f, 0.0f)); // start transparent
-        colorRamp.AddPoint(0.15f, new Color(1.0f, 1.0f, 1.0f, 0.9f)); // fade in
-        colorRamp.AddPoint(0.5f, new Color(1.0f, 1.0f, 1.0f, 1.0f));  // full brightness
-        colorRamp.AddPoint(0.85f, new Color(1.0f, 1.0f, 1.0f, 0.9f)); // begin fade
+        colorRamp.AddPoint(0.2f, new Color(1.0f, 1.0f, 1.0f, 0.4f));  // fade in
+        colorRamp.AddPoint(0.5f, new Color(1.0f, 1.0f, 1.0f, 0.4f));  // subtle peak
+        colorRamp.AddPoint(0.8f, new Color(1.0f, 1.0f, 1.0f, 0.3f));  // begin fade
         colorRamp.SetColor(1, new Color(1.0f, 1.0f, 1.0f, 0.0f)); // end transparent
 
         // Particle process material
@@ -346,13 +355,13 @@ public class LaserGlowEffect
             EmissionBoxExtents = new Vector3(100.0f, DustEmissionHalfHeight, 0.0f),
             Direction = new Vector3(0.0f, -1.0f, 0.0f),
             Spread = 180.0f,
-            InitialVelocityMin = 2.0f,
-            InitialVelocityMax = 8.0f,
+            InitialVelocityMin = 1.0f,
+            InitialVelocityMax = 4.0f,
             Gravity = new Vector3(0.0f, 0.0f, 0.0f),
-            ScaleMin = 0.8f,
-            ScaleMax = 2.0f,
+            ScaleMin = 0.3f,
+            ScaleMax = 0.8f,
             ColorRamp = new GradientTexture1D { Gradient = colorRamp },
-            LifetimeRandomness = 0.4f,
+            LifetimeRandomness = 0.5f,
         };
 
         // Additive blending material for particles
@@ -406,9 +415,10 @@ public class LaserGlowEffect
     }
 
     /// <summary>
-    /// Creates a small soft circular texture for dust mote particles.
-    /// The texture is a white circle with smooth alpha falloff, tinted
-    /// by the laser color.
+    /// Creates a tiny pinpoint texture for dust mote particles.
+    /// The texture is a small bright speck with rapid exponential falloff,
+    /// simulating a tiny dust particle catching laser light. At 6px with
+    /// 0.3-0.8x scale, these render as 2-5 pixel specks.
     /// </summary>
     private static ImageTexture CreateDustTexture(Color laserColor)
     {
@@ -425,15 +435,17 @@ public class LaserGlowEffect
                 float distance = Mathf.Sqrt(dx * dx + dy * dy);
                 float normalizedDist = distance / maxRadius;
 
-                // Soft circular falloff
+                // Sharp pinpoint with rapid cubic falloff
                 float alpha;
-                if (normalizedDist <= 0.3f)
+                if (normalizedDist <= 0.15f)
                 {
-                    alpha = 1.0f; // Bright core
+                    alpha = 0.5f; // Tiny bright center
                 }
-                else if (normalizedDist <= 0.8f)
+                else if (normalizedDist <= 0.5f)
                 {
-                    alpha = Mathf.Lerp(1.0f, 0.0f, (normalizedDist - 0.3f) / 0.5f);
+                    // Cubic falloff for rapid dimming
+                    float t = (normalizedDist - 0.15f) / 0.35f;
+                    alpha = 0.5f * (1.0f - t * t * t);
                 }
                 else
                 {
