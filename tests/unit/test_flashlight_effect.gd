@@ -32,6 +32,9 @@ class MockFlashlightEffect:
 	## Collision mask for obstacles.
 	const OBSTACLE_COLLISION_MASK: int = 4
 
+	## Safety margin (pixels) to pull the light back from a wall hit point.
+	const WALL_SAFETY_MARGIN: float = 2.0
+
 	## Whether the flashlight is on.
 	var _is_on: bool = false
 
@@ -53,6 +56,15 @@ class MockFlashlightEffect:
 	## Mock: simulated current time in msec (for testing cooldowns).
 	var _mock_time_msec: int = 0
 
+	## Mock: simulated player center position (for wall clamping).
+	var _mock_player_center: Vector2 = Vector2.ZERO
+
+	## Mock: simulated wall hit position (null = no wall hit).
+	var _mock_wall_hit_pos = null
+
+	## The PointLight2D position after clamping (local coordinates relative to flashlight).
+	var point_light_position: Vector2 = Vector2.ZERO
+
 	## Set mock line of sight.
 	func set_mock_line_of_sight(enabled: bool) -> void:
 		_mock_line_of_sight = enabled
@@ -60,6 +72,36 @@ class MockFlashlightEffect:
 	## Set mock time (milliseconds).
 	func set_mock_time_msec(time_msec: int) -> void:
 		_mock_time_msec = time_msec
+
+	## Set mock player center position (for wall clamping tests).
+	func set_mock_player_center(pos: Vector2) -> void:
+		_mock_player_center = pos
+
+	## Set mock wall hit position (null = no wall, Vector2 = wall hit at position).
+	func set_mock_wall_hit(hit_pos) -> void:
+		_mock_wall_hit_pos = hit_pos
+
+	## Clamp the PointLight2D position to avoid penetrating walls (Issue #640).
+	## Mirrors the logic in flashlight_effect.gd _clamp_light_to_walls().
+	func clamp_light_to_walls() -> void:
+		var intended_pos: Vector2 = global_position
+		var to_light: Vector2 = intended_pos - _mock_player_center
+		var dist: float = to_light.length()
+
+		if dist < 1.0:
+			point_light_position = Vector2.ZERO
+			return
+
+		if _mock_wall_hit_pos == null:
+			# No wall between player and flashlight position — use default
+			point_light_position = Vector2.ZERO
+		else:
+			# Wall hit: pull the light back to just before the wall
+			var hit_pos: Vector2 = _mock_wall_hit_pos
+			var direction: Vector2 = to_light.normalized()
+			var safe_global_pos: Vector2 = hit_pos - direction * WALL_SAFETY_MARGIN
+			# Convert from global to local offset relative to the flashlight node
+			point_light_position = safe_global_pos - global_position
 
 	## Turn on the flashlight.
 	func turn_on() -> void:
@@ -635,3 +677,85 @@ func test_debug_label_shows_both_statuses() -> void:
 func test_debug_label_no_status_when_not_affected() -> void:
 	assert_eq(_get_status_text(false, false), "",
 		"No status text should be added when not blinded or stunned")
+
+
+# ============================================================================
+# Wall Clamping Tests (Issue #640: flashlight passes through wall)
+# ============================================================================
+
+
+func test_wall_safety_margin_constant() -> void:
+	assert_eq(flashlight.WALL_SAFETY_MARGIN, 2.0,
+		"Wall safety margin should be 2.0 pixels")
+
+
+func test_no_wall_keeps_default_position() -> void:
+	# Player center at origin, flashlight at offset (20, 0)
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.set_mock_wall_hit(null)
+
+	flashlight.clamp_light_to_walls()
+
+	assert_eq(flashlight.point_light_position, Vector2.ZERO,
+		"PointLight2D should stay at default position when no wall is nearby")
+
+
+func test_wall_pulls_light_back() -> void:
+	# Player center at origin, flashlight at offset (20, 0)
+	# Wall hit at (18, 0) — between player and flashlight
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.set_mock_wall_hit(Vector2(18, 0))
+
+	flashlight.clamp_light_to_walls()
+
+	# The safe position should be hit_pos - direction * margin = (18,0) - (1,0)*2 = (16,0)
+	# Local offset relative to flashlight at (20,0): (16,0) - (20,0) = (-4, 0)
+	assert_almost_eq(flashlight.point_light_position.x, -4.0, 0.1,
+		"PointLight2D should be pulled back 4 pixels from default when wall is at 18px")
+	assert_almost_eq(flashlight.point_light_position.y, 0.0, 0.1,
+		"PointLight2D Y should remain 0")
+
+
+func test_wall_at_player_center_pulls_light_fully_back() -> void:
+	# Player center at origin, flashlight at offset (20, 0)
+	# Wall hit at (5, 0) — very close to player
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.set_mock_wall_hit(Vector2(5, 0))
+
+	flashlight.clamp_light_to_walls()
+
+	# Safe pos: (5,0) - (1,0)*2 = (3,0), local: (3,0)-(20,0) = (-17, 0)
+	assert_almost_eq(flashlight.point_light_position.x, -17.0, 0.1,
+		"PointLight2D should be pulled far back when wall is close to player")
+
+
+func test_wall_clamping_with_rotated_beam() -> void:
+	# Player at (100, 100), flashlight at 45 degrees (offset 20px along diagonal)
+	var offset := Vector2(20, 0).rotated(PI / 4)  # ~(14.14, 14.14)
+	flashlight.set_mock_player_center(Vector2(100, 100))
+	flashlight.global_position = Vector2(100, 100) + offset
+
+	# Wall hit at diagonal position between player and flashlight
+	var wall_hit := Vector2(100, 100) + offset * 0.8  # 80% of the way
+	flashlight.set_mock_wall_hit(wall_hit)
+
+	flashlight.clamp_light_to_walls()
+
+	# The light should be pulled back (negative offset from default)
+	assert_true(flashlight.point_light_position.length() > 0.0,
+		"PointLight2D should be moved when wall blocks at diagonal")
+
+
+func test_wall_clamping_no_effect_when_light_at_player() -> void:
+	# Edge case: flashlight at same position as player (dist < 1)
+	flashlight.set_mock_player_center(Vector2(100, 100))
+	flashlight.global_position = Vector2(100, 100)
+	flashlight.set_mock_wall_hit(null)
+
+	flashlight.clamp_light_to_walls()
+
+	assert_eq(flashlight.point_light_position, Vector2.ZERO,
+		"PointLight2D should stay at zero when flashlight is at player center")

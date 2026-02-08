@@ -41,6 +41,10 @@ const FLASHLIGHT_SOUND_PATH: String = "res://assets/audio/звук включе�
 ## Collision mask for obstacles (layer 3) used in line-of-sight checks.
 const OBSTACLE_COLLISION_MASK: int = 4
 
+## Safety margin (pixels) to pull the light back from a wall hit point.
+## Prevents the light from sitting exactly on the occluder edge.
+const WALL_SAFETY_MARGIN: float = 2.0
+
 ## Reference to the PointLight2D child node.
 var _point_light: PointLight2D = null
 
@@ -117,7 +121,50 @@ func _set_light_visible(visible_state: bool) -> void:
 		_point_light.energy = LIGHT_ENERGY if visible_state else 0.0
 
 
+## Prevent the PointLight2D from penetrating walls when the player stands
+## close to a wall. Raycasts from the player's center toward the flashlight's
+## default position; if a wall is in the way, the light is pulled back.
+func _clamp_light_to_walls() -> void:
+	if _point_light == null:
+		return
+	# The hierarchy is: Player (CharacterBody2D) -> PlayerModel -> FlashlightEffect -> PointLight2D
+	# get_parent() is PlayerModel, get_parent().get_parent() is the Player node.
+	var player_model := get_parent()
+	if player_model == null:
+		return
+	var player := player_model.get_parent()
+	if player == null:
+		return
+
+	var player_center: Vector2 = player.global_position
+	var intended_pos: Vector2 = global_position  # FlashlightEffect's default global pos (at barrel offset)
+	var to_light: Vector2 = intended_pos - player_center
+	var dist: float = to_light.length()
+
+	if dist < 1.0:
+		# Light is at player center, nothing to clamp
+		_point_light.position = Vector2.ZERO
+		return
+
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(player_center, intended_pos)
+	query.collision_mask = OBSTACLE_COLLISION_MASK
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		# No wall between player and flashlight position — use default
+		_point_light.position = Vector2.ZERO
+	else:
+		# Wall hit: pull the light back to just before the wall
+		var hit_pos: Vector2 = result["position"]
+		var direction: Vector2 = to_light.normalized()
+		var safe_pos: Vector2 = hit_pos - direction * WALL_SAFETY_MARGIN
+		# Convert to local coordinates of FlashlightEffect node
+		_point_light.global_position = safe_pos
+
+
 func _physics_process(_delta: float) -> void:
+	_clamp_light_to_walls()
 	if not _is_on:
 		return
 	_check_enemies_in_beam()
