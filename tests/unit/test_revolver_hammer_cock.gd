@@ -38,8 +38,13 @@ class MockRevolverFire:
 	var fire_count: int = 0
 
 
+	## Fire timer tracking (mirrors BaseWeapon._fireTimer)
+	var fire_timer: float = 0.0
+
 	## Issue #649: Manually cock the hammer via RMB.
 	## Instantly cocks the hammer so the next fire() call fires without delay.
+	## NOTE: Does NOT check can_fire / fire timer — the whole point of manual cocking
+	## is to bypass the fire delay between shots (Issue #649 fix).
 	func manual_cock_hammer() -> bool:
 		# Cannot cock while cylinder is open
 		if reload_state != NOT_RELOADING:
@@ -54,9 +59,9 @@ class MockRevolverFire:
 			empty_click_played = true
 			return false
 
-		# Cannot cock if weapon can't fire (fire timer active)
-		if not can_fire:
-			return false
+		# Reset fire timer — manual cocking prepares the weapon for immediate fire
+		fire_timer = 0
+		can_fire = true
 
 		# Instantly cock the hammer
 		is_manually_hammer_cocked = true
@@ -133,6 +138,10 @@ class MockRevolverFire:
 		shot_fired = true
 		shot_sound_played = true
 		fire_count += 1
+
+		# Set fire timer (mirrors base.Fire() setting _fireTimer = 1.0 / FireRate)
+		fire_timer = 0.5  # 1.0 / 2.0 FireRate
+		can_fire = false
 
 
 	func reset_tracking() -> void:
@@ -471,14 +480,18 @@ func test_cannot_manual_cock_with_empty_cylinder() -> void:
 	assert_false(revolver.is_manually_hammer_cocked, "Should not be cocked")
 
 
-func test_cannot_manual_cock_when_cannot_fire() -> void:
-	## Cannot manually cock when weapon can't fire (fire timer active)
+func test_manual_cock_works_during_fire_timer() -> void:
+	## Issue #649 fix: Manual cock should work even during fire timer cooldown.
+	## The whole point of manual cocking is to bypass the fire delay.
 	revolver.can_fire = false
+	revolver.fire_timer = 0.4  # Simulate active fire timer after a shot
 
 	var result := revolver.manual_cock_hammer()
 
-	assert_false(result, "Should not cock when can't fire")
-	assert_false(revolver.is_manually_hammer_cocked, "Should not be cocked")
+	assert_true(result, "Should be able to cock during fire timer cooldown")
+	assert_true(revolver.is_manually_hammer_cocked, "Should be manually cocked")
+	assert_eq(revolver.fire_timer, 0.0, "Fire timer should be reset to 0")
+	assert_true(revolver.can_fire, "Can_fire should be true after manual cock")
 
 
 func test_manual_cock_then_fire_sequence() -> void:
@@ -545,6 +558,37 @@ func test_multiple_manual_cock_shots() -> void:
 	var result := revolver.manual_cock_hammer()
 	assert_false(result, "Should not cock with empty cylinder")
 	assert_true(revolver.empty_click_played, "Should play empty click")
+
+
+func test_fire_then_immediate_manual_cock_then_fire() -> void:
+	## Issue #649 key scenario: fire a shot, immediately manual cock, fire again.
+	## This is the rapid fire sequence the player wants to use.
+	revolver.current_ammo = 3
+
+	# Normal fire (LMB) — shot fires after delay
+	revolver.fire(Vector2.RIGHT)
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_true(revolver.shot_fired, "First shot should have fired")
+	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds after first shot")
+	assert_true(revolver.fire_timer > 0, "Fire timer should be active after shot")
+	assert_false(revolver.can_fire, "Can_fire should be false during fire timer")
+
+	revolver.reset_tracking()
+
+	# Immediately manual cock (RMB) — should work despite fire timer
+	var cock_result := revolver.manual_cock_hammer()
+	assert_true(cock_result, "Manual cock should succeed during fire timer cooldown")
+	assert_true(revolver.is_manually_hammer_cocked, "Should be manually cocked")
+	assert_eq(revolver.fire_timer, 0.0, "Fire timer should be reset")
+
+	revolver.reset_tracking()
+
+	# Fire again (LMB) — instant shot (no delay)
+	var fire_result := revolver.fire(Vector2.RIGHT)
+	assert_true(fire_result, "Fire should succeed after manual cock")
+	assert_true(revolver.shot_fired, "Shot should fire instantly")
+	assert_eq(revolver.current_ammo, 1, "Should have 1 round left")
+	assert_eq(revolver.fire_count, 2, "Should have fired 2 shots total")
 
 
 func test_manual_cock_cylinder_open_cancels() -> void:

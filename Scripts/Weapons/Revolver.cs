@@ -543,6 +543,8 @@ public partial class Revolver : BaseWeapon
     /// so the next LMB press fires immediately without the normal 0.15s delay.
     /// Can only be done when the cylinder is closed, there is ammo,
     /// and the hammer is not already cocked.
+    /// Unlike normal fire, manual cocking is NOT blocked by the fire timer —
+    /// the whole point is to let the player bypass the fire delay between shots.
     /// </summary>
     /// <returns>True if the hammer was manually cocked successfully.</returns>
     public bool ManualCockHammer()
@@ -566,11 +568,20 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Cannot cock if weapon can't fire (fire timer active)
-        if (!CanFire || WeaponData == null || BulletScene == null)
+        // Check weapon data and bullet scene are available
+        if (WeaponData == null || BulletScene == null)
         {
             return false;
         }
+
+        // NOTE: We intentionally do NOT check CanFire here (Issue #649 fix).
+        // CanFire includes _fireTimer <= 0 check, which would block cocking
+        // during the fire rate cooldown after a shot. The entire purpose of
+        // manual cocking is to bypass that fire delay — the player manually
+        // cocks the hammer to skip the automatic cock+rotate wait time.
+
+        // Reset fire timer — manual cocking prepares the weapon for immediate fire
+        _fireTimer = 0;
 
         // Instantly cock the hammer (no delay - that's the point of manual cocking)
         _isManuallyHammerCocked = true;
