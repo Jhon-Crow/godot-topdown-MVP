@@ -853,7 +853,7 @@ namespace GodotTopdown.Scripts.Projectiles
             float angleStep = Mathf.Tau / shrapnelCount;
 
             // Issue #692: Get grenade instance ID for shrapnel source tracking
-            long grenadeInstanceId = _grenadeBody?.GetInstanceId() ?? -1;
+            long grenadeInstanceId = _grenadeBody != null ? (long)_grenadeBody.GetInstanceId() : -1;
 
             for (int i = 0; i < shrapnelCount; i++)
             {
