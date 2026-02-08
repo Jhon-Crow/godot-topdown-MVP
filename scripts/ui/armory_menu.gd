@@ -53,7 +53,7 @@ const FIREARMS: Dictionary = {
 	},
 	"revolver": {
 		"name": "RSh-12",
-		"icon_path": "res://assets/sprites/weapons/makarov_pm_topdown.png",
+		"icon_path": "res://assets/sprites/weapons/revolver_icon.png",
 		"unlocked": true,
 		"description": "RSh-12 heavy revolver - 12.7x55mm STs-130, 20 damage, penetrates walls (200px), weak ricochet, strong recoil. 5-round cylinder. Comfortable aiming like silenced pistol."
 	},

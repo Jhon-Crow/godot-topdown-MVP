@@ -118,6 +118,14 @@ public partial class Player : BaseCharacter
     private bool _isReloadingSequence = false;
 
     /// <summary>
+    /// Whether a semi-automatic shoot input has been buffered.
+    /// When the player clicks while the fire timer is still active,
+    /// the click is buffered and consumed as soon as the weapon can fire.
+    /// This prevents lost inputs when clicking faster than the fire rate allows.
+    /// </summary>
+    private bool _semiAutoShootBuffered = false;
+
+    /// <summary>
     /// Tracks ammo count when reload sequence started (at step 1 after R pressed).
     /// Used to determine if there was a bullet in the chamber.
     /// </summary>
@@ -1111,8 +1119,17 @@ public partial class Player : BaseCharacter
             HandleShootingInput();
         }
 
-        // Handle reload sequence input (R-F-R)
-        HandleReloadSequenceInput();
+        // Handle revolver multi-step cylinder reload (Issue #626)
+        // Must be checked before standard reload to prevent R-F-R sequence from intercepting
+        if (CurrentWeapon is Revolver)
+        {
+            HandleRevolverReloadInput();
+        }
+        else
+        {
+            // Handle reload sequence input (R-F-R) for non-revolver weapons
+            HandleReloadSequenceInput();
+        }
 
         // Handle fire mode toggle (B key for burst/auto toggle)
         if (Input.IsActionJustPressed("toggle_fire_mode"))
@@ -1151,12 +1168,36 @@ public partial class Player : BaseCharacter
             isAutomatic = assaultRifle.CurrentFireMode == FireMode.Automatic;
         }
 
+        // For semi-automatic weapons, buffer click inputs so fast clicking works.
+        // When the player clicks while the fire timer is still active, the click
+        // is buffered and consumed as soon as the weapon can fire again.
+        // This prevents lost inputs when clicking faster than the fire rate allows.
+        if (!isAutomatic && Input.IsActionJustPressed("shoot"))
+        {
+            _semiAutoShootBuffered = true;
+        }
+
         // Determine if shooting input is active
-        bool shootInputActive = isAutomatic ? Input.IsActionPressed("shoot") : Input.IsActionJustPressed("shoot");
+        bool shootInputActive;
+        if (isAutomatic)
+        {
+            shootInputActive = Input.IsActionPressed("shoot");
+        }
+        else
+        {
+            // For semi-auto: fire if we have a buffered click and weapon can fire
+            shootInputActive = _semiAutoShootBuffered && CurrentWeapon.CanFire;
+        }
 
         if (!shootInputActive)
         {
             return;
+        }
+
+        // Consume the buffered input for semi-auto weapons
+        if (!isAutomatic)
+        {
+            _semiAutoShootBuffered = false;
         }
 
         // Check if weapon is empty before trying to shoot (not in reload sequence)
@@ -1264,6 +1305,15 @@ public partial class Player : BaseCharacter
         if (shotgun != null && (shotgun.ReloadState != ShotgunReloadState.NotReloading || shotgun.IsDragging))
         {
             // Keep current rotation locked - don't follow mouse
+            return;
+        }
+
+        // TACTICAL RELOAD for revolver (Issue #626): Lock rotation while cylinder is open
+        // or when dragging (RMB held for cartridge insertion gesture).
+        var revolverForRotation = GetNodeOrNull<Revolver>("Revolver");
+        if (revolverForRotation != null && revolverForRotation.ReloadState != RevolverReloadState.NotReloading)
+        {
+            // Keep current rotation locked during cylinder reload
             return;
         }
 
@@ -1595,6 +1645,14 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Skip R-F-R reload for Revolver - it uses multi-step cylinder reload (Issue #626)
+        // R key: open/close cylinder. RMB drag up: insert cartridge. Scroll: rotate cylinder.
+        // Handled by HandleRevolverReloadInput() and Revolver.cs input handlers.
+        if (CurrentWeapon is Revolver)
+        {
+            return;
+        }
+
         // Can't reload if magazine is full (and not in reload sequence)
         if (!_isReloadingSequence && CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
         {
@@ -1608,7 +1666,8 @@ public partial class Player : BaseCharacter
         }
 
         // Check if this is a pistol-type weapon that uses R->R reload (2-step) instead of R->F->R (3-step)
-        bool isPistolReload = CurrentWeapon is MakarovPM || CurrentWeapon is Revolver;
+        // Note: Revolver is excluded above - it uses multi-step cylinder reload (Issue #626)
+        bool isPistolReload = CurrentWeapon is MakarovPM;
 
         // Handle R key (first and third step, or both steps for pistol)
         if (Input.IsActionJustPressed("reload"))
@@ -1707,6 +1766,64 @@ public partial class Player : BaseCharacter
                 StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
                 ResetReloadSequence();
             }
+        }
+    }
+
+    /// <summary>
+    /// Handles revolver multi-step cylinder reload input (Issue #626).
+    /// R key: Open cylinder (if closed) or close cylinder (if open).
+    /// RMB drag up (insert cartridge) and scroll wheel (rotate cylinder)
+    /// are handled directly by Revolver.cs in _Process() and _Input().
+    /// Sequence: R (open) → RMB drag up (insert) → scroll (rotate) → repeat → R (close).
+    /// </summary>
+    private void HandleRevolverReloadInput()
+    {
+        var revolver = CurrentWeapon as Revolver;
+        if (revolver == null)
+        {
+            return;
+        }
+
+        // Only handle R key press - drag and scroll are handled by Revolver.cs
+        if (!Input.IsActionJustPressed("reload"))
+        {
+            return;
+        }
+
+        switch (revolver.ReloadState)
+        {
+            case RevolverReloadState.NotReloading:
+                // R press: Open cylinder to begin reload
+                if (revolver.OpenCylinder())
+                {
+                    _isReloadingSequence = true;
+                    // Start arm animation for cylinder open
+                    StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
+                    EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
+                    EmitSignal(SignalName.ReloadStarted);
+                    LogToFile("[Player] Revolver: cylinder opened (R key)");
+                }
+                break;
+
+            case RevolverReloadState.CylinderOpen:
+            case RevolverReloadState.Loading:
+                // R press: Close cylinder to finish reload
+                if (revolver.CloseCylinder())
+                {
+                    _isReloadingSequence = false;
+                    // Animate arm return
+                    StartReloadAnimPhase(ReloadAnimPhase.ReturnIdle, ReloadAnimReturnDuration);
+                    EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);
+                    EmitSignal(SignalName.ReloadCompleted);
+                    // Emit sound propagation for reload completion
+                    var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+                    if (soundPropagation != null && soundPropagation.HasMethod("emit_player_reload_complete"))
+                    {
+                        soundPropagation.Call("emit_player_reload_complete", GlobalPosition, this);
+                    }
+                    LogToFile("[Player] Revolver: cylinder closed (R key), reload complete");
+                }
+                break;
         }
     }
 
@@ -2666,13 +2783,13 @@ public partial class Player : BaseCharacter
 
         // Calculate throw speed needed to reach target (using physics)
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        // FIX for issue #428: Apply 16% compensation factor to account for:
-        // 1. Discrete time integration error from Godot's 60 FPS Euler integration (~0.8%)
-        // 2. Additional physics damping effects in Godot's RigidBody2D (~12.5%)
-        // Empirically tested: grenades travel ~86% of calculated distance without compensation.
-        // Factor of 1.16 (≈ 1/0.86) brings actual landing position to match target cursor position.
-        const float physicsCompensationFactor = 1.16f;
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * physicsCompensationFactor);
+        // FIX for issue #615: Removed the 1.16x compensation factor.
+        // Root causes: (1) GDScript + C# were BOTH applying friction (double friction), and
+        // (2) Godot's default linear_damp=0.1 in COMBINE mode added hidden damping.
+        // Fix: GDScript friction removed entirely (C# GrenadeTimer is sole friction source),
+        // and linear_damp_mode set to REPLACE so linear_damp=0 means zero damping.
+        // v = sqrt(2*F*d) now works correctly without any compensation factor.
+        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
 
         // Clamp to grenade's max throw speed
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
@@ -4063,6 +4180,9 @@ public partial class Player : BaseCharacter
             if (throwDistance < 10.0f) throwDistance = 10.0f;
 
             // Calculate throw speed needed to reach target
+            // FIX for issue #615: No compensation factor needed. Root causes were double friction
+            // (GDScript + C# both applying) and Godot default linear_damp=0.1. GDScript friction
+            // was removed entirely; C# GrenadeTimer is sole friction source. v = sqrt(2*F*d) works.
             float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
@@ -4109,6 +4229,8 @@ public partial class Player : BaseCharacter
                 throwSpeed = MinThrowSpeed * 0.5f;
             }
 
+            // FIX for issue #615: No compensation factor needed. Double friction was the root
+            // cause. With single C# friction, the formula works correctly.
             landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
         }
 

@@ -301,6 +301,8 @@ func _setup_player_tracking() -> void:
 			_update_magazines_label(mag_counts)
 		# Configure silenced pistol ammo based on enemy count
 		_configure_silenced_pistol_ammo(weapon)
+		# Configure 2.5x ammo for MakarovPM (Issue #636)
+		_configure_makarov_pm_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -414,6 +416,32 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		print("[TestTier] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
 
 		# Update the ammo display after configuration
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
+## Applies to all difficulty modes including Hard.
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	if weapon.name != "MakarovPM":
+		return
+
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		print("[TestTier] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -1375,6 +1403,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(makarov)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = makarov
+
+			# Configure 2.5x ammo for MakarovPM (Issue #636)
+			_configure_makarov_pm_ammo(makarov)
 
 
 ## Starts recording the replay for this level.

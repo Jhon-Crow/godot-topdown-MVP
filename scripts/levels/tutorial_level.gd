@@ -64,6 +64,9 @@ var _has_sniper_rifle: bool = false
 ## Whether the player has a Makarov PM (for pistol R->R reload tutorial).
 var _has_makarov_pm: bool = false
 
+## Whether the player has a revolver (for revolver-specific cylinder reload tutorial).
+var _has_revolver: bool = false
+
 ## Reference to the player's assault rifle weapon (for fire mode tracking).
 var _assault_rifle: Node = null
 
@@ -173,7 +176,8 @@ func _setup_selected_weapon() -> void:
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
 			"m16": "AssaultRifle",
-			"ak_gl": "AKGL"
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -320,6 +324,27 @@ func _setup_selected_weapon() -> void:
 			print("Tutorial: AK + GL equipped successfully")
 		else:
 			push_error("Tutorial: Failed to load AKGL scene!")
+	# If Revolver is selected, swap weapons
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			print("Tutorial: RSh-12 Revolver equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load Revolver scene!")
 	# For Makarov PM, it's already in the scene - just ensure it's equipped
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -366,6 +391,7 @@ func _connect_player_signals() -> void:
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
 	var makarov_pm = _player.get_node_or_null("MakarovPM")
+	var revolver = _player.get_node_or_null("Revolver")
 
 	if sniper_rifle != null:
 		_sniper_rifle = sniper_rifle
@@ -431,6 +457,20 @@ func _connect_player_signals() -> void:
 			weapon.FireModeChanged.connect(_on_fire_mode_changed)
 			print("Tutorial: Connected to FireModeChanged signal")
 
+	elif revolver != null:
+		_has_revolver = true
+		print("Tutorial: Player has RSh-12 Revolver - cylinder reload tutorial enabled")
+
+		# Connect to reload signals from player (C# Player)
+		if _player.has_signal("ReloadCompleted"):
+			_player.ReloadCompleted.connect(_on_player_reload_completed)
+		elif _player.has_signal("reload_completed"):
+			_player.reload_completed.connect(_on_player_reload_completed)
+
+		# Connect to revolver ammo signal
+		if revolver.has_signal("AmmoChanged"):
+			revolver.AmmoChanged.connect(_on_weapon_ammo_changed)
+
 	elif makarov_pm != null:
 		_has_makarov_pm = true
 		print("Tutorial: Player has MakarovPM - pistol tutorial (R->R reload)")
@@ -471,6 +511,7 @@ func _setup_ammo_tracking() -> void:
 	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var weapon = _player.get_node_or_null("AssaultRifle")
 	var makarov_pm = _player.get_node_or_null("MakarovPM")
+	var revolver = _player.get_node_or_null("Revolver")
 
 	if shotgun != null:
 		# C# Player with shotgun - connect to weapon signals
@@ -510,6 +551,16 @@ func _setup_ammo_tracking() -> void:
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	elif revolver != null:
+		# C# Player with Revolver - connect to weapon signals
+		if revolver.has_signal("AmmoChanged"):
+			revolver.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Connect to CartridgeInserted for real-time UI update during cylinder reload
+		if revolver.has_signal("CartridgeInserted"):
+			revolver.CartridgeInserted.connect(_on_revolver_cartridge_inserted)
+		# Initial ammo display from Revolver
+		if revolver.get("CurrentAmmo") != null and revolver.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(revolver.CurrentAmmo, revolver.ReserveAmmo)
 	elif makarov_pm != null:
 		# C# Player with MakarovPM - connect to weapon signals
 		if makarov_pm.has_signal("AmmoChanged"):
@@ -579,6 +630,19 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 		if shotgun != null and shotgun.get("ReserveAmmo") != null:
 			reserve_ammo = shotgun.ReserveAmmo
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
+
+
+## Called when revolver cartridge is inserted (during cylinder reload).
+## This allows the ammo counter to update immediately as each cartridge is loaded.
+func _on_revolver_cartridge_inserted(loaded: int, _capacity: int) -> void:
+	# Get the reserve ammo from the weapon for display
+	var reserve_ammo: int = 0
+	if _player:
+		var revolver = _player.get_node_or_null("Revolver")
+		if revolver != null and revolver.get("ReserveAmmo") != null:
+			reserve_ammo = revolver.ReserveAmmo
+		if revolver != null and revolver.get("CurrentAmmo") != null:
+			_update_ammo_label_magazine(revolver.CurrentAmmo, reserve_ammo)
 
 
 ## Setup targets and connect to their hit signals.
@@ -791,6 +855,9 @@ func _update_prompt_text() -> void:
 			elif _has_sniper_rifle:
 				# Sniper rifle bolt-action reload: Left→Down→Up→Right
 				_prompt_label.text = "[←отпирание] [↓извлечение] [↑досылание] [→запирание]"
+			elif _has_revolver:
+				# Revolver cylinder reload: R (open) → RMB drag up (insert) → scroll (rotate) → R (close)
+				_prompt_label.text = "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]"
 			elif _has_makarov_pm:
 				# Makarov PM uses simplified R->R reload (2-step pistol reload)
 				_prompt_label.text = "[R] [R] Перезарядись"
