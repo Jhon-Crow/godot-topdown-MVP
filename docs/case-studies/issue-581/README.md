@@ -245,13 +245,51 @@ Both snipers oscillate between `COMBAT` and `SEEKING_COVER` states ~150+ times i
 - **Tracer visibility:** Set `z_as_relative = false` on tracers with z_index=90.
 - **Ammo depletion:** Snipers now carry 10 magazines (was 5, default), giving 50 rounds total for sustained engagement.
 
+## Round 7 Analysis (2026-02-08)
+
+### Evidence from game_log_20260208_151134.txt
+- **44 shots fired** by snipers (confirmed by SoundPropagation events), proving rounds 1-6 fixes worked
+- **Zero SNIPER FIRED log entries** — blank log lines due to `°` character in format string
+- **Snipers drift to map corners**: SniperEnemy1 moves from (5600,400) → (6022,88), SniperEnemy2 from (5600,4700) → (5600,4581)
+- **State thrashing persists**: SniperEnemy2 oscillates COMBAT<->SEEKING_COVER ~150+ times
+- **No player damage**: `_can_shoot()=false (bolt=true, reloading=true, ammo=0)` entries after ammo depletion
+
+### Root Cause D: Hitscan Cannot Damage GDScript Player
+
+`sniper_component.gd:perform_hitscan()` checks `collider.has_method("take_damage")`, but the GDScript player (`player.gd`) uses `on_hit()` / `on_hit_with_info()` — NOT `take_damage()`. The raycast correctly detects the player's CharacterBody2D (collision layer 1), but the damage method call never executes because the method name doesn't match.
+
+Evidence: The `machete_component.gd` (line 398-400) correctly handles both: `has_method("take_damage")` AND `has_method("TakeDamage")`. The hitscan code only checked the first.
+
+**Fix:** `perform_hitscan()` now checks `on_hit_with_info`, `on_hit`, `take_damage`, and `TakeDamage` in order of specificity, matching the pattern used by other damage systems in the codebase.
+
+### Root Cause E: Sniper Cover Drift to Map Corners
+
+Cover scoring used `distance_score = cover_pos.distance_to(player_pos) / hitscan_range` for snipers, which always preferred positions farthest from the player. Combined with 300px cover search radius (`COVER_CHECK_DISTANCE`), this progressively pushed snipers toward map edges/corners.
+
+**Fix:** Snipers now use `distance_score = 1.0 - clamp(dist_from_spawn / 500.0)` — preferring cover near their initial GUARD position. Added 500px max drift check in SEEKING_COVER state.
+
+### Root Cause F: COMBAT<->SEEKING_COVER Thrashing
+
+Snipers retreated from `_under_fire` (any bullet in threat sphere), but after entering SEEKING_COVER, the sniper found cover and transitioned to IN_COVER. IN_COVER then detected the player was "too close" (within full viewport diagonal) and re-entered SEEKING_COVER. The retreat cooldown was set but the cycle restarted from a different state.
+
+**Fix:**
+1. Snipers no longer retreat from `_under_fire` alone — they hold position and return fire (GUARD behavior)
+2. Retreat threshold reduced to half viewport distance (truly dangerous range only)
+3. IN_COVER retreat also uses half viewport distance
+
+### Root Cause G: Blank SNIPER FIRED Log Lines
+
+`_log_to_file()` format strings used `°` Unicode character which produced empty output.
+
+**Fix:** Replaced `°` with `deg` in all sniper log format strings.
+
 ## Game Logs
 
-See `round5-logs/` and root directory for game log files from the issue author's testing.
+See `round5-logs/`, `logs/`, and root directory for game log files from the issue author's testing.
 
 ## References
 
 - ASVK rifle: Russian anti-materiel rifle, 12.7x108mm caliber
 - Existing player ASVK implementation: `Scripts/Weapons/SniperRifle.cs` (1796 lines)
-- Enemy AI base: `scripts/objects/enemy.gd` (4969 lines)
+- Enemy AI base: `scripts/objects/enemy.gd` (4982 lines)
 - Weapon configs: `scripts/components/weapon_config_component.gd`

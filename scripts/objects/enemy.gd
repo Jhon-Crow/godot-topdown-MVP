@@ -1572,9 +1572,16 @@ func _process_seeking_cover_state(_delta: float) -> void:
 		_find_cover_position()
 		if not _has_valid_cover:
 			if _is_sniper:
-				# Sniper: go to IN_COVER at current position to avoid COMBAT<->SEEKING_COVER thrashing
+				# Sniper: settle at current position to avoid state thrashing
 				_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
 			_transition_to_combat(); return
+
+	# Snipers: don't move to cover too far from initial position (prevents corner drift)
+	if _is_sniper and _has_valid_cover:
+		var drift := _cover_position.distance_to(_initial_position)
+		if drift > 500.0:
+			# Cover is too far from spawn — settle at current position
+			_cover_position = global_position; _has_valid_cover = true; _transition_to_in_cover(); return
 
 	# Check if we're already hidden from the player (the main goal)
 	if not _is_visible_from_player():
@@ -3276,7 +3283,13 @@ func _find_cover_position() -> void:
 			if is_hidden or not found_hidden_cover:
 				# Score: hidden (highest priority) + distance + blocking position
 				var hidden_score: float = 10.0 if is_hidden else 0.0
-				var distance_score: float = cover_pos.distance_to(player_pos) / _sniper_hitscan_range if _is_sniper else 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
+				var distance_score: float
+				if _is_sniper:
+					# Snipers: prefer cover near initial spawn (GUARD position), not farthest from player
+					var dist_from_spawn := cover_pos.distance_to(_initial_position)
+					distance_score = 1.0 - clampf(dist_from_spawn / 500.0, 0.0, 1.0)
+				else:
+					distance_score = 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
 
 				# Check if this position is on the far side of obstacle from player
 				var cover_direction := (cover_pos - player_pos).normalized()
@@ -3841,7 +3854,7 @@ func _shoot() -> void:
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if _is_sniper:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
-			_log_to_file("SNIPER _shoot: blocked - aim_dot=%.3f (%.1f° off), can_see=%s, rot=%.1f°" % [aim_dot, aim_angle_deg, _can_see_player, rad_to_deg(rotation)])
+			_log_to_file("SNIPER _shoot: blocked - aim_dot=%.3f (%.1f deg off), can_see=%s, rot=%.1f" % [aim_dot, aim_angle_deg, _can_see_player, rad_to_deg(rotation)])
 		elif debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
@@ -3855,7 +3868,7 @@ func _shoot() -> void:
 		var spread_deg := _calculate_sniper_spread(direction)
 		if spread_deg > 0.0:
 			direction = direction.rotated(randf_range(-deg_to_rad(spread_deg), deg_to_rad(spread_deg)))
-		_log_to_file("SNIPER FIRED: spread=%.1f°, pos=%s, dir=%s, can_see=%s" % [spread_deg, bullet_spawn_pos, direction, _can_see_player])
+		_log_to_file("SNIPER FIRED: spread=%.1f deg, pos=%s, dir=%s, can_see=%s" % [spread_deg, bullet_spawn_pos, direction, _can_see_player])
 		_shoot_sniper_hitscan(direction, bullet_spawn_pos)
 		_sniper_bolt_ready = false
 		_sniper_bolt_timer = 0.0
@@ -3958,21 +3971,22 @@ func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 func _process_sniper_combat_state(delta: float) -> void:
 	_combat_state_timer += delta; velocity = Vector2.ZERO
 	_sniper_update_detection_delay(delta)
-	# Retreat to cover if under fire or player too close (with cooldown to prevent thrashing)
-	if _sniper_retreat_cooldown <= 0.0 and enable_cover:
-		if _under_fire:
-			_log_to_file("SNIPER: retreating - under fire"); _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
-		if _can_see_player and _player:
-			var dist := global_position.distance_to(_player.global_position)
-			if dist < get_viewport_rect().size.length():
-				_log_to_file("SNIPER: retreating, player too close (%.0f)" % dist); _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
+	# Snipers are GUARD-mode: they hold position and shoot. Only retreat if player is very close
+	# AND sniper has been hit recently (not just _under_fire from nearby bullets).
+	if _sniper_retreat_cooldown <= 0.0 and enable_cover and _can_see_player and _player:
+		var dist := global_position.distance_to(_player.global_position)
+		var half_viewport := get_viewport_rect().size.length() * 0.5
+		if dist < half_viewport:
+			_log_to_file("SNIPER: retreating, player very close (%d)" % int(dist))
+			_sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME
+			_transition_to_seeking_cover(); return
 	if not _can_see_player:
 		if _memory and _memory.has_target():
 			var suspected_pos: Vector2 = _memory.suspected_position
 			var walls := SniperComponent.count_walls(self, suspected_pos)
 			_sniper_rotate_toward(suspected_pos)
 			if walls <= _sniper_max_wall_penetrations and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-				_log_to_file("SNIPER: shooting through %d walls at %s" % [walls, suspected_pos]); _shoot(); _shoot_timer = 0.0
+				_log_to_file("SNIPER: shooting through %d walls" % walls); _shoot(); _shoot_timer = 0.0
 		elif _combat_state_timer > 5.0: _transition_to_searching(global_position)
 		return
 	_aim_at_player()
@@ -3981,11 +3995,10 @@ func _process_sniper_combat_state(delta: float) -> void:
 
 func _process_sniper_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO; _sniper_update_detection_delay(delta)
-	# Re-seek cover if flanked under fire or player too close (with cooldown)
-	if _sniper_retreat_cooldown <= 0.0:
-		if _is_visible_from_player() and _under_fire:
-			_has_valid_cover = false; _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
-		if _player and global_position.distance_to(_player.global_position) < get_viewport_rect().size.length():
+	# Only re-seek cover if player is dangerously close (half viewport distance)
+	if _sniper_retreat_cooldown <= 0.0 and _player:
+		var dist := global_position.distance_to(_player.global_position)
+		if dist < get_viewport_rect().size.length() * 0.5:
 			_has_valid_cover = false; _sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
 	if _can_see_player and _player:
 		_aim_at_player()

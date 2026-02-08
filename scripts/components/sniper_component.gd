@@ -126,14 +126,25 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 				bullet_end = hit_pos
 				break
 
-		# Enemy/player hit
+		# Enemy/player hit — support GDScript (on_hit_with_info, take_damage) and C# (TakeDamage)
 		var instance_id := collider.get_instance_id()
 		if instance_id not in damaged_ids:
 			damaged_ids[instance_id] = true
-			if collider.has_method("take_damage"):
-				collider.take_damage(damage)
-			elif collider.get_parent() and collider.get_parent().has_method("take_damage"):
-				collider.get_parent().take_damage(damage)
+			var target: Node = collider
+			# If collider doesn't have damage methods, try parent (e.g. HitArea -> Enemy)
+			if not target.has_method("take_damage") and not target.has_method("on_hit_with_info") \
+					and not target.has_method("on_hit") and not target.has_method("TakeDamage"):
+				if target.get_parent():
+					target = target.get_parent()
+			# Try damage methods in order of specificity
+			if target.has_method("on_hit_with_info"):
+				target.on_hit_with_info(-direction.normalized(), null)
+			elif target.has_method("on_hit"):
+				target.on_hit()
+			elif target.has_method("take_damage"):
+				target.take_damage(damage)
+			elif target.has_method("TakeDamage"):
+				target.TakeDamage(damage)
 
 		exclude_rids.append(result["rid"])
 		current_pos = hit_pos + direction * 5.0
