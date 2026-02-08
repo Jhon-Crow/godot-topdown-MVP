@@ -13,7 +13,9 @@ When the player stands flush against a wall, the flashlight beam passes through 
 5. **User feedback (comment 2)** — Two remaining issues: (1) "светит в стену" — light still shines into the wall, (2) "остаточное свечение - за стеной" — residual glow visible behind the wall.
 6. **Third fix** — Three-pronged approach addressing both the main beam and scatter light: dynamic `texture_scale` reduction, sharp shadow filter near walls, and scatter light suppression.
 7. **User feedback (comment 3)** — "визуально всё правильно" (visually everything is correct), BUT two gameplay logic issues: (1) "враги ослепляются если игрок светит в них сквозь стену в упор" — enemies get blinded when the player shines at them through a wall at close range, (2) "враги видят фонарь если игрок светит сквозь стену в упор, хотя визуально свет не проходит" — enemies detect the flashlight through a wall at close range, even though visually the light doesn't pass through.
-8. **Fourth fix (current)** — When wall-clamped, suppress blindness checks and enemy flashlight detection logic.
+8. **Fourth fix** — When wall-clamped, suppress blindness checks and enemy flashlight detection logic.
+9. **User feedback (comment 4)** — "враги всё ещё реагируют на невидимый за стеной луч фонаря" (enemies still react to the invisible flashlight beam behind the wall). Game logs `game_log_20260208_174653.txt` and `game_log_20260208_174718.txt` show Enemy3 and Enemy4 repeatedly detecting the flashlight beam through walls while the player stands flush.
+10. **Fifth fix (current)** — Root cause #6 identified: the wall detection only checked the center→barrel path, missing the case where the barrel is on the player's side but the beam direction immediately enters a wall. Added beam-direction wall detection within `BEAM_WALL_CLAMP_DISTANCE` (30px) of the barrel.
 
 ## Root Cause Analysis
 
@@ -76,6 +78,17 @@ Similarly, the `FlashlightDetectionComponent.check_flashlight()` obtains `flashl
 
 The `is_position_lit()` method (used for passage avoidance by enemy AI) has the same issue.
 
+### Root Cause 6: Wall Detection Only Checks Center-to-Barrel Path
+
+The `_clamp_light_to_walls()` function casts a ray from `player_center` to `intended_pos` (barrel, 20px away). This only detects walls that intersect the short line segment between the player's center and the flashlight barrel. However, when the player stands flush against a wall at an angle, the wall may not be between the center and the barrel — the barrel can be on the player's side of the wall while the beam direction goes into/through the wall.
+
+In the game logs, the player was at approximately `(727, 1040)` with the barrel at `(734.561, 1014.97)` and beam direction `(0.26158, -0.965182)` pointing mostly upward. The wall was in the beam's forward direction (within 30px of the barrel), but NOT between the center and the barrel. This meant `_is_wall_clamped` remained `false`, and all detection/blindness suppression was bypassed despite the beam being visually blocked by the wall's LightOccluder2D.
+
+**Evidence from game logs:**
+- `game_log_20260208_174653.txt` line 504+: Enemy3 and Enemy4 both detect flashlight with `estimated_pos=(734.561, 1014.97)`, triggering pursuit from IDLE state
+- `game_log_20260208_174718.txt` line 559+: Enemy4 detects flashlight with `estimated_pos=(757.4615, 1022.563)`, repeated detection events
+- No wall-clamping log entries appear in either log, confirming `_is_wall_clamped` was never set to `true`
+
 ## Solution (Fix 3)
 
 Three measures applied simultaneously:
@@ -135,6 +148,24 @@ if player.has_method("is_flashlight_wall_clamped") and player.is_flashlight_wall
 
 This prevents enemies from detecting or tracking the beam through walls.
 
+## Solution (Fix 5) — Beam-Direction Wall Detection
+
+Fix 4 relied on `_is_wall_clamped` being `true`, but Root Cause #6 showed that `_is_wall_clamped` was never set when the wall wasn't between center and barrel. Fix 5 adds a secondary raycast in the beam direction.
+
+### 6. Beam-Direction Wall Check
+
+Added a second ray check in `_clamp_light_to_walls()`: when no wall is found between the player center and the barrel, cast a ray from the barrel along the beam direction for `BEAM_WALL_CLAMP_DISTANCE` (30px). If a wall is hit within this short distance, the beam is effectively blocked by the wall — set `_is_wall_clamped = true` and apply the same visual clamping (move light to player center, reduce texture_scale, switch to sharp shadows).
+
+```gdscript
+var beam_direction := Vector2.RIGHT.rotated(global_rotation)
+var beam_check_end := intended_pos + beam_direction * BEAM_WALL_CLAMP_DISTANCE
+var beam_query := PhysicsRayQueryParameters2D.create(intended_pos, beam_check_end)
+beam_query.collision_mask = OBSTACLE_COLLISION_MASK
+var beam_result := space_state.intersect_ray(beam_query)
+```
+
+This catches the case where the player faces a wall at an angle — the barrel stays on the player's side, but the beam direction immediately enters the wall body.
+
 ## Files in This Case Study
 
 | File | Description |
@@ -142,6 +173,8 @@ This prevents enemies from detecting or tracking the beam through walls.
 | `README.md` | This case study document |
 | `game_log_20260208_165935.txt` | Game log from user's testing session — light shining into wall (Godot 4.3-stable, Windows) |
 | `game_log_20260208_172552.txt` | Game log from user's testing session — enemies blinded/detecting through wall |
+| `game_log_20260208_174653.txt` | Game log from user's testing session — enemies detecting flashlight through wall (attempt 4) |
+| `game_log_20260208_174718.txt` | Game log from user's testing session — enemies detecting flashlight through wall (attempt 4, continued) |
 | `solution-draft-log-1.txt` | First AI solution draft execution log |
 | `solution-draft-log-2.txt` | Second AI solution draft execution log (with player center fix) |
 
@@ -161,3 +194,4 @@ This prevents enemies from detecting or tracking the beam through walls.
 4. **PCF shadow filtering trades edge quality for bleed risk** — use `SHADOW_FILTER_NONE` near walls for crisp edges, `SHADOW_FILTER_PCF5` in open areas for aesthetics.
 5. **Visual fixes and gameplay logic fixes are separate concerns** — fixing the visual rendering (light not passing through walls) is not the same as fixing the game logic (blindness and AI detection). Both must be addressed when an effect has gameplay consequences.
 6. **Barrel-offset origins are unreliable near walls** — when a game object is attached at an offset (barrel position), its global position can be past a wall the player is touching. All raycasts and checks that use this origin must account for the wall-clamped state.
+7. **Wall detection must check multiple directions** — checking only the center→barrel path misses walls that are in the beam's forward direction but not between center and barrel. Always verify the beam direction for nearby walls as well, especially when the player approaches at an angle.

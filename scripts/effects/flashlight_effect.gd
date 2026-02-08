@@ -61,6 +61,13 @@ const SCATTER_LIGHT_COLOR: Color = Color(1.0, 1.0, 0.92, 1.0)
 ## which causes light to leak through in Godot's 2D shadow system.
 const SCATTER_WALL_PULLBACK: float = 8.0
 
+## Distance threshold (in pixels) for beam-direction wall clamping (Issue #640).
+## If the beam hits a wall within this distance from the barrel, the flashlight
+## is considered wall-clamped — enemies cannot detect or be blinded through the wall.
+## This catches the case where the player stands flush against a wall and the barrel
+## is on the player's side but the beam immediately enters the wall body.
+const BEAM_WALL_CLAMP_DISTANCE: float = 30.0
+
 ## Reference to the PointLight2D child node.
 var _point_light: PointLight2D = null
 
@@ -246,10 +253,31 @@ func _clamp_light_to_walls() -> void:
 	var result := space_state.intersect_ray(query)
 
 	if result.is_empty():
-		# No wall between player and flashlight position — use default
-		_point_light.position = Vector2.ZERO
-		_is_wall_clamped = false
-		_restore_light_defaults()
+		# No wall between player and barrel — check beam direction.
+		# The player may be flush against a wall with the barrel on their side,
+		# but the beam direction goes into/through the wall.
+		var beam_direction := Vector2.RIGHT.rotated(global_rotation)
+		var beam_check_end := intended_pos + beam_direction * BEAM_WALL_CLAMP_DISTANCE
+		var beam_query := PhysicsRayQueryParameters2D.create(intended_pos, beam_check_end)
+		beam_query.collision_mask = OBSTACLE_COLLISION_MASK
+		var beam_result := space_state.intersect_ray(beam_query)
+
+		if beam_result.is_empty():
+			# No wall in beam direction either — use default
+			_point_light.position = Vector2.ZERO
+			_is_wall_clamped = false
+			_restore_light_defaults()
+		else:
+			# Wall found immediately in beam direction — clamp the beam.
+			_is_wall_clamped = true
+			# Move light source to player center so the wall's LightOccluder2D blocks it.
+			_point_light.global_position = player_center
+			# Reduce texture_scale to reach only the wall surface.
+			var wall_dist: float = (beam_result.position - player_center).length()
+			var cone_texture_size: float = 2048.0
+			var clamped_scale: float = maxf(wall_dist * 2.0 / cone_texture_size, 0.1)
+			_point_light.texture_scale = minf(clamped_scale, LIGHT_TEXTURE_SCALE)
+			_point_light.shadow_filter = PointLight2D.SHADOW_FILTER_NONE
 	else:
 		# Wall hit: move the light source back to the player center.
 		_point_light.global_position = player_center

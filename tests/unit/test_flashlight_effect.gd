@@ -44,6 +44,9 @@ class MockFlashlightEffect:
 	## Scatter light wall pullback distance in pixels (Issue #640).
 	const SCATTER_WALL_PULLBACK: float = 8.0
 
+	## Beam-direction wall clamp distance threshold (Issue #640).
+	const BEAM_WALL_CLAMP_DISTANCE: float = 30.0
+
 	## Whether the flashlight is on.
 	var _is_on: bool = false
 
@@ -68,8 +71,13 @@ class MockFlashlightEffect:
 	## Mock: simulated player center position (for wall clamping).
 	var _mock_player_center: Vector2 = Vector2.ZERO
 
-	## Mock: simulated wall hit position (null = no wall hit).
+	## Mock: simulated wall hit position between center and barrel (null = no wall hit).
 	var _mock_wall_hit_pos = null
+
+	## Mock: simulated beam-direction wall hit position (null = no wall hit).
+	## Used when the barrel is on the player's side but the beam direction
+	## immediately enters a wall (Issue #640 root cause #6).
+	var _mock_beam_wall_hit_pos = null
 
 	## The PointLight2D position after clamping (local coordinates relative to flashlight).
 	var point_light_position: Vector2 = Vector2.ZERO
@@ -101,9 +109,14 @@ class MockFlashlightEffect:
 	func set_mock_player_center(pos: Vector2) -> void:
 		_mock_player_center = pos
 
-	## Set mock wall hit position (null = no wall, Vector2 = wall hit at position).
+	## Set mock wall hit position between center and barrel (null = no wall, Vector2 = wall hit at position).
 	func set_mock_wall_hit(hit_pos) -> void:
 		_mock_wall_hit_pos = hit_pos
+
+	## Set mock beam-direction wall hit position (null = no wall, Vector2 = wall hit at position).
+	## Simulates a wall immediately in front of the barrel along the beam direction.
+	func set_mock_beam_wall_hit(hit_pos) -> void:
+		_mock_beam_wall_hit_pos = hit_pos
 
 	## Clamp the PointLight2D position to avoid penetrating walls (Issue #640).
 	## Mirrors the logic in flashlight_effect.gd _clamp_light_to_walls().
@@ -119,10 +132,21 @@ class MockFlashlightEffect:
 			return
 
 		if _mock_wall_hit_pos == null:
-			# No wall between player and flashlight position — use default
-			point_light_position = Vector2.ZERO
-			_is_wall_clamped = false
-			_restore_light_defaults()
+			# No wall between player and barrel — check beam direction.
+			if _mock_beam_wall_hit_pos == null:
+				# No wall in beam direction either — use default
+				point_light_position = Vector2.ZERO
+				_is_wall_clamped = false
+				_restore_light_defaults()
+			else:
+				# Wall found immediately in beam direction — clamp the beam.
+				_is_wall_clamped = true
+				point_light_position = _mock_player_center - global_position
+				var wall_dist: float = (_mock_beam_wall_hit_pos - _mock_player_center).length()
+				var cone_texture_size: float = 2048.0
+				var clamped_scale: float = maxf(wall_dist * 2.0 / cone_texture_size, 0.1)
+				point_light_texture_scale = minf(clamped_scale, LIGHT_TEXTURE_SCALE)
+				point_light_shadow_filter = 0  # SHADOW_FILTER_NONE
 		else:
 			# Wall hit: move the light back to the player center.
 			point_light_position = _mock_player_center - global_position
@@ -1103,3 +1127,85 @@ func test_scatter_light_restored_after_wall_clamp_clears() -> void:
 	flashlight.update_scatter_light_position()
 	assert_true(flashlight.scatter_light_visible,
 		"Scatter light should be visible again after wall clamp clears")
+
+
+# ============================================================================
+# Beam-Direction Wall Clamping Tests (Issue #640 root cause #6)
+# When the barrel is on the player's side of a wall but the beam direction
+# immediately enters the wall, enemies should not detect/be blinded by it.
+# ============================================================================
+
+
+func test_beam_direction_wall_clamps() -> void:
+	# Player at origin, barrel at (20, 0), no wall between center and barrel.
+	# But beam direction (pointing right) immediately hits a wall at (25, 0).
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.global_rotation = 0.0  # Pointing right
+	flashlight.set_mock_wall_hit(null)  # No wall between center and barrel
+	flashlight.set_mock_beam_wall_hit(Vector2(25, 0))  # Wall immediately in beam direction
+
+	flashlight.clamp_light_to_walls()
+
+	assert_true(flashlight._is_wall_clamped,
+		"Wall clamped should be true when beam direction immediately hits a wall")
+
+
+func test_beam_direction_wall_clamp_reduces_texture_scale() -> void:
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.global_rotation = 0.0
+	flashlight.set_mock_wall_hit(null)
+	flashlight.set_mock_beam_wall_hit(Vector2(25, 0))  # 25px from player center
+
+	flashlight.clamp_light_to_walls()
+
+	# Expected scale: 25 * 2 / 2048 ≈ 0.024 → clamped to minimum 0.1
+	assert_almost_eq(flashlight.point_light_texture_scale, 0.1, 0.01,
+		"Texture scale should be reduced when beam direction hits nearby wall")
+	assert_eq(flashlight.point_light_shadow_filter, 0,
+		"Shadow filter should be NONE when beam-direction wall-clamped")
+
+
+func test_beam_direction_wall_clamp_suppresses_blinding() -> void:
+	flashlight.turn_on()
+	flashlight.global_rotation = 0.0
+	flashlight.set_mock_time_msec(0)
+
+	# Barrel on player's side, but beam hits wall immediately
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.set_mock_wall_hit(null)
+	flashlight.set_mock_beam_wall_hit(Vector2(25, 0))
+	flashlight.clamp_light_to_walls()
+	assert_true(flashlight._is_wall_clamped)
+
+	var enemies := [
+		{"id": 1, "position": Vector2(300, 0)},
+	]
+
+	flashlight.check_enemies(enemies)
+
+	assert_eq(flashlight.blindness_applied.size(), 0,
+		"Enemies should NOT be blinded when beam immediately hits wall in beam direction")
+
+
+func test_beam_direction_wall_clamp_clears_when_wall_removed() -> void:
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.global_rotation = 0.0
+	flashlight.set_mock_wall_hit(null)
+	flashlight.set_mock_beam_wall_hit(Vector2(25, 0))
+
+	flashlight.clamp_light_to_walls()
+	assert_true(flashlight._is_wall_clamped)
+
+	# Remove beam-direction wall
+	flashlight.set_mock_beam_wall_hit(null)
+	flashlight.clamp_light_to_walls()
+	assert_false(flashlight._is_wall_clamped,
+		"Wall clamped should be false after beam-direction wall is removed")
+	assert_eq(flashlight.point_light_texture_scale, flashlight.LIGHT_TEXTURE_SCALE,
+		"Texture scale should be restored to default")
+	assert_eq(flashlight.point_light_shadow_filter, 1,
+		"Shadow filter should be restored to PCF5")
