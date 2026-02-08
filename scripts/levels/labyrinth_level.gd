@@ -1,24 +1,15 @@
 extends Node2D
-## Полигон (Training Grounds) level scene for the Godot Top-Down Template.
+## Labyrinth level scene for the Godot Top-Down Template.
 ##
-## This scene serves as a tactical combat arena for testing game mechanics.
+## This scene is a labyrinth of technical rooms (enclosed spaces).
+## It serves as the new first level of the game.
 ## Features:
-## - Large map (4000x2960 playable area) with multiple combat zones
-## - Various cover types (low walls, barricades, crates, pillars)
-## - 10 enemies in strategic positions (6 guards, 4 patrols)
-## - Enemies do not respawn after death
-## - Visual indicators for cover positions
-## - Ammo counter with color-coded warnings
-## - Kill counter and accuracy display
-## - Screen saturation effect on enemy kills
-## - Death/victory messages
-## - Quick restart with Q key
-
-## Duration of saturation effect in seconds.
-const SATURATION_DURATION: float = 0.15
-
-## Saturation effect intensity (alpha).
-const SATURATION_INTENSITY: float = 0.25
+## - Compact labyrinth layout (1920x1080 pixels) matching viewport height
+## - Multiple interconnected technical rooms with narrow corridors
+## - 5 enemies: 3 with default weapon (1-2 HP), 1 with shotgun (1-2 HP),
+##   1 with M16 armored (2-4 HP)
+## - Dark industrial color scheme for technical facility atmosphere
+## - Score tracking with Hotline Miami style ranking system
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -50,8 +41,8 @@ var _magazines_label: Label = null
 ## Reference to the ColorRect for saturation effect.
 var _saturation_overlay: ColorRect = null
 
-## List of enemy nodes for replay recording.
-var _enemies: Array = []
+## Reference to the combo label.
+var _combo_label: Label = null
 
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
@@ -62,24 +53,29 @@ var _level_cleared: bool = false
 ## Whether the score screen is currently shown (for W key shortcut).
 var _score_shown: bool = false
 
+## Whether the level completion sequence has been triggered (prevents duplicate calls).
+var _level_completed: bool = false
+
+## Duration of saturation effect in seconds.
+const SATURATION_DURATION: float = 0.15
+
+## Saturation effect intensity (alpha).
+const SATURATION_INTENSITY: float = 0.25
+
+## List of enemy nodes for position tracking.
+var _enemies: Array = []
+
 ## Cached reference to the ReplayManager autoload (C# singleton).
 var _replay_manager: Node = null
 
-## Reference to the combo label.
-var _combo_label: Label = null
-
 
 ## Gets the ReplayManager autoload node.
-## The ReplayManager is now a C# autoload that works reliably in exported builds,
-## replacing the GDScript version that had Godot 4.3 binary tokenization issues
-## (godotengine/godot#94150, godotengine/godot#96065).
 func _get_or_create_replay_manager() -> Node:
 	if _replay_manager != null and is_instance_valid(_replay_manager):
 		return _replay_manager
 
 	_replay_manager = get_node_or_null("/root/ReplayManager")
 	if _replay_manager != null:
-		# C# methods must be called with PascalCase from GDScript (no auto-conversion for user methods)
 		if _replay_manager.has_method("StartRecording"):
 			_log_to_file("ReplayManager found as C# autoload - verified OK")
 		else:
@@ -91,9 +87,9 @@ func _get_or_create_replay_manager() -> Node:
 
 
 func _ready() -> void:
-	print("Полигон loaded - Tactical Combat Arena")
-	print("Map size: 4000x2960 pixels")
-	print("Clear all zones to win!")
+	print("LabyrinthLevel loaded - Technical Labyrinth")
+	print("Labyrinth size: 1920x1080 pixels")
+	print("Clear all rooms to win!")
 	print("Press Q for quick restart")
 
 	# Setup navigation mesh for enemy pathfinding
@@ -123,18 +119,14 @@ func _ready() -> void:
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
 
-	# Setup exit zone near player spawn (left wall)
+	# Setup exit zone near player spawn (bottom-left)
 	_setup_exit_zone()
+
+	# Setup window lights in corridors without enemies
+	_setup_window_lights()
 
 	# Start replay recording
 	_start_replay_recording()
-
-
-func _process(_delta: float) -> void:
-	# Update enemy positions for aggressiveness tracking
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager and score_manager.has_method("update_enemy_positions"):
-		score_manager.update_enemy_positions(_enemies)
 
 
 ## Initialize the ScoreManager for this level.
@@ -143,52 +135,267 @@ func _initialize_score_manager() -> void:
 	if score_manager == null:
 		return
 
-	# Start tracking for this level
 	score_manager.start_level(_initial_enemy_count)
 
-	# Set player reference
 	if _player:
 		score_manager.set_player(_player)
 
-	# Connect to combo changes for UI feedback
 	if not score_manager.combo_changed.is_connected(_on_combo_changed):
 		score_manager.combo_changed.connect(_on_combo_changed)
+
+
+## Starts recording the replay for this level.
+func _start_replay_recording() -> void:
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager == null:
+		_log_to_file("ERROR: ReplayManager could not be loaded, replay recording disabled")
+		print("[LabyrinthLevel] ERROR: ReplayManager could not be loaded!")
+		return
+
+	_log_to_file("Starting replay recording - Player: %s, Enemies count: %d" % [
+		_player.name if _player else "NULL",
+		_enemies.size()
+	])
+
+	if _player == null:
+		_log_to_file("WARNING: Player is null, replay may not record properly")
+		print("[LabyrinthLevel] WARNING: Player is null for replay recording!")
+
+	if _enemies.is_empty():
+		_log_to_file("WARNING: No enemies to track in replay")
+		print("[LabyrinthLevel] WARNING: No enemies registered for replay!")
+
+	if replay_manager.has_method("ClearReplay"):
+		replay_manager.ClearReplay()
+		_log_to_file("Previous replay data cleared")
+
+	if replay_manager.has_method("StartRecording"):
+		replay_manager.StartRecording(self, _player, _enemies)
+		_log_to_file("Replay recording started successfully")
+		print("[LabyrinthLevel] Replay recording started with %d enemies" % _enemies.size())
+	else:
+		_log_to_file("ERROR: ReplayManager.StartRecording method not found")
+		print("[LabyrinthLevel] ERROR: StartRecording method not found!")
+
+
+## Setup the exit zone near the player spawn point (bottom-left).
+func _setup_exit_zone() -> void:
+	var exit_zone_scene = load("res://scenes/objects/ExitZone.tscn")
+	if exit_zone_scene == null:
+		push_warning("ExitZone scene not found - score will show immediately on level clear")
+		return
+
+	_exit_zone = exit_zone_scene.instantiate()
+	# Position exit on the left wall near player spawn (player starts at 150, 1000)
+	_exit_zone.position = Vector2(80, 1000)
+	_exit_zone.zone_width = 60.0
+	_exit_zone.zone_height = 100.0
+
+	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+
+	var environment := get_node_or_null("Environment")
+	if environment:
+		environment.add_child(_exit_zone)
+	else:
+		add_child(_exit_zone)
+
+	print("[LabyrinthLevel] Exit zone created at position (80, 1000)")
+
+
+## Called when the player reaches the exit zone after clearing the level.
+func _on_player_reached_exit() -> void:
+	if not _level_cleared:
+		return
+
+	if _level_completed:
+		return
+
+	print("[LabyrinthLevel] Player reached exit - showing score!")
+	call_deferred("_complete_level_with_score")
+
+
+## Activate the exit zone after all enemies are eliminated.
+func _activate_exit_zone() -> void:
+	if _exit_zone and _exit_zone.has_method("activate"):
+		_exit_zone.activate()
+		print("[LabyrinthLevel] Exit zone activated - go to exit to see score!")
+	else:
+		push_warning("Exit zone not available - showing score immediately")
+		_complete_level_with_score()
+
+
+## Setup realistic visibility for the player.
+func _setup_realistic_visibility() -> void:
+	if _player == null:
+		return
+
+	var visibility_script = load("res://scripts/components/realistic_visibility_component.gd")
+	if visibility_script == null:
+		push_warning("[LabyrinthLevel] RealisticVisibilityComponent script not found")
+		return
+
+	var visibility_component = Node.new()
+	visibility_component.name = "RealisticVisibilityComponent"
+	visibility_component.set_script(visibility_script)
+	_player.add_child(visibility_component)
+	print("[LabyrinthLevel] Realistic visibility component added to player")
+
+
+## Setup window lights in corridors without enemies.
+func _setup_window_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	var windows_node := Node2D.new()
+	windows_node.name = "WindowLights"
+	environment.add_child(windows_node)
+
+	# Left wall windows - near storage/hall area (no enemies nearby)
+	_create_window_light(windows_node, Vector2(48, 600), "left")
+	_create_window_light(windows_node, Vector2(48, 800), "left")
+
+	# Top wall windows - above corridor between rooms
+	_create_window_light(windows_node, Vector2(900, 48), "top")
+
+	# Bottom wall windows - below storage and server room
+	_create_window_light(windows_node, Vector2(700, 1128), "bottom")
+	_create_window_light(windows_node, Vector2(1200, 1128), "bottom")
+
+	# Scene-wide ambient moonlight
+	_create_ambient_moonlight(windows_node)
+
+	print("[LabyrinthLevel] Window lights placed in corridors without enemies")
+
+
+## Create a single window light source at the given position on a wall.
+func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> void:
+	var window_node := Node2D.new()
+	window_node.name = "Window_%s_%d_%d" % [wall_side, int(pos.x), int(pos.y)]
+	window_node.position = pos
+	parent.add_child(window_node)
+
+	var window_rect := ColorRect.new()
+	window_rect.color = Color(0.3, 0.4, 0.7, 0.6)
+	match wall_side:
+		"left":
+			window_rect.offset_left = -4.0
+			window_rect.offset_top = -20.0
+			window_rect.offset_right = 4.0
+			window_rect.offset_bottom = 20.0
+		"right":
+			window_rect.offset_left = -4.0
+			window_rect.offset_top = -20.0
+			window_rect.offset_right = 4.0
+			window_rect.offset_bottom = 20.0
+		"top":
+			window_rect.offset_left = -20.0
+			window_rect.offset_top = -4.0
+			window_rect.offset_right = 20.0
+			window_rect.offset_bottom = 4.0
+		"bottom":
+			window_rect.offset_left = -20.0
+			window_rect.offset_top = -4.0
+			window_rect.offset_right = 20.0
+			window_rect.offset_bottom = 4.0
+	window_node.add_child(window_rect)
+
+	var light := PointLight2D.new()
+	light.name = "MoonLight"
+	light.color = Color(0.4, 0.5, 0.9, 1.0)
+	light.energy = 0.12
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0
+	light.shadow_color = Color(0, 0, 0, 0.7)
+	light.texture = _create_window_light_texture()
+	light.texture_scale = 6.0
+	match wall_side:
+		"left":
+			light.position = Vector2(60, 0)
+		"right":
+			light.position = Vector2(-60, 0)
+		"top":
+			light.position = Vector2(0, 60)
+		"bottom":
+			light.position = Vector2(0, -60)
+	window_node.add_child(light)
+
+
+## Create a radial gradient texture for the primary window moonlight.
+func _create_window_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	gradient.add_point(0.1, Color(0.7, 0.7, 0.7, 1.0))
+	gradient.add_point(0.2, Color(0.45, 0.45, 0.45, 1.0))
+	gradient.add_point(0.3, Color(0.25, 0.25, 0.25, 1.0))
+	gradient.add_point(0.4, Color(0.1, 0.1, 0.1, 1.0))
+	gradient.add_point(0.5, Color(0.02, 0.02, 0.02, 1.0))
+	gradient.add_point(0.55, Color(0.0, 0.0, 0.0, 1.0))
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 512
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(0.5, 0.0)
+	return texture
+
+
+## Create a scene-wide ambient moonlight using DirectionalLight2D.
+func _create_ambient_moonlight(parent: Node2D) -> void:
+	var ambient := DirectionalLight2D.new()
+	ambient.name = "AmbientMoonlight"
+	ambient.color = Color(0.35, 0.45, 0.85, 1.0)
+	ambient.energy = 0.06
+	ambient.shadow_enabled = false
+	parent.add_child(ambient)
+
+
+func _process(_delta: float) -> void:
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("update_enemy_positions"):
+		score_manager.update_enemy_positions(_enemies)
 
 
 ## Called when combo changes.
 func _on_combo_changed(combo: int, points: int) -> void:
 	if _combo_label == null:
-		# Create combo label if it doesn't exist yet
-		var ui := get_node_or_null("CanvasLayer/UI")
-		if ui == null:
-			return
-		_combo_label = Label.new()
-		_combo_label.name = "ComboLabel"
-		_combo_label.text = ""
-		_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		_combo_label.offset_left = -200
-		_combo_label.offset_right = -10
-		_combo_label.offset_top = 80
-		_combo_label.offset_bottom = 120
-		_combo_label.add_theme_font_size_override("font_size", 28)
-		_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
-		_combo_label.visible = false
-		ui.add_child(_combo_label)
+		return
 
 	if combo > 0:
 		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
 		_combo_label.visible = true
-		# Flash effect for combo
+		var combo_color := _get_combo_color(combo)
+		_combo_label.add_theme_color_override("font_color", combo_color)
 		_combo_label.modulate = Color.WHITE
 		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
+		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
 	else:
 		_combo_label.visible = false
 
 
+## Returns a color based on the current combo count.
+func _get_combo_color(combo: int) -> Color:
+	if combo >= 10:
+		return Color(1.0, 0.0, 1.0, 1.0)
+	elif combo >= 7:
+		return Color(1.0, 0.0, 0.3, 1.0)
+	elif combo >= 5:
+		return Color(1.0, 0.1, 0.1, 1.0)
+	elif combo >= 4:
+		return Color(1.0, 0.2, 0.0, 1.0)
+	elif combo >= 3:
+		return Color(1.0, 0.4, 0.0, 1.0)
+	elif combo >= 2:
+		return Color(1.0, 0.6, 0.1, 1.0)
+	else:
+		return Color(1.0, 0.8, 0.2, 1.0)
+
+
 ## Setup the navigation mesh for enemy pathfinding.
-## Bakes the NavigationPolygon using physics collision layer 4 (walls).
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -200,47 +407,22 @@ func _setup_navigation() -> void:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
 
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
 	print("Baking navigation mesh...")
 	nav_poly.clear()
 
-	# Re-add the outline for the walkable floor area
 	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(4064, 64),
-		Vector2(4064, 3024),
-		Vector2(64, 3024)
+		Vector2(48, 48),
+		Vector2(1968, 48),
+		Vector2(1968, 1128),
+		Vector2(48, 1128)
 	])
 	nav_poly.add_outline(floor_outline)
 
-	# Use NavigationServer2D to bake from source geometry
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 
 	print("Navigation mesh baked successfully")
-
-
-## Setup realistic visibility for the player (Issue #540).
-## Adds the RealisticVisibilityComponent to the player node.
-## The component handles CanvasModulate (darkness) + PointLight2D (player vision)
-## and reacts to ExperimentalSettings.realistic_visibility_enabled toggle.
-func _setup_realistic_visibility() -> void:
-	if _player == null:
-		return
-
-	var visibility_script = load("res://scripts/components/realistic_visibility_component.gd")
-	if visibility_script == null:
-		push_warning("[TestTier] RealisticVisibilityComponent script not found")
-		return
-
-	var visibility_component = Node.new()
-	visibility_component.name = "RealisticVisibilityComponent"
-	visibility_component.set_script(visibility_script)
-	_player.add_child(visibility_component)
-	print("[TestTier] Realistic visibility component added to player")
 
 
 ## Setup tracking for the player.
@@ -249,7 +431,7 @@ func _setup_player_tracking() -> void:
 	if _player == null:
 		return
 
-	# Setup realistic visibility component (Issue #540)
+	# Setup realistic visibility component
 	_setup_realistic_visibility()
 
 	# Setup selected weapon based on GameManager selection
@@ -259,17 +441,15 @@ func _setup_player_tracking() -> void:
 	if GameManager:
 		GameManager.set_player(_player)
 
-	# Find the ammo label
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
-	# Connect to player death signal (handles both GDScript "died" and C# "Died")
+	# Connect to player death signal
 	if _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then Sniper Rifle, then assault rifle
 	var weapon = _player.get_node_or_null("Shotgun")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MiniUzi")
@@ -282,39 +462,28 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
-		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		if weapon.has_signal("MagazinesChanged"):
 			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
-		# Connect to ShellCountChanged for shotgun - updates ammo UI during shell-by-shell reload
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
-		# Configure silenced pistol ammo based on enemy count
 		_configure_silenced_pistol_ammo(weapon)
-		# Configure 2.5x ammo for MakarovPM (Issue #636)
 		_configure_makarov_pm_ammo(weapon)
 	else:
-		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
-		# Initial ammo display
 		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
 			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
 
-	# Connect reload/ammo depleted signals for enemy aggression behavior
-	# These signals are used by BOTH C# and GDScript players to notify enemies
-	# that the player is vulnerable (reloading or out of ammo)
-	# C# Player uses PascalCase signal names, GDScript uses snake_case
+	# Connect reload/ammo depleted signals
 	if _player.has_signal("ReloadStarted"):
 		_player.ReloadStarted.connect(_on_player_reload_started)
 	elif _player.has_signal("reload_started"):
@@ -335,87 +504,38 @@ func _setup_player_tracking() -> void:
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
+		_log_to_file("ERROR: Environment/Enemies node not found!")
 		return
 
+	_log_to_file("Found Environment/Enemies node with %d children" % enemies_node.get_child_count())
 	_enemies.clear()
 	for child in enemies_node.get_children():
-		if child.has_signal("died"):
+		var has_died_signal := child.has_signal("died")
+		var script_attached := child.get_script() != null
+		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
+		if has_died_signal:
 			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
-			# Connect to died_with_info for score tracking if available
 			if child.has_signal("died_with_info"):
 				child.died_with_info.connect(_on_enemy_died_with_info)
-		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
+	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
-## Setup the exit zone near the player spawn point (left wall).
-## The exit appears after all enemies are eliminated.
-func _setup_exit_zone() -> void:
-	# Load and instantiate the exit zone
-	var exit_zone_scene = load("res://scenes/objects/ExitZone.tscn")
-	if exit_zone_scene == null:
-		push_warning("ExitZone scene not found - score will show immediately on level clear")
-		return
-
-	_exit_zone = exit_zone_scene.instantiate()
-	# Position exit on the left wall near player spawn (player starts at 264, 1544)
-	# Place exit at left wall (x=80) at similar y position
-	_exit_zone.position = Vector2(120, 1544)
-	_exit_zone.zone_width = 60.0
-	_exit_zone.zone_height = 100.0
-
-	# Connect the player reached exit signal
-	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
-
-	# Add to the environment node
-	var environment := get_node_or_null("Environment")
-	if environment:
-		environment.add_child(_exit_zone)
-	else:
-		add_child(_exit_zone)
-
-	print("[TestTier] Exit zone created at position (120, 1544)")
-
-
-## Called when the player reaches the exit zone after clearing the level.
-func _on_player_reached_exit() -> void:
-	if not _level_cleared:
-		return
-
-	print("[TestTier] Player reached exit - showing score!")
-	call_deferred("_complete_level_with_score")
-
-
-## Activate the exit zone after all enemies are eliminated.
-func _activate_exit_zone() -> void:
-	if _exit_zone and _exit_zone.has_method("activate"):
-		_exit_zone.activate()
-		print("[TestTier] Exit zone activated - go to exit to see score!")
-	else:
-		# Fallback: if exit zone not available, show score immediately
-		push_warning("Exit zone not available - showing score immediately")
-		_complete_level_with_score()
-
-
 ## Configure silenced pistol ammo based on enemy count.
-## This ensures the pistol has exactly enough bullets for all enemies in the level.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
-	# Check if this is a silenced pistol
 	if weapon.name != "SilencedPistol":
 		return
 
-	# Call the ConfigureAmmoForEnemyCount method if it exists
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
 		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		print("[TestTier] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		print("[LabyrinthLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
 
-		# Update the ammo display after configuration
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -424,7 +544,6 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
-## Applies to all difficulty modes including Hard.
 func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon == null:
 		return
@@ -440,7 +559,7 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
-		print("[TestTier] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+		print("[LabyrinthLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
 
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -455,7 +574,6 @@ func _setup_debug_ui() -> void:
 	if ui == null:
 		return
 
-	# Create kills label
 	_kills_label = Label.new()
 	_kills_label.name = "KillsLabel"
 	_kills_label.text = "Kills: 0"
@@ -466,7 +584,6 @@ func _setup_debug_ui() -> void:
 	_kills_label.offset_bottom = 75
 	ui.add_child(_kills_label)
 
-	# Create accuracy label
 	_accuracy_label = Label.new()
 	_accuracy_label.name = "AccuracyLabel"
 	_accuracy_label.text = "Accuracy: 0%"
@@ -477,7 +594,6 @@ func _setup_debug_ui() -> void:
 	_accuracy_label.offset_bottom = 105
 	ui.add_child(_accuracy_label)
 
-	# Create magazines label (shows individual magazine ammo counts)
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
 	_magazines_label.text = "MAGS: -"
@@ -488,6 +604,19 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
+	_combo_label = Label.new()
+	_combo_label.name = "ComboLabel"
+	_combo_label.text = ""
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_combo_label.offset_left = -200
+	_combo_label.offset_right = -10
+	_combo_label.offset_top = 80
+	_combo_label.offset_bottom = 120
+	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.visible = false
+	ui.add_child(_combo_label)
 
 
 ## Setup saturation overlay for kill effect.
@@ -498,11 +627,9 @@ func _setup_saturation_overlay() -> void:
 
 	_saturation_overlay = ColorRect.new()
 	_saturation_overlay.name = "SaturationOverlay"
-	# Yellow/gold tint for saturation increase effect
 	_saturation_overlay.color = Color(1.0, 0.9, 0.3, 0.0)
 	_saturation_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_saturation_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Add to the front
 	canvas_layer.add_child(_saturation_overlay)
 	canvas_layer.move_child(_saturation_overlay, canvas_layer.get_child_count() - 1)
 
@@ -524,27 +651,56 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	# Register kill with GameManager
 	if GameManager:
 		GameManager.register_kill()
 
 	if _current_enemy_count <= 0:
-		print("All enemies eliminated! Arena cleared!")
-		# Stop replay recording
-		var replay_manager: Node = _get_or_create_replay_manager()
-		if replay_manager and replay_manager.has_method("StopRecording"):
-			replay_manager.StopRecording()
+		print("All enemies eliminated! Labyrinth cleared!")
 		_level_cleared = true
-		# Activate exit zone - score will show when player reaches it
 		call_deferred("_activate_exit_zone")
 
 
-## Called when an enemy dies with special kill information (for score tracking).
+## Called when an enemy dies with special kill information.
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
-	# Register kill with ScoreManager including special kill info
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Complete the level and show the score screen.
+func _complete_level_with_score() -> void:
+	if _level_completed:
+		return
+	_level_completed = true
+
+	_disable_player_controls()
+
+	if _exit_zone and _exit_zone.has_method("deactivate"):
+		_exit_zone.deactivate()
+
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager:
+		if replay_manager.has_method("StopRecording"):
+			replay_manager.StopRecording()
+			_log_to_file("Replay recording stopped")
+
+		if replay_manager.has_method("HasReplay"):
+			var has_replay: bool = replay_manager.HasReplay()
+			var duration: float = 0.0
+			if replay_manager.has_method("GetReplayDuration"):
+				duration = replay_manager.GetReplayDuration()
+			_log_to_file("Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+			print("[LabyrinthLevel] Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+	else:
+		_log_to_file("ERROR: ReplayManager not found when completing level")
+		print("[LabyrinthLevel] ERROR: ReplayManager not found!")
+
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("complete_level"):
+		var score_data: Dictionary = score_manager.complete_level()
+		_show_score_screen(score_data)
+	else:
+		_show_victory_message()
 
 
 ## Called when an enemy is hit (for accuracy tracking).
@@ -562,7 +718,6 @@ func _on_shot_fired() -> void:
 ## Called when player ammo changes (GDScript Player).
 func _on_player_ammo_changed(current: int, maximum: int) -> void:
 	_update_ammo_label(current, maximum)
-	# Register shot for accuracy tracking
 	if GameManager:
 		GameManager.register_shot()
 
@@ -570,7 +725,6 @@ func _on_player_ammo_changed(current: int, maximum: int) -> void:
 ## Called when weapon ammo changes (C# Player).
 func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 	_update_ammo_label_magazine(current_ammo, reserve_ammo)
-	# Check if completely out of ammo
 	if current_ammo <= 0 and reserve_ammo <= 0:
 		if _current_enemy_count > 0 and not _game_over_shown:
 			_show_game_over_message()
@@ -582,9 +736,7 @@ func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
 
 
 ## Called when shotgun shell count changes (during shell-by-shell reload).
-## This allows the ammo counter to update immediately as each shell is loaded.
-func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
-	# Get the reserve ammo from the weapon for display
+func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 	var reserve_ammo: int = 0
 	if _player:
 		var weapon = _player.get_node_or_null("Shotgun")
@@ -594,37 +746,22 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 
 ## Called when player runs out of ammo in current magazine.
-## This notifies nearby enemies that the player tried to shoot with empty weapon.
-## Note: This does NOT show game over - the player may still have reserve ammo.
-## Game over is only shown when BOTH current AND reserve ammo are depleted
-## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
-## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	# Notify all enemies that player tried to shoot with empty weapon
 	_broadcast_player_ammo_empty(true)
-	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
-	# This has shorter range than reload sound but still propagates through obstacles
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
 			sound_propagation.emit_player_empty_click(_player.global_position, _player)
 
-	# For GDScript player, check if truly out of all ammo (no reserve)
-	# For C# player, game over is handled in _on_weapon_ammo_changed
 	if _player and _player.has_method("get_current_ammo"):
-		# GDScript player - max_ammo is the only ammo they have
 		var current_ammo: int = _player.get_current_ammo()
 		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
 			_show_game_over_message()
-	# C# player game over is handled via _on_weapon_ammo_changed signal
 
 
 ## Called when player starts reloading.
-## Notifies nearby enemies that player is vulnerable via sound propagation.
-## The reload sound can be heard through walls at greater distance than line of sight.
 func _on_player_reload_started() -> void:
 	_broadcast_player_reloading(true)
-	# Emit reload sound via SoundPropagation system so enemies can hear through walls
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_reload"):
@@ -632,10 +769,8 @@ func _on_player_reload_started() -> void:
 
 
 ## Called when player finishes reloading.
-## Clears the reloading state for all enemies.
 func _on_player_reload_completed() -> void:
 	_broadcast_player_reloading(false)
-	# Also clear ammo empty state since player now has ammo
 	_broadcast_player_ammo_empty(false)
 
 
@@ -664,9 +799,7 @@ func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 ## Called when player dies.
 func _on_player_died() -> void:
 	_show_death_message()
-	# Auto-restart via GameManager
 	if GameManager:
-		# Small delay to show death message
 		await get_tree().create_timer(0.5).timeout
 		GameManager.on_player_death()
 
@@ -681,11 +814,8 @@ func _show_saturation_effect() -> void:
 	if _saturation_overlay == null:
 		return
 
-	# Create a tween for the saturation effect
 	var tween := create_tween()
-	# Flash in
 	tween.tween_property(_saturation_overlay, "color:a", SATURATION_INTENSITY, SATURATION_DURATION * 0.3)
-	# Flash out
 	tween.tween_property(_saturation_overlay, "color:a", 0.0, SATURATION_DURATION * 0.7)
 
 
@@ -696,7 +826,6 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 
 	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
 
-	# Color coding: red at <=5, yellow at <=10, white otherwise
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current <= 10:
@@ -706,14 +835,12 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 
 
 ## Update the ammo label with magazine format (for C# Player with weapon).
-## Shows format: AMMO: magazine/reserve (e.g., "AMMO: 30/60")
 func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
 	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
 
-	# Color coding: red when mag <=5, yellow when mag <=10
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current_mag <= 10:
@@ -723,14 +850,10 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 
 
 ## Update the magazines label showing individual magazine ammo counts.
-## Shows format: MAGS: [30] | 25 | 10 where [30] is current magazine.
-## Hidden when a shotgun (tube magazine weapon) is equipped.
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 
-	# Check if player has a weapon with tube magazine (shotgun)
-	# If so, hide the magazine label as shotguns don't use detachable magazines
 	var weapon = null
 	if _player:
 		weapon = _player.get_node_or_null("Shotgun")
@@ -740,7 +863,6 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		# Shotgun equipped - hide magazine display
 		_magazines_label.visible = false
 		return
 	else:
@@ -754,10 +876,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	for i in range(magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
 		if i == 0:
-			# Current magazine in brackets
 			parts.append("[%d]" % ammo)
 		else:
-			# Spare magazines
 			parts.append("%d" % ammo)
 
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
@@ -767,130 +887,6 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
 		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
-
-
-## Complete the level and show the score screen.
-func _complete_level_with_score() -> void:
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager and score_manager.has_method("complete_level"):
-		var score_data: Dictionary = score_manager.complete_level()
-		_show_score_screen(score_data)
-	else:
-		# Fallback to simple victory message if ScoreManager not available
-		_show_victory_message()
-
-
-## Show the animated score screen.
-## Features:
-## - Sequential reveal: Items appear one after another
-## - Counting animation: Numbers animate from 0 to final value with pulsing
-## - Sound effects: Retro beeps during counting (major arpeggio)
-## - Dramatic rank reveal: Fullscreen with flashing background, then shrinks
-## - LMB skip: Skip counting/rank animations (Issue #568)
-## @param score_data: Dictionary containing all score components from ScoreManager.
-func _show_score_screen(score_data: Dictionary) -> void:
-	var ui := get_node_or_null("CanvasLayer/UI")
-	if ui == null:
-		_show_victory_message()  # Fallback
-		return
-
-	# Load and use the animated score screen component
-	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
-	if animated_score_screen_script:
-		var score_screen = animated_score_screen_script.new()
-		add_child(score_screen)
-		# Connect to animation_completed to add buttons after animation (Issue #568)
-		score_screen.animation_completed.connect(_on_score_animation_completed)
-		score_screen.show_animated_score(ui, score_data)
-	else:
-		# Fallback to simple display if animated script not found
-		_show_fallback_score_screen(ui, score_data)
-
-
-## Called when the animated score screen finishes all animations.
-## Adds navigation and replay buttons to the score screen container (Issue #568).
-func _on_score_animation_completed(container: VBoxContainer) -> void:
-	_add_score_screen_buttons(container)
-
-
-## Fallback score screen if animated component is not available.
-func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
-	var background := ColorRect.new()
-	background.name = "ScoreBackground"
-	background.color = Color(0.0, 0.0, 0.0, 0.85)
-	background.set_anchors_preset(Control.PRESET_FULL_RECT)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui.add_child(background)
-
-	# Create a container for score display
-	var container := VBoxContainer.new()
-	container.name = "ScoreContainer"
-	container.set_anchors_preset(Control.PRESET_CENTER)
-	container.offset_left = -250
-	container.offset_right = 250
-	container.offset_top = -200
-	container.offset_bottom = 200
-	container.add_theme_constant_override("separation", 10)
-	ui.add_child(container)
-
-	# Title
-	var title := Label.new()
-	title.text = "LEVEL CLEARED!"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 36)
-	title.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
-	container.add_child(title)
-
-	# Score breakdown
-	var breakdown := [
-		["KILLS", "%d/%d" % [score_data.kills, score_data.total_enemies], "+%d" % score_data.kill_points],
-		["COMBO", "Max x%d" % score_data.max_combo, "+%d" % score_data.combo_points],
-		["TIME", "%.1fs" % score_data.completion_time, "+%d" % score_data.time_bonus],
-		["ACCURACY", "%.1f%%" % score_data.accuracy, "+%d" % score_data.accuracy_bonus],
-	]
-
-	if score_data.damage_taken > 0:
-		breakdown.append(["DAMAGE", "%d hits" % score_data.damage_taken, "-%d" % score_data.damage_penalty])
-
-	for item in breakdown:
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 20)
-
-		var cat_label := Label.new()
-		cat_label.text = item[0]
-		cat_label.custom_minimum_size.x = 100
-		hbox.add_child(cat_label)
-
-		var val_label := Label.new()
-		val_label.text = item[1]
-		val_label.custom_minimum_size.x = 100
-		val_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hbox.add_child(val_label)
-
-		var pts_label := Label.new()
-		pts_label.text = item[2]
-		pts_label.custom_minimum_size.x = 80
-		pts_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		hbox.add_child(pts_label)
-
-		container.add_child(hbox)
-
-	# Total score
-	var total_label := Label.new()
-	total_label.text = "\nTOTAL: %d" % score_data.total_score
-	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	total_label.add_theme_font_size_override("font_size", 28)
-	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
-	container.add_child(total_label)
-
-	# Rank
-	var rank_label := Label.new()
-	rank_label.text = "RANK: %s" % score_data.rank
-	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rank_label.add_theme_font_size_override("font_size", 32)
-	var rank_color := Color(1.0, 0.84, 0.0, 1.0) if score_data.rank == "S" else Color(0.2, 1.0, 0.3, 1.0)
-	rank_label.add_theme_color_override("font_color", rank_color)
-	container.add_child(rank_label)
 
 
 ## Show death message when player dies.
@@ -912,7 +908,6 @@ func _show_death_message() -> void:
 	death_label.add_theme_font_size_override("font_size", 64)
 	death_label.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15, 1.0))
 
-	# Center the label
 	death_label.set_anchors_preset(Control.PRESET_CENTER)
 	death_label.offset_left = -200
 	death_label.offset_right = 200
@@ -924,41 +919,26 @@ func _show_death_message() -> void:
 
 ## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
-	# Log replay status for debugging
-	var replay_manager: Node = _get_or_create_replay_manager()
-	if replay_manager:
-		var has_replay: bool = false
-		var duration: float = 0.0
-		if replay_manager.has_method("HasReplay"):
-			has_replay = replay_manager.HasReplay()
-		if replay_manager.has_method("GetReplayDuration"):
-			duration = replay_manager.GetReplayDuration()
-		print("[TestTier] Showing victory message - Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
-	else:
-		print("[TestTier] ERROR: ReplayManager not found when showing victory message!")
-
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "ARENA CLEARED!"
+	victory_label.text = "LABYRINTH CLEARED!"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
 	victory_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
 
-	# Center the label
 	victory_label.set_anchors_preset(Control.PRESET_CENTER)
 	victory_label.offset_left = -200
 	victory_label.offset_right = 200
-	victory_label.offset_top = -80
-	victory_label.offset_bottom = -30
+	victory_label.offset_top = -50
+	victory_label.offset_bottom = 50
 
 	ui.add_child(victory_label)
 
-	# Show final stats
 	var stats_label := Label.new()
 	stats_label.name = "StatsLabel"
 	if GameManager:
@@ -970,106 +950,99 @@ func _show_victory_message() -> void:
 	stats_label.add_theme_font_size_override("font_size", 24)
 	stats_label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.8, 1.0))
 
-	# Position below victory message
 	stats_label.set_anchors_preset(Control.PRESET_CENTER)
 	stats_label.offset_left = -200
 	stats_label.offset_right = 200
-	stats_label.offset_top = -20
-	stats_label.offset_bottom = 20
+	stats_label.offset_top = 50
+	stats_label.offset_bottom = 100
 
 	ui.add_child(stats_label)
 
-	_score_shown = true
 
-	# Add buttons container (vertical layout)
-	var buttons_container := VBoxContainer.new()
-	buttons_container.name = "ButtonsContainer"
-	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons_container.add_theme_constant_override("separation", 10)
-	buttons_container.set_anchors_preset(Control.PRESET_CENTER)
-	buttons_container.offset_left = -200
-	buttons_container.offset_right = 200
-	buttons_container.offset_top = 40
-	buttons_container.offset_bottom = 200
-	ui.add_child(buttons_container)
+## Show the animated score screen with Hotline Miami 2 style effects.
+func _show_score_screen(score_data: Dictionary) -> void:
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		_show_victory_message()
+		return
 
-	# Next Level button (Issue #568)
-	var next_level_path: String = _get_next_level_path()
-	if next_level_path != "":
-		var next_button := Button.new()
-		next_button.name = "NextLevelButton"
-		next_button.text = "→ Next Level"
-		next_button.custom_minimum_size = Vector2(200, 40)
-		next_button.add_theme_font_size_override("font_size", 18)
-		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
-		buttons_container.add_child(next_button)
-
-	# Restart button
-	var restart_button := Button.new()
-	restart_button.name = "RestartButton"
-	restart_button.text = "↻ Restart (Q)"
-	restart_button.custom_minimum_size = Vector2(200, 40)
-	restart_button.add_theme_font_size_override("font_size", 18)
-	restart_button.pressed.connect(_on_restart_pressed)
-	buttons_container.add_child(restart_button)
-
-	# Level Select button (Issue #568)
-	var level_select_button := Button.new()
-	level_select_button.name = "LevelSelectButton"
-	level_select_button.text = "☰ Level Select"
-	level_select_button.custom_minimum_size = Vector2(200, 40)
-	level_select_button.add_theme_font_size_override("font_size", 18)
-	level_select_button.pressed.connect(_on_level_select_pressed)
-	buttons_container.add_child(level_select_button)
-
-	# Watch Replay button
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
-
-	# Check if replay data is available
-	replay_manager = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
-
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
+	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+	if animated_score_screen_script:
+		var score_screen = animated_score_screen_script.new()
+		add_child(score_screen)
+		score_screen.animation_completed.connect(_on_score_animation_completed)
+		score_screen.show_animated_score(ui, score_data)
 	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
+		_show_fallback_score_screen(ui, score_data)
 
-	buttons_container.add_child(replay_button)
 
-	# Show cursor for button interaction
-	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+## Called when the animated score screen finishes all animations.
+func _on_score_animation_completed(container: VBoxContainer) -> void:
+	_add_score_screen_buttons(container)
 
-	# Focus the next level button if available, otherwise restart
-	if next_level_path != "":
-		buttons_container.get_node("NextLevelButton").grab_focus()
-	else:
-		restart_button.grab_focus()
+
+## Fallback score screen if animated component is not available.
+func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
+	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
+	var _font_loaded := gothic_font != null
+
+	var background := ColorRect.new()
+	background.name = "ScoreBackground"
+	background.color = Color(0.0, 0.0, 0.0, 0.7)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(background)
+
+	var container := VBoxContainer.new()
+	container.name = "ScoreContainer"
+	container.set_anchors_preset(Control.PRESET_CENTER)
+	container.offset_left = -300
+	container.offset_right = 300
+	container.offset_top = -200
+	container.offset_bottom = 200
+	container.add_theme_constant_override("separation", 8)
+	ui.add_child(container)
+
+	var title_label := Label.new()
+	title_label.text = "LEVEL CLEARED!"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 42)
+	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	container.add_child(title_label)
+
+	var rank_label := Label.new()
+	rank_label.text = "RANK: %s" % score_data.rank
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rank_label.add_theme_font_size_override("font_size", 64)
+	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
+	if _font_loaded:
+		rank_label.add_theme_font_override("font", gothic_font)
+	container.add_child(rank_label)
+
+	var total_label := Label.new()
+	total_label.text = "TOTAL SCORE: %d" % score_data.total_score
+	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_label.add_theme_font_size_override("font_size", 32)
+	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	container.add_child(total_label)
+
+	_add_score_screen_buttons(container)
 
 
 ## Adds Restart, Next Level, Level Select, and Watch Replay buttons to a score screen container.
-## Issue #568: Added Next Level and Level Select buttons after final grade.
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
 
-	# Add spacer
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
 	container.add_child(spacer)
 
-	# Add buttons container (vertical layout)
 	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Next Level button (Issue #568)
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -1080,7 +1053,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
 		buttons_container.add_child(next_button)
 
-	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
@@ -1089,7 +1061,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
-	# Level Select button (Issue #568)
 	var level_select_button := Button.new()
 	level_select_button.name = "LevelSelectButton"
 	level_select_button.text = "☰ Level Select"
@@ -1098,115 +1069,53 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button
 	var replay_button := Button.new()
 	replay_button.name = "ReplayButton"
 	replay_button.text = "▶ Watch Replay (W)"
 	replay_button.custom_minimum_size = Vector2(200, 40)
 	replay_button.add_theme_font_size_override("font_size", 18)
 
-	# Check if replay data is available
 	var replay_manager: Node = _get_or_create_replay_manager()
 	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
 
 	if has_replay_data:
 		replay_button.pressed.connect(_on_watch_replay_pressed)
+		_log_to_file("Watch Replay button created (replay data available)")
 	else:
 		replay_button.disabled = true
 		replay_button.text = "▶ Watch Replay (W) - no data"
 		replay_button.tooltip_text = "Replay recording was not available for this session"
+		_log_to_file("Watch Replay button created (disabled - no replay data)")
 
 	buttons_container.add_child(replay_button)
 
-	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
-	# Focus the next level button if available, otherwise restart
 	if next_level_path != "":
 		buttons_container.get_node("NextLevelButton").grab_focus()
 	else:
 		restart_button.grab_focus()
 
 
-## Handle W key shortcut for Watch Replay when score is shown.
-func _unhandled_input(event: InputEvent) -> void:
-	if not _score_shown:
-		return
-
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
-
-
-## Called when the Watch Replay button is pressed (or W key).
-func _on_watch_replay_pressed() -> void:
-	print("[TestTier] Watch Replay triggered")
-	var replay_manager: Node = _get_or_create_replay_manager()
-	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
-		if replay_manager.has_method("StartPlayback"):
-			replay_manager.StartPlayback(self)
-	else:
-		print("[TestTier] Watch Replay: no replay data available")
-
-
-## Called when the Restart button is pressed.
-func _on_restart_pressed() -> void:
-	print("[TestTier] Restart button pressed")
-	if GameManager:
-		GameManager.restart_scene()
-	else:
-		get_tree().reload_current_scene()
-
-
-## Called when the Next Level button is pressed (Issue #568).
-func _on_next_level_pressed(level_path: String) -> void:
-	print("[TestTier] Next Level button pressed: %s" % level_path)
-	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
-	var error := get_tree().change_scene_to_file(level_path)
-	if error != OK:
-		print("[TestTier] ERROR: Failed to load next level: %s" % level_path)
-		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-
-
-## Called when the Level Select button is pressed (Issue #568).
-func _on_level_select_pressed() -> void:
-	print("[TestTier] Level Select button pressed")
-	# Load the levels menu as a CanvasLayer overlay
-	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
-	if levels_menu_script:
-		var levels_menu = CanvasLayer.new()
-		levels_menu.set_script(levels_menu_script)
-		levels_menu.layer = 100  # On top of everything
-		get_tree().root.add_child(levels_menu)
-		# Connect back button to close the overlay
-		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
-	else:
-		print("[TestTier] ERROR: Could not load levels menu script")
-
-
-## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
-## Returns empty string if this is the last level or level not found.
-func _get_next_level_path() -> String:
-	var current_scene_path: String = ""
-	var current_scene: Node = get_tree().current_scene
-	if current_scene and current_scene.scene_file_path:
-		current_scene_path = current_scene.scene_file_path
-
-	# Level ordering (matching LevelsMenu.LEVELS)
-	var level_paths: Array[String] = [
-		"res://scenes/levels/LabyrinthLevel.tscn",
-		"res://scenes/levels/BuildingLevel.tscn",
-		"res://scenes/levels/TestTier.tscn",
-		"res://scenes/levels/CastleLevel.tscn",
-	]
-
-	for i in range(level_paths.size()):
-		if level_paths[i] == current_scene_path:
-			if i + 1 < level_paths.size():
-				return level_paths[i + 1]
-			return ""  # Last level
-
-	return ""  # Current level not found
+## Get the color for a given rank.
+func _get_rank_color(rank: String) -> Color:
+	match rank:
+		"S":
+			return Color(1.0, 0.84, 0.0, 1.0)
+		"A+":
+			return Color(0.0, 1.0, 0.5, 1.0)
+		"A":
+			return Color(0.2, 0.8, 0.2, 1.0)
+		"B":
+			return Color(0.3, 0.7, 1.0, 1.0)
+		"C":
+			return Color(1.0, 1.0, 1.0, 1.0)
+		"D":
+			return Color(1.0, 0.6, 0.2, 1.0)
+		"F":
+			return Color(1.0, 0.2, 0.2, 1.0)
+		_:
+			return Color(1.0, 1.0, 1.0, 1.0)
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.
@@ -1225,7 +1134,6 @@ func _show_game_over_message() -> void:
 	game_over_label.add_theme_font_size_override("font_size", 48)
 	game_over_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 
-	# Center the label
 	game_over_label.set_anchors_preset(Control.PRESET_CENTER)
 	game_over_label.offset_left = -250
 	game_over_label.offset_right = 250
@@ -1236,130 +1144,121 @@ func _show_game_over_message() -> void:
 
 
 ## Setup the weapon based on GameManager's selected weapon.
-## Removes the default MakarovPM and loads the selected weapon if different.
 func _setup_selected_weapon() -> void:
 	if _player == null:
 		return
 
-	# Get selected weapon from GameManager
-	var selected_weapon_id: String = "makarov_pm"  # Default
+	var selected_weapon_id: String = "makarov_pm"
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
-	print("TestTier: Setting up weapon: %s" % selected_weapon_id)
+	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
 
-	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager).
-	# This prevents double-equipping when both C# and GDScript weapon setup succeed.
-	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "sniper": "SniperRifle", "m16": "AssaultRifle"}
-	if selected_weapon_id in weapon_names:
-		var expected_name: String = weapon_names[selected_weapon_id]
-		var existing = _player.get_node_or_null(expected_name)
-		if existing != null and _player.get("CurrentWeapon") == existing:
-			print("TestTier: %s already equipped by C# Player - skipping" % expected_name)
-			return
+	if selected_weapon_id != "makarov_pm":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				return
 
-	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
-		# Remove the default MakarovPM
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
 			makarov.queue_free()
-			print("TestTier: Removed default MakarovPM")
+			print("LabyrinthLevel: Removed default MakarovPM")
 
-		# Load and add the shotgun
 		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
 		if shotgun_scene:
 			var shotgun = shotgun_scene.instantiate()
 			shotgun.name = "Shotgun"
 			_player.add_child(shotgun)
 
-			# Set the CurrentWeapon reference in C# Player
 			if _player.has_method("EquipWeapon"):
 				_player.EquipWeapon(shotgun)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = shotgun
 
-			print("TestTier: Shotgun equipped successfully")
+			print("LabyrinthLevel: Shotgun equipped successfully")
 		else:
-			push_error("TestTier: Failed to load Shotgun scene!")
-	# If Mini UZI is selected, swap weapons
+			push_error("LabyrinthLevel: Failed to load Shotgun scene!")
 	elif selected_weapon_id == "mini_uzi":
-		# Remove the default MakarovPM
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
 			makarov.queue_free()
-			print("TestTier: Removed default MakarovPM")
+			print("LabyrinthLevel: Removed default MakarovPM")
 
-		# Load and add the Mini UZI
 		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
 		if mini_uzi_scene:
 			var mini_uzi = mini_uzi_scene.instantiate()
 			mini_uzi.name = "MiniUzi"
+
+			if mini_uzi.get("StartingMagazineCount") != null:
+				mini_uzi.StartingMagazineCount = 2
+				print("LabyrinthLevel: Mini UZI StartingMagazineCount set to 2 (before initialization)")
+
 			_player.add_child(mini_uzi)
 
-			# Set the CurrentWeapon reference in C# Player
 			if _player.has_method("EquipWeapon"):
 				_player.EquipWeapon(mini_uzi)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
 
-			print("TestTier: Mini UZI equipped successfully")
+			print("LabyrinthLevel: Mini UZI equipped successfully")
 		else:
-			push_error("TestTier: Failed to load MiniUzi scene!")
-	# If Silenced Pistol is selected, swap weapons
+			push_error("LabyrinthLevel: Failed to load MiniUzi scene!")
 	elif selected_weapon_id == "silenced_pistol":
-		# Remove the default MakarovPM
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
 			makarov.queue_free()
-			print("TestTier: Removed default MakarovPM")
+			print("LabyrinthLevel: Removed default MakarovPM")
 
-		# Load and add the Silenced Pistol
 		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
 		if pistol_scene:
 			var pistol = pistol_scene.instantiate()
 			pistol.name = "SilencedPistol"
 			_player.add_child(pistol)
 
-			# Set the CurrentWeapon reference in C# Player
 			if _player.has_method("EquipWeapon"):
 				_player.EquipWeapon(pistol)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = pistol
 
-			print("TestTier: Silenced Pistol equipped successfully")
+			print("LabyrinthLevel: Silenced Pistol equipped successfully")
 		else:
-			push_error("TestTier: Failed to load SilencedPistol scene!")
-	# If Sniper Rifle (ASVK) is selected, swap weapons
+			push_error("LabyrinthLevel: Failed to load SilencedPistol scene!")
 	elif selected_weapon_id == "sniper":
-		# Remove the default MakarovPM
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
 			makarov.queue_free()
-			print("TestTier: Removed default MakarovPM")
+			print("LabyrinthLevel: Removed default MakarovPM")
 
-		# Load and add the Sniper Rifle
 		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
 		if sniper_scene:
 			var sniper = sniper_scene.instantiate()
 			sniper.name = "SniperRifle"
 			_player.add_child(sniper)
 
-			# Set the CurrentWeapon reference in C# Player
 			if _player.has_method("EquipWeapon"):
 				_player.EquipWeapon(sniper)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = sniper
 
-			print("TestTier: ASVK Sniper Rifle equipped successfully")
+			print("LabyrinthLevel: ASVK Sniper Rifle equipped successfully")
 		else:
-			push_error("TestTier: Failed to load SniperRifle scene!")
-	# If M16 (assault rifle) is selected, swap weapons
+			push_error("LabyrinthLevel: Failed to load SniperRifle scene!")
 	elif selected_weapon_id == "m16":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:
 			makarov.queue_free()
-			print("TestTier: Removed default MakarovPM")
+			print("LabyrinthLevel: Removed default MakarovPM")
 
 		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
 		if m16_scene:
@@ -1372,10 +1271,20 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = m16
 
-			print("TestTier: M16 Assault Rifle equipped successfully")
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("LabyrinthLevel: Power Fantasy mode - M16 magazines multiplied by %dx" % ammo_multiplier)
+			if m16.has_method("ReinitializeMagazines"):
+				m16.ReinitializeMagazines(base_magazines, true)
+				print("LabyrinthLevel: M16 magazines reinitialized to %d" % base_magazines)
+
+			print("LabyrinthLevel: M16 Assault Rifle equipped successfully")
 		else:
-			push_error("TestTier: Failed to load AssaultRifle scene!")
-	# For Makarov PM, it's already in the scene - just ensure it's equipped
+			push_error("LabyrinthLevel: Failed to load AssaultRifle scene!")
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov and _player.get("CurrentWeapon") == null:
@@ -1384,46 +1293,107 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = makarov
 
-			# Configure 2.5x ammo for MakarovPM (Issue #636)
 			_configure_makarov_pm_ammo(makarov)
 
 
-## Starts recording the replay for this level.
-func _start_replay_recording() -> void:
-	var replay_manager: Node = _get_or_create_replay_manager()
-	if replay_manager == null:
-		print("[TestTier] ERROR: ReplayManager could not be loaded!")
+## Handle W key shortcut for Watch Replay when score is shown.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
 		return
 
-	# Log player and enemies status for debugging
-	print("[TestTier] Starting replay recording - Player: %s, Enemies count: %d" % [
-		_player.name if _player else "NULL",
-		_enemies.size()
-	])
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			_on_watch_replay_pressed()
 
-	if _player == null:
-		print("[TestTier] WARNING: Player is null for replay recording!")
 
-	if _enemies.is_empty():
-		print("[TestTier] WARNING: No enemies registered for replay!")
-
-	# Clear any previous replay data
-	if replay_manager.has_method("ClearReplay"):
-		replay_manager.ClearReplay()
-		print("[TestTier] Previous replay data cleared")
-
-	# Start recording with player and enemies
-	if replay_manager.has_method("StartRecording"):
-		replay_manager.StartRecording(self, _player, _enemies)
-		print("[TestTier] Replay recording started successfully with %d enemies" % _enemies.size())
+## Called when the Watch Replay button is pressed (or W key).
+func _on_watch_replay_pressed() -> void:
+	_log_to_file("Watch Replay triggered")
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
+		if replay_manager.has_method("StartPlayback"):
+			replay_manager.StartPlayback(self)
 	else:
-		print("[TestTier] ERROR: StartRecording method not found!")
+		_log_to_file("Watch Replay: no replay data available")
+
+
+## Called when the Restart button is pressed.
+func _on_restart_pressed() -> void:
+	_log_to_file("Restart button pressed")
+	if GameManager:
+		GameManager.restart_scene()
+	else:
+		get_tree().reload_current_scene()
+
+
+## Called when the Next Level button is pressed.
+func _on_next_level_pressed(level_path: String) -> void:
+	_log_to_file("Next Level button pressed: %s" % level_path)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	var error := get_tree().change_scene_to_file(level_path)
+	if error != OK:
+		_log_to_file("ERROR: Failed to load next level: %s" % level_path)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+## Called when the Level Select button is pressed.
+func _on_level_select_pressed() -> void:
+	_log_to_file("Level Select button pressed")
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100
+		get_tree().root.add_child(levels_menu)
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load levels menu script")
+
+
+## Get the next level path based on the level ordering from LevelsMenu.
+func _get_next_level_path() -> String:
+	var current_scene_path: String = ""
+	var current_scene: Node = get_tree().current_scene
+	if current_scene and current_scene.scene_file_path:
+		current_scene_path = current_scene.scene_file_path
+
+	# Level ordering (matching LevelsMenu.LEVELS)
+	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+	]
+
+	for i in range(level_paths.size()):
+		if level_paths[i] == current_scene_path:
+			if i + 1 < level_paths.size():
+				return level_paths[i + 1]
+			return ""
+
+	return ""
+
+
+## Disable player controls after level completion (score screen shown).
+func _disable_player_controls() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	_player.set_physics_process(false)
+	_player.set_process(false)
+	_player.set_process_input(false)
+	_player.set_process_unhandled_input(false)
+
+	if _player is CharacterBody2D:
+		_player.velocity = Vector2.ZERO
+
+	_log_to_file("Player controls disabled (level completed)")
 
 
 ## Log a message to the file logger if available.
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
-		file_logger.log_info("[TestTier] " + message)
+		file_logger.log_info("[LabyrinthLevel] " + message)
 	else:
-		print("[TestTier] " + message)
+		print("[LabyrinthLevel] " + message)
