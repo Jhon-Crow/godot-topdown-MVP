@@ -45,10 +45,6 @@ const FLASHLIGHT_SOUND_PATH: String = "res://assets/audio/звук включе�
 ## Collision mask for obstacles (layer 3) used in line-of-sight checks.
 const OBSTACLE_COLLISION_MASK: int = 4
 
-## Safety margin (pixels) to pull the light back from a wall hit point.
-## Prevents the light from sitting exactly on the occluder edge.
-const WALL_SAFETY_MARGIN: float = 2.0
-
 ## Energy (brightness) for the scatter light at the beam impact point (Issue #644).
 ## Much lower than the main beam (8.0) for a subtle ambient glow effect.
 const SCATTER_LIGHT_ENERGY: float = 0.4
@@ -193,7 +189,8 @@ func _set_light_visible(visible_state: bool) -> void:
 
 ## Prevent the PointLight2D from penetrating walls when the player stands
 ## close to a wall. Raycasts from the player's center toward the flashlight's
-## default position; if a wall is in the way, the light is pulled back.
+## default position; if a wall is in the way, the light is moved back to
+## the player center so the wall's LightOccluder2D properly blocks the beam.
 func _clamp_light_to_walls() -> void:
 	if _point_light == null:
 		return
@@ -225,12 +222,10 @@ func _clamp_light_to_walls() -> void:
 		# No wall between player and flashlight position — use default
 		_point_light.position = Vector2.ZERO
 	else:
-		# Wall hit: pull the light back to just before the wall
-		var hit_pos: Vector2 = result["position"]
-		var direction: Vector2 = to_light.normalized()
-		var safe_pos: Vector2 = hit_pos - direction * WALL_SAFETY_MARGIN
-		# Convert to local coordinates of FlashlightEffect node
-		_point_light.global_position = safe_pos
+		# Wall hit: move the light source back to the player center.
+		# This ensures the wall's nearest face (LightOccluder2D) fully blocks
+		# the beam — the light won't illuminate the wall body or pass through.
+		_point_light.global_position = player_center
 
 
 func _physics_process(_delta: float) -> void:

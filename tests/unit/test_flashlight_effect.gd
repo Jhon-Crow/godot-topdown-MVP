@@ -32,9 +32,6 @@ class MockFlashlightEffect:
 	## Collision mask for obstacles.
 	const OBSTACLE_COLLISION_MASK: int = 4
 
-	## Safety margin (pixels) to pull the light back from a wall hit point.
-	const WALL_SAFETY_MARGIN: float = 2.0
-
 	## Scatter light energy (Issue #644).
 	const SCATTER_LIGHT_ENERGY: float = 0.4
 
@@ -111,12 +108,9 @@ class MockFlashlightEffect:
 			# No wall between player and flashlight position — use default
 			point_light_position = Vector2.ZERO
 		else:
-			# Wall hit: pull the light back to just before the wall
-			var hit_pos: Vector2 = _mock_wall_hit_pos
-			var direction: Vector2 = to_light.normalized()
-			var safe_global_pos: Vector2 = hit_pos - direction * WALL_SAFETY_MARGIN
-			# Convert from global to local offset relative to the flashlight node
-			point_light_position = safe_global_pos - global_position
+			# Wall hit: move the light back to the player center so the wall's
+			# LightOccluder2D fully blocks the beam from shining into the wall.
+			point_light_position = _mock_player_center - global_position
 
 	## Turn on the flashlight.
 	func turn_on() -> void:
@@ -715,11 +709,6 @@ func test_debug_label_no_status_when_not_affected() -> void:
 # ============================================================================
 
 
-func test_wall_safety_margin_constant() -> void:
-	assert_eq(flashlight.WALL_SAFETY_MARGIN, 2.0,
-		"Wall safety margin should be 2.0 pixels")
-
-
 func test_no_wall_keeps_default_position() -> void:
 	# Player center at origin, flashlight at offset (20, 0)
 	flashlight.set_mock_player_center(Vector2(0, 0))
@@ -732,7 +721,7 @@ func test_no_wall_keeps_default_position() -> void:
 		"PointLight2D should stay at default position when no wall is nearby")
 
 
-func test_wall_pulls_light_back() -> void:
+func test_wall_pulls_light_back_to_player_center() -> void:
 	# Player center at origin, flashlight at offset (20, 0)
 	# Wall hit at (18, 0) — between player and flashlight
 	flashlight.set_mock_player_center(Vector2(0, 0))
@@ -741,15 +730,15 @@ func test_wall_pulls_light_back() -> void:
 
 	flashlight.clamp_light_to_walls()
 
-	# The safe position should be hit_pos - direction * margin = (18,0) - (1,0)*2 = (16,0)
-	# Local offset relative to flashlight at (20,0): (16,0) - (20,0) = (-4, 0)
-	assert_almost_eq(flashlight.point_light_position.x, -4.0, 0.1,
-		"PointLight2D should be pulled back 4 pixels from default when wall is at 18px")
+	# When wall is detected, light moves to player center (0,0).
+	# Local offset relative to flashlight at (20,0): (0,0) - (20,0) = (-20, 0)
+	assert_almost_eq(flashlight.point_light_position.x, -20.0, 0.1,
+		"PointLight2D should be pulled back to player center when wall is detected")
 	assert_almost_eq(flashlight.point_light_position.y, 0.0, 0.1,
 		"PointLight2D Y should remain 0")
 
 
-func test_wall_at_player_center_pulls_light_fully_back() -> void:
+func test_wall_close_to_player_pulls_light_to_player_center() -> void:
 	# Player center at origin, flashlight at offset (20, 0)
 	# Wall hit at (5, 0) — very close to player
 	flashlight.set_mock_player_center(Vector2(0, 0))
@@ -758,9 +747,10 @@ func test_wall_at_player_center_pulls_light_fully_back() -> void:
 
 	flashlight.clamp_light_to_walls()
 
-	# Safe pos: (5,0) - (1,0)*2 = (3,0), local: (3,0)-(20,0) = (-17, 0)
-	assert_almost_eq(flashlight.point_light_position.x, -17.0, 0.1,
-		"PointLight2D should be pulled far back when wall is close to player")
+	# When wall is detected, light always moves to player center (0,0).
+	# Local offset: (0,0) - (20,0) = (-20, 0)
+	assert_almost_eq(flashlight.point_light_position.x, -20.0, 0.1,
+		"PointLight2D should be at player center when wall is detected")
 
 
 func test_wall_clamping_with_rotated_beam() -> void:
@@ -775,9 +765,12 @@ func test_wall_clamping_with_rotated_beam() -> void:
 
 	flashlight.clamp_light_to_walls()
 
-	# The light should be pulled back (negative offset from default)
-	assert_true(flashlight.point_light_position.length() > 0.0,
-		"PointLight2D should be moved when wall blocks at diagonal")
+	# The light should be moved back to player center (100, 100)
+	# Local offset: (100,100) - (100+14.14, 100+14.14) = (-14.14, -14.14)
+	assert_almost_eq(flashlight.point_light_position.x, -offset.x, 0.1,
+		"PointLight2D X should be at player center offset when wall blocks at diagonal")
+	assert_almost_eq(flashlight.point_light_position.y, -offset.y, 0.1,
+		"PointLight2D Y should be at player center offset when wall blocks at diagonal")
 
 
 func test_wall_clamping_no_effect_when_light_at_player() -> void:
