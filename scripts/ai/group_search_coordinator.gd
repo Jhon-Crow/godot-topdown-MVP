@@ -77,11 +77,26 @@ func _init(center_pos: Vector2 = Vector2.ZERO) -> void:
 ## Get or create a coordinator for a search center position.
 ## Groups nearby centers within GROUP_DISTANCE_THRESHOLD.
 static func get_or_create(search_center: Vector2) -> GroupSearchCoordinator:
-	# Check existing coordinators for nearby center
+	# Issue #650: Clean up stale coordinators (enemies from previous scene loads)
+	var stale_keys: Array = []
 	for key in _active_coordinators.keys():
 		var coord: GroupSearchCoordinator = _active_coordinators[key]
+		if coord == null:
+			stale_keys.append(key)
+			continue
+		# Check if any registered enemies are still valid
+		var has_valid_enemy := false
+		for enemy_id in coord._enemy_order:
+			if instance_from_id(enemy_id) != null:
+				has_valid_enemy = true
+				break
+		if not has_valid_enemy and not coord._enemy_order.is_empty():
+			stale_keys.append(key)
+			continue
 		if coord.center.distance_to(search_center) < GROUP_DISTANCE_THRESHOLD:
 			return coord
+	for key in stale_keys:
+		_active_coordinators.erase(key)
 	# Create new coordinator
 	var coordinator := GroupSearchCoordinator.new(search_center)
 	var key := _snap_center(search_center)
@@ -91,6 +106,8 @@ static func get_or_create(search_center: Vector2) -> GroupSearchCoordinator:
 
 ## Register an enemy for coordinated search. Returns sector index.
 func register_enemy(enemy: Node) -> int:
+	if enemy == null or not is_instance_valid(enemy):
+		return 0
 	var id := enemy.get_instance_id()
 	if _enemy_sectors.has(id):
 		return _enemy_sectors[id]
@@ -105,6 +122,8 @@ func register_enemy(enemy: Node) -> int:
 
 ## Unregister an enemy when they leave SEARCHING state.
 func unregister_enemy(enemy: Node) -> void:
+	if enemy == null:
+		return
 	var id := enemy.get_instance_id()
 	if not _enemy_sectors.has(id):
 		return

@@ -285,6 +285,7 @@ var _group_search_coordinator: GroupSearchCoordinator = null  ## [Issue #650] Gr
 var _scan_targets: Array[Dictionary] = []  ## [Issue #650] Realistic scan targets [{angle, pause}]
 var _scan_target_index: int = 0  ## [Issue #650] Current scan target index
 var _scan_pause_timer: float = 0.0  ## [Issue #650] Pause timer between scan looks
+var _search_init_frames: int = 0  ## [Issue #650] Frame counter to defer navigation after transition
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
@@ -443,6 +444,10 @@ func _ready() -> void:
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
 	# Unlimited search zone is activated AFTER enemy detects and loses player
+
+## Issue #650: Clean up group search coordinator when enemy is removed from tree.
+func _exit_tree() -> void:
+	_unregister_from_group_search()
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -2216,6 +2221,9 @@ func _mark_zone_visited(pos: Vector2) -> void:
 ## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
+	# Issue #650: Defer navigation for 2 frames after transition to let nav map sync
+	if _search_init_frames > 0:
+		_search_init_frames -= 1; velocity = Vector2.ZERO; return
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle: _log_to_file("SEARCHING timeout %.1fs" % _search_state_timer); _transition_to_idle(); return  # Issue #330
 	if _can_see_player: _log_to_file("SEARCHING: Player spotted!"); _transition_to_combat(); return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
@@ -2243,6 +2251,7 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
+			if _nav_agent == null: _transition_to_idle(); return  # Issue #650: Safety check
 			_nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
@@ -2250,7 +2259,7 @@ func _process_searching_state(delta: float) -> void:
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7; move_and_slide(); _push_casings()  # Issue #341
+				velocity = dir * move_speed * 0.7  # Issue #650: Removed inline move_and_slide (handled by _physics_process)
 				# Issue #354: Stuck detection
 				var progress := global_position.distance_to(_search_last_progress_position)
 				if progress < SEARCH_PROGRESS_THRESHOLD:
@@ -2323,12 +2332,10 @@ func _process_evading_grenade_state(delta: float) -> void:
 			if not _nav_agent.is_navigation_finished():
 				var next_pos := _nav_agent.get_next_path_position()
 				var direction := (next_pos - global_position).normalized()
-				velocity = direction * combat_move_speed
-				move_and_slide(); _push_casings()
+				velocity = direction * combat_move_speed  # Issue #650: Removed inline move_and_slide (handled by _physics_process)
 				if direction.length() > 0.1: rotation = lerp_angle(rotation, direction.angle(), 10.0 * delta)
 			else:
-				velocity = (evasion_target - global_position).normalized() * combat_move_speed
-				move_and_slide(); _push_casings()
+				velocity = (evasion_target - global_position).normalized() * combat_move_speed  # Issue #650: Removed inline move_and_slide
 
 ## Return from grenade evasion to the appropriate state.
 func _return_from_grenade_evasion() -> void:
@@ -2632,6 +2639,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position  # Issue #354
 	_scan_targets.clear(); _scan_target_index = 0; _scan_pause_timer = 0.0  # Issue #650: Reset scan state
+	_search_init_frames = 2  # Issue #650: Defer navigation for 2 frames to let nav map sync
 	# Issue #650: Register with group search coordinator for zone-based deduplication
 	if _group_search_coordinator != null:
 		_group_search_coordinator.unregister_enemy(self)
