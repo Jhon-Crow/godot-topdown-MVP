@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3 uid="uid://crpgrocket583k1"]
+
+[ext_resource type="Script" path="res://scripts/projectiles/rpg_rocket.gd" id="1_rpg_rocket"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rocket"]
+radius = 6.0
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+colors = PackedColorArray(1, 0.4, 0.1, 1, 1, 0.6, 0.2, 0)
+
+[sub_resource type="Curve" id="Curve_trail"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="RpgRocket" type="Area2D"]
+collision_layer = 16
+collision_mask = 39
+script = ExtResource("1_rpg_rocket")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 0.4, 0.1, 1)
+scale = Vector2(1.5, 1.5)
+
+[node name="Trail" type="Line2D" parent="."]
+width = 4.0
+width_curve = SubResource("Curve_trail")
+default_color = Color(1, 0.4, 0.1, 1)
+gradient = SubResource("Gradient_trail")
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_rocket")
