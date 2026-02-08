@@ -20,11 +20,11 @@ class MockWindowLightManager:
 	## Primary light color (cool blue moonlight).
 	const LIGHT_COLOR: Color = Color(0.4, 0.5, 0.9, 1.0)
 
-	## Primary light energy (very low — v4 reduced from 0.3 to 0.15).
-	const LIGHT_ENERGY: float = 0.15
+	## Primary light energy (very low — v6 reduced from 0.15 to 0.08).
+	const LIGHT_ENERGY: float = 0.08
 
-	## Primary light texture scale.
-	const LIGHT_TEXTURE_SCALE: float = 3.0
+	## Primary light texture scale (large for early-fadeout gradient — no visible edges).
+	const LIGHT_TEXTURE_SCALE: float = 6.0
 
 	## Ambient moonlight color (subtle blue moonlight tint).
 	## DirectionalLight2D covers the entire scene uniformly — no edges.
@@ -261,10 +261,10 @@ func test_light_shadows_enabled() -> void:
 func test_light_texture_scale() -> void:
 	var light := manager.create_window_light(Vector2(64, 1100), "left")
 
-	assert_true(light.texture_scale >= 2.0,
-		"Light texture scale should be >= 2.0 for visible light patch")
-	assert_true(light.texture_scale <= 5.0,
-		"Light texture scale should be <= 5.0 to avoid excessive overlap")
+	assert_true(light.texture_scale >= 4.0,
+		"Light texture scale should be >= 4.0 for early-fadeout gradient coverage")
+	assert_true(light.texture_scale <= 10.0,
+		"Light texture scale should be <= 10.0 to avoid excessive overlap")
 
 
 # ============================================================================
@@ -374,7 +374,7 @@ func test_total_window_light_energy_much_less_than_flash() -> void:
 		manager.create_window_light(pair[0], pair[1])
 	var ambient := manager.create_map_ambient()
 
-	# Total energy: 11 primary lights (0.15 each) + 1 ambient (0.04) = 1.69
+	# Total energy: 11 primary lights (0.08 each) + 1 ambient (0.04) = 0.92
 	var total_energy: float = manager.get_light_count() * manager.LIGHT_ENERGY + ambient.energy
 	assert_true(total_energy < manager.MUZZLE_FLASH_ENERGY,
 		"Total window energy (%.2f) should be less than muzzle flash (%.1f)" % [
@@ -509,10 +509,10 @@ func test_all_window_positions_on_exterior_walls() -> void:
 
 
 func test_window_light_constant_values() -> void:
-	assert_eq(manager.LIGHT_ENERGY, 0.15,
-		"Light energy constant should be 0.15")
-	assert_eq(manager.LIGHT_TEXTURE_SCALE, 3.0,
-		"Light texture scale constant should be 3.0")
+	assert_eq(manager.LIGHT_ENERGY, 0.08,
+		"Light energy constant should be 0.08")
+	assert_eq(manager.LIGHT_TEXTURE_SCALE, 6.0,
+		"Light texture scale constant should be 6.0")
 
 
 func test_ambient_light_constant_values() -> void:
@@ -616,11 +616,12 @@ func test_window_count_is_reasonable() -> void:
 func test_total_light_nodes_within_limit() -> void:
 	# Total lights: 11 primary PointLight2D + 1 DirectionalLight2D ambient.
 	# Godot 2D renderer has a 15-light-per-sprite limit.
-	# Primary lights have shadows and texture_scale=3.0, so only a few overlap
-	# any given sprite. The DirectionalLight2D counts as 1 additional light.
-	# Worst case near a corner: ~3 primary lights + 1 directional + 2 player lights
-	# + 1 muzzle flash = 7, well under 15.
-	var max_overlapping_primaries := 3  # Worst-case corner overlap for primary
+	# Primary lights have texture_scale=6.0 with early-fadeout gradient (effective
+	# radius is 55% of the total, so visible light covers ~3.3× the texture).
+	# The DirectionalLight2D counts as 1 additional light.
+	# Worst case near a corner: ~4 primary lights + 1 directional + 2 player lights
+	# + 1 muzzle flash = 8, well under 15.
+	var max_overlapping_primaries := 4  # Worst-case corner overlap for primary
 	var directional_light_count := 1  # Scene-wide DirectionalLight2D
 	var player_lights := 2  # visibility + flashlight
 	var muzzle_flash := 1  # weapon muzzle flash

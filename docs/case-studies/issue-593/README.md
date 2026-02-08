@@ -75,8 +75,9 @@ moonlight with NO visible edges:
 
 1. **Per-window "MoonLight"** — the visible moonlight patch near the window:
    - Blue-tinted (`Color(0.4, 0.5, 0.9)`) to simulate cool moonlight
-   - Very low energy (`0.15`), moderate spread (`texture_scale = 3.0`)
-   - **Shadows enabled** with PCF5 filter (`shadow_filter_smooth = 3.0`)
+   - Very low energy (`0.08`), large spread (`texture_scale = 6.0`)
+   - Early-fadeout gradient: reaches zero at 55% radius, 45% pure black buffer
+   - **Shadows enabled** with PCF5 filter (`shadow_filter_smooth = 4.0`)
    - Shadow color `Color(0, 0, 0, 0.7)` for slightly soft shadow edges
    - Interior walls cast natural shadows, giving the light realistic shape
 
@@ -126,13 +127,40 @@ flash `4.5`. Owner feedback: "hard boundary still visible" — despite the large
   `CanvasModulate` (`Color(0.02, 0.02, 0.04)`), even the faintest edge is visible.
 - The owner provided a reference image showing soft moonlight with no hard edges.
 
-**Iteration 5 (current):** Replaced map-wide PointLight2D with `DirectionalLight2D`.
+**Iteration 5 (commit bef1e78):** Replaced map-wide PointLight2D with `DirectionalLight2D`.
 - `DirectionalLight2D` illuminates the **entire scene uniformly** — it has no position,
   no radius, and no boundary where light stops. It's the correct Godot node for
   simulating moonlight (parallel rays from a distant source).
 - Same color `Color(0.35, 0.45, 0.85)` and energy `0.04` — only the node type changed.
 - Simpler code: no gradient texture needed, no position calculation, no texture_scale.
-- Total energy unchanged: `11 × 0.15 + 0.04 = 1.69` (37% of muzzle flash `4.5`).
+- Total energy: `11 × 0.15 + 0.04 = 1.69` (37% of muzzle flash `4.5`).
+- Owner feedback: "rectangular light edges still clearly visible" — the ambient
+  DirectionalLight2D has no edges, but the **11 primary PointLight2D** window lights
+  still show their quad boundaries.
+
+**Root cause of v5 failure:**
+- The primary window `PointLight2D` lights use `GradientTexture2D` with `FILL_RADIAL`.
+  The gradient reaches zero at the inscribed circle edge (offset 1.0 in the gradient),
+  but the `PointLight2D` is rendered as a **square quad** in the GPU. The corners of
+  the square texture beyond the inscribed circle can produce subpixel artifacts.
+- More importantly, the gradient at `texture_scale = 3.0` (covering ~1536px diameter)
+  has its zero-crossing right at the texture boundary. Against the near-black
+  `CanvasModulate` (`Color(0.02, 0.02, 0.04)`), even a 1/255 difference at the
+  boundary is visible as a hard edge.
+- The owner's reference image and linked Reddit post about [faking GI in 2D scenes](https://www.reddit.com/r/godot/comments/173w2u1/faking_global_illumination_in_a_2d_scene_using/)
+  demonstrate that moonlight should have a very gradual, imperceptible transition.
+
+**Iteration 6 (current):** Early-fadeout gradient with large texture_scale.
+- **Key insight:** The gradient must reach absolute zero well before the texture edge,
+  creating a "buffer zone" of pure black pixels where no light contribution exists.
+  This eliminates visible edges because the transition from light to dark happens
+  entirely within the interior of the texture, far from the quad boundary.
+- Primary energy reduced from `0.15` to `0.08` — the larger texture_scale (6.0 vs 3.0)
+  compensates for coverage while keeping total energy low.
+- Gradient now fades to zero at 55% of the radius, leaving 45% as pure black buffer.
+- `shadow_filter_smooth` increased from 3.0 to 4.0 for even softer shadow edges.
+- Total energy: `11 × 0.08 + 0.04 = 0.92` (20% of muzzle flash `4.5`) — weapon
+  flashes will be clearly dominant at 4.9× the total window light energy.
 
 ### Window Light Placement
 
@@ -150,11 +178,20 @@ Small blue `ColorRect` nodes (window frames) are added at window positions
 to give a visual representation of windows on the walls, even when night mode
 is disabled.
 
+## Game Logs
+
+- `game_log_20260208_150328.txt` — Owner testing v5 (DirectionalLight2D ambient).
+  Shows realistic visibility toggled on at 15:03:34 and off at 15:03:47 (13 seconds).
+  Confirms rectangular edges still visible from primary PointLight2D window lights.
+
 ## References
 
 - [Godot 2D Lighting Docs](https://docs.godotengine.org/en/stable/tutorials/2d/2d_lights_and_shadows.html)
 - [PointLight2D Class](https://docs.godotengine.org/en/stable/classes/class_pointlight2d.html)
 - [DirectionalLight2D Class](https://docs.godotengine.org/en/stable/classes/class_directionallight2d.html)
+- [GradientTexture2D Class](https://docs.godotengine.org/en/stable/classes/class_gradienttexture2d.html)
 - [CanvasModulate Class](https://docs.godotengine.org/en/stable/classes/class_canvasmodulate.html)
+- [Reddit: Faking Global Illumination in 2D using light masks](https://www.reddit.com/r/godot/comments/173w2u1/faking_global_illumination_in_a_2d_scene_using/)
+- [Godot Proposals #3444: Mathematically defined PointLight2D textures](https://github.com/godotengine/godot-proposals/issues/3444)
 - Issue #540: Realistic visibility implementation
 - Issue #570: Night mode weapon fix

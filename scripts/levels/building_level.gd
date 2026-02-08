@@ -322,6 +322,12 @@ func _setup_window_lights() -> void:
 ## near the window. Shadows from interior walls give the light a natural shape
 ## that respects the building's geometry.
 ## The scene-wide ambient glow is handled separately by _create_ambient_moonlight().
+##
+## Light gradient uses an early-fadeout design: the radial gradient reaches
+## absolute zero at 55% of the radius, leaving 45% of the texture as pure black
+## buffer. This ensures NO visible edges even against the near-black CanvasModulate.
+## Combined with large texture_scale (6.0) and low energy (0.08), the light
+## dissipates naturally with no perceptible boundary.
 ## @param parent: Parent node to add the window to.
 ## @param pos: Position of the window on the wall.
 ## @param wall_side: Which wall the window is on ("top", "bottom", "left", "right").
@@ -362,14 +368,14 @@ func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> vo
 	var light := PointLight2D.new()
 	light.name = "MoonLight"
 	light.color = Color(0.4, 0.5, 0.9, 1.0)  # Cool blue moonlight
-	light.energy = 0.15
+	light.energy = 0.08  # Very low — large texture_scale compensates for coverage
 	# Shadows enabled so interior walls cast natural shadows from the moonlight
 	light.shadow_enabled = true
 	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
-	light.shadow_filter_smooth = 3.0
+	light.shadow_filter_smooth = 4.0  # Higher smoothing for softer shadow edges
 	light.shadow_color = Color(0, 0, 0, 0.7)
 	light.texture = _create_window_light_texture()
-	light.texture_scale = 3.0
+	light.texture_scale = 6.0  # Large scale so gradient fades out well before the edge
 	# Offset the light inward from the wall so it illuminates the interior
 	match wall_side:
 		"left":
@@ -384,15 +390,24 @@ func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> vo
 
 
 ## Create a radial gradient texture for the primary window moonlight.
-## Uses a very gradual falloff so the light fades smoothly into darkness
-## without a visible hard edge.
+## Uses an early-fadeout design where the gradient reaches absolute zero at 55%
+## of the radius, leaving 45% of the texture as pure black buffer zone.
+## This eliminates visible edges at the PointLight2D quad boundary because the
+## light contribution is already zero well before the texture boundary.
+## Against the near-black CanvasModulate (0.02, 0.02, 0.04), even subpixel
+## differences at the boundary could be visible, so the large buffer is critical.
 func _create_window_light_texture() -> GradientTexture2D:
 	var gradient := Gradient.new()
+	# Bright center core (0-10% radius)
 	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
-	gradient.add_point(0.2, Color(0.85, 0.85, 0.85, 1.0))
-	gradient.add_point(0.45, Color(0.55, 0.55, 0.55, 1.0))
-	gradient.add_point(0.7, Color(0.2, 0.2, 0.2, 1.0))
-	gradient.add_point(0.9, Color(0.05, 0.05, 0.05, 1.0))
+	# Smooth falloff begins early
+	gradient.add_point(0.1, Color(0.7, 0.7, 0.7, 1.0))
+	gradient.add_point(0.2, Color(0.45, 0.45, 0.45, 1.0))
+	gradient.add_point(0.3, Color(0.25, 0.25, 0.25, 1.0))
+	gradient.add_point(0.4, Color(0.1, 0.1, 0.1, 1.0))
+	# Fade to absolute zero by 55% — remaining 45% is pure black buffer
+	gradient.add_point(0.5, Color(0.02, 0.02, 0.02, 1.0))
+	gradient.add_point(0.55, Color(0.0, 0.0, 0.0, 1.0))
 	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
 
 	var texture := GradientTexture2D.new()
