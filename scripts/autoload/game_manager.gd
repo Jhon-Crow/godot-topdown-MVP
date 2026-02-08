@@ -28,7 +28,7 @@ var debug_mode_enabled: bool = false
 var invincibility_enabled: bool = false
 
 ## Currently selected weapon ID for player equipment.
-## Valid values: "makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper" (corresponds to armory_menu WEAPONS keys)
+## Valid values: "makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "ak_gl" (corresponds to armory_menu WEAPONS keys)
 ## Default: "makarov_pm" (Makarov PM starting pistol)
 var selected_weapon: String = "makarov_pm"
 
@@ -39,7 +39,8 @@ const WEAPON_SCENES: Dictionary = {
 	"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn",
 	"mini_uzi": "res://scenes/weapons/csharp/MiniUzi.tscn",
 	"silenced_pistol": "res://scenes/weapons/csharp/SilencedPistol.tscn",
-	"sniper": "res://scenes/weapons/csharp/SniperRifle.tscn"
+	"sniper": "res://scenes/weapons/csharp/SniperRifle.tscn",
+	"ak_gl": "res://scenes/weapons/csharp/AKGL.tscn"
 }
 
 ## Signal emitted when an enemy is killed (for screen effects).

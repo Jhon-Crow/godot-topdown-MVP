@@ -51,11 +51,11 @@ const FIREARMS: Dictionary = {
 		"unlocked": true,
 		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom)."
 	},
-	"ak47": {
-		"name": "???",
-		"icon_path": "",
-		"unlocked": false,
-		"description": "Coming soon"
+	"ak_gl": {
+		"name": "AK + GL",
+		"icon_path": "res://assets/sprites/weapons/ak_gl_topdown.png",
+		"unlocked": true,
+		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
 	},
 	"smg": {
 		"name": "???",
@@ -72,7 +72,8 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 	"shotgun": "res://resources/weapons/ShotgunData.tres",
 	"mini_uzi": "res://resources/weapons/MiniUziData.tres",
 	"silenced_pistol": "res://resources/weapons/SilencedPistolData.tres",
-	"sniper": "res://resources/weapons/SniperRifleData.tres"
+	"sniper": "res://resources/weapons/SniperRifleData.tres",
+	"ak_gl": "res://resources/weapons/AKGLData.tres"
 }
 
 ## Maximum number of visible weapon rows before accordion hides the rest.
