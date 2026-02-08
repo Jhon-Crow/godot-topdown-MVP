@@ -553,6 +553,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -1020,6 +1022,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		weapon = _player.get_node_or_null("Shotgun")
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
+		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
