@@ -390,8 +390,10 @@ func _physics_process(delta: float) -> void:
 	if can_shoot and Input.is_action_just_pressed("shoot"):
 		_shoot()
 
-	# Handle reload input based on mode
-	if reload_mode == 0:  # Simple mode
+	# Handle reload input based on weapon type and mode
+	if _current_weapon_type == WeaponType.REVOLVER:
+		_handle_revolver_reload_input()
+	elif reload_mode == 0:  # Simple mode
 		_handle_simple_reload_input()
 	else:  # Sequence mode
 		_handle_sequence_reload_input()
@@ -460,12 +462,16 @@ func _detect_and_apply_weapon_pose() -> void:
 	var detected_type := WeaponType.RIFLE  # Default to rifle pose
 
 	# Check for weapon children - weapons are added directly to player by level scripts
-	# Check in order of specificity: MiniUzi (SMG), Shotgun, SniperRifle, then default to Rifle
+	# Check in order of specificity: Revolver, MiniUzi (SMG), Shotgun, SniperRifle, then default to Rifle
+	var revolver := get_node_or_null("Revolver")
 	var mini_uzi := get_node_or_null("MiniUzi")
 	var shotgun := get_node_or_null("Shotgun")
 	var sniper_rifle := get_node_or_null("SniperRifle")
 
-	if mini_uzi != null:
+	if revolver != null:
+		detected_type = WeaponType.REVOLVER
+		FileLogger.info("[Player] Detected weapon: RSh-12 Revolver (Revolver pose)")
+	elif mini_uzi != null:
 		detected_type = WeaponType.SMG
 		FileLogger.info("[Player] Detected weapon: Mini UZI (SMG pose)")
 	elif shotgun != null:
@@ -507,6 +513,13 @@ func _apply_weapon_arm_offsets() -> void:
 			_base_left_arm_pos = original_left_arm_pos + Vector2(-3, 0)
 			_base_right_arm_pos = original_right_arm_pos + Vector2(1, 0)
 			FileLogger.info("[Player] Applied Shotgun arm pose: Left=%s, Right=%s" % [
+				str(_base_left_arm_pos), str(_base_right_arm_pos)
+			])
+		WeaponType.REVOLVER:
+			# Revolver pose: Compact pistol grip, left arm supports right
+			_base_left_arm_pos = original_left_arm_pos + Vector2(-12, 0)
+			_base_right_arm_pos = original_right_arm_pos + Vector2(4, 0)
+			FileLogger.info("[Player] Applied Revolver arm pose: Left=%s, Right=%s" % [
 				str(_base_left_arm_pos), str(_base_right_arm_pos)
 			])
 		WeaponType.RIFLE, _:
@@ -837,8 +850,14 @@ func _complete_reload() -> void:
 		sound_propagation.emit_player_reload_complete(global_position, self)
 
 
-## Check if player is currently reloading (either mode).
+## Check if player is currently reloading (any mode).
 func is_reloading() -> bool:
+	# Check revolver reload state if revolver is equipped
+	if _current_weapon_type == WeaponType.REVOLVER:
+		var revolver: Node = get_node_or_null("Revolver")
+		if revolver != null:
+			var reload_state: int = revolver.get("ReloadState")
+			return reload_state != 0  # 0 = NotReloading
 	return _is_reloading_sequence or _is_reloading_simple
 
 
@@ -847,15 +866,72 @@ func get_reload_step() -> int:
 	return _reload_sequence_step
 
 
-## Cancel the reload (both modes) and reset.
+## Cancel the reload (all modes) and reset.
 func cancel_reload() -> void:
 	_reload_sequence_step = 0
 	_is_reloading_sequence = false
 	_is_reloading_simple = false
 	_reload_timer = 0.0
+	# Cancel revolver cylinder reload if active
+	if _current_weapon_type == WeaponType.REVOLVER:
+		var revolver: Node = get_node_or_null("Revolver")
+		if revolver != null and revolver.has_method("CloseCylinder"):
+			var reload_state: int = revolver.get("ReloadState")
+			if reload_state != 0:  # 0 = NotReloading
+				revolver.call("CloseCylinder")
 	# Return arms to idle if reload animation was active
 	if _reload_anim_phase != ReloadAnimPhase.NONE:
 		_start_reload_anim_phase(ReloadAnimPhase.RETURN_IDLE, RELOAD_ANIM_RETURN_DURATION)
+
+
+## Handle revolver multi-step cylinder reload input (Issue #626).
+## R key: Open/close cylinder. RMB drag up and scroll wheel are handled by Revolver.cs.
+## Sequence: R (open cylinder) → RMB drag up (insert cartridge) → scroll (rotate cylinder)
+## → repeat insert+rotate → R (close cylinder).
+func _handle_revolver_reload_input() -> void:
+	var revolver: Node = get_node_or_null("Revolver")
+	if revolver == null:
+		return
+
+	# Get current reload state from revolver (0=NotReloading, 1=CylinderOpen, 2=Loading, 3=Closing)
+	var reload_state: int = revolver.get("ReloadState")
+
+	match reload_state:
+		0:  # NotReloading
+			# R press: Open cylinder to begin reload
+			if Input.is_action_just_pressed("reload"):
+				if revolver.call("OpenCylinder"):
+					_is_reloading_sequence = true
+					# Start arm animation for cylinder open
+					_start_reload_anim_phase(ReloadAnimPhase.GRAB_MAGAZINE, RELOAD_ANIM_GRAB_DURATION)
+					reload_sequence_progress.emit(1, 3)
+					reload_started.emit()
+					# Update ammo display (cylinder emptied)
+					var current_ammo: int = revolver.get("CurrentAmmo")
+					ammo_changed.emit(current_ammo, max_ammo)
+					FileLogger.info("[Player] Revolver: cylinder opened (R key)")
+		1, 2:  # CylinderOpen or Loading
+			# R press: Close cylinder to finish reload
+			if Input.is_action_just_pressed("reload"):
+				if revolver.call("CloseCylinder"):
+					_is_reloading_sequence = false
+					# Animate arm return
+					_start_reload_anim_phase(ReloadAnimPhase.PULL_BOLT, RELOAD_ANIM_BOLT_DURATION)
+					reload_sequence_progress.emit(3, 3)
+					# Update ammo display
+					var current_ammo: int = revolver.get("CurrentAmmo")
+					ammo_changed.emit(current_ammo, max_ammo)
+					reload_completed.emit()
+					# Emit reload completion sound for in-game sound propagation
+					var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+					if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
+						sound_propagation.emit_player_reload_complete(global_position, self)
+					FileLogger.info("[Player] Revolver: cylinder closed (R key), reload complete")
+			# Note: RMB drag up (insert cartridge) and scroll wheel (rotate cylinder)
+			# are handled directly by Revolver.cs in _Process() and _Input()
+			# Update ammo display if cartridges were loaded via RMB drag
+			var current_ammo: int = revolver.get("CurrentAmmo")
+			ammo_changed.emit(current_ammo, max_ammo)
 
 
 ## Called when hit by a projectile.
@@ -1226,9 +1302,10 @@ var _base_right_arm_pos: Vector2 = Vector2.ZERO
 ## Weapon types for arm positioning.
 ## Different weapon types require different arm poses for realistic holding.
 enum WeaponType {
-	RIFLE,  # Long barrel weapons (M16, AK47) - arms spread apart
-	SMG,    # Compact weapons (UZI, MP5) - arms closer together
-	SHOTGUN # Medium weapons (pump shotgun) - intermediate pose
+	RIFLE,    # Long barrel weapons (M16, AK47) - arms spread apart
+	SMG,      # Compact weapons (UZI, MP5) - arms closer together
+	SHOTGUN,  # Medium weapons (pump shotgun) - intermediate pose
+	REVOLVER  # Pistol-sized weapons (RSh-12 revolver) - one-handed/compact grip
 }
 
 ## Currently detected weapon type.
@@ -2836,3 +2913,16 @@ func get_flashlight_origin() -> Vector2:
 	if not is_instance_valid(_flashlight_node):
 		return global_position
 	return _flashlight_node.global_position
+
+
+## Check if the flashlight beam is wall-clamped (Issue #640).
+## When the player stands flush against a wall, the beam is blocked and should not
+## blind enemies or be detected through the wall.
+func is_flashlight_wall_clamped() -> bool:
+	if not _flashlight_equipped or _flashlight_node == null:
+		return false
+	if not is_instance_valid(_flashlight_node):
+		return false
+	if _flashlight_node.has_method("is_wall_clamped"):
+		return _flashlight_node.is_wall_clamped()
+	return false
