@@ -77,3 +77,45 @@ The homing system modifies bullet behavior during `_physics_process()` to steer 
 - [Homing Missile - Godot 4 Recipes](https://kidscancode.org/godot_recipes/4.x/ai/homing_missile/index.html)
 - [Godot PerfBullets plugin](https://github.com/Moonzel/Godot-PerfBullets) - has homing weight parameter
 - [IranosMorloy/godot-homing-missile](https://github.com/IranosMorloy/godot-homing-missile)
+
+## Bug Investigation (2026-02-09)
+
+### Problem Report
+The repository owner (Jhon-Crow) reported that the homing bullets feature "doesn't work" when tested
+in an exported build (Windows, Godot 4.3-stable). A game log was provided:
+`logs/game_log_20260209_013835.txt`
+
+### Timeline of Events (from game log)
+1. **01:38:35** — Game starts on BuildingLevel
+2. **01:38:36** — `[Player.Flashlight] No flashlight selected in ActiveItemManager` — Player init runs, no active item
+3. **01:38:39** — Player opens Armory menu
+4. **01:38:43** — `[ActiveItemManager] Active item changed from None to Homing Bullets` — Homing Bullets selected
+5. **01:38:43** — Scene reloads (BuildingLevel). Player re-initializes.
+6. **01:38:43** — `[Player.Flashlight] No flashlight selected in ActiveItemManager` — Flashlight check runs (correctly returns false)
+7. **01:38:43** — **NO homing initialization log appears** — `_init_homing_bullets()` silently failed
+8. **01:38:48–01:39:34** — Player shoots bullets, none show homing behavior
+
+### Root Cause Analysis
+The `_init_homing_bullets()` function had **silent guard returns** — it would exit without logging if:
+- `active_item_manager` was null
+- `has_method("has_homing_bullets")` returned false
+- `has_homing_bullets()` returned false
+
+Unlike `_init_flashlight()` which logged at every guard point, `_init_homing_bullets()` had no diagnostic
+logging, making it impossible to tell which guard was failing.
+
+The most likely failure point was the `has_method("has_homing_bullets")` guard. In Godot exported builds,
+method availability can differ from the editor. Additionally, the function was more fragile than necessary
+since `_init_flashlight()` in the same codebase does not use a `has_method` guard for `has_flashlight()`.
+
+### Additional Issues Found
+1. **Missing armory icon** — `icon_path` was empty string `""`, showing "?" placeholder
+2. **Missing activation sound** — No audio feedback when pressing Space to activate
+3. **No diagnostic logging** — Silent failures made debugging impossible
+
+### Fix Applied
+1. Added diagnostic logging at every guard point in `_init_homing_bullets()` (matching flashlight pattern)
+2. Added homing bullets icon: `res://assets/sprites/weapons/homing_bullets_icon.png` (64x48 RGBA PNG)
+3. Added sci-fi activation sound: `res://assets/audio/homing_activation.wav`
+4. Added `_setup_homing_audio()` and `_play_homing_sound()` to player.gd
+5. Sound plays when Space is pressed to activate homing effect
