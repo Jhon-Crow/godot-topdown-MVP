@@ -7,9 +7,10 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,           # No active item equipped
-	FLASHLIGHT,     # Tactical flashlight - illuminates in weapon direction
-	HOMING_BULLETS  # Homing bullets - press Space to make bullets steer toward nearest enemy
+	NONE,              # No active item equipped
+	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
+	TELEPORT_BRACERS   # Teleportation bracers - hold Space to aim, release to teleport
 }
 
 ## Currently selected active item type.
@@ -32,6 +33,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Homing Bullets",
 		"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
 		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+	},
+	ActiveItemType.TELEPORT_BRACERS: {
+		"name": "Teleport Bracers",
+		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
+		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
 	}
 }
 
@@ -123,3 +129,8 @@ func has_flashlight() -> bool:
 ## Check if homing bullets are currently equipped.
 func has_homing_bullets() -> bool:
 	return current_active_item == ActiveItemType.HOMING_BULLETS
+
+
+## Check if teleport bracers are currently equipped.
+func has_teleport_bracers() -> bool:
+	return current_active_item == ActiveItemType.TELEPORT_BRACERS

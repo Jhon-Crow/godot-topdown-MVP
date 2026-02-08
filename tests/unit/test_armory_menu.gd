@@ -75,7 +75,8 @@ class MockArmoryMenu:
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
-		2: {"name": "Homing Bullets", "description": "Homing bullets active item"}
+		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
+		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
 	}
 
 	## Applied (active) weapon ID.
