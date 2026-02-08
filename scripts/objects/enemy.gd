@@ -933,7 +933,7 @@ func _update_goap_state() -> void:
 	if _flashlight_detection:
 		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
 		# Check if the next navigation waypoint is lit by the flashlight
-		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player) if _player else false
+		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
 ## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
 ## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
 func _update_enemy_model_rotation() -> void:
@@ -2003,7 +2003,7 @@ func _process_pursuing_state(delta: float) -> void:
 	# [Issue #574] Check if the current path goes through a lit passage
 	# If the flashlight illuminates the next waypoint, try flanking to find an alternate route
 	if _flashlight_detection and _player and not _pursuit_approaching:
-		if _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player):
+		if _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast):
 			if _can_attempt_flanking():
 				_log_to_file("[#574] Next waypoint lit by flashlight, attempting flank to avoid lit passage")
 				if _transition_to_flanking():
@@ -3165,7 +3165,7 @@ func _find_pursuit_cover_toward_player() -> void:
 
 			# [Issue #574] Penalize cover positions lit by the flashlight
 			var flashlight_penalty: float = 0.0
-			if _flashlight_detection and _player and _flashlight_detection.is_position_lit(cover_pos, _player):
+			if _flashlight_detection and _player and _flashlight_detection.is_position_lit(cover_pos, _player, _raycast):
 				flashlight_penalty = 8.0  # Strong penalty — avoid walking into flashlight beam
 
 			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty - flashlight_penalty
@@ -3383,8 +3383,8 @@ func _choose_best_flank_side() -> float:
 
 	# [Issue #574] When both sides are valid, prefer the side NOT lit by the flashlight
 	if right_valid and left_valid and _flashlight_detection and _player:
-		var right_lit := _flashlight_detection.is_position_lit(right_flank_pos, _player)
-		var left_lit := _flashlight_detection.is_position_lit(left_flank_pos, _player)
+		var right_lit := _flashlight_detection.is_position_lit(right_flank_pos, _player, _raycast)
+		var left_lit := _flashlight_detection.is_position_lit(left_flank_pos, _player, _raycast)
 		if right_lit and not left_lit:
 			_log_to_file("[#574] Choosing left flank — right side lit by flashlight")
 			return -1.0
