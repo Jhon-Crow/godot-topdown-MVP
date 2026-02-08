@@ -67,11 +67,11 @@ against walls.
 
 ## Solution Design
 
-### Approach: Primary Window Lights + Single Map-Wide Ambient
+### Approach: Primary Window Lights + DirectionalLight2D Ambient
 
 Each window creates ONE `PointLight2D` for the visible moonlight patch near
-the window, and a SINGLE map-wide ambient light covers the entire building
-for corridor outline visibility:
+the window, and a SINGLE `DirectionalLight2D` provides scene-wide ambient
+moonlight with NO visible edges:
 
 1. **Per-window "MoonLight"** — the visible moonlight patch near the window:
    - Blue-tinted (`Color(0.4, 0.5, 0.9)`) to simulate cool moonlight
@@ -80,14 +80,16 @@ for corridor outline visibility:
    - Shadow color `Color(0, 0, 0, 0.7)` for slightly soft shadow edges
    - Interior walls cast natural shadows, giving the light realistic shape
 
-2. **Single "MapAmbientGlow"** — one PointLight2D covering the entire building:
+2. **Single "AmbientMoonlight"** — one DirectionalLight2D covering the entire scene:
    - Subtle blue (`Color(0.35, 0.45, 0.85)`)
-   - Extremely faint energy (`0.04`), map-wide spread (`texture_scale = 7.0`)
+   - Extremely faint energy (`0.04`)
    - Shadows disabled so it provides uniform glow through all walls
-   - Centered at building center `(1264, 1064)`, radius covers full building
+   - **No position, no radius, no texture** — DirectionalLight2D illuminates
+     the entire scene uniformly by definition, unlike PointLight2D which
+     always has a finite circular boundary
 
-This architecture eliminates visible square/circular light edges because the
-single ambient light is so large it extends well beyond the building boundaries.
+This architecture completely eliminates visible light edges because
+DirectionalLight2D has no boundary — it covers the entire scene like moonlight.
 
 ### Design decisions and iteration history
 
@@ -111,12 +113,26 @@ still not working."
 - 11 windows × 2 lights = 22 PointLight2D nodes, total energy = `11 × (0.3 + 0.08) = 4.18`
   — nearly equal to muzzle flash energy (`4.5`), drowning out weapon effects
 
-**Iteration 4 (current):** Replaced per-window ambient with single map-wide ambient.
-- Primary energy halved from `0.3` to `0.15` (with shadows, realistic wall shapes)
-- Single map-wide ambient at `0.04` energy, `texture_scale = 7.0` (no visible edges)
-- Total energy: `11 × 0.15 + 0.04 = 1.69` — only 37% of muzzle flash energy (`4.5`)
-- Total PointLight2D count reduced from 22 to 12 (better performance)
-- Muzzle flash (energy `4.5`) is now ~2.7x the total ambient energy, clearly visible
+**Iteration 4 (commit 089b1ed):** Replaced per-window ambient with single map-wide
+PointLight2D ambient. Primary energy halved from `0.3` to `0.15`. Single map-wide
+ambient at `0.04` energy, `texture_scale = 7.0`. Total energy `1.69` vs muzzle
+flash `4.5`. Owner feedback: "hard boundary still visible" — despite the large
+`texture_scale`, the PointLight2D still had a finite circular boundary.
+
+**Root cause of v4 failure:**
+- **PointLight2D always has a finite circular boundary** where its gradient texture
+  ends. No matter how large the `texture_scale`, there is always a visible transition
+  from lit to unlit at the edge of the radial gradient. Against the near-black
+  `CanvasModulate` (`Color(0.02, 0.02, 0.04)`), even the faintest edge is visible.
+- The owner provided a reference image showing soft moonlight with no hard edges.
+
+**Iteration 5 (current):** Replaced map-wide PointLight2D with `DirectionalLight2D`.
+- `DirectionalLight2D` illuminates the **entire scene uniformly** — it has no position,
+  no radius, and no boundary where light stops. It's the correct Godot node for
+  simulating moonlight (parallel rays from a distant source).
+- Same color `Color(0.35, 0.45, 0.85)` and energy `0.04` — only the node type changed.
+- Simpler code: no gradient texture needed, no position calculation, no texture_scale.
+- Total energy unchanged: `11 × 0.15 + 0.04 = 1.69` (37% of muzzle flash `4.5`).
 
 ### Window Light Placement
 
@@ -138,6 +154,7 @@ is disabled.
 
 - [Godot 2D Lighting Docs](https://docs.godotengine.org/en/stable/tutorials/2d/2d_lights_and_shadows.html)
 - [PointLight2D Class](https://docs.godotengine.org/en/stable/classes/class_pointlight2d.html)
+- [DirectionalLight2D Class](https://docs.godotengine.org/en/stable/classes/class_directionallight2d.html)
 - [CanvasModulate Class](https://docs.godotengine.org/en/stable/classes/class_canvasmodulate.html)
 - Issue #540: Realistic visibility implementation
 - Issue #570: Night mode weapon fix
