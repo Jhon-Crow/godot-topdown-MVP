@@ -7,8 +7,8 @@ extends GutTest
 ##
 ## Lighting architecture:
 ## - Each window has ONE primary "MoonLight" PointLight2D (low energy, shadows on).
-## - ONE single map-wide "MapAmbientGlow" PointLight2D covers the entire building
-##   with extremely faint blue glow (no visible edges, no shadows).
+## - ONE DirectionalLight2D ("AmbientMoonlight") provides scene-wide ambient glow
+##   with NO visible edges (DirectionalLight2D covers the entire scene uniformly).
 
 
 # ============================================================================
@@ -26,14 +26,12 @@ class MockWindowLightManager:
 	## Primary light texture scale.
 	const LIGHT_TEXTURE_SCALE: float = 3.0
 
-	## Map-wide ambient glow color (subtle blue moonlight tint).
+	## Ambient moonlight color (subtle blue moonlight tint).
+	## DirectionalLight2D covers the entire scene uniformly — no edges.
 	const AMBIENT_COLOR: Color = Color(0.35, 0.45, 0.85, 1.0)
 
-	## Map-wide ambient glow energy (extremely faint — 0.04).
+	## Ambient moonlight energy (extremely faint — 0.04).
 	const AMBIENT_ENERGY: float = 0.04
-
-	## Map-wide ambient glow texture scale (covers entire ~2400x2000 building).
-	const AMBIENT_TEXTURE_SCALE: float = 7.0
 
 	## Window visual color (semi-transparent blue).
 	const WINDOW_COLOR: Color = Color(0.3, 0.4, 0.7, 0.6)
@@ -61,9 +59,6 @@ class MockWindowLightManager:
 	const WALL_RIGHT_X: float = 2464.0
 	const WALL_TOP_Y: float = 64.0
 	const WALL_BOTTOM_Y: float = 2064.0
-
-	## Building center (for map-wide ambient).
-	const BUILDING_CENTER: Vector2 = Vector2(1264, 1064)
 
 	## Minimum distance from enemy positions for window light placement.
 	const MIN_ENEMY_DISTANCE: float = 200.0
@@ -102,14 +97,13 @@ class MockWindowLightManager:
 		return light_data
 
 
-	## Create the single map-wide ambient glow.
+	## Create the scene-wide ambient moonlight (DirectionalLight2D — no edges).
 	func create_map_ambient() -> Dictionary:
 		_map_ambient_created = true
 		return {
-			"position": BUILDING_CENTER,
+			"type": "DirectionalLight2D",
 			"energy": AMBIENT_ENERGY,
 			"color": AMBIENT_COLOR,
-			"texture_scale": AMBIENT_TEXTURE_SCALE,
 			"shadow_enabled": false,
 		}
 
@@ -319,23 +313,24 @@ func test_map_ambient_shadows_disabled() -> void:
 		"Map ambient should have shadows disabled for uniform glow through walls")
 
 
-func test_map_ambient_covers_entire_building() -> void:
+func test_ambient_moonlight_is_directional() -> void:
 	var ambient := manager.create_map_ambient()
 
-	# texture_scale * 256 (half of 512px texture) = radius of the light
-	var light_radius: float = ambient.texture_scale * 256.0
-	# Building half-diagonal from center (1264,1064) to corner (64,64)
-	var half_diag: float = manager.BUILDING_CENTER.distance_to(Vector2(64, 64))
-
-	assert_true(light_radius >= half_diag,
-		"Map ambient radius (%.0f) should cover building half-diagonal (%.0f)" % [light_radius, half_diag])
+	assert_eq(ambient.type, "DirectionalLight2D",
+		"Ambient moonlight should be DirectionalLight2D (covers entire scene, no edges)")
 
 
-func test_map_ambient_positioned_at_building_center() -> void:
+func test_ambient_moonlight_has_no_visible_edges() -> void:
+	# DirectionalLight2D illuminates the entire scene uniformly — it has
+	# no position, no radius, and no boundary where light stops.
+	# This is the key improvement over PointLight2D which always has a
+	# visible circular edge where the gradient texture ends.
 	var ambient := manager.create_map_ambient()
 
-	assert_eq(ambient.position, manager.BUILDING_CENTER,
-		"Map ambient should be positioned at building center")
+	assert_eq(ambient.type, "DirectionalLight2D",
+		"Ambient must be DirectionalLight2D for edge-free coverage")
+	assert_false(ambient.has("texture_scale"),
+		"DirectionalLight2D should not need texture_scale (covers entire scene)")
 
 
 # ============================================================================
@@ -523,8 +518,6 @@ func test_window_light_constant_values() -> void:
 func test_ambient_light_constant_values() -> void:
 	assert_eq(manager.AMBIENT_ENERGY, 0.04,
 		"Ambient energy constant should be 0.04")
-	assert_eq(manager.AMBIENT_TEXTURE_SCALE, 7.0,
-		"Ambient texture scale constant should be 7.0")
 
 
 func test_window_visual_color_is_blue() -> void:
@@ -621,17 +614,17 @@ func test_window_count_is_reasonable() -> void:
 
 
 func test_total_light_nodes_within_limit() -> void:
-	# Total PointLight2D nodes: 11 primary + 1 map ambient = 12 total.
+	# Total lights: 11 primary PointLight2D + 1 DirectionalLight2D ambient.
 	# Godot 2D renderer has a 15-light-per-sprite limit.
 	# Primary lights have shadows and texture_scale=3.0, so only a few overlap
-	# any given sprite. The single map ambient is just 1 additional light.
-	# Worst case near a corner: ~3 primary lights + 1 ambient + 2 player lights
+	# any given sprite. The DirectionalLight2D counts as 1 additional light.
+	# Worst case near a corner: ~3 primary lights + 1 directional + 2 player lights
 	# + 1 muzzle flash = 7, well under 15.
 	var max_overlapping_primaries := 3  # Worst-case corner overlap for primary
-	var map_ambient_count := 1  # Single map-wide ambient
+	var directional_light_count := 1  # Scene-wide DirectionalLight2D
 	var player_lights := 2  # visibility + flashlight
 	var muzzle_flash := 1  # weapon muzzle flash
-	var worst_case := max_overlapping_primaries + map_ambient_count + player_lights + muzzle_flash
+	var worst_case := max_overlapping_primaries + directional_light_count + player_lights + muzzle_flash
 
 	assert_true(worst_case <= 15,
 		"Worst-case overlapping lights (%d) should be under Godot's 15-light-per-sprite limit" % worst_case)

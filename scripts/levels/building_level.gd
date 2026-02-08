@@ -270,9 +270,9 @@ func _setup_realistic_visibility() -> void:
 ## Lighting architecture:
 ## - Each window has ONE primary PointLight2D (low energy, shadows on) for the
 ##   visible moonlight patch near the window.
-## - ONE single map-wide ambient PointLight2D covers the entire building for
-##   extremely faint residual glow. This prevents visible square/circular edges
-##   that per-window ambient lights would create.
+## - ONE DirectionalLight2D provides scene-wide ambient moonlight glow with
+##   NO visible edges. DirectionalLight2D illuminates the entire scene uniformly
+##   (unlike PointLight2D which has a finite circular boundary).
 func _setup_window_lights() -> void:
 	var environment := get_node_or_null("Environment")
 	if environment == null:
@@ -307,12 +307,12 @@ func _setup_window_lights() -> void:
 	_create_window_light(windows_node, Vector2(700, 2064), "bottom")
 	_create_window_light(windows_node, Vector2(1100, 2064), "bottom")
 
-	# Single map-wide ambient glow covering the entire building.
-	# Positioned at the center of the building (1264, 1064) with a texture scale
-	# large enough to cover the full ~2400x2000 map. Energy is extremely low (0.04)
-	# so it only provides barely-visible wall outlines without washing out the scene
-	# or hiding weapon muzzle flashes.
-	_create_map_ambient_light(windows_node)
+	# Scene-wide ambient moonlight using DirectionalLight2D.
+	# DirectionalLight2D illuminates the entire scene uniformly with NO visible
+	# edges (unlike PointLight2D which has a finite circular boundary).
+	# Energy is extremely low (0.04) so it only provides barely-visible wall
+	# outlines without washing out the scene or hiding weapon muzzle flashes.
+	_create_ambient_moonlight(windows_node)
 
 	print("[BuildingLevel] Window lights placed in corridors without enemies (Issue #593)")
 
@@ -321,7 +321,7 @@ func _setup_window_lights() -> void:
 ## Creates ONE PointLight2D with shadows enabled — the visible moonlight patch
 ## near the window. Shadows from interior walls give the light a natural shape
 ## that respects the building's geometry.
-## The map-wide ambient glow is handled separately by _create_map_ambient_light().
+## The scene-wide ambient glow is handled separately by _create_ambient_moonlight().
 ## @param parent: Parent node to add the window to.
 ## @param pos: Position of the window on the wall.
 ## @param wall_side: Which wall the window is on ("top", "bottom", "left", "right").
@@ -405,46 +405,19 @@ func _create_window_light_texture() -> GradientTexture2D:
 	return texture
 
 
-## Create a single map-wide ambient light centered on the building.
-## This replaces per-window ambient lights to avoid visible square/circular edges.
-## The light covers the entire ~2400x2000 building with extremely faint blue glow
-## so corridor walls are barely visible even far from windows.
+## Create a scene-wide ambient moonlight using DirectionalLight2D.
+## DirectionalLight2D illuminates the entire scene uniformly — unlike PointLight2D,
+## it has no position, no radius, and NO visible edges. This is the correct node
+## for simulating moonlight (parallel rays from a distant source).
+## Shadows are disabled so the ambient glow passes through all walls uniformly.
 ## @param parent: Parent node to add the ambient light to.
-func _create_map_ambient_light(parent: Node2D) -> void:
-	var ambient := PointLight2D.new()
-	ambient.name = "MapAmbientGlow"
-	# Center of the building floor area (64..2464 x, 64..2064 y)
-	ambient.position = Vector2(1264, 1064)
+func _create_ambient_moonlight(parent: Node2D) -> void:
+	var ambient := DirectionalLight2D.new()
+	ambient.name = "AmbientMoonlight"
 	ambient.color = Color(0.35, 0.45, 0.85, 1.0)  # Subtle blue moonlight tint
 	ambient.energy = 0.04  # Extremely faint — just enough for wall outlines
 	ambient.shadow_enabled = false  # Must pass through all walls for uniform glow
-	ambient.texture = _create_map_ambient_texture()
-	# The building is ~2400x2000. Texture is 512px, so scale must cover half-diagonal.
-	# Half-diagonal ≈ sqrt(1200² + 1000²) ≈ 1562px. Scale = 1562/256 ≈ 6.1.
-	# Use 7.0 for comfortable margin so the edge is well outside the building.
-	ambient.texture_scale = 7.0
 	parent.add_child(ambient)
-
-
-## Create a very soft radial gradient texture for the map-wide ambient glow.
-## Uses a nearly flat center that very gradually fades toward edges, so the
-## glow appears uniform across the building with no visible boundary.
-func _create_map_ambient_texture() -> GradientTexture2D:
-	var gradient := Gradient.new()
-	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
-	gradient.add_point(0.4, Color(0.9, 0.9, 0.9, 1.0))
-	gradient.add_point(0.7, Color(0.6, 0.6, 0.6, 1.0))
-	gradient.add_point(0.9, Color(0.15, 0.15, 0.15, 1.0))
-	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
-
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 512
-	texture.height = 512
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(0.5, 0.0)
-	return texture
 
 
 func _process(_delta: float) -> void:
