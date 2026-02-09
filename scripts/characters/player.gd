@@ -3085,8 +3085,8 @@ var _invisibility_suit_equipped: bool = false
 ## Reference to the invisibility suit effect node.
 var _invisibility_suit: Node = null
 
-## Reference to the invisibility HUD overlay.
-var _invisibility_hud: CanvasLayer = null
+## Reference to the invisibility charge bar (Node2D above player).
+var _invisibility_hud: Node2D = null
 
 ## Signal emitted when invisibility state changes (for HUD).
 signal invisibility_changed(is_active: bool, charges: int, max_charges: int)

@@ -9,10 +9,10 @@ shader_type canvas_item;
 uniform float mix_amount : hint_range(0.0, 1.0) = 0.0;
 
 // Pixel offset distance for the chromatic distortion ripple.
-uniform float distortion_strength : hint_range(0.0, 32.0) = 12.0;
+uniform float distortion_strength : hint_range(0.0, 64.0) = 28.0;
 
 // Speed multiplier for the ripple animation.
-uniform float ripple_speed : hint_range(0.1, 5.0) = 1.5;
+uniform float ripple_speed : hint_range(0.1, 8.0) = 2.5;
 
 // Screen texture sampler for reading the rendered scene behind the sprite.
 // Use filter_nearest and textureLod for gl_compatibility mode support.
@@ -51,6 +51,11 @@ void fragment() {
 	float bg_b = textureLod(screen_texture, SCREEN_UV + offset_b, 0.0).b;
 
 	vec4 cloaked_color = vec4(bg_r, bg_g, bg_b, sprite_color.a);
+
+	// Add a pulsing shimmer tint that makes the ripple more visually obvious
+	float pulse = 0.5 + 0.5 * sin(t * 3.0 + UV.y * 12.0);
+	vec3 shimmer_tint = vec3(0.3, 0.6, 1.0) * pulse * 0.15 * mix_amount;
+	cloaked_color.rgb += shimmer_tint;
 
 	// Mix between original sprite and cloaked version
 	COLOR = mix(sprite_color, cloaked_color, mix_amount);

@@ -212,6 +212,12 @@ func _apply_shader_to_player() -> void:
 	# Apply shader to all CanvasItem children of PlayerModel (Body, Head, Arms, WeaponMount children)
 	_apply_shader_recursive(player_model)
 
+	# Also apply shader to the weapon node (direct child of Player, not under PlayerModel)
+	# In the C# scene, weapons like MakarovPM are siblings of PlayerModel
+	var weapon = _player.get("CurrentWeapon")
+	if weapon != null and weapon is CanvasItem:
+		_apply_shader_recursive_include_self(weapon)
+
 	FileLogger.info("[InvisibilitySuit] Shader applied to %d sprites" % _affected_sprites.size())
 
 
@@ -219,22 +225,36 @@ func _apply_shader_to_player() -> void:
 func _apply_shader_recursive(node: Node) -> void:
 	for child in node.get_children():
 		if child is CanvasItem:
-			var canvas_item: CanvasItem = child as CanvasItem
-			var key: String = str(canvas_item.get_instance_id())
-
-			# Save original material
-			_original_materials[key] = canvas_item.material
-
-			# Create a unique ShaderMaterial copy for each sprite
-			# so they can be individually controlled if needed
-			var mat := ShaderMaterial.new()
-			mat.shader = _shader
-			mat.set_shader_parameter("mix_amount", _current_mix)
-			canvas_item.material = mat
-			_affected_sprites.append(canvas_item)
+			_apply_shader_to_canvas_item(child as CanvasItem)
 
 		# Recurse into children (e.g., WeaponMount -> weapon sprites)
 		_apply_shader_recursive(child)
+
+
+## Apply shader recursively including the node itself (for weapon root nodes).
+func _apply_shader_recursive_include_self(node: Node) -> void:
+	if node is CanvasItem:
+		_apply_shader_to_canvas_item(node as CanvasItem)
+	_apply_shader_recursive(node)
+
+
+## Apply the cloak shader to a single CanvasItem, saving the original material.
+func _apply_shader_to_canvas_item(canvas_item: CanvasItem) -> void:
+	var key: String = str(canvas_item.get_instance_id())
+
+	# Skip if already affected
+	if _original_materials.has(key):
+		return
+
+	# Save original material
+	_original_materials[key] = canvas_item.material
+
+	# Create a unique ShaderMaterial copy for each sprite
+	var mat := ShaderMaterial.new()
+	mat.shader = _shader
+	mat.set_shader_parameter("mix_amount", _current_mix)
+	canvas_item.material = mat
+	_affected_sprites.append(canvas_item)
 
 
 ## Remove the invisibility shader from all affected sprites, restoring originals.

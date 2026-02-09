@@ -4656,16 +4656,16 @@ public partial class Player : BaseCharacter
         int charges = (int)_invisibilitySuitEffect.Call("get_charges");
         LogToFile($"[Player.InvisibilitySuit] Invisibility suit equipped, charges: {charges}");
 
-        // Load and instantiate the GDScript HUD overlay
+        // Load and instantiate the GDScript charge bar (Node2D positioned above player)
         var hudScript = GD.Load<Script>("res://scripts/ui/invisibility_hud.gd");
         if (hudScript != null)
         {
-            _invisibilityHud = new CanvasLayer();
+            _invisibilityHud = new Node2D();
             _invisibilityHud.SetScript(hudScript);
             _invisibilityHud.Name = "InvisibilityHUD";
             AddChild(_invisibilityHud);
             _invisibilityHud.Call("initialize", _invisibilitySuitEffect);
-            LogToFile("[Player.InvisibilitySuit] HUD overlay created");
+            LogToFile("[Player.InvisibilitySuit] Charge bar created");
         }
         else
         {
