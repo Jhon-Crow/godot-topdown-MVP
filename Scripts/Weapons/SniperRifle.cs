@@ -830,11 +830,8 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Finds the nearest alive enemy that is close to the player's aim line.
-    /// Uses perpendicular distance from the aim ray to find the best homing target.
-    /// The enemy must be within 110 degrees of the aim direction and within
-    /// a reasonable perpendicular distance (max 500px from the aim line).
-    /// Returns Vector2.Zero if no suitable target is found. (Issue #704)
+    /// Finds the nearest alive enemy that is close to the player's aim line (Issue #704).
+    /// Delegates to <see cref="HomingUtils.FindEnemyNearestToAimLine"/>.
     /// </summary>
     private Vector2 FindNearestEnemyNearAimLine(Vector2 origin, Vector2 aimDirection)
     {
@@ -850,60 +847,7 @@ public partial class SniperRifle : BaseWeapon
             return Vector2.Zero;
         }
 
-        var bestTarget = Vector2.Zero;
-        float bestScore = float.PositiveInfinity;
-        float maxPerpDistance = 500.0f; // Max perpendicular distance from aim line
-        float maxAngle = Mathf.DegToRad(110.0f); // Max angle from aim direction
-
-        foreach (var enemy in enemies)
-        {
-            if (enemy is not Node2D enemyNode)
-            {
-                continue;
-            }
-
-            // Skip dead enemies
-            if (enemyNode.HasMethod("is_alive"))
-            {
-                bool alive = (bool)enemyNode.Call("is_alive");
-                if (!alive)
-                {
-                    continue;
-                }
-            }
-
-            Vector2 toEnemy = enemyNode.GlobalPosition - origin;
-            float distToEnemy = toEnemy.Length();
-            if (distToEnemy < 1.0f)
-            {
-                continue; // Too close, skip
-            }
-
-            // Check angle from aim direction
-            float angle = Mathf.Abs(aimDirection.AngleTo(toEnemy.Normalized()));
-            if (angle > maxAngle)
-            {
-                continue; // Too far off from aim direction
-            }
-
-            // Calculate perpendicular distance from the aim line
-            // perpDist = |toEnemy × aimDirection| (cross product magnitude in 2D)
-            float perpDist = Mathf.Abs(toEnemy.X * aimDirection.Y - toEnemy.Y * aimDirection.X);
-            if (perpDist > maxPerpDistance)
-            {
-                continue; // Too far from aim line
-            }
-
-            // Score: prioritize enemies closer to the aim line, with distance as tiebreaker
-            float score = perpDist + distToEnemy * 0.1f;
-            if (score < bestScore)
-            {
-                bestScore = score;
-                bestTarget = enemyNode.GlobalPosition;
-            }
-        }
-
-        return bestTarget;
+        return HomingUtils.FindEnemyNearestToAimLine(enemies, origin, aimDirection);
     }
 
     /// <summary>

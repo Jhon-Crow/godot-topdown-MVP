@@ -457,59 +457,12 @@ public partial class ShotgunPellet : Area2D
 
     /// <summary>
     /// Finds the enemy closest to the player's aim line (Issue #704).
-    /// Uses perpendicular distance from the aim ray to score enemies.
-    /// Only considers enemies within 110 degrees of the aim direction.
+    /// Delegates to <see cref="HomingUtils.FindEnemyNearestToAimLine"/>.
     /// </summary>
     private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
     {
-        var bestTarget = Vector2.Zero;
-        float bestScore = float.PositiveInfinity;
-        float maxPerpDistance = 500.0f;
-        float maxAngle = _homingMaxTurnAngle;
-
-        foreach (var enemy in enemies)
-        {
-            if (enemy is not Node2D enemyNode)
-            {
-                continue;
-            }
-            if (enemyNode.HasMethod("is_alive"))
-            {
-                bool alive = (bool)enemyNode.Call("is_alive");
-                if (!alive)
-                {
-                    continue;
-                }
-            }
-
-            Vector2 toEnemy = enemyNode.GlobalPosition - _shooterOrigin;
-            float distToEnemy = toEnemy.Length();
-            if (distToEnemy < 1.0f)
-            {
-                continue;
-            }
-
-            float angle = Mathf.Abs(_shooterAimDirection.AngleTo(toEnemy.Normalized()));
-            if (angle > maxAngle)
-            {
-                continue;
-            }
-
-            float perpDist = Mathf.Abs(toEnemy.X * _shooterAimDirection.Y - toEnemy.Y * _shooterAimDirection.X);
-            if (perpDist > maxPerpDistance)
-            {
-                continue;
-            }
-
-            float score = perpDist + distToEnemy * 0.1f;
-            if (score < bestScore)
-            {
-                bestScore = score;
-                bestTarget = enemyNode.GlobalPosition;
-            }
-        }
-
-        return bestTarget;
+        return HomingUtils.FindEnemyNearestToAimLine(
+            enemies, _shooterOrigin, _shooterAimDirection, _homingMaxTurnAngle);
     }
 
     /// <summary>
