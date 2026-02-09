@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Components;
 using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
@@ -272,6 +273,48 @@ public partial class Revolver : BaseWeapon
         _currentChamberIndex = 0;
 
         GD.Print($"[Revolver] RSh-12 initialized - heavy revolver ready, cylinder capacity={cylinderCapacity}");
+
+        // Issue #691: Setup cylinder HUD using CallDeferred so the scene tree is fully ready
+        CallDeferred(MethodName.SetupCylinderHUD);
+    }
+
+    /// <summary>
+    /// Reference to the cylinder HUD display (Issue #691).
+    /// Created by the revolver itself to ensure it works regardless of level init path.
+    /// </summary>
+    private RevolverCylinderUI? _cylinderUI;
+
+    /// <summary>
+    /// Creates and attaches the cylinder HUD display to the level UI (Issue #691).
+    /// Called via CallDeferred from _Ready() to ensure the scene tree is fully initialized.
+    /// The HUD is added to CanvasLayer/UI in the level root, positioned below the ammo label.
+    /// </summary>
+    private void SetupCylinderHUD()
+    {
+        // Find the level root (grandparent: Revolver → Player → LevelRoot)
+        var player = GetParent();
+        if (player == null) return;
+        var levelRoot = player.GetParent();
+        if (levelRoot == null) return;
+
+        var ui = levelRoot.GetNodeOrNull("CanvasLayer/UI");
+        if (ui == null) return;
+
+        // Don't create duplicate HUD if one already exists (e.g. from LevelInitFallback)
+        if (ui.GetNodeOrNull("RevolverCylinderUI") != null) return;
+
+        _cylinderUI = new RevolverCylinderUI();
+        _cylinderUI.Name = "RevolverCylinderUI";
+        _cylinderUI.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _cylinderUI.OffsetLeft = 10;
+        _cylinderUI.OffsetTop = 30;
+        _cylinderUI.OffsetRight = 200;
+        _cylinderUI.OffsetBottom = 62;
+        ui.AddChild(_cylinderUI);
+
+        _cylinderUI.ConnectToRevolver(this);
+
+        GD.Print("[Revolver] Cylinder HUD created and connected (Issue #691)");
     }
 
     public override void _Process(double delta)
@@ -1250,4 +1293,16 @@ public partial class Revolver : BaseWeapon
     }
 
     #endregion
+
+    public override void _ExitTree()
+    {
+        // Clean up cylinder HUD when revolver is removed (Issue #691)
+        if (_cylinderUI != null && IsInstanceValid(_cylinderUI))
+        {
+            _cylinderUI.DisconnectFromRevolver();
+            _cylinderUI.QueueFree();
+            _cylinderUI = null;
+        }
+        base._ExitTree();
+    }
 }
