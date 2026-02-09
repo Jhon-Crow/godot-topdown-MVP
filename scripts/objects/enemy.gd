@@ -71,24 +71,13 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var magazine_size: int = 30  ## Bullets per magazine.
 @export var total_magazines: int = 5  ## Number of magazines carried.
 
-## Ammunition system - time to reload in seconds.
-@export var reload_time: float = 3.0
-
-## Delay between spotting player and shooting (gives reaction time).
-@export var detection_delay: float = 0.2
-## Min visibility time before enabling lead prediction.
-@export var lead_prediction_delay: float = 0.3
-## Min visibility ratio (0-1) for lead prediction (prevents pre-firing at cover edges).
-@export var lead_prediction_visibility_threshold: float = 0.6
-
-## Walking animation speed multiplier - higher = faster leg cycle.
-@export var walk_anim_speed: float = 12.0
-
-## Walking animation intensity - higher = more pronounced movement.
-@export var walk_anim_intensity: float = 1.0
-
-## Scale multiplier for enemy model (1.3 matches player size).
-@export var enemy_model_scale: float = 1.3
+@export var reload_time: float = 3.0  ## Time to reload in seconds.
+@export var detection_delay: float = 0.2  ## Delay between spotting player and shooting (reaction time).
+@export var lead_prediction_delay: float = 0.3  ## Min visibility time before enabling lead prediction.
+@export var lead_prediction_visibility_threshold: float = 0.6  ## Min visibility ratio for lead prediction.
+@export var walk_anim_speed: float = 12.0  ## Walking animation speed multiplier.
+@export var walk_anim_intensity: float = 1.0  ## Walking animation intensity.
+@export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 # Grenade System Configuration (Issue #363, #375)
@@ -376,6 +365,8 @@ var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
+var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
+var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -936,8 +927,9 @@ func _update_enemy_model_rotation() -> void:
 	var target_angle: float
 	var has_target := false
 	var rotation_reason := ""  # Issue #397 debug: track which priority was used
-	# Priority 1: Face player if visible
-	if _player != null and _can_see_player:
+	if _is_facing_for_grenade_throw and _grenade_throw_facing_direction != Vector2.ZERO:  # P0: Issue #712
+		target_angle = _grenade_throw_facing_direction.angle(); has_target = true; rotation_reason = "P0:grenade_throw"
+	elif _player != null and _can_see_player:  # P1: Face player if visible
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P1:visible"
@@ -4840,6 +4832,8 @@ func _setup_grenade_component() -> void:
 	_grenade_component.throw_delay = grenade_throw_delay; _grenade_component.min_throw_distance = grenade_min_throw_distance
 	_grenade_component.debug_logging = grenade_debug_logging; _grenade_component.safety_margin = grenade_safety_margin
 	add_child(_grenade_component); _grenade_component.initialize()
+	_grenade_component.face_throw_direction.connect(_on_grenade_face_throw_direction)  # Issue #712: pre-throw rotation
+	_grenade_component.grenade_thrown.connect(_on_grenade_component_thrown)  # Issue #712: clear facing after throw
 	if is_grenadier:  # Connect grenadier signals + vest visual (Issue #604)
 		var gc := _grenade_component as GrenadierGrenadeComponent
 		gc.grenade_incoming.connect(_on_grenadier_grenade_incoming); gc.grenade_exploded_safe.connect(_on_grenadier_grenade_exploded)
@@ -4857,6 +4851,14 @@ func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_vulnerable_sound(position, _can_see_player)
+
+## Issue #712: Grenade throw facing - set direction before throw, clear after throw completes.
+func _on_grenade_face_throw_direction(target_direction: Vector2) -> void:
+	if target_direction == Vector2.ZERO: return
+	_grenade_throw_facing_direction = target_direction; _is_facing_for_grenade_throw = true
+
+func _on_grenade_component_thrown(_grenade: Node, _target_position: Vector2) -> void:
+	_grenade_throw_facing_direction = Vector2.ZERO; _is_facing_for_grenade_throw = false
 
 ## Called when ally dies. Handles grenade awareness (#407) and death observation (#409).
 func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction: Vector2 = Vector2.ZERO) -> void:
