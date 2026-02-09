@@ -126,8 +126,40 @@ Key findings:
 
 **Fix:** Inlined the sniper combat and cover state logic directly into `enemy.gd`'s `_process_sniper_combat_state()` and `_process_sniper_in_cover_state()` methods, replacing `enemy.call()` with direct method calls (`_transition_to_seeking_cover()`, `_log_to_file()`, `_shoot()`, `_aim_at_player()`). Also improved the combat flow: snipers now shoot at visible player BEFORE seeking cover (shoot-then-cover pattern) instead of immediately fleeing without firing.
 
+### Bug 6: Sniper in IN_COVER But Not Hidden From Player (Round 3)
+
+**Root cause:** When `_find_cover_position()` couldn't find valid cover, the sniper fell back to `_cover_position = global_position` (stayed at spawn position) and immediately entered IN_COVER — while fully visible to the player.
+
+**Evidence from game log (game_log_20260209_015858.txt):**
+Multiple `GUNSHOT` sound events from sniper positions but zero `HITSCAN HIT` entries. Snipers at map edges (e.g., `(5600, 400)` and `(5600, 4700)`) had muzzles behind wall geometry.
+
+**Fix:** Snipers without available cover now stay in COMBAT and fight from their position. Added visibility validation to IN_COVER: if the player can see the sniper, it returns to COMBAT immediately.
+
+### Bug 7: Shells Fly But No Smoke Trail and No Damage (Round 3)
+
+**Root cause:** The sniper's muzzle position (52px offset from weapon sprite) was behind a wall when the sniper was near the map edge. Since `hit_from_inside = true`, the hitscan ray immediately collided with the adjacent wall, consuming wall penetrations. The resulting tracer was nearly invisible (short line within a wall), and the ray never reached the player.
+
+**Fix:** Added muzzle-wall check before hitscan. If a wall exists between the enemy center and muzzle, the hitscan starts from the enemy center instead and pre-excludes that wall. Also added `HITSCAN MISS` diagnostic logging.
+
+### Bug 8: Sniper Damage, Cover-Seeking, Bolt Cycling & Hitscan Mask (Round 4)
+
+**Root cause:** Analysis of game log `game_log_20260209_025805.txt` revealed 5 interconnected failures:
+
+1. **`_shoot()` returned `void`** — `_shoot_timer = 0.0` always executed even when shot failed silently (aim check, friendly fire block). Changed to `_shoot() -> bool` — callers only reset timer on `true`.
+2. **Hitscan collision mask was `7`** (layers 1+2+3), hitting friendly enemy bodies (layer 2) which consumed the ray. Changed to `5` (layers 1+3 — player + walls only).
+3. **`hit_from_inside = true`** caused immediate wall self-collision when muzzle was near a wall. Changed to `false`.
+4. **Cover-seeking only happened after shooting** — Now snipers seek cover FIRST if player is within 1 viewport distance, before attempting to shoot.
+5. **`_sniper_bolt_ready` check was missing** from sniper combat/cover state shoot conditions. Added bolt-ready gate to all shoot paths.
+6. **Friendly fire check blocked shots** — `_should_shoot_at_target()` called `_is_firing_line_clear_of_friendlies()` for snipers, which blocked most shots. Snipers now skip this check (hitscan penetrates through enemies).
+
+**Evidence from game log:** Correlated "SNIPER: shooting" events with GUNSHOT propagation — detected multiple silent failures where shots fired but produced no damage.
+
+**Fix:** Comprehensive `_shoot() -> bool` pattern, hitscan mask 5, `hit_from_inside=false`, cover-first logic, bolt-ready gates, skip friendly check for snipers. Damage delivery simplified to `on_hit_with_bullet_info(dir, null, false, false, 50.0)` on target (Area2D colliders resolve to parent).
+
 ## Data Files
 
 - `game_log_20260208_183844.txt` - Original game log from issue report (5541 lines)
 - `game_log_20260208_193854.txt` - Second game log showing City map missing (1704 lines)
 - `game_log_20260209_005606.txt` - Third game log showing snipers stuck in COMBAT (2870 lines)
+- `game_log_20260209_015858.txt` - Fourth game log showing fake cover and hitscan missing through walls
+- `game_log_20260209_025805.txt` - Fifth game log showing damage, cover, bolt cycling, and hitscan mask failures
