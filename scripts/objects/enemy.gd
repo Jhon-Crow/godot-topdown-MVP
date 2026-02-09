@@ -334,6 +334,7 @@ var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
+var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -391,6 +392,7 @@ func _ready() -> void:
 	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
+	_setup_aggression_component()  # Issue #675
 	_setup_machete_component()  # Issue #579
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -1162,6 +1164,9 @@ func _process_ai_state(delta: float) -> void:
 		_log_to_file("GRENADE DANGER: Entering EVADING_GRENADE state from %s" % AIState.keys()[_current_state])
 		_transition_to_evading_grenade()
 		return
+
+	if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
+		_aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
@@ -3825,22 +3830,12 @@ func _aim_at_player() -> void:
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
-	if bullet_scene == null or _player == null:
-		return
-
-	# Check if we can shoot (have ammo and not reloading)
-	if not _can_shoot():
-		return
-
-	var target_position := _player.global_position
-
-	# Apply lead prediction if enabled
-	if enable_lead_prediction:
-		target_position = _calculate_lead_prediction()
-
-	# Check if the shot should be taken (friendly fire and cover checks)
-	if not _should_shoot_at_target(target_position):
-		return
+	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
+	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
+	if not _can_shoot(): return
+	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
+	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
+	if not _agg and not _should_shoot_at_target(target_position): return
 
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -4185,6 +4180,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
+		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4519,6 +4515,7 @@ func _update_debug_label() -> void:
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
+	if _aggression: t += _aggression.get_debug_text()
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4810,10 +4807,13 @@ func set_blinded(blinded: bool) -> void:
 
 func set_stunned(stunned: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_stunned(stunned)
-
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
-
+func _setup_aggression_component() -> void:  ## [Issue #675]
+	_aggression = AggressionComponent.new(); _aggression.name = "AggressionComponent"; add_child(_aggression)
+	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
+func set_aggressive(a: bool) -> void: if _aggression: _aggression.set_aggressive(a)
+func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggressive()
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)

@@ -3118,6 +3118,10 @@ public partial class Player : BaseCharacter
         {
             grenadeType = GrenadeTimer.GrenadeType.Frag;
         }
+        else if (scenePath.Contains("Aggression", StringComparison.OrdinalIgnoreCase))
+        {
+            grenadeType = GrenadeTimer.GrenadeType.AggressionGas;
+        }
 
         // Create and configure the GrenadeTimer component
         var timer = new GrenadeTimer();
