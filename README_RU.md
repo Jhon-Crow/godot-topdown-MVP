@@ -884,7 +884,8 @@ func _on_body_entered(body: Node2D) -> void:
 1. Если предмет имеет ограниченные заряды — показывать сегментированный прогрессбар с количеством делений = количество зарядов.
 2. Если предмет имеет ограниченное время — показывать непрерывный прогрессбар.
 3. Во время активного использования (работает таймер предмета) — постоянно отображать прогрессбар.
-4. Если предмет с ограниченными зарядами (дискретные активации) — прогрессбар всегда виден пока предмет экипирован.
+4. Прогрессбар отображается при активации предмета и исчезает через 300ms (если это предмет с количеством зарядов, а не секундами).
+5. Когда предмет деактивируется — прогрессбар так же должен скрываться.
 
 #### Использование компонента (GDScript)
 
@@ -906,18 +907,28 @@ _hide_active_item_bar()
 
 #### Использование в C# (Player.cs)
 
-Для C# версии игрока прогрессбар рисуется через `_Draw()`:
+Для C# версии игрока прогрессбар рисуется через `_Draw()`. Бар отображается только при активации и скрывается через 300ms для предметов с зарядами:
 
 ```csharp
 // В _Draw():
-if (_teleportBracersEquipped)
+// Показывать при активации (300ms) или пока идёт прицеливание
+if (_teleportBracersEquipped && (_showChargeBar || _teleportAiming))
 {
     DrawTeleportChargeBar();
 }
+
+// Для предметов с таймером — непрерывный бар во время активного эффекта
+if (_homingBulletsEquipped && (_homingActive || _showHomingChargeBar))
+{
+    if (_homingActive)
+        DrawHomingTimerBar();   // Непрерывный бар во время действия
+    else
+        DrawHomingChargeBar();  // Сегментированный бар зарядов (300ms)
+}
 ```
 
-Метод `DrawTeleportChargeBar()` рисует сегментированную полоску зарядов над игроком. Цвет меняется в зависимости от оставшихся зарядов:
-- **Зелёный** — больше 50% зарядов
+Методы рисования (`DrawTeleportChargeBar()`, `DrawHomingChargeBar()`, `DrawHomingTimerBar()`) рисуют полоску над игроком. Цвет меняется в зависимости от оставшихся зарядов/времени:
+- **Зелёный** — больше 50%
 - **Жёлтый** — от 25% до 50%
 - **Красный** — менее 25%
 
@@ -925,15 +936,22 @@ if (_teleportBracersEquipped)
 
 1. Добавьте тип в `ActiveItemType` enum в `active_item_manager.gd`
 2. Добавьте данные предмета в `ACTIVE_ITEM_DATA`
-3. В скрипте игрока инициализируйте прогрессбар при экипировке:
+3. В скрипте игрока инициализируйте и показывайте прогрессбар при активации (не при экипировке):
    ```gdscript
-   func _init_my_item() -> void:
-       # ... логика инициализации ...
-       _show_active_item_charge_bar(max_charges, max_charges)
-
    func _use_item_charge() -> void:
        current_charges -= 1
-       _update_active_item_bar(float(current_charges))
+       # Показать сегментированный бар при активации
+       _show_active_item_charge_bar(current_charges, max_charges)
+       # Бар автоматически скроется через 300ms (CHARGE_BAR_HIDE_DELAY)
+       _charge_bar_hide_pending = true
+       _charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+   # Для предметов с таймером — показывать непрерывный бар во время активного эффекта:
+   func _on_timer_active(time_remaining: float, max_time: float) -> void:
+       _show_active_item_timer_bar(time_remaining, max_time)
+
+   func _on_timer_expired() -> void:
+       _hide_active_item_bar()
    ```
 4. Напишите тесты в `tests/unit/`
 

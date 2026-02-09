@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
+using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -660,10 +661,97 @@ public partial class Player : BaseCharacter
     private const float PlayerCollisionRadius = 16.0f;
 
     /// <summary>
+    /// Whether the charge bar is currently visible (shown on activation, hidden after 300ms).
+    /// </summary>
+    private bool _showChargeBar = false;
+
+    /// <summary>
+    /// Timer for auto-hiding the charge bar after activation (300ms).
+    /// </summary>
+    private float _chargeBarHideTimer = 0.0f;
+
+    /// <summary>
+    /// Duration to show charge bar after activation before auto-hiding (in seconds).
+    /// </summary>
+    private const float ChargeBarHideDelay = 0.3f;
+
+    /// <summary>
     /// Signal emitted when teleport charges change.
     /// </summary>
     [Signal]
     public delegate void TeleportChargesChangedEventHandler(int current, int maximum);
+
+    #endregion
+
+    #region Homing Bullets System (Issue #677)
+
+    /// <summary>
+    /// Whether homing bullets are equipped (active item selected in armory).
+    /// </summary>
+    private bool _homingBulletsEquipped = false;
+
+    /// <summary>
+    /// Whether the homing effect is currently active (bullets steer toward enemies).
+    /// </summary>
+    private bool _homingActive = false;
+
+    /// <summary>
+    /// Remaining homing charges (6 per battle).
+    /// </summary>
+    private int _homingCharges = 6;
+
+    /// <summary>
+    /// Maximum homing charges per battle.
+    /// </summary>
+    private const int MaxHomingCharges = 6;
+
+    /// <summary>
+    /// Duration of homing effect per activation in seconds.
+    /// </summary>
+    private const float HomingDuration = 1.0f;
+
+    /// <summary>
+    /// Timer tracking remaining homing effect duration.
+    /// </summary>
+    private float _homingTimer = 0.0f;
+
+    /// <summary>
+    /// Path to the homing bullets activation sound.
+    /// </summary>
+    private const string HomingSoundPath = "res://assets/audio/homing_activation.wav";
+
+    /// <summary>
+    /// AudioStreamPlayer for homing activation sound.
+    /// </summary>
+    private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// Whether the homing charge bar is currently visible (shown on activation, hidden after 300ms).
+    /// </summary>
+    private bool _showHomingChargeBar = false;
+
+    /// <summary>
+    /// Timer for auto-hiding the homing charge bar after activation (300ms).
+    /// </summary>
+    private float _homingChargeBarHideTimer = 0.0f;
+
+    /// <summary>
+    /// Signal emitted when homing charges change.
+    /// </summary>
+    [Signal]
+    public delegate void HomingChargesChangedEventHandler(int current, int maximum);
+
+    /// <summary>
+    /// Signal emitted when homing effect activates.
+    /// </summary>
+    [Signal]
+    public delegate void HomingActivatedEventHandler();
+
+    /// <summary>
+    /// Signal emitted when homing effect deactivates.
+    /// </summary>
+    [Signal]
+    public delegate void HomingDeactivatedEventHandler();
 
     #endregion
 
@@ -812,11 +900,15 @@ public partial class Player : BaseCharacter
         // Auto-equip weapon if not set but a weapon child exists
         if (CurrentWeapon == null)
         {
-            // Try MakarovPM first (default starting weapon), then AssaultRifle for backward compatibility
+            // Try MakarovPM first (default starting weapon), then AssaultRifle, then AKGL for backward compatibility
             CurrentWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
             if (CurrentWeapon == null)
             {
                 CurrentWeapon = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+            }
+            if (CurrentWeapon == null)
+            {
+                CurrentWeapon = GetNodeOrNull<BaseWeapon>("AKGL");
             }
             if (CurrentWeapon != null)
             {
@@ -911,6 +1003,9 @@ public partial class Player : BaseCharacter
 
         // Initialize teleport bracers if active item manager has them selected (Issue #672)
         InitTeleportBracers();
+
+        // Initialize homing bullets if active item manager has them selected (Issue #677)
+        InitHomingBullets();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1132,9 +1227,13 @@ public partial class Player : BaseCharacter
         // This takes priority over grenade input since the sniper uses RMB for scoping
         bool sniperScopeConsumedInput = HandleSniperScopeInput();
 
+        // Handle AKGL grenade launcher input (RMB) when AKGL is equipped
+        // This takes priority over grenade input since the underbarrel uses RMB for firing
+        bool akglGrenadeLauncherConsumedInput = HandleAKGLGrenadeLauncherInput();
+
         // Handle grenade input first (so it can consume shoot input)
-        // Skip if sniper scope already consumed the RMB input
-        if (!sniperScopeConsumedInput)
+        // Skip if sniper scope or AKGL grenade launcher already consumed the RMB input
+        if (!sniperScopeConsumedInput && !akglGrenadeLauncherConsumedInput)
         {
             HandleGrenadeInput();
         }
@@ -1187,6 +1286,12 @@ public partial class Player : BaseCharacter
 
         // Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #672)
         HandleTeleportBracersInput();
+
+        // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
+        HandleHomingBulletsInput((float)delta);
+
+        // Update charge bar hide timer (auto-hide after 300ms) (Issue #700)
+        UpdateChargeBarTimer((float)delta);
     }
 
     /// <summary>
@@ -1426,8 +1531,9 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
+        // Check in order of specificity: SniperRifle, AKGL, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
         var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
+        var akgl = GetNodeOrNull<BaseWeapon>("AKGL");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
@@ -1438,6 +1544,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Sniper;
             LogToFile("[Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)");
+        }
+        else if (akgl != null)
+        {
+            detectedType = WeaponType.Rifle;
+            LogToFile("[Player] Detected weapon: AK + GL (Rifle pose)");
         }
         else if (miniUzi != null)
         {
@@ -2049,6 +2160,19 @@ public partial class Player : BaseCharacter
 
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Enable homing on the bullet if homing effect is active (Issue #677)
+        if (_homingActive)
+        {
+            if (bullet is CSharpBullet csBullet)
+            {
+                csBullet.EnableHoming();
+            }
+            else if (bullet.HasMethod("enable_homing"))
+            {
+                bullet.Call("enable_homing");
+            }
+        }
     }
 
     /// <summary>
@@ -2287,6 +2411,10 @@ public partial class Player : BaseCharacter
                 scenePath = "res://scenes/weapons/csharp/MakarovPM.tscn";
                 weaponNodeName = "MakarovPM";
                 break;
+            case "ak_gl":
+                scenePath = "res://scenes/weapons/csharp/AKGL.tscn";
+                weaponNodeName = "AKGL";
+                break;
             default:
                 LogToFile($"[Player.Weapon] Unknown weapon ID '{selectedWeaponId}', keeping default");
                 return;
@@ -2399,6 +2527,50 @@ public partial class Player : BaseCharacter
         {
             sniperRifle.AdjustScopeFineTune(mouseMotion.Relative);
         }
+    }
+
+    #endregion
+
+    #region AKGL Grenade Launcher System
+
+    /// <summary>
+    /// Handles AKGL underbarrel grenade launcher input when the AKGL is equipped.
+    /// RMB fires the grenade launcher (single shot, no reload).
+    /// Returns true if the AKGL grenade launcher consumed the RMB input.
+    /// </summary>
+    private bool HandleAKGLGrenadeLauncherInput()
+    {
+        // Only handle when AKGL is the current weapon
+        var akgl = CurrentWeapon as AKGL;
+        if (akgl == null)
+        {
+            return false;
+        }
+
+        // Handle RMB press to fire the grenade launcher
+        if (Input.IsActionJustPressed("grenade_throw"))
+        {
+            // Only fire if not already in a grenade action and grenade is available
+            if (_grenadeState == GrenadeState.Idle && !Input.IsActionPressed("grenade_prepare"))
+            {
+                if (akgl.GrenadeAvailable)
+                {
+                    // Calculate fire direction
+                    Vector2 direction = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                    akgl.FireGrenadeLauncher(direction);
+                    LogToFile("[Player] AKGL grenade launcher fired!");
+                    return true;
+                }
+                else
+                {
+                    LogToFile("[Player] AKGL grenade launcher empty - no grenade available");
+                    // Still consume input to prevent grenade throw when GL is empty
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     #endregion
@@ -4005,9 +4177,6 @@ public partial class Player : BaseCharacter
 
         // Emit initial charge count for UI
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
-
-        // Draw initial charge progress bar (Issue #700)
-        QueueRedraw();
     }
 
     /// <summary>
@@ -4062,6 +4231,10 @@ public partial class Player : BaseCharacter
         Vector2 oldPosition = GlobalPosition;
         GlobalPosition = _teleportTargetPosition;
         _teleportCharges--;
+
+        // Show charge bar on activation and start 300ms hide timer (Issue #700)
+        _showChargeBar = true;
+        _chargeBarHideTimer = ChargeBarHideDelay;
 
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
         LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
@@ -4236,6 +4409,220 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Homing Bullets Methods (Issue #677)
+
+    /// <summary>
+    /// Initialize the homing bullets if the ActiveItemManager has them selected.
+    /// </summary>
+    private void InitHomingBullets()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Homing] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_homing_bullets"))
+        {
+            LogToFile("[Player.Homing] ActiveItemManager missing has_homing_bullets method");
+            return;
+        }
+
+        bool hasHomingBullets = (bool)activeItemManager.Call("has_homing_bullets");
+        if (!hasHomingBullets)
+        {
+            LogToFile("[Player.Homing] No homing bullets selected in ActiveItemManager");
+            return;
+        }
+
+        _homingBulletsEquipped = true;
+        _homingCharges = MaxHomingCharges;
+        _homingActive = false;
+        _homingTimer = 0.0f;
+        SetupHomingAudio();
+
+        LogToFile($"[Player.Homing] Homing bullets equipped, charges: {_homingCharges}/{MaxHomingCharges}");
+    }
+
+    /// <summary>
+    /// Handle homing bullets input: press Space to activate for 1 second.
+    /// When activated, all bullets fired during the activation window steer toward enemies.
+    /// Also enables homing on already-airborne player bullets.
+    /// </summary>
+    private void HandleHomingBulletsInput(float delta)
+    {
+        if (!_homingBulletsEquipped)
+        {
+            return;
+        }
+
+        // Handle active timer countdown
+        if (_homingActive)
+        {
+            _homingTimer -= delta;
+            QueueRedraw(); // Update continuous timer bar each frame (Issue #700)
+            if (_homingTimer <= 0.0f)
+            {
+                _homingActive = false;
+                _homingTimer = 0.0f;
+                EmitSignal(SignalName.HomingDeactivated);
+                QueueRedraw(); // Hide bar on deactivation (Issue #700)
+                LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+            }
+        }
+
+        // Update homing charge bar hide timer (300ms auto-hide)
+        if (_showHomingChargeBar && !_homingActive)
+        {
+            _homingChargeBarHideTimer -= delta;
+            if (_homingChargeBarHideTimer <= 0.0f)
+            {
+                _showHomingChargeBar = false;
+                _homingChargeBarHideTimer = 0.0f;
+                QueueRedraw();
+            }
+        }
+
+        // Activate on Space press (only if not already active and has charges)
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            if (_homingCharges > 0 && !_homingActive)
+            {
+                _homingActive = true;
+                _homingTimer = HomingDuration;
+                _homingCharges--;
+                PlayHomingSound();
+                EmitSignal(SignalName.HomingActivated);
+                EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
+                LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+
+                // Show charge bar on activation for 300ms (Issue #700)
+                _showHomingChargeBar = true;
+                _homingChargeBarHideTimer = ChargeBarHideDelay;
+                QueueRedraw();
+
+                // Enable homing on all already-airborne player bullets
+                EnableHomingOnAirborneBullets();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Enable homing on all player bullets currently in the scene.
+    /// Called when the player activates homing so that bullets already in flight
+    /// also start steering toward enemies.
+    /// </summary>
+    private void EnableHomingOnAirborneBullets()
+    {
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return;
+        }
+
+        var currentScene = tree.CurrentScene;
+        if (currentScene == null)
+        {
+            return;
+        }
+
+        int enabledCount = 0;
+        ulong myId = GetInstanceId();
+
+        // Find all Bullet nodes in the scene
+        EnableHomingRecursive(currentScene, myId, ref enabledCount);
+
+        if (enabledCount > 0)
+        {
+            LogToFile($"[Player.Homing] Enabled homing on {enabledCount} airborne bullets");
+        }
+    }
+
+    /// <summary>
+    /// Recursively find Bullet nodes and enable homing on player bullets.
+    /// </summary>
+    private void EnableHomingRecursive(Node node, ulong playerId, ref int count)
+    {
+        // Check if this is a C# Bullet
+        if (node is CSharpBullet csBullet)
+        {
+            if (csBullet.ShooterId == playerId && !csBullet.HomingEnabled)
+            {
+                csBullet.EnableHoming();
+                count++;
+            }
+        }
+        // Check if this is a GDScript bullet (has enable_homing method and shooter_id property)
+        else if (node is Area2D area && node.HasMethod("enable_homing"))
+        {
+            var shooterId = node.Get("shooter_id");
+            if (shooterId.VariantType != Variant.Type.Nil)
+            {
+                ulong bulletShooterId = shooterId.AsUInt64();
+                if (bulletShooterId == playerId)
+                {
+                    var homingEnabled = node.Get("homing_enabled");
+                    if (homingEnabled.VariantType == Variant.Type.Nil || !(bool)homingEnabled)
+                    {
+                        node.Call("enable_homing");
+                        count++;
+                    }
+                }
+            }
+        }
+
+        // Recurse into children
+        foreach (var child in node.GetChildren())
+        {
+            EnableHomingRecursive(child, playerId, ref count);
+        }
+    }
+
+    /// <summary>
+    /// Set up the audio player for homing activation sound.
+    /// </summary>
+    private void SetupHomingAudio()
+    {
+        if (ResourceLoader.Exists(HomingSoundPath))
+        {
+            var stream = GD.Load<AudioStream>(HomingSoundPath);
+            if (stream != null)
+            {
+                _homingAudioPlayer = new AudioStreamPlayer();
+                _homingAudioPlayer.Stream = stream;
+                _homingAudioPlayer.VolumeDb = -3.0f;
+                AddChild(_homingAudioPlayer);
+                LogToFile("[Player.Homing] Homing activation sound loaded");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
+        }
+    }
+
+    /// <summary>
+    /// Play the homing activation sound.
+    /// </summary>
+    private void PlayHomingSound()
+    {
+        if (_homingAudioPlayer != null && IsInstanceValid(_homingAudioPlayer))
+        {
+            _homingAudioPlayer.Play();
+        }
+    }
+
+    /// <summary>
+    /// Check if homing bullets effect is currently active.
+    /// </summary>
+    public bool IsHomingActive()
+    {
+        return _homingActive;
+    }
+
+    #endregion
+
     #region Logging
 
     /// <summary>
@@ -4369,10 +4756,27 @@ public partial class Player : BaseCharacter
     /// </summary>
     public override void _Draw()
     {
-        // Draw teleport bracers charge bar above player (Issue #700)
-        if (_teleportBracersEquipped)
+        // Draw teleport bracers charge bar above player on activation (Issue #700)
+        // Show when: charge bar timer is active (300ms after teleport use) or while aiming
+        if (_teleportBracersEquipped && (_showChargeBar || _teleportAiming))
         {
             DrawTeleportChargeBar();
+        }
+
+        // Draw homing bullets progress bar (Issue #700)
+        // Continuous timer bar while effect is active, charge bar for 300ms after activation
+        if (_homingBulletsEquipped && (_homingActive || _showHomingChargeBar))
+        {
+            if (_homingActive)
+            {
+                // Show continuous timer bar during active effect
+                DrawHomingTimerBar();
+            }
+            else
+            {
+                // Show charge bar briefly after activation (300ms)
+                DrawHomingChargeBar();
+            }
         }
 
         // Draw teleport targeting reticle if aiming (Issue #672)
@@ -4573,6 +4977,23 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Update the charge bar hide timer. Hides bar after 300ms for charge-based items (Issue #700).
+    /// </summary>
+    private void UpdateChargeBarTimer(float delta)
+    {
+        if (_showChargeBar && !_teleportAiming)
+        {
+            _chargeBarHideTimer -= delta;
+            if (_chargeBarHideTimer <= 0.0f)
+            {
+                _showChargeBar = false;
+                _chargeBarHideTimer = 0.0f;
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
     /// Draw segmented charge bar above the player for teleport bracers (Issue #700).
     /// Shows remaining charges as filled segments and used charges as empty segments.
     /// </summary>
@@ -4625,6 +5046,101 @@ public partial class Player : BaseCharacter
             // Draw border
             DrawRect(segRect, borderColor, false, borderWidth);
         }
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar above the player for homing bullets (Issue #700).
+    /// Shows remaining charges as filled segments and used charges as empty segments.
+    /// </summary>
+    private void DrawHomingChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxHomingCharges;
+        int filledCount = _homingCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f)
+            segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Draw continuous timer bar above the player for homing bullets active effect (Issue #700).
+    /// Shows remaining duration as a shrinking fill bar.
+    /// </summary>
+    private void DrawHomingTimerBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float borderWidth = 1.0f;
+
+        float startX = -barWidth / 2.0f;
+        Rect2 fullRect = new Rect2(startX, barYOffset, barWidth, barHeight);
+
+        float percent = _homingTimer / HomingDuration;
+        if (percent < 0.0f) percent = 0.0f;
+        if (percent > 1.0f) percent = 1.0f;
+
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        // Draw background
+        DrawRect(fullRect, bgColor);
+
+        // Draw fill
+        float fillWidth = barWidth * percent;
+        if (fillWidth > 0.0f)
+        {
+            Rect2 fillRect = new Rect2(startX, barYOffset, fillWidth, barHeight);
+            DrawRect(fillRect, fillColor);
+        }
+
+        // Draw border
+        DrawRect(fullRect, borderColor, false, borderWidth);
     }
 
     /// <summary>

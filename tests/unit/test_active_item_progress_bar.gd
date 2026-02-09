@@ -303,19 +303,34 @@ func test_mode_switch_segmented_to_continuous() -> void:
 
 class MockTeleportBracersWithBar:
 	## Simulates teleport bracers charge tracking with progress bar updates.
+	## Bar shows on activation and hides after 300ms (charge-based item).
 	const MAX_CHARGES: int = 6
+	const HIDE_DELAY: float = 0.3
 	var charges: int = MAX_CHARGES
-	var bar_visible: bool = true
+	var bar_visible: bool = false  # Bar starts hidden, shows on activation
 	var bar_current: float = 6.0
 	var bar_max: float = 6.0
 	var bar_mode: int = 0  # 0 = SEGMENTED
+	var hide_timer: float = 0.0
+	var hide_pending: bool = false
 
 	func use_charge() -> bool:
 		if charges <= 0:
 			return false
 		charges -= 1
 		bar_current = float(charges)
+		# Show bar on activation, start 300ms hide timer
+		bar_visible = true
+		hide_pending = true
+		hide_timer = HIDE_DELAY
 		return true
+
+	func update_timer(delta: float) -> void:
+		if hide_pending:
+			hide_timer -= delta
+			if hide_timer <= 0.0:
+				hide_pending = false
+				bar_visible = false
 
 	func get_bar_color() -> String:
 		var percent: float = bar_current / bar_max
@@ -327,11 +342,31 @@ class MockTeleportBracersWithBar:
 			return "red"
 
 
-func test_teleport_bracers_bar_starts_full() -> void:
+func test_teleport_bracers_bar_starts_hidden() -> void:
 	var bracers := MockTeleportBracersWithBar.new()
 	assert_eq(bracers.bar_current, 6.0, "Bar should start at 6 charges")
 	assert_eq(bracers.bar_max, 6.0, "Bar max should be 6")
-	assert_true(bracers.bar_visible, "Bar should be visible")
+	assert_false(bracers.bar_visible, "Bar should be hidden initially (not equipped = not shown)")
+
+
+func test_teleport_bracers_bar_shows_on_activation() -> void:
+	var bracers := MockTeleportBracersWithBar.new()
+	bracers.use_charge()
+	assert_true(bracers.bar_visible, "Bar should become visible on charge use")
+	assert_eq(bracers.bar_current, 5.0, "Bar should show 5 charges after use")
+
+
+func test_teleport_bracers_bar_hides_after_300ms() -> void:
+	var bracers := MockTeleportBracersWithBar.new()
+	bracers.use_charge()
+	assert_true(bracers.bar_visible, "Bar should be visible right after activation")
+	# Simulate time passing
+	bracers.update_timer(0.1)
+	assert_true(bracers.bar_visible, "Bar should still be visible after 100ms")
+	bracers.update_timer(0.1)
+	assert_true(bracers.bar_visible, "Bar should still be visible after 200ms")
+	bracers.update_timer(0.15)
+	assert_false(bracers.bar_visible, "Bar should hide after 300ms")
 
 
 func test_teleport_bracers_bar_decrements_on_use() -> void:
@@ -344,7 +379,7 @@ func test_teleport_bracers_bar_decrements_on_use() -> void:
 
 func test_teleport_bracers_bar_color_changes() -> void:
 	var bracers := MockTeleportBracersWithBar.new()
-	# 6/6 = 100% -> green
+	# 6/6 = 100% -> green (before any use)
 	assert_eq(bracers.get_bar_color(), "green", "6/6 should be green")
 
 	# Use 3 charges -> 3/6 = 50% -> yellow (boundary: > 0.25 and <= 0.5)
@@ -373,3 +408,99 @@ func test_teleport_bracers_cannot_go_negative() -> void:
 	var result := bracers.use_charge()
 	assert_false(result, "Should not use charge when empty")
 	assert_eq(bracers.bar_current, 0.0, "Bar should remain at 0")
+
+
+# ============================================================================
+# Homing Bullets Integration Tests (Simulated)
+# ============================================================================
+
+
+class MockHomingBulletsWithBar:
+	## Simulates homing bullets with charge bar (300ms on activation)
+	## and continuous timer bar during active effect.
+	const MAX_CHARGES: int = 6
+	const HIDE_DELAY: float = 0.3
+	const DURATION: float = 1.0
+	var charges: int = MAX_CHARGES
+	var is_active: bool = false
+	var timer: float = 0.0
+	var charge_bar_visible: bool = false
+	var timer_bar_visible: bool = false
+	var hide_pending: bool = false
+	var hide_timer: float = 0.0
+	var bar_current: float = 6.0
+	var bar_max: float = 6.0
+
+	func activate() -> bool:
+		if charges <= 0 or is_active:
+			return false
+		charges -= 1
+		bar_current = float(charges)
+		is_active = true
+		timer = DURATION
+		# Show timer bar during active effect
+		timer_bar_visible = true
+		charge_bar_visible = false
+		return true
+
+	func update(delta: float) -> void:
+		if is_active:
+			timer -= delta
+			if timer <= 0.0:
+				is_active = false
+				timer = 0.0
+				timer_bar_visible = false
+				# Show charge bar briefly after deactivation
+				charge_bar_visible = true
+				hide_pending = true
+				hide_timer = HIDE_DELAY
+
+		if hide_pending and not is_active:
+			hide_timer -= delta
+			if hide_timer <= 0.0:
+				hide_pending = false
+				charge_bar_visible = false
+
+	func get_timer_percent() -> float:
+		return clampf(timer / DURATION, 0.0, 1.0)
+
+
+func test_homing_bullets_bar_starts_hidden() -> void:
+	var homing := MockHomingBulletsWithBar.new()
+	assert_false(homing.charge_bar_visible, "Charge bar should be hidden initially")
+	assert_false(homing.timer_bar_visible, "Timer bar should be hidden initially")
+
+
+func test_homing_bullets_shows_timer_bar_on_activation() -> void:
+	var homing := MockHomingBulletsWithBar.new()
+	homing.activate()
+	assert_true(homing.timer_bar_visible, "Timer bar should show during active effect")
+	assert_false(homing.charge_bar_visible, "Charge bar should be hidden during active effect")
+
+
+func test_homing_bullets_timer_bar_during_effect() -> void:
+	var homing := MockHomingBulletsWithBar.new()
+	homing.activate()
+	assert_almost_eq(homing.get_timer_percent(), 1.0, 0.001, "Timer should be at 100%% at start")
+	homing.update(0.5)
+	assert_almost_eq(homing.get_timer_percent(), 0.5, 0.001, "Timer should be at 50%% after 0.5s")
+	assert_true(homing.timer_bar_visible, "Timer bar should still be visible")
+
+
+func test_homing_bullets_shows_charge_bar_after_deactivation() -> void:
+	var homing := MockHomingBulletsWithBar.new()
+	homing.activate()
+	# Simulate effect expiring
+	homing.update(1.1)
+	assert_false(homing.is_active, "Effect should have expired")
+	assert_false(homing.timer_bar_visible, "Timer bar should hide after deactivation")
+	assert_true(homing.charge_bar_visible, "Charge bar should show briefly after deactivation")
+
+
+func test_homing_bullets_charge_bar_hides_after_300ms() -> void:
+	var homing := MockHomingBulletsWithBar.new()
+	homing.activate()
+	homing.update(1.1)  # Effect expires
+	assert_true(homing.charge_bar_visible, "Charge bar should be visible")
+	homing.update(0.35)  # 300ms passes
+	assert_false(homing.charge_bar_visible, "Charge bar should hide after 300ms")
