@@ -22,6 +22,12 @@ func test_active_item_type_flashlight_value() -> void:
 	assert_eq(expected, 1, "FLASHLIGHT should be the second active item type (1)")
 
 
+func test_active_item_type_homing_bullets_value() -> void:
+	# ActiveItemType.HOMING_BULLETS should be 2
+	var expected := 2
+	assert_eq(expected, 2, "HOMING_BULLETS should be the third active item type (2)")
+
+
 # ============================================================================
 # Active Item Data Constants Tests
 # ============================================================================
@@ -49,6 +55,17 @@ func test_active_item_data_has_flashlight() -> void:
 	assert_true(item_data.has(1), "ACTIVE_ITEM_DATA should contain FLASHLIGHT type")
 
 
+func test_active_item_data_has_homing_bullets() -> void:
+	var item_data := {
+		2: {
+			"name": "Homing Bullets",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+		}
+	}
+	assert_true(item_data.has(2), "ACTIVE_ITEM_DATA should contain HOMING_BULLETS type")
+
+
 func test_none_data_has_name() -> void:
 	var data := {"name": "None"}
 	assert_eq(data["name"], "None", "None should have correct name")
@@ -71,6 +88,21 @@ func test_flashlight_data_has_description() -> void:
 		"Flashlight description should mention Space key")
 
 
+func test_homing_bullets_data_has_name() -> void:
+	var data := {"name": "Homing Bullets"}
+	assert_eq(data["name"], "Homing Bullets", "Homing Bullets should have correct name")
+
+
+func test_homing_bullets_data_has_description() -> void:
+	var data := {"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."}
+	assert_true(data["description"].contains("Space"),
+		"Homing bullets description should mention Space key")
+	assert_true(data["description"].contains("110"),
+		"Homing bullets description should mention 110 degree turn")
+	assert_true(data["description"].contains("6 charges"),
+		"Homing bullets description should mention 6 charges")
+
+
 # ============================================================================
 # Mock ActiveItemManager for Logic Tests
 # ============================================================================
@@ -81,8 +113,9 @@ class MockActiveItemManager:
 	const ActiveItemType := {
 		NONE = 0,
 		FLASHLIGHT = 1,
-		TELEPORT_BRACERS = 2,
-		FORCE_FIELD = 3
+		HOMING_BULLETS = 2,
+		TELEPORT_BRACERS = 3,
+		FORCE_FIELD = 4
 	}
 
 	## Currently selected active item type
@@ -101,13 +134,18 @@ class MockActiveItemManager:
 			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
 		},
 		2: {
+			"name": "Homing Bullets",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+		},
+		3: {
 			"name": "Teleport Bracers",
 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
 		},
-		3: {
+		4: {
 			"name": "Force Field",
-			"icon_path": "",
+			"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
 			"description": "Hold Space to activate a glowing force field that reflects all projectiles. 8 second charge, depletable. Shows progress bar."
 		}
 	}
@@ -165,6 +203,10 @@ class MockActiveItemManager:
 	## Check if a flashlight is currently equipped
 	func has_flashlight() -> bool:
 		return current_active_item == ActiveItemType.FLASHLIGHT
+
+	## Check if homing bullets are currently equipped
+	func has_homing_bullets() -> bool:
+		return current_active_item == ActiveItemType.HOMING_BULLETS
 
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
@@ -267,6 +309,40 @@ func test_no_flashlight_after_deselection() -> void:
 		"has_flashlight should return false after switching back to none")
 
 
+func test_set_active_item_to_homing_bullets() -> void:
+	manager.set_active_item(2)
+	assert_eq(manager.current_active_item, 2,
+		"Active item type should change to HOMING_BULLETS")
+
+
+func test_has_homing_bullets_after_selection() -> void:
+	manager.set_active_item(2)
+	assert_true(manager.has_homing_bullets(),
+		"has_homing_bullets should return true after selecting homing bullets")
+
+
+func test_no_homing_bullets_by_default() -> void:
+	assert_false(manager.has_homing_bullets(),
+		"has_homing_bullets should return false by default")
+
+
+func test_no_homing_bullets_after_deselection() -> void:
+	manager.set_active_item(2)
+	manager.set_active_item(0)
+	assert_false(manager.has_homing_bullets(),
+		"has_homing_bullets should return false after switching back to none")
+
+
+func test_flashlight_and_homing_mutually_exclusive() -> void:
+	manager.set_active_item(1)
+	assert_true(manager.has_flashlight(), "Should have flashlight")
+	assert_false(manager.has_homing_bullets(), "Should NOT have homing bullets")
+
+	manager.set_active_item(2)
+	assert_false(manager.has_flashlight(), "Should NOT have flashlight after switching")
+	assert_true(manager.has_homing_bullets(), "Should have homing bullets")
+
+
 # ============================================================================
 # Data Retrieval Tests
 # ============================================================================
@@ -306,6 +382,10 @@ func test_get_active_item_name_flashlight() -> void:
 	assert_eq(manager.get_active_item_name(1), "Flashlight")
 
 
+func test_get_active_item_name_homing_bullets() -> void:
+	assert_eq(manager.get_active_item_name(2), "Homing Bullets")
+
+
 func test_get_active_item_name_invalid() -> void:
 	assert_eq(manager.get_active_item_name(999), "Unknown")
 
@@ -320,6 +400,12 @@ func test_get_active_item_description_none() -> void:
 	var desc := manager.get_active_item_description(0)
 	assert_true(desc.contains("No active item"),
 		"None description should indicate no active item")
+
+
+func test_get_active_item_description_homing_bullets() -> void:
+	var desc := manager.get_active_item_description(2)
+	assert_true(desc.contains("Space"),
+		"Homing bullets description should mention Space key")
 
 
 func test_get_active_item_description_invalid() -> void:
@@ -476,8 +562,9 @@ class MockArmoryWithActiveItems:
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
-		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
-		3: {"name": "Force Field", "description": "Hold Space to activate force field"}
+		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
+		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
+		4: {"name": "Force Field", "description": "Hold Space to activate force field"}
 	}
 
 	## Applied active item type
@@ -565,7 +652,7 @@ func test_armory_switch_active_items() -> void:
 
 
 func test_has_force_field_after_selection() -> void:
-	manager.set_active_item(3)
+	manager.set_active_item(4)
 	assert_true(manager.has_force_field(),
 		"has_force_field should return true after selecting force field")
 
@@ -576,21 +663,21 @@ func test_no_force_field_by_default() -> void:
 
 
 func test_force_field_data_has_name() -> void:
-	var data := manager.get_active_item_data(3)
+	var data := manager.get_active_item_data(4)
 	assert_eq(data["name"], "Force Field", "Force Field should have correct name")
 
 
 func test_force_field_data_has_description() -> void:
-	var data := manager.get_active_item_data(3)
+	var data := manager.get_active_item_data(4)
 	assert_true(data["description"].contains("Space"),
 		"Force field description should mention Space key")
 
 
 func test_armory_select_force_field() -> void:
 	var armory := MockArmoryWithActiveItems.new()
-	var result := armory.select_active_item(3)
+	var result := armory.select_active_item(4)
 	assert_true(result, "Should select force field")
-	assert_eq(armory.pending_active_item, 3, "Pending should be force field")
+	assert_eq(armory.pending_active_item, 4, "Pending should be force field")
 
 
 # ============================================================================

@@ -122,6 +122,24 @@ var shooter_position: Vector2 = Vector2.ZERO
 ## Set by weapons like MakarovPM and SilencedPistol via Node.Set().
 var stun_duration: float = 0.0
 
+## Whether this bullet has homing enabled (steers toward nearest enemy).
+var homing_enabled: bool = false
+
+## Maximum angle (in radians) the bullet can turn from its original direction.
+## Default 110 degrees = ~1.92 radians.
+var homing_max_turn_angle: float = deg_to_rad(110.0)
+
+## Steering force for homing (radians per second of turning).
+## Higher values make bullets turn faster.
+var homing_steer_speed: float = 8.0
+
+## The original firing direction (stored when homing is enabled).
+## Used to limit total turn angle.
+var _homing_original_direction: Vector2 = Vector2.ZERO
+
+## Enable/disable debug logging for homing calculations.
+var _debug_homing: bool = false
+
 
 func _ready() -> void:
 	# Connect to collision signals
@@ -189,6 +207,10 @@ func _log_penetration(message: String) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Apply homing steering if enabled
+	if homing_enabled:
+		_apply_homing_steering(delta)
+
 	# Calculate movement this frame
 	var movement := direction * speed * delta
 
@@ -934,3 +956,85 @@ func is_penetrating() -> bool:
 ## Returns the distance traveled through walls while penetrating.
 func get_penetration_distance() -> float:
 	return _penetration_distance_traveled
+
+
+# ============================================================================
+# Homing Bullet System
+# ============================================================================
+
+
+## Enables homing on this bullet, storing the original direction.
+func enable_homing() -> void:
+	homing_enabled = true
+	_homing_original_direction = direction.normalized()
+	if _debug_homing:
+		print("[Bullet] Homing enabled, original direction: ", _homing_original_direction)
+
+
+## Applies homing steering toward the nearest alive enemy.
+## The bullet turns toward the nearest enemy but cannot exceed the max turn angle
+## from its original firing direction (110 degrees each side).
+func _apply_homing_steering(delta: float) -> void:
+	# Only player bullets should home
+	if not _is_player_bullet():
+		return
+
+	# Find nearest alive enemy
+	var target_pos := _find_nearest_enemy_position()
+	if target_pos == Vector2.ZERO:
+		return  # No valid target found
+
+	# Calculate desired direction toward target
+	var to_target := (target_pos - global_position).normalized()
+
+	# Calculate the angle difference between current direction and desired
+	var angle_diff := direction.angle_to(to_target)
+
+	# Limit per-frame steering (smooth turning)
+	var max_steer_this_frame := homing_steer_speed * delta
+	angle_diff = clampf(angle_diff, -max_steer_this_frame, max_steer_this_frame)
+
+	# Calculate proposed new direction
+	var new_direction := direction.rotated(angle_diff).normalized()
+
+	# Check if the new direction would exceed the max turn angle from original
+	var angle_from_original := _homing_original_direction.angle_to(new_direction)
+	if absf(angle_from_original) > homing_max_turn_angle:
+		if _debug_homing:
+			print("[Bullet] Homing angle limit reached: ", rad_to_deg(absf(angle_from_original)), "°")
+		return  # Don't steer further, angle limit reached
+
+	# Apply the steering
+	direction = new_direction
+	_update_rotation()
+
+	if _debug_homing:
+		print("[Bullet] Homing steer: angle_diff=", rad_to_deg(angle_diff), "° total_turn=", rad_to_deg(absf(angle_from_original)), "°")
+
+
+## Finds the position of the nearest alive enemy.
+## Returns Vector2.ZERO if no enemies are found.
+func _find_nearest_enemy_position() -> Vector2:
+	var tree := get_tree()
+	if tree == null:
+		return Vector2.ZERO
+
+	var enemies := tree.get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return Vector2.ZERO
+
+	var nearest_pos := Vector2.ZERO
+	var nearest_dist := INF
+
+	for enemy in enemies:
+		if not enemy is Node2D:
+			continue
+		# Skip dead enemies
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+		var dist := global_position.distance_squared_to(enemy.global_position)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest_pos = enemy.global_position
+
+	return nearest_pos

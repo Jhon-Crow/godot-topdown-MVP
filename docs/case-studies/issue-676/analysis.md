@@ -16,22 +16,53 @@
 
 1. **Issue created**: User requested force field active item.
 2. **Initial implementation (PR #688 v1)**: Implemented as one-shot press-Space activation with 1 charge and 8s fixed duration.
-3. **User feedback**: Owner reported "it doesn't work" and provided game log. New requirements specified hold-to-activate with depletable charge and progress bar.
+3. **User feedback (Round 1)**: Owner reported "it doesn't work" and provided game log (`game_log_20260209_020549.txt`). New requirements specified hold-to-activate with depletable charge and progress bar.
 4. **v2 implementation**: Redesigned to support hold-to-activate with depletable charge pool and progress bar.
+5. **User feedback (Round 2)**: Owner reported "вообще не работает, вместо значка - знак вопроса" (doesn't work at all, question mark icon instead of proper icon). Provided game log (`game_log_20260209_032340.txt`).
+6. **v3 implementation**: Resolved merge conflicts with upstream/main (homing bullets from Issue #677), created force field icon, fixed enum ordering to accommodate all 5 active items.
 
 ## Root Cause Analysis
 
-### Why "it doesn't work"
+### Round 1: Why "it doesn't work" (game_log_20260209_020549.txt)
 
-The game log (`game_log_20260209_020549.txt`) shows:
+The game log shows:
 - Force Field was selected in the armory (log line: `[ActiveItemManager] Active item changed from None to Force Field`)
 - After level restart, no `[Player.ForceField]` initialization log appeared
 - The exported build may have been missing the player.gd force field integration code
 - The build was run from a standalone export path, not the editor
 
-### Merge conflict with teleport bracers (Issue #672)
+### Round 2: Why "вообще не работает" + question mark icon (game_log_20260209_032340.txt)
 
-The branch diverged from main before the teleport bracers feature was merged. This caused a conflict in `active_item_manager.gd` where both TELEPORT_BRACERS and FORCE_FIELD enum values were added. Resolved by keeping both.
+Two issues identified:
+
+**Issue 1 — Force field not initializing (no `[Player.ForceField]` log)**
+The game log from Round 2 shows the same pattern — after selecting Force Field in the armory, the player log only shows:
+```
+[Player.Flashlight] No flashlight selected in ActiveItemManager
+[Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+```
+No `[Player.ForceField]` or `[Player.Homing]` lines appear. This means `_init_force_field()` was never called.
+
+**Root cause**: A merge conflict with the homing bullets feature (Issue #677, PR #689) was not resolved. The upstream/main branch added `_init_homing_bullets()` and `_handle_homing_input()` at the same locations where we added `_init_force_field()` and `_handle_force_field_input()`. Git detected a content conflict, and the build contained conflict markers or the wrong branch's code.
+
+**Issue 2 — Question mark icon**
+The `icon_path` for the force field in `active_item_manager.gd` was set to `""` (empty string). Godot displays a question mark placeholder when no valid texture is found.
+
+**Root cause**: No icon file was created for the force field active item. All other active items (flashlight, homing bullets, teleport bracers) have 64x48 pixel art PNG icons in `assets/sprites/weapons/`.
+
+### v3 fix: Merge conflict resolution and icon creation
+
+1. **Merge conflict**: Resolved all 3 conflicts in `player.gd`, `active_item_manager.gd`, and `test_active_item_manager.gd` — keeping BOTH homing bullets (from upstream Issue #677) AND force field code side by side.
+2. **Enum ordering**: `NONE=0, FLASHLIGHT=1, HOMING_BULLETS=2, TELEPORT_BRACERS=3, FORCE_FIELD=4`
+3. **Icon**: Created `force_field_icon.png` (64x48 pixel art, blue shield with glow effect) and set the `icon_path` in the active item data.
+
+### Merge conflict with teleport bracers (Issue #672) — previously resolved in v1
+
+The branch originally diverged from main before the teleport bracers feature was merged. This was resolved in v1 by keeping both TELEPORT_BRACERS and FORCE_FIELD.
+
+### Merge conflict with homing bullets (Issue #677) — resolved in v3
+
+After v2 was pushed, the homing bullets feature (PR #689) was merged to main. This created conflicts in the same 3 files where both features add enum values, initialization, and input handling code. Resolved by keeping all items.
 
 ## Architecture
 
@@ -71,5 +102,7 @@ The branch diverged from main before the teleport bracers feature was merged. Th
 | `scripts/projectiles/shrapnel.gd` | Force field damage protection check |
 | `scripts/shaders/force_field.gdshader` | Glowing shield visual shader |
 | `scenes/effects/ForceFieldEffect.tscn` | Force field scene |
-| `tests/unit/test_active_item_manager.gd` | Added force field tests |
-| `docs/case-studies/issue-676/game_log_20260209_020549.txt` | Owner's game log |
+| `tests/unit/test_active_item_manager.gd` | Added force field tests, updated enum values |
+| `assets/sprites/weapons/force_field_icon.png` | New: 64x48 pixel art force field icon |
+| `docs/case-studies/issue-676/game_log_20260209_020549.txt` | Owner's game log (Round 1) |
+| `docs/case-studies/issue-676/game_log_20260209_032340.txt` | Owner's game log (Round 2) |

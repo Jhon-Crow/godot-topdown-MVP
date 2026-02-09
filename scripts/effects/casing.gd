@@ -266,6 +266,7 @@ func receive_kick(impulse: Vector2) -> void:
 const MIN_KICK_SOUND_IMPULSE: float = 5.0
 
 ## Plays the casing kick sound if impulse is above threshold.
+## Also propagates the sound to enemies via SoundPropagation (Issue #693).
 ## @param impulse_strength The magnitude of the kick impulse.
 func _play_kick_sound(impulse_strength: float) -> void:
 	if impulse_strength < MIN_KICK_SOUND_IMPULSE:
@@ -277,6 +278,12 @@ func _play_kick_sound(impulse_strength: float) -> void:
 
 	# Play sound based on caliber type for authenticity
 	_play_casing_sound_for_caliber(audio_manager)
+
+	# Issue #693: Propagate casing kick sound to enemies.
+	# Enemies hear kicked casings at the same distance as reload sounds (900px).
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_casing_kick"):
+		sound_propagation.emit_casing_kick(global_position, null)
 
 
 ## Plays the appropriate casing sound based on caliber type.
