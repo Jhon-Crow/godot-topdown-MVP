@@ -84,9 +84,9 @@ static func count_walls(enemy: Node2D, target_pos: Vector2) -> int:
 
 ## Perform sniper hitscan shot - sequential raycasts with wall penetration.
 ## @param extra_exclude_rids: Additional RIDs to exclude (e.g., enemy's HitArea).
-## Issue #665 fix: Use on_hit_with_bullet_info_and_damage for correct damage delivery
-## through HitArea -> Player chain. Without this, HitArea forwards only 4 args and
-## player receives hardcoded 1 damage instead of actual hitscan_damage (50).
+## Issue #665: Delivers damage via on_hit_with_bullet_info for correct damage through
+## HitArea -> Player chain. Skips friendly enemy CharacterBody2D hits (only damages
+## player and player HitArea). Logs all results for diagnostics.
 static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector2,
 		hitscan_range_val: float, damage: float, max_penetrations: int,
 		extra_exclude_rids: Array[RID] = []) -> Vector2:
@@ -96,10 +96,12 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 	for rid in extra_exclude_rids:
 		exclude_rids.append(rid)
 	var damaged_ids: Dictionary = {}
-	var hit_any_character := false
+	var hit_player := false
 
-	# Combined mask: Layer 1 (player=1) + Layer 2 (enemies=2) + Layer 3 (walls=4)
-	var combined_mask := 4 + 2 + 1
+	# Mask: Layer 1 (player=1) + Layer 3 (walls=4). Skip layer 2 (enemies) — snipers
+	# shoot through friendlies. We detect player CharacterBody2D (layer 1) and walls
+	# (layer 3=StaticBody2D). Player HitArea is also on layer 1 so it's detected too.
+	var combined_mask := 4 + 1
 
 	# Issue #665 fix: Check if muzzle (spawn_pos) is inside or behind a wall relative
 	# to the enemy center. If so, start the hitscan from the enemy center and
@@ -111,19 +113,19 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 	muzzle_check.exclude = exclude_rids
 	var muzzle_result := space.intersect_ray(muzzle_check)
 	if muzzle_result:
-		# Muzzle is behind a wall — start from enemy center instead
 		actual_start = enemy.global_position
-		exclude_rids.append(muzzle_result["rid"])  # Pre-exclude the adjacent wall
+		exclude_rids.append(muzzle_result["rid"])
 
 	var end_pos := actual_start + direction * hitscan_range_val
 	var bullet_end := end_pos
 	var current_pos := actual_start
+	var fl: Node = enemy.get_node_or_null("/root/FileLogger")
 
 	for _i in range(50):  # Safety limit
 		var query := PhysicsRayQueryParameters2D.create(current_pos, end_pos, combined_mask)
 		query.collide_with_areas = true
 		query.collide_with_bodies = true
-		query.hit_from_inside = true
+		query.hit_from_inside = false
 		query.exclude = exclude_rids
 
 		var result := space.intersect_ray(query)
@@ -139,7 +141,6 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 			var impact_mgr: Node = enemy.get_node_or_null("/root/ImpactEffectsManager")
 			if impact_mgr and impact_mgr.has_method("spawn_dust_effect"):
 				impact_mgr.spawn_dust_effect(hit_pos, -direction.normalized())
-
 			if walls_penetrated < max_penetrations:
 				walls_penetrated += 1
 				exclude_rids.append(result["rid"])
@@ -149,47 +150,42 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 				bullet_end = hit_pos
 				break
 
-		# Enemy/player hit — support GDScript and C# damage methods
-		hit_any_character = true
+		# Character/area hit — deliver damage to player targets
 		var instance_id := collider.get_instance_id()
-		if instance_id not in damaged_ids:
-			damaged_ids[instance_id] = true
-			var target: Node = collider
-			# If collider is a HitArea (Area2D with forwarding), try parent for damage methods
-			if not target.has_method("take_damage") and not target.has_method("on_hit_with_info") \
-					and not target.has_method("on_hit") and not target.has_method("TakeDamage") \
-					and not target.has_method("on_hit_with_bullet_info_and_damage"):
-				if target.get_parent():
-					target = target.get_parent()
-			# Log the hit for diagnostics
-			var fl: Node = enemy.get_node_or_null("/root/FileLogger")
-			if fl and fl.has_method("log_enemy"):
-				fl.log_enemy(enemy.name, "HITSCAN HIT: %s at %s (dmg=%.0f)" % [target.name, str(hit_pos), damage])
-			# Issue #665 fix: Use on_hit_with_bullet_info_and_damage to pass explicit damage
-			# through the HitArea -> parent chain. This ensures player receives actual
-			# hitscan_damage (50) instead of hardcoded 1 from on_hit_with_info.
-			if target.has_method("on_hit_with_bullet_info_and_damage"):
-				target.on_hit_with_bullet_info_and_damage(-direction.normalized(), null, false, false, damage)
-			elif target.has_method("on_hit_with_bullet_info"):
-				target.on_hit_with_bullet_info(-direction.normalized(), null, false, false, damage)
-			elif target.has_method("on_hit_with_info"):
-				target.on_hit_with_info(-direction.normalized(), null)
-			elif target.has_method("on_hit"):
-				target.on_hit()
-			elif target.has_method("take_damage"):
-				target.take_damage(damage)
-			elif target.has_method("TakeDamage"):
-				target.TakeDamage(damage)
-
+		if instance_id in damaged_ids:
+			exclude_rids.append(result["rid"])
+			current_pos = hit_pos + direction * 5.0
+			continue
+		damaged_ids[instance_id] = true
+		# Determine damage target: use parent if collider is a HitArea (Area2D forwarding)
+		var target: Node = collider
+		if collider is Area2D and collider.get_parent():
+			target = collider.get_parent()
+		# Log the hit
+		if fl and fl.has_method("log_enemy"):
+			fl.log_enemy(enemy.name, "HITSCAN HIT: %s (via %s) at %s (dmg=%.0f)" % [target.name, collider.name, str(hit_pos), damage])
+		# Deliver damage using the most specific method available on target
+		if target.has_method("on_hit_with_bullet_info"):
+			target.on_hit_with_bullet_info(-direction.normalized(), null, false, false, damage)
+		elif target.has_method("on_hit_with_info"):
+			target.on_hit_with_info(-direction.normalized(), null)
+		elif target.has_method("take_damage"):
+			target.take_damage(damage)
+		elif target.has_method("TakeDamage"):
+			target.TakeDamage(damage)
+		elif target.has_method("on_hit"):
+			target.on_hit()
+		hit_player = true
 		exclude_rids.append(result["rid"])
 		current_pos = hit_pos + direction * 5.0
 
-	# Issue #665: Log diagnostic when hitscan misses all characters
-	if not hit_any_character:
-		var fl: Node = enemy.get_node_or_null("/root/FileLogger")
-		if fl and fl.has_method("log_enemy"):
+	# Log result
+	if fl and fl.has_method("log_enemy"):
+		if not hit_player:
 			var dist := actual_start.distance_to(bullet_end)
 			fl.log_enemy(enemy.name, "HITSCAN MISS: walls=%d, range=%.0f, start=%s, end=%s" % [walls_penetrated, dist, str(actual_start), str(bullet_end)])
+		else:
+			fl.log_enemy(enemy.name, "HITSCAN DONE: walls=%d, hit_player=true" % walls_penetrated)
 
 	return bullet_end
 

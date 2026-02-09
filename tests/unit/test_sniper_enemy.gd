@@ -1,10 +1,12 @@
 extends GutTest
 ## Regression tests for Issue #665: Fix sniper enemy bugs.
 ##
-## Tests verify the three sniper bugs are fixed:
-## Bug 1: Snipers don't hide from the player (should seek cover immediately)
-## Bug 2: Sniper shots don't have smoke trail (hitscan self-collision made tracer invisible)
-## Bug 3: Snipers don't deal damage to player (self-collision + damage chain broken)
+## Tests verify sniper bugs are fixed:
+## Bug 1: Snipers don't hide from the player (should seek cover when player approaches)
+## Bug 2: Sniper shots don't have smoke trail (hitscan mask skipped player layer)
+## Bug 3: Snipers don't deal damage to player (hitscan hit friendlies instead of player)
+## Bug 4: Snipers fire without charge-up delay (bolt-action cycling)
+## Bug 5: _shoot() wasted cooldown timer on failed shot attempts
 
 
 # ============================================================================
@@ -40,6 +42,7 @@ class MockSniperEnemy:
 	var _sniper_retreat_cooldown: float = 0.0
 	var _is_reloading: bool = false
 	var _current_ammo: int = 5
+	var _player_close: bool = false  # Simulate player proximity
 
 	## Tracking
 	var _state_transitions: Array[String] = []
@@ -55,34 +58,30 @@ class MockSniperEnemy:
 	func get_current_state() -> int:
 		return _current_state
 
-	## Simulate entering combat state
 	func enter_combat() -> void:
 		_current_state = AIState.COMBAT
 		_combat_state_timer = 0.0
 
-	## Simulate the sniper combat state behavior (Issue #665 fix)
-	## Shoot first if possible, then seek cover only if cover is available.
+	## Simulate the sniper combat state behavior (Issue #665 fix).
+	## Seek cover FIRST if player is close, then shoot.
 	func process_sniper_combat(delta: float) -> void:
 		_combat_state_timer += delta
-		# Shoot at visible player
-		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+		# Issue #665: Seek cover FIRST if player is close
+		if enable_cover and _player_close:
+			if _has_valid_cover:
+				_log("SNIPER: player close, seeking cover")
+				_transition_to_seeking_cover()
+				return
+		# Shoot at visible player (only if bolt ready)
+		if _can_see_player and _detection_delay_elapsed and _sniper_bolt_ready and _shoot_timer >= shoot_cooldown:
 			_log("SNIPER: shooting at visible player")
-			_shoot()
-		# Issue #665: Only seek cover if valid cover exists (prevents COMBAT<->SEEKING_COVER loop)
-		if enable_cover and _has_valid_cover:
-			_log("SNIPER: seeking cover")
-			_transition_to_seeking_cover()
-			return
-		# Fallback: no cover — stay in combat and shoot
-		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log("SNIPER: shooting at visible player")
-			_shoot()
+			if _shoot(): _shoot_timer = 0.0
 
 	## Simulate the sniper in-cover state behavior
-	func process_sniper_in_cover(delta: float) -> void:
-		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+	func process_sniper_in_cover(_delta: float) -> void:
+		if _can_see_player and _detection_delay_elapsed and _sniper_bolt_ready and _shoot_timer >= shoot_cooldown:
 			_log("SNIPER: shooting from cover at visible player")
-			_shoot()
+			if _shoot(): _shoot_timer = 0.0
 
 	func _transition_to_seeking_cover() -> void:
 		_current_state = AIState.SEEKING_COVER
@@ -96,47 +95,49 @@ class MockSniperEnemy:
 		_current_state = AIState.IN_COVER
 		_state_transitions.append("IN_COVER")
 
-	func _shoot() -> void:
+	## Issue #665: _shoot() returns bool to indicate if shot was actually fired.
+	func _shoot() -> bool:
+		if not _sniper_bolt_ready: return false
+		if _is_reloading: return false
+		if _current_ammo <= 0: return false
 		_shots_fired += 1
-		_shoot_timer = 0.0
+		_sniper_bolt_ready = false
+		_sniper_bolt_timer = 0.0
+		_current_ammo -= 1
+		return true
 
 	func _log(msg: String) -> void:
 		_logged_messages.append(msg)
 
 
-## Mock target for testing hitscan damage delivery.
+## Mock target for testing hitscan damage delivery via on_hit_with_bullet_info.
 class MockHitTarget:
 	var name: String = "MockTarget"
 	var damage_received: float = 0.0
 	var hit_direction: Vector2 = Vector2.ZERO
 	var hit_method_called: String = ""
 
-	func on_hit_with_bullet_info_and_damage(direction: Vector2, _caliber, _rico: bool, _pen: bool, damage: float) -> void:
-		hit_method_called = "on_hit_with_bullet_info_and_damage"
-		damage_received = damage
-		hit_direction = direction
-
 	func on_hit_with_bullet_info(direction: Vector2, _caliber, _rico: bool, _pen: bool, damage: float) -> void:
 		hit_method_called = "on_hit_with_bullet_info"
 		damage_received = damage
 		hit_direction = direction
-
-	func has_method(method_name: String) -> bool:
-		return method_name in ["on_hit_with_bullet_info_and_damage", "on_hit_with_bullet_info"]
-
-
-## Mock target that only has the old 4-arg method (simulates pre-fix HitArea).
-class MockOldHitTarget:
-	var name: String = "OldTarget"
-	var damage_received: float = 0.0
-	var hit_method_called: String = ""
-
-	func on_hit_with_bullet_info(direction: Vector2, _caliber, _rico: bool, _pen: bool, damage: float) -> void:
-		hit_method_called = "on_hit_with_bullet_info"
-		damage_received = damage
 
 	func has_method(method_name: String) -> bool:
 		return method_name in ["on_hit_with_bullet_info"]
+
+
+## Mock target that only has take_damage (simulates simplest damage receiver).
+class MockSimpleTarget:
+	var name: String = "SimpleTarget"
+	var damage_received: float = 0.0
+	var hit_method_called: String = ""
+
+	func take_damage(amount: float) -> void:
+		hit_method_called = "take_damage"
+		damage_received = amount
+
+	func has_method(method_name: String) -> bool:
+		return method_name in ["take_damage"]
 
 
 # ============================================================================
@@ -162,42 +163,43 @@ func after_each() -> void:
 # ============================================================================
 
 
-## Regression test: Snipers seek cover when valid cover exists.
-## Bug: Snipers stayed in COMBAT state indefinitely, never seeking cover or shooting.
-## Fix: _process_sniper_combat_state() inlined, seeks cover only when valid cover available.
-func test_sniper_seeks_cover_when_available_issue_665() -> void:
+## Regression test: Snipers seek cover when player is close and cover is available.
+func test_sniper_seeks_cover_when_player_close_issue_665() -> void:
 	sniper.enter_combat()
-	sniper._has_valid_cover = true  # Cover is available
+	sniper._has_valid_cover = true
+	sniper._player_close = true
 	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
 		"Sniper should start in COMBAT state")
-	sniper.process_sniper_combat(0.016)  # One frame
+	sniper.process_sniper_combat(0.016)
 	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.SEEKING_COVER,
-		"Issue #665: Sniper must transition to SEEKING_COVER when valid cover is available")
+		"Issue #665: Sniper must seek cover when player is close")
 
 
 ## Verify the sniper logs the cover-seeking transition.
 func test_sniper_logs_cover_seeking_issue_665() -> void:
 	sniper.enter_combat()
-	sniper._has_valid_cover = true  # Cover is available
+	sniper._has_valid_cover = true
+	sniper._player_close = true
 	sniper.process_sniper_combat(0.016)
 	assert_true(sniper._logged_messages.size() > 0,
 		"Sniper should log the cover-seeking transition")
-	assert_true(sniper._logged_messages[0].contains("seeking cover") or sniper._logged_messages[0].contains("shooting"),
-		"Log should mention seeking cover or shooting")
+	assert_true(sniper._logged_messages[0].contains("seeking cover"),
+		"Log should mention seeking cover")
 
 
-## Snipers shoot at visible player BEFORE seeking cover (shoot-then-cover pattern).
-func test_sniper_shoots_before_seeking_cover_issue_665() -> void:
+## Snipers shoot when player is far (not close enough to trigger cover).
+func test_sniper_shoots_when_player_far_issue_665() -> void:
 	sniper.enter_combat()
 	sniper._can_see_player = true
 	sniper._detection_delay_elapsed = true
 	sniper._shoot_timer = sniper.shoot_cooldown + 1.0
-	sniper._has_valid_cover = true  # Cover is available
+	sniper._player_close = false  # Player is far
+	sniper._has_valid_cover = true
 	sniper.process_sniper_combat(0.016)
 	assert_eq(sniper._shots_fired, 1,
-		"Issue #665: Sniper must shoot at visible player before seeking cover")
-	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.SEEKING_COVER,
-		"Issue #665: Sniper must seek cover after shooting")
+		"Issue #665: Sniper must shoot when player is far away")
+	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
+		"Issue #665: Sniper stays in COMBAT when player is far")
 
 
 ## Snipers with cover disabled should still shoot from current position.
@@ -215,13 +217,14 @@ func test_sniper_shoots_without_cover_issue_665() -> void:
 ## Snipers stay in COMBAT and fight when no cover is available (Issue #665).
 func test_sniper_fights_from_combat_when_no_cover_issue_665() -> void:
 	sniper.enter_combat()
-	sniper._has_valid_cover = false  # No cover available
+	sniper._has_valid_cover = false
 	sniper._can_see_player = true
 	sniper._detection_delay_elapsed = true
 	sniper._shoot_timer = sniper.shoot_cooldown + 1.0
+	sniper._player_close = true  # Even with player close, no cover → stay in COMBAT
 	sniper.process_sniper_combat(0.016)
 	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
-		"Issue #665: Sniper must stay in COMBAT when no cover available (not fake IN_COVER)")
+		"Issue #665: Sniper must stay in COMBAT when no cover available")
 	assert_eq(sniper._shots_fired, 1,
 		"Issue #665: Sniper must shoot at player when no cover available")
 
@@ -232,7 +235,6 @@ func test_sniper_fights_from_combat_when_no_cover_issue_665() -> void:
 
 
 ## Regression test: Weapon config must have is_sniper flag for type 4.
-## This ensures the sniper hitscan path is activated (not projectile path).
 func test_sniper_weapon_config_has_hitscan_flag_issue_665() -> void:
 	var config := WeaponConfigComponent.get_config(4)
 	assert_true(config.get("is_sniper", false),
@@ -240,7 +242,6 @@ func test_sniper_weapon_config_has_hitscan_flag_issue_665() -> void:
 
 
 ## Regression test: Sniper weapon config must NOT have a bullet scene.
-## If a bullet scene is set, the projectile path is used instead of hitscan.
 func test_sniper_weapon_config_no_bullet_scene_issue_665() -> void:
 	var config := WeaponConfigComponent.get_config(4)
 	var bullet_path: String = config.get("bullet_scene_path", "missing")
@@ -257,13 +258,9 @@ func test_sniper_weapon_config_hitscan_range_issue_665() -> void:
 
 
 ## Verify the tracer spawn function creates a proper Line2D with two distinct points.
-## Bug was: tracer had start ≈ end (zero-length) due to self-collision.
 func test_sniper_tracer_created_with_distinct_points_issue_665() -> void:
-	# Verify tracer points are different when start != end
 	var start := Vector2(100, 200)
 	var end_pos := Vector2(5100, 200)
-	# We can't call spawn_tracer without a SceneTree, but we can verify
-	# the tracer would have distinct points by checking the distance
 	assert_gt(start.distance_to(end_pos), 0.0,
 		"Issue #665 Bug 2: Tracer start and end must be different positions")
 
@@ -274,8 +271,6 @@ func test_sniper_tracer_created_with_distinct_points_issue_665() -> void:
 
 
 ## Regression test: Sniper hitscan damage should be 50, not 1.
-## Bug: HitArea forwarded only 4 args to Player, Player.on_hit_with_info
-## hardcoded TakeDamage(1) instead of using actual hitscan_damage (50).
 func test_sniper_weapon_config_hitscan_damage_issue_665() -> void:
 	var config := WeaponConfigComponent.get_config(4)
 	var damage: float = config.get("hitscan_damage", 0.0)
@@ -283,41 +278,37 @@ func test_sniper_weapon_config_hitscan_damage_issue_665() -> void:
 		"Issue #665 Bug 3: SNIPER hitscan_damage must be 50, not 1")
 
 
-## Regression test: on_hit_with_bullet_info_and_damage is tried first.
-## This ensures the 5-argument method is preferred over the 4-argument one
-## so that damage passes correctly through the HitArea -> Player chain.
-func test_hitscan_prefers_damage_method_issue_665() -> void:
+## Regression test: Damage delivery uses on_hit_with_bullet_info with damage param.
+func test_hitscan_delivers_damage_via_bullet_info_issue_665() -> void:
 	var target := MockHitTarget.new()
-	# Simulate the damage delivery logic from SniperComponent.perform_hitscan
 	var direction := Vector2.LEFT
 	var damage := 50.0
-	if target.has_method("on_hit_with_bullet_info_and_damage"):
-		target.on_hit_with_bullet_info_and_damage(direction, null, false, false, damage)
-	elif target.has_method("on_hit_with_bullet_info"):
+	if target.has_method("on_hit_with_bullet_info"):
 		target.on_hit_with_bullet_info(direction, null, false, false, damage)
-	assert_eq(target.hit_method_called, "on_hit_with_bullet_info_and_damage",
-		"Issue #665 Bug 3: Hitscan must prefer on_hit_with_bullet_info_and_damage method")
-	assert_almost_eq(target.damage_received, 50.0, 0.001,
-		"Issue #665 Bug 3: Target must receive full hitscan damage (50)")
-
-
-## Regression test: Damage delivery works even with old-style target.
-func test_hitscan_fallback_to_bullet_info_issue_665() -> void:
-	var target := MockOldHitTarget.new()
-	var direction := Vector2.LEFT
-	var damage := 50.0
-	if target.has_method("on_hit_with_bullet_info_and_damage"):
-		target.on_hit_with_bullet_info_and_damage(direction, null, false, false, damage)
-	elif target.has_method("on_hit_with_bullet_info"):
-		target.on_hit_with_bullet_info(direction, null, false, false, damage)
+	elif target.has_method("take_damage"):
+		target.take_damage(damage)
 	assert_eq(target.hit_method_called, "on_hit_with_bullet_info",
-		"Hitscan should fall back to on_hit_with_bullet_info when _and_damage variant unavailable")
+		"Issue #665: Hitscan must use on_hit_with_bullet_info for damage delivery")
 	assert_almost_eq(target.damage_received, 50.0, 0.001,
-		"Target must receive full damage even through fallback method")
+		"Issue #665: Target must receive full hitscan damage (50)")
+
+
+## Regression test: Damage delivery works with simple take_damage target.
+func test_hitscan_fallback_to_take_damage_issue_665() -> void:
+	var target := MockSimpleTarget.new()
+	var direction := Vector2.LEFT
+	var damage := 50.0
+	if target.has_method("on_hit_with_bullet_info"):
+		target.on_hit_with_bullet_info(direction, null, false, false, damage)
+	elif target.has_method("take_damage"):
+		target.take_damage(damage)
+	assert_eq(target.hit_method_called, "take_damage",
+		"Hitscan should fall back to take_damage when bullet_info unavailable")
+	assert_almost_eq(target.damage_received, 50.0, 0.001,
+		"Target must receive full damage through take_damage fallback")
 
 
 ## Regression test: Player.cs must have on_hit_with_bullet_info method.
-## This method is critical for receiving proper hitscan damage.
 func test_player_has_bullet_info_method_issue_665() -> void:
 	var file := FileAccess.open("res://Scripts/Characters/Player.cs", FileAccess.READ)
 	if file == null:
@@ -327,32 +318,27 @@ func test_player_has_bullet_info_method_issue_665() -> void:
 	var source := file.get_as_text()
 	file.close()
 	assert_true(source.contains("on_hit_with_bullet_info"),
-		"Issue #665 Bug 3: Player.cs must have on_hit_with_bullet_info method for hitscan damage")
-	# Verify the method accepts a damage parameter
+		"Issue #665: Player.cs must have on_hit_with_bullet_info method for hitscan damage")
 	assert_true(source.contains("float damage"),
-		"Issue #665 Bug 3: Player.on_hit_with_bullet_info must accept damage parameter")
-	# Verify it calls TakeDamage with the damage parameter
+		"Issue #665: Player.on_hit_with_bullet_info must accept damage parameter")
 	assert_true(source.contains("TakeDamage(damage)"),
-		"Issue #665 Bug 3: Player.on_hit_with_bullet_info must call TakeDamage(damage), not TakeDamage(1)")
+		"Issue #665: Player.on_hit_with_bullet_info must call TakeDamage(damage)")
 
 
-## Regression test: SniperComponent.perform_hitscan must check for
-## on_hit_with_bullet_info_and_damage before on_hit_with_bullet_info.
-func test_sniper_component_damage_method_order_issue_665() -> void:
+## Regression test: Hitscan uses on_hit_with_bullet_info for damage delivery.
+func test_sniper_component_damage_method_issue_665() -> void:
 	var file := FileAccess.open("res://scripts/components/sniper_component.gd", FileAccess.READ)
 	if file == null:
-		gut.p("Cannot open sniper_component.gd for source analysis — skipping (export build)")
+		gut.p("Cannot open sniper_component.gd — skipping (export build)")
 		pass_test("Skipped in export build")
 		return
 	var source := file.get_as_text()
 	file.close()
-	var and_damage_pos := source.find("on_hit_with_bullet_info_and_damage")
-	var bullet_info_pos := source.find("on_hit_with_bullet_info")
-	assert_gt(and_damage_pos, 0,
-		"SniperComponent must try on_hit_with_bullet_info_and_damage")
-	# The _and_damage variant must appear BEFORE the fallback in the if/elif chain
-	assert_lt(and_damage_pos, bullet_info_pos,
-		"Issue #665 Bug 3: on_hit_with_bullet_info_and_damage must be checked BEFORE on_hit_with_bullet_info")
+	assert_true(source.contains("on_hit_with_bullet_info"),
+		"SniperComponent must use on_hit_with_bullet_info for damage delivery")
+	# Hitscan should skip enemy layer (layer 2) to avoid hitting friendlies
+	assert_true(source.contains("combined_mask := 4 + 1"),
+		"Issue #665: Hitscan mask must be 5 (layers 1+3), skipping enemy layer 2")
 
 
 # ============================================================================
@@ -396,11 +382,7 @@ func test_sniper_shoot_cooldown() -> void:
 
 ## Snipers should not pursue the player (they hold position).
 func test_sniper_does_not_pursue() -> void:
-	# The _transition_to_pursuing in enemy.gd checks _is_sniper and redirects
-	# to SEEKING_COVER or COMBAT. We verify this behavior here.
 	sniper._has_valid_cover = true
-	# Simulating transition_to_pursuing for a sniper:
-	# if _is_sniper: if _has_valid_cover: _transition_to_seeking_cover()
 	if sniper._is_sniper:
 		if sniper._has_valid_cover:
 			sniper._transition_to_seeking_cover()
@@ -422,33 +404,59 @@ func test_sniper_without_cover_does_not_pursue() -> void:
 		"Snipers without cover should go to combat instead of pursuing")
 
 
-## Bolt-action cycling prevents rapid fire.
+## Bolt-action cycling prevents rapid fire (Issue #665 bug 4).
 func test_sniper_bolt_action_prevents_rapid_fire() -> void:
 	sniper._sniper_bolt_ready = false
 	sniper._sniper_bolt_timer = 0.0
-	# Can't shoot while bolt is cycling
 	var can_shoot := sniper._sniper_bolt_ready and not sniper._is_reloading and sniper._current_ammo > 0
-	assert_false(can_shoot, "Sniper should not be able to shoot while bolt is cycling")
-	# After bolt cycle time elapses
+	assert_false(can_shoot, "Sniper should not shoot while bolt is cycling")
 	sniper._sniper_bolt_timer = SniperComponent.BOLT_CYCLE_TIME + 0.1
 	sniper._sniper_bolt_ready = sniper._sniper_bolt_timer >= SniperComponent.BOLT_CYCLE_TIME
 	can_shoot = sniper._sniper_bolt_ready and not sniper._is_reloading and sniper._current_ammo > 0
-	assert_true(can_shoot, "Sniper should be able to shoot after bolt cycle completes")
+	assert_true(can_shoot, "Sniper should shoot after bolt cycle completes")
+
+
+## Issue #665 bug 5: _shoot() must return false when shot is blocked.
+## Callers only reset _shoot_timer when _shoot() returns true.
+func test_shoot_returns_false_when_bolt_not_ready() -> void:
+	sniper._sniper_bolt_ready = false
+	var result := sniper._shoot()
+	assert_false(result, "Issue #665: _shoot() must return false when bolt not ready")
+	assert_eq(sniper._shots_fired, 0, "No shot should be fired when bolt not ready")
+
+
+## Issue #665: _shoot() returns true and resets bolt on successful fire.
+func test_shoot_returns_true_and_resets_bolt() -> void:
+	sniper._sniper_bolt_ready = true
+	sniper._current_ammo = 5
+	var result := sniper._shoot()
+	assert_true(result, "Issue #665: _shoot() must return true on successful fire")
+	assert_eq(sniper._shots_fired, 1, "Shot should be fired")
+	assert_false(sniper._sniper_bolt_ready, "Bolt must not be ready after firing")
+
+
+## Issue #665: Shoot timer only resets on successful shot.
+func test_shoot_timer_not_wasted_on_failed_shot() -> void:
+	sniper.enter_combat()
+	sniper._can_see_player = true
+	sniper._detection_delay_elapsed = true
+	sniper._shoot_timer = 4.0  # Above cooldown
+	sniper._sniper_bolt_ready = false  # Bolt not ready — shot will fail
+	sniper.process_sniper_combat(0.016)
+	assert_eq(sniper._shoot_timer, 4.0,
+		"Issue #665: _shoot_timer must not reset when shot fails (bolt not ready)")
+	assert_eq(sniper._shots_fired, 0, "No shot should fire when bolt not ready")
 
 
 # ============================================================================
-# Issue #665 Round 3: Cover Validation and Hitscan Muzzle Fix
+# Issue #665 Round 3+4: Cover Validation and Hitscan Fixes
 # ============================================================================
 
 
 ## Issue #665: Sniper must not enter fake IN_COVER when no cover is found.
-## Bug: When _find_cover_position() failed, sniper set _cover_position = global_position
-## and entered IN_COVER while fully exposed to the player.
 func test_sniper_no_fake_cover_when_cover_unavailable_issue_665() -> void:
 	sniper.enter_combat()
 	sniper._has_valid_cover = false
-	# Simulate what _process_seeking_cover_state does when no cover found:
-	# Issue #665 fix: transition to COMBAT (not fake IN_COVER)
 	if not sniper._has_valid_cover:
 		sniper._transition_to_combat()
 	assert_eq(sniper.get_current_state(), MockSniperEnemy.AIState.COMBAT,
@@ -456,9 +464,6 @@ func test_sniper_no_fake_cover_when_cover_unavailable_issue_665() -> void:
 
 
 ## Issue #665: Hitscan must check if muzzle is behind a wall.
-## Bug: When sniper muzzle was inside/behind a wall, hitscan started inside
-## the wall and hit_from_inside=true caused it to immediately collide,
-## resulting in zero-length tracer and no damage.
 func test_hitscan_muzzle_wall_check_in_source_issue_665() -> void:
 	var file := FileAccess.open("res://scripts/components/sniper_component.gd", FileAccess.READ)
 	if file == null:
@@ -467,13 +472,11 @@ func test_hitscan_muzzle_wall_check_in_source_issue_665() -> void:
 		return
 	var source := file.get_as_text()
 	file.close()
-	# The fix adds a raycast from enemy center to spawn_pos to detect walls
 	assert_true(source.contains("muzzle_check") or source.contains("actual_start"),
 		"Issue #665: perform_hitscan must check if muzzle is behind a wall")
 
 
 ## Issue #665: SniperComponent must NOT have dead process_combat_state method.
-## The old static methods used enemy.call() which fails in exported builds.
 func test_sniper_component_no_dead_code_issue_665() -> void:
 	var file := FileAccess.open("res://scripts/components/sniper_component.gd", FileAccess.READ)
 	if file == null:
@@ -483,6 +486,19 @@ func test_sniper_component_no_dead_code_issue_665() -> void:
 	var source := file.get_as_text()
 	file.close()
 	assert_false(source.contains("func process_combat_state"),
-		"Issue #665: Dead process_combat_state must be removed (used enemy.call() which fails)")
+		"Issue #665: Dead process_combat_state must be removed")
 	assert_false(source.contains("func process_in_cover_state"),
-		"Issue #665: Dead process_in_cover_state must be removed (used enemy.call() which fails)")
+		"Issue #665: Dead process_in_cover_state must be removed")
+
+
+## Issue #665: Hitscan hit_from_inside must be false to avoid wall self-collision.
+func test_hitscan_no_hit_from_inside_issue_665() -> void:
+	var file := FileAccess.open("res://scripts/components/sniper_component.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open sniper_component.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("hit_from_inside = false"),
+		"Issue #665: Hitscan must use hit_from_inside=false to prevent wall self-collision")

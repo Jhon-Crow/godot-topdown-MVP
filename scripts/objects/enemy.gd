@@ -3006,9 +3006,9 @@ func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Ve
 
 ## Check if the enemy should shoot at the target (bullet spawn, friendly fire, cover).
 func _should_shoot_at_target(target_position: Vector2) -> bool:
-	# Snipers shoot through walls (hitscan with wall penetration), skip obstacle checks
+	# Snipers shoot through walls AND enemies (hitscan with penetration), skip all obstacle checks
 	if _is_sniper:
-		return _is_firing_line_clear_of_friendlies(target_position)
+		return true
 	# Check path to bullet spawn is clear (prevents shooting into walls; uses weapon forward)
 	var weapon_direction := _get_weapon_forward_direction()
 	if not _is_bullet_spawn_clear(weapon_direction): return false
@@ -3828,16 +3828,17 @@ func _aim_at_player() -> void:
 		rotation -= rotation_speed * delta
 
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
-func _shoot() -> void:
-	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
-	if _player == null: return
-	if not _is_sniper and bullet_scene == null: return
-	if not _can_shoot(): return
+## Returns true if shot was actually fired (Issue #665: callers must check to avoid wasting cooldown).
+func _shoot() -> bool:
+	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return true
+	if _player == null: return false
+	if not _is_sniper and bullet_scene == null: return false
+	if not _can_shoot(): return false
 	var target_position := _player.global_position
 	if _is_sniper and not _can_see_player and _memory and _memory.has_target():
 		target_position = _memory.suspected_position
 	if enable_lead_prediction: target_position = _calculate_lead_prediction()
-	if not _should_shoot_at_target(target_position): return
+	if not _should_shoot_at_target(target_position): return false
 	var weapon_forward := _get_weapon_forward_direction()
 	var aim_check_dir := Vector2.from_angle(rotation) if _is_sniper else weapon_forward
 	var bullet_spawn_pos := _get_bullet_spawn_position(aim_check_dir if _is_sniper else weapon_forward)
@@ -3847,7 +3848,7 @@ func _shoot() -> void:
 		if debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
-		return
+		return false
 	var direction := aim_check_dir if _is_sniper else weapon_forward
 	if _is_sniper:
 		var spread_deg := _calculate_sniper_spread(direction)
@@ -3869,6 +3870,7 @@ func _shoot() -> void:
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+	return true
 
 ## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
 func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
@@ -4938,21 +4940,26 @@ func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 func _process_sniper_combat_state(delta: float) -> void:
 	_combat_state_timer += delta; velocity = Vector2.ZERO
 	_sniper_update_detection(delta)
+	# Issue #665: Seek cover FIRST if player is close (within 1 viewport)
+	if enable_cover and _player:
+		var dp := global_position.distance_to(_player.global_position)
+		if dp < get_viewport_rect().size.length():
+			if not _has_valid_cover: _find_cover_position()
+			if _has_valid_cover:
+				_log_to_file("SNIPER: player close (%.0f), seeking cover" % dp)
+				_transition_to_seeking_cover(); return
 	if _can_see_player and _player:
 		_aim_at_player()
-		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting at visible player"); _shoot(); _shoot_timer = 0.0
+		if _detection_delay_elapsed and _sniper_bolt_ready and _shoot_timer >= shoot_cooldown:
+			_log_to_file("SNIPER: shooting at visible player")
+			if _shoot(): _shoot_timer = 0.0
 	elif not _can_see_player and _memory and _memory.has_target():
 		var suspected_pos: Vector2 = _memory.suspected_position
 		var walls := SniperComponent.count_walls(self, suspected_pos)
 		SniperComponent._rotate_toward(self, suspected_pos)
-		if walls <= _sniper_max_wall_penetrations and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting through %d walls" % walls); _shoot(); _shoot_timer = 0.0
-	# Issue #665: Only seek cover if not already tried and failed (prevents COMBAT<->SEEKING_COVER loop)
-	if enable_cover and _has_valid_cover: _log_to_file("SNIPER: seeking cover"); _transition_to_seeking_cover(); return
-	if enable_cover and not _has_valid_cover:
-		_find_cover_position()
-		if _has_valid_cover: _log_to_file("SNIPER: found cover, moving"); _transition_to_seeking_cover(); return
+		if walls <= _sniper_max_wall_penetrations and _detection_delay_elapsed and _sniper_bolt_ready and _shoot_timer >= shoot_cooldown:
+			_log_to_file("SNIPER: shooting through %d walls" % walls)
+			if _shoot(): _shoot_timer = 0.0
 	if not _can_see_player and _combat_state_timer > 5.0: _transition_to_searching(global_position)
 
 ## Sniper IN_COVER state: stay in cover and shoot at player (Issue #665).
@@ -4969,16 +4976,18 @@ func _process_sniper_in_cover_state(delta: float) -> void:
 			_log_to_file("SNIPER: player too close (%.0f), re-seeking cover" % dist); _transition_to_seeking_cover(); return
 	if _can_see_player and _player:
 		_aim_at_player()
-		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_log_to_file("SNIPER: shooting from cover"); _shoot(); _shoot_timer = 0.0
+		if _detection_delay_elapsed and _sniper_bolt_ready and _shoot_timer >= shoot_cooldown:
+			_log_to_file("SNIPER: shooting from cover")
+			if _shoot(): _shoot_timer = 0.0
 		return
 	if _memory and _memory.has_target():
 		var suspected_pos: Vector2 = _memory.suspected_position
 		var walls := SniperComponent.count_walls(self, suspected_pos)
 		if walls <= _sniper_max_wall_penetrations and walls > 0:
 			SniperComponent._rotate_toward(self, suspected_pos)
-			if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-				_log_to_file("SNIPER: shooting through %d walls from cover" % walls); _shoot(); _shoot_timer = 0.0
+			if _detection_delay_elapsed and _sniper_bolt_ready and _shoot_timer >= shoot_cooldown:
+				_log_to_file("SNIPER: shooting through %d walls from cover" % walls)
+				if _shoot(): _shoot_timer = 0.0
 
 ## Update sniper detection delay timer (shared by combat and cover states).
 func _sniper_update_detection(delta: float) -> void:
