@@ -999,9 +999,7 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Updates the walking animation based on enemy movement state.
-## Creates a natural bobbing motion for body parts during movement.
-## @param delta: Time since last frame.
+## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
 	if is_moving:
@@ -2839,9 +2837,7 @@ func _is_player_point_visible_to_enemy(point: Vector2) -> bool:
 
 	return true
 
-## Calculate what fraction of the player's body is visible to the enemy.
-## Returns a value from 0.0 (completely hidden) to 1.0 (fully visible).
-## Checks multiple points on the player's body (center + corners).
+## Calculate player body visibility fraction (0.0=hidden, 1.0=visible) using multi-point checks.
 func _calculate_player_visibility_ratio() -> float:
 	if _player == null:
 		return 0.0
@@ -3493,9 +3489,7 @@ func _find_flank_cover_toward_target() -> void:
 	else:
 		_has_flank_cover = false
 
-## Check if there's a wall ahead in the given direction and return avoidance direction.
-## Returns Vector2.ZERO if no wall detected, otherwise returns a vector to avoid the wall.
-## Enhanced version uses 8 raycasts with distance-weighted avoidance for better navigation.
+## Check for wall ahead and return avoidance direction (Vector2.ZERO if clear). Uses 8 distance-weighted raycasts.
 func _check_wall_ahead(direction: Vector2) -> Vector2:
 	if _wall_raycasts.is_empty():
 		return Vector2.ZERO
@@ -3612,6 +3606,10 @@ func _check_player_visibility() -> void:
 		return
 
 	if _player == null or not _raycast:
+		_continuous_visibility_timer = 0.0
+		return
+	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
+	if _player.has_method("is_invisible") and _player.is_invisible():
 		_continuous_visibility_timer = 0.0
 		return
 
