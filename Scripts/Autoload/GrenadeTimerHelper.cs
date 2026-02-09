@@ -13,7 +13,7 @@ namespace GodotTopdown.Scripts.Autoload
     /// Usage from GDScript:
     ///   var helper = get_node_or_null("/root/GrenadeTimerHelper")
     ///   if helper:
-    ///       helper.attach_grenade_timer(grenade, "Frag")  # or "Flashbang"
+    ///       helper.attach_grenade_timer(grenade, "Frag")  # or "Flashbang" or "AggressionGas"
     ///       helper.activate_timer(grenade)
     ///       helper.mark_as_thrown(grenade)
     /// </summary>
@@ -30,7 +30,7 @@ namespace GodotTopdown.Scripts.Autoload
         /// Call this from GDScript immediately after instantiating a grenade.
         /// </summary>
         /// <param name="grenade">The grenade RigidBody2D to attach the timer to.</param>
-        /// <param name="grenadeType">Type of grenade: "Frag" or "Flashbang".</param>
+        /// <param name="grenadeType">Type of grenade: "Frag", "Flashbang", or "AggressionGas".</param>
         public void AttachGrenadeTimer(RigidBody2D grenade, string grenadeType)
         {
             if (grenade == null)
@@ -48,9 +48,14 @@ namespace GodotTopdown.Scripts.Autoload
             }
 
             // Determine grenade type
-            var type = grenadeType.ToLower().Contains("frag")
-                ? GrenadeTimer.GrenadeType.Frag
-                : GrenadeTimer.GrenadeType.Flashbang;
+            GrenadeTimer.GrenadeType type;
+            var lowerType = grenadeType.ToLower();
+            if (lowerType.Contains("frag"))
+                type = GrenadeTimer.GrenadeType.Frag;
+            else if (lowerType.Contains("aggression"))
+                type = GrenadeTimer.GrenadeType.AggressionGas;
+            else
+                type = GrenadeTimer.GrenadeType.Flashbang;
 
             // Create and configure the GrenadeTimer component
             var timer = new GrenadeTimer();

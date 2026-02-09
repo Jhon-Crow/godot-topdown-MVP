@@ -4821,7 +4821,7 @@ func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
 func _setup_aggression_component() -> void:  ## [Issue #675]
 	_aggression = AggressionComponent.new(); _aggression.name = "AggressionComponent"; add_child(_aggression)
-	_aggression.aggression_changed.connect(func(a): if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
+	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
 func set_aggressive(a: bool) -> void: if _aggression: _aggression.set_aggressive(a)
 func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggressive()
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.

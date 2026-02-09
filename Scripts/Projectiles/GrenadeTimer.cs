@@ -13,6 +13,7 @@ namespace GodotTopdown.Scripts.Projectiles
     /// whether GDScript is executing properly. It handles:
     /// - Timer-based explosion (Flashbang grenades)
     /// - Impact-based explosion (Frag grenades)
+    /// - Timer-based gas release (AggressionGas grenades — defers to GDScript)
     /// - Explosion effects and damage
     /// </summary>
     [GlobalClass]
@@ -22,11 +23,13 @@ namespace GodotTopdown.Scripts.Projectiles
         /// The grenade type determines explosion behavior.
         /// Flashbang: Timer-based (4 seconds after activation)
         /// Frag: Impact-based (explodes on contact with walls/enemies)
+        /// AggressionGas: Timer-based (4 seconds), defers to GDScript for gas cloud spawning
         /// </summary>
         public enum GrenadeType
         {
             Flashbang,
-            Frag
+            Frag,
+            AggressionGas
         }
 
         [Export]
@@ -93,6 +96,8 @@ namespace GodotTopdown.Scripts.Projectiles
         private const float DefaultFlashbangEffectRadius = 400.0f; // From FlashbangGrenade.tscn
         private const float DefaultFragGroundFriction = 280.0f;  // From FragGrenade.tscn
         private const float DefaultFlashbangGroundFriction = 300.0f; // From FlashbangGrenade.tscn
+        private const float DefaultAggressionGasEffectRadius = 300.0f; // From AggressionGasGrenade.tscn
+        private const float DefaultAggressionGasGroundFriction = 300.0f; // From AggressionGasGrenade.tscn
 
         /// <summary>
         /// Track whether type-based defaults have been applied.
@@ -125,6 +130,17 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     GroundFriction = DefaultFragGroundFriction;
                 }
+            }
+            else if (Type == GrenadeType.AggressionGas)
+            {
+                // AggressionGas grenade defaults (from AggressionGasGrenade.tscn)
+                // FIX for Issue #675: Gas grenade has 300px radius (not 400 like flashbang)
+                if (EffectRadius >= 400.0f - 0.01f)
+                {
+                    EffectRadius = DefaultAggressionGasEffectRadius;
+                    LogToFile($"[GrenadeTimer] Applied AggressionGas default effect_radius: {EffectRadius}");
+                }
+                GroundFriction = DefaultAggressionGasGroundFriction;
             }
             else
             {
@@ -190,13 +206,13 @@ namespace GodotTopdown.Scripts.Projectiles
                 ApplyGroundFriction((float)delta);
             }
 
-            // Timer countdown for Flashbang grenades
-            if (IsTimerActive && Type == GrenadeType.Flashbang)
+            // Timer countdown for Flashbang and AggressionGas grenades (both are timer-based)
+            if (IsTimerActive && (Type == GrenadeType.Flashbang || Type == GrenadeType.AggressionGas))
             {
                 _timeRemaining -= (float)delta;
                 if (_timeRemaining <= 0)
                 {
-                    LogToFile("[GrenadeTimer] Timer expired - EXPLODING!");
+                    LogToFile($"[GrenadeTimer] Timer expired for {Type} grenade!");
                     Explode();
                     return;
                 }
@@ -224,8 +240,8 @@ namespace GodotTopdown.Scripts.Projectiles
                     }
                     else
                     {
-                        // Flashbang grenades emit landing sound for enemy awareness (Issue #432)
-                        LogToFile($"[GrenadeTimer] Flashbang grenade landed at {_grenadeBody.GlobalPosition}");
+                        // Flashbang and AggressionGas grenades emit landing sound for enemy awareness
+                        LogToFile($"[GrenadeTimer] {Type} grenade landed at {_grenadeBody.GlobalPosition}");
                         EmitGrenadeLandingSound(_grenadeBody.GlobalPosition);
                     }
                 }
@@ -330,29 +346,42 @@ namespace GodotTopdown.Scripts.Projectiles
                 return;
 
             Vector2 explosionPosition = _grenadeBody.GlobalPosition;
-            LogToFile($"[GrenadeTimer] EXPLODED at {explosionPosition}!");
+            LogToFile($"[GrenadeTimer] {Type} grenade activated at {explosionPosition}!");
 
             // Apply explosion effects based on type
             if (Type == GrenadeType.Frag)
             {
                 ApplyFragExplosion(explosionPosition);
+                // Play explosion sound
+                PlayExplosionSound(explosionPosition);
+                // Spawn visual effect
+                SpawnExplosionEffect(explosionPosition);
+                // Scatter shell casings
+                ScatterCasings(explosionPosition);
+                // Destroy the grenade
+                _grenadeBody.QueueFree();
+            }
+            else if (Type == GrenadeType.AggressionGas)
+            {
+                // FIX for Issue #675: AggressionGas does NOT explode like flashbang.
+                // GDScript _explode() handles gas cloud spawning, sound, and cleanup.
+                // C# only marks HasExploded=true to prevent double-activation.
+                // No flashbang effects, no explosion visual, no casing scatter.
+                LogToFile("[GrenadeTimer] AggressionGas grenade - deferring to GDScript for gas release");
+                // Do NOT call QueueFree — GDScript _explode() handles cleanup with delay
             }
             else
             {
                 ApplyFlashbangExplosion(explosionPosition);
+                // Play explosion sound
+                PlayExplosionSound(explosionPosition);
+                // Spawn visual effect
+                SpawnExplosionEffect(explosionPosition);
+                // Scatter shell casings
+                ScatterCasings(explosionPosition);
+                // Destroy the grenade
+                _grenadeBody.QueueFree();
             }
-
-            // Play explosion sound
-            PlayExplosionSound(explosionPosition);
-
-            // Spawn visual effect
-            SpawnExplosionEffect(explosionPosition);
-
-            // Scatter shell casings
-            ScatterCasings(explosionPosition);
-
-            // Destroy the grenade
-            _grenadeBody.QueueFree();
         }
 
         /// <summary>

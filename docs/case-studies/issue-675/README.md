@@ -130,8 +130,33 @@ The repo owner (Jhon-Crow) identified several visual/behavioral issues in the in
 ### Timeline
 
 1. Initial implementation: Green gas cloud, green tints, explosion-like behavior
-2. Owner review: Identified visual/behavioral issues
-3. Fix: Reddish color scheme, distinct canister sprite, gas-release behavior (no explosion)
+2. Owner feedback #1: Visual colors should be reddish, not green
+3. Fix iteration #1: Reddish color scheme, distinct canister sprite, gas-release behavior
+4. Owner feedback #2 (2026-02-09): Grenade still explodes like flashbang, applies blindness/stun instead of aggression. Requested specific anger mark icon for aggression status
+5. Root cause analysis: C# `GrenadeTimer.cs` only knows `Flashbang` and `Frag` types — AggressionGas defaults to Flashbang behavior
+6. Fix iteration #2: Added `AggressionGas` enum to C# GrenadeTimer, Player.cs, and GrenadeTimerHelper.cs. C# defers to GDScript for gas release. Added anger mark animation to StatusEffectAnimationComponent
+
+### Root Cause Analysis (Bug: Grenade Acts Like Flashbang)
+
+**Symptom**: AggressionGasGrenade explodes with flashbang visual, applies blindness (12s) and stun (6s) instead of spawning gas cloud.
+
+**Evidence from game logs** (`game_log_20260209_040549.txt`, `game_log_20260209_040720.txt`):
+```
+[GrenadeTimer] Applying flashbang effects (radius: 400, blindness: 12s, stun: 6s)
+[FlashbangStatus] Flashbang: blind=8.3s, stun=4.2s
+[GrenadeTimer] Applied flashbang to enemy at distance 122.6 (intensity: 0.69)
+[GrenadeTimer] Spawned shadow-enabled flashbang effect at (597.77, 682.29)
+```
+No aggression-related log entries present.
+
+**Root cause chain**:
+1. `Player.cs:AddGrenadeTimerComponent()` (line 2940-2946) determines grenade type from scene path: checks only for "Frag", defaults everything else to `Flashbang`
+2. `AggressionGasGrenade.tscn` scene path = `res://scenes/projectiles/AggressionGasGrenade.tscn` — does NOT contain "Frag"
+3. C# `GrenadeTimer` enum only had `Flashbang` and `Frag` (no `AggressionGas`)
+4. `GrenadeTimer.Explode()` (line 336-343): `if Frag → ApplyFragExplosion() else → ApplyFlashbangExplosion()`
+5. Result: AggressionGas is treated as Flashbang in every C# code path
+
+**Architecture lesson**: The hybrid C#/GDScript system (C# as export fallback, GDScript for gameplay) requires ALL grenade types to be registered in BOTH languages. The C# code was designed for 2 types and wasn't extensible by default.
 
 ## Online Research
 
@@ -153,5 +178,9 @@ seen in games like:
 | `scenes/projectiles/AggressionGasGrenade.tscn` | New grenade scene |
 | `assets/sprites/weapons/aggression_gas_grenade.png` | Dark red canister sprite (distinct from flashbang) |
 | `scripts/autoload/status_effects_manager.gd` | Add aggression effect with reddish tint |
-| `scripts/objects/enemy.gd` | Minimal aggression integration (delegates to component) |
+| `scripts/objects/enemy.gd` | Minimal aggression integration (delegates to component), connect animation |
 | `scripts/autoload/grenade_manager.gd` | Register new grenade type |
+| `Scripts/Projectiles/GrenadeTimer.cs` | **FIX**: Add `AggressionGas` type, defer to GDScript for gas release |
+| `Scripts/Characters/Player.cs` | **FIX**: Detect "Aggression" in scene path for correct C# type |
+| `Scripts/Autoload/GrenadeTimerHelper.cs` | **FIX**: Handle "AggressionGas" type string |
+| `scripts/components/status_effect_animation_component.gd` | Add anger mark animation for aggression status (Issue #675) |
