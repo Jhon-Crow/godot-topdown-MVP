@@ -11,9 +11,9 @@ extends GutTest
 
 
 func test_active_item_type_teleport_bracers_value() -> void:
-	# ActiveItemType.TELEPORT_BRACERS should be 2
-	var expected := 2
-	assert_eq(expected, 2, "TELEPORT_BRACERS should be the third active item type (2)")
+	# ActiveItemType.TELEPORT_BRACERS should be 3
+	var expected := 3
+	assert_eq(expected, 3, "TELEPORT_BRACERS should be the fourth active item type (3)")
 
 
 # ============================================================================
@@ -65,8 +65,9 @@ class MockActiveItemManager:
 	const ActiveItemType := {
 		NONE = 0,
 		FLASHLIGHT = 1,
-		TELEPORT_BRACERS = 2,
-		BFF_PENDANT = 3
+		HOMING_BULLETS = 2,
+		TELEPORT_BRACERS = 3,
+		BFF_PENDANT = 4
 	}
 
 	## Currently selected active item type
@@ -85,11 +86,16 @@ class MockActiveItemManager:
 			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
 		},
 		2: {
+			"name": "Homing Bullets",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+		},
+		3: {
 			"name": "Teleport Bracers",
 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
 		},
-		3: {
+		4: {
 			"name": "BFF Pendant",
 			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
 			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
@@ -150,6 +156,10 @@ class MockActiveItemManager:
 	func has_flashlight() -> bool:
 		return current_active_item == ActiveItemType.FLASHLIGHT
 
+	## Check if homing bullets are currently equipped
+	func has_homing_bullets() -> bool:
+		return current_active_item == ActiveItemType.HOMING_BULLETS
+
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
@@ -181,7 +191,7 @@ func test_default_active_item_is_none() -> void:
 
 
 func test_teleport_bracers_not_selected_by_default() -> void:
-	assert_false(manager.is_selected(2),
+	assert_false(manager.is_selected(3),
 		"Teleport Bracers should not be selected by default")
 
 
@@ -196,19 +206,19 @@ func test_no_teleport_bracers_by_default() -> void:
 
 
 func test_set_active_item_to_teleport_bracers() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_eq(manager.current_active_item, 2,
 		"Active item type should change to TELEPORT_BRACERS")
 
 
 func test_set_teleport_bracers_emits_change() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_eq(manager.type_changed_count, 1,
 		"Type change should increment counter")
 
 
 func test_set_teleport_bracers_triggers_restart_by_default() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_true(manager.last_restart_called,
 		"Level restart should be triggered by default")
 
@@ -220,20 +230,20 @@ func test_set_teleport_bracers_without_restart() -> void:
 
 
 func test_has_teleport_bracers_after_selection() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_true(manager.has_teleport_bracers(),
 		"has_teleport_bracers should return true after selecting bracers")
 
 
 func test_no_teleport_bracers_after_deselection() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	manager.set_active_item(0)
 	assert_false(manager.has_teleport_bracers(),
 		"has_teleport_bracers should return false after switching back to none")
 
 
 func test_no_flashlight_when_teleport_bracers_selected() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_false(manager.has_flashlight(),
 		"has_flashlight should return false when bracers are selected")
 
@@ -250,18 +260,19 @@ func test_no_teleport_bracers_when_flashlight_selected() -> void:
 
 
 func test_get_active_item_data_teleport_bracers() -> void:
-	var data := manager.get_active_item_data(2)
+	var data := manager.get_active_item_data(3)
 	assert_eq(data["name"], "Teleport Bracers")
 
 
 func test_get_all_active_item_types_includes_teleport_bracers() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 4,
-		"Should return 4 active item types")
+	assert_eq(types.size(), 5,
+		"Should return 5 active item types")
 	assert_true(0 in types, "Should have NONE")
 	assert_true(1 in types, "Should have FLASHLIGHT")
-	assert_true(2 in types, "Should have TELEPORT_BRACERS")
-	assert_true(3 in types, "Should have BFF_PENDANT")
+	assert_true(2 in types, "Should have HOMING_BULLETS")
+	assert_true(3 in types, "Should have TELEPORT_BRACERS")
+	assert_true(4 in types, "Should have BFF_PENDANT")
 
 
 func test_get_active_item_name_teleport_bracers() -> void:
@@ -286,8 +297,8 @@ func test_get_active_item_icon_path_teleport_bracers() -> void:
 
 
 func test_is_selected_after_changing_to_teleport_bracers() -> void:
-	manager.set_active_item(2)
-	assert_true(manager.is_selected(2),
+	manager.set_active_item(3)
+	assert_true(manager.is_selected(3),
 		"TELEPORT_BRACERS should be selected after changing to it")
 	assert_false(manager.is_selected(0),
 		"NONE should not be selected after changing away from it")
@@ -297,9 +308,9 @@ func test_is_selected_after_changing_to_teleport_bracers() -> void:
 
 func test_switch_between_all_active_items() -> void:
 	manager.set_active_item(1)  # Flashlight
-	manager.set_active_item(2)  # Teleport Bracers
+	manager.set_active_item(3)  # Teleport Bracers
 	manager.set_active_item(0)  # None
-	manager.set_active_item(2)  # Back to Teleport Bracers
+	manager.set_active_item(3)  # Back to Teleport Bracers
 
 	assert_eq(manager.current_active_item, 2)
 	assert_eq(manager.type_changed_count, 4)
