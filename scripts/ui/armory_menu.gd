@@ -93,7 +93,11 @@ const MAX_GRENADE_ROWS_COLLAPSED: int = 1
 const GRID_COLUMNS: int = 4
 
 ## Maximum number of visible active item rows before accordion hides the rest.
-const MAX_ACTIVE_ITEM_ROWS_COLLAPSED: int = 1
+## Set to 2 rows per owner request (Issue #676 feedback).
+const MAX_ACTIVE_ITEM_ROWS_COLLAPSED: int = 2
+
+## Number of columns in the active item grid (8 per row per owner request).
+const ACTIVE_ITEM_GRID_COLUMNS: int = 8
 
 ## Reference to UI elements — created in code.
 var _weapon_grid: GridContainer
