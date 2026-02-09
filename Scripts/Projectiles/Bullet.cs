@@ -309,6 +309,12 @@ public partial class Bullet : Area2D
 
     public override void _PhysicsProcess(double delta)
     {
+        // Apply homing steering if enabled
+        if (_homingEnabled)
+        {
+            ApplyHomingSteering((float)delta);
+        }
+
         // Calculate movement this frame
         var movement = Direction * Speed * (float)delta;
 
@@ -1300,4 +1306,155 @@ public partial class Bullet : Area2D
     /// Returns the distance traveled through walls while penetrating.
     /// </summary>
     public float GetPenetrationDistance() => _penetrationDistanceTraveled;
+
+    // =========================================================================
+    // Homing Bullet System (Issue #677)
+    // =========================================================================
+
+    /// <summary>
+    /// Whether this bullet has homing enabled (steers toward nearest enemy).
+    /// </summary>
+    private bool _homingEnabled = false;
+
+    /// <summary>
+    /// Maximum angle (in radians) the bullet can turn from its original direction.
+    /// 110 degrees = ~1.92 radians.
+    /// </summary>
+    private float _homingMaxTurnAngle = Mathf.DegToRad(110.0f);
+
+    /// <summary>
+    /// Steering speed for homing (radians per second of turning).
+    /// </summary>
+    private float _homingSteerSpeed = 8.0f;
+
+    /// <summary>
+    /// The original firing direction (stored when homing is enabled).
+    /// Used to limit total turn angle.
+    /// </summary>
+    private Vector2 _homingOriginalDirection = Vector2.Zero;
+
+    /// <summary>
+    /// Enable debug logging for homing calculations.
+    /// </summary>
+    private const bool DebugHoming = false;
+
+    /// <summary>
+    /// Whether homing is enabled on this bullet.
+    /// </summary>
+    public bool HomingEnabled => _homingEnabled;
+
+    /// <summary>
+    /// Enables homing on this bullet, storing the original direction.
+    /// Called by the player when the homing effect is active.
+    /// </summary>
+    public void EnableHoming()
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        if (DebugHoming)
+        {
+            GD.Print($"[Bullet] Homing enabled, original direction: {_homingOriginalDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Applies homing steering toward the nearest alive enemy.
+    /// The bullet turns toward the nearest enemy but cannot exceed the max turn angle
+    /// from its original firing direction (110 degrees each side).
+    /// </summary>
+    private void ApplyHomingSteering(float delta)
+    {
+        // Only player bullets should home
+        if (!IsPlayerBullet())
+        {
+            return;
+        }
+
+        // Find nearest alive enemy
+        var targetPos = FindNearestEnemyPosition();
+        if (targetPos == Vector2.Zero)
+        {
+            return; // No valid target found
+        }
+
+        // Calculate desired direction toward target
+        var toTarget = (targetPos - GlobalPosition).Normalized();
+
+        // Calculate the angle difference between current direction and desired
+        float angleDiff = Direction.AngleTo(toTarget);
+
+        // Limit per-frame steering (smooth turning)
+        float maxSteerThisFrame = _homingSteerSpeed * delta;
+        angleDiff = Mathf.Clamp(angleDiff, -maxSteerThisFrame, maxSteerThisFrame);
+
+        // Calculate proposed new direction
+        var newDirection = Direction.Rotated(angleDiff).Normalized();
+
+        // Check if the new direction would exceed the max turn angle from original
+        float angleFromOriginal = _homingOriginalDirection.AngleTo(newDirection);
+        if (Mathf.Abs(angleFromOriginal) > _homingMaxTurnAngle)
+        {
+            if (DebugHoming)
+            {
+                GD.Print($"[Bullet] Homing angle limit reached: {Mathf.RadToDeg(Mathf.Abs(angleFromOriginal))}°");
+            }
+            return; // Don't steer further, angle limit reached
+        }
+
+        // Apply the steering
+        Direction = newDirection;
+        UpdateRotation();
+
+        if (DebugHoming)
+        {
+            GD.Print($"[Bullet] Homing steer: angle_diff={Mathf.RadToDeg(angleDiff)}° total_turn={Mathf.RadToDeg(Mathf.Abs(angleFromOriginal))}°");
+        }
+    }
+
+    /// <summary>
+    /// Finds the position of the nearest alive enemy.
+    /// Returns Vector2.Zero if no enemies are found.
+    /// </summary>
+    private Vector2 FindNearestEnemyPosition()
+    {
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return Vector2.Zero;
+        }
+
+        var enemies = tree.GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+        {
+            return Vector2.Zero;
+        }
+
+        var nearestPos = Vector2.Zero;
+        float nearestDist = float.PositiveInfinity;
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+            // Skip dead enemies
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+            float dist = GlobalPosition.DistanceSquaredTo(enemyNode.GlobalPosition);
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearestPos = enemyNode.GlobalPosition;
+            }
+        }
+
+        return nearestPos;
+    }
 }
