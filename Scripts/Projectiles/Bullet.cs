@@ -1339,13 +1339,30 @@ public partial class Bullet : Area2D
     private const bool DebugHoming = false;
 
     /// <summary>
+    /// Whether aim-line targeting is active (Issue #704).
+    /// When true, targets enemy closest to the player's aim line rather than nearest to bullet.
+    /// </summary>
+    private bool _useAimLineTargeting = false;
+
+    /// <summary>
+    /// The player's position when bullet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterOrigin = Vector2.Zero;
+
+    /// <summary>
+    /// The player's aim direction when bullet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterAimDirection = Vector2.Zero;
+
+    /// <summary>
     /// Whether homing is enabled on this bullet.
     /// </summary>
     public bool HomingEnabled => _homingEnabled;
 
     /// <summary>
     /// Enables homing on this bullet, storing the original direction.
-    /// Called by the player when the homing effect is active.
+    /// Called when activating homing on already-airborne bullets.
+    /// Targets the nearest enemy to the bullet itself.
     /// </summary>
     public void EnableHoming()
     {
@@ -1354,6 +1371,26 @@ public partial class Bullet : Area2D
         if (DebugHoming)
         {
             GD.Print($"[Bullet] Homing enabled, original direction: {_homingOriginalDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Enables homing on this bullet with aim-line targeting (Issue #704).
+    /// Called when firing new bullets during homing activation.
+    /// Targets the enemy closest to the player's line of fire.
+    /// </summary>
+    /// <param name="shooterPos">The player's position when firing.</param>
+    /// <param name="aimDir">The player's aim direction when firing.</param>
+    public void EnableHomingWithAimLine(Vector2 shooterPos, Vector2 aimDir)
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        _useAimLineTargeting = true;
+        _shooterOrigin = shooterPos;
+        _shooterAimDirection = aimDir.Normalized();
+        if (DebugHoming)
+        {
+            GD.Print($"[Bullet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}");
         }
     }
 
@@ -1412,7 +1449,9 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
-    /// Finds the position of the nearest alive enemy.
+    /// Finds the position of the best homing target enemy.
+    /// When aim-line targeting is active (Issue #704), finds the enemy closest
+    /// to the player's line of fire. Otherwise, finds the nearest enemy to the bullet.
     /// Returns Vector2.Zero if no enemies are found.
     /// </summary>
     private Vector2 FindNearestEnemyPosition()
@@ -1427,6 +1466,11 @@ public partial class Bullet : Area2D
         if (enemies.Count == 0)
         {
             return Vector2.Zero;
+        }
+
+        if (_useAimLineTargeting)
+        {
+            return FindEnemyNearestToAimLine(enemies);
         }
 
         var nearestPos = Vector2.Zero;
@@ -1456,5 +1500,65 @@ public partial class Bullet : Area2D
         }
 
         return nearestPos;
+    }
+
+    /// <summary>
+    /// Finds the enemy closest to the player's aim line (Issue #704).
+    /// Uses perpendicular distance from the aim ray to score enemies.
+    /// Only considers enemies within 110 degrees of the aim direction.
+    /// </summary>
+    private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
+    {
+        var bestTarget = Vector2.Zero;
+        float bestScore = float.PositiveInfinity;
+        float maxPerpDistance = 500.0f;
+        float maxAngle = _homingMaxTurnAngle;
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+
+            Vector2 toEnemy = enemyNode.GlobalPosition - _shooterOrigin;
+            float distToEnemy = toEnemy.Length();
+            if (distToEnemy < 1.0f)
+            {
+                continue;
+            }
+
+            // Check angle from aim direction
+            float angle = Mathf.Abs(_shooterAimDirection.AngleTo(toEnemy.Normalized()));
+            if (angle > maxAngle)
+            {
+                continue;
+            }
+
+            // Perpendicular distance from aim line
+            float perpDist = Mathf.Abs(toEnemy.X * _shooterAimDirection.Y - toEnemy.Y * _shooterAimDirection.X);
+            if (perpDist > maxPerpDistance)
+            {
+                continue;
+            }
+
+            // Score: prioritize closeness to aim line, with distance as tiebreaker
+            float score = perpDist + distToEnemy * 0.1f;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestTarget = enemyNode.GlobalPosition;
+            }
+        }
+
+        return bestTarget;
     }
 }

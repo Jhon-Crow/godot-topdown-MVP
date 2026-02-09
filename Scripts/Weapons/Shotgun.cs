@@ -1,5 +1,7 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
+using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -1719,6 +1721,18 @@ public partial class Shotgun : BaseWeapon
         }
 
         GetTree().CurrentScene.AddChild(pellet);
+
+        // Enable homing on the pellet if the player's homing effect is active (Issue #704)
+        // When firing during activation, use aim-line targeting (nearest to crosshair)
+        var weaponOwner = GetParent();
+        if (weaponOwner is Player player && player.IsHomingActive())
+        {
+            if (pellet is ShotgunPellet shotgunPellet)
+            {
+                Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
+                shotgunPellet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+            }
+        }
     }
 
     #region Audio

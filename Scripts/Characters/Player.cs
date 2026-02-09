@@ -5,6 +5,7 @@ using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
 using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
+using CSharpShotgunPellet = GodotTopDownTemplate.Projectiles.ShotgunPellet;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -4489,7 +4490,7 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Recursively find Bullet nodes and enable homing on player bullets.
+    /// Recursively find Bullet and ShotgunPellet nodes and enable homing on player projectiles.
     /// </summary>
     private void EnableHomingRecursive(Node node, ulong playerId, ref int count)
     {
@@ -4499,6 +4500,15 @@ public partial class Player : BaseCharacter
             if (csBullet.ShooterId == playerId && !csBullet.HomingEnabled)
             {
                 csBullet.EnableHoming();
+                count++;
+            }
+        }
+        // Check if this is a C# ShotgunPellet (Issue #704)
+        else if (node is CSharpShotgunPellet csPellet)
+        {
+            if (csPellet.ShooterId == playerId && !csPellet.HomingEnabled)
+            {
+                csPellet.EnableHoming();
                 count++;
             }
         }
