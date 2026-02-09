@@ -136,8 +136,9 @@ public partial class ShotgunPellet : Area2D
 
     /// <summary>
     /// Steering speed for homing (radians per second of turning).
+    /// Increased from 8.0 to 15.0 for more responsive turning (Issue #709).
     /// </summary>
-    private float _homingSteerSpeed = 8.0f;
+    private float _homingSteerSpeed = 15.0f;
 
     /// <summary>
     /// The original firing direction (stored when homing is enabled).
