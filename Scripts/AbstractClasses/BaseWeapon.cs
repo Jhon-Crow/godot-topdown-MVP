@@ -1,6 +1,8 @@
 using Godot;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Data;
 using System.Linq;
+using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
 
 namespace GodotTopDownTemplate.AbstractClasses;
 
@@ -429,6 +431,20 @@ public abstract partial class BaseWeapon : Node2D
         bullet.Set("shooter_position", GlobalPosition);
 
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Enable homing on the bullet if the player's homing effect is active (Issue #677)
+        var weaponOwner = GetParent();
+        if (weaponOwner is Player player && player.IsHomingActive())
+        {
+            if (bullet is CSharpBullet csBullet)
+            {
+                csBullet.EnableHoming();
+            }
+            else if (bullet.HasMethod("enable_homing"))
+            {
+                bullet.Call("enable_homing");
+            }
+        }
 
         // Spawn muzzle flash effect at the bullet spawn position
         SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);

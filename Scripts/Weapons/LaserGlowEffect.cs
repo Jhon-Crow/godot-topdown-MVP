@@ -380,7 +380,11 @@ public class LaserGlowEffect
             Texture = CreateDustTexture(laserColor),
             Material = particleMaterial,
             ZIndex = 0,
-            Visible = true
+            Visible = true,
+            // Use local coordinates so particles move with the parent node.
+            // Without this, particles use global coordinates and lag behind
+            // when the weapon/player moves (Issue #694).
+            LocalCoords = true
         };
 
         parent.AddChild(_dustParticles);

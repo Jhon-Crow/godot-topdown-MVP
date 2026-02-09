@@ -553,6 +553,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -1021,6 +1023,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
 		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
+		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
@@ -1352,7 +1356,8 @@ func _setup_selected_weapon() -> void:
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
-			"m16": "AssaultRifle"
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -1502,6 +1507,30 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load AssaultRifle scene!")
+	# If AK + GL is selected, swap weapons
+	elif selected_weapon_id == "ak_gl":
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
+
+		# Load and add the AKGL
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+
+			print("BuildingLevel: AK + GL equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load AKGL scene!")
 	# For Makarov PM, it's already in the scene
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")

@@ -159,6 +159,15 @@ signal grenade_changed(current: int, maximum: int)
 ## Signal emitted when a grenade is thrown.
 signal grenade_thrown
 
+## Signal emitted when homing bullets charges change.
+signal homing_charges_changed(current: int, maximum: int)
+
+## Signal emitted when homing bullets effect activates.
+signal homing_activated
+
+## Signal emitted when homing bullets effect deactivates.
+signal homing_deactivated
+
 ## Grenade scene to instantiate when throwing.
 @export var grenade_scene: PackedScene
 
@@ -185,6 +194,30 @@ var _debug_mode_enabled: bool = false
 
 ## Whether invincibility mode is enabled (F6 toggle, player takes no damage).
 var _invincibility_enabled: bool = false
+
+## Whether homing bullets active item is equipped.
+var _homing_equipped: bool = false
+
+## Whether homing bullets effect is currently active (bullets home toward enemies).
+var _homing_active: bool = false
+
+## Remaining homing charges (6 per battle).
+var _homing_charges: int = 6
+
+## Maximum homing charges per battle.
+const HOMING_MAX_CHARGES: int = 6
+
+## Duration of homing effect per activation in seconds.
+const HOMING_DURATION: float = 1.0
+
+## Timer tracking remaining homing effect duration.
+var _homing_timer: float = 0.0
+
+## Path to the homing bullets activation sound.
+const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
+
+## AudioStreamPlayer for homing activation sound.
+var _homing_audio_player: AudioStreamPlayer = null
 
 
 func _ready() -> void:
@@ -304,6 +337,9 @@ func _ready() -> void:
 	# Initialize flashlight if active item manager has flashlight selected
 	_init_flashlight()
 
+	# Initialize homing bullets if active item manager has homing bullets selected
+	_init_homing_bullets()
+
 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
 	_init_invisibility_suit()
 
@@ -403,6 +439,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle flashlight input (hold Space to turn on, release to turn off)
 	_handle_flashlight_input()
+
+	# Handle homing bullets input (press Space to activate, timer-based deactivation)
+	_handle_homing_input(delta)
 
 	# Handle invisibility suit input (press Space to activate) (Issue #673)
 	_handle_invisibility_suit_input()
@@ -647,6 +686,10 @@ func _shoot() -> void:
 	# Set shooter position for distance-based penetration calculation
 	# Direct assignment - the bullet script defines this property
 	bullet.shooter_position = global_position
+
+	# Enable homing on the bullet if homing effect is active
+	if _homing_active:
+		bullet.enable_homing()
 
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
@@ -2932,6 +2975,98 @@ func is_flashlight_wall_clamped() -> bool:
 	if _flashlight_node.has_method("is_wall_clamped"):
 		return _flashlight_node.is_wall_clamped()
 	return false
+
+
+# ============================================================================
+# Homing Bullets Active Item (Issue #677)
+# ============================================================================
+
+
+## Initialize homing bullets if the ActiveItemManager has it selected.
+func _init_homing_bullets() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Homing] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_homing_bullets"):
+		FileLogger.info("[Player.Homing] ActiveItemManager missing has_homing_bullets method")
+		return
+
+	if not active_item_manager.has_homing_bullets():
+		FileLogger.info("[Player.Homing] No homing bullets selected in ActiveItemManager")
+		return
+
+	_homing_equipped = true
+	_homing_charges = HOMING_MAX_CHARGES
+	_homing_active = false
+	_homing_timer = 0.0
+	_setup_homing_audio()
+
+	FileLogger.info("[Player.Homing] Homing bullets equipped, charges: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
+
+
+## Handle homing bullets input: press Space to activate for 1 second.
+## Uses the same flashlight_toggle input action (Space key).
+## Active items are mutually exclusive, so no conflict with flashlight.
+func _handle_homing_input(delta: float) -> void:
+	if not _homing_equipped:
+		return
+
+	# Handle active timer countdown
+	if _homing_active:
+		_homing_timer -= delta
+		if _homing_timer <= 0.0:
+			_homing_active = false
+			_homing_timer = 0.0
+			homing_deactivated.emit()
+			FileLogger.info("[Player.Homing] Homing effect expired, charges remaining: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
+
+	# Activate on Space press (only if not already active and has charges)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if _homing_charges > 0 and not _homing_active:
+			_homing_active = true
+			_homing_timer = HOMING_DURATION
+			_homing_charges -= 1
+			_play_homing_sound()
+			homing_activated.emit()
+			homing_charges_changed.emit(_homing_charges, HOMING_MAX_CHARGES)
+			FileLogger.info("[Player.Homing] Homing activated! Duration: %ss, charges remaining: %d/%d" % [HOMING_DURATION, _homing_charges, HOMING_MAX_CHARGES])
+
+
+## Check if homing bullets effect is currently active.
+func is_homing_active() -> bool:
+	return _homing_active
+
+
+## Get remaining homing charges.
+func get_homing_charges() -> int:
+	return _homing_charges
+
+
+## Get maximum homing charges.
+func get_max_homing_charges() -> int:
+	return HOMING_MAX_CHARGES
+
+
+## Set up the audio player for homing activation sound.
+func _setup_homing_audio() -> void:
+	if ResourceLoader.exists(HOMING_SOUND_PATH):
+		var stream = load(HOMING_SOUND_PATH)
+		if stream:
+			_homing_audio_player = AudioStreamPlayer.new()
+			_homing_audio_player.stream = stream
+			_homing_audio_player.volume_db = -3.0
+			add_child(_homing_audio_player)
+			FileLogger.info("[Player.Homing] Homing activation sound loaded")
+	else:
+		FileLogger.info("[Player.Homing] Homing activation sound not found: %s" % HOMING_SOUND_PATH)
+
+
+## Play the homing activation sound.
+func _play_homing_sound() -> void:
+	if _homing_audio_player and is_instance_valid(_homing_audio_player):
+		_homing_audio_player.play()
 
 
 # ============================================================================
