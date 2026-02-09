@@ -52,7 +52,7 @@ var _is_active: bool = false
 var _remaining_time: float = 0.0
 
 ## Cached predicted positions for drawing (updated each frame).
-## Array of Dictionary: [{"position": Vector2, "rotation": float}, ...]
+## Array of Dictionary: [{"position": Vector2, "rotation": float, "current_position": Vector2}, ...]
 var _ghost_data: Array = []
 
 ## Whether we've logged the first draw frame (to avoid log spam).
@@ -60,6 +60,9 @@ var _first_draw_logged: bool = false
 
 ## Frame counter for pulsing animation.
 var _pulse_time: float = 0.0
+
+## Whether we've logged diagnostics for this activation (to avoid log spam).
+var _diagnostics_logged: bool = false
 
 ## Signal emitted when the helmet is activated.
 signal helmet_activated(charges_left: int)
@@ -99,32 +102,19 @@ func activate() -> bool:
 	_is_active = true
 	_remaining_time = EFFECT_DURATION
 	_first_draw_logged = false
+	_diagnostics_logged = false
 	_pulse_time = 0.0
 
-	# Log activation with enemy count for diagnostics
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	var alive_count := 0
-	var cb2d_count := 0
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-		if enemy is CharacterBody2D:
-			cb2d_count += 1
-			if enemy.has_method("is_alive") and enemy.is_alive():
-				alive_count += 1
-			elif enemy.get("_is_alive") != null and enemy.get("_is_alive"):
-				alive_count += 1
-
-	FileLogger.info("[HelmetEffect] Activated! Charges left: %d/%d, Duration: %.1fs, Enemies in group: %d, CharacterBody2D: %d, Alive: %d" % [
-		_charges, MAX_CHARGES, EFFECT_DURATION, enemies.size(), cb2d_count, alive_count
+	FileLogger.info("[HelmetEffect] Activated! Charges left: %d/%d, Duration: %.1fs" % [
+		_charges, MAX_CHARGES, EFFECT_DURATION
 	])
 
 	helmet_activated.emit(_charges)
 	charges_changed.emit(_charges)
 
-	# Force an immediate position update and redraw
-	_update_ghost_positions()
-	queue_redraw()
+	# Ghost positions will be updated on the next _physics_process frame.
+	# Do NOT call _update_ghost_positions() here — iterating enemies during
+	# input processing can cause crashes in exported builds (Issue #671).
 
 	return true
 
@@ -177,7 +167,35 @@ func _physics_process(delta: float) -> void:
 func _update_ghost_positions() -> void:
 	_ghost_data.clear()
 
-	var enemies := get_tree().get_nodes_in_group("enemies")
+	if not is_inside_tree():
+		return
+
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	var enemies := tree.get_nodes_in_group("enemies")
+
+	# Log diagnostics once per activation (deferred to first physics frame)
+	if not _diagnostics_logged:
+		_diagnostics_logged = true
+		var alive_count := 0
+		var cb2d_count := 0
+		for e in enemies:
+			if not is_instance_valid(e):
+				continue
+			if e is CharacterBody2D:
+				cb2d_count += 1
+				if e.has_method("is_alive"):
+					if e.is_alive():
+						alive_count += 1
+				elif e.get("_is_alive") != null:
+					if e.get("_is_alive"):
+						alive_count += 1
+		FileLogger.info("[HelmetEffect] Diagnostics: Enemies in group: %d, CharacterBody2D: %d, Alive: %d" % [
+			enemies.size(), cb2d_count, alive_count
+		])
+
 	for enemy in enemies:
 		if not is_instance_valid(enemy):
 			continue
@@ -191,6 +209,11 @@ func _update_ghost_positions() -> void:
 
 		var current_pos: Vector2 = enemy.global_position
 		var vel: Vector2 = enemy.velocity
+		# Skip enemies with NaN positions or velocities
+		if is_nan(current_pos.x) or is_nan(current_pos.y):
+			continue
+		if is_nan(vel.x) or is_nan(vel.y):
+			continue
 		var predicted_pos: Vector2 = current_pos + vel * PREDICTION_TIME
 		var current_rot: float = 0.0
 		# Get model rotation if available
@@ -216,19 +239,19 @@ func _draw() -> void:
 		FileLogger.info("[HelmetEffect] Drawing %d ghost outlines. Node pos: %s, global_pos: %s, visible: %s" % [
 			_ghost_data.size(), str(position), str(global_position), str(visible)
 		])
-		if not _ghost_data.is_empty():
+		if _ghost_data.size() > 0:
 			var first_ghost: Dictionary = _ghost_data[0]
-			FileLogger.info("[HelmetEffect] First ghost: predicted=%s, current=%s, local_predicted=%s" % [
-				str(first_ghost["position"]), str(first_ghost["current_position"]),
-				str(to_local(first_ghost["position"]))
+			FileLogger.info("[HelmetEffect] First ghost: predicted=%s, current=%s" % [
+				str(first_ghost.get("position", Vector2.ZERO)),
+				str(first_ghost.get("current_position", Vector2.ZERO))
 			])
 
 	# Calculate pulse factor for breathing animation (makes ghosts more noticeable)
 	var pulse: float = 0.85 + 0.15 * sin(_pulse_time * 4.0)
 
 	for ghost in _ghost_data:
-		var pos: Vector2 = ghost["position"]
-		var current_pos: Vector2 = ghost["current_position"]
+		var pos: Vector2 = ghost.get("position", Vector2.ZERO)
+		var current_pos: Vector2 = ghost.get("current_position", Vector2.ZERO)
 
 		# Convert global positions to local coordinates for drawing.
 		var local_predicted := to_local(pos)
@@ -252,6 +275,8 @@ func _draw() -> void:
 
 ## Draw a circle outline using line segments.
 func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
+	if radius <= 0.0:
+		return
 	var points := PackedVector2Array()
 	for i in range(GHOST_CIRCLE_SEGMENTS + 1):
 		var angle := float(i) / float(GHOST_CIRCLE_SEGMENTS) * TAU
@@ -263,9 +288,12 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: f
 
 ## Draw a filled circle using polygon.
 func _draw_filled_circle(center: Vector2, radius: float, color: Color) -> void:
+	if radius <= 0.0:
+		return
 	var points := PackedVector2Array()
 	for i in range(GHOST_CIRCLE_SEGMENTS):
 		var angle := float(i) / float(GHOST_CIRCLE_SEGMENTS) * TAU
 		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
 
-	draw_colored_polygon(points, color)
+	if points.size() >= 3:
+		draw_colored_polygon(points, color)
