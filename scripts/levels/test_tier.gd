@@ -1194,6 +1194,7 @@ func _get_next_level_path() -> String:
 
 	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",

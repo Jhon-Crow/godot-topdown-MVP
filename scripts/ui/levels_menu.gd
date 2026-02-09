@@ -11,6 +11,16 @@ signal back_pressed
 ## Level metadata: name, scene path, description, preview color, enemy count.
 const LEVELS: Array[Dictionary] = [
 	{
+		"name": "Labyrinth",
+		"name_ru": "Лабиринт",
+		"path": "res://scenes/levels/LabyrinthLevel.tscn",
+		"description": "Labyrinth of technical rooms with narrow corridors and enclosed spaces.",
+		"preview_color": Color(0.15, 0.15, 0.18, 1.0),
+		"preview_accent": Color(0.3, 0.35, 0.4, 1.0),
+		"enemy_count": 5,
+		"map_size": "1920x1080"
+	},
+	{
 		"name": "Building Level",
 		"name_ru": "Здание",
 		"path": "res://scenes/levels/BuildingLevel.tscn",
