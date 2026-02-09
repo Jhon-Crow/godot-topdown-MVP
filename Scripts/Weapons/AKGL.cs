@@ -16,6 +16,7 @@ namespace GodotTopDownTemplate.Weapons;
 /// - Fewer ricochets (heavier bullet)
 /// - Fully penetrates one wall
 /// - Has underbarrel grenade launcher (1 grenade)
+/// - No laser sight
 /// </summary>
 public partial class AKGL : BaseWeapon
 {
@@ -32,35 +33,12 @@ public partial class AKGL : BaseWeapon
     public bool GrenadeAvailable { get; set; } = true;
 
     /// <summary>
-    /// Whether the laser sight is enabled.
-    /// </summary>
-    [Export]
-    public bool LaserSightEnabled { get; set; } = true;
-
-    /// <summary>
-    /// Color of the laser sight.
-    /// </summary>
-    [Export]
-    public Color LaserSightColor { get; set; } = new Color(1.0f, 0.0f, 0.0f, 0.5f);
-
-    /// <summary>
-    /// Width of the laser sight line.
-    /// </summary>
-    [Export]
-    public float LaserSightWidth { get; set; } = 2.0f;
-
-    /// <summary>
-    /// Reference to the Line2D node for the laser sight.
-    /// </summary>
-    private Line2D? _laserSight;
-
-    /// <summary>
     /// Reference to the Sprite2D node for the rifle visual.
     /// </summary>
     private Sprite2D? _rifleSprite;
 
     /// <summary>
-    /// Current aim direction based on laser sight.
+    /// Current aim direction based on mouse position.
     /// </summary>
     private Vector2 _aimDirection = Vector2.Right;
 
@@ -113,13 +91,25 @@ public partial class AKGL : BaseWeapon
 
     /// <summary>
     /// Number of shots before spread starts increasing.
+    /// After this many shots the spread grows progressively.
     /// </summary>
-    private const int SpreadThreshold = 3;
+    private const int SpreadThreshold = 2;
 
     /// <summary>
     /// Time in seconds for spread to reset after stopping fire.
     /// </summary>
     private const float SpreadResetTime = 0.25f;
+
+    /// <summary>
+    /// Maximum spread multiplier when firing long bursts.
+    /// The spread angle is multiplied by up to this value after SpreadThreshold shots.
+    /// </summary>
+    private const float MaxSpreadMultiplier = 2.5f;
+
+    /// <summary>
+    /// Number of shots (after threshold) to reach maximum spread.
+    /// </summary>
+    private const int ShotsToMaxSpread = 8;
 
     /// <summary>
     /// Signal emitted when the grenade launcher fires.
@@ -147,42 +137,6 @@ public partial class AKGL : BaseWeapon
         {
             GD.PrintErr("[AKGL] WARNING: RifleSprite node not found!");
         }
-
-        // Check for Power Fantasy mode blue laser
-        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
-        if (difficultyManager != null)
-        {
-            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
-            if (shouldForceBlueLaser.AsBool())
-            {
-                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
-                LaserSightColor = blueColorVariant.AsColor();
-                GD.Print($"[AKGL] Power Fantasy mode: laser color set to blue {LaserSightColor}");
-            }
-        }
-
-        // Get or create the laser sight Line2D
-        _laserSight = GetNodeOrNull<Line2D>("LaserSight");
-        if (_laserSight == null && LaserSightEnabled)
-        {
-            CreateLaserSight();
-        }
-        else if (_laserSight != null)
-        {
-            _laserSight.Width = LaserSightWidth;
-            _laserSight.DefaultColor = LaserSightColor;
-            _laserSight.BeginCapMode = Line2D.LineCapMode.Round;
-            _laserSight.EndCapMode = Line2D.LineCapMode.Round;
-
-            if (_laserSight.GetPointCount() < 2)
-            {
-                _laserSight.ClearPoints();
-                _laserSight.AddPoint(Vector2.Zero);
-                _laserSight.AddPoint(Vector2.Right * 500.0f);
-            }
-        }
-
-        UpdateLaserSightVisibility();
     }
 
     public override void _Process(double delta)
@@ -206,12 +160,6 @@ public partial class AKGL : BaseWeapon
 
         // Update aim direction and rifle sprite rotation
         UpdateAimDirection();
-
-        // Update laser sight
-        if (LaserSightEnabled && _laserSight != null)
-        {
-            UpdateLaserSight();
-        }
     }
 
     /// <summary>
@@ -259,79 +207,6 @@ public partial class AKGL : BaseWeapon
     }
 
     /// <summary>
-    /// Creates the laser sight Line2D programmatically.
-    /// </summary>
-    private void CreateLaserSight()
-    {
-        _laserSight = new Line2D
-        {
-            Name = "LaserSight",
-            Width = LaserSightWidth,
-            DefaultColor = LaserSightColor,
-            BeginCapMode = Line2D.LineCapMode.Round,
-            EndCapMode = Line2D.LineCapMode.Round
-        };
-
-        _laserSight.AddPoint(Vector2.Zero);
-        _laserSight.AddPoint(Vector2.Right * 500.0f);
-
-        AddChild(_laserSight);
-    }
-
-    /// <summary>
-    /// Updates the laser sight visualization with recoil offset.
-    /// </summary>
-    private void UpdateLaserSight()
-    {
-        if (_laserSight == null)
-        {
-            return;
-        }
-
-        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
-
-        Viewport? viewport = GetViewport();
-        if (viewport == null)
-        {
-            return;
-        }
-
-        Vector2 viewportSize = viewport.GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
-
-        Vector2 endPoint = laserDirection * maxLaserLength;
-
-        var spaceState = GetWorld2D().DirectSpaceState;
-        var query = PhysicsRayQueryParameters2D.Create(
-            GlobalPosition,
-            GlobalPosition + endPoint,
-            4 // Collision mask for obstacles
-        );
-
-        var result = spaceState.IntersectRay(query);
-
-        if (result.Count > 0)
-        {
-            Vector2 hitPosition = (Vector2)result["position"];
-            endPoint = hitPosition - GlobalPosition;
-        }
-
-        _laserSight.SetPointPosition(0, Vector2.Zero);
-        _laserSight.SetPointPosition(1, endPoint);
-    }
-
-    /// <summary>
-    /// Updates the visibility of the laser sight.
-    /// </summary>
-    private void UpdateLaserSightVisibility()
-    {
-        if (_laserSight != null)
-        {
-            _laserSight.Visible = LaserSightEnabled;
-        }
-    }
-
-    /// <summary>
     /// Updates the rifle sprite rotation to match the aim direction.
     /// </summary>
     private void UpdateRifleSpriteRotation(Vector2 direction)
@@ -349,7 +224,7 @@ public partial class AKGL : BaseWeapon
     }
 
     /// <summary>
-    /// Fires the AK rifle. Uses laser aim direction when laser sight is enabled.
+    /// Fires the AK rifle. Uses aim direction based on mouse position.
     /// </summary>
     public override bool Fire(Vector2 direction)
     {
@@ -364,7 +239,7 @@ public partial class AKGL : BaseWeapon
             return false;
         }
 
-        Vector2 fireDirection = LaserSightEnabled ? _aimDirection : direction;
+        Vector2 fireDirection = _aimDirection;
         Vector2 spreadDirection = ApplySpread(fireDirection);
         bool result = base.Fire(spreadDirection);
 
@@ -400,8 +275,7 @@ public partial class AKGL : BaseWeapon
             return false;
         }
 
-        // Use laser aim direction when laser sight is enabled
-        Vector2 fireDirection = LaserSightEnabled ? _aimDirection : direction;
+        Vector2 fireDirection = _aimDirection;
 
         // Calculate grenade launch speed to travel 1.5 viewports
         Viewport? viewport = GetViewport();
@@ -464,7 +338,7 @@ public partial class AKGL : BaseWeapon
     }
 
     /// <summary>
-    /// Gets the current aim direction based on the laser sight.
+    /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
 
@@ -473,7 +347,7 @@ public partial class AKGL : BaseWeapon
     /// </summary>
     public override bool FireChamberBullet(Vector2 direction)
     {
-        Vector2 fireDirection = LaserSightEnabled ? _aimDirection : direction;
+        Vector2 fireDirection = _aimDirection;
         Vector2 spreadDirection = ApplySpread(fireDirection);
 
         bool result = base.FireChamberBullet(spreadDirection);
@@ -630,6 +504,8 @@ public partial class AKGL : BaseWeapon
 
     /// <summary>
     /// Applies recoil offset to the shooting direction and adds new recoil.
+    /// After SpreadThreshold (2) shots, spread progressively increases up to
+    /// MaxSpreadMultiplier over ShotsToMaxSpread additional shots.
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
@@ -638,6 +514,15 @@ public partial class AKGL : BaseWeapon
         if (WeaponData != null && WeaponData.SpreadAngle > 0)
         {
             float spreadRadians = Mathf.DegToRad(WeaponData.SpreadAngle);
+
+            // Progressive spread: after SpreadThreshold shots, spread grows up to MaxSpreadMultiplier
+            if (_shotCount > SpreadThreshold)
+            {
+                int shotsOverThreshold = _shotCount - SpreadThreshold;
+                float spreadRatio = Mathf.Clamp((float)shotsOverThreshold / ShotsToMaxSpread, 0.0f, 1.0f);
+                float spreadMultiplier = 1.0f + (MaxSpreadMultiplier - 1.0f) * spreadRatio;
+                spreadRadians *= spreadMultiplier;
+            }
 
             var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
             if (difficultyManager != null)
