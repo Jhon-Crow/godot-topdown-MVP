@@ -315,6 +315,10 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 	var grenade: Node2D = next_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
 
+	# Issue #692: Set thrower_id on the grenade so it won't damage the throwing enemy
+	if grenade.get("thrower_id") != null:
+		grenade.thrower_id = _enemy.get_instance_id()
+
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)
 
@@ -342,6 +346,9 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 
 	# Mark C# timer as thrown
 	_mark_grenade_thrown(grenade as RigidBody2D)
+
+	# Issue #692: Set thrower on C# GrenadeTimer for self-damage prevention
+	_set_grenade_thrower(grenade as RigidBody2D, _enemy.get_instance_id())
 
 	# Track active grenade for explosion detection
 	_active_grenade = grenade

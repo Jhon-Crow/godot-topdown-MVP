@@ -115,7 +115,8 @@ class MockActiveItemManager:
 		FLASHLIGHT = 1,
 		HOMING_BULLETS = 2,
 		TELEPORT_BRACERS = 3,
-		FORCE_FIELD = 4
+		INVISIBILITY_SUIT = 4,
+		FORCE_FIELD = 5
 	}
 
 	## Currently selected active item type
@@ -144,6 +145,11 @@ class MockActiveItemManager:
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
 		},
 		4: {
+			"name": "Invisibility",
+			"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+			"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
+		},
+		5: {
 			"name": "Force Field",
 			"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
 			"description": "Hold Space to activate a glowing force field that reflects all projectiles. 8 second charge, depletable. Shows progress bar."
@@ -211,6 +217,10 @@ class MockActiveItemManager:
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+	## Check if invisibility suit is currently equipped
+	func has_invisibility_suit() -> bool:
+		return current_active_item == ActiveItemType.INVISIBILITY_SUIT
 
 	## Check if force field is currently equipped
 	func has_force_field() -> bool:
@@ -366,12 +376,14 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 4,
-		"Should return 4 active item types")
+	assert_eq(types.size(), 6,
+		"Should return 6 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
 	assert_true(3 in types)
+	assert_true(4 in types)
+	assert_true(5 in types)
 
 
 func test_get_active_item_name_none() -> void:
@@ -564,7 +576,8 @@ class MockArmoryWithActiveItems:
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
 		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
 		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
-		4: {"name": "Force Field", "description": "Hold Space to activate force field"}
+		4: {"name": "Invisibility", "description": "Invisibility suit"},
+		5: {"name": "Force Field", "description": "Hold Space to activate force field"}
 	}
 
 	## Applied active item type
@@ -652,7 +665,7 @@ func test_armory_switch_active_items() -> void:
 
 
 func test_has_force_field_after_selection() -> void:
-	manager.set_active_item(4)
+	manager.set_active_item(5)
 	assert_true(manager.has_force_field(),
 		"has_force_field should return true after selecting force field")
 
@@ -663,21 +676,21 @@ func test_no_force_field_by_default() -> void:
 
 
 func test_force_field_data_has_name() -> void:
-	var data := manager.get_active_item_data(4)
+	var data := manager.get_active_item_data(5)
 	assert_eq(data["name"], "Force Field", "Force Field should have correct name")
 
 
 func test_force_field_data_has_description() -> void:
-	var data := manager.get_active_item_data(4)
+	var data := manager.get_active_item_data(5)
 	assert_true(data["description"].contains("Space"),
 		"Force field description should mention Space key")
 
 
 func test_armory_select_force_field() -> void:
 	var armory := MockArmoryWithActiveItems.new()
-	var result := armory.select_active_item(4)
+	var result := armory.select_active_item(5)
 	assert_true(result, "Should select force field")
-	assert_eq(armory.pending_active_item, 4, "Pending should be force field")
+	assert_eq(armory.pending_active_item, 5, "Pending should be force field")
 
 
 # ============================================================================
