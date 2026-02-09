@@ -15,18 +15,8 @@ CasingScene = ExtResource("3_casing")
 BulletSpawnOffset = 52.0
 GrenadeScene = ExtResource("6_grenade")
 GrenadeAvailable = true
-LaserSightEnabled = true
-LaserSightColor = Color(1, 0, 0, 0.5)
-LaserSightWidth = 2.0
 
 [node name="RifleSprite" type="Sprite2D" parent="."]
 z_index = 1
 texture = ExtResource("5_rifle_sprite")
 offset = Vector2(24, 0)
-
-[node name="LaserSight" type="Line2D" parent="."]
-points = PackedVector2Array(0, 0, 500, 0)
-width = 2.0
-default_color = Color(1, 0, 0, 0.5)
-begin_cap_mode = 1
-end_cap_mode = 1
