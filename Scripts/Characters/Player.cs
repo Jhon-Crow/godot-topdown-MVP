@@ -656,6 +656,11 @@ public partial class Player : BaseCharacter
     private Vector2 _teleportTargetPosition = Vector2.Zero;
 
     /// <summary>
+    /// Audio player for teleport activation sound.
+    /// </summary>
+    private AudioStreamPlayer2D? _teleportAudioPlayer;
+
+    /// <summary>
     /// Player collision radius for teleport safety checks (matches Player.tscn CircleShape2D).
     /// </summary>
     private const float PlayerCollisionRadius = 16.0f;
@@ -4181,8 +4186,57 @@ public partial class Player : BaseCharacter
         _teleportCharges = MaxTeleportCharges;
         LogToFile($"[Player.TeleportBracers] Teleport bracers equipped with {_teleportCharges} charges");
 
+        // Initialize teleport sound
+        SetupTeleportAudio();
+
         // Emit initial charge count for UI
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+    }
+
+    /// <summary>
+    /// Set up the audio player for teleport activation sound.
+    /// Uses flashlight sound as temporary placeholder for now.
+    /// </summary>
+    private void SetupTeleportAudio()
+    {
+        if (_teleportAudioPlayer != null)
+        {
+            LogToFile("[Player.Teleport] Teleport audio player already exists, skipping setup");
+            return;
+        }
+
+        const string teleportSoundPath = "res://assets/audio/звук включения и выключения фанарика.mp3";
+        if (ResourceLoader.Exists(teleportSoundPath))
+        {
+            var audioStream = GD.Load(teleportSoundPath) as AudioStream;
+            if (audioStream != null)
+            {
+                _teleportAudioPlayer = new AudioStreamPlayer2D();
+                _teleportAudioPlayer.Stream = audioStream;
+                _teleportAudioPlayer.VolumeDb = -6.0f;
+                AddChild(_teleportAudioPlayer);
+                LogToFile("[Player.Teleport] Teleport activation sound loaded");
+            }
+            else
+            {
+                LogToFile($"[Player.Teleport] Failed to load teleport sound from: {teleportSoundPath}");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Teleport] Teleport sound file not found: {teleportSoundPath}");
+        }
+    }
+
+    /// <summary>
+    /// Play the teleport activation sound.
+    /// </summary>
+    private void PlayTeleportSound()
+    {
+        if (_teleportAudioPlayer != null)
+        {
+            _teleportAudioPlayer.Play();
+        }
     }
 
     /// <summary>
@@ -4236,6 +4290,10 @@ public partial class Player : BaseCharacter
 
         Vector2 oldPosition = GlobalPosition;
         GlobalPosition = _teleportTargetPosition;
+        
+        // Play teleport activation sound
+        PlayTeleportSound();
+        
         _teleportCharges--;
 
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
