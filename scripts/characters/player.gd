@@ -332,10 +332,13 @@ func _ready() -> void:
 	# Initialize death animation component
 	_init_death_animation()
 
-	# Connect CasingPusher signals for reliable casing detection (Issue #392 Iteration 7)
-	# Using body_entered/body_exited signals instead of polling get_overlapping_bodies()
+# Connect CasingPusher signals for reliable casing detection (Issue #392 Iteration 7)
+	# Using body_entered/body_excluded signals instead of polling get_overlapping_bodies()
 	# This ensures casings are detected even when player approaches from narrow side
 	_connect_casing_pusher_signals()
+
+	# Connect to ActiveItemManager for active item changes
+	_connect_active_item_manager_signals()
 
 	# Initialize flashlight if active item manager has flashlight selected
 	_init_flashlight()
@@ -2845,6 +2848,41 @@ func _connect_casing_pusher_signals() -> void:
 		print("[Player.CasingPusher] Connected body_entered/body_exited signals")
 
 
+## Connect to ActiveItemManager signals for active item changes.
+func _connect_active_item_manager_signals() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player] ActiveItemManager not found for signal connection")
+		return
+
+	# Connect to active_item_changed signal
+	if not active_item_manager.active_item_changed.is_connected(_on_active_item_changed):
+		active_item_manager.active_item_changed.connect(_on_active_item_changed)
+		FileLogger.info("[Player] Connected to ActiveItemManager.active_item_changed signal")
+
+
+## Called when the active item changes in ActiveItemManager.
+## Re-initializes the appropriate systems based on the new active item.
+func _on_active_item_changed(new_type: int) -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	# Check what type of active item was selected and initialize accordingly
+	# Note: Using numeric values since we can't access the enum directly
+	match new_type:
+		1:  # ActiveItemType.FLASHLIGHT
+			_init_flashlight()
+		2:  # ActiveItemType.HOMING_BULLETS
+			_init_homing_bullets()
+		3:  # ActiveItemType.TELEPORT_BRACERS
+			_init_teleport_bracers()
+		4:  # ActiveItemType.INVISIBILITY_SUIT
+			_init_invisibility_suit()
+		_:  # ActiveItemType.NONE or unknown
+			FileLogger.info("[Player] Active item changed to type %d, no special initialization needed" % new_type)
+
+
 ## Called when a body enters the CasingPusher Area2D.
 ## Tracks casings for reliable pushing detection.
 func _on_casing_pusher_body_entered(body: Node2D) -> void:
@@ -3126,6 +3164,11 @@ func _init_teleport_bracers() -> void:
 
 ## Set up the audio player for teleport activation sound.
 func _setup_teleport_audio() -> void:
+	# Check if audio player is already set up
+	if _teleport_audio_player and is_instance_valid(_teleport_audio_player):
+		FileLogger.info("[Player.Teleport] Teleport audio player already exists, skipping setup")
+		return
+
 	if ResourceLoader.exists(TELEPORT_SOUND_PATH):
 		var stream = load(TELEPORT_SOUND_PATH)
 		if stream:
