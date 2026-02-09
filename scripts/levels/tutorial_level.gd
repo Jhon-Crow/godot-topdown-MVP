@@ -176,6 +176,7 @@ func _setup_selected_weapon() -> void:
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
 			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
 			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
@@ -302,6 +303,27 @@ func _setup_selected_weapon() -> void:
 			print("Tutorial: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("Tutorial: Failed to load AssaultRifle scene!")
+	# If AK + GL is selected, swap weapons
+	elif selected_weapon_id == "ak_gl":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
+
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+
+			print("Tutorial: AK + GL equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load AKGL scene!")
 	# If Revolver is selected, swap weapons
 	elif selected_weapon_id == "revolver":
 		var makarov = _player.get_node_or_null("MakarovPM")
