@@ -20,17 +20,17 @@ class MockHelmetEffect:
 	## Time ahead to predict enemy positions (seconds).
 	const PREDICTION_TIME: float = 1.0
 
-	## Ghost outline color (semi-transparent red).
-	const GHOST_COLOR: Color = Color(1.0, 0.15, 0.15, 0.55)
+	## Ghost outline color (bright red, higher alpha for visibility).
+	const GHOST_COLOR: Color = Color(1.0, 0.1, 0.1, 0.8)
 
-	## Ghost outline radius (matches enemy collision radius).
-	const GHOST_RADIUS: float = 24.0
+	## Ghost outline radius (larger for visibility ~32px).
+	const GHOST_RADIUS: float = 32.0
 
 	## Ghost circle line width.
-	const GHOST_LINE_WIDTH: float = 3.0
+	const GHOST_LINE_WIDTH: float = 4.0
 
-	## Ghost fill color (very faint red).
-	const GHOST_FILL_COLOR: Color = Color(1.0, 0.1, 0.1, 0.15)
+	## Ghost fill color (semi-transparent red).
+	const GHOST_FILL_COLOR: Color = Color(1.0, 0.1, 0.1, 0.25)
 
 	## Remaining charges.
 	var _charges: int = MAX_CHARGES
@@ -241,9 +241,9 @@ func test_ghost_color_is_semi_transparent() -> void:
 		"Ghost color alpha should be less than 1 (semi-transparent)")
 
 
-func test_ghost_radius_matches_enemy_collision() -> void:
-	assert_eq(helmet.GHOST_RADIUS, 24.0,
-		"Ghost radius should match enemy collision radius (24px)")
+func test_ghost_radius_is_visible() -> void:
+	assert_eq(helmet.GHOST_RADIUS, 32.0,
+		"Ghost radius should be 32px for visibility")
 
 
 # ============================================================================

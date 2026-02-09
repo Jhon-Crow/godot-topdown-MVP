@@ -10,6 +10,7 @@ enum ActiveItemType {
 	NONE,              # No active item equipped
 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
 	AI_HELMET,         # AI-powered helmet - predicts enemy positions 1 second ahead
+	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
 	TELEPORT_BRACERS   # Teleportation bracers - hold Space to aim, release to teleport
 }
 
@@ -33,6 +34,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "AI Helmet",
 		"icon_path": "res://assets/sprites/weapons/ai_helmet_icon.png",
 		"description": "AI-powered helmet — press Space to predict enemy positions 1 second ahead. Red ghost outlines appear for 10 seconds. 2 charges per battle."
+	},
+	ActiveItemType.HOMING_BULLETS: {
+		"name": "Homing Bullets",
+		"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
 	},
 	ActiveItemType.TELEPORT_BRACERS: {
 		"name": "Teleport Bracers",
@@ -129,6 +135,11 @@ func has_flashlight() -> bool:
 ## Check if an AI helmet is currently equipped.
 func has_ai_helmet() -> bool:
 	return current_active_item == ActiveItemType.AI_HELMET
+
+
+## Check if homing bullets are currently equipped.
+func has_homing_bullets() -> bool:
+	return current_active_item == ActiveItemType.HOMING_BULLETS
 
 
 ## Check if teleport bracers are currently equipped.

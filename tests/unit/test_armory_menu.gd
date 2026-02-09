@@ -74,7 +74,9 @@ class MockArmoryMenu:
 	## Active item data (separate from firearms and grenades).
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
-		1: {"name": "Flashlight", "description": "Tactical flashlight"}
+		1: {"name": "Flashlight", "description": "Tactical flashlight"},
+		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
+		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
 	}
 
 	## Applied (active) weapon ID.
@@ -567,8 +569,8 @@ func test_active_items_dictionary_exists() -> void:
 
 func test_count_total_active_items() -> void:
 	var count := menu.count_total_active_items()
-	assert_eq(count, 2,
-		"Should count total active items correctly (none, flashlight)")
+	assert_eq(count, 3,
+		"Should count total active items correctly (none, flashlight, homing bullets)")
 
 
 func test_select_active_item_sets_pending() -> void:

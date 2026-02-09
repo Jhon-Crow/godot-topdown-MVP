@@ -138,9 +138,73 @@ Key difference: The helmet attaches to the **level root** (not PlayerModel) so g
 - The C# Player calls GDScript methods via `Call("activate")` / `Call("is_active")` etc., matching the cross-language pattern used by flashlight
 - Both GDScript `player.gd` and C# `Player.cs` now have helmet integration for full variant coverage
 
+## Bug Report #2: "не работает" (Still Doesn't Work) — Ghost Visibility
+
+### Timeline Reconstruction (game_log_20260209_031727.txt)
+
+After the C# fix was applied, the user tested again and reported the helmet still doesn't work:
+
+1. **03:17:31** — User opened Armory Menu (line 311)
+2. **03:17:33** — User selected AI Helmet: `[ActiveItemManager] Active item changed from None to AI Helmet` (line 322)
+3. **03:17:33** — Level restarted, C# Player initialized helmet: `[Player.AIHelmet] AI Helmet is selected, initializing...` (line 371)
+4. **03:17:33** — Helmet attached: `[Player.AIHelmet] AI Helmet equipped and attached to level root` (line 372)
+5. **03:17:35** — User pressed Space, helmet activated: `[HelmetEffect] Activated! Charges left: 1/2, Duration: 10.0s` (line 443)
+6. **03:17:40** — Second press while still active: `[HelmetEffect] Already active, ignoring activation` (line 467)
+7. User continued playing across multiple levels, each time helmet initialized and activated successfully
+
+### Root Cause Analysis #2
+
+The C# fix successfully resolved the activation issue — the helmet now initializes and activates correctly. However, the **visual ghost outlines** were likely not visible to the user. Analysis:
+
+**Confirmed working:**
+- Helmet initialization in C# Player ✓
+- Helmet activation on Space press ✓
+- Charge system (2 per level) ✓
+- Timer system (10 second duration) ✓
+
+**Suspected issue — Ghost visibility:**
+- The `_draw()` method in `helmet_effect.gd` renders red circles at predicted enemy positions
+- Previous implementation had subtle visibility problems:
+  - `GHOST_COLOR` alpha was 0.55 (too translucent)
+  - `GHOST_RADIUS` was 24px (small, easy to miss)
+  - `GHOST_LINE_WIDTH` was 3px (thin)
+  - `GHOST_FILL_COLOR` alpha was 0.15 (nearly invisible)
+  - No glow/halo effect — circles could blend into dark backgrounds
+  - No animation — static circles don't attract attention
+  - No diagnostic logging — impossible to verify `_draw()` was actually being called with valid data
+  - No logging of enemy counts during activation — couldn't verify enemies were found
+
+### Fix Applied #2
+
+Improved ghost visibility and added diagnostic logging:
+
+| Parameter | Before | After | Reason |
+|-----------|--------|-------|--------|
+| `GHOST_COLOR` alpha | 0.55 | 0.80 | More opaque for visibility |
+| `GHOST_RADIUS` | 24px | 32px | Larger circles easier to see |
+| `GHOST_LINE_WIDTH` | 3px | 4px | Thicker outlines |
+| `GHOST_FILL_COLOR` alpha | 0.15 | 0.25 | More visible fill |
+| Glow effect | none | 40px halo, alpha 0.1 | Subtle halo makes ghosts visible against any background |
+| Pulse animation | none | Breathing effect (0.85-1.15x scale, 4Hz) | Movement attracts eye |
+| Current position marker | none | 8px circle at enemy's real position | Shows prediction delta |
+
+Added diagnostic logging (triggers only once per activation to avoid log spam):
+- On activation: logs total enemies in group, CharacterBody2D count, alive count
+- On first draw frame: logs ghost count, node position, global position, visibility
+- For first ghost: logs predicted position, current position, local coordinates after `to_local()` conversion
+
+### What the new logs will reveal
+
+If the user tests again and ghosts still don't appear, the new logs will definitively show:
+1. Whether enemies are found in the "enemies" group
+2. Whether `_draw()` is being called with valid ghost data
+3. Whether `to_local()` coordinate conversion produces correct values
+4. Whether the node is visible and at the expected position
+
 ## References
 
 - Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/671
 - Flashlight PR: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/551
 - Godot CharacterBody2D velocity: https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html
-- User bug report: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/684#issuecomment-3868506415
+- User bug report #1: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/684#issuecomment-3868506415
+- User bug report #2: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/684#issuecomment-3868652330

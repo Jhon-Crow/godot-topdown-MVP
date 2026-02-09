@@ -28,6 +28,12 @@ func test_active_item_type_ai_helmet_value() -> void:
 	assert_eq(expected, 2, "AI_HELMET should be the third active item type (2)")
 
 
+func test_active_item_type_homing_bullets_value() -> void:
+	# ActiveItemType.HOMING_BULLETS should be 3
+	var expected := 3
+	assert_eq(expected, 3, "HOMING_BULLETS should be the fourth active item type (3)")
+
+
 # ============================================================================
 # Active Item Data Constants Tests
 # ============================================================================
@@ -66,6 +72,17 @@ func test_active_item_data_has_ai_helmet() -> void:
 	assert_true(item_data.has(2), "ACTIVE_ITEM_DATA should contain AI_HELMET type")
 
 
+func test_active_item_data_has_homing_bullets() -> void:
+	var item_data := {
+		3: {
+			"name": "Homing Bullets",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+		}
+	}
+	assert_true(item_data.has(3), "ACTIVE_ITEM_DATA should contain HOMING_BULLETS type")
+
+
 func test_none_data_has_name() -> void:
 	var data := {"name": "None"}
 	assert_eq(data["name"], "None", "None should have correct name")
@@ -88,6 +105,21 @@ func test_flashlight_data_has_description() -> void:
 		"Flashlight description should mention Space key")
 
 
+func test_homing_bullets_data_has_name() -> void:
+	var data := {"name": "Homing Bullets"}
+	assert_eq(data["name"], "Homing Bullets", "Homing Bullets should have correct name")
+
+
+func test_homing_bullets_data_has_description() -> void:
+	var data := {"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."}
+	assert_true(data["description"].contains("Space"),
+		"Homing bullets description should mention Space key")
+	assert_true(data["description"].contains("110"),
+		"Homing bullets description should mention 110 degree turn")
+	assert_true(data["description"].contains("6 charges"),
+		"Homing bullets description should mention 6 charges")
+
+
 # ============================================================================
 # Mock ActiveItemManager for Logic Tests
 # ============================================================================
@@ -99,7 +131,8 @@ class MockActiveItemManager:
 		NONE = 0,
 		FLASHLIGHT = 1,
 		AI_HELMET = 2,
-		TELEPORT_BRACERS = 3
+		HOMING_BULLETS = 3,
+		TELEPORT_BRACERS = 4
 	}
 
 	## Currently selected active item type
@@ -123,6 +156,11 @@ class MockActiveItemManager:
 			"description": "AI-powered helmet — press Space to predict enemy positions 1 second ahead. Red ghost outlines appear for 10 seconds. 2 charges per battle."
 		},
 		3: {
+			"name": "Homing Bullets",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+		},
+		4: {
 			"name": "Teleport Bracers",
 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
@@ -186,6 +224,10 @@ class MockActiveItemManager:
 	## Check if an AI helmet is currently equipped
 	func has_ai_helmet() -> bool:
 		return current_active_item == ActiveItemType.AI_HELMET
+
+	## Check if homing bullets are currently equipped
+	func has_homing_bullets() -> bool:
+		return current_active_item == ActiveItemType.HOMING_BULLETS
 
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
@@ -284,6 +326,40 @@ func test_no_flashlight_after_deselection() -> void:
 		"has_flashlight should return false after switching back to none")
 
 
+func test_set_active_item_to_homing_bullets() -> void:
+	manager.set_active_item(3)
+	assert_eq(manager.current_active_item, 3,
+		"Active item type should change to HOMING_BULLETS")
+
+
+func test_has_homing_bullets_after_selection() -> void:
+	manager.set_active_item(3)
+	assert_true(manager.has_homing_bullets(),
+		"has_homing_bullets should return true after selecting homing bullets")
+
+
+func test_no_homing_bullets_by_default() -> void:
+	assert_false(manager.has_homing_bullets(),
+		"has_homing_bullets should return false by default")
+
+
+func test_no_homing_bullets_after_deselection() -> void:
+	manager.set_active_item(3)
+	manager.set_active_item(0)
+	assert_false(manager.has_homing_bullets(),
+		"has_homing_bullets should return false after switching back to none")
+
+
+func test_flashlight_and_homing_mutually_exclusive() -> void:
+	manager.set_active_item(1)
+	assert_true(manager.has_flashlight(), "Should have flashlight")
+	assert_false(manager.has_homing_bullets(), "Should NOT have homing bullets")
+
+	manager.set_active_item(3)
+	assert_false(manager.has_flashlight(), "Should NOT have flashlight after switching")
+	assert_true(manager.has_homing_bullets(), "Should have homing bullets")
+
+
 # ============================================================================
 # Data Retrieval Tests
 # ============================================================================
@@ -307,12 +383,13 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 4,
-		"Should return 4 active item types")
+	assert_eq(types.size(), 5,
+		"Should return 5 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
 	assert_true(3 in types)
+	assert_true(4 in types)
 
 
 func test_get_active_item_name_none() -> void:
@@ -321,6 +398,10 @@ func test_get_active_item_name_none() -> void:
 
 func test_get_active_item_name_flashlight() -> void:
 	assert_eq(manager.get_active_item_name(1), "Flashlight")
+
+
+func test_get_active_item_name_homing_bullets() -> void:
+	assert_eq(manager.get_active_item_name(3), "Homing Bullets")
 
 
 func test_get_active_item_name_invalid() -> void:
@@ -337,6 +418,12 @@ func test_get_active_item_description_none() -> void:
 	var desc := manager.get_active_item_description(0)
 	assert_true(desc.contains("No active item"),
 		"None description should indicate no active item")
+
+
+func test_get_active_item_description_homing_bullets() -> void:
+	var desc := manager.get_active_item_description(3)
+	assert_true(desc.contains("Space"),
+		"Homing bullets description should mention Space key")
 
 
 func test_get_active_item_description_invalid() -> void:
@@ -494,7 +581,8 @@ class MockArmoryWithActiveItems:
 		0: {"name": "None", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
 		2: {"name": "AI Helmet", "description": "AI-powered helmet"},
-		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
+		3: {"name": "Homing Bullets", "description": "Homing bullets active item"},
+		4: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
 	}
 
 	## Applied active item type

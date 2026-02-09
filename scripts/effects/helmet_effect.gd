@@ -18,20 +18,29 @@ const MAX_CHARGES: int = 2
 ## Time ahead to predict enemy positions (in seconds).
 const PREDICTION_TIME: float = 1.0
 
-## Color of the ghost outlines (semi-transparent red).
-const GHOST_COLOR: Color = Color(1.0, 0.15, 0.15, 0.55)
+## Color of the ghost outlines (bright red, higher alpha for visibility).
+const GHOST_COLOR: Color = Color(1.0, 0.1, 0.1, 0.8)
 
-## Radius of the ghost outline circle (matches enemy collision radius ~24px).
-const GHOST_RADIUS: float = 24.0
+## Radius of the ghost outline circle (larger for visibility ~32px).
+const GHOST_RADIUS: float = 32.0
 
 ## Line width for drawing ghost outline circles.
-const GHOST_LINE_WIDTH: float = 3.0
+const GHOST_LINE_WIDTH: float = 4.0
 
 ## Number of segments for drawing ghost circles (smoothness).
-const GHOST_CIRCLE_SEGMENTS: int = 24
+const GHOST_CIRCLE_SEGMENTS: int = 32
 
-## Inner fill color for ghost outlines (very faint red).
-const GHOST_FILL_COLOR: Color = Color(1.0, 0.1, 0.1, 0.15)
+## Inner fill color for ghost outlines (semi-transparent red).
+const GHOST_FILL_COLOR: Color = Color(1.0, 0.1, 0.1, 0.25)
+
+## Color of the connecting line from current to predicted position.
+const GHOST_LINE_COLOR: Color = Color(1.0, 0.2, 0.2, 0.4)
+
+## Outer glow radius for ghost outlines (extra visibility).
+const GHOST_GLOW_RADIUS: float = 40.0
+
+## Outer glow color (faint red for halo effect).
+const GHOST_GLOW_COLOR: Color = Color(1.0, 0.1, 0.1, 0.1)
 
 ## Remaining charges for this battle.
 var _charges: int = MAX_CHARGES
@@ -45,6 +54,12 @@ var _remaining_time: float = 0.0
 ## Cached predicted positions for drawing (updated each frame).
 ## Array of Dictionary: [{"position": Vector2, "rotation": float}, ...]
 var _ghost_data: Array = []
+
+## Whether we've logged the first draw frame (to avoid log spam).
+var _first_draw_logged: bool = false
+
+## Frame counter for pulsing animation.
+var _pulse_time: float = 0.0
 
 ## Signal emitted when the helmet is activated.
 signal helmet_activated(charges_left: int)
@@ -61,7 +76,12 @@ func _ready() -> void:
 	# so that ghost positions are in global coordinates.
 	# z_index is set high so ghosts render above other sprites.
 	z_index = 100
-	FileLogger.info("[HelmetEffect] Ready. Charges: %d/%d" % [_charges, MAX_CHARGES])
+	# Ensure this node is visible and at the origin.
+	visible = true
+	position = Vector2.ZERO
+	FileLogger.info("[HelmetEffect] Ready. Charges: %d/%d, position: %s, visible: %s, z_index: %d" % [
+		_charges, MAX_CHARGES, str(position), str(visible), z_index
+	])
 
 
 ## Activate the helmet prediction effect.
@@ -78,13 +98,34 @@ func activate() -> bool:
 	_charges -= 1
 	_is_active = true
 	_remaining_time = EFFECT_DURATION
+	_first_draw_logged = false
+	_pulse_time = 0.0
 
-	FileLogger.info("[HelmetEffect] Activated! Charges left: %d/%d, Duration: %.1fs" % [
-		_charges, MAX_CHARGES, EFFECT_DURATION
+	# Log activation with enemy count for diagnostics
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var alive_count := 0
+	var cb2d_count := 0
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy is CharacterBody2D:
+			cb2d_count += 1
+			if enemy.has_method("is_alive") and enemy.is_alive():
+				alive_count += 1
+			elif enemy.get("_is_alive") != null and enemy.get("_is_alive"):
+				alive_count += 1
+
+	FileLogger.info("[HelmetEffect] Activated! Charges left: %d/%d, Duration: %.1fs, Enemies in group: %d, CharacterBody2D: %d, Alive: %d" % [
+		_charges, MAX_CHARGES, EFFECT_DURATION, enemies.size(), cb2d_count, alive_count
 	])
 
 	helmet_activated.emit(_charges)
 	charges_changed.emit(_charges)
+
+	# Force an immediate position update and redraw
+	_update_ghost_positions()
+	queue_redraw()
+
 	return true
 
 
@@ -122,6 +163,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_remaining_time -= delta
+	_pulse_time += delta
+
 	if _remaining_time <= 0.0:
 		deactivate()
 		return
@@ -167,6 +210,22 @@ func _draw() -> void:
 	if not _is_active or _ghost_data.is_empty():
 		return
 
+	# Log on the first draw frame for diagnostic purposes
+	if not _first_draw_logged:
+		_first_draw_logged = true
+		FileLogger.info("[HelmetEffect] Drawing %d ghost outlines. Node pos: %s, global_pos: %s, visible: %s" % [
+			_ghost_data.size(), str(position), str(global_position), str(visible)
+		])
+		if not _ghost_data.is_empty():
+			var first_ghost: Dictionary = _ghost_data[0]
+			FileLogger.info("[HelmetEffect] First ghost: predicted=%s, current=%s, local_predicted=%s" % [
+				str(first_ghost["position"]), str(first_ghost["current_position"]),
+				str(to_local(first_ghost["position"]))
+			])
+
+	# Calculate pulse factor for breathing animation (makes ghosts more noticeable)
+	var pulse: float = 0.85 + 0.15 * sin(_pulse_time * 4.0)
+
 	for ghost in _ghost_data:
 		var pos: Vector2 = ghost["position"]
 		var current_pos: Vector2 = ghost["current_position"]
@@ -175,15 +234,20 @@ func _draw() -> void:
 		var local_predicted := to_local(pos)
 		var local_current := to_local(current_pos)
 
+		# Draw outer glow at predicted position (halo effect for visibility)
+		_draw_filled_circle(local_predicted, GHOST_GLOW_RADIUS * pulse, GHOST_GLOW_COLOR)
+
 		# Draw filled ghost circle at predicted position
-		_draw_filled_circle(local_predicted, GHOST_RADIUS, GHOST_FILL_COLOR)
+		_draw_filled_circle(local_predicted, GHOST_RADIUS * pulse, GHOST_FILL_COLOR)
 
-		# Draw outline circle at predicted position
-		_draw_circle_outline(local_predicted, GHOST_RADIUS, GHOST_COLOR, GHOST_LINE_WIDTH)
+		# Draw outline circle at predicted position (bright red)
+		_draw_circle_outline(local_predicted, GHOST_RADIUS * pulse, GHOST_COLOR, GHOST_LINE_WIDTH)
 
-		# Draw a faint line from current to predicted position
-		var line_color := Color(GHOST_COLOR.r, GHOST_COLOR.g, GHOST_COLOR.b, 0.25)
-		draw_line(local_current, local_predicted, line_color, 1.5)
+		# Draw a line from current enemy position to predicted position
+		draw_line(local_current, local_predicted, GHOST_LINE_COLOR, 2.0)
+
+		# Draw small marker at current enemy position
+		_draw_circle_outline(local_current, 8.0, GHOST_LINE_COLOR, 1.5)
 
 
 ## Draw a circle outline using line segments.
