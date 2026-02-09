@@ -812,11 +812,15 @@ public partial class Player : BaseCharacter
         // Auto-equip weapon if not set but a weapon child exists
         if (CurrentWeapon == null)
         {
-            // Try MakarovPM first (default starting weapon), then AssaultRifle for backward compatibility
+            // Try MakarovPM first (default starting weapon), then AssaultRifle, then AKGL for backward compatibility
             CurrentWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
             if (CurrentWeapon == null)
             {
                 CurrentWeapon = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+            }
+            if (CurrentWeapon == null)
+            {
+                CurrentWeapon = GetNodeOrNull<BaseWeapon>("AKGL");
             }
             if (CurrentWeapon != null)
             {
@@ -1132,9 +1136,13 @@ public partial class Player : BaseCharacter
         // This takes priority over grenade input since the sniper uses RMB for scoping
         bool sniperScopeConsumedInput = HandleSniperScopeInput();
 
+        // Handle AKGL grenade launcher input (RMB) when AKGL is equipped
+        // This takes priority over grenade input since the underbarrel uses RMB for firing
+        bool akglGrenadeLauncherConsumedInput = HandleAKGLGrenadeLauncherInput();
+
         // Handle grenade input first (so it can consume shoot input)
-        // Skip if sniper scope already consumed the RMB input
-        if (!sniperScopeConsumedInput)
+        // Skip if sniper scope or AKGL grenade launcher already consumed the RMB input
+        if (!sniperScopeConsumedInput && !akglGrenadeLauncherConsumedInput)
         {
             HandleGrenadeInput();
         }
@@ -1426,8 +1434,9 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
+        // Check in order of specificity: SniperRifle, AKGL, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
         var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
+        var akgl = GetNodeOrNull<BaseWeapon>("AKGL");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
@@ -1438,6 +1447,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Sniper;
             LogToFile("[Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)");
+        }
+        else if (akgl != null)
+        {
+            detectedType = WeaponType.Rifle;
+            LogToFile("[Player] Detected weapon: AK + GL (Rifle pose)");
         }
         else if (miniUzi != null)
         {
@@ -2287,6 +2301,10 @@ public partial class Player : BaseCharacter
                 scenePath = "res://scenes/weapons/csharp/MakarovPM.tscn";
                 weaponNodeName = "MakarovPM";
                 break;
+            case "ak_gl":
+                scenePath = "res://scenes/weapons/csharp/AKGL.tscn";
+                weaponNodeName = "AKGL";
+                break;
             default:
                 LogToFile($"[Player.Weapon] Unknown weapon ID '{selectedWeaponId}', keeping default");
                 return;
@@ -2399,6 +2417,50 @@ public partial class Player : BaseCharacter
         {
             sniperRifle.AdjustScopeFineTune(mouseMotion.Relative);
         }
+    }
+
+    #endregion
+
+    #region AKGL Grenade Launcher System
+
+    /// <summary>
+    /// Handles AKGL underbarrel grenade launcher input when the AKGL is equipped.
+    /// RMB fires the grenade launcher (single shot, no reload).
+    /// Returns true if the AKGL grenade launcher consumed the RMB input.
+    /// </summary>
+    private bool HandleAKGLGrenadeLauncherInput()
+    {
+        // Only handle when AKGL is the current weapon
+        var akgl = CurrentWeapon as AKGL;
+        if (akgl == null)
+        {
+            return false;
+        }
+
+        // Handle RMB press to fire the grenade launcher
+        if (Input.IsActionJustPressed("grenade_throw"))
+        {
+            // Only fire if not already in a grenade action and grenade is available
+            if (_grenadeState == GrenadeState.Idle && !Input.IsActionPressed("grenade_prepare"))
+            {
+                if (akgl.GrenadeAvailable)
+                {
+                    // Calculate fire direction
+                    Vector2 direction = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                    akgl.FireGrenadeLauncher(direction);
+                    LogToFile("[Player] AKGL grenade launcher fired!");
+                    return true;
+                }
+                else
+                {
+                    LogToFile("[Player] AKGL grenade launcher empty - no grenade available");
+                    // Still consume input to prevent grenade throw when GL is empty
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     #endregion
