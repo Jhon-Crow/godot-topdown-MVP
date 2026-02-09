@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
+using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -667,6 +668,68 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Homing Bullets System (Issue #677)
+
+    /// <summary>
+    /// Whether homing bullets are equipped (active item selected in armory).
+    /// </summary>
+    private bool _homingBulletsEquipped = false;
+
+    /// <summary>
+    /// Whether the homing effect is currently active (bullets steer toward enemies).
+    /// </summary>
+    private bool _homingActive = false;
+
+    /// <summary>
+    /// Remaining homing charges (6 per battle).
+    /// </summary>
+    private int _homingCharges = 6;
+
+    /// <summary>
+    /// Maximum homing charges per battle.
+    /// </summary>
+    private const int MaxHomingCharges = 6;
+
+    /// <summary>
+    /// Duration of homing effect per activation in seconds.
+    /// </summary>
+    private const float HomingDuration = 1.0f;
+
+    /// <summary>
+    /// Timer tracking remaining homing effect duration.
+    /// </summary>
+    private float _homingTimer = 0.0f;
+
+    /// <summary>
+    /// Path to the homing bullets activation sound.
+    /// </summary>
+    private const string HomingSoundPath = "res://assets/audio/homing_activation.wav";
+
+    /// <summary>
+    /// AudioStreamPlayer for homing activation sound.
+    /// </summary>
+    private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// Signal emitted when homing charges change.
+    /// </summary>
+    [Signal]
+    public delegate void HomingChargesChangedEventHandler(int current, int maximum);
+
+    /// <summary>
+    /// Signal emitted when homing effect activates.
+    /// </summary>
+    [Signal]
+    public delegate void HomingActivatedEventHandler();
+
+    /// <summary>
+    /// Signal emitted when homing effect deactivates.
+    /// </summary>
+    [Signal]
+    public delegate void HomingDeactivatedEventHandler();
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -911,6 +974,9 @@ public partial class Player : BaseCharacter
 
         // Initialize teleport bracers if active item manager has them selected (Issue #672)
         InitTeleportBracers();
+
+        // Initialize homing bullets if active item manager has them selected (Issue #677)
+        InitHomingBullets();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1187,6 +1253,9 @@ public partial class Player : BaseCharacter
 
         // Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #672)
         HandleTeleportBracersInput();
+
+        // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
+        HandleHomingBulletsInput((float)delta);
     }
 
     /// <summary>
@@ -2049,6 +2118,19 @@ public partial class Player : BaseCharacter
 
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Enable homing on the bullet if homing effect is active (Issue #677)
+        if (_homingActive)
+        {
+            if (bullet is CSharpBullet csBullet)
+            {
+                csBullet.EnableHoming();
+            }
+            else if (bullet.HasMethod("enable_homing"))
+            {
+                bullet.Call("enable_homing");
+            }
+        }
     }
 
     /// <summary>
@@ -4229,6 +4311,201 @@ public partial class Player : BaseCharacter
 
         // Could not find safe position, return original
         return position;
+    }
+
+    #endregion
+
+    #region Homing Bullets Methods (Issue #677)
+
+    /// <summary>
+    /// Initialize the homing bullets if the ActiveItemManager has them selected.
+    /// </summary>
+    private void InitHomingBullets()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Homing] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_homing_bullets"))
+        {
+            LogToFile("[Player.Homing] ActiveItemManager missing has_homing_bullets method");
+            return;
+        }
+
+        bool hasHomingBullets = (bool)activeItemManager.Call("has_homing_bullets");
+        if (!hasHomingBullets)
+        {
+            LogToFile("[Player.Homing] No homing bullets selected in ActiveItemManager");
+            return;
+        }
+
+        _homingBulletsEquipped = true;
+        _homingCharges = MaxHomingCharges;
+        _homingActive = false;
+        _homingTimer = 0.0f;
+        SetupHomingAudio();
+
+        LogToFile($"[Player.Homing] Homing bullets equipped, charges: {_homingCharges}/{MaxHomingCharges}");
+    }
+
+    /// <summary>
+    /// Handle homing bullets input: press Space to activate for 1 second.
+    /// When activated, all bullets fired during the activation window steer toward enemies.
+    /// Also enables homing on already-airborne player bullets.
+    /// </summary>
+    private void HandleHomingBulletsInput(float delta)
+    {
+        if (!_homingBulletsEquipped)
+        {
+            return;
+        }
+
+        // Handle active timer countdown
+        if (_homingActive)
+        {
+            _homingTimer -= delta;
+            if (_homingTimer <= 0.0f)
+            {
+                _homingActive = false;
+                _homingTimer = 0.0f;
+                EmitSignal(SignalName.HomingDeactivated);
+                LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+            }
+        }
+
+        // Activate on Space press (only if not already active and has charges)
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            if (_homingCharges > 0 && !_homingActive)
+            {
+                _homingActive = true;
+                _homingTimer = HomingDuration;
+                _homingCharges--;
+                PlayHomingSound();
+                EmitSignal(SignalName.HomingActivated);
+                EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
+                LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+
+                // Enable homing on all already-airborne player bullets
+                EnableHomingOnAirborneBullets();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Enable homing on all player bullets currently in the scene.
+    /// Called when the player activates homing so that bullets already in flight
+    /// also start steering toward enemies.
+    /// </summary>
+    private void EnableHomingOnAirborneBullets()
+    {
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return;
+        }
+
+        var currentScene = tree.CurrentScene;
+        if (currentScene == null)
+        {
+            return;
+        }
+
+        int enabledCount = 0;
+        ulong myId = GetInstanceId();
+
+        // Find all Bullet nodes in the scene
+        EnableHomingRecursive(currentScene, myId, ref enabledCount);
+
+        if (enabledCount > 0)
+        {
+            LogToFile($"[Player.Homing] Enabled homing on {enabledCount} airborne bullets");
+        }
+    }
+
+    /// <summary>
+    /// Recursively find Bullet nodes and enable homing on player bullets.
+    /// </summary>
+    private void EnableHomingRecursive(Node node, ulong playerId, ref int count)
+    {
+        // Check if this is a C# Bullet
+        if (node is CSharpBullet csBullet)
+        {
+            if (csBullet.ShooterId == playerId && !csBullet.HomingEnabled)
+            {
+                csBullet.EnableHoming();
+                count++;
+            }
+        }
+        // Check if this is a GDScript bullet (has enable_homing method and shooter_id property)
+        else if (node is Area2D area && node.HasMethod("enable_homing"))
+        {
+            var shooterId = node.Get("shooter_id");
+            if (shooterId.VariantType != Variant.Type.Nil)
+            {
+                ulong bulletShooterId = shooterId.AsUInt64();
+                if (bulletShooterId == playerId)
+                {
+                    var homingEnabled = node.Get("homing_enabled");
+                    if (homingEnabled.VariantType == Variant.Type.Nil || !(bool)homingEnabled)
+                    {
+                        node.Call("enable_homing");
+                        count++;
+                    }
+                }
+            }
+        }
+
+        // Recurse into children
+        foreach (var child in node.GetChildren())
+        {
+            EnableHomingRecursive(child, playerId, ref count);
+        }
+    }
+
+    /// <summary>
+    /// Set up the audio player for homing activation sound.
+    /// </summary>
+    private void SetupHomingAudio()
+    {
+        if (ResourceLoader.Exists(HomingSoundPath))
+        {
+            var stream = GD.Load<AudioStream>(HomingSoundPath);
+            if (stream != null)
+            {
+                _homingAudioPlayer = new AudioStreamPlayer();
+                _homingAudioPlayer.Stream = stream;
+                _homingAudioPlayer.VolumeDb = -3.0f;
+                AddChild(_homingAudioPlayer);
+                LogToFile("[Player.Homing] Homing activation sound loaded");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
+        }
+    }
+
+    /// <summary>
+    /// Play the homing activation sound.
+    /// </summary>
+    private void PlayHomingSound()
+    {
+        if (_homingAudioPlayer != null && IsInstanceValid(_homingAudioPlayer))
+        {
+            _homingAudioPlayer.Play();
+        }
+    }
+
+    /// <summary>
+    /// Check if homing bullets effect is currently active.
+    /// </summary>
+    public bool IsHomingActive()
+    {
+        return _homingActive;
     }
 
     #endregion

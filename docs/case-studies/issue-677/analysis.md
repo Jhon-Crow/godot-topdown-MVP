@@ -113,9 +113,84 @@ since `_init_flashlight()` in the same codebase does not use a `has_method` guar
 2. **Missing activation sound** — No audio feedback when pressing Space to activate
 3. **No diagnostic logging** — Silent failures made debugging impossible
 
-### Fix Applied
+### Fix Applied (Iteration 1 - Incomplete)
 1. Added diagnostic logging at every guard point in `_init_homing_bullets()` (matching flashlight pattern)
 2. Added homing bullets icon: `res://assets/sprites/weapons/homing_bullets_icon.png` (64x48 RGBA PNG)
 3. Added sci-fi activation sound: `res://assets/audio/homing_activation.wav`
 4. Added `_setup_homing_audio()` and `_play_homing_sound()` to player.gd
 5. Sound plays when Space is pressed to activate homing effect
+
+**Note:** This fix was incomplete — see Iteration 2 below for the actual root cause.
+
+## Bug Investigation — Iteration 2 (2026-02-09)
+
+### Problem Report
+Owner tested again after Iteration 1 fix and reported:
+1. "не работает" (doesn't work) — homing still not activating
+2. "при активации пули игрока, которые уже в воздухе так же должны наводиться" (when activated, bullets already in the air should also home in)
+3. Provided new game logs: `game_log_20260209_030446.txt`, `game_log_20260209_030630.txt`
+
+### Investigation — The REAL Root Cause
+
+**Crucial observation:** The game logs show `[Player.Flashlight]` and `[Player.TeleportBracers]` log entries, but **ZERO** `[Player.Homing]` log entries — even though `_init_homing_bullets()` now has logging at every guard point.
+
+The `[Player.TeleportBracers]` log does NOT come from `player.gd` — it comes from `Scripts/Characters/Player.cs`.
+
+**Root cause: ALL game levels use the C# Player scene, not the GDScript one.**
+
+Evidence from scene files:
+```
+scenes/levels/CastleLevel.tscn → res://scenes/characters/csharp/Player.tscn
+scenes/levels/BuildingLevel.tscn → res://scenes/characters/csharp/Player.tscn
+scenes/levels/BeachLevel.tscn → res://scenes/characters/csharp/Player.tscn
+scenes/levels/LabyrinthLevel.tscn → res://scenes/characters/csharp/Player.tscn
+```
+
+Similarly, weapons use C# bullet scenes:
+```
+scenes/weapons/csharp/AssaultRifle.tscn → res://scenes/projectiles/csharp/Bullet.tscn
+scenes/weapons/csharp/Shotgun.tscn → res://scenes/projectiles/csharp/Bullet.tscn
+```
+
+The C# `Player.cs` has teleport bracers code but **no homing bullets code**.
+The C# `Bullet.cs` has ricochet/penetration code but **no homing steering code**.
+
+The entire homing implementation (from the initial solution draft and Iteration 1 fix) was added to the **GDScript files** (`player.gd` and `bullet.gd`) which are **never loaded** in the actual game. The game exclusively uses the C# counterparts.
+
+### Timeline Reconstruction
+1. Initial solution draft added homing to `scripts/characters/player.gd` and `scripts/projectiles/bullet.gd`
+2. The game actually runs `Scripts/Characters/Player.cs` and `Scripts/Projectiles/Bullet.cs`
+3. Iteration 1 fix added diagnostic logging to `player.gd` — still the wrong file
+4. The feature appeared to work in CI tests because GDScript unit tests use mock classes (not the real game scenes)
+5. When tested in the actual game (exported build), nothing happened because the C# scripts had no homing code
+
+### Fix Applied (Iteration 2 - Correct)
+Implemented homing bullets in the **C# files** that the game actually uses:
+
+1. **`Scripts/Projectiles/Bullet.cs`** — Added homing system:
+   - `_homingEnabled`, `_homingMaxTurnAngle` (110°), `_homingSteerSpeed` (8 rad/s) fields
+   - `EnableHoming()` public method storing original direction
+   - `ApplyHomingSteering()` with angular interpolation toward nearest alive enemy
+   - `FindNearestEnemyPosition()` scanning "enemies" group
+   - Homing steering called in `_PhysicsProcess()` before movement
+
+2. **`Scripts/Characters/Player.cs`** — Added homing state management:
+   - `_homingBulletsEquipped`, `_homingActive`, `_homingCharges` (6), `_homingTimer` fields
+   - `HomingChargesChanged`, `HomingActivated`, `HomingDeactivated` signals
+   - `InitHomingBullets()` checking ActiveItemManager with full diagnostic logging
+   - `HandleHomingBulletsInput()` using Space key (flashlight_toggle action)
+   - `EnableHomingOnAirborneBullets()` — scans scene tree for existing player bullets
+   - Audio setup and playback for sci-fi activation sound
+
+3. **`Scripts/AbstractClasses/BaseWeapon.cs`** — Added homing on bullet spawn:
+   - After spawning a bullet, checks if parent (Player) has homing active
+   - Calls `EnableHoming()` on newly spawned C# or GDScript bullets
+
+4. **New feature: Airborne bullet homing** — When Space is pressed to activate homing,
+   all player bullets already in flight also start homing. This uses `EnableHomingOnAirborneBullets()`
+   which recursively scans the scene tree for Bullet nodes with matching shooter ID.
+
+### Lesson Learned
+In a dual-language Godot project (C# + GDScript), always verify which script variant
+is attached to the actual game scenes before implementing features. The GDScript and C#
+implementations may look similar but the game only loads one of them.
