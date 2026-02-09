@@ -198,6 +198,9 @@ var _invincibility_enabled: bool = false
 ## Whether homing bullets active item is equipped.
 var _homing_equipped: bool = false
 
+## Whether teleport bracers active item is equipped.
+var _teleport_bracers_equipped: bool = false
+
 ## Whether homing bullets effect is currently active (bullets home toward enemies).
 var _homing_active: bool = false
 
@@ -340,6 +343,9 @@ func _ready() -> void:
 	# Initialize homing bullets if active item manager has homing bullets selected
 	_init_homing_bullets()
 
+	# Initialize teleport bracers if active item manager has it selected
+	_init_teleport_bracers()
+
 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
 	_init_invisibility_suit()
 
@@ -443,7 +449,10 @@ func _physics_process(delta: float) -> void:
 	# Handle homing bullets input (press Space to activate, timer-based deactivation)
 	_handle_homing_input(delta)
 
-	# Handle invisibility suit input (press Space to activate) (Issue #673)
+	# Handle teleport bracers activation
+	_handle_teleport_bracers_input()
+
+	# Handle invisibility suit activation (Issue #673)
 	_handle_invisibility_suit_input()
 
 
@@ -3034,6 +3043,18 @@ func _handle_homing_input(delta: float) -> void:
 			FileLogger.info("[Player.Homing] Homing activated! Duration: %ss, charges remaining: %d/%d" % [HOMING_DURATION, _homing_charges, HOMING_MAX_CHARGES])
 
 
+## Handle teleport bracers input (hold to aim, release to teleport).
+func _handle_teleport_bracers_input() -> void:
+	if not _teleport_bracers_equipped:
+		return
+
+	# TODO: Implement actual teleport logic
+	# For now, just play the teleport sound when Space is released
+	if Input.is_action_just_released("flashlight_toggle"):
+		_play_teleport_sound()
+		FileLogger.info("[Player.Teleport] Teleport activated!")
+
+
 ## Check if homing bullets effect is currently active.
 func is_homing_active() -> bool:
 	return _homing_active
@@ -3056,7 +3077,7 @@ func _setup_homing_audio() -> void:
 		if stream:
 			_homing_audio_player = AudioStreamPlayer.new()
 			_homing_audio_player.stream = stream
-			_homing_audio_player.volume_db = -3.0
+			_homing_audio_player.volume_db = -10.0
 			add_child(_homing_audio_player)
 			FileLogger.info("[Player.Homing] Homing activation sound loaded")
 	else:
@@ -3067,6 +3088,60 @@ func _setup_homing_audio() -> void:
 func _play_homing_sound() -> void:
 	if _homing_audio_player and is_instance_valid(_homing_audio_player):
 		_homing_audio_player.play()
+
+
+# ============================================================================
+# Teleport Bracers System
+# ============================================================================
+
+## Path to the teleport bracers activation sound.
+const TELEPORT_SOUND_PATH: String = "res://assets/audio/звук включения и выключения фанарика.mp3"
+
+## AudioStreamPlayer for teleport activation sound.
+var _teleport_audio_player: AudioStreamPlayer = null
+
+
+## Initialize the teleport bracers if the ActiveItemManager has it selected.
+func _init_teleport_bracers() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Teleport] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_teleport_bracers"):
+		FileLogger.info("[Player.Teleport] ActiveItemManager missing has_teleport_bracers method")
+		return
+
+	if not active_item_manager.has_teleport_bracers():
+		FileLogger.info("[Player.Teleport] No teleport bracers selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.Teleport] Teleport bracers are selected, initializing...")
+
+	_teleport_bracers_equipped = true
+
+	# Set up teleport sound
+	_setup_teleport_audio()
+
+
+## Set up the audio player for teleport activation sound.
+func _setup_teleport_audio() -> void:
+	if ResourceLoader.exists(TELEPORT_SOUND_PATH):
+		var stream = load(TELEPORT_SOUND_PATH)
+		if stream:
+			_teleport_audio_player = AudioStreamPlayer.new()
+			_teleport_audio_player.stream = stream
+			_teleport_audio_player.volume_db = -6.0
+			add_child(_teleport_audio_player)
+			FileLogger.info("[Player.Teleport] Teleport activation sound loaded")
+	else:
+		FileLogger.info("[Player.Teleport] Teleport activation sound not found: %s" % TELEPORT_SOUND_PATH)
+
+
+## Play the teleport activation sound.
+func _play_teleport_sound() -> void:
+	if _teleport_audio_player and is_instance_valid(_teleport_audio_player):
+		_teleport_audio_player.play()
 
 
 # ============================================================================
