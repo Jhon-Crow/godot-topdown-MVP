@@ -417,7 +417,46 @@ This completely eliminates ALL NavigationServer2D calls from the SEARCHING
 direct movement gets blocked by obstacles — enemies skip the waypoint after 2 seconds
 of no progress.
 
-### Summary of All 6 Crash Fixes
+### Seventh Crash Analysis
+
+After Fix #6, the crash persisted. Analysis of the Godot engine source code
+(`navigation_agent_2d.cpp`) revealed the true root cause:
+
+**`get_next_path_position()` internally calls `_update_navigation()` which calls
+`NavigationServer2D::query_path()` — a full synchronous pathfinding query.**
+
+Similarly, `is_navigation_finished()` also calls `_update_navigation()` → `query_path()`.
+
+The flashlight detection component (`flashlight_detection_component.gd`) calls
+`is_next_waypoint_lit(nav_agent, ...)` inside `_update_goap_state()` which is called from
+`_physics_process()` **for EVERY enemy, EVERY frame, REGARDLESS of state**.
+
+This function (lines 385-390 of flashlight_detection_component.gd):
+```gdscript
+func is_next_waypoint_lit(nav_agent, player, raycast):
+    if nav_agent == null or nav_agent.is_navigation_finished():  # → query_path()
+        return false
+    var next_pos := nav_agent.get_next_path_position()  # → query_path()
+    return is_position_lit(next_pos, player, raycast)
+```
+
+With 4 enemies, this generates **up to 8 `NavigationServer2D::query_path()` calls per
+physics frame** (2 calls × 4 enemies) just from flashlight detection — even though enemies
+in SEARCHING state don't have a valid NavigationAgent2D path.
+
+### Fix Applied (Seventh Pass)
+
+1. **Skip flashlight waypoint check during SEARCHING** — In `_update_goap_state()`,
+   set `passage_lit_by_flashlight = false` when `_current_state == AIState.SEARCHING`
+   instead of calling `is_next_waypoint_lit()`. Since SEARCHING uses direct movement
+   (not NavigationAgent2D), there is no "next waypoint" to check.
+
+2. **Disable avoidance immediately** — In `_transition_to_searching()`, disable
+   `_nav_agent.avoidance_enabled` immediately instead of waiting for `_deferred_search_init()`.
+   This prevents the NavigationAgent2D's internal `NOTIFICATION_INTERNAL_PHYSICS_PROCESS`
+   from calling `NavigationServer2D.agent_set_position()` during the 2-frame init delay.
+
+### Summary of All 7 Crash Fixes
 
 | Fix # | Root Cause | Solution |
 |-------|-----------|----------|
@@ -426,4 +465,5 @@ of no progress.
 | 3 | `instance_from_id()` crash during physics | Replaced with WeakRef + deferred coordinator setup |
 | 4 | `_generate_search_waypoints()` during physics | Deferred all waypoint generation to idle frames |
 | 5 | NavigationAgent2D avoidance + repeated target_position | Disabled avoidance, cached nav target, deferred regen |
-| 6 | `get_next_path_position()` called every frame during movement | **Replaced with direct movement — zero NavigationServer2D calls** |
+| 6 | `get_next_path_position()` called every frame during movement | Replaced with direct movement — zero NavigationServer2D calls in SEARCHING state handler |
+| 7 | **`_update_goap_state()` calls `is_next_waypoint_lit()` every frame for ALL states** | **Skip flashlight waypoint check during SEARCHING + immediate avoidance disable** |

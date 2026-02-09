@@ -910,8 +910,11 @@ func _update_goap_state() -> void:
 	# Flashlight detection states (Issue #574)
 	if _flashlight_detection:
 		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
-		# Check if the next navigation waypoint is lit by the flashlight
-		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
+		# Issue #650: Skip waypoint-lit check during SEARCHING (no NavigationAgent2D path → segfault)
+		if _current_state == AIState.SEARCHING:
+			_goap_world_state["passage_lit_by_flashlight"] = false
+		else:
+			_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
 ## Update model rotation (#347, #386, #397): priority player > combat/pursuit > corner > velocity > idle.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
@@ -2225,11 +2228,7 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			# Issue #650 Fix #6: Direct movement to waypoints — NO NavigationAgent2D calls.
-			# Search waypoints are pre-validated as navigable during deferred init, so we move
-			# directly toward them. This eliminates all NavigationServer2D queries from _physics_process,
-			# preventing native segfaults when multiple enemies search the same area simultaneously.
-			# Inspired by FEAR AI approach: simple direct movement for short-distance search patrol.
+			# Issue #650: Direct movement to pre-validated waypoints (no NavigationAgent2D — prevents segfaults)
 			var dir := (target_waypoint - global_position).normalized()
 			velocity = dir * move_speed * 0.7
 			# Issue #354: Stuck detection
@@ -2612,6 +2611,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position  # Issue #354
 	_scan_targets.clear(); _scan_target_index = 0; _scan_pause_timer = 0.0; _search_nav_target_set = false  # Issue #650: Reset scan/nav state
 	_search_init_frames = 2  # Issue #650: Defer waypoint generation (NavigationServer2D segfault fix)
+	if _nav_agent: _nav_agent.avoidance_enabled = false  # Issue #650: Disable avoidance immediately (not just in deferred init)
 	_log_to_file("SEARCHING started: center=%s, radius=%.0f (deferred init)" % [_search_center, _search_radius])
 
 ## Issue #650: Deferred search initialization — generates waypoints + coordinator setup.
