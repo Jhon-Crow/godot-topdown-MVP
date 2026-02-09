@@ -119,6 +119,58 @@ public partial class ShotgunPellet : Area2D
     /// </summary>
     private const bool DebugRicochet = false;
 
+    // =========================================================================
+    // Homing Pellet System (Issue #704)
+    // =========================================================================
+
+    /// <summary>
+    /// Whether this pellet has homing enabled (steers toward nearest enemy).
+    /// </summary>
+    private bool _homingEnabled = false;
+
+    /// <summary>
+    /// Maximum angle (in radians) the pellet can turn from its original direction.
+    /// 110 degrees = ~1.92 radians (same as Bullet.cs).
+    /// </summary>
+    private float _homingMaxTurnAngle = Mathf.DegToRad(110.0f);
+
+    /// <summary>
+    /// Steering speed for homing (radians per second of turning).
+    /// </summary>
+    private float _homingSteerSpeed = 8.0f;
+
+    /// <summary>
+    /// The original firing direction (stored when homing is enabled).
+    /// Used to limit total turn angle.
+    /// </summary>
+    private Vector2 _homingOriginalDirection = Vector2.Zero;
+
+    /// <summary>
+    /// Enable debug logging for homing calculations.
+    /// </summary>
+    private const bool DebugHoming = false;
+
+    /// <summary>
+    /// Whether aim-line targeting is active (Issue #704).
+    /// When true, targets enemy closest to the player's aim line rather than nearest to pellet.
+    /// </summary>
+    private bool _useAimLineTargeting = false;
+
+    /// <summary>
+    /// The player's position when pellet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterOrigin = Vector2.Zero;
+
+    /// <summary>
+    /// The player's aim direction when pellet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterAimDirection = Vector2.Zero;
+
+    /// <summary>
+    /// Whether homing is enabled on this pellet.
+    /// </summary>
+    public bool HomingEnabled => _homingEnabled;
+
     /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
@@ -194,6 +246,12 @@ public partial class ShotgunPellet : Area2D
 
     public override void _PhysicsProcess(double delta)
     {
+        // Apply homing steering if enabled (Issue #704)
+        if (_homingEnabled)
+        {
+            ApplyHomingSteering((float)delta);
+        }
+
         // Calculate movement this frame
         var movement = Direction * Speed * (float)delta;
 
@@ -248,6 +306,210 @@ public partial class ShotgunPellet : Area2D
         {
             _trail.AddPoint(pos);
         }
+    }
+
+    // =========================================================================
+    // Homing Methods (Issue #704)
+    // =========================================================================
+
+    /// <summary>
+    /// Enables homing on this pellet, storing the original direction.
+    /// Called when activating homing on already-airborne pellets.
+    /// Targets the nearest enemy to the pellet itself.
+    /// </summary>
+    public void EnableHoming()
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        if (DebugHoming)
+        {
+            GD.Print($"[ShotgunPellet] Homing enabled, original direction: {_homingOriginalDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Enables homing on this pellet with aim-line targeting (Issue #704).
+    /// Called when firing new pellets during homing activation.
+    /// Targets the enemy closest to the player's line of fire.
+    /// </summary>
+    /// <param name="shooterPos">The player's position when firing.</param>
+    /// <param name="aimDir">The player's aim direction when firing.</param>
+    public void EnableHomingWithAimLine(Vector2 shooterPos, Vector2 aimDir)
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        _useAimLineTargeting = true;
+        _shooterOrigin = shooterPos;
+        _shooterAimDirection = aimDir.Normalized();
+        if (DebugHoming)
+        {
+            GD.Print($"[ShotgunPellet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Applies homing steering toward the nearest alive enemy.
+    /// The pellet turns toward the nearest enemy but cannot exceed the max turn angle
+    /// from its original firing direction (110 degrees each side).
+    /// </summary>
+    private void ApplyHomingSteering(float delta)
+    {
+        // Only player pellets should home
+        if (!IsPlayerPellet())
+        {
+            return;
+        }
+
+        // Find nearest alive enemy
+        var targetPos = FindNearestEnemyPosition();
+        if (targetPos == Vector2.Zero)
+        {
+            return; // No valid target found
+        }
+
+        // Calculate desired direction toward target
+        var toTarget = (targetPos - GlobalPosition).Normalized();
+
+        // Calculate the angle difference between current direction and desired
+        float angleDiff = Direction.AngleTo(toTarget);
+
+        // Limit per-frame steering (smooth turning)
+        float maxSteerThisFrame = _homingSteerSpeed * delta;
+        angleDiff = Mathf.Clamp(angleDiff, -maxSteerThisFrame, maxSteerThisFrame);
+
+        // Calculate proposed new direction
+        var newDirection = Direction.Rotated(angleDiff).Normalized();
+
+        // Check if the new direction would exceed the max turn angle from original
+        float angleFromOriginal = _homingOriginalDirection.AngleTo(newDirection);
+        if (Mathf.Abs(angleFromOriginal) > _homingMaxTurnAngle)
+        {
+            if (DebugHoming)
+            {
+                GD.Print($"[ShotgunPellet] Homing angle limit reached: {Mathf.RadToDeg(Mathf.Abs(angleFromOriginal))}°");
+            }
+            return; // Don't steer further, angle limit reached
+        }
+
+        // Apply the steering
+        Direction = newDirection;
+        UpdateRotation();
+
+        if (DebugHoming)
+        {
+            GD.Print($"[ShotgunPellet] Homing steer: angle_diff={Mathf.RadToDeg(angleDiff)}° total_turn={Mathf.RadToDeg(Mathf.Abs(angleFromOriginal))}°");
+        }
+    }
+
+    /// <summary>
+    /// Finds the position of the best homing target enemy.
+    /// When aim-line targeting is active (Issue #704), finds the enemy closest
+    /// to the player's line of fire. Otherwise, finds the nearest enemy to the pellet.
+    /// Returns Vector2.Zero if no enemies are found.
+    /// </summary>
+    private Vector2 FindNearestEnemyPosition()
+    {
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return Vector2.Zero;
+        }
+
+        var enemies = tree.GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+        {
+            return Vector2.Zero;
+        }
+
+        if (_useAimLineTargeting)
+        {
+            return FindEnemyNearestToAimLine(enemies);
+        }
+
+        var nearestPos = Vector2.Zero;
+        float nearestDist = float.PositiveInfinity;
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+            // Skip dead enemies
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+            float dist = GlobalPosition.DistanceSquaredTo(enemyNode.GlobalPosition);
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearestPos = enemyNode.GlobalPosition;
+            }
+        }
+
+        return nearestPos;
+    }
+
+    /// <summary>
+    /// Finds the enemy closest to the player's aim line (Issue #704).
+    /// Uses perpendicular distance from the aim ray to score enemies.
+    /// Only considers enemies within 110 degrees of the aim direction.
+    /// </summary>
+    private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
+    {
+        var bestTarget = Vector2.Zero;
+        float bestScore = float.PositiveInfinity;
+        float maxPerpDistance = 500.0f;
+        float maxAngle = _homingMaxTurnAngle;
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+
+            Vector2 toEnemy = enemyNode.GlobalPosition - _shooterOrigin;
+            float distToEnemy = toEnemy.Length();
+            if (distToEnemy < 1.0f)
+            {
+                continue;
+            }
+
+            float angle = Mathf.Abs(_shooterAimDirection.AngleTo(toEnemy.Normalized()));
+            if (angle > maxAngle)
+            {
+                continue;
+            }
+
+            float perpDist = Mathf.Abs(toEnemy.X * _shooterAimDirection.Y - toEnemy.Y * _shooterAimDirection.X);
+            if (perpDist > maxPerpDistance)
+            {
+                continue;
+            }
+
+            float score = perpDist + distToEnemy * 0.1f;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestTarget = enemyNode.GlobalPosition;
+            }
+        }
+
+        return bestTarget;
     }
 
     /// <summary>
