@@ -109,8 +109,9 @@ func _on_body_entered(body: Node2D) -> void:
 	if source_id == body.get_instance_id():
 		return
 
-	# Issue #692: Don't hit the enemy who threw the grenade
-	if thrower_id >= 0 and thrower_id == body.get_instance_id():
+	# Issue #692: When shrapnel comes from an enemy-thrown grenade (thrower_id >= 0),
+	# skip ALL enemies to prevent both self-damage and friendly fire.
+	if thrower_id >= 0 and body.is_in_group("enemies"):
 		return
 
 	# Check if this is a dead enemy - shrapnel should pass through dead entities
@@ -141,9 +142,10 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and source_id == parent.get_instance_id():
 			return  # Don't hit the source
 
-		# Issue #692: Don't hit the enemy who threw the grenade
-		if parent and thrower_id >= 0 and thrower_id == parent.get_instance_id():
-			return  # Don't hit the thrower
+		# Issue #692: When shrapnel comes from an enemy-thrown grenade (thrower_id >= 0),
+		# skip ALL enemies to prevent both self-damage and friendly fire.
+		if parent and thrower_id >= 0 and parent.is_in_group("enemies"):
+			return  # Don't hit any enemy
 
 		# Check if the parent is dead
 		if parent and parent.has_method("is_alive") and not parent.is_alive():

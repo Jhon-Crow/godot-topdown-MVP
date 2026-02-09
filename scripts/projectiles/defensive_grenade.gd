@@ -105,19 +105,22 @@ func _get_effect_radius() -> float:
 
 
 ## Find all enemies within the effect radius.
-## Issue #692: Excludes the thrower from explosion damage to prevent self-kills.
+## Issue #692: When thrown by an enemy (thrower_id >= 0), excludes ALL enemies
+## from explosion damage to prevent both self-kills and friendly fire.
 func _get_enemies_in_radius() -> Array:
 	var enemies_in_range: Array = []
 
-	# Get all enemies in the scene
+	# Issue #692: If this grenade was thrown by an enemy, skip ALL enemies
+	# to prevent both self-damage and friendly fire between allies.
+	if thrower_id >= 0:
+		FileLogger.info("[DefensiveGrenade] Skipping all enemies - enemy-thrown grenade (thrower ID: %d)" % thrower_id)
+		return enemies_in_range
+
+	# Get all enemies in the scene (only for player-thrown grenades)
 	var enemies := get_tree().get_nodes_in_group("enemies")
 
 	for enemy in enemies:
 		if enemy is Node2D and is_in_effect_radius(enemy.global_position):
-			# Issue #692: Skip the enemy who threw this grenade
-			if thrower_id >= 0 and enemy.get_instance_id() == thrower_id:
-				FileLogger.info("[DefensiveGrenade] Skipping thrower (instance ID: %d) - self-damage prevention" % thrower_id)
-				continue
 			# Check line of sight for explosion damage
 			if _has_line_of_sight_to(enemy):
 				enemies_in_range.append(enemy)

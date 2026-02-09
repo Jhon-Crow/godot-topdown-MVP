@@ -408,33 +408,36 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Apply Frag grenade explosion damage.
-        /// Issue #692: Excludes the thrower from explosion damage to prevent self-kills.
+        /// Issue #692: When thrown by an enemy (ThrowerId >= 0), excludes ALL enemies
+        /// from explosion damage to prevent both self-kills and friendly fire.
         /// </summary>
         private void ApplyFragExplosion(Vector2 position)
         {
             LogToFile($"[GrenadeTimer] Applying frag explosion damage (radius: {EffectRadius}, damage: {ExplosionDamage})");
 
-            // Damage enemies in radius
-            var enemies = GetTree().GetNodesInGroup("enemies");
-            foreach (var enemy in enemies)
+            // Issue #692: If this grenade was thrown by an enemy, skip ALL enemies
+            // to prevent both self-damage and friendly fire between allies.
+            if (ThrowerId >= 0)
             {
-                if (enemy is Node2D enemyNode)
+                LogToFile($"[GrenadeTimer] Skipping all enemies - enemy-thrown grenade (thrower ID: {ThrowerId})");
+            }
+            else
+            {
+                // Damage enemies in radius (only for player-thrown grenades)
+                var enemies = GetTree().GetNodesInGroup("enemies");
+                foreach (var enemy in enemies)
                 {
-                    // Issue #692: Skip the enemy who threw this grenade
-                    if (ThrowerId >= 0 && (long)enemyNode.GetInstanceId() == ThrowerId)
+                    if (enemy is Node2D enemyNode)
                     {
-                        LogToFile($"[GrenadeTimer] Skipping thrower (instance ID: {ThrowerId}) - self-damage prevention");
-                        continue;
-                    }
-
-                    float distance = position.DistanceTo(enemyNode.GlobalPosition);
-                    if (distance <= EffectRadius)
-                    {
-                        // Check line of sight
-                        if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                        float distance = position.DistanceTo(enemyNode.GlobalPosition);
+                        if (distance <= EffectRadius)
                         {
-                            ApplyDamage(enemyNode, position);
-                            LogToFile($"[GrenadeTimer] Damaged enemy at distance {distance:F1}");
+                            // Check line of sight
+                            if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                            {
+                                ApplyDamage(enemyNode, position);
+                                LogToFile($"[GrenadeTimer] Damaged enemy at distance {distance:F1}");
+                            }
                         }
                     }
                 }
@@ -837,7 +840,8 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Spawn shrapnel for Frag grenades.
-        /// Issue #692: Sets source_id and thrower_id on shrapnel to prevent self-damage.
+        /// Issue #692: Sets source_id and thrower_id on shrapnel. When thrower_id >= 0
+        /// (enemy-thrown), shrapnel skips ALL enemies to prevent friendly fire.
         /// </summary>
         private void SpawnShrapnel(Vector2 position)
         {
