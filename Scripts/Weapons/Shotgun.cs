@@ -1735,7 +1735,14 @@ public partial class Shotgun : BaseWeapon
         // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
         if (IsBreakerBulletActive)
         {
-            pellet.Set("is_breaker_bullet", true);
+            if (pellet is GodotTopDownTemplate.Projectiles.ShotgunPellet shotgunPellet)
+            {
+                shotgunPellet.IsBreakerBullet = true;
+            }
+            else
+            {
+                pellet.Set("is_breaker_bullet", true);
+            }
         }
 
         GetTree().CurrentScene.AddChild(pellet);

@@ -49,6 +49,14 @@ public partial class ShotgunPellet : Area2D
     /// </summary>
     public ulong ShooterId { get; set; } = 0;
 
+    /// <summary>
+    /// Whether this pellet uses breaker behavior (Issue #678).
+    /// Set via Node.Set("is_breaker_bullet", true) by Shotgun.SpawnPelletWithOffset().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsBreakerBullet { get; set; } = false;
+
     // =========================================================================
     // Ricochet Configuration (Shotgun Pellet - limited to 35 degrees)
     // =========================================================================
@@ -212,6 +220,15 @@ public partial class ShotgunPellet : Area2D
                 }
                 QueueFree();
                 return;
+            }
+        }
+
+        // Check for breaker detonation (Issue #678)
+        if (IsBreakerBullet)
+        {
+            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, false))
+            {
+                return; // Pellet detonated and was freed
             }
         }
 

@@ -964,12 +964,13 @@ public partial class SniperRifle : BaseWeapon
                 return detonationPos;
             }
 
-            // Enemy: damage them and continue (bullet passes through enemies toward wall)
+            // Enemy: detonate before alive enemies (breaker behavior, Issue #678)
             if (hitCollider is CharacterBody2D)
             {
                 var enemyId = hitCollider.GetInstanceId();
 
-                if (enemyId == shooterId || damagedEnemies.Contains(enemyId))
+                // Skip self and dead enemies
+                if (enemyId == shooterId)
                 {
                     excludeRids.Add(hitRid);
                     currentPos = hitPosition + direction * 5.0f;
@@ -982,20 +983,41 @@ public partial class SniperRifle : BaseWeapon
                     isAlive = hitCollider.Call("is_alive").AsBool();
                 }
 
-                if (isAlive)
+                if (!isAlive)
                 {
-                    if (hitCollider.HasMethod("take_damage"))
-                    {
-                        GD.Print($"[SniperRifle.Breaker] Hit enemy {hitCollider.Name} at {hitPosition}, applying {damage} damage");
-                        hitCollider.Call("take_damage", damage);
-                        damagedEnemies.Add(enemyId);
-                        TriggerPlayerHitEffectsHitscan();
-                    }
+                    // Dead enemy — pass through
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
                 }
 
-                excludeRids.Add(hitRid);
-                currentPos = hitPosition + direction * 5.0f;
-                continue;
+                // Alive enemy — detonate 60px before them
+                float distToEnemy = currentPos.DistanceTo(hitPosition);
+                Vector2 detonationPos;
+                if (distToEnemy > BreakerDetonationDistance)
+                {
+                    detonationPos = hitPosition - direction * BreakerDetonationDistance;
+                }
+                else
+                {
+                    detonationPos = currentPos;
+                }
+
+                GD.Print($"[SniperRifle.Breaker] Detonating at {detonationPos}, enemy {hitCollider.Name} at {hitPosition} (dist={distToEnemy:F0}px)");
+
+                // Apply explosion damage in radius
+                BreakerApplyExplosionDamage(detonationPos, shooterId);
+
+                // Spawn shrapnel cone
+                BreakerSpawnShrapnel(detonationPos, direction, damage, shooterId);
+
+                // Spawn explosion effect
+                BreakerSpawnExplosionEffect(detonationPos);
+
+                // Play explosion sound
+                BreakerPlayExplosionSound(detonationPos);
+
+                return detonationPos;
             }
 
             // Unknown collider - skip
