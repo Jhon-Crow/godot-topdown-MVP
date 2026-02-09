@@ -201,6 +201,63 @@ If the user tests again and ghosts still don't appear, the new logs will definit
 3. Whether `to_local()` coordinate conversion produces correct values
 4. Whether the node is visible and at the expected position
 
+## Bug Report #3: "при активации игра вылетает" (Game Crashes on Activation)
+
+### Timeline Reconstruction (game_log_20260209_041248.txt)
+
+After the visibility fix was applied, the user tested again and reported the game crashes on activation:
+
+1. **04:12:48** — Game started on LabyrinthLevel (first run with default items)
+2. **04:12:52** — User opened Armory Menu and selected AI Helmet
+3. **04:12:53** — Level restarted with AI Helmet selected
+4. **04:12:53** — `[Player.AIHelmet] AI Helmet is selected, initializing...` (line 240)
+5. **04:12:53** — `[Player.AIHelmet] AI Helmet equipped and attached to level root` (line 241)
+6. **04:12:53** — Level initialization continues (enemies, replay, cinema effects)
+7. **04:12:53** — Last log entry: `[CinemaEffects] Cinema effect now enabled` (line 309)
+8. Game crashes — no further log entries, no `Recording frame 60` (next second never reached)
+
+### Key Observation: Missing [HelmetEffect] Ready Log
+
+The `HelmetEffect._ready()` should log `[HelmetEffect] Ready. Charges: 2/2...` immediately when `add_child()` is called. This message does NOT appear in the crash log, despite the parent `[Player.AIHelmet] AI Helmet equipped and attached to level root` appearing (which is logged AFTER `add_child()`). This suggests either:
+- The `_ready()` log was written but the file buffer was not yet flushed (unlikely, as FileLogger calls `flush()` after every write)
+- The script didn't attach properly in the exported build
+- The log ordering between GDScript ready and the parent's next line is deferred
+
+### Root Cause Analysis #3
+
+The crash was introduced in commit `0d50c20e` which changed `activate()` to call `_update_ghost_positions()` and `queue_redraw()` during the input processing phase. In the PREVIOUS version (which worked in the second user test), `activate()` only set flags, logged, and emitted signals — ghost positions were updated on the next `_physics_process` frame.
+
+**The critical change that caused the crash:**
+```gdscript
+# CRASH-CAUSING CODE (in activate()):
+_update_ghost_positions()  # Iterates enemies during input phase
+queue_redraw()             # Forces rendering during input phase
+```
+
+The `_update_ghost_positions()` function iterates all nodes in the "enemies" group and accesses their `velocity`, `global_position`, and child nodes. When called during the input handling phase (from `_handle_ai_helmet_input` → `activate`), this can crash because:
+1. The scene tree may be in a transitional state during input processing
+2. Enemy nodes may not be fully initialized (some `_ready()` calls may be pending)
+3. Accessing `velocity` or `global_position` during input processing is unsafe for exported builds
+
+The original working version deferred all enemy iteration to `_physics_process`, which runs AFTER input processing and guarantees all nodes are in a valid state.
+
+### Fix Applied #3
+
+1. **Removed `_update_ghost_positions()` and `queue_redraw()` from `activate()`** — ghost positions are now only updated in `_physics_process` on the next frame (matches the working original approach)
+2. **Simplified activation logging** — removed enemy iteration from `activate()`, diagnostics now logged once on the first `_physics_process` frame
+3. **Added safety checks in `_update_ghost_positions()`**:
+   - `is_inside_tree()` guard
+   - `get_tree() == null` guard
+   - NaN position/velocity filtering (`is_nan()`)
+4. **Added safety checks in `_draw()`**:
+   - `dict.get()` with defaults instead of `dict["key"]`
+   - `radius <= 0.0` guard in draw functions
+   - `points.size() >= 3` guard before `draw_colored_polygon()`
+
+### Lesson Learned
+
+In Godot 4, avoid iterating the scene tree or accessing other nodes' properties during input processing callbacks. Defer such operations to `_physics_process()` or `_process()` where the scene tree is guaranteed to be in a stable state. This is especially important in **exported (release) builds** where error handling is less forgiving than in the editor.
+
 ## References
 
 - Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/671
@@ -208,3 +265,4 @@ If the user tests again and ghosts still don't appear, the new logs will definit
 - Godot CharacterBody2D velocity: https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html
 - User bug report #1: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/684#issuecomment-3868506415
 - User bug report #2: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/684#issuecomment-3868652330
+- User bug report #3 (crash): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/684#issuecomment-3868724839
