@@ -101,6 +101,73 @@ The M16/AK (`AssaultRifle.cs`) worked because it calls `base.Fire()` which uses 
 | `Scripts/Characters/Player.cs` | Added ShotgunPellet handling in `EnableHomingRecursive()` |
 | `tests/unit/test_homing_bullets.gd` | Added tests for pellet homing, aim-line targeting, sniper homing |
 
+## Follow-up: Pistol Homing Bug (2026-02-09)
+
+### Problem
+
+After the initial fix for shotgun and sniper, the issue owner reported that homing also
+doesn't work for pistols: Makarov PM, Silenced Pistol, Mini UZI, and Revolver.
+
+### Root Cause
+
+Two weapons had overridden `SpawnBullet()` to set custom `StunDuration` on their bullets:
+- **MakarovPM.cs** (`SpawnBullet()` override, line 406): Completely reimplemented bullet spawning
+  to set `StunDuration = 0.1f`, but omitted the homing activation code from `BaseWeapon.SpawnBullet()`.
+- **SilencedPistol.cs** (`SpawnBullet()` override, line 643): Completely reimplemented bullet spawning
+  to set `StunDuration = 0.6f` and custom muzzle flash, but omitted the homing activation code.
+
+Both overrides copy-pasted the bullet instantiation logic from `BaseWeapon.SpawnBullet()` but
+missed the homing enablement block (lines 435-453 of `BaseWeapon.cs`).
+
+**Revolver** and **MiniUzi** do NOT override `SpawnBullet()` — they call `base.Fire()` which
+uses `BaseWeapon.SpawnBullet()` with the homing code intact. These should have been working,
+and the user may have been testing primarily with PM and silenced pistol.
+
+### Fix
+
+Added homing activation code to both `MakarovPM.SpawnBullet()` and `SilencedPistol.SpawnBullet()`,
+matching the pattern from `BaseWeapon.SpawnBullet()`:
+
+```csharp
+// Enable homing on the bullet if the player's homing effect is active (Issue #704)
+var weaponOwner = GetParent();
+if (weaponOwner is Player player && player.IsHomingActive())
+{
+    Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
+    if (bullet != null)
+    {
+        bullet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+    }
+    else if (bulletNode.HasMethod("enable_homing_with_aim_line"))
+    {
+        bulletNode.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
+    }
+    else if (bulletNode.HasMethod("enable_homing"))
+    {
+        bulletNode.Call("enable_homing");
+    }
+}
+```
+
+### Updated Files Modified
+
+| File | Changes |
+|------|---------|
+| `Scripts/Weapons/MakarovPM.cs` | Added `using GodotTopDownTemplate.Characters`, homing activation in `SpawnBullet()` |
+| `Scripts/Weapons/SilencedPistol.cs` | Added `using GodotTopDownTemplate.Characters`, homing activation in `SpawnBullet()` |
+
+### Lessons Learned
+
+When base class methods contain important logic (like homing activation), subclass overrides
+must either call `base.SpawnBullet()` or replicate all essential behaviors. The OOP principle
+of not breaking Liskov Substitution applies here: the overrides silently dropped a feature
+that was expected to work across all weapon types.
+
+### New Game Logs
+
+- `game_log_20260209_092738.txt` — Testing pistols with homing (12408 lines)
+- `game_log_20260209_093001.txt` — Testing shotgun and UZI with homing (8134 lines)
+
 ## Logs
 
 - `logs/game_log_20260209_033509.txt` — First testing session (8791 lines)
