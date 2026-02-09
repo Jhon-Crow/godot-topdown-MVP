@@ -28,6 +28,7 @@ class MockBreakerBullet:
 	const BREAKER_SHRAPNEL_HALF_ANGLE: float = 30.0
 	const BREAKER_SHRAPNEL_DAMAGE: float = 0.1
 	const BREAKER_SHRAPNEL_COUNT_MULTIPLIER: float = 10.0
+	const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
 
 	## Position simulation.
 	var global_position: Vector2 = Vector2.ZERO
@@ -59,10 +60,10 @@ class MockBreakerBullet:
 		_detonated = true
 		_explosion_applied = true
 
-		# Calculate shrapnel count
+		# Calculate shrapnel count (capped for performance, Issue #678)
 		var effective_damage := damage * damage_multiplier
 		var shrapnel_count := int(effective_damage * BREAKER_SHRAPNEL_COUNT_MULTIPLIER)
-		shrapnel_count = maxi(shrapnel_count, 1)
+		shrapnel_count = clampi(shrapnel_count, 1, BREAKER_MAX_SHRAPNEL_PER_DETONATION)
 
 		# Spawn shrapnel
 		var half_angle_rad := deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE)
@@ -219,12 +220,12 @@ func test_shrapnel_count_matches_damage() -> void:
 		"Shrapnel count should be damage * 10 = 10")
 
 
-func test_shrapnel_count_with_high_damage() -> void:
+func test_shrapnel_count_with_high_damage_capped() -> void:
 	bullet.damage = 5.0
 	bullet.check_breaker_detonation(30.0)
 
-	assert_eq(bullet.get_shrapnel_count(), 50,
-		"Shrapnel count should be 5 * 10 = 50")
+	assert_eq(bullet.get_shrapnel_count(), 10,
+		"Shrapnel count should be capped at 10 (was 5 * 10 = 50, capped to BREAKER_MAX_SHRAPNEL_PER_DETONATION)")
 
 
 func test_shrapnel_count_with_fractional_damage() -> void:
@@ -284,6 +285,32 @@ func test_shrapnel_directions_have_variety() -> void:
 
 
 # ============================================================================
+# Shrapnel Cap Tests (FPS Optimization, Issue #678)
+# ============================================================================
+
+
+func test_shrapnel_cap_constant() -> void:
+	assert_eq(MockBreakerBullet.BREAKER_MAX_SHRAPNEL_PER_DETONATION, 10,
+		"Max shrapnel per detonation should be 10")
+
+
+func test_shrapnel_capped_at_max() -> void:
+	bullet.damage = 100.0  # Would produce 1000 shrapnel uncapped
+	bullet.check_breaker_detonation(30.0)
+
+	assert_eq(bullet.get_shrapnel_count(), 10,
+		"Shrapnel should be capped at BREAKER_MAX_SHRAPNEL_PER_DETONATION")
+
+
+func test_shrapnel_not_capped_when_under_limit() -> void:
+	bullet.damage = 0.5  # 0.5 * 10 = 5, under cap
+	bullet.check_breaker_detonation(30.0)
+
+	assert_eq(bullet.get_shrapnel_count(), 5,
+		"Shrapnel count under cap should not be affected")
+
+
+# ============================================================================
 # ActiveItemManager Integration Tests
 # ============================================================================
 
@@ -292,7 +319,8 @@ class MockActiveItemManagerForBreaker:
 	const ActiveItemType := {
 		NONE = 0,
 		FLASHLIGHT = 1,
-		BREAKER_BULLETS = 2
+		TELEPORT_BRACERS = 2,
+		BREAKER_BULLETS = 3
 	}
 
 	var current_active_item: int = ActiveItemType.NONE
@@ -303,14 +331,17 @@ class MockActiveItemManagerForBreaker:
 	func has_flashlight() -> bool:
 		return current_active_item == ActiveItemType.FLASHLIGHT
 
+	func has_teleport_bracers() -> bool:
+		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
 	func set_active_item(type: int) -> void:
 		current_active_item = type
 
 
 func test_active_item_breaker_bullets_type_value() -> void:
 	var manager := MockActiveItemManagerForBreaker.new()
-	assert_eq(manager.ActiveItemType.BREAKER_BULLETS, 2,
-		"BREAKER_BULLETS should be the third active item type (2)")
+	assert_eq(manager.ActiveItemType.BREAKER_BULLETS, 3,
+		"BREAKER_BULLETS should be the fourth active item type (3)")
 
 
 func test_no_breaker_bullets_by_default() -> void:
@@ -321,14 +352,14 @@ func test_no_breaker_bullets_by_default() -> void:
 
 func test_has_breaker_bullets_after_selection() -> void:
 	var manager := MockActiveItemManagerForBreaker.new()
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_true(manager.has_breaker_bullets(),
 		"has_breaker_bullets should return true after selecting breaker bullets")
 
 
 func test_breaker_bullets_and_flashlight_mutually_exclusive() -> void:
 	var manager := MockActiveItemManagerForBreaker.new()
-	manager.set_active_item(2)  # Breaker bullets
+	manager.set_active_item(3)  # Breaker bullets
 	assert_true(manager.has_breaker_bullets())
 	assert_false(manager.has_flashlight(),
 		"Flashlight and breaker bullets should be mutually exclusive")
@@ -336,7 +367,7 @@ func test_breaker_bullets_and_flashlight_mutually_exclusive() -> void:
 
 func test_switching_from_breaker_to_flashlight() -> void:
 	var manager := MockActiveItemManagerForBreaker.new()
-	manager.set_active_item(2)  # Breaker bullets
+	manager.set_active_item(3)  # Breaker bullets
 	manager.set_active_item(1)  # Flashlight
 	assert_false(manager.has_breaker_bullets())
 	assert_true(manager.has_flashlight())
@@ -344,7 +375,7 @@ func test_switching_from_breaker_to_flashlight() -> void:
 
 func test_switching_from_breaker_to_none() -> void:
 	var manager := MockActiveItemManagerForBreaker.new()
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	manager.set_active_item(0)
 	assert_false(manager.has_breaker_bullets())
 

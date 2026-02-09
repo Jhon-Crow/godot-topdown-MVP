@@ -13,13 +13,15 @@ class_name BreakerShrapnel
 @export var speed: float = 1800.0
 
 ## Maximum lifetime in seconds before auto-destruction.
-@export var lifetime: float = 1.5
+## Reduced from 1.5s to 0.8s for performance (Issue #678 optimization).
+@export var lifetime: float = 0.8
 
 ## Damage dealt on hit.
 @export var damage: float = 0.1
 
 ## Maximum number of trail points to maintain.
-@export var trail_length: int = 10
+## Reduced from 10 to 6 for performance (Issue #678 optimization).
+@export var trail_length: int = 6
 
 ## Direction the shrapnel travels.
 var direction: Vector2 = Vector2.RIGHT
@@ -48,6 +50,9 @@ var _debug: bool = false
 
 
 func _ready() -> void:
+	# Add to group for global shrapnel count tracking (Issue #678 optimization)
+	add_to_group("breaker_shrapnel")
+
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)

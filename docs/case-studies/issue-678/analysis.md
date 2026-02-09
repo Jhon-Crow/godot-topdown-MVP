@@ -139,7 +139,73 @@ where offset ∈ [-half_angle, +half_angle]
 
 For a standard M16 bullet (damage = 1.0):
 - Explosion damage: 1 (in 15px radius)
-- Shrapnel count: 1.0 × 10 = 10 pieces
+- Shrapnel count: 1.0 × 10 = 10 pieces (capped at 10 per detonation)
 - Each shrapnel damage: 0.1
 - Total potential shrapnel damage: 10 × 0.1 = 1.0
 - Total potential damage: 1 (explosion) + 1.0 (shrapnel) = 2.0
+
+## Round 2 Feedback Analysis (2026-02-09)
+
+### User Report (Comment #3868592045)
+
+Jhon-Crow reported two issues:
+
+1. **Weapon compatibility**: Breaker bullets only work for Revolver and Uzi. Should work for:
+   - Every shotgun pellet (дробина)
+   - Sniper rifle (before the first obstacle on the smoke trail path)
+   - All other weapons with overridden SpawnBullet
+
+2. **FPS drops**: Shrapnel calculations cause framerate issues. Suggested multi-threading.
+
+Three game logs provided: `game_log_20260209_024919.txt`, `game_log_20260209_025348.txt`, `game_log_20260209_025431.txt`.
+
+### Root Cause Analysis — Weapon Compatibility
+
+**Working weapons** (use inherited `BaseWeapon.SpawnBullet()`):
+- Revolver — no SpawnBullet override, inherits from BaseWeapon ✓
+- MiniUzi — no SpawnBullet override, inherits from BaseWeapon ✓
+- AssaultRifle — no SpawnBullet override, inherits from BaseWeapon ✓
+
+**Broken weapons** (bypass `BaseWeapon.SpawnBullet()` where breaker flag is set):
+
+| Weapon | Root Cause | Fix |
+|--------|-----------|-----|
+| **Shotgun** | Uses custom `SpawnPelletWithOffset()` that never calls `BaseWeapon.SpawnBullet()`. Pellets were missing `is_breaker_bullet`, `direction`, `speed`, `shooter_id`, `damage`, `shooter_position` (snake_case for GDScript). | Added all missing property settings + breaker flag check in `SpawnPelletWithOffset()` |
+| **SniperRifle** | Uses hitscan (`_skipBulletSpawn = true`), no physical bullet spawned at all. Breaker detonation has nothing to trigger on. | Implemented `PerformBreakerHitscan()` — raycasts path, damages enemies, detonates 60px before first wall with explosion + shrapnel. |
+| **MakarovPM** | Overrides `SpawnBullet()` without calling base, missing `is_breaker_bullet` flag. | Added `if (IsBreakerBulletActive) bulletNode.Set("is_breaker_bullet", true)` before `AddChild`. |
+| **SilencedPistol** | Same as MakarovPM — overrides `SpawnBullet()` without breaker flag. | Same fix as MakarovPM. |
+
+**Evidence from game logs:**
+- `game_log_20260209_024919.txt`: Only Revolver (Bullet12p7mm) and MiniUzi (Bullet9mm) produce EXPLOSION events. No explosion events from Shotgun, SniperRifle, SilencedPistol, or MakarovPM.
+- All three logs confirm `[Player.BreakerBullets] Breaker bullets ACTIVE` — the flag is set correctly, just not propagated to all weapons.
+
+### Root Cause Analysis — FPS Drops
+
+**Problem**: Shrapnel count was uncapped. A shotgun with 8 pellets × 10 shrapnel each = 80 shrapnel per shot, each with trail Line2D updates. At rapid fire, hundreds of active shrapnel overwhelm the scene tree.
+
+**Fixes applied:**
+
+| Optimization | Before | After |
+|-------------|--------|-------|
+| Shrapnel per detonation cap | Unlimited | `BREAKER_MAX_SHRAPNEL_PER_DETONATION = 10` |
+| Global concurrent shrapnel cap | Unlimited | `BREAKER_MAX_CONCURRENT_SHRAPNEL = 60` (checked via `breaker_shrapnel` group) |
+| Shrapnel lifetime | 1.5s | 0.8s (faster cleanup) |
+| Trail points per shrapnel | 10 | 6 (less Line2D overhead) |
+| Scene tree operations | Immediate `add_child()` | Deferred `call_deferred("add_child", ...)` (batch processing) |
+
+**SniperRifle-specific caps** (C# hitscan):
+- `BreakerMaxShrapnelPerDetonation = 30` (higher since single-shot weapon)
+- `BreakerMaxConcurrentShrapnel = 60` (same global cap)
+
+### Files Modified (Round 2)
+
+| File | Changes |
+|------|---------|
+| `Scripts/Weapons/Shotgun.cs` | Added snake_case property settings + breaker flag in `SpawnPelletWithOffset()` |
+| `Scripts/Weapons/SniperRifle.cs` | Added `PerformBreakerHitscan()`, `BreakerSpawnShrapnel()`, `BreakerApplyExplosionDamage()`, `BreakerSpawnExplosionEffect()`, `BreakerPlayExplosionSound()` |
+| `Scripts/Weapons/MakarovPM.cs` | Added `is_breaker_bullet` flag in overridden `SpawnBullet()` |
+| `Scripts/Weapons/SilencedPistol.cs` | Added `is_breaker_bullet` flag in overridden `SpawnBullet()` |
+| `scripts/projectiles/bullet.gd` | Added `BREAKER_MAX_SHRAPNEL_PER_DETONATION`, global cap check, `clampi()`, `call_deferred()` |
+| `scripts/projectiles/breaker_shrapnel.gd` | Reduced lifetime (1.5→0.8s), trail_length (10→6), added `breaker_shrapnel` group |
+| `tests/unit/test_breaker_bullet.gd` | Added `BREAKER_MAX_SHRAPNEL_PER_DETONATION` constant, shrapnel cap tests, fixed ActiveItemType enum values |
+| `tests/unit/test_breaker_shrapnel.gd` | Updated mock defaults (lifetime 0.8, trail_length 6), updated assertions |

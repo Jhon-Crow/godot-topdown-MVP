@@ -730,6 +730,12 @@ public partial class SilencedPistol : BaseWeapon
             GD.Print($"[SilencedPistol] Spawned GDScript bullet with Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
         }
 
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (IsBreakerBulletActive)
+        {
+            bulletNode.Set("is_breaker_bullet", true);
+        }
+
         GetTree().CurrentScene.AddChild(bulletNode);
 
         // Spawn muzzle flash effect with small scale for silenced weapon

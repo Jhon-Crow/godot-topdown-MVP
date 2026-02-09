@@ -1145,19 +1145,44 @@ func _breaker_create_simple_flash(center: Vector2) -> void:
 		tween.tween_callback(flash.queue_free)
 
 
+## Maximum shrapnel pieces per single detonation (performance cap, Issue #678 optimization).
+## This prevents FPS drops when many pellets detonate simultaneously (e.g. shotgun).
+const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
+
+## Maximum total concurrent breaker shrapnel in the scene (global cap).
+## If exceeded, new shrapnel spawning is skipped to maintain FPS.
+const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 60
+
+
 ## Spawns breaker shrapnel pieces in a forward cone.
+## Shrapnel count is capped for performance (Issue #678 optimization).
 func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if _breaker_shrapnel_scene == null:
 		if _debug_breaker:
 			print("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
 		return
 
-	# Calculate shrapnel count based on bullet damage
+	# Check global concurrent shrapnel limit
+	var existing_shrapnel := get_tree().get_nodes_in_group("breaker_shrapnel")
+	if existing_shrapnel.size() >= BREAKER_MAX_CONCURRENT_SHRAPNEL:
+		if _debug_breaker:
+			print("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
+		return
+
+	# Calculate shrapnel count based on bullet damage, capped for performance
 	var effective_damage := damage * damage_multiplier
 	var shrapnel_count := int(effective_damage * BREAKER_SHRAPNEL_COUNT_MULTIPLIER)
-	shrapnel_count = maxi(shrapnel_count, 1)  # At least 1 shrapnel piece
+	shrapnel_count = clampi(shrapnel_count, 1, BREAKER_MAX_SHRAPNEL_PER_DETONATION)
+
+	# Further reduce if approaching global limit
+	var remaining_budget := BREAKER_MAX_CONCURRENT_SHRAPNEL - existing_shrapnel.size()
+	shrapnel_count = mini(shrapnel_count, remaining_budget)
 
 	var half_angle_rad := deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE)
+
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
 
 	for i in range(shrapnel_count):
 		# Random angle within the forward cone
@@ -1178,11 +1203,9 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		# Vary speed slightly for natural spread
 		shrapnel.speed = randf_range(1400.0, 2200.0)
 
-		# Add to scene
-		var scene := get_tree().current_scene
-		if scene:
-			scene.add_child(shrapnel)
+		# Add to scene using call_deferred to batch scene tree changes (Issue #678 optimization)
+		scene.call_deferred("add_child", shrapnel)
 
 	if _debug_breaker:
-		print("[Bullet.Breaker] Spawned %d shrapnel pieces in %.0f-degree cone" % [
-			shrapnel_count, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
+		print("[Bullet.Breaker] Spawned %d shrapnel pieces (budget: %d) in %.0f-degree cone" % [
+			shrapnel_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])

@@ -14,14 +14,14 @@ class MockBreakerShrapnel:
 	## Speed of the shrapnel in pixels per second.
 	var speed: float = 1800.0
 
-	## Maximum lifetime in seconds.
-	var lifetime: float = 1.5
+	## Maximum lifetime in seconds (optimized for performance, Issue #678).
+	var lifetime: float = 0.8
 
 	## Damage dealt on hit.
 	var damage: float = 0.1
 
-	## Maximum number of trail points.
-	var trail_length: int = 10
+	## Maximum number of trail points (optimized for performance, Issue #678).
+	var trail_length: int = 6
 
 	## Direction the shrapnel travels.
 	var direction: Vector2 = Vector2.RIGHT
@@ -159,8 +159,8 @@ func test_default_speed() -> void:
 
 
 func test_default_lifetime() -> void:
-	assert_eq(shrapnel.lifetime, 1.5,
-		"Default lifetime should be 1.5 seconds")
+	assert_eq(shrapnel.lifetime, 0.8,
+		"Default lifetime should be 0.8 seconds (optimized)")
 
 
 func test_default_damage() -> void:
@@ -169,8 +169,8 @@ func test_default_damage() -> void:
 
 
 func test_default_trail_length() -> void:
-	assert_eq(shrapnel.trail_length, 10,
-		"Default trail length should be 10")
+	assert_eq(shrapnel.trail_length, 6,
+		"Default trail length should be 6 (optimized)")
 
 
 # ============================================================================
@@ -253,17 +253,17 @@ func test_time_alive_increases() -> void:
 
 
 func test_destroyed_after_lifetime() -> void:
-	shrapnel.physics_process(2.0)  # Past 1.5 lifetime
+	shrapnel.physics_process(1.0)  # Past 0.8s lifetime
 	assert_true(shrapnel.is_destroyed())
 
 
 func test_not_destroyed_before_lifetime() -> void:
-	shrapnel.physics_process(1.0)
+	shrapnel.physics_process(0.5)  # Well under 0.8s lifetime
 	assert_false(shrapnel.is_destroyed())
 
 
 func test_destroyed_at_exact_lifetime() -> void:
-	shrapnel.physics_process(1.5)
+	shrapnel.physics_process(0.8)  # Exact 0.8s lifetime
 	assert_true(shrapnel.is_destroyed())
 
 

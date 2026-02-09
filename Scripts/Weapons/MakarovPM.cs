@@ -479,6 +479,12 @@ public partial class MakarovPM : BaseWeapon
             bulletNode.Set("stun_duration", StunDurationOnHit);
         }
 
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (IsBreakerBulletActive)
+        {
+            bulletNode.Set("is_breaker_bullet", true);
+        }
+
         GetTree().CurrentScene.AddChild(bulletNode);
 
         // Spawn muzzle flash effect
