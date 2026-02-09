@@ -332,6 +332,10 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 	var grenade: Node2D = grenade_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
 
+	# Issue #692: Set thrower_id on the grenade so it won't damage the throwing enemy
+	if grenade.get("thrower_id") != null:
+		grenade.thrower_id = _enemy.get_instance_id()
+
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)
 
@@ -360,6 +364,9 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 
 	# Mark C# timer as thrown (enables impact detection for Frag grenades)
 	_mark_grenade_thrown(grenade as RigidBody2D)
+
+	# Issue #692: Set thrower on C# GrenadeTimer for self-damage prevention
+	_set_grenade_thrower(grenade as RigidBody2D, _enemy.get_instance_id())
 
 	grenades_remaining -= 1
 	_cooldown = throw_cooldown
@@ -410,3 +417,12 @@ func _mark_grenade_thrown(grenade: RigidBody2D) -> void:
 	var helper := get_node_or_null("/root/GrenadeTimerHelper")
 	if helper and helper.has_method("MarkAsThrown"):
 		helper.MarkAsThrown(grenade)
+
+
+## Issue #692: Set thrower on C# GrenadeTimer for self-damage prevention.
+func _set_grenade_thrower(grenade: RigidBody2D, enemy_instance_id: int) -> void:
+	if grenade == null:
+		return
+	var helper := get_node_or_null("/root/GrenadeTimerHelper")
+	if helper and helper.has_method("SetThrower"):
+		helper.SetThrower(grenade, enemy_instance_id)
