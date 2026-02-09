@@ -444,6 +444,15 @@ public partial class ShotgunPellet : Area2D
                     continue;
                 }
             }
+            // Skip enemies behind walls (Issue #709)
+            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
+            {
+                if (DebugHoming)
+                {
+                    GD.Print($"[ShotgunPellet] Skipping enemy {enemyNode.Name} - wall blocks line of sight");
+                }
+                continue;
+            }
             float dist = GlobalPosition.DistanceSquaredTo(enemyNode.GlobalPosition);
             if (dist < nearestDist)
             {
@@ -459,6 +468,7 @@ public partial class ShotgunPellet : Area2D
     /// Finds the enemy closest to the player's aim line (Issue #704).
     /// Uses perpendicular distance from the aim ray to score enemies.
     /// Only considers enemies within 110 degrees of the aim direction.
+    /// Skips enemies blocked by walls (Issue #709).
     /// </summary>
     private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
     {
@@ -501,6 +511,16 @@ public partial class ShotgunPellet : Area2D
                 continue;
             }
 
+            // Skip enemies behind walls (Issue #709)
+            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
+            {
+                if (DebugHoming)
+                {
+                    GD.Print($"[ShotgunPellet] Skipping enemy {enemyNode.Name} - wall blocks line of sight (aim-line)");
+                }
+                continue;
+            }
+
             float score = perpDist + distToEnemy * 0.1f;
             if (score < bestScore)
             {
@@ -510,6 +530,28 @@ public partial class ShotgunPellet : Area2D
         }
 
         return bestTarget;
+    }
+
+    /// <summary>
+    /// Checks if there is a clear line of sight from the pellet to a target position (Issue #709).
+    /// Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
+    /// Returns false if a wall blocks the path, preventing the pellet from turning into walls.
+    /// </summary>
+    private bool HasLineOfSightToTarget(Vector2 targetPos)
+    {
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return true; // Can't check, assume clear
+        }
+
+        var query = PhysicsRayQueryParameters2D.Create(GlobalPosition, targetPos);
+        query.CollisionMask = 4; // Layer 3 = obstacles/walls only
+        query.CollideWithAreas = false;
+        query.CollideWithBodies = true;
+
+        var result = spaceState.IntersectRay(query);
+        return result.Count == 0; // True if no wall in the way
     }
 
     /// <summary>

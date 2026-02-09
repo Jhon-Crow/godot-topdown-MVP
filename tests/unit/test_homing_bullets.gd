@@ -836,3 +836,140 @@ func test_sniper_homing_no_enemies() -> void:
 
 	assert_eq(target, Vector2.ZERO,
 		"Should return zero vector when no enemies")
+
+
+# ============================================================================
+# Line-of-Sight Homing Tests (Issue #709)
+# ============================================================================
+
+
+## Mock for line-of-sight homing logic.
+## Simulates wall blocking behavior added in Issue #709.
+class MockLOSHomingBullet:
+	var homing_enabled: bool = false
+	var direction: Vector2 = Vector2.RIGHT
+	var global_position: Vector2 = Vector2.ZERO
+	var _homing_original_direction: Vector2 = Vector2.ZERO
+	var homing_max_turn_angle: float = deg_to_rad(110.0)
+	var homing_steer_speed: float = 8.0
+	var rotation: float = 0.0
+
+	## Wall segments: array of [start, end] pairs representing wall line segments.
+	var walls: Array = []
+
+	func enable_homing() -> void:
+		homing_enabled = true
+		_homing_original_direction = direction.normalized()
+
+	## Check if there's a clear line of sight to target (no walls blocking).
+	func has_line_of_sight_to(target_pos: Vector2) -> bool:
+		for wall in walls:
+			if _segments_intersect(global_position, target_pos, wall[0], wall[1]):
+				return false
+		return true
+
+	## Line segment intersection test.
+	func _segments_intersect(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2) -> bool:
+		var d1 := p2 - p1
+		var d2 := p4 - p3
+		var cross := d1.x * d2.y - d1.y * d2.x
+		if absf(cross) < 0.0001:
+			return false  # Parallel
+		var t := ((p3.x - p1.x) * d2.y - (p3.y - p1.y) * d2.x) / cross
+		var u := ((p3.x - p1.x) * d1.y - (p3.y - p1.y) * d1.x) / cross
+		return t >= 0.0 and t <= 1.0 and u >= 0.0 and u <= 1.0
+
+	## Find nearest visible enemy (skips those behind walls).
+	func find_nearest_visible_enemy(enemies: Array[Vector2]) -> Vector2:
+		if not homing_enabled:
+			return Vector2.ZERO
+		var nearest := Vector2.ZERO
+		var nearest_dist := INF
+		for enemy_pos in enemies:
+			if not has_line_of_sight_to(enemy_pos):
+				continue
+			var dist := global_position.distance_squared_to(enemy_pos)
+			if dist < nearest_dist:
+				nearest_dist = dist
+				nearest = enemy_pos
+		return nearest
+
+	## Apply homing toward target.
+	func apply_homing_toward(target_pos: Vector2, delta: float) -> float:
+		if not homing_enabled or target_pos == Vector2.ZERO:
+			return 0.0
+		var to_target := (target_pos - global_position).normalized()
+		var angle_diff := direction.angle_to(to_target)
+		var max_steer := homing_steer_speed * delta
+		angle_diff = clampf(angle_diff, -max_steer, max_steer)
+		var new_dir := direction.rotated(angle_diff).normalized()
+		var angle_from_orig := _homing_original_direction.angle_to(new_dir)
+		if absf(angle_from_orig) > homing_max_turn_angle:
+			return 0.0
+		direction = new_dir
+		rotation = direction.angle()
+		return angle_diff
+
+
+func test_los_no_wall_finds_enemy() -> void:
+	var bullet := MockLOSHomingBullet.new()
+	bullet.global_position = Vector2.ZERO
+	bullet.enable_homing()
+	# No walls, enemy should be found
+	var enemies: Array[Vector2] = [Vector2(200, 0)]
+	var target := bullet.find_nearest_visible_enemy(enemies)
+	assert_eq(target, Vector2(200, 0),
+		"Should find enemy when no walls block line of sight")
+
+
+func test_los_wall_blocks_enemy() -> void:
+	var bullet := MockLOSHomingBullet.new()
+	bullet.global_position = Vector2.ZERO
+	bullet.enable_homing()
+	# Wall between bullet and enemy
+	bullet.walls = [[Vector2(100, -50), Vector2(100, 50)]]
+	var enemies: Array[Vector2] = [Vector2(200, 0)]
+	var target := bullet.find_nearest_visible_enemy(enemies)
+	assert_eq(target, Vector2.ZERO,
+		"Should NOT find enemy when wall blocks line of sight (Issue #709)")
+
+
+func test_los_wall_blocks_nearest_selects_visible() -> void:
+	var bullet := MockLOSHomingBullet.new()
+	bullet.global_position = Vector2.ZERO
+	bullet.enable_homing()
+	# Wall blocks enemy A (nearest), but enemy B (further) is visible
+	bullet.walls = [[Vector2(80, -50), Vector2(80, 50)]]
+	var enemies: Array[Vector2] = [Vector2(100, 0), Vector2(0, 200)]
+	var target := bullet.find_nearest_visible_enemy(enemies)
+	assert_eq(target, Vector2(0, 200),
+		"Should skip blocked nearest enemy and find visible one (Issue #709)")
+
+
+func test_los_no_steering_into_wall() -> void:
+	var bullet := MockLOSHomingBullet.new()
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	bullet.enable_homing()
+	# Wall blocks the only enemy
+	bullet.walls = [[Vector2(50, -50), Vector2(50, 50)]]
+	var enemies: Array[Vector2] = [Vector2(100, 0)]
+	var target := bullet.find_nearest_visible_enemy(enemies)
+	# No visible target means no steering
+	var angle_change := bullet.apply_homing_toward(target, 0.016)
+	assert_eq(angle_change, 0.0,
+		"Should not steer when target is behind a wall (Issue #709)")
+	assert_eq(bullet.direction, Vector2.RIGHT,
+		"Direction should remain unchanged when no visible target")
+
+
+func test_los_wall_parallel_to_aim_does_not_block() -> void:
+	var bullet := MockLOSHomingBullet.new()
+	bullet.global_position = Vector2.ZERO
+	bullet.enable_homing()
+	# Wall parallel to aim direction (does not intersect the line of sight)
+	bullet.walls = [[Vector2(50, 50), Vector2(200, 50)]]
+	var enemies: Array[Vector2] = [Vector2(300, 0)]
+	var target := bullet.find_nearest_visible_enemy(enemies)
+	assert_eq(target, Vector2(300, 0),
+		"Wall parallel to aim should not block enemy")
