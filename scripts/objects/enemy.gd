@@ -29,8 +29,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), SNIPER (ASVK hitscan, Issue #581).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, SNIPER }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -103,6 +103,10 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
 
+## Sniper state (Issue #581/#665). Set via _configure_weapon_type when weapon_type == SNIPER.
+var _is_sniper: bool = false; var _sniper_hitscan_range: float = 5000.0; var _sniper_hitscan_damage: float = 50.0; var _sniper_max_wall_penetrations: int = 2
+var _sniper_laser: Line2D = null; var _sniper_bolt_timer: float = 0.0; var _sniper_bolt_ready: bool = true; var _sniper_retreat_cooldown: float = 0.0
+const SNIPER_BOLT_CYCLE_TIME: float = 2.0; const SNIPER_RETREAT_COOLDOWN_TIME: float = 3.0
 signal hit  ## Enemy hit
 signal died  ## Enemy died
 signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)  ## Death with kill info
@@ -113,10 +117,8 @@ signal reload_finished  ## Reload finished
 signal ammo_depleted  ## All ammo depleted
 signal death_animation_completed  ## Death animation done
 signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade thrown (Issue #363)
-
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
-
 @onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
 @onready var _body_sprite: Sprite2D = $EnemyModel/Body  ## Body sprite
 @onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
@@ -135,7 +137,6 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
 var _original_hit_area_mask: int = 0
 var _overlapping_casings: Array[RigidBody2D] = []  ## Casings in CasingPusher (Issue #438)
-
 var _walk_anim_time: float = 0.0  ## Walking animation accumulator
 var _is_walking: bool = false  ## Currently walking (for anim)
 var _target_model_rotation: float = 0.0  ## Target rotation for smooth interpolation
@@ -190,7 +191,6 @@ var _cover_position: Vector2 = Vector2.ZERO  ## Cover position
 var _has_valid_cover: bool = false  ## Has valid cover
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
-
 var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
 var _threat_sphere: Area2D = null  ## Threat sphere Area2D for detecting nearby bullets
 var _bullets_in_threat_sphere: Array = []  ## Bullets currently in threat sphere
@@ -200,7 +200,6 @@ var _threat_memory_timer: float = 0.0  ## Memory timer for bullets that passed t
 const THREAT_MEMORY_DURATION: float = 0.5  ## Duration to remember bullet passage
 var _retreat_mode: RetreatMode = RetreatMode.FULL_HP  ## Current retreat mode determined by damage taken
 var _hits_taken_in_encounter: int = 0  ## Hits taken this encounter, resets on IDLE or retreat completion
-
 var _retreat_turn_timer: float = 0.0  ## Periodic cover turn timer
 const RETREAT_TURN_DURATION: float = 0.8  ## Duration to face cover (sec)
 const RETREAT_TURN_INTERVAL: float = 1.5  ## Turn interval (sec)
@@ -292,22 +291,12 @@ var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
-
-## Maximum time to spend finding a clear shot before giving up (seconds).
-const CLEAR_SHOT_MAX_TIME: float = 3.0
-
-## Distance to move when exiting cover to find a clear shot.
-const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
-
+const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Max time finding clear shot (seconds)
+const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0  ## Distance to move when exiting cover for clear shot
 ## --- Sound-Based Detection ---
-## Last known sound source position (for investigation when player not visible).
-var _last_known_player_position: Vector2 = Vector2.ZERO
-## Pursuing vulnerability sound (reload/empty click) without line of sight.
-var _pursuing_vulnerability_sound: bool = false
-
-## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
-var _memory: EnemyMemory = null
-
+var _last_known_player_position: Vector2 = Vector2.ZERO  ## Last known sound source position
+var _pursuing_vulnerability_sound: bool = false  ## Pursuing vulnerability sound without LOS
+var _memory: EnemyMemory = null  ## [Memory #297] Suspected player position with confidence
 ## Confidence values for different detection sources.
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
@@ -315,74 +304,43 @@ const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const SOUND_CASING_KICK_CONFIDENCE: float = 0.5  ## Issue #693: Casing kick - lower than reload
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
-
-## Communication range for intel sharing: 660px w/ LOS, 300px without.
-const INTEL_SHARE_RANGE_LOS: float = 660.0
-const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
-
-## Timer for periodic intel sharing (to avoid per-frame overhead).
-var _intel_share_timer: float = 0.0
+const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel sharing range w/ LOS
+const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel sharing range w/o LOS
+var _intel_share_timer: float = 0.0  ## Timer for periodic intel sharing
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
-
-## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
-var _memory_reset_confusion_timer: float = 0.0
-const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
-
+var _memory_reset_confusion_timer: float = 0.0  ## Memory reset confusion timer (Issue #318)
+const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Confusion duration (2s for player escape window)
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
 const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
 var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
 var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
-
-## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
-var _killed_by_ricochet: bool = false
-
-## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
-var _killed_by_penetration: bool = false
-
+var _killed_by_ricochet: bool = false  ## [Score Tracking] Killed by ricocheted bullet
+var _killed_by_penetration: bool = false  ## Killed by wall-penetrating bullet
 ## [Status Effects] Component handles blindness and stun (Issue #432, #328)
 var _flashbang_status: FlashbangStatusComponent = null
-var _is_blinded: bool = false
-var _is_stunned: bool = false
+var _is_blinded: bool = false; var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
-
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
-
-## Maximum time to spend evading before giving up (seconds).
-const GRENADE_EVASION_MAX_TIME: float = 4.0
-
-## State to return to after grenade evasion completes.
-var _pre_evasion_state: AIState = AIState.IDLE
-
+const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Max time evading before giving up (seconds)
+var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
+var _flashlight_detection: FlashlightDetectionComponent = null  ## [Issue #574] Flashlight detection
+var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (death animation)
+var _death_animation: Node = null  ## Death animation component reference
 
-## [Issue #574] Flashlight detection component — detects player flashlight beam.
-var _flashlight_detection: FlashlightDetectionComponent = null
-
-## Last hit direction (used for death animation).
-var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Death animation component reference.
-var _death_animation: Node = null
-
-## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
-var _grenade_component: EnemyGrenadeComponent = null
-
+var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (Issue #377)
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
-
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 
 func _ready() -> void:
-	# Add to enemies group for grenade targeting
-	add_to_group("enemies")
-
-	# Configure weapon parameters based on weapon type (before ammo init)
-	_configure_weapon_type()
+	add_to_group("enemies")  # Add to enemies group for grenade targeting
+	_configure_weapon_type()  # Configure weapon parameters (before ammo init)
 	_initial_position = global_position
 	_initialize_health()
 	_initialize_ammo()
@@ -404,50 +362,30 @@ func _ready() -> void:
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
 	# Store original collision layers for HitArea (to restore on respawn)
-	if _hit_area:
-		_original_hit_area_layer = _hit_area.collision_layer
-		_original_hit_area_mask = _hit_area.collision_mask
-
-	# Log that this enemy is ready (use call_deferred to ensure FileLogger is loaded)
-	call_deferred("_log_spawn_info")
-
-	# Preload bullet scene if not set in inspector
-	if bullet_scene == null:
-		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
-
-	# Preload casing scene if not set in inspector
-	if casing_scene == null:
-		casing_scene = preload("res://scenes/effects/Casing.tscn")
-
+	if _hit_area: _original_hit_area_layer = _hit_area.collision_layer; _original_hit_area_mask = _hit_area.collision_mask
+	call_deferred("_log_spawn_info")  # Log (deferred for FileLogger)
+	if bullet_scene == null: bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
+	if casing_scene == null: casing_scene = preload("res://scenes/effects/Casing.tscn")
 	# Initialize walking animation base positions
-	if _body_sprite:
-		_base_body_pos = _body_sprite.position
-	if _head_sprite:
-		_base_head_pos = _head_sprite.position
-	if _left_arm_sprite:
-		_base_left_arm_pos = _left_arm_sprite.position
-	if _right_arm_sprite:
-		_base_right_arm_pos = _right_arm_sprite.position
-
-	# Apply scale to enemy model for larger appearance (same as player)
-	if _enemy_model:
-		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
-
+	if _body_sprite: _base_body_pos = _body_sprite.position
+	if _head_sprite: _base_head_pos = _head_sprite.position
+	if _left_arm_sprite: _base_left_arm_pos = _left_arm_sprite.position
+	if _right_arm_sprite: _base_right_arm_pos = _right_arm_sprite.position
+	if _enemy_model: _enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 	_init_death_animation()
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
+	if _is_sniper: _setup_sniper_laser()  # Sniper laser sight (Issue #581/#665)
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
 	_current_health = _max_health
 	_is_alive = true
-
 ## Initialize ammunition with full magazine and reserve ammo.
 func _initialize_ammo() -> void:
 	_current_ammo = magazine_size
-	# Reserve ammo is (total_magazines - 1) * magazine_size since one magazine is loaded
-	_reserve_ammo = (total_magazines - 1) * magazine_size
+	_reserve_ammo = (total_magazines - 1) * magazine_size  # Reserve ammo
 	_is_reloading = false
 	_reload_timer = 0.0
 
@@ -474,7 +412,11 @@ func _configure_weapon_type() -> void:
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
 	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
-	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
+	_is_sniper = c.get("is_sniper", false)
+	if _is_sniper:
+		_sniper_hitscan_range = c.get("hitscan_range", 5000.0); _sniper_hitscan_damage = c.get("hitscan_damage", 50.0); _sniper_max_wall_penetrations = c.get("max_wall_penetrations", 2)
+		rotation_speed = c.get("rotation_speed", 1.0); reload_time = 4.0; enable_flanking = false; enable_cover = true; behavior_mode = BehaviorMode.GUARD; total_magazines = 10  # Snipers carry more ammo
+	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else (" (hitscan)" if _is_sniper else "")])
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -815,6 +757,10 @@ func _physics_process(delta: float) -> void:
 	_shoot_timer += delta
 
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
+
+	if _is_sniper:  # Bolt-action cycling and retreat cooldown (Issue #581/#665)
+		if not _sniper_bolt_ready: _sniper_bolt_timer += delta; if _sniper_bolt_timer >= SNIPER_BOLT_CYCLE_TIME: _sniper_bolt_ready = true
+		if _sniper_retreat_cooldown > 0.0: _sniper_retreat_cooldown -= delta
 	# Update reload timer
 	_update_reload(delta)
 
@@ -874,6 +820,8 @@ func _physics_process(delta: float) -> void:
 		_grenadier_wait_timer -= delta
 		if _grenadier_wait_timer <= 0.0: _stop_waiting_for_grenadier()
 	_update_enemy_model_rotation()
+
+	if _is_sniper: _update_sniper_laser()  # Update sniper laser sight (Issue #581/#665)
 	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting
 		velocity = Vector2.ZERO; _update_debug_label(); _update_walk_animation(delta)
 		_apply_machete_attack_animation(); move_and_slide(); _push_casings()
@@ -1139,6 +1087,7 @@ func _finish_reload() -> void:
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
 	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
+	if _is_sniper and not _sniper_bolt_ready: return false  # Bolt-action check
 	# Can't shoot if reloading
 	if _is_reloading:
 		return false
@@ -1174,11 +1123,11 @@ func _process_ai_state(delta: float) -> void:
 		return
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
-	# NOTE: Disabled during memory reset confusion period (Issue #318)
+	# NOTE: Disabled during memory reset confusion period (Issue #318). Snipers skip snap-aim (#665).
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
 	var is_confused: bool = _memory_reset_confusion_timer > 0.0
-	if is_distraction_enabled and not is_confused and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+	if not _is_sniper and is_distraction_enabled and not is_confused and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1223,8 +1172,8 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "ammo_empty"
 			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
 
-	# Issue #318: Also block vulnerability attacks during confusion period
-	if player_is_vulnerable and not is_confused and _can_see_player and _player and player_close:
+	# Issue #318: Also block vulnerability attacks during confusion (snipers skip snap-aim #665)
+	if not _is_sniper and player_is_vulnerable and not is_confused and _can_see_player and _player and player_close:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
@@ -1254,9 +1203,8 @@ func _process_ai_state(delta: float) -> void:
 			# Return early - we've taken the highest priority action
 			return
 
-	# SECOND PRIORITY: If player is vulnerable but NOT close, pursue them aggressively
-	# This makes enemies rush toward vulnerable players to exploit the weakness
-	if player_is_vulnerable and _can_see_player and _player and not player_close:
+	# SECOND PRIORITY: Pursue vulnerable player (snipers skip - engage from range #665)
+	if not _is_sniper and player_is_vulnerable and _can_see_player and _player and not player_close:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		# Only log once per pursuit decision to avoid spam
 		var pursue_key := "last_pursue_vuln_frame"
@@ -1331,6 +1279,7 @@ func _process_idle_state(delta: float) -> void:
 ## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
 	_combat_state_timer += delta
+	if _is_sniper: _process_sniper_combat_state(delta); return  # Sniper override (Issue #581/#665)
 	# Issue #579/#595: Machete melee combat with attack animation
 	if _is_melee_weapon and _machete and _player:
 		if _machete.is_attacking(): return  # Issue #595: Hold position during attack animation
@@ -1602,14 +1551,13 @@ func _process_seeking_cover_state(_delta: float) -> void:
 	# Use navigation-based pathfinding to move toward cover
 	_move_to_target_nav(_cover_position, combat_move_speed)
 
-	# Can still shoot while moving to cover (only after detection delay)
-	if _can_see_player and _player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-		_aim_at_player()
-		_shoot()
-		_shoot_timer = 0.0
+	# Can still shoot while moving to cover (snipers skip - too slow to aim on move #665)
+	if not _is_sniper and _can_see_player and _player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+		_aim_at_player(); _shoot(); _shoot_timer = 0.0
 
 ## Process IN_COVER state. Under fire->suppressed, close->COMBAT, far+can hit->stay and shoot, far+can't hit->PURSUING.
 func _process_in_cover_state(delta: float) -> void:
+	if _is_sniper: _process_sniper_in_cover_state(delta); return  # Sniper override (Issue #581/#665)
 	velocity = Vector2.ZERO
 
 	# If still under fire, stay suppressed
@@ -2592,6 +2540,10 @@ func _transition_to_suppressed() -> void:
 
 ## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
+	if _is_sniper:  # Snipers don't pursue (Issue #581/#665)
+		if enable_cover: _transition_to_seeking_cover()
+		else: _transition_to_combat()
+		return
 	_current_state = AIState.PURSUING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2994,6 +2946,7 @@ func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Ve
 
 ## Check if the enemy should shoot at the target (bullet spawn, friendly fire, cover).
 func _should_shoot_at_target(target_position: Vector2) -> bool:
+	if _is_sniper: return _is_firing_line_clear_of_friendlies(target_position)  # Hitscan from center (#665)
 	# Check path to bullet spawn is clear (prevents shooting into walls; uses weapon forward)
 	var weapon_direction := _get_weapon_forward_direction()
 	if not _is_bullet_spawn_clear(weapon_direction):
@@ -3303,7 +3256,8 @@ func _find_cover_position() -> void:
 				# 3. Position relative to player (behind cover from player's view)
 				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
 
-				var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
+				var ref_pos := _initial_position if _is_sniper else global_position  # Snipers prefer cover near spawn (#665)
+				var distance_score := 1.0 - (ref_pos.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
 
 				# Check if this position is on the far side of obstacle from player
 				var cover_direction := (cover_pos - player_pos).normalized()
@@ -3835,6 +3789,7 @@ func _aim_at_player() -> void:
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
+	if _is_sniper: _shoot_sniper_hitscan(); return  # Hitscan (Issue #581/#665)
 	if bullet_scene == null or _player == null:
 		return
 
@@ -3937,6 +3892,11 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	if casing_scene == null:
 		return
 
+	if _is_sniper:  # Sniper casing with caliber data (Issue #581/#665)
+		var sp := global_position + weapon_forward * (bullet_spawn_offset * 0.5)
+		var cd: Resource = null; var cp: String = WeaponConfigComponent.get_config(weapon_type).get("caliber_path", "")
+		if cp != "": cd = load(cp)
+		SniperComponent.spawn_casing(get_tree(), casing_scene, sp, weapon_forward, cd); return
 	# Calculate casing spawn position (near the weapon, slightly offset)
 	# Use 50% of bullet spawn offset to position casing near weapon muzzle
 	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
@@ -4994,3 +4954,46 @@ func _on_casing_pusher_body_exited(body: Node2D) -> void:
 	if body is RigidBody2D:
 		var idx := _overlapping_casings.find(body)
 		if idx >= 0: _overlapping_casings.remove_at(idx)
+
+# --- SNIPER FUNCTIONS (Issue #581/#665) ---
+func _setup_sniper_laser() -> void: _sniper_laser = SniperComponent.create_laser(); add_child(_sniper_laser)
+func _update_sniper_laser() -> void:
+	if _sniper_laser == null: return
+	var wf := _get_weapon_forward_direction(); var rids: Array[RID] = []; if _hit_area and is_instance_valid(_hit_area): rids.append(_hit_area.get_rid())
+	SniperComponent.update_laser(_sniper_laser, self, wf, wf * bullet_spawn_offset, _sniper_hitscan_range, rids)
+func _shoot_sniper_hitscan() -> void:
+	if _player == null or not _can_shoot() or not _should_shoot_at_target(_player.global_position): return
+	var wf := _get_weapon_forward_direction()
+	if wf.dot((_player.global_position - global_position).normalized()) < AIM_TOLERANCE_DOT: return
+	var sd := SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
+	var d := wf.rotated(randf_range(-deg_to_rad(sd), deg_to_rad(sd))) if sd > 0.0 else wf
+	var spos := global_position + wf * 10.0; var rids: Array[RID] = []; if _hit_area and is_instance_valid(_hit_area): rids.append(_hit_area.get_rid())
+	var be := SniperComponent.perform_hitscan(self, d, spos, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations, rids)
+	SniperComponent.spawn_tracer(get_tree(), spos, be); _spawn_muzzle_flash(_get_bullet_spawn_position(wf), d); _spawn_casing(d, wf)
+	var am: Node = get_node_or_null("/root/AudioManager"); if am and am.has_method("play_m16_shot"): am.play_m16_shot(global_position)
+	var snd: Node = get_node_or_null("/root/SoundPropagation"); if snd and snd.has_method("emit_sound"): snd.emit_sound(0, global_position, 1, self, weapon_loudness)
+	_play_delayed_shell_sound(); _sniper_bolt_ready = false; _sniper_bolt_timer = 0.0
+	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0; ammo_changed.emit(_current_ammo, _reserve_ammo)
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+	_log_to_file("SNIPER SHOT: spread=%.1f° dir=%v end=%v" % [sd, d, be])
+func _sniper_try_shoot(delta: float) -> void:
+	var tp := _player.global_position if (_can_see_player and _player) else (_memory.suspected_position if (_memory and _memory.has_target()) else Vector2.ZERO)
+	if tp == Vector2.ZERO: return
+	_sniper_rotate_toward(tp, delta)
+	if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown: _shoot(); _shoot_timer = 0.0
+	elif not _detection_delay_elapsed: _detection_timer += delta; if _detection_timer >= _get_effective_detection_delay(): _detection_delay_elapsed = true
+func _process_sniper_combat_state(delta: float) -> void:
+	if _player and global_position.distance_to(_player.global_position) < get_viewport_rect().size.length() * 0.5 and enable_cover and _sniper_retreat_cooldown <= 0.0:
+		_sniper_retreat_cooldown = SNIPER_RETREAT_COOLDOWN_TIME; _transition_to_seeking_cover(); return
+	if not _can_see_player:
+		if _memory and _memory.has_target(): _sniper_try_shoot(delta)
+		elif enable_cover: _transition_to_seeking_cover()
+		return
+	velocity = Vector2.ZERO; _sniper_try_shoot(delta)
+func _process_sniper_in_cover_state(delta: float) -> void:
+	velocity = Vector2.ZERO
+	if _under_fire: _transition_to_suppressed(); return
+	if _is_visible_from_player(): _has_valid_cover = false; _transition_to_seeking_cover(); return
+	_sniper_try_shoot(delta); if not _can_see_player and not (_memory and _memory.has_target()): _transition_to_combat()
+func _sniper_rotate_toward(tp: Vector2, dt: float) -> void:
+	rotation += clampf(angle_difference(rotation, (tp - global_position).normalized().angle()), -rotation_speed * dt, rotation_speed * dt)
