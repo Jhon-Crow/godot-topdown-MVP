@@ -2,111 +2,80 @@
 
 ## Problem Statement
 
-**Issue**: "enemies still sometimes blow themselves up" (ru: "враги всё ещё иногда взрывают сами себя")
+**Issue**: "enemies still blow up themselves and others" (ru: "враги всё ещё взрывают себя и других")
 
-Despite two previous attempts to fix enemy self-damage from their own grenades (PR #376 and PR #658), enemies were still occasionally destroying themselves with their own grenade explosions and shrapnel.
+Despite previous fix attempts, enemies were still destroying themselves AND friendly allies with their own grenade explosions and shrapnel.
 
-## Timeline of Previous Fixes
+## Timeline of Fixes
 
-| Date | PR | Fix Description |
-|------|-----|-----------------|
-| 2026-01-25 | #376 | Added min throw distance check: `blast_radius + safety_margin` (275px for frag grenades) |
-| 2026-02-08 | #658 | Added `MIN_ARMING_DISTANCE = 80px` in GDScript frag_grenade.gd to prevent impact explosion near thrower |
+| Date | PR | Fix Description | Result |
+|------|-----|-----------------|--------|
+| 2026-01-25 | #376 | Added min throw distance check: `blast_radius + safety_margin` | Reduced frequency but didn't prevent |
+| 2026-02-08 | #658 | Added `MIN_ARMING_DISTANCE = 80px` in GDScript | Ineffective in exported builds (GDScript doesn't run) |
+| 2026-02-09 | #695 v1 | Added `thrower_id` to exclude thrower from blast + shrapnel | Fixed self-damage but not friendly fire |
+| 2026-02-09 | #695 v2 | Exclude ALL enemies from enemy-thrown grenades | **Complete fix** |
 
-## Root Cause Analysis
+## Root Cause Analysis (v2 - After User Feedback)
 
-The self-destruct bug persisted because **5 independent damage vectors** were not addressed by previous fixes:
+### What the game logs revealed
 
-### Vector 1: C# Arming Distance Bypass (CRITICAL)
+Analysis of `game_log_20260209_034310.txt` from user's testing of PR #695 v1:
 
-**File**: `Scripts/Projectiles/GrenadeTimer.cs`, method `OnBodyEntered()`
+**Incident 1** (lines 4177-4208, Building Level):
+- An enemy threw a frag grenade (thrower ID: `1408648614297`)
+- C# GrenadeTimer correctly logged: "Skipping thrower - self-damage prevention"
+- **Enemy4** (a DIFFERENT enemy at distance 155px) took 3 hits and died
+- Root cause: **Friendly fire** - ally killed by teammate's grenade
 
-The GDScript `frag_grenade.gd` had `MIN_ARMING_DISTANCE = 80px` protection (added in PR #658), but the C# `GrenadeTimer` component - which is the code that **actually runs in exported builds** (GDScript `_physics_process()` doesn't run in exports per Issue #432) - had **NO arming distance check**. It would trigger explosion on ANY body contact as long as `IsThrown == true`.
+**Incident 2** (lines 6735-6771):
+- Enemy threw grenade (thrower ID: `1649569439176`)
+- GDScript FragGrenade correctly skipped the thrower
+- **Enemy3** (distance 100.7px) and **Enemy4** (distance 207.5px) both died from HE blast
+- Additionally, BOTH GDScript AND C# applied damage independently (dual explosion)
 
-This meant the PR #658 fix was essentially ineffective in production builds.
+**Incident 3** (lines 8608-8646):
+- Enemy threw grenade (thrower ID: `1989492607073`)
+- **Grenadier** (distance 146.7px) died from its ally's grenade
 
-### Vector 2: No Thrower Exclusion from HE Blast Damage
+### Key insight
 
-**Files**: `frag_grenade.gd` method `_get_enemies_in_radius()`, `defensive_grenade.gd` method `_get_enemies_in_radius()`, `GrenadeTimer.cs` method `ApplyFragExplosion()`
+The v1 fix (`thrower_id` tracking) correctly prevented the **thrower** from being damaged. But the user's complaint was "враги всё ещё взрывают себя **и других**" - enemies still blow up themselves **AND OTHERS**. The "others" part was the unaddressed problem: enemy grenades were killing **allied enemies** within the blast radius.
 
-ALL enemies in the "enemies" group within effect radius received 99 HE damage. There was **no check** to exclude the enemy who threw the grenade. If the enemy was within 225px of the explosion position (e.g., grenade bounced back, hit a wall nearby, or enemy moved toward explosion), they would take full lethal damage.
+### Why v1 was insufficient
 
-### Vector 3: C# Shrapnel Missing source_id
+The v1 fix only excluded the single enemy that threw the grenade from receiving damage. All other enemies within the 225px frag blast radius or 700px defensive blast radius still received full 99 HE damage plus shrapnel hits. Since enemies often cluster together, friendly fire was common.
 
-**File**: `GrenadeTimer.cs` method `SpawnShrapnel()`
+### Dual explosion issue
 
-When C# code spawned shrapnel (which happens in exported builds), it did NOT set `source_id` on shrapnel instances. The code set `direction` but omitted `source_id`, leaving it at the default value of `-1`. This means shrapnel from C#-spawned explosions had no collision exclusion at all.
+Both GDScript (`frag_grenade.gd::_on_explode()`) and C# (`GrenadeTimer.cs::Explode()`) independently process explosion damage via their own `body_entered` handlers. This caused:
+1. Double damage application in some cases
+2. Both systems needed the same protection logic
 
-### Vector 4: Shrapnel Has No Thrower Tracking
+## Fix Applied (v2)
 
-**File**: `scripts/projectiles/shrapnel.gd`
+### Approach: Exclude ALL enemies from enemy-thrown grenades
 
-Shrapnel's `source_id` only tracked the **grenade** instance (to avoid hitting the grenade RigidBody2D itself), not the **enemy** that threw it. Even when `source_id` was correctly set, shrapnel could freely hit and damage the throwing enemy.
-
-### Vector 5: Defensive Grenade Same Vulnerabilities
-
-**File**: `scripts/projectiles/defensive_grenade.gd`
-
-The defensive grenade (700px blast radius, 40 shrapnel pieces) had identical vulnerabilities to the frag grenade - no thrower exclusion from blast damage and no thrower tracking on shrapnel.
-
-## Fix Implementation
-
-### Approach: Thrower ID Pipeline
-
-Added `thrower_id` tracking throughout the complete grenade-to-damage pipeline:
+Changed from "exclude thrower only" to "exclude ALL enemies" when `thrower_id >= 0`:
 
 ```
-Enemy throws grenade
-  → thrower_id set on GDScript grenade (frag/defensive)
-  → thrower_id set on C# GrenadeTimer via SetThrower()
-    → Explosion damage excludes thrower (both GDScript and C# paths)
-    → Shrapnel inherits thrower_id from grenade
-      → Shrapnel collision checks exclude thrower (body_entered + area_entered)
+Enemy grenade explosion (thrower_id >= 0):
+  → HE blast: skip ALL enemies, only damage player
+  → Shrapnel: skip ALL enemies, only damage player
+
+Player grenade explosion (thrower_id == -1):
+  → HE blast: damage all enemies normally
+  → Shrapnel: damage all enemies normally
 ```
 
-### Changes by File
+### Files changed
 
-1. **GrenadeTimer.cs** (C# - runs in exports):
-   - Added `ThrowerId` property and `SetThrower()` method
-   - Added `MinArmingDistance`, `_spawnPosition`, `_impactArmed` for arming distance check
-   - `OnBodyEntered()`: Added arming distance check matching GDScript
-   - `ApplyFragExplosion()`: Skip thrower in damage loop
-   - `SpawnShrapnel()`: Set `source_id` and `thrower_id` on shrapnel
+1. **`frag_grenade.gd`**: `_get_enemies_in_radius()` returns empty when `thrower_id >= 0`
+2. **`defensive_grenade.gd`**: Same change as frag_grenade.gd
+3. **`GrenadeTimer.cs`**: `ApplyFragExplosion()` skips all enemy damage when `ThrowerId >= 0`
+4. **`shrapnel.gd`**: `_on_body_entered()` and `_on_area_entered()` skip all enemies via `is_in_group("enemies")` when `thrower_id >= 0`
 
-2. **GrenadeTimerHelper.cs** (C# autoload for GDScript interop):
-   - Added `SetThrower(RigidBody2D grenade, long throwerId)` method
+### Design rationale
 
-3. **frag_grenade.gd** (GDScript):
-   - Added `thrower_id` variable
-   - `_get_enemies_in_radius()`: Skip thrower
-   - `_spawn_shrapnel()`: Pass `thrower_id` to shrapnel
+Enemy grenades are intended as a tactical threat against the **player**, not as friendly fire between enemies. This matches the game design where enemies coordinate their attacks. Enemies already have safety distance checks before throwing (`blast_radius + safety_margin`), but these can't prevent all collateral damage scenarios (e.g., enemies moving into blast zone after throw, grenades bouncing into unexpected positions).
 
-4. **defensive_grenade.gd** (GDScript):
-   - Same changes as frag_grenade.gd
-
-5. **shrapnel.gd** (GDScript):
-   - Added `thrower_id` variable
-   - `_on_body_entered()`: Check `thrower_id` for exclusion
-   - `_on_area_entered()`: Check parent's instance ID against `thrower_id`
-
-6. **enemy_grenade_component.gd** (GDScript):
-   - Set `thrower_id` on GDScript grenade before adding to scene
-   - Call `_set_grenade_thrower()` to set on C# GrenadeTimer
-   - Added `_set_grenade_thrower()` helper method
-
-7. **grenadier_grenade_component.gd** (GDScript):
-   - Same thrower tracking as enemy_grenade_component.gd
-
-## Design Decisions
-
-### Why thrower_id instead of invulnerability window?
-
-A time-based invulnerability window would be fragile and could interfere with legitimate damage from other sources. Tracking the specific thrower provides precise exclusion without affecting any other game mechanics.
-
-### Why -1 as default thrower_id?
-
-Player-thrown grenades should still damage enemies (and the player themselves). Using `-1` as "no thrower" means player grenades behave exactly as before - only enemy-thrown grenades get the self-damage protection.
-
-### Why check in both GDScript and C#?
-
-Due to Issue #432 (GDScript failing in exports), the game has dual GDScript/C# paths for grenade logic. Both paths must implement the protection to ensure it works in all build configurations.
+The simplest and most robust solution is to make enemy grenades completely safe for all enemies.
