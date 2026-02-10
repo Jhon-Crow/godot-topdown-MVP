@@ -288,20 +288,41 @@ public partial class Revolver : BaseWeapon
     /// Creates and attaches the cylinder HUD display to the level UI (Issue #691).
     /// Called via CallDeferred from _Ready() to ensure the scene tree is fully initialized.
     /// The HUD is added to CanvasLayer/UI in the level root, positioned below the ammo label.
+    /// Traverses up the tree to find the level root (handles Player being under Entities, etc).
     /// </summary>
     private void SetupCylinderHUD()
     {
-        // Find the level root (grandparent: Revolver → Player → LevelRoot)
-        var player = GetParent();
-        if (player == null) return;
-        var levelRoot = player.GetParent();
-        if (levelRoot == null) return;
+        // Find the level root by traversing up until we find a node with CanvasLayer/UI
+        // The hierarchy can be: LevelRoot → Entities → Player → Revolver
+        // or: LevelRoot → Player → Revolver (depending on level structure)
+        var current = GetParent();
+        Control? ui = null;
 
-        var ui = levelRoot.GetNodeOrNull("CanvasLayer/UI");
-        if (ui == null) return;
+        while (current != null)
+        {
+            ui = current.GetNodeOrNull<Control>("CanvasLayer/UI");
+            if (ui != null)
+            {
+                GD.Print($"[Revolver] Found CanvasLayer/UI in: {current.Name}");
+                break;
+            }
+            current = current.GetParent();
+        }
+
+        if (ui == null)
+        {
+            GD.Print("[Revolver] Warning: Could not find CanvasLayer/UI for cylinder HUD (Issue #691)");
+            return;
+        }
 
         // Don't create duplicate HUD if one already exists (e.g. from LevelInitFallback)
-        if (ui.GetNodeOrNull("RevolverCylinderUI") != null) return;
+        if (ui.GetNodeOrNull("RevolverCylinderUI") != null)
+        {
+            GD.Print("[Revolver] Cylinder HUD already exists in UI, connecting to existing");
+            _cylinderUI = ui.GetNodeOrNull<RevolverCylinderUI>("RevolverCylinderUI");
+            _cylinderUI?.ConnectToRevolver(this);
+            return;
+        }
 
         _cylinderUI = new RevolverCylinderUI();
         _cylinderUI.Name = "RevolverCylinderUI";
@@ -559,14 +580,21 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Check for empty cylinder - play click sound
-        if (CurrentAmmo <= 0)
+        // Issue #691: Check if the CURRENT chamber has a round, not just total ammo.
+        // This allows cylinder rotation to actually matter - rotating to an empty chamber
+        // will cause a click even if other chambers have rounds.
+        bool currentChamberHasRound = _chamberOccupied.Length > 0
+                                      && _currentChamberIndex < _chamberOccupied.Length
+                                      && _chamberOccupied[_currentChamberIndex];
+
+        if (!currentChamberHasRound)
         {
             PlayEmptyClickSound();
+            GD.Print($"[Revolver] Click - chamber {_currentChamberIndex} is empty (total ammo: {CurrentAmmo})");
             return false;
         }
 
-        // Check if we can fire at all
+        // Check if we can fire at all (fire rate, etc)
         if (!CanFire || WeaponData == null || BulletScene == null)
         {
             return false;
@@ -655,10 +683,16 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Cannot cock with empty cylinder
-        if (CurrentAmmo <= 0)
+        // Issue #691: Check if the CURRENT chamber has a round, not just total ammo.
+        // Cannot cock if the current chamber is empty (would just click anyway).
+        bool currentChamberHasRound = _chamberOccupied.Length > 0
+                                      && _currentChamberIndex < _chamberOccupied.Length
+                                      && _chamberOccupied[_currentChamberIndex];
+
+        if (!currentChamberHasRound)
         {
             PlayEmptyClickSound();
+            GD.Print($"[Revolver] Cannot cock - chamber {_currentChamberIndex} is empty");
             return false;
         }
 
@@ -707,7 +741,12 @@ public partial class Revolver : BaseWeapon
             return;
         }
 
-        if (CurrentAmmo <= 0 || WeaponData == null || BulletScene == null)
+        // Issue #691: Check current chamber, not just total ammo
+        bool currentChamberHasRound = _chamberOccupied.Length > 0
+                                      && _currentChamberIndex < _chamberOccupied.Length
+                                      && _chamberOccupied[_currentChamberIndex];
+
+        if (!currentChamberHasRound || WeaponData == null || BulletScene == null)
         {
             GD.Print("[Revolver] Shot cancelled - conditions changed during hammer cock");
             return;
