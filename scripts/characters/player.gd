@@ -694,9 +694,13 @@ func _shoot() -> void:
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
 
-	# Spawn muzzle flash effect at bullet spawn position
+	# Spawn muzzle flash effect at bullet spawn position (Issue #711: emit signal for enemy detection)
 	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_effects and impact_effects.has_method("spawn_muzzle_flash"):
+	if impact_effects and impact_effects.has_method("spawn_muzzle_flash_with_source"):
+		var muzzle_pos := global_position + shoot_direction * bullet_spawn_offset
+		impact_effects.spawn_muzzle_flash_with_source(muzzle_pos, shoot_direction, global_position, self, 0)  # 0 = PLAYER
+	elif impact_effects and impact_effects.has_method("spawn_muzzle_flash"):
+		# Fallback to basic version if extended version not available
 		var muzzle_pos := global_position + shoot_direction * bullet_spawn_offset
 		impact_effects.spawn_muzzle_flash(muzzle_pos, shoot_direction)
 
