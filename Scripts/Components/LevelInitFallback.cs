@@ -1,5 +1,7 @@
 using Godot;
 using System.Collections.Generic;
+using GodotTopDownTemplate.Components;
+using GodotTopDownTemplate.Weapons;
 
 /// <summary>
 /// C# fallback for level initialization when GDScript level scripts fail to execute
@@ -87,6 +89,12 @@ public partial class LevelInitFallback : Node
     /// Magazines label for UI.
     /// </summary>
     private Label? _magazinesLabel;
+
+    /// <summary>
+    /// Revolver cylinder HUD display (Issue #691).
+    /// Shows 5 cylinder slots with color-coded active chamber.
+    /// </summary>
+    private RevolverCylinderUI? _cylinderUI;
 
     public override void _Ready()
     {
@@ -287,6 +295,7 @@ public partial class LevelInitFallback : Node
         weapon ??= _player.GetNodeOrNull("SilencedPistol");
         weapon ??= _player.GetNodeOrNull("SniperRifle");
         weapon ??= _player.GetNodeOrNull("AssaultRifle");
+        weapon ??= _player.GetNodeOrNull("Revolver");
         weapon ??= _player.GetNodeOrNull("AKGL");
         weapon ??= _player.GetNodeOrNull("MakarovPM");
 
@@ -314,6 +323,12 @@ public partial class LevelInitFallback : Node
         {
             var magCounts = weapon.Call("GetMagazineAmmoCounts").AsGodotArray();
             UpdateMagazinesLabel(magCounts);
+        }
+
+        // Issue #691: Setup revolver cylinder HUD when revolver is equipped
+        if (weapon is Revolver revolver)
+        {
+            SetupRevolverCylinderUI(revolver);
         }
 
         // Configure silenced pistol ammo
@@ -421,6 +436,33 @@ public partial class LevelInitFallback : Node
         _magazinesLabel.OffsetRight = 400;
         _magazinesLabel.OffsetBottom = 135;
         ui.AddChild(_magazinesLabel);
+    }
+
+    /// <summary>
+    /// Setup revolver cylinder HUD display (Issue #691).
+    /// Creates the cylinder slot visualization and connects it to the revolver.
+    /// Positioned below the ammo label in the top-left UI area.
+    /// </summary>
+    private void SetupRevolverCylinderUI(Revolver revolver)
+    {
+        var levelRoot = GetParent();
+        if (levelRoot == null) return;
+
+        var ui = levelRoot.GetNodeOrNull("CanvasLayer/UI");
+        if (ui == null) return;
+
+        _cylinderUI = new RevolverCylinderUI();
+        _cylinderUI.Name = "RevolverCylinderUI";
+        _cylinderUI.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _cylinderUI.OffsetLeft = 10;
+        _cylinderUI.OffsetTop = 30;
+        _cylinderUI.OffsetRight = 200;
+        _cylinderUI.OffsetBottom = 62;
+        ui.AddChild(_cylinderUI);
+
+        _cylinderUI.ConnectToRevolver(revolver);
+
+        LogToFile("[LevelInitFallback] Revolver cylinder HUD created (Issue #691)");
     }
 
     /// <summary>
