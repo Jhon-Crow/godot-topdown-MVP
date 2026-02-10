@@ -667,68 +667,59 @@ public partial class SilencedPistol : BaseWeapon
         var bulletNode = BulletScene.Instantiate<Node2D>();
         bulletNode.GlobalPosition = spawnPosition;
 
-        // Try to cast to C# Bullet type for direct property access
-        var bullet = bulletNode as Bullet;
+        // Get shooter info for bullet initialization
+        var owner = GetParent();
+        ulong shooterId = owner?.GetInstanceId() ?? 0;
 
-        if (bullet != null)
+        // Check if this is a C# bullet (use 'is' pattern, not 'as', to avoid GDScript false positive)
+        if (bulletNode is Bullet csBullet)
         {
             // C# Bullet - set properties directly for reliable stun effect
-            bullet.Direction = direction;
+            csBullet.Direction = direction;
             if (WeaponData != null)
             {
-                bullet.Speed = WeaponData.BulletSpeed;
+                csBullet.Speed = WeaponData.BulletSpeed;
                 // Set damage from weapon data - this is critical for one-shot kills
-                bullet.Damage = WeaponData.Damage;
+                csBullet.Damage = WeaponData.Damage;
             }
-            var owner = GetParent();
-            if (owner != null)
-            {
-                bullet.ShooterId = owner.GetInstanceId();
-            }
-            bullet.ShooterPosition = GlobalPosition;
+            csBullet.ShooterId = shooterId;
+            csBullet.ShooterPosition = GlobalPosition;
 
             // Set stun duration for silenced pistol special effect
             // Enemies hit by silenced pistol bullets are briefly stunned,
             // allowing for follow-up shots while they can't retaliate
-            bullet.StunDuration = StunDurationOnHit;
-            GD.Print($"[SilencedPistol] Spawned C# bullet with Damage={bullet.Damage}, StunDuration={StunDurationOnHit}s");
+            csBullet.StunDuration = StunDurationOnHit;
+            GD.Print($"[SilencedPistol] Spawned C# bullet with Damage={csBullet.Damage}, StunDuration={StunDurationOnHit}s");
+        }
+        else if (bulletNode.HasMethod("initialize_bullet"))
+        {
+            // GDScript bullet with initialize_bullet method (preferred for reliability)
+            // This avoids potential issues with Node.Set() for Vector2 in C#→GDScript interop
+            bulletNode.Call("initialize_bullet",
+                direction,
+                WeaponData?.BulletSpeed ?? 2500.0f,
+                WeaponData?.Damage ?? 1.0f,
+                (long)shooterId,  // GDScript int is 64-bit, use long to avoid truncation
+                GlobalPosition,
+                StunDurationOnHit);
+            GD.Print($"[SilencedPistol] Spawned GDScript bullet via initialize_bullet: Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
         }
         else
         {
-            // GDScript bullet - use initialize_bullet method for reliable property setting
-            // This avoids potential issues with Node.Set() for Vector2 in C#→GDScript interop
-            var owner = GetParent();
-            ulong shooterId = owner?.GetInstanceId() ?? 0;
-
-            if (bulletNode.HasMethod("initialize_bullet"))
+            // Legacy fallback - try Node.Set() for older bullet scripts
+            bulletNode.Set("direction", direction);
+            if (WeaponData != null)
             {
-                // Use the new initialization method (preferred for reliability)
-                bulletNode.Call("initialize_bullet",
-                    direction,
-                    WeaponData?.BulletSpeed ?? 2500.0f,
-                    WeaponData?.Damage ?? 1.0f,
-                    (int)shooterId,
-                    GlobalPosition,
-                    StunDurationOnHit);
-                GD.Print($"[SilencedPistol] Spawned GDScript bullet via initialize_bullet: Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
+                bulletNode.Set("speed", WeaponData.BulletSpeed);
+                bulletNode.Set("damage", WeaponData.Damage);
             }
-            else
+            if (owner != null)
             {
-                // Legacy fallback - try Node.Set() for older bullet scripts
-                bulletNode.Set("direction", direction);
-                if (WeaponData != null)
-                {
-                    bulletNode.Set("speed", WeaponData.BulletSpeed);
-                    bulletNode.Set("damage", WeaponData.Damage);
-                }
-                if (owner != null)
-                {
-                    bulletNode.Set("shooter_id", (int)shooterId);
-                }
-                bulletNode.Set("shooter_position", GlobalPosition);
-                bulletNode.Set("stun_duration", StunDurationOnHit);
-                GD.Print($"[SilencedPistol] Spawned GDScript bullet via Set(): Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
+                bulletNode.Set("shooter_id", (long)shooterId);
             }
+            bulletNode.Set("shooter_position", GlobalPosition);
+            bulletNode.Set("stun_duration", StunDurationOnHit);
+            GD.Print($"[SilencedPistol] Spawned GDScript bullet via Set(): Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
         }
 
         // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
@@ -745,9 +736,9 @@ public partial class SilencedPistol : BaseWeapon
         if (weaponOwner is Player player && player.IsHomingActive())
         {
             Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
-            if (bullet != null)
+            if (bulletNode is Bullet csBulletHoming)
             {
-                bullet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+                csBulletHoming.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
             }
             else if (bulletNode.HasMethod("enable_homing_with_aim_line"))
             {

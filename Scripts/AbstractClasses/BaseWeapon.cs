@@ -421,7 +421,7 @@ public abstract partial class BaseWeapon : Node2D
                 direction,
                 WeaponData?.BulletSpeed ?? 2500.0f,
                 WeaponData?.Damage ?? 1.0f,
-                (int)shooterId,
+                (long)shooterId,
                 GlobalPosition,
                 0.0f); // No stun duration in base weapon
         }
@@ -436,7 +436,7 @@ public abstract partial class BaseWeapon : Node2D
             }
             if (owner != null)
             {
-                bullet.Set("shooter_id", (int)shooterId);
+                bullet.Set("shooter_id", (long)shooterId);
             }
             bullet.Set("shooter_position", GlobalPosition);
         }

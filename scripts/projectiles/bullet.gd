@@ -1418,8 +1418,22 @@ const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
 const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 60
 
 
+## Checks if a position is inside a wall or obstacle (Issue #740).
+## Used to prevent spawning shrapnel inside walls.
+## @param pos: The position to check.
+## @return: true if position is inside a wall, false otherwise.
+func _is_position_inside_wall(pos: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = pos
+	query.collision_mask = 4  # Layer 3 (obstacles/walls)
+	var result := space_state.intersect_point(query, 1)
+	return not result.is_empty()
+
+
 ## Spawns breaker shrapnel pieces in a forward cone.
 ## Shrapnel count is capped for performance (Issue #678 optimization).
+## Validates spawn positions to prevent shrapnel spawning behind walls (Issue #740).
 func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if _breaker_shrapnel_scene == null:
 		if _debug_breaker:
@@ -1448,10 +1462,24 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if scene == null:
 		return
 
+	var spawned_count := 0
+	var skipped_count := 0
+
 	for i in range(shrapnel_count):
 		# Random angle within the forward cone
 		var random_angle := randf_range(-half_angle_rad, half_angle_rad)
 		var shrapnel_direction := direction.rotated(random_angle)
+
+		# Calculate potential spawn position (Issue #740 fix)
+		var spawn_offset := 5.0
+		var spawn_pos := center + shrapnel_direction * spawn_offset
+
+		# Check if spawn position is inside a wall (Issue #740 fix)
+		if _is_position_inside_wall(spawn_pos):
+			if _debug_breaker:
+				print("[Bullet.Breaker] Skipping shrapnel #%d: spawn position inside wall at %s" % [i, spawn_pos])
+			skipped_count += 1
+			continue
 
 		# Create shrapnel instance
 		var shrapnel := _breaker_shrapnel_scene.instantiate()
@@ -1459,7 +1487,7 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 			continue
 
 		# Set shrapnel properties
-		shrapnel.global_position = center + shrapnel_direction * 5.0  # Slight offset from center
+		shrapnel.global_position = spawn_pos
 		shrapnel.direction = shrapnel_direction
 		shrapnel.source_id = shooter_id  # Prevent self-damage using original shooter
 		shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
@@ -1469,7 +1497,8 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 
 		# Add to scene using call_deferred to batch scene tree changes (Issue #678 optimization)
 		scene.call_deferred("add_child", shrapnel)
+		spawned_count += 1
 
 	if _debug_breaker:
-		print("[Bullet.Breaker] Spawned %d shrapnel pieces (budget: %d) in %.0f-degree cone" % [
-			shrapnel_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
+		print("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
+			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
