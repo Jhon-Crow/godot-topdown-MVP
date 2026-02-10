@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using GodotTopDownTemplate.Effects;
 
 /// <summary>
 /// C# fallback for level initialization when GDScript level scripts fail to execute
@@ -57,6 +58,16 @@ public partial class LevelInitFallback : Node
     /// Reference to the exit zone.
     /// </summary>
     private Area2D? _exitZone;
+
+    /// <summary>
+    /// Reference to the teleport effect instance (Issue #721).
+    /// </summary>
+    private Node2D? _teleportEffect;
+
+    /// <summary>
+    /// Whether a teleport animation is currently playing.
+    /// </summary>
+    private bool _teleportAnimating;
 
     /// <summary>
     /// Whether this fallback actually performed initialization (GDScript didn't run).
@@ -654,7 +665,85 @@ public partial class LevelInitFallback : Node
     private void OnPlayerReachedExit()
     {
         if (!_levelCleared) return;
-        LogToFile("Player reached exit - showing score!");
+        if (_teleportAnimating) return;
+
+        LogToFile("Player reached exit - starting teleport effect!");
+        PlayTeleportEffect();
+    }
+
+    /// <summary>
+    /// Play the teleport visual effect when player reaches exit (Issue #721).
+    /// </summary>
+    private void PlayTeleportEffect()
+    {
+        _teleportAnimating = true;
+
+        // Disable player input during teleportation
+        if (_player != null && IsInstanceValid(_player))
+        {
+            _player.SetPhysicsProcess(false);
+        }
+
+        // Try to create C# teleport effect first
+        _teleportEffect = new TeleportEffect();
+        if (_player != null && IsInstanceValid(_player))
+        {
+            _teleportEffect.GlobalPosition = _player.GlobalPosition;
+        }
+
+        // Add to scene tree
+        var parent = GetParent();
+        if (parent != null)
+        {
+            parent.AddChild(_teleportEffect);
+        }
+        else
+        {
+            AddChild(_teleportEffect);
+        }
+
+        // Set target for visibility control
+        if (_teleportEffect.HasMethod("SetTarget") && _player != null)
+        {
+            _teleportEffect.Call("SetTarget", _player);
+        }
+
+        // Connect to animation finished signal
+        if (_teleportEffect.HasSignal("AnimationFinished"))
+        {
+            _teleportEffect.Connect("AnimationFinished", new Callable(this, MethodName.OnTeleportAnimationFinished));
+        }
+
+        // Start the disappear animation
+        if (_teleportEffect.HasMethod("PlayDisappear"))
+        {
+            _teleportEffect.Call("PlayDisappear");
+        }
+        else
+        {
+            // Fallback: complete immediately if effect doesn't have PlayDisappear
+            OnTeleportAnimationFinished("disappear");
+        }
+    }
+
+    /// <summary>
+    /// Called when the teleport animation finishes.
+    /// </summary>
+    private void OnTeleportAnimationFinished(string animationType)
+    {
+        LogToFile($"Teleport animation finished: {animationType}");
+
+        // Clean up the effect
+        if (_teleportEffect != null && IsInstanceValid(_teleportEffect))
+        {
+            _teleportEffect.QueueFree();
+            _teleportEffect = null;
+        }
+
+        _teleportAnimating = false;
+
+        // Complete the level with score
+        LogToFile("Teleport complete - showing score!");
         CallDeferred(MethodName.CompleteLevelWithScore);
     }
 
