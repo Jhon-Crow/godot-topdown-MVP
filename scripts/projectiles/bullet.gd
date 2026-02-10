@@ -137,6 +137,10 @@ var homing_steer_speed: float = 8.0
 ## Used to limit total turn angle.
 var _homing_original_direction: Vector2 = Vector2.ZERO
 
+## Trail length when homing is enabled - longer to show curved path.
+## Default 8 points gives ~336px trail, 32 points gives ~1344px to show curve.
+const HOMING_TRAIL_LENGTH: int = 32
+
 ## Enable/disable debug logging for homing calculations.
 var _debug_homing: bool = false
 
@@ -1003,11 +1007,14 @@ func get_penetration_distance() -> float:
 
 
 ## Enables homing on this bullet, storing the original direction.
+## Also increases trail length to show the curved homing path (Issue #739).
 func enable_homing() -> void:
 	homing_enabled = true
 	_homing_original_direction = direction.normalized()
+	# Increase trail length to show curved homing path clearly (Issue #739)
+	trail_length = HOMING_TRAIL_LENGTH
 	if _debug_homing:
-		print("[Bullet] Homing enabled, original direction: ", _homing_original_direction)
+		print("[Bullet] Homing enabled, original direction: ", _homing_original_direction, ", trail length: ", trail_length)
 
 
 ## Applies homing steering toward the nearest alive enemy.

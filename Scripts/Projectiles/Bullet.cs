@@ -1357,6 +1357,12 @@ public partial class Bullet : Area2D
     private const bool DebugHoming = false;
 
     /// <summary>
+    /// Trail length when homing is enabled - longer to show curved path (Issue #739).
+    /// Default 8 points gives ~336px trail, 32 points gives ~1344px to show the curve.
+    /// </summary>
+    private const int HomingTrailLength = 32;
+
+    /// <summary>
     /// Whether aim-line targeting is active (Issue #704).
     /// When true, targets enemy closest to the player's aim line rather than nearest to bullet.
     /// </summary>
@@ -1381,14 +1387,17 @@ public partial class Bullet : Area2D
     /// Enables homing on this bullet, storing the original direction.
     /// Called when activating homing on already-airborne bullets.
     /// Targets the nearest enemy to the bullet itself.
+    /// Also increases trail length to show the curved homing path (Issue #739).
     /// </summary>
     public void EnableHoming()
     {
         _homingEnabled = true;
         _homingOriginalDirection = Direction.Normalized();
+        // Increase trail length to show curved homing path clearly (Issue #739)
+        TrailLength = HomingTrailLength;
         if (DebugHoming)
         {
-            GD.Print($"[Bullet] Homing enabled, original direction: {_homingOriginalDirection}");
+            GD.Print($"[Bullet] Homing enabled, original direction: {_homingOriginalDirection}, trail length: {TrailLength}");
         }
     }
 
@@ -1396,6 +1405,7 @@ public partial class Bullet : Area2D
     /// Enables homing on this bullet with aim-line targeting (Issue #704).
     /// Called when firing new bullets during homing activation.
     /// Targets the enemy closest to the player's line of fire.
+    /// Also increases trail length to show the curved homing path (Issue #739).
     /// </summary>
     /// <param name="shooterPos">The player's position when firing.</param>
     /// <param name="aimDir">The player's aim direction when firing.</param>
@@ -1406,9 +1416,11 @@ public partial class Bullet : Area2D
         _useAimLineTargeting = true;
         _shooterOrigin = shooterPos;
         _shooterAimDirection = aimDir.Normalized();
+        // Increase trail length to show curved homing path clearly (Issue #739)
+        TrailLength = HomingTrailLength;
         if (DebugHoming)
         {
-            GD.Print($"[Bullet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}");
+            GD.Print($"[Bullet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}, trail length: {TrailLength}");
         }
     }
 

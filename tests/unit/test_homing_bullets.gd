@@ -973,3 +973,70 @@ func test_los_wall_parallel_to_aim_does_not_block() -> void:
 	var target := bullet.find_nearest_visible_enemy(enemies)
 	assert_eq(target, Vector2(300, 0),
 		"Wall parallel to aim should not block enemy")
+
+
+# ============================================================================
+# Homing Trail Length Tests (Issue #739)
+# ============================================================================
+
+
+## Mock for testing trail length changes when homing is enabled.
+class MockHomingBulletWithTrail:
+	## Whether homing is enabled.
+	var homing_enabled: bool = false
+
+	## Trail length (number of points in the trail).
+	var trail_length: int = 8
+
+	## Default trail length.
+	const DEFAULT_TRAIL_LENGTH: int = 8
+
+	## Trail length when homing is enabled (longer to show curve).
+	const HOMING_TRAIL_LENGTH: int = 32
+
+	## Current bullet direction.
+	var direction: Vector2 = Vector2.RIGHT
+
+	## Original direction for homing.
+	var _homing_original_direction: Vector2 = Vector2.ZERO
+
+	## Enable homing, also increases trail length to show curved path (Issue #739).
+	func enable_homing() -> void:
+		homing_enabled = true
+		_homing_original_direction = direction.normalized()
+		# Increase trail length to show curved homing path clearly (Issue #739)
+		trail_length = HOMING_TRAIL_LENGTH
+
+
+func test_trail_length_default() -> void:
+	var bullet := MockHomingBulletWithTrail.new()
+	assert_eq(bullet.trail_length, 8,
+		"Default trail length should be 8 points")
+
+
+func test_trail_length_increased_on_homing_enable() -> void:
+	var bullet := MockHomingBulletWithTrail.new()
+	bullet.enable_homing()
+	assert_eq(bullet.trail_length, 32,
+		"Trail length should increase to 32 when homing is enabled (Issue #739)")
+
+
+func test_trail_length_increase_shows_curve() -> void:
+	# At 2500 px/s bullet speed and 60 FPS, each frame = ~42 pixels
+	# With 8 points: ~336 pixels of trail (too short for visible curve)
+	# With 32 points: ~1344 pixels of trail (enough to show curve)
+	var bullet := MockHomingBulletWithTrail.new()
+	var bullet_speed := 2500.0
+	var fps := 60.0
+	var pixels_per_frame := bullet_speed / fps  # ~41.67
+
+	# Before homing
+	var trail_pixels_before := bullet.trail_length * pixels_per_frame
+	assert_true(trail_pixels_before < 400,
+		"Before homing, trail should be under 400px (%s px)" % trail_pixels_before)
+
+	# After homing
+	bullet.enable_homing()
+	var trail_pixels_after := bullet.trail_length * pixels_per_frame
+	assert_true(trail_pixels_after > 1000,
+		"After homing, trail should be over 1000px (%s px) to show curve clearly (Issue #739)" % trail_pixels_after)
