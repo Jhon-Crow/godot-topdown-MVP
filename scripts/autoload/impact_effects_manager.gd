@@ -9,6 +9,15 @@ extends Node
 ## Effect intensity scales based on weapon caliber.
 ## Blood decals persist on the floor for visual feedback.
 
+## Signal emitted when a muzzle flash is spawned (Issue #711).
+## Enemies can connect to this signal to detect player's muzzle flash.
+## Parameters:
+## - position: World position of the muzzle flash
+## - shooter_position: Position of the shooter (for enemy targeting)
+## - source_node: The node that fired the weapon (can be null)
+## - source_type: 0 = player, 1 = enemy, 2 = neutral
+signal muzzle_flash_spawned(position: Vector2, shooter_position: Vector2, source_node: Node2D, source_type: int)
+
 ## Preloaded particle effect scenes.
 var _dust_effect_scene: PackedScene = null
 var _blood_effect_scene: PackedScene = null
@@ -379,6 +388,28 @@ func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Res
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Muzzle flash spawned at ", position, " with scale=", effect_scale)
+
+
+## Spawns a muzzle flash with source tracking for enemy detection (Issue #711).
+## This version emits a signal that enemies can use to detect and suppress toward the flash.
+## @param position: World position of the gun muzzle (where bullet exits barrel).
+## @param direction: Direction the gun is pointing (flash emits in this direction).
+## @param shooter_position: Position of the shooter (for enemy targeting).
+## @param source_node: The node that fired the weapon (player, enemy, etc.).
+## @param source_type: 0 = player, 1 = enemy, 2 = neutral.
+## @param caliber_data: Optional caliber data for effect scaling.
+## @param scale_override: Optional explicit scale override (ignores caliber_data if > 0).
+func spawn_muzzle_flash_with_source(position: Vector2, direction: Vector2, shooter_position: Vector2, source_node: Node2D, source_type: int, caliber_data: Resource = null, scale_override: float = 0.0) -> void:
+	# Spawn the visual effect
+	spawn_muzzle_flash(position, direction, caliber_data, scale_override)
+
+	# Emit signal for enemy detection (Issue #711)
+	# Enemies listening to this signal can react to the muzzle flash
+	muzzle_flash_spawned.emit(position, shooter_position, source_node, source_type)
+
+	if _debug_effects:
+		var source_name := source_node.name if source_node else "null"
+		print("[ImpactEffectsManager] Muzzle flash signal emitted: pos=%s, shooter=%s, source=%s, type=%d" % [position, shooter_position, source_name, source_type])
 
 
 ## Spawns a flashbang visual effect at the given position.
