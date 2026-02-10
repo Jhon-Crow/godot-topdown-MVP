@@ -630,6 +630,9 @@ public partial class SniperRifle : BaseWeapon
         Vector2 spreadDirection = ApplyRecoil(fireDirection);
 
         // When homing is active, redirect toward nearest enemy near the aim line (Issue #704)
+        // Store original direction for curved smoke trail (Issue #709)
+        Vector2 originalDirection = spreadDirection;
+        bool homingRedirected = false;
         var weaponOwner = GetParent();
         if (weaponOwner is Player player && player.IsHomingActive())
         {
@@ -637,6 +640,7 @@ public partial class SniperRifle : BaseWeapon
             if (homingTarget != Vector2.Zero)
             {
                 spreadDirection = (homingTarget - GlobalPosition).Normalized();
+                homingRedirected = true;
                 GD.Print($"[SniperRifle] Homing: redirected hitscan toward enemy at {homingTarget}");
             }
         }
@@ -667,7 +671,15 @@ public partial class SniperRifle : BaseWeapon
             TriggerScreenShake(spreadDirection);
 
             // Spawn smoky tracer trail limited to the bullet's actual path
-            SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
+            // When homing redirected the shot, draw a curved trail (Issue #709)
+            if (homingRedirected)
+            {
+                SpawnCurvedSmokyTracer(GlobalPosition, originalDirection, bulletEndPoint);
+            }
+            else
+            {
+                SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
+            }
 
             // Spawn muzzle flash
             Vector2 muzzlePos = GlobalPosition + spreadDirection * BulletSpawnOffset;
@@ -832,6 +844,7 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Finds the nearest alive enemy that is close to the player's aim line (Issue #704).
     /// Delegates to <see cref="HomingUtils.FindEnemyNearestToAimLine"/>.
+    /// Includes line-of-sight check to skip enemies behind walls (Issue #709).
     /// </summary>
     private Vector2 FindNearestEnemyNearAimLine(Vector2 origin, Vector2 aimDirection)
     {
@@ -847,7 +860,11 @@ public partial class SniperRifle : BaseWeapon
             return Vector2.Zero;
         }
 
-        return HomingUtils.FindEnemyNearestToAimLine(enemies, origin, aimDirection);
+        // Start raycast from bullet spawn position (muzzle) to avoid hitting walls the player is near
+        Vector2 raycastStart = origin + aimDirection * BulletSpawnOffset;
+        return HomingUtils.FindEnemyNearestToAimLine(
+            enemies, origin, aimDirection, HomingUtils.DefaultMaxAngle,
+            HomingUtils.DefaultMaxPerpDistance, GetWorld2D(), raycastStart);
     }
 
     /// <summary>
@@ -1080,6 +1097,73 @@ public partial class SniperRifle : BaseWeapon
         // Add to scene
         GetTree().CurrentScene.AddChild(tracer);
         GD.Print($"[SniperRifle] Smoke tracer spawned: from={fromPosition + direction * BulletSpawnOffset} to={endPosition}, width={tracer.Width}");
+
+        // Start the fade-out animation
+        FadeOutTracer(tracer);
+    }
+
+    /// <summary>
+    /// Spawns a curved smoky tracer trail when homing redirected the shot (Issue #709).
+    /// The trail starts in the original firing direction and bends toward the actual
+    /// endpoint (the enemy position), creating a visible curve effect.
+    /// Uses a quadratic Bezier curve with intermediate points.
+    /// </summary>
+    /// <param name="fromPosition">The weapon's position when firing.</param>
+    /// <param name="originalDirection">The original aim direction before homing redirection.</param>
+    /// <param name="bulletEndPoint">The actual endpoint where hitscan hit (enemy or max range).</param>
+    private void SpawnCurvedSmokyTracer(Vector2 fromPosition, Vector2 originalDirection, Vector2 bulletEndPoint)
+    {
+        Vector2 startPos = fromPosition + originalDirection * BulletSpawnOffset;
+        Vector2 endPos = bulletEndPoint;
+
+        // Calculate control point for quadratic Bezier curve
+        // The control point is along the original firing direction at ~40% of the total distance
+        float totalDist = startPos.DistanceTo(endPos);
+        Vector2 controlPoint = startPos + originalDirection * (totalDist * 0.4f);
+
+        // Create the tracer as a Line2D with smoke-like appearance
+        var tracer = new Line2D
+        {
+            Name = "SniperTracerCurved",
+            Width = 5.0f,
+            DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+            TopLevel = true,
+            Position = Vector2.Zero,
+            ZIndex = 10
+        };
+
+        // Set up width curve - wider at start, tapers to narrower at end
+        var widthCurve = new Curve();
+        widthCurve.AddPoint(new Vector2(0.0f, 1.0f));
+        widthCurve.AddPoint(new Vector2(0.3f, 0.8f));
+        widthCurve.AddPoint(new Vector2(1.0f, 0.3f));
+        tracer.WidthCurve = widthCurve;
+
+        // Set up gradient - smoky white/gray that fades out
+        var gradient = new Gradient();
+        gradient.SetColor(0, new Color(0.9f, 0.9f, 0.85f, 0.8f));
+        gradient.AddPoint(0.5f, new Color(0.7f, 0.7f, 0.65f, 0.5f));
+        gradient.SetColor(gradient.GetPointCount() - 1, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+        tracer.Gradient = gradient;
+
+        // Generate Bezier curve points for a smooth curved trail
+        int segments = 16;
+        for (int i = 0; i <= segments; i++)
+        {
+            float t = (float)i / segments;
+            // Quadratic Bezier: B(t) = (1-t)^2 * P0 + 2*(1-t)*t * P1 + t^2 * P2
+            float oneMinusT = 1.0f - t;
+            Vector2 point = oneMinusT * oneMinusT * startPos
+                          + 2.0f * oneMinusT * t * controlPoint
+                          + t * t * endPos;
+            tracer.AddPoint(point);
+        }
+
+        // Add to scene
+        GetTree().CurrentScene.AddChild(tracer);
+        GD.Print($"[SniperRifle] Curved smoke tracer spawned (homing): from={startPos} to={endPos}, {segments} segments");
 
         // Start the fade-out animation
         FadeOutTracer(tracer);

@@ -1324,8 +1324,9 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Steering speed for homing (radians per second of turning).
+    /// Increased from 8.0 to 50.0 for sharp turning (rounded angle, not semicircle) (Issue #709).
     /// </summary>
-    private float _homingSteerSpeed = 8.0f;
+    private const float HomingSteerSpeed = 50.0f;
 
     /// <summary>
     /// The original firing direction (stored when homing is enabled).
@@ -1421,7 +1422,7 @@ public partial class Bullet : Area2D
         float angleDiff = Direction.AngleTo(toTarget);
 
         // Limit per-frame steering (smooth turning)
-        float maxSteerThisFrame = _homingSteerSpeed * delta;
+        float maxSteerThisFrame = HomingSteerSpeed * delta;
         angleDiff = Mathf.Clamp(angleDiff, -maxSteerThisFrame, maxSteerThisFrame);
 
         // Calculate proposed new direction
@@ -1491,6 +1492,15 @@ public partial class Bullet : Area2D
                     continue;
                 }
             }
+            // Skip enemies behind walls (Issue #709)
+            if (!HomingUtils.HasLineOfSightToTarget(GetWorld2D(), GlobalPosition, enemyNode.GlobalPosition))
+            {
+                if (DebugHoming)
+                {
+                    GD.Print($"[Bullet] Skipping enemy {enemyNode.Name} - wall blocks line of sight");
+                }
+                continue;
+            }
             float dist = GlobalPosition.DistanceSquaredTo(enemyNode.GlobalPosition);
             if (dist < nearestDist)
             {
@@ -1505,10 +1515,12 @@ public partial class Bullet : Area2D
     /// <summary>
     /// Finds the enemy closest to the player's aim line (Issue #704).
     /// Delegates to <see cref="HomingUtils.FindEnemyNearestToAimLine"/>.
+    /// Includes line-of-sight check to skip enemies behind walls (Issue #709).
     /// </summary>
     private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
     {
         return HomingUtils.FindEnemyNearestToAimLine(
-            enemies, _shooterOrigin, _shooterAimDirection, _homingMaxTurnAngle);
+            enemies, _shooterOrigin, _shooterAimDirection, _homingMaxTurnAngle,
+            HomingUtils.DefaultMaxPerpDistance, GetWorld2D(), GlobalPosition);
     }
 }

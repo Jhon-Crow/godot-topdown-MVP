@@ -7,9 +7,10 @@ extends Node
 
 ## Grenade types available in the game.
 enum GrenadeType {
-	FLASHBANG,  # Default: Stun grenade (blinds and stuns enemies)
-	FRAG,       # Offensive: Fragmentation grenade (explodes on impact, releases shrapnel)
-	DEFENSIVE   # Defensive: F-1 grenade (timer-based, 40 shrapnel pieces, 700px radius)
+	FLASHBANG,       # Default: Stun grenade (blinds and stuns enemies)
+	FRAG,            # Offensive: Fragmentation grenade (explodes on impact, releases shrapnel)
+	DEFENSIVE,       # Defensive: F-1 grenade (timer-based, 40 shrapnel pieces, 700px radius)
+	AGGRESSION_GAS   # Aggression gas: Makes enemies fight each other (Issue #675)
 }
 
 ## Currently selected grenade type.
@@ -35,6 +36,12 @@ const GRENADE_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/defensive_grenade.png",
 		"scene_path": "res://scenes/projectiles/DefensiveGrenade.tscn",
 		"description": "Defensive grenade - 4 second fuse, releases 40 shrapnel pieces. 700px damage radius."
+	},
+	GrenadeType.AGGRESSION_GAS: {
+		"name": "Aggression Gas",
+		"icon_path": "res://assets/sprites/weapons/aggression_gas_grenade.png",
+		"scene_path": "res://scenes/projectiles/AggressionGasGrenade.tscn",
+		"description": "Gas grenade - 4 second fuse, releases aggression gas cloud. Enemies attack each other for 10s. Gas lasts 20s."
 	}
 }
 

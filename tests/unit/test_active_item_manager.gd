@@ -114,7 +114,8 @@ class MockActiveItemManager:
 		NONE = 0,
 		FLASHLIGHT = 1,
 		HOMING_BULLETS = 2,
-		TELEPORT_BRACERS = 3
+		TELEPORT_BRACERS = 3,
+		INVISIBILITY_SUIT = 4
 	}
 
 	## Currently selected active item type
@@ -141,6 +142,11 @@ class MockActiveItemManager:
 			"name": "Teleport Bracers",
 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+		},
+		4: {
+			"name": "Invisibility",
+			"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+			"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
 		}
 	}
 
@@ -205,6 +211,10 @@ class MockActiveItemManager:
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+	## Check if invisibility suit is currently equipped
+	func has_invisibility_suit() -> bool:
+		return current_active_item == ActiveItemType.INVISIBILITY_SUIT
 
 
 var manager: MockActiveItemManager
@@ -553,7 +563,8 @@ class MockArmoryWithActiveItems:
 		0: {"name": "None", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
 		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
-		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
+		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
+		4: {"name": "Invisibility", "description": "Invisibility suit"}
 	}
 
 	## Applied active item type
