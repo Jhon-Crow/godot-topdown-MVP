@@ -669,13 +669,13 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Manually cocks the hammer by pressing RMB (Issue #649).
+    /// Manually cocks the hammer by pressing RMB (Issue #649, #716 v3).
     /// This instantly cocks the hammer and rotates the cylinder,
     /// so the next LMB press fires immediately without the normal 0.15s delay.
-    /// Can only be done when the cylinder is closed, there is ammo,
-    /// and the hammer is not already cocked.
+    /// Can only be done when the cylinder is closed and the hammer is not already cocked.
     /// Unlike normal fire, manual cocking is NOT blocked by the fire timer —
     /// the whole point is to let the player bypass the fire delay between shots.
+    /// Issue #716 v3: Cylinder rotation now happens during hammer cock (like real revolvers).
     /// </summary>
     /// <returns>True if the hammer was manually cocked successfully.</returns>
     public bool ManualCockHammer()
@@ -714,6 +714,15 @@ public partial class Revolver : BaseWeapon
         // Reset fire timer — manual cocking prepares the weapon for immediate fire
         _fireTimer = 0;
 
+        // Issue #716 v3: Rotate cylinder BEFORE cocking hammer (like real single-action revolvers)
+        // The cylinder rotates to advance to the next chamber when pulling back the hammer.
+        int oldChamberIndex = _currentChamberIndex;
+        if (_chamberOccupied.Length > 0)
+        {
+            _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+        }
+        GD.Print($"[Revolver] Manual cock - cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
+
         // Instantly cock the hammer (no delay - that's the point of manual cocking)
         _isManuallyHammerCocked = true;
 
@@ -725,7 +734,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.HammerCocked);
         EmitSignal(SignalName.CylinderStateChanged);
 
-        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly");
+        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly from chamber {_currentChamberIndex}");
 
         return true;
     }
