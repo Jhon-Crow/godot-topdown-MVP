@@ -12,7 +12,8 @@ enum ActiveItemType {
 	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
-	BREAKER_BULLETS    # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
+	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
+	FORCE_FIELD        # Force field - reflects all projectiles, 8 sec depletable charge (Issue #676)
 }
 
 ## Currently selected active item type.
@@ -53,6 +54,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Breaker Bullets",
 		"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
 		"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
+	},
+	ActiveItemType.FORCE_FIELD: {
+		"name": "Force Field",
+		"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
+		"description": "Hold Space to activate a glowing force field that reflects all projectiles. 8 second charge, depletable. Shows progress bar.",
+		"activation_hint": "Hold Space to activate"
 	}
 }
 
@@ -159,3 +166,8 @@ func has_invisibility_suit() -> bool:
 ## Check if breaker bullets are currently equipped (Issue #678).
 func has_breaker_bullets() -> bool:
 	return current_active_item == ActiveItemType.BREAKER_BULLETS
+
+
+## Check if a force field is currently equipped (Issue #676).
+func has_force_field() -> bool:
+	return current_active_item == ActiveItemType.FORCE_FIELD

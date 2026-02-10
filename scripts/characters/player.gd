@@ -346,6 +346,9 @@ func _ready() -> void:
 	# Initialize breaker bullets if active item manager has breaker bullets selected (Issue #678)
 	_init_breaker_bullets()
 
+	# Initialize force field if active item manager has force field selected (Issue #676)
+	_init_force_field()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -448,6 +451,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle invisibility suit input (press Space to activate) (Issue #673)
 	_handle_invisibility_suit_input()
+
+	# Handle force field input (hold Space to activate, release to deactivate) (Issue #676)
+	_handle_force_field_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -1012,6 +1018,11 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 		var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
+		return
+
+	# Check force field protection (Issue #676)
+	if is_force_field_active():
+		FileLogger.info("[Player] Hit blocked by force field")
 		return
 
 	hit.emit()
@@ -3240,3 +3251,85 @@ func _init_breaker_bullets() -> void:
 
 	_breaker_bullets_active = true
 	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+
+
+# ============================================================================
+# Force Field System (Issue #676)
+# ============================================================================
+
+## Force field scene path.
+const FORCE_FIELD_SCENE_PATH: String = "res://scenes/effects/ForceFieldEffect.tscn"
+
+## Whether the force field is equipped (active item selected in armory).
+var _force_field_equipped: bool = false
+
+## Reference to the force field effect node (child of Player).
+var _force_field_node: Node2D = null
+
+
+## Initialize the force field if the ActiveItemManager has it selected.
+func _init_force_field() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.ForceField] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_force_field"):
+		FileLogger.info("[Player.ForceField] ActiveItemManager missing has_force_field method")
+		return
+
+	if not active_item_manager.has_force_field():
+		FileLogger.info("[Player.ForceField] No force field selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.ForceField] Force field is selected, initializing...")
+
+	# Load and instantiate the force field effect scene
+	if not ResourceLoader.exists(FORCE_FIELD_SCENE_PATH):
+		FileLogger.info("[Player.ForceField] WARNING: Force field scene not found: %s" % FORCE_FIELD_SCENE_PATH)
+		return
+
+	var force_field_scene: PackedScene = load(FORCE_FIELD_SCENE_PATH)
+	if force_field_scene == null:
+		FileLogger.info("[Player.ForceField] WARNING: Failed to load force field scene")
+		return
+
+	_force_field_node = force_field_scene.instantiate()
+	_force_field_node.name = "ForceFieldEffect"
+
+	# Add as direct child of Player (NOT PlayerModel) so it stays centered on player
+	# and doesn't rotate with aiming direction
+	add_child(_force_field_node)
+	_force_field_node.position = Vector2.ZERO
+	_force_field_equipped = true
+	FileLogger.info("[Player.ForceField] Force field equipped and attached to Player")
+
+
+## Handle force field input: hold Space to activate, release to deactivate.
+## Charge depletes while held and can be used in portions.
+func _handle_force_field_input() -> void:
+	if not _force_field_equipped or _force_field_node == null:
+		return
+
+	if not is_instance_valid(_force_field_node):
+		return
+
+	if Input.is_action_pressed("flashlight_toggle"):
+		# Activate while Space is held (if charge remaining)
+		if not _force_field_node.is_active() and _force_field_node.has_charge():
+			_force_field_node.activate()
+	else:
+		# Deactivate when Space is released
+		if _force_field_node.is_active():
+			_force_field_node.deactivate()
+
+
+## Check if the player's force field is currently active (Issue #676).
+func is_force_field_active() -> bool:
+	if not _force_field_equipped or _force_field_node == null:
+		return false
+	if not is_instance_valid(_force_field_node):
+		return false
+	if _force_field_node.has_method("is_active"):
+		return _force_field_node.is_active()
+	return false
