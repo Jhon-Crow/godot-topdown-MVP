@@ -189,6 +189,30 @@ var _breaker_shrapnel_scene: PackedScene = null
 var _debug_breaker: bool = false
 
 
+## Initializes the bullet with all required properties in a single call.
+## This method is provided as an alternative to Node.Set() for C#→GDScript interop,
+## which may not reliably set Vector2 properties in some Godot versions/builds.
+## Called from C# weapons (e.g., MakarovPM.cs) after instantiation but before AddChild.
+## @param p_direction: Direction the bullet should travel (normalized).
+## @param p_speed: Speed in pixels per second.
+## @param p_damage: Base damage value.
+## @param p_shooter_id: Instance ID of the shooter (to prevent self-damage).
+## @param p_shooter_position: Global position of the shooter when fired.
+## @param p_stun_duration: Duration of stun effect on hit (0 = no stun).
+func initialize_bullet(p_direction: Vector2, p_speed: float, p_damage: float, p_shooter_id: int, p_shooter_position: Vector2, p_stun_duration: float = 0.0) -> void:
+	direction = p_direction.normalized() if p_direction.length() > 0.001 else Vector2.RIGHT
+	speed = p_speed
+	damage = p_damage
+	shooter_id = p_shooter_id
+	shooter_position = p_shooter_position
+	stun_duration = p_stun_duration
+
+	# Debug logging
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[Bullet.gd] initialize_bullet() called: direction=%s, speed=%s, damage=%s, shooter_id=%s, shooter_position=%s, stun_duration=%s" % [direction, speed, damage, shooter_id, shooter_position, stun_duration])
+
+
 func _ready() -> void:
 	# Debug logging to diagnose Issue #704 bullet initialization
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
