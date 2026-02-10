@@ -163,24 +163,32 @@ static func perform_hitscan(enemy: Node2D, direction: Vector2, spawn_pos: Vector
 
 
 ## Spawn a smoke tracer line from start to end position.
+## Issue #665: Enhanced visibility with brighter colors and diagnostic logging.
 static func spawn_tracer(scene_tree: SceneTree, start_pos: Vector2, end_pos: Vector2) -> void:
+	# Log tracer spawn for diagnostics (Issue #665)
+	var fl: Node = scene_tree.root.get_node_or_null("FileLogger")
+	if fl and fl.has_method("log_info"):
+		fl.log_info("SniperTracer", "Spawning tracer from %s to %s (length=%.0f)" % [start_pos, end_pos, start_pos.distance_to(end_pos)])
+
 	var tracer := Line2D.new()
 	tracer.name = "SniperTracer"
-	tracer.width = 8.0
-	tracer.z_index = 90
+	tracer.width = 12.0  # Increased width for better visibility (was 8.0)
+	tracer.z_index = 100  # Higher z_index to ensure visibility (was 90)
 	tracer.z_as_relative = false  # Use absolute z_index to render above game elements
 	tracer.top_level = true
 
 	var width_curve := Curve.new()
 	width_curve.add_point(Vector2(0.0, 1.0))
-	width_curve.add_point(Vector2(0.3, 0.8))
-	width_curve.add_point(Vector2(1.0, 0.3))
+	width_curve.add_point(Vector2(0.3, 0.9))  # Slightly wider mid-section
+	width_curve.add_point(Vector2(1.0, 0.4))  # Wider tail for better visibility
 	tracer.width_curve = width_curve
 
+	# Issue #665: Use brighter, more visible smoke colors (white/light gray gradient)
 	var gradient := Gradient.new()
-	gradient.set_color(0, Color(1.0, 1.0, 0.8, 1.0))  # Bright start
-	gradient.add_point(0.5, Color(0.8, 0.8, 0.7, 0.7))  # Mid fade
-	gradient.set_color(gradient.get_point_count() - 1, Color(0.6, 0.6, 0.55, 0.3))  # Tail
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))  # Bright white start
+	gradient.add_point(0.3, Color(0.95, 0.95, 0.9, 0.9))  # Near-white
+	gradient.add_point(0.6, Color(0.85, 0.85, 0.8, 0.7))  # Light gray
+	gradient.set_color(gradient.get_point_count() - 1, Color(0.7, 0.7, 0.65, 0.4))  # Visible gray tail
 	tracer.gradient = gradient
 
 	# Unshaded material for visibility in dark mode
@@ -192,13 +200,18 @@ static func spawn_tracer(scene_tree: SceneTree, start_pos: Vector2, end_pos: Vec
 	tracer.add_point(end_pos)
 
 	if scene_tree.current_scene == null:
+		if fl and fl.has_method("log_info"):
+			fl.log_info("SniperTracer", "WARNING: current_scene is null, tracer not spawned")
 		tracer.queue_free()
 		return
 	scene_tree.current_scene.add_child(tracer)
 
-	# Fade out and remove
+	if fl and fl.has_method("log_info"):
+		fl.log_info("SniperTracer", "Tracer added to scene: %s" % scene_tree.current_scene.name)
+
+	# Fade out and remove over 2.5 seconds (slightly longer for better visibility)
 	var tween := scene_tree.create_tween()
-	tween.tween_property(tracer, "modulate:a", 0.0, 2.0)
+	tween.tween_property(tracer, "modulate:a", 0.0, 2.5)
 	tween.tween_callback(tracer.queue_free)
 
 
