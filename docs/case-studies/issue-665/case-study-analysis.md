@@ -88,10 +88,39 @@ We chose a **hybrid approach**:
 | `scripts/components/weapon_config_component.gd` | Added SNIPER (type 4) config |
 | `scripts/objects/enemy.gd` | Added sniper state vars, overrides, and helper functions |
 
+### Phase 4: Tracer Visibility Issue (2026-02-10)
+
+After the initial fix, user Jhon-Crow reported "нет дымных трассеров от выстрелов снайперов" (no smoke tracers from sniper shots).
+
+**Investigation findings:**
+1. Sound propagation logs showed snipers WERE firing (range=3000 matched SNIPER weapon_loudness)
+2. But no "SNIPER SHOT" log entries appeared in game logs
+3. An empty `[ENEMY] [SniperEnemy2]` log entry appeared at shot time
+
+**Root Cause 5: Insufficient Logging and Subtle Colors**
+- The original tracer used pale beige/tan colors (`Color(1.0, 1.0, 0.8)`) that were hard to see against many backgrounds
+- No diagnostic logging existed to verify tracer spawn was actually happening
+- Missing logs made it difficult to distinguish between "tracer not spawned" and "tracer spawned but invisible"
+
+**Fix applied:**
+1. **Enhanced tracer visibility**:
+   - Brighter white/gray gradient colors (start: `Color(1.0, 1.0, 1.0)`, end: `Color(0.7, 0.7, 0.65)`)
+   - Increased line width (12px vs 8px)
+   - Higher z_index (100 vs 90)
+   - Longer fade duration (2.5s vs 2.0s)
+
+2. **Comprehensive diagnostic logging**:
+   - Log when shot is blocked and why (no player, bolt cycling, not aimed, etc.)
+   - Log tracer spawn positions and lengths
+   - Log weapon configuration with is_sniper flag
+   - Log tracer addition to scene tree
+
 ## Data Files
 
 - `issue-description.md` - Original issue text (Russian)
 - `game_log_20260208_183844.txt` - Game log from issue reporter (5541 lines)
+- `logs/game_log_20260210_221910.txt` - Earlier test log (1.1MB)
+- `logs/game_log_20260210_222859.txt` - User-provided log showing missing tracers (1.3MB)
 
 ## Lessons Learned
 
@@ -104,3 +133,7 @@ We chose a **hybrid approach**:
 4. **State thrashing prevention**: Distance-based state transitions need cooldowns to prevent rapid oscillation at boundary distances.
 
 5. **Merge verification**: After complex PRs, verify that all code actually landed in the target branch.
+
+6. **Visual effect visibility**: Use high-contrast colors for visual effects like tracers. Pale/subtle colors may be invisible against certain backgrounds. Always add diagnostic logging to verify effects are being spawned.
+
+7. **Log before and after**: When implementing multi-step operations (aim check → hitscan → tracer → sound), log at each step so failures can be pinpointed. Logging only at the end means partial failures are invisible.
