@@ -30,8 +30,8 @@ var _time_remaining: float = 0.0
 ## Area2D for detecting enemies in the cloud.
 var _detection_area: Area2D = null
 
-## Visual representation of the gas cloud.
-var _cloud_visual: Sprite2D = null
+## Visual representation of the gas cloud (particle system).
+var _cloud_particles: GPUParticles2D = null
 
 ## Timer for periodic effect application (every 0.5s).
 var _effect_tick_timer: float = 0.0
@@ -84,13 +84,27 @@ func _setup_detection_area() -> void:
 	add_child(_detection_area)
 
 
-## Set up the visual representation of the gas cloud.
+## Set up the visual representation of the gas cloud using particles.
+## Fixed issue #718: Effect was not visible due to low alpha (0.35) and z_index = -1
+## Now uses GPUParticles2D matching codebase pattern (like DustEffect, BloodEffect)
 func _setup_cloud_visual() -> void:
-	_cloud_visual = Sprite2D.new()
-	_cloud_visual.texture = _create_cloud_texture(int(cloud_radius))
-	_cloud_visual.modulate = Color(0.9, 0.25, 0.2, 0.35)  # Reddish semi-transparent gas
-	_cloud_visual.z_index = -1  # Draw below characters
-	add_child(_cloud_visual)
+	# Load the particle effect scene
+	var particle_scene := load("res://scenes/effects/AggressionCloudEffect.tscn")
+	if particle_scene:
+		_cloud_particles = particle_scene.instantiate() as GPUParticles2D
+		if _cloud_particles:
+			# Configure for continuous emission over cloud duration
+			_cloud_particles.emitting = true
+			_cloud_particles.one_shot = false
+			# Particle lifetime is 5s, so we need to stop emitting after 15s
+			# This way last particles finish at 20s total
+			add_child(_cloud_particles)
+
+			FileLogger.info("[AggressionCloud] Particle system created for gas cloud")
+	else:
+		# Fallback: create basic visual if scene not found
+		FileLogger.warning("[AggressionCloud] Could not load particle scene, using fallback visual")
+		_create_fallback_visual()
 
 
 ## Apply aggression effect to all enemies currently in the cloud.
@@ -136,19 +150,33 @@ func _has_line_of_sight_to(target: Node2D) -> bool:
 
 
 ## Update cloud visual based on remaining time.
+## Stops particle emission in the last 5 seconds so cloud naturally dissipates
 func _update_cloud_visual() -> void:
-	if _cloud_visual == null:
+	if _cloud_particles == null:
 		return
 
-	# Fade out in the last 5 seconds
+	# Stop emitting new particles in the last 5 seconds
+	# This allows existing particles (5s lifetime) to naturally fade out
 	if _time_remaining < 5.0:
-		var fade_ratio := _time_remaining / 5.0
-		_cloud_visual.modulate.a = 0.35 * fade_ratio
-	else:
-		_cloud_visual.modulate.a = 0.35
+		if _cloud_particles.emitting:
+			_cloud_particles.emitting = false
+			FileLogger.info("[AggressionCloud] Stopped particle emission, cloud dissipating")
 
 
-## Create a circular cloud texture with soft edges.
+## Fallback visual if particle scene cannot be loaded (for backwards compatibility).
+## Creates a simple sprite-based visual (legacy approach, replaced by particles).
+func _create_fallback_visual() -> void:
+	var fallback_sprite := Sprite2D.new()
+	fallback_sprite.texture = _create_cloud_texture(int(cloud_radius))
+	# Higher alpha than before (0.7 vs 0.35) to improve visibility
+	fallback_sprite.modulate = Color(0.9, 0.25, 0.2, 0.7)
+	# Draw above ground (z_index = 1) instead of below (-1)
+	fallback_sprite.z_index = 1
+	add_child(fallback_sprite)
+	_cloud_particles = fallback_sprite  # Store reference for lifecycle management
+
+
+## Create a circular cloud texture with soft edges (legacy/fallback).
 func _create_cloud_texture(radius: int) -> ImageTexture:
 	var size := radius * 2
 	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
