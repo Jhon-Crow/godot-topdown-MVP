@@ -51,6 +51,16 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "6000x2560"
 	},
 	{
+		"name": "City",
+		"name_ru": "Город",
+		"path": "res://scenes/levels/CityLevel.tscn",
+		"description": "Urban warfare with buildings and long sight lines. Features sniper enemies.",
+		"preview_color": Color(0.25, 0.25, 0.30, 1.0),
+		"preview_accent": Color(0.5, 0.5, 0.55, 1.0),
+		"enemy_count": 10,
+		"map_size": "6000x5000"
+	},
+	{
 		"name": "Tutorial",
 		"name_ru": "Обучение",
 		"path": "res://scenes/levels/csharp/TestTier.tscn",
