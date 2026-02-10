@@ -1038,7 +1038,7 @@ func _update_active_item_stats() -> void:
 	var item_desc: String = item_data.get("description", "No active item equipped.")
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]ACTIVE: %s[/color][/b]\n" % item_name
+	bbcode += "[b][color=#d4c896]SPECIAL: %s[/color][/b]\n" % item_name
 	bbcode += "[color=#aab0b8]%s[/color]\n" % item_desc
 	if _pending_active_item_type != 0:  # Not "None" (ActiveItemType.NONE)
 		var activation_hint: String = item_data.get("activation_hint", "Hold Space to activate")
