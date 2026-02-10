@@ -467,3 +467,60 @@ in SEARCHING state don't have a valid NavigationAgent2D path.
 | 5 | NavigationAgent2D avoidance + repeated target_position | Disabled avoidance, cached nav target, deferred regen |
 | 6 | `get_next_path_position()` called every frame during movement | Replaced with direct movement — zero NavigationServer2D calls in SEARCHING state handler |
 | 7 | **`_update_goap_state()` calls `is_next_waypoint_lit()` every frame for ALL states** | **Skip flashlight waypoint check during SEARCHING + immediate avoidance disable** |
+
+## Eighth Crash Report Investigation (2026-02-09)
+
+### User Report
+After the 7 crash fixes were applied, the user reported "вылетает" (crashes) and asked
+to "проверь C#" (check C#). A new crash log was attached: `game_log_20260209_105825.txt`.
+
+### Log Analysis
+
+The crash log (899 lines) shows **normal gameplay with no crash message**:
+
+| Time | Event |
+|------|-------|
+| `10:58:25` | Game started on LabyrinthLevel (5 enemies) |
+| `10:58:31` | Player advanced to BuildingLevel (10 enemies) |
+| `10:58:35` | Player hit (3→2→1 HP), LastChance triggered |
+| `10:58:42` | LastChance ended, player teleported, memory reset for 10 enemies |
+| `10:58:42` | 4 enemies (Enemy1-4) enter SEARCHING with "Init complete (solo, waypoints=5)" |
+| `10:58:43` | Normal SEARCHING behavior (corner checks, waypoint following) |
+| `10:58:43` | **Log ends normally** — no error message, no crash message |
+
+### Key Observations
+
+1. **No crash message captured**: Unlike previous crashes (which ended abruptly mid-line),
+   this log ends with complete lines showing normal SEARCHING state behavior.
+
+2. **Deferred init working correctly**: All 4 searching enemies show "Init complete (solo, waypoints=5)",
+   indicating the 2-frame deferred initialization is working as intended.
+
+3. **C# components running normally**: ReplayManager (C#), Player signals (C#), and all
+   autoloads show successful initialization and operation throughout the log.
+
+4. **SEARCHING direct movement active**: The log shows SEARCHING state enemies using corner
+   checks and rotation changes, indicating the direct movement system (Fix #6) is operating.
+
+### Possible Explanations
+
+1. **Crash happened later**: The log may have been captured before the actual crash occurred.
+   The log ends at frame 660 (11 seconds of gameplay) - if the crash happened at frame 1000+,
+   it wouldn't be captured.
+
+2. **Silent engine crash**: Some native Godot crashes (especially NavigationServer2D or
+   physics thread issues) can terminate the process without logging any message. This would
+   be consistent with the user's report.
+
+3. **C# exception handling gap**: If a C# signal handler throws an exception during a
+   Godot callback, the engine may crash without producing a GDScript-visible error.
+
+### Investigation Status
+
+Requested additional information from the user:
+- Exact timing of crash (immediate after log ends, or later?)
+- Type of crash (silent close, dialog, Windows error?)
+- Reproducibility (consistent trigger?)
+- Crash dump files (Windows may save .dmp files)
+
+See PR comment: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/651#issuecomment-3880191315
