@@ -432,13 +432,19 @@ public abstract partial class BaseWeapon : Node2D
 
         GetTree().CurrentScene.AddChild(bullet);
 
-        // Enable homing on the bullet if the player's homing effect is active (Issue #677)
+        // Enable homing on the bullet if the player's homing effect is active (Issue #677, #704)
+        // When firing during activation, use aim-line targeting (nearest to crosshair)
         var weaponOwner = GetParent();
         if (weaponOwner is Player player && player.IsHomingActive())
         {
+            Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
             if (bullet is CSharpBullet csBullet)
             {
-                csBullet.EnableHoming();
+                csBullet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+            }
+            else if (bullet.HasMethod("enable_homing_with_aim_line"))
+            {
+                bullet.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
             }
             else if (bullet.HasMethod("enable_homing"))
             {
