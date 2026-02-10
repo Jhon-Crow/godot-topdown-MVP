@@ -24,18 +24,38 @@
 - In `_Process()`, update laser sight position each frame
 - Added `CreateLaserSight()` and `UpdateLaserSight()` methods with raycast-based obstacle detection and glow effect
 
-### Bug 2: No Spread After First 2 Bullets
+### Bug 2: No Spread Applied to Bullets At All
 
-**Root cause**: The spread threshold comparison used strict greater-than (`>`) instead of greater-than-or-equal (`>=`). With `SpreadThreshold = 2` and `_shotCount` being 0-based (incremented AFTER `ApplySpread` returns), the effective behavior was:
+**User feedback (2026-02-09 10:01)**: "прицел скачет, но пули летят ровно" (the sight jumps, but bullets fly straight - there's still no spread)
 
-- Shot 1: `_shotCount = 0`, checks `0 > 2` → false (no progressive spread)
-- Shot 2: `_shotCount = 1`, checks `1 > 2` → false (no progressive spread)
-- Shot 3: `_shotCount = 2`, checks `2 > 2` → false (no progressive spread!)
-- Shot 4: `_shotCount = 3`, checks `3 > 2` → true (progressive spread starts)
+**Evidence from game log (game_log_20260209_100032.txt)**: Bullet positions at hit time show minimal variation:
+```
+bullet_pos=(504.48782, 354.08575)
+bullet_pos=(504.53595, 354.8273)
+bullet_pos=(504.5749, 355.4412)  <- all converge to nearly identical positions
+```
+Despite firing 30+ bullets, the Y coordinate converges to ~355.44 and stays there, confirming bullets fly to the same point.
 
-This means progressive spread didn't begin until the 4th shot, not the 3rd as intended by `SpreadThreshold = 2`.
+**Root cause**: The `ApplySpread()` method had a fundamental bug - it calculated random spread values but only used them to update `_recoilOffset` for the NEXT shot's laser position. The actual bullet direction for the CURRENT shot received only the accumulated `_recoilOffset`, not any per-shot random spread.
 
-**Fix**: Changed `_shotCount > SpreadThreshold` to `_shotCount >= SpreadThreshold` in both `ApplySpread()` and `TriggerScreenShake()`, so progressive spread now correctly begins at shot 3 (after the first 2 accurate shots).
+Original code flow:
+1. `result = direction.Rotated(_recoilOffset)` - applies accumulated recoil
+2. Calculate `spreadRadians` and random `recoilAmount`
+3. `_recoilOffset += recoilDirection * recoilAmount * 0.5f` - only updates offset for NEXT shot
+4. Return `result` - bullet fires with NO random spread, just accumulated offset
+
+This means:
+- The laser sight would visually "jump" because `_recoilOffset` changes each frame
+- But bullets would all fly to nearly the same point since they only used the accumulated offset, not individual random spread per shot
+
+**Fix**: Modified `ApplySpread()` to apply random spread to the bullet direction for THIS shot:
+```csharp
+// Generate random spread for THIS shot (Issue #705 fix)
+float randomSpread = (float)GD.RandRange(-spreadRadians, spreadRadians);
+result = result.Rotated(randomSpread);
+```
+
+Now each bullet gets random deviation within the spread angle, creating visible spread patterns.
 
 ## Weapon Comparison Reference
 
@@ -52,4 +72,5 @@ This means progressive spread didn't begin until the 4th shot, not the 3rd as in
 
 ## Data Files
 
-- `game_log_20260209_035702.txt`: Original game log from issue reporter
+- `game_log_20260209_035702.txt`: Original game log from issue reporter (laser sight missing)
+- `game_log_20260209_100032.txt`: Second game log showing laser is now visible but bullets still fly straight

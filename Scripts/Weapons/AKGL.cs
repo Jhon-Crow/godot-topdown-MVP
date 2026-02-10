@@ -631,6 +631,7 @@ public partial class AKGL : BaseWeapon
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Start with current recoil offset applied
         Vector2 result = direction.Rotated(_recoilOffset);
 
         if (WeaponData != null && WeaponData.SpreadAngle > 0)
@@ -655,6 +656,11 @@ public partial class AKGL : BaseWeapon
                 spreadRadians *= recoilMultiplier;
             }
 
+            // Generate random spread for THIS shot (Issue #705 fix)
+            float randomSpread = (float)GD.RandRange(-spreadRadians, spreadRadians);
+            result = result.Rotated(randomSpread);
+
+            // Also accumulate recoil offset for laser sight drift
             float recoilDirection = (float)GD.RandRange(-1.0, 1.0);
             float recoilAmount = spreadRadians * Mathf.Abs(recoilDirection);
 
