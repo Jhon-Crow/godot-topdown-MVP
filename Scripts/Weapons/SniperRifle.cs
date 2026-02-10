@@ -908,8 +908,9 @@ public partial class SniperRifle : BaseWeapon
             }
 
             // Skip enemies behind walls (Issue #709)
-            // Start raycast from bullet spawn position (not weapon center) to avoid hitting walls the player is near
-            Vector2 raycastStart = origin + toEnemy.Normalized() * BulletSpawnOffset;
+            // Start raycast from bullet spawn position (muzzle) to avoid hitting walls the player is near
+            // Use aimDirection for consistent muzzle position (not direction to each enemy)
+            Vector2 raycastStart = origin + aimDirection * BulletSpawnOffset;
             if (!HasLineOfSightToTarget(raycastStart, enemyNode.GlobalPosition))
             {
                 continue;

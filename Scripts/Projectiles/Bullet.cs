@@ -1324,9 +1324,9 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Steering speed for homing (radians per second of turning).
-    /// Increased from 8.0 to 15.0 for more responsive turning (Issue #709).
+    /// Increased from 8.0 to 50.0 for sharp turning (rounded angle, not semicircle) (Issue #709).
     /// </summary>
-    private float _homingSteerSpeed = 15.0f;
+    private float _homingSteerSpeed = 50.0f;
 
     /// <summary>
     /// The original firing direction (stored when homing is enabled).
