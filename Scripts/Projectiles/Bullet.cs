@@ -221,6 +221,14 @@ public partial class Bullet : Area2D
     public float StunDuration { get; set; } = 0.0f;
 
     /// <summary>
+    /// Whether this bullet uses breaker behavior (Issue #678).
+    /// Set via Node.Set("is_breaker_bullet", true) by BaseWeapon.SpawnBullet().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsBreakerBullet { get; set; } = false;
+
+    /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
@@ -356,6 +364,15 @@ public partial class Bullet : Area2D
             if (!IsStillInsideObstacle())
             {
                 ExitPenetration();
+            }
+        }
+
+        // Check for breaker detonation (Issue #678)
+        if (IsBreakerBullet)
+        {
+            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, _isPenetrating))
+            {
+                return; // Bullet detonated and was freed
             }
         }
 
@@ -1324,8 +1341,9 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Steering speed for homing (radians per second of turning).
+    /// Increased from 8.0 to 50.0 for sharp turning (rounded angle, not semicircle) (Issue #709).
     /// </summary>
-    private float _homingSteerSpeed = 8.0f;
+    private float _homingSteerSpeed = 50.0f;
 
     /// <summary>
     /// The original firing direction (stored when homing is enabled).
@@ -1339,13 +1357,30 @@ public partial class Bullet : Area2D
     private const bool DebugHoming = false;
 
     /// <summary>
+    /// Whether aim-line targeting is active (Issue #704).
+    /// When true, targets enemy closest to the player's aim line rather than nearest to bullet.
+    /// </summary>
+    private bool _useAimLineTargeting = false;
+
+    /// <summary>
+    /// The player's position when bullet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterOrigin = Vector2.Zero;
+
+    /// <summary>
+    /// The player's aim direction when bullet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterAimDirection = Vector2.Zero;
+
+    /// <summary>
     /// Whether homing is enabled on this bullet.
     /// </summary>
     public bool HomingEnabled => _homingEnabled;
 
     /// <summary>
     /// Enables homing on this bullet, storing the original direction.
-    /// Called by the player when the homing effect is active.
+    /// Called when activating homing on already-airborne bullets.
+    /// Targets the nearest enemy to the bullet itself.
     /// </summary>
     public void EnableHoming()
     {
@@ -1354,6 +1389,26 @@ public partial class Bullet : Area2D
         if (DebugHoming)
         {
             GD.Print($"[Bullet] Homing enabled, original direction: {_homingOriginalDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Enables homing on this bullet with aim-line targeting (Issue #704).
+    /// Called when firing new bullets during homing activation.
+    /// Targets the enemy closest to the player's line of fire.
+    /// </summary>
+    /// <param name="shooterPos">The player's position when firing.</param>
+    /// <param name="aimDir">The player's aim direction when firing.</param>
+    public void EnableHomingWithAimLine(Vector2 shooterPos, Vector2 aimDir)
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        _useAimLineTargeting = true;
+        _shooterOrigin = shooterPos;
+        _shooterAimDirection = aimDir.Normalized();
+        if (DebugHoming)
+        {
+            GD.Print($"[Bullet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}");
         }
     }
 
@@ -1412,7 +1467,9 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
-    /// Finds the position of the nearest alive enemy.
+    /// Finds the position of the best homing target enemy.
+    /// When aim-line targeting is active (Issue #704), finds the enemy closest
+    /// to the player's line of fire. Otherwise, finds the nearest enemy to the bullet.
     /// Returns Vector2.Zero if no enemies are found.
     /// </summary>
     private Vector2 FindNearestEnemyPosition()
@@ -1427,6 +1484,11 @@ public partial class Bullet : Area2D
         if (enemies.Count == 0)
         {
             return Vector2.Zero;
+        }
+
+        if (_useAimLineTargeting)
+        {
+            return FindEnemyNearestToAimLine(enemies);
         }
 
         var nearestPos = Vector2.Zero;
@@ -1447,6 +1509,15 @@ public partial class Bullet : Area2D
                     continue;
                 }
             }
+            // Skip enemies behind walls (Issue #709)
+            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
+            {
+                if (DebugHoming)
+                {
+                    GD.Print($"[Bullet] Skipping enemy {enemyNode.Name} - wall blocks line of sight");
+                }
+                continue;
+            }
             float dist = GlobalPosition.DistanceSquaredTo(enemyNode.GlobalPosition);
             if (dist < nearestDist)
             {
@@ -1456,5 +1527,98 @@ public partial class Bullet : Area2D
         }
 
         return nearestPos;
+    }
+
+    /// <summary>
+    /// Finds the enemy closest to the player's aim line (Issue #704).
+    /// Uses perpendicular distance from the aim ray to score enemies.
+    /// Only considers enemies within 110 degrees of the aim direction.
+    /// Skips enemies blocked by walls (Issue #709).
+    /// </summary>
+    private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
+    {
+        var bestTarget = Vector2.Zero;
+        float bestScore = float.PositiveInfinity;
+        float maxPerpDistance = 500.0f;
+        float maxAngle = _homingMaxTurnAngle;
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+
+            Vector2 toEnemy = enemyNode.GlobalPosition - _shooterOrigin;
+            float distToEnemy = toEnemy.Length();
+            if (distToEnemy < 1.0f)
+            {
+                continue;
+            }
+
+            // Check angle from aim direction
+            float angle = Mathf.Abs(_shooterAimDirection.AngleTo(toEnemy.Normalized()));
+            if (angle > maxAngle)
+            {
+                continue;
+            }
+
+            // Perpendicular distance from aim line
+            float perpDist = Mathf.Abs(toEnemy.X * _shooterAimDirection.Y - toEnemy.Y * _shooterAimDirection.X);
+            if (perpDist > maxPerpDistance)
+            {
+                continue;
+            }
+
+            // Skip enemies behind walls (Issue #709)
+            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
+            {
+                if (DebugHoming)
+                {
+                    GD.Print($"[Bullet] Skipping enemy {enemyNode.Name} - wall blocks line of sight (aim-line)");
+                }
+                continue;
+            }
+
+            // Score: prioritize closeness to aim line, with distance as tiebreaker
+            float score = perpDist + distToEnemy * 0.1f;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestTarget = enemyNode.GlobalPosition;
+            }
+        }
+
+        return bestTarget;
+    }
+
+    /// <summary>
+    /// Checks if there is a clear line of sight from the bullet to a target position (Issue #709).
+    /// Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
+    /// Returns false if a wall blocks the path, preventing the bullet from turning into walls.
+    /// </summary>
+    private bool HasLineOfSightToTarget(Vector2 targetPos)
+    {
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return true; // Can't check, assume clear
+        }
+
+        var query = PhysicsRayQueryParameters2D.Create(GlobalPosition, targetPos);
+        query.CollisionMask = 4; // Layer 3 = obstacles/walls only
+        query.CollideWithAreas = false;
+        query.CollideWithBodies = true;
+
+        var result = spaceState.IntersectRay(query);
+        return result.Count == 0; // True if no wall in the way
     }
 }
