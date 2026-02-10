@@ -5,6 +5,7 @@ using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
 using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
+using CSharpShotgunPellet = GodotTopDownTemplate.Projectiles.ShotgunPellet;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -1008,6 +1009,9 @@ public partial class Player : BaseCharacter
 
         // Initialize invisibility suit if active item manager has it selected (Issue #673)
         InitInvisibilitySuit();
+
+        // Initialize breaker bullets if active item manager has them selected (Issue #678)
+        InitBreakerBullets();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -2160,6 +2164,12 @@ public partial class Player : BaseCharacter
             bullet.Set("shooter_id", GetInstanceId());
         }
 
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (_breakerBulletsActive)
+        {
+            bullet.Set("is_breaker_bullet", true);
+        }
+
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
 
@@ -2337,6 +2347,12 @@ public partial class Player : BaseCharacter
         }
 
         CurrentWeapon = weapon;
+
+        // Propagate breaker bullets flag to new weapon (Issue #678)
+        if (_breakerBulletsActive)
+        {
+            CurrentWeapon.IsBreakerBulletActive = true;
+        }
 
         // Add weapon as child if not already in scene tree
         if (CurrentWeapon.GetParent() == null)
@@ -3117,6 +3133,10 @@ public partial class Player : BaseCharacter
         if (scenePath.Contains("Frag", StringComparison.OrdinalIgnoreCase))
         {
             grenadeType = GrenadeTimer.GrenadeType.Frag;
+        }
+        else if (scenePath.Contains("Aggression", StringComparison.OrdinalIgnoreCase))
+        {
+            grenadeType = GrenadeTimer.GrenadeType.AggressionGas;
         }
 
         // Create and configure the GrenadeTimer component
@@ -4237,7 +4257,35 @@ public partial class Player : BaseCharacter
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
         LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
 
+        // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
+        ResetAllEnemyMemories("teleport");
+
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Reset memory for all enemies in the scene (Issue #723).
+    /// Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
+    /// </summary>
+    /// <param name="reason">The reason for the memory reset (for logging purposes).</param>
+    private void ResetAllEnemyMemories(string reason = "teleport")
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int resetCount = 0;
+
+        foreach (var node in enemies)
+        {
+            if (node.HasMethod("reset_memory"))
+            {
+                node.Call("reset_memory");
+                resetCount++;
+            }
+        }
+
+        if (resetCount > 0)
+        {
+            LogToFile($"[Player] Reset memory for {resetCount} enemies ({reason} - Issue #723)");
+        }
     }
 
     /// <summary>
@@ -4519,7 +4567,7 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Recursively find Bullet nodes and enable homing on player bullets.
+    /// Recursively find Bullet and ShotgunPellet nodes and enable homing on player projectiles.
     /// </summary>
     private void EnableHomingRecursive(Node node, ulong playerId, ref int count)
     {
@@ -4529,6 +4577,15 @@ public partial class Player : BaseCharacter
             if (csBullet.ShooterId == playerId && !csBullet.HomingEnabled)
             {
                 csBullet.EnableHoming();
+                count++;
+            }
+        }
+        // Check if this is a C# ShotgunPellet (Issue #704)
+        else if (node is CSharpShotgunPellet csPellet)
+        {
+            if (csPellet.ShooterId == playerId && !csPellet.HomingEnabled)
+            {
+                csPellet.EnableHoming();
                 count++;
             }
         }
@@ -4722,6 +4779,10 @@ public partial class Player : BaseCharacter
             _invisibilityHud.Call("set_active", true);
             _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
         }
+
+        // Issue #723: Reset enemy memory when player becomes invisible
+        // Enemies lose track and enter search mode at last known position
+        ResetAllEnemyMemories("invisibility activation");
     }
 
     /// <summary>
@@ -4733,6 +4794,54 @@ public partial class Player : BaseCharacter
         {
             _invisibilityHud.Call("set_active", false);
             _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
+        }
+    }
+
+    #endregion
+
+    #region Breaker Bullets System (Issue #678)
+
+    /// <summary>
+    /// Whether breaker bullets are active (passive item, Issue #678).
+    /// When true, all spawned bullets will have is_breaker_bullet = true.
+    /// </summary>
+    private bool _breakerBulletsActive = false;
+
+    /// <summary>
+    /// Initialize breaker bullets if the ActiveItemManager has them selected.
+    /// Breaker bullets are a passive item — no special nodes needed,
+    /// just a flag that modifies bullet behavior on spawn.
+    /// </summary>
+    private void InitBreakerBullets()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BreakerBullets] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_breaker_bullets"))
+        {
+            LogToFile("[Player.BreakerBullets] ActiveItemManager missing has_breaker_bullets method");
+            return;
+        }
+
+        bool hasBreakerBullets = (bool)activeItemManager.Call("has_breaker_bullets");
+        if (!hasBreakerBullets)
+        {
+            LogToFile("[Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager");
+            return;
+        }
+
+        _breakerBulletsActive = true;
+        LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls");
+
+        // Set breaker bullet flag on current weapon so all spawned bullets get the flag
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.IsBreakerBulletActive = true;
+            LogToFile($"[Player.BreakerBullets] Set IsBreakerBulletActive on weapon: {CurrentWeapon.Name}");
         }
     }
 
