@@ -408,11 +408,8 @@ func _configure_weapon_type() -> void:
 	_is_sniper = c.get("is_sniper", false)
 	if _is_sniper:
 		_sniper_hitscan_range = c.get("hitscan_range", 5000.0); _sniper_hitscan_damage = c.get("hitscan_damage", 50.0); _sniper_max_wall_penetrations = c.get("max_wall_penetrations", 2)
-		rotation_speed = c.get("rotation_speed", 1.0); reload_time = 4.0; enable_flanking = false; enable_cover = true; behavior_mode = BehaviorMode.GUARD; total_magazines = 10  # Snipers carry more ammo
-	# Issue #665: Log weapon configuration to file for diagnostics
-	var weapon_info := "[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else (" (hitscan, range=%.0f, dmg=%.0f)" % [_sniper_hitscan_range, _sniper_hitscan_damage] if _is_sniper else "")]
-	print(weapon_info)
-	call_deferred("_log_weapon_config", weapon_info)  # Deferred to ensure FileLogger is ready
+		rotation_speed = c.get("rotation_speed", 1.0); reload_time = 4.0; enable_flanking = false; enable_cover = true; behavior_mode = BehaviorMode.GUARD; total_magazines = 10
+	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (hitscan)" if _is_sniper else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -4451,9 +4448,6 @@ func _log_to_file(message: String) -> void:
 func _log_spawn_info() -> void:
 	_log_to_file("Spawned at %s, hp: %d, behavior: %s" % [global_position, _max_health, BehaviorMode.keys()[behavior_mode]])
 
-func _log_weapon_config(info: String) -> void:
-	_log_to_file("Weapon config: %s (is_sniper=%s)" % [info, _is_sniper])
-
 func _get_state_name(state: AIState) -> String:
 	return AIState.keys()[state] if state >= 0 and state < AIState.size() else "UNKNOWN"
 
@@ -4968,31 +4962,18 @@ func _update_sniper_laser() -> void:
 	var wf := _get_weapon_forward_direction(); var rids: Array[RID] = []; if _hit_area and is_instance_valid(_hit_area): rids.append(_hit_area.get_rid())
 	SniperComponent.update_laser(_sniper_laser, self, wf, wf * bullet_spawn_offset, _sniper_hitscan_range, rids)
 func _shoot_sniper_hitscan() -> void:
-	# Issue #665: Early exit checks with logging
-	if _player == null:
-		_log_to_file("SNIPER SHOT BLOCKED: no player"); return
-	if not _can_shoot():
-		_log_to_file("SNIPER SHOT BLOCKED: can't shoot (bolt=%s, ammo=%d, reloading=%s)" % [_sniper_bolt_ready, _current_ammo, _is_reloading]); return
-	if not _should_shoot_at_target(_player.global_position):
-		_log_to_file("SNIPER SHOT BLOCKED: should not shoot at target"); return
-	var wf := _get_weapon_forward_direction()
-	var aim_dot := wf.dot((_player.global_position - global_position).normalized())
-	if aim_dot < AIM_TOLERANCE_DOT:
-		_log_to_file("SNIPER SHOT BLOCKED: not aimed (dot=%.3f, need>%.3f)" % [aim_dot, AIM_TOLERANCE_DOT]); return
-	# Proceed with shot
+	if _player == null or not _can_shoot() or not _should_shoot_at_target(_player.global_position): return
+	var wf := _get_weapon_forward_direction(); if wf.dot((_player.global_position - global_position).normalized()) < AIM_TOLERANCE_DOT: return
 	var sd := SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
 	var d := wf.rotated(randf_range(-deg_to_rad(sd), deg_to_rad(sd))) if sd > 0.0 else wf
 	var spos := global_position + wf * 10.0; var rids: Array[RID] = []; if _hit_area and is_instance_valid(_hit_area): rids.append(_hit_area.get_rid())
-	_log_to_file("SNIPER SHOT FIRING: spread=%.1f° from=%v dir=%v" % [sd, spos, d])
 	var be := SniperComponent.perform_hitscan(self, d, spos, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations, rids)
-	_log_to_file("SNIPER SHOT HITSCAN: end=%v (dist=%.0f)" % [be, spos.distance_to(be)])
 	SniperComponent.spawn_tracer(get_tree(), spos, be); _spawn_muzzle_flash(_get_bullet_spawn_position(wf), d); _spawn_casing(d, wf)
 	var am: Node = get_node_or_null("/root/AudioManager"); if am and am.has_method("play_m16_shot"): am.play_m16_shot(global_position)
 	var snd: Node = get_node_or_null("/root/SoundPropagation"); if snd and snd.has_method("emit_sound"): snd.emit_sound(0, global_position, 1, self, weapon_loudness)
-	_play_delayed_shell_sound(); _sniper_bolt_ready = false; _sniper_bolt_timer = 0.0
-	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0; ammo_changed.emit(_current_ammo, _reserve_ammo)
-	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
-	_log_to_file("SNIPER SHOT COMPLETE: ammo=%d/%d" % [_current_ammo, _reserve_ammo])
+	_play_delayed_shell_sound(); _sniper_bolt_ready = false; _sniper_bolt_timer = 0.0; _current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0
+	ammo_changed.emit(_current_ammo, _reserve_ammo); if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+	_log_to_file("SNIPER SHOT: spread=%.1f° end=%v" % [sd, be])
 func _sniper_try_shoot(delta: float) -> void:
 	var tp := _player.global_position if (_can_see_player and _player) else (_memory.suspected_position if (_memory and _memory.has_target()) else Vector2.ZERO)
 	if tp == Vector2.ZERO: return
