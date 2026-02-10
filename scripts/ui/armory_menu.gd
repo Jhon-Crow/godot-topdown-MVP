@@ -467,6 +467,7 @@ func _build_right_area() -> VBoxContainer:
 	_weapon_accordion_button.text = "Show all ▼"
 	_weapon_accordion_button.add_theme_font_size_override("font_size", 11)
 	_weapon_accordion_button.pressed.connect(_toggle_weapon_accordion)
+	_apply_accordion_button_style(_weapon_accordion_button)  # White border (Issue #676)
 	right_vbox.add_child(_weapon_accordion_button)
 
 	if _weapon_overflow_slots.size() == 0:
@@ -514,6 +515,7 @@ func _build_right_area() -> VBoxContainer:
 	_grenade_accordion_button.text = "Show all ▼"
 	_grenade_accordion_button.add_theme_font_size_override("font_size", 11)
 	_grenade_accordion_button.pressed.connect(_toggle_grenade_accordion)
+	_apply_accordion_button_style(_grenade_accordion_button)  # White border (Issue #676)
 	right_vbox.add_child(_grenade_accordion_button)
 
 	if _grenade_overflow_slots.size() == 0:
@@ -529,16 +531,16 @@ func _build_right_area() -> VBoxContainer:
 	# --- SPECIAL SECTION ---
 	_add_category_header(right_vbox, "SPECIAL")
 	_active_item_grid = GridContainer.new()
-	_active_item_grid.columns = GRID_COLUMNS
+	_active_item_grid.columns = ACTIVE_ITEM_GRID_COLUMNS  # 8 items per row (Issue #676)
 	_active_item_grid.layout_mode = 2
 	_active_item_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_active_item_grid.add_theme_constant_override("h_separation", 6)
+	_active_item_grid.add_theme_constant_override("h_separation", 4)  # Tighter spacing for 8 columns
 	_active_item_grid.add_theme_constant_override("v_separation", 6)
 	right_vbox.add_child(_active_item_grid)
 
 	# Populate active item grid from ActiveItemManager
 	var active_item_index: int = 0
-	var max_visible_active_items: int = MAX_ACTIVE_ITEM_ROWS_COLLAPSED * GRID_COLUMNS
+	var max_visible_active_items: int = MAX_ACTIVE_ITEM_ROWS_COLLAPSED * ACTIVE_ITEM_GRID_COLUMNS  # 2 rows x 8 columns = 16 items
 	if _active_item_manager:
 		for item_type in _active_item_manager.get_all_active_item_types():
 			var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
@@ -561,6 +563,7 @@ func _build_right_area() -> VBoxContainer:
 	_active_item_accordion_button.text = "Show all ▼"
 	_active_item_accordion_button.add_theme_font_size_override("font_size", 11)
 	_active_item_accordion_button.pressed.connect(_toggle_active_item_accordion)
+	_apply_accordion_button_style(_active_item_accordion_button)  # White border (Issue #676)
 	right_vbox.add_child(_active_item_accordion_button)
 
 	if _active_item_overflow_slots.size() == 0:
@@ -701,10 +704,11 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 
 
 ## Create an active item slot (separate handler for active item clicks).
+## Slots are smaller (56x65) to fit 8 per row (Issue #676).
 func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = "active_" + item_id + "_slot"
-	slot.custom_minimum_size = Vector2(90, 80)
+	slot.custom_minimum_size = Vector2(56, 65)  # Smaller slots for 8-column layout
 
 	# Store metadata
 	slot.set_meta("item_id", item_id)
@@ -712,18 +716,18 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 3)
+	vbox.add_theme_constant_override("separation", 2)  # Tighter spacing
 	slot.add_child(vbox)
 
-	# Item icon or placeholder
+	# Item icon or placeholder - smaller for 8-column layout
 	var icon_container := CenterContainer.new()
-	icon_container.custom_minimum_size = Vector2(48, 48)
+	icon_container.custom_minimum_size = Vector2(36, 36)  # Smaller icons
 	vbox.add_child(icon_container)
 
 	var icon_path: String = item_data.get("icon_path", "")
 	if icon_path != "" and ResourceLoader.exists(icon_path):
 		var texture_rect := TextureRect.new()
-		texture_rect.custom_minimum_size = Vector2(48, 48)
+		texture_rect.custom_minimum_size = Vector2(36, 36)  # Smaller icons
 		texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
@@ -736,15 +740,15 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 		var none_label := Label.new()
 		none_label.text = "-" if item_data.get("name", "") == "None" else "?"
 		none_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		none_label.add_theme_font_size_override("font_size", 24)
+		none_label.add_theme_font_size_override("font_size", 18)  # Smaller font
 		none_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
 		icon_container.add_child(none_label)
 
-	# Item name
+	# Item name - smaller font for compact layout
 	var name_label := Label.new()
 	name_label.text = item_data.get("name", "???")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.add_theme_font_size_override("font_size", 9)  # Smaller font
 	vbox.add_child(name_label)
 
 	# Tooltip
@@ -802,6 +806,57 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 	selected_style.corner_radius_bottom_left = 4
 	selected_style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", selected_style)
+
+
+## Apply white border style to accordion buttons (Issue #676).
+## The accordion must always be visible with a white border.
+func _apply_accordion_button_style(button: Button) -> void:
+	# Normal state style with white border
+	var normal_style := StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.18, 0.18, 0.2, 0.9)
+	normal_style.border_color = Color(1.0, 1.0, 1.0, 1.0)  # White border
+	normal_style.border_width_left = 1
+	normal_style.border_width_right = 1
+	normal_style.border_width_top = 1
+	normal_style.border_width_bottom = 1
+	normal_style.corner_radius_top_left = 3
+	normal_style.corner_radius_top_right = 3
+	normal_style.corner_radius_bottom_left = 3
+	normal_style.corner_radius_bottom_right = 3
+	button.add_theme_stylebox_override("normal", normal_style)
+
+	# Hover state style with brighter white border
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.25, 0.25, 0.28, 0.95)
+	hover_style.border_color = Color(1.0, 1.0, 1.0, 1.0)  # White border
+	hover_style.border_width_left = 2
+	hover_style.border_width_right = 2
+	hover_style.border_width_top = 2
+	hover_style.border_width_bottom = 2
+	hover_style.corner_radius_top_left = 3
+	hover_style.corner_radius_top_right = 3
+	hover_style.corner_radius_bottom_left = 3
+	hover_style.corner_radius_bottom_right = 3
+	button.add_theme_stylebox_override("hover", hover_style)
+
+	# Pressed state style
+	var pressed_style := StyleBoxFlat.new()
+	pressed_style.bg_color = Color(0.3, 0.3, 0.35, 0.95)
+	pressed_style.border_color = Color(1.0, 1.0, 1.0, 1.0)  # White border
+	pressed_style.border_width_left = 2
+	pressed_style.border_width_right = 2
+	pressed_style.border_width_top = 2
+	pressed_style.border_width_bottom = 2
+	pressed_style.corner_radius_top_left = 3
+	pressed_style.corner_radius_top_right = 3
+	pressed_style.corner_radius_bottom_left = 3
+	pressed_style.corner_radius_bottom_right = 3
+	button.add_theme_stylebox_override("pressed", pressed_style)
+
+	# White text color for visibility
+	button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
+	button.add_theme_color_override("font_pressed_color", Color(1.0, 1.0, 1.0, 1.0))
 
 
 ## Handle click on an item slot.
