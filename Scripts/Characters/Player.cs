@@ -661,6 +661,21 @@ public partial class Player : BaseCharacter
     private const float PlayerCollisionRadius = 16.0f;
 
     /// <summary>
+    /// Whether the charge bar is currently visible (shown on activation, hidden after 300ms).
+    /// </summary>
+    private bool _showChargeBar = false;
+
+    /// <summary>
+    /// Timer for auto-hiding the charge bar after activation (300ms).
+    /// </summary>
+    private float _chargeBarHideTimer = 0.0f;
+
+    /// <summary>
+    /// Duration to show charge bar after activation before auto-hiding (in seconds).
+    /// </summary>
+    private const float ChargeBarHideDelay = 0.3f;
+
+    /// <summary>
     /// Signal emitted when teleport charges change.
     /// </summary>
     [Signal]
@@ -709,6 +724,16 @@ public partial class Player : BaseCharacter
     /// AudioStreamPlayer for homing activation sound.
     /// </summary>
     private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// Whether the homing charge bar is currently visible (shown on activation, hidden after 300ms).
+    /// </summary>
+    private bool _showHomingChargeBar = false;
+
+    /// <summary>
+    /// Timer for auto-hiding the homing charge bar after activation (300ms).
+    /// </summary>
+    private float _homingChargeBarHideTimer = 0.0f;
 
     /// <summary>
     /// Signal emitted when homing charges change.
@@ -1291,6 +1316,9 @@ public partial class Player : BaseCharacter
 
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
+
+        // Update charge bar hide timer (auto-hide after 300ms) (Issue #700)
+        UpdateChargeBarTimer((float)delta);
 
         // Handle invisibility suit input (press Space to activate) (Issue #673)
         HandleInvisibilitySuitInput();
@@ -4238,6 +4266,10 @@ public partial class Player : BaseCharacter
         GlobalPosition = _teleportTargetPosition;
         _teleportCharges--;
 
+        // Show charge bar on activation and start 300ms hide timer (Issue #700)
+        _showChargeBar = true;
+        _chargeBarHideTimer = ChargeBarHideDelay;
+
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
         LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
 
@@ -4491,12 +4523,26 @@ public partial class Player : BaseCharacter
         if (_homingActive)
         {
             _homingTimer -= delta;
+            QueueRedraw(); // Update continuous timer bar each frame (Issue #700)
             if (_homingTimer <= 0.0f)
             {
                 _homingActive = false;
                 _homingTimer = 0.0f;
                 EmitSignal(SignalName.HomingDeactivated);
+                QueueRedraw(); // Hide bar on deactivation (Issue #700)
                 LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+            }
+        }
+
+        // Update homing charge bar hide timer (300ms auto-hide)
+        if (_showHomingChargeBar && !_homingActive)
+        {
+            _homingChargeBarHideTimer -= delta;
+            if (_homingChargeBarHideTimer <= 0.0f)
+            {
+                _showHomingChargeBar = false;
+                _homingChargeBarHideTimer = 0.0f;
+                QueueRedraw();
             }
         }
 
@@ -4512,6 +4558,11 @@ public partial class Player : BaseCharacter
                 EmitSignal(SignalName.HomingActivated);
                 EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
                 LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+
+                // Show charge bar on activation for 300ms (Issue #700)
+                _showHomingChargeBar = true;
+                _homingChargeBarHideTimer = ChargeBarHideDelay;
+                QueueRedraw();
 
                 // Enable homing on all already-airborne player bullets
                 EnableHomingOnAirborneBullets();
@@ -4907,6 +4958,29 @@ public partial class Player : BaseCharacter
     /// </summary>
     public override void _Draw()
     {
+        // Draw teleport bracers charge bar above player on activation (Issue #700)
+        // Show when: charge bar timer is active (300ms after teleport use) or while aiming
+        if (_teleportBracersEquipped && (_showChargeBar || _teleportAiming))
+        {
+            DrawTeleportChargeBar();
+        }
+
+        // Draw homing bullets progress bar (Issue #700)
+        // Continuous timer bar while effect is active, charge bar for 300ms after activation
+        if (_homingBulletsEquipped && (_homingActive || _showHomingChargeBar))
+        {
+            if (_homingActive)
+            {
+                // Show continuous timer bar during active effect
+                DrawHomingTimerBar();
+            }
+            else
+            {
+                // Show charge bar briefly after activation (300ms)
+                DrawHomingChargeBar();
+            }
+        }
+
         // Draw teleport targeting reticle if aiming (Issue #672)
         if (_teleportAiming && _teleportBracersEquipped)
         {
@@ -5102,6 +5176,173 @@ public partial class Player : BaseCharacter
         }
         // Default: Flashbang effect radius (FlashbangGrenade.tscn)
         return 400.0f;
+    }
+
+    /// <summary>
+    /// Update the charge bar hide timer. Hides bar after 300ms for charge-based items (Issue #700).
+    /// </summary>
+    private void UpdateChargeBarTimer(float delta)
+    {
+        if (_showChargeBar && !_teleportAiming)
+        {
+            _chargeBarHideTimer -= delta;
+            if (_chargeBarHideTimer <= 0.0f)
+            {
+                _showChargeBar = false;
+                _chargeBarHideTimer = 0.0f;
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar above the player for teleport bracers (Issue #700).
+    /// Shows remaining charges as filled segments and used charges as empty segments.
+    /// </summary>
+    private void DrawTeleportChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxTeleportCharges;
+        int filledCount = _teleportCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f)
+            segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+
+        // Choose fill color based on charge percentage
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);  // Green
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);  // Yellow
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);  // Red
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            // Draw background
+            DrawRect(segRect, bgColor);
+
+            // Draw fill or empty
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+
+            // Draw border
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar above the player for homing bullets (Issue #700).
+    /// Shows remaining charges as filled segments and used charges as empty segments.
+    /// </summary>
+    private void DrawHomingChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxHomingCharges;
+        int filledCount = _homingCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f)
+            segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Draw continuous timer bar above the player for homing bullets active effect (Issue #700).
+    /// Shows remaining duration as a shrinking fill bar.
+    /// </summary>
+    private void DrawHomingTimerBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float borderWidth = 1.0f;
+
+        float startX = -barWidth / 2.0f;
+        Rect2 fullRect = new Rect2(startX, barYOffset, barWidth, barHeight);
+
+        float percent = _homingTimer / HomingDuration;
+        if (percent < 0.0f) percent = 0.0f;
+        if (percent > 1.0f) percent = 1.0f;
+
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        // Draw background
+        DrawRect(fullRect, bgColor);
+
+        // Draw fill
+        float fillWidth = barWidth * percent;
+        if (fillWidth > 0.0f)
+        {
+            Rect2 fillRect = new Rect2(startX, barYOffset, fillWidth, barHeight);
+            DrawRect(fillRect, fillColor);
+        }
+
+        // Draw border
+        DrawRect(fullRect, borderColor, false, borderWidth);
     }
 
     /// <summary>
