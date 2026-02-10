@@ -629,6 +629,25 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region AI Helmet System (Issue #671)
+
+    /// <summary>
+    /// Path to the AI helmet effect scene.
+    /// </summary>
+    private const string HelmetScenePath = "res://scenes/effects/HelmetEffect.tscn";
+
+    /// <summary>
+    /// Whether the AI helmet is equipped (active item selected in armory).
+    /// </summary>
+    private bool _aiHelmetEquipped = false;
+
+    /// <summary>
+    /// Reference to the helmet effect node (child of level root).
+    /// </summary>
+    private Node2D? _aiHelmetNode = null;
+
+    #endregion
+
     #region Teleport Bracers System (Issue #672)
 
     /// <summary>
@@ -1016,6 +1035,9 @@ public partial class Player : BaseCharacter
         // Initialize flashlight if active item manager has flashlight selected (Issue #546)
         InitFlashlight();
 
+        // Initialize AI helmet if active item manager has AI helmet selected (Issue #671)
+        InitAIHelmet();
+
         // Initialize teleport bracers if active item manager has them selected (Issue #672)
         InitTeleportBracers();
 
@@ -1304,6 +1326,9 @@ public partial class Player : BaseCharacter
 
         // Handle flashlight input (hold Space to turn on, release to turn off) (Issue #546)
         HandleFlashlightInput();
+
+        // Handle AI helmet input (press Space to activate prediction) (Issue #671)
+        HandleAIHelmetInput();
 
         // Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #672)
         HandleTeleportBracersInput();
@@ -4180,6 +4205,125 @@ public partial class Player : BaseCharacter
         if (!IsInstanceValid(_flashlightNode))
             return GlobalPosition;
         return _flashlightNode.GlobalPosition;
+    }
+
+    #endregion
+
+    #region AI Helmet Methods (Issue #671)
+
+    /// <summary>
+    /// Initialize the AI helmet if the ActiveItemManager has it selected.
+    /// Loads and attaches the HelmetEffect scene to the level root.
+    /// </summary>
+    private void InitAIHelmet()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.AIHelmet] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_ai_helmet"))
+        {
+            LogToFile("[Player.AIHelmet] ActiveItemManager missing has_ai_helmet method");
+            return;
+        }
+
+        bool hasAIHelmet = (bool)activeItemManager.Call("has_ai_helmet");
+        if (!hasAIHelmet)
+        {
+            LogToFile("[Player.AIHelmet] No AI helmet selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.AIHelmet] AI Helmet is selected, initializing...");
+
+        // Load and instantiate the helmet effect scene
+        if (!ResourceLoader.Exists(HelmetScenePath))
+        {
+            LogToFile($"[Player.AIHelmet] WARNING: Helmet scene not found: {HelmetScenePath}");
+            return;
+        }
+
+        var helmetScene = GD.Load<PackedScene>(HelmetScenePath);
+        if (helmetScene == null)
+        {
+            LogToFile("[Player.AIHelmet] WARNING: Failed to load helmet scene");
+            return;
+        }
+
+        _aiHelmetNode = helmetScene.Instantiate<Node2D>();
+        _aiHelmetNode.Name = "HelmetEffect";
+
+        // Add as child of the level root (not PlayerModel) so ghost positions
+        // are in global coordinates. The helmet draws at world positions.
+        var levelRoot = GetTree().CurrentScene;
+        if (levelRoot != null)
+        {
+            levelRoot.AddChild(_aiHelmetNode);
+            _aiHelmetEquipped = true;
+            LogToFile("[Player.AIHelmet] AI Helmet equipped and attached to level root");
+        }
+        else
+        {
+            LogToFile("[Player.AIHelmet] WARNING: No current scene, helmet not attached");
+            _aiHelmetNode.QueueFree();
+            _aiHelmetNode = null;
+        }
+    }
+
+    /// <summary>
+    /// Handle AI helmet input: press Space to activate prediction effect.
+    /// Uses IsActionJustPressed so it activates once per press (not hold like flashlight).
+    /// </summary>
+    private void HandleAIHelmetInput()
+    {
+        if (!_aiHelmetEquipped || _aiHelmetNode == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_aiHelmetNode))
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            if (_aiHelmetNode.HasMethod("activate"))
+            {
+                _aiHelmetNode.Call("activate");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Check if the AI helmet prediction effect is currently active (Issue #671).
+    /// </summary>
+    public bool is_ai_helmet_active()
+    {
+        if (!_aiHelmetEquipped || _aiHelmetNode == null)
+            return false;
+        if (!IsInstanceValid(_aiHelmetNode))
+            return false;
+        if (_aiHelmetNode.HasMethod("is_active"))
+            return (bool)_aiHelmetNode.Call("is_active");
+        return false;
+    }
+
+    /// <summary>
+    /// Get the number of remaining AI helmet charges (Issue #671).
+    /// </summary>
+    public int get_ai_helmet_charges()
+    {
+        if (!_aiHelmetEquipped || _aiHelmetNode == null)
+            return 0;
+        if (!IsInstanceValid(_aiHelmetNode))
+            return 0;
+        if (_aiHelmetNode.HasMethod("get_charges"))
+            return (int)_aiHelmetNode.Call("get_charges");
+        return 0;
     }
 
     #endregion

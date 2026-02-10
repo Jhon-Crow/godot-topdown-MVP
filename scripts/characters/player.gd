@@ -337,6 +337,9 @@ func _ready() -> void:
 	# Initialize flashlight if active item manager has flashlight selected
 	_init_flashlight()
 
+	# Initialize AI helmet if active item manager has AI helmet selected
+	_init_ai_helmet()
+
 	# Initialize homing bullets if active item manager has homing bullets selected
 	_init_homing_bullets()
 
@@ -445,6 +448,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle flashlight input (hold Space to turn on, release to turn off)
 	_handle_flashlight_input()
+
+	# Handle AI helmet input (press Space to activate prediction)
+	_handle_ai_helmet_input()
 
 	# Handle homing bullets input (press Space to activate, timer-based deactivation)
 	_handle_homing_input(delta)
@@ -2991,6 +2997,99 @@ func is_flashlight_wall_clamped() -> bool:
 	if _flashlight_node.has_method("is_wall_clamped"):
 		return _flashlight_node.is_wall_clamped()
 	return false
+
+
+# ============================================================================
+# AI Helmet System (Issue #671)
+# ============================================================================
+
+## Path to the AI helmet effect scene.
+const HELMET_SCENE_PATH: String = "res://scenes/effects/HelmetEffect.tscn"
+
+## Whether the AI helmet is equipped (active item selected in armory).
+var _ai_helmet_equipped: bool = false
+
+## Reference to the helmet effect node (child of level root).
+var _ai_helmet_node: Node2D = null
+
+
+## Initialize the AI helmet if the ActiveItemManager has it selected.
+func _init_ai_helmet() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.AIHelmet] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_ai_helmet"):
+		FileLogger.info("[Player.AIHelmet] ActiveItemManager missing has_ai_helmet method")
+		return
+
+	if not active_item_manager.has_ai_helmet():
+		FileLogger.info("[Player.AIHelmet] No AI helmet selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.AIHelmet] AI Helmet is selected, initializing...")
+
+	# Load and instantiate the helmet effect scene
+	if not ResourceLoader.exists(HELMET_SCENE_PATH):
+		FileLogger.info("[Player.AIHelmet] WARNING: Helmet scene not found: %s" % HELMET_SCENE_PATH)
+		return
+
+	var helmet_scene: PackedScene = load(HELMET_SCENE_PATH)
+	if helmet_scene == null:
+		FileLogger.info("[Player.AIHelmet] WARNING: Failed to load helmet scene")
+		return
+
+	_ai_helmet_node = helmet_scene.instantiate()
+	_ai_helmet_node.name = "HelmetEffect"
+
+	# Add as child of the level root (not PlayerModel) so ghost positions
+	# are in global coordinates. The helmet draws at world positions.
+	var level_root: Node = get_tree().current_scene
+	if level_root:
+		level_root.add_child(_ai_helmet_node)
+		_ai_helmet_equipped = true
+		FileLogger.info("[Player.AIHelmet] AI Helmet equipped and attached to level root")
+	else:
+		FileLogger.info("[Player.AIHelmet] WARNING: No current scene, helmet not attached")
+		_ai_helmet_node.queue_free()
+		_ai_helmet_node = null
+
+
+## Handle AI helmet input: press Space to activate prediction effect.
+## Uses just_pressed so it activates once per press (not hold like flashlight).
+func _handle_ai_helmet_input() -> void:
+	if not _ai_helmet_equipped or _ai_helmet_node == null:
+		return
+
+	if not is_instance_valid(_ai_helmet_node):
+		return
+
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if _ai_helmet_node.has_method("activate"):
+			_ai_helmet_node.activate()
+
+
+## Check if the AI helmet prediction effect is currently active (Issue #671).
+func is_ai_helmet_active() -> bool:
+	if not _ai_helmet_equipped or _ai_helmet_node == null:
+		return false
+	if not is_instance_valid(_ai_helmet_node):
+		return false
+	if _ai_helmet_node.has_method("is_active"):
+		return _ai_helmet_node.is_active()
+	return false
+
+
+## Get the number of remaining AI helmet charges (Issue #671).
+func get_ai_helmet_charges() -> int:
+	if not _ai_helmet_equipped or _ai_helmet_node == null:
+		return 0
+	if not is_instance_valid(_ai_helmet_node):
+		return 0
+	if _ai_helmet_node.has_method("get_charges"):
+		return _ai_helmet_node.get_charges()
+	return 0
 
 
 # ============================================================================

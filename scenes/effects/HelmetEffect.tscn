@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://helmet_effect_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/helmet_effect.gd" id="1_helmet_effect"]
+
+[node name="HelmetEffect" type="Node2D"]
+z_index = 100
+script = ExtResource("1_helmet_effect")
