@@ -157,6 +157,37 @@ const HOMING_MAX_PERP_DISTANCE: float = 500.0
 ## Used for line-of-sight checks to prevent homing through walls (Issue #709).
 const WALL_COLLISION_MASK: int = 4
 
+## Whether this bullet uses breaker behavior (Issue #678).
+## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
+var is_breaker_bullet: bool = false
+
+## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
+const BREAKER_DETONATION_DISTANCE: float = 60.0
+
+## Explosion damage radius for breaker bullet detonation (in pixels).
+const BREAKER_EXPLOSION_RADIUS: float = 15.0
+
+## Explosion damage dealt by breaker bullet detonation.
+const BREAKER_EXPLOSION_DAMAGE: float = 1.0
+
+## Half-angle of the shrapnel cone in degrees (total cone = 2 * half_angle).
+const BREAKER_SHRAPNEL_HALF_ANGLE: float = 30.0
+
+## Damage per breaker shrapnel piece.
+const BREAKER_SHRAPNEL_DAMAGE: float = 0.1
+
+## Multiplier for shrapnel count: shrapnel_count = bullet_damage * this multiplier.
+const BREAKER_SHRAPNEL_COUNT_MULTIPLIER: float = 10.0
+
+## Breaker shrapnel scene path.
+const BREAKER_SHRAPNEL_SCENE_PATH: String = "res://scenes/projectiles/BreakerShrapnel.tscn"
+
+## Cached breaker shrapnel scene (loaded once).
+var _breaker_shrapnel_scene: PackedScene = null
+
+## Enable/disable debug logging for breaker bullet behavior.
+var _debug_breaker: bool = false
+
 
 func _ready() -> void:
 	# Connect to collision signals
@@ -184,6 +215,14 @@ func _ready() -> void:
 
 	# Set initial rotation based on direction
 	_update_rotation()
+
+	# Load breaker shrapnel scene if this is a breaker bullet
+	if is_breaker_bullet:
+		if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
+			_breaker_shrapnel_scene = load(BREAKER_SHRAPNEL_SCENE_PATH)
+		if _debug_breaker:
+			print("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
+				"loaded" if _breaker_shrapnel_scene else "MISSING"))
 
 
 ## Calculates the viewport diagonal distance for post-ricochet lifetime.
@@ -261,6 +300,11 @@ func _physics_process(delta: float) -> void:
 		# Note: body_exited signal also triggers _exit_penetration for reliability
 		if not _is_still_inside_obstacle():
 			_exit_penetration()
+
+	# Check for breaker detonation (raycast ahead for walls)
+	if is_breaker_bullet and not _is_penetrating:
+		if _check_breaker_detonation():
+			return  # Bullet detonated and was freed
 
 	# Update trail effect
 	_update_trail()
@@ -971,7 +1015,7 @@ func get_penetration_distance() -> float:
 
 
 # ============================================================================
-# Homing Bullet System
+# Homing Bullet System (Issue #677)
 # ============================================================================
 
 
@@ -1147,3 +1191,246 @@ func _find_enemy_nearest_to_aim_line(enemies: Array[Node]) -> Vector2:
 			best_target = enemy.global_position
 
 	return best_target
+
+
+# ============================================================================
+# Breaker Bullet System (Issue #678)
+# ============================================================================
+
+
+## Checks if a wall or enemy is within BREAKER_DETONATION_DISTANCE ahead.
+## If so, triggers the breaker detonation and returns true.
+## @return: True if detonation occurred, false otherwise.
+func _check_breaker_detonation() -> bool:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		return false
+
+	# Raycast forward from bullet position
+	var ray_start := global_position
+	var ray_end := global_position + direction * BREAKER_DETONATION_DISTANCE
+
+	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end)
+	# Check against walls/obstacles and characters (enemies)
+	query.collision_mask = collision_mask
+	query.exclude = [self]
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return false  # Nothing ahead within detonation distance
+
+	# Check if the hit is a wall (StaticBody2D/TileMap) or an alive enemy (CharacterBody2D)
+	var collider: Object = result.collider
+	if collider is StaticBody2D or collider is TileMap:
+		# Wall detected within range — trigger detonation!
+		var detonation_pos := global_position
+		if _debug_breaker:
+			print("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
+				global_position.distance_to(result.position), detonation_pos])
+		_breaker_detonate(detonation_pos)
+		return true
+	elif collider is CharacterBody2D:
+		# Enemy detected — check if alive
+		if collider.has_method("is_alive") and collider.is_alive():
+			var detonation_pos := global_position
+			if _debug_breaker:
+				print("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
+					collider.name, global_position.distance_to(result.position), detonation_pos])
+			_breaker_detonate(detonation_pos)
+			return true
+
+	return false  # Hit something we don't detonate for
+
+
+## Triggers the breaker bullet detonation: explosion damage + shrapnel cone.
+## @param detonation_pos: The position where the detonation occurs.
+func _breaker_detonate(detonation_pos: Vector2) -> void:
+	# 1. Apply explosion damage in radius
+	_breaker_apply_explosion_damage(detonation_pos)
+
+	# 2. Spawn visual explosion effect
+	_breaker_spawn_explosion_effect(detonation_pos)
+
+	# 3. Spawn shrapnel in a forward cone
+	_breaker_spawn_shrapnel(detonation_pos)
+
+	# 4. Play explosion sound
+	_breaker_play_explosion_sound(detonation_pos)
+
+	# 5. Destroy the bullet
+	queue_free()
+
+
+## Applies explosion damage to all enemies within BREAKER_EXPLOSION_RADIUS.
+## @param center: Center of the explosion.
+func _breaker_apply_explosion_damage(center: Vector2) -> void:
+	# Find all enemies in the scene
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var players := get_tree().get_nodes_in_group("player")
+
+	# Check enemies in radius
+	for enemy in enemies:
+		if enemy is Node2D and enemy.has_method("is_alive") and enemy.is_alive():
+			var distance := center.distance_to(enemy.global_position)
+			if distance <= BREAKER_EXPLOSION_RADIUS:
+				# Check line of sight
+				if _breaker_has_line_of_sight(center, enemy.global_position):
+					_breaker_apply_damage_to(enemy, BREAKER_EXPLOSION_DAMAGE)
+
+	# Also check player (breaker explosion can hurt the player at close range)
+	for player in players:
+		if player is Node2D:
+			# Don't damage the shooter
+			if shooter_id == player.get_instance_id():
+				continue
+			var distance := center.distance_to(player.global_position)
+			if distance <= BREAKER_EXPLOSION_RADIUS:
+				if _breaker_has_line_of_sight(center, player.global_position):
+					_breaker_apply_damage_to(player, BREAKER_EXPLOSION_DAMAGE)
+
+
+## Applies damage to a target.
+func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
+	var hit_direction := (target.global_position - global_position).normalized()
+
+	if target.has_method("on_hit_with_bullet_info_and_damage"):
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount)
+	elif target.has_method("on_hit_with_info"):
+		target.on_hit_with_info(hit_direction, null)
+	elif target.has_method("on_hit"):
+		target.on_hit()
+
+	if _debug_breaker:
+		print("[Bullet.Breaker] Explosion damage %.1f applied to %s" % [amount, target.name])
+
+
+## Checks line of sight from a position to a target position.
+func _breaker_has_line_of_sight(from: Vector2, to: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(from, to)
+	query.collision_mask = 4  # Only check against obstacles
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()
+
+
+## Spawns a small visual explosion effect at the detonation point.
+func _breaker_spawn_explosion_effect(center: Vector2) -> void:
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+
+	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
+		impact_manager.spawn_explosion_effect(center, BREAKER_EXPLOSION_RADIUS)
+	else:
+		# Fallback: create simple flash
+		_breaker_create_simple_flash(center)
+
+
+## Plays a small explosion sound at the detonation point.
+func _breaker_play_explosion_sound(center: Vector2) -> void:
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+		# Use wall hit sound as explosion (small detonation)
+		audio_manager.play_bullet_wall_hit(center)
+
+	# Emit sound for AI awareness
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		# Small explosion — use shorter range than grenade
+		sound_propagation.emit_sound(1, center, 0, self, 500.0)  # 1 = EXPLOSION, 0 = PLAYER
+
+
+## Creates a simple explosion flash if no manager is available.
+func _breaker_create_simple_flash(center: Vector2) -> void:
+	var flash := Sprite2D.new()
+	var size := int(BREAKER_EXPLOSION_RADIUS) * 2
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var img_center := Vector2(BREAKER_EXPLOSION_RADIUS, BREAKER_EXPLOSION_RADIUS)
+
+	for x in range(size):
+		for y in range(size):
+			var pos := Vector2(x, y)
+			var dist := pos.distance_to(img_center)
+			if dist <= BREAKER_EXPLOSION_RADIUS:
+				var alpha := 1.0 - (dist / BREAKER_EXPLOSION_RADIUS)
+				image.set_pixel(x, y, Color(1.0, 0.8, 0.4, alpha))
+			else:
+				image.set_pixel(x, y, Color(0, 0, 0, 0))
+
+	flash.texture = ImageTexture.create_from_image(image)
+	flash.global_position = center
+	flash.modulate = Color(1.0, 0.7, 0.3, 0.9)
+	flash.z_index = 100
+
+	var scene := get_tree().current_scene
+	if scene:
+		scene.add_child(flash)
+		var tween := get_tree().create_tween()
+		tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+		tween.tween_callback(flash.queue_free)
+
+
+## Maximum shrapnel pieces per single detonation (performance cap, Issue #678 optimization).
+## This prevents FPS drops when many pellets detonate simultaneously (e.g. shotgun).
+const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
+
+## Maximum total concurrent breaker shrapnel in the scene (global cap).
+## If exceeded, new shrapnel spawning is skipped to maintain FPS.
+const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 60
+
+
+## Spawns breaker shrapnel pieces in a forward cone.
+## Shrapnel count is capped for performance (Issue #678 optimization).
+func _breaker_spawn_shrapnel(center: Vector2) -> void:
+	if _breaker_shrapnel_scene == null:
+		if _debug_breaker:
+			print("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
+		return
+
+	# Check global concurrent shrapnel limit
+	var existing_shrapnel := get_tree().get_nodes_in_group("breaker_shrapnel")
+	if existing_shrapnel.size() >= BREAKER_MAX_CONCURRENT_SHRAPNEL:
+		if _debug_breaker:
+			print("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
+		return
+
+	# Calculate shrapnel count based on bullet damage, capped for performance
+	var effective_damage := damage * damage_multiplier
+	var shrapnel_count := int(effective_damage * BREAKER_SHRAPNEL_COUNT_MULTIPLIER)
+	shrapnel_count = clampi(shrapnel_count, 1, BREAKER_MAX_SHRAPNEL_PER_DETONATION)
+
+	# Further reduce if approaching global limit
+	var remaining_budget := BREAKER_MAX_CONCURRENT_SHRAPNEL - existing_shrapnel.size()
+	shrapnel_count = mini(shrapnel_count, remaining_budget)
+
+	var half_angle_rad := deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE)
+
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+
+	for i in range(shrapnel_count):
+		# Random angle within the forward cone
+		var random_angle := randf_range(-half_angle_rad, half_angle_rad)
+		var shrapnel_direction := direction.rotated(random_angle)
+
+		# Create shrapnel instance
+		var shrapnel := _breaker_shrapnel_scene.instantiate()
+		if shrapnel == null:
+			continue
+
+		# Set shrapnel properties
+		shrapnel.global_position = center + shrapnel_direction * 5.0  # Slight offset from center
+		shrapnel.direction = shrapnel_direction
+		shrapnel.source_id = shooter_id  # Prevent self-damage using original shooter
+		shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
+
+		# Vary speed slightly for natural spread
+		shrapnel.speed = randf_range(1400.0, 2200.0)
+
+		# Add to scene using call_deferred to batch scene tree changes (Issue #678 optimization)
+		scene.call_deferred("add_child", shrapnel)
+
+	if _debug_breaker:
+		print("[Bullet.Breaker] Spawned %d shrapnel pieces (budget: %d) in %.0f-degree cone" % [
+			shrapnel_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
