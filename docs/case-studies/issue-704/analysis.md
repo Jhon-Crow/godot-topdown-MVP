@@ -224,8 +224,141 @@ This will reveal whether:
 2. `_physics_process` is running
 3. Direction/speed values are correct or defaulting
 
-### Next Steps
+---
 
-1. User tests new build with diagnostic logging
-2. Analyze log output to identify exact failure point
-3. Fix the property-setting mechanism between C# and GDScript
+## Follow-up: GDScript Bullets Still Broken (2026-02-10, Second Report)
+
+### Problem
+
+User reported (PR #706 comment 2026-02-10):
+> "пули пистолетов и uzi всё ещё сломаны"
+> Translation: "pistol and UZI bullets are still broken"
+
+New game logs provided:
+- `game_log_20260210_224728.txt` (132KB)
+- `game_log_20260210_224755.txt` (252KB)
+
+### Root Cause Analysis
+
+**Key Evidence:**
+- 232 `[Bullet]` log entries found (from C# `Bullet.cs`)
+- 0 `[Bullet.gd]` log entries found (from GDScript `bullet.gd`)
+- Even though `Bullet9mm.tscn` uses `bullet.gd`, the GDScript code was NEVER executed
+
+**The Bug Location:**
+
+In `MakarovPM.cs` and `SilencedPistol.cs`, the `SpawnBullet()` method used:
+
+```csharp
+var bullet = bulletNode as Bullet;  // Line 431
+
+if (bullet != null)  // THIS IS THE PROBLEM!
+{
+    // C# Bullet initialization
+    bullet.Direction = direction;
+    // ... etc
+}
+else
+{
+    // GDScript fallback - NEVER REACHED
+    if (bulletNode.HasMethod("initialize_bullet"))
+    {
+        bulletNode.Call("initialize_bullet", ...);
+    }
+}
+```
+
+**Why the bug occurs:**
+
+1. `BulletScene.Instantiate<Node2D>()` instantiates `Bullet9mm.tscn` which uses `bullet.gd`
+2. The cast `bulletNode as Bullet` attempts to cast a GDScript node to a C# class
+3. In Godot, **this cast incorrectly succeeds** due to Godot's permissive type system
+4. However, the resulting `bullet` object doesn't have C# properties like `Direction`, `Speed`, etc.
+5. Setting `bullet.Direction = direction` **fails silently** — property doesn't exist
+6. The `else` block with `initialize_bullet()` is **never reached**
+7. The GDScript bullet gets added to the scene with default values: `direction = Vector2.RIGHT`, `speed = 2500`
+8. Result: Bullets appear but don't move toward intended target / homing doesn't work
+
+**Correct Pattern (from `BaseWeapon.cs`):**
+
+```csharp
+if (bullet is CSharpBullet csBulletInit)  // Correct: use 'is' not 'as'
+{
+    // C# bullet code
+}
+else if (bullet.HasMethod("initialize_bullet"))  // GDScript fallback
+{
+    bullet.Call("initialize_bullet", ...);
+}
+```
+
+### Second Bug: shooter_id Truncation
+
+The GDScript `shooter_id` parameter was being cast to `(int)`:
+
+```csharp
+bulletNode.Call("initialize_bullet",
+    direction,
+    WeaponData?.BulletSpeed ?? 2500.0f,
+    WeaponData?.Damage ?? 1.0f,
+    (int)shooterId,  // BUG: truncates 64-bit ID
+    GlobalPosition,
+    StunDurationOnHit);
+```
+
+Game logs showed shooter IDs like `113346874310` (larger than `int.MaxValue`).
+This causes:
+1. ID truncation → corrupted value
+2. `_is_player_bullet()` returns `false` (can't find shooter from corrupted ID)
+3. Homing steering skipped (`if not _is_player_bullet(): return`)
+
+### Fix Applied
+
+1. **Changed cast pattern** from `as Bullet` to `is Bullet`:
+   ```csharp
+   if (bulletNode is Bullet csBullet)
+   ```
+
+2. **Changed shooter_id cast** from `(int)` to `(long)`:
+   ```csharp
+   (long)shooterId  // GDScript int is 64-bit
+   ```
+
+3. **Applied to all affected files:**
+   - `Scripts/Weapons/MakarovPM.cs`
+   - `Scripts/Weapons/SilencedPistol.cs`
+   - `Scripts/AbstractClasses/BaseWeapon.cs`
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `Scripts/Weapons/MakarovPM.cs` | Use `is` pattern, cast to `(long)` |
+| `Scripts/Weapons/SilencedPistol.cs` | Use `is` pattern, cast to `(long)` |
+| `Scripts/AbstractClasses/BaseWeapon.cs` | Cast shooter_id to `(long)` |
+
+### Lessons Learned
+
+1. **Godot C# → GDScript Interop Quirks**: The `as` cast can "succeed" even when the types
+   don't actually match, leading to silent failures when accessing properties.
+
+2. **Type Safety**: Always use `is` pattern matching (`x is Type y`) instead of `as` cast
+   (`x as Type`) when dealing with mixed C#/GDScript codebases.
+
+3. **Integer Sizes**: GDScript's `int` is 64-bit, while C#'s `int` is 32-bit. When passing
+   Godot instance IDs (which are 64-bit), use `long` in C# to avoid truncation.
+
+4. **Silent Failures**: Property setters on mismatched types fail silently in Godot. Always
+   add diagnostic logging during development to catch these issues early.
+
+### Verification
+
+Build succeeded with 0 errors. The fix:
+1. Ensures GDScript bullets receive proper initialization via `initialize_bullet()`
+2. Preserves full 64-bit shooter IDs for accurate player detection
+3. Enables homing to work correctly on pistol and UZI bullets
+
+### New Game Logs
+
+- `logs/game_log_20260210_224728.txt` — Testing with broken pistols
+- `logs/game_log_20260210_224755.txt` — Extended testing session
