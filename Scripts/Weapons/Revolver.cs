@@ -584,12 +584,11 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Cannot cock with empty cylinder
-        if (CurrentAmmo <= 0)
-        {
-            PlayEmptyClickSound();
-            return false;
-        }
+        // Issue #716: Allow hammer cocking even with empty cylinder.
+        // Real revolvers can cock the hammer regardless of ammo state - the hammer
+        // mechanism is independent of whether chambers are loaded. The empty click
+        // occurs when firing (trigger pull), not during cocking.
+        // Removed: CurrentAmmo <= 0 check that was blocking this realistic behavior.
 
         // Check weapon data and bullet scene are available
         if (WeaponData == null || BulletScene == null)
@@ -635,9 +634,19 @@ public partial class Revolver : BaseWeapon
             return;
         }
 
-        if (CurrentAmmo <= 0 || WeaponData == null || BulletScene == null)
+        if (CurrentAmmo <= 0)
         {
-            GD.Print("[Revolver] Shot cancelled - conditions changed during hammer cock");
+            // Issue #716: Play empty click sound when firing with empty cylinder.
+            // This handles the case where hammer was manually cocked (RMB) with empty cylinder,
+            // then player tries to fire (LMB). The empty click should play on trigger pull.
+            PlayEmptyClickSound();
+            GD.Print("[Revolver] Shot cancelled - empty cylinder (playing click sound)");
+            return;
+        }
+
+        if (WeaponData == null || BulletScene == null)
+        {
+            GD.Print("[Revolver] Shot cancelled - weapon data or bullet scene missing");
             return;
         }
 
