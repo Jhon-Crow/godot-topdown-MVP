@@ -397,6 +397,10 @@ public class LaserGlowEffect
     /// Updates the dust particle emitter to follow the laser beam.
     /// Positions at beam midpoint, rotates to beam angle, and stretches
     /// the emission box to cover the beam length.
+    /// 
+    /// Note: This works around Godot issue #71480 where LocalCoords=true
+    /// doesn't properly handle particle rotation following parent rotation.
+    /// By explicitly setting rotation each frame, we ensure particles stay aligned.
     /// </summary>
     private void UpdateDustParticles(Vector2 startPoint, Vector2 endPoint)
     {
@@ -413,8 +417,19 @@ public class LaserGlowEffect
         }
 
         _dustParticles.Visible = true;
+        
+        // Position particle emitter at beam midpoint
         _dustParticles.Position = (startPoint + endPoint) / 2.0f;
-        _dustParticles.Rotation = beamVector.Angle();
+        
+        // CRITICAL FIX: Force rotation to match beam angle every frame
+        // This works around Godot issue #71480 where LocalCoords=true
+        // doesn't properly handle particle rotation following parent rotation.
+        // Without this explicit rotation, dust particles lag behind when player
+        // rotates while walking, causing the glow to appear disconnected.
+        var targetRotation = beamVector.Angle();
+        _dustParticles.Rotation = targetRotation;
+        
+        // Update emission box to match beam dimensions
         _dustMaterial.EmissionBoxExtents = new Vector3(beamLength / 2.0f, DustEmissionHalfHeight, 0.0f);
     }
 
