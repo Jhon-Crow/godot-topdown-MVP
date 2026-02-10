@@ -1,7 +1,7 @@
 extends CanvasLayer
-## Armory menu for selecting weapons, grenades, and active items by category.
+## Armory menu for selecting weapons, grenades, and special items by category.
 ##
-## Layout: left sidebar with stats/description, right area with weapon/grenade/active item grids.
+## Layout: left sidebar with stats/description, right area with weapon/grenade/special item grids.
 ## Items fit on screen without scrolling. An accordion toggle expands the grid
 ## if there are too many items. An "Apply" button confirms the selection
 ## and restarts the level (no immediate restart on click).
@@ -522,8 +522,8 @@ func _build_right_area() -> VBoxContainer:
 	active_sep.add_theme_constant_override("separation", 4)
 	right_vbox.add_child(active_sep)
 
-	# --- ACTIVE ITEMS SECTION ---
-	_add_category_header(right_vbox, "ACTIVE ITEMS")
+	# --- SPECIAL SECTION ---
+	_add_category_header(right_vbox, "SPECIAL")
 	_active_item_grid = GridContainer.new()
 	_active_item_grid.columns = GRID_COLUMNS
 	_active_item_grid.layout_mode = 2
