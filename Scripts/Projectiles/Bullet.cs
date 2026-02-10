@@ -221,6 +221,14 @@ public partial class Bullet : Area2D
     public float StunDuration { get; set; } = 0.0f;
 
     /// <summary>
+    /// Whether this bullet uses breaker behavior (Issue #678).
+    /// Set via Node.Set("is_breaker_bullet", true) by BaseWeapon.SpawnBullet().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsBreakerBullet { get; set; } = false;
+
+    /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
@@ -356,6 +364,15 @@ public partial class Bullet : Area2D
             if (!IsStillInsideObstacle())
             {
                 ExitPenetration();
+            }
+        }
+
+        // Check for breaker detonation (Issue #678)
+        if (IsBreakerBullet)
+        {
+            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, _isPenetrating))
+            {
+                return; // Bullet detonated and was freed
             }
         }
 

@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3 uid="uid://bbreakershrapnel1"]
+
+[ext_resource type="Script" path="res://scripts/projectiles/breaker_shrapnel.gd" id="1_breaker_shrapnel"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_breaker_shrapnel"]
+radius = 2.0
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_breaker_shrapnel"]
+size = Vector2(6, 2)
+
+[sub_resource type="Gradient" id="Gradient_smoky_trail"]
+offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
+colors = PackedColorArray(1, 1, 1, 0.9, 0.85, 0.85, 0.85, 0.6, 0.6, 0.6, 0.6, 0.3, 0.4, 0.4, 0.4, 0)
+
+[sub_resource type="Curve" id="Curve_smoky_trail"]
+_data = [Vector2(0, 0.3), 0.0, 2.0, 0, 0, Vector2(0.3, 1), 0.0, 0.0, 0, 0, Vector2(0.7, 0.8), 0.0, -1.0, 0, 0, Vector2(1, 0.1), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="BreakerShrapnel" type="Area2D"]
+collision_layer = 16
+collision_mask = 39
+script = ExtResource("1_breaker_shrapnel")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 0.9, 1)
+texture = SubResource("PlaceholderTexture2D_breaker_shrapnel")
+
+[node name="Trail" type="Line2D" parent="."]
+width = 4.0
+width_curve = SubResource("Curve_smoky_trail")
+default_color = Color(0.85, 0.85, 0.85, 0.7)
+gradient = SubResource("Gradient_smoky_trail")
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_breaker_shrapnel")

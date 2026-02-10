@@ -652,8 +652,18 @@ public partial class SniperRifle : BaseWeapon
 
         if (result)
         {
-            // Perform hitscan - instant raycast damage along bullet path
-            Vector2 bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
+            Vector2 bulletEndPoint;
+
+            // Breaker bullets: detonate 60px before the first wall on the hitscan path (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                bulletEndPoint = PerformBreakerHitscan(GlobalPosition, spreadDirection);
+            }
+            else
+            {
+                // Normal hitscan - instant raycast damage along bullet path
+                bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
+            }
 
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
@@ -839,6 +849,322 @@ public partial class SniperRifle : BaseWeapon
 
         GD.Print($"[SniperRifle] Hitscan complete: walls={wallsPenetrated}, enemies_hit={damagedEnemies.Count}, endpoint={bulletEndPoint}");
         return bulletEndPoint;
+    }
+
+    // =========================================================================
+    // Breaker Hitscan (Issue #678)
+    // =========================================================================
+
+    /// <summary>
+    /// Breaker detonation distance in pixels (same as bullet.gd BREAKER_DETONATION_DISTANCE).
+    /// </summary>
+    private const float BreakerDetonationDistance = 60.0f;
+
+    /// <summary>
+    /// Breaker explosion radius in pixels.
+    /// </summary>
+    private const float BreakerExplosionRadius = 15.0f;
+
+    /// <summary>
+    /// Breaker explosion damage.
+    /// </summary>
+    private const float BreakerExplosionDamage = 1.0f;
+
+    /// <summary>
+    /// Breaker shrapnel half-angle in degrees.
+    /// </summary>
+    private const float BreakerShrapnelHalfAngle = 30.0f;
+
+    /// <summary>
+    /// Breaker shrapnel damage per piece.
+    /// </summary>
+    private const float BreakerShrapnelDamage = 0.1f;
+
+    /// <summary>
+    /// Breaker shrapnel count multiplier (count = damage * multiplier).
+    /// </summary>
+    private const float BreakerShrapnelCountMultiplier = 10.0f;
+
+    /// <summary>
+    /// Breaker shrapnel scene path.
+    /// </summary>
+    private const string BreakerShrapnelScenePath = "res://scenes/projectiles/BreakerShrapnel.tscn";
+
+    /// <summary>
+    /// Performs breaker-mode hitscan: damages enemies along path until first wall,
+    /// then detonates 60px before the wall with explosion + shrapnel cone.
+    /// The smoke trail ends at the detonation point.
+    /// </summary>
+    /// <param name="origin">Starting position of the shot.</param>
+    /// <param name="direction">Normalized direction of the shot.</param>
+    /// <returns>The endpoint where the bullet detonated (for smoke tracer).</returns>
+    private Vector2 PerformBreakerHitscan(Vector2 origin, Vector2 direction)
+    {
+        float maxRange = 5000.0f;
+        Vector2 startPos = origin + direction * BulletSpawnOffset;
+        Vector2 endPos = origin + direction * maxRange;
+        float damage = WeaponData?.Damage ?? 50.0f;
+
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return endPos;
+        }
+
+        // Get shooter ID to prevent self-damage
+        var owner = GetParent();
+        ulong shooterId = owner?.GetInstanceId() ?? 0;
+
+        uint wallMask = 4;
+        uint enemyBodyMask = 2;
+        uint combinedMask = wallMask | enemyBodyMask;
+
+        Vector2 currentPos = startPos;
+        var excludeRids = new Godot.Collections.Array<Rid>();
+        var damagedEnemies = new HashSet<ulong>();
+
+        // Sequential raycasts — damage enemies until first wall, then detonate
+        for (int iteration = 0; iteration < 50; iteration++)
+        {
+            if (currentPos.DistanceTo(endPos) < 1.0f)
+            {
+                break;
+            }
+
+            var query = PhysicsRayQueryParameters2D.Create(
+                currentPos, endPos, combinedMask
+            );
+            query.Exclude = excludeRids;
+            query.HitFromInside = true;
+            query.CollideWithAreas = false;
+            query.CollideWithBodies = true;
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count == 0)
+            {
+                break; // No more hits — bullet travels to max range without detonation
+            }
+
+            var hitCollider = (Node2D)result["collider"];
+            var hitPosition = (Vector2)result["position"];
+            var hitRid = (Rid)result["rid"];
+
+            // Skip self
+            if (hitCollider.GetInstanceId() == shooterId)
+            {
+                excludeRids.Add(hitRid);
+                continue;
+            }
+
+            // Wall/obstacle: trigger breaker detonation
+            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            {
+                // Detonation point is 60px before the wall (or at current pos if too close)
+                float distToWall = currentPos.DistanceTo(hitPosition);
+                Vector2 detonationPos;
+                if (distToWall > BreakerDetonationDistance)
+                {
+                    detonationPos = hitPosition - direction * BreakerDetonationDistance;
+                }
+                else
+                {
+                    detonationPos = currentPos;
+                }
+
+                GD.Print($"[SniperRifle.Breaker] Detonating at {detonationPos}, wall at {hitPosition} (dist={distToWall:F0}px)");
+
+                // Apply explosion damage in radius
+                BreakerApplyExplosionDamage(detonationPos, shooterId);
+
+                // Spawn shrapnel cone
+                BreakerSpawnShrapnel(detonationPos, direction, damage, shooterId);
+
+                // Spawn explosion effect
+                BreakerSpawnExplosionEffect(detonationPos);
+
+                // Play explosion sound
+                BreakerPlayExplosionSound(detonationPos);
+
+                GD.Print($"[SniperRifle.Breaker] Breaker hitscan: enemies_hit={damagedEnemies.Count}, detonation at {detonationPos}");
+                return detonationPos;
+            }
+
+            // Enemy: detonate before alive enemies (breaker behavior, Issue #678)
+            if (hitCollider is CharacterBody2D)
+            {
+                var enemyId = hitCollider.GetInstanceId();
+
+                // Skip self and dead enemies
+                if (enemyId == shooterId)
+                {
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
+                bool isAlive = true;
+                if (hitCollider.HasMethod("is_alive"))
+                {
+                    isAlive = hitCollider.Call("is_alive").AsBool();
+                }
+
+                if (!isAlive)
+                {
+                    // Dead enemy — pass through
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
+                // Alive enemy — detonate 60px before them
+                float distToEnemy = currentPos.DistanceTo(hitPosition);
+                Vector2 detonationPos;
+                if (distToEnemy > BreakerDetonationDistance)
+                {
+                    detonationPos = hitPosition - direction * BreakerDetonationDistance;
+                }
+                else
+                {
+                    detonationPos = currentPos;
+                }
+
+                GD.Print($"[SniperRifle.Breaker] Detonating at {detonationPos}, enemy {hitCollider.Name} at {hitPosition} (dist={distToEnemy:F0}px)");
+
+                // Apply explosion damage in radius
+                BreakerApplyExplosionDamage(detonationPos, shooterId);
+
+                // Spawn shrapnel cone
+                BreakerSpawnShrapnel(detonationPos, direction, damage, shooterId);
+
+                // Spawn explosion effect
+                BreakerSpawnExplosionEffect(detonationPos);
+
+                // Play explosion sound
+                BreakerPlayExplosionSound(detonationPos);
+
+                return detonationPos;
+            }
+
+            // Unknown collider - skip
+            excludeRids.Add(hitRid);
+            currentPos = hitPosition + direction * 5.0f;
+        }
+
+        // No wall hit — bullet traveled to max range without detonation
+        GD.Print($"[SniperRifle.Breaker] No wall in range, no detonation. Enemies hit: {damagedEnemies.Count}");
+        return endPos;
+    }
+
+    /// <summary>
+    /// Applies breaker explosion damage to all enemies within radius.
+    /// </summary>
+    private void BreakerApplyExplosionDamage(Vector2 center, ulong shooterId)
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        foreach (var enemy in enemies)
+        {
+            if (enemy is Node2D enemyNode && enemyNode.HasMethod("is_alive") && enemyNode.Call("is_alive").AsBool())
+            {
+                float distance = center.DistanceTo(enemyNode.GlobalPosition);
+                if (distance <= BreakerExplosionRadius)
+                {
+                    if (enemyNode.HasMethod("take_damage"))
+                    {
+                        enemyNode.Call("take_damage", BreakerExplosionDamage);
+                        GD.Print($"[SniperRifle.Breaker] Explosion damage {BreakerExplosionDamage} to {enemyNode.Name}");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Maximum shrapnel per detonation for the sniper (performance cap).
+    /// </summary>
+    private const int BreakerMaxShrapnelPerDetonation = 30;
+
+    /// <summary>
+    /// Maximum total concurrent breaker shrapnel in the scene (global cap).
+    /// </summary>
+    private const int BreakerMaxConcurrentShrapnel = 60;
+
+    /// <summary>
+    /// Spawns breaker shrapnel pieces in a forward cone.
+    /// Shrapnel count is capped for performance (Issue #678 optimization).
+    /// </summary>
+    private void BreakerSpawnShrapnel(Vector2 center, Vector2 direction, float bulletDamage, ulong shooterId)
+    {
+        var shrapnelScene = GD.Load<PackedScene>(BreakerShrapnelScenePath);
+        if (shrapnelScene == null)
+        {
+            GD.PrintErr("[SniperRifle.Breaker] Cannot load shrapnel scene: " + BreakerShrapnelScenePath);
+            return;
+        }
+
+        // Check global concurrent shrapnel limit
+        var existingShrapnel = GetTree().GetNodesInGroup("breaker_shrapnel");
+        if (existingShrapnel.Count >= BreakerMaxConcurrentShrapnel)
+        {
+            GD.Print($"[SniperRifle.Breaker] Skipping shrapnel: global limit {BreakerMaxConcurrentShrapnel} reached");
+            return;
+        }
+
+        int uncappedCount = (int)(bulletDamage * BreakerShrapnelCountMultiplier);
+        int shrapnelCount = Mathf.Clamp(uncappedCount, 1, BreakerMaxShrapnelPerDetonation);
+
+        // Further reduce if approaching global limit
+        int remainingBudget = BreakerMaxConcurrentShrapnel - existingShrapnel.Count;
+        shrapnelCount = Mathf.Min(shrapnelCount, remainingBudget);
+
+        float halfAngleRad = Mathf.DegToRad(BreakerShrapnelHalfAngle);
+
+        for (int i = 0; i < shrapnelCount; i++)
+        {
+            float randomAngle = (float)GD.RandRange(-halfAngleRad, halfAngleRad);
+            Vector2 shrapnelDirection = direction.Rotated(randomAngle);
+
+            var shrapnel = shrapnelScene.Instantiate<Node2D>();
+            shrapnel.GlobalPosition = center + shrapnelDirection * 5.0f;
+            shrapnel.Set("direction", shrapnelDirection);
+            shrapnel.Set("source_id", (int)shooterId);
+            shrapnel.Set("damage", BreakerShrapnelDamage);
+            shrapnel.Set("speed", (float)GD.RandRange(1400.0, 2200.0));
+
+            // Use CallDeferred to batch scene tree changes (Issue #678 optimization)
+            GetTree().CurrentScene.CallDeferred("add_child", shrapnel);
+        }
+
+        GD.Print($"[SniperRifle.Breaker] Spawned {shrapnelCount} shrapnel (budget: {remainingBudget}, uncapped: {uncappedCount})");
+    }
+
+    /// <summary>
+    /// Spawns a visual explosion effect at the detonation point.
+    /// </summary>
+    private void BreakerSpawnExplosionEffect(Vector2 center)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_explosion_effect"))
+        {
+            impactManager.Call("spawn_explosion_effect", center, BreakerExplosionRadius);
+        }
+    }
+
+    /// <summary>
+    /// Plays explosion sound at the detonation point.
+    /// </summary>
+    private void BreakerPlayExplosionSound(Vector2 center)
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_bullet_wall_hit"))
+        {
+            audioManager.Call("play_bullet_wall_hit", center);
+        }
+
+        var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+        if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+        {
+            soundPropagation.Call("emit_sound", 1, center, 0, this, 500.0f);
+        }
     }
 
     /// <summary>
