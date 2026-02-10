@@ -71,24 +71,13 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var magazine_size: int = 30  ## Bullets per magazine.
 @export var total_magazines: int = 5  ## Number of magazines carried.
 
-## Ammunition system - time to reload in seconds.
-@export var reload_time: float = 3.0
-
-## Delay between spotting player and shooting (gives reaction time).
-@export var detection_delay: float = 0.2
-## Min visibility time before enabling lead prediction.
-@export var lead_prediction_delay: float = 0.3
-## Min visibility ratio (0-1) for lead prediction (prevents pre-firing at cover edges).
-@export var lead_prediction_visibility_threshold: float = 0.6
-
-## Walking animation speed multiplier - higher = faster leg cycle.
-@export var walk_anim_speed: float = 12.0
-
-## Walking animation intensity - higher = more pronounced movement.
-@export var walk_anim_intensity: float = 1.0
-
-## Scale multiplier for enemy model (1.3 matches player size).
-@export var enemy_model_scale: float = 1.3
+@export var reload_time: float = 3.0  ## Time to reload in seconds.
+@export var detection_delay: float = 0.2  ## Delay between spotting player and shooting (reaction time).
+@export var lead_prediction_delay: float = 0.3  ## Min visibility time before enabling lead prediction.
+@export var lead_prediction_visibility_threshold: float = 0.6  ## Min visibility ratio for lead prediction.
+@export var walk_anim_speed: float = 12.0  ## Walking animation speed multiplier.
+@export var walk_anim_intensity: float = 1.0  ## Walking animation intensity.
+@export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 # Grenade System Configuration (Issue #363, #375)
@@ -359,20 +348,9 @@ var _pre_evasion_state: AIState = AIState.IDLE
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
 
-## [Issue #574] Flashlight detection component — detects player flashlight beam.
-var _flashlight_detection: FlashlightDetectionComponent = null
-
-## [Issue #711] Muzzle flash detection component — detects player's muzzle flash for suppression fire.
-var _muzzle_flash_detection: MuzzleFlashDetectionComponent = null
-
-## [Issue #711] Suppression fire state tracking.
-var _suppression_target: Vector2 = Vector2.ZERO  ## Target position for suppression fire.
-var _suppression_burst_remaining: int = 0  ## Remaining shots in suppression burst.
-var _suppression_burst_timer: float = 0.0  ## Timer between suppression shots.
-var _is_suppressing: bool = false  ## Whether currently firing suppression burst.
-const SUPPRESSION_BURST_INTERVAL: float = 0.08  ## Time between suppression shots (seconds).
-const MUZZLE_FLASH_DETECTION_CONFIDENCE: float = 0.72  ## Confidence for muzzle flash detection.
-
+var _flashlight_detection: FlashlightDetectionComponent = null  ## [#574] Flashlight detection.
+var _muzzle_flash_detection: MuzzleFlashDetectionComponent = null; var _suppression_fire: SuppressionFireComponent = null  ## [#711]
+const MUZZLE_FLASH_DETECTION_CONFIDENCE: float = 0.72  ## [#711] Muzzle flash confidence.
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
 
@@ -554,95 +532,17 @@ func _unregister_sound_listener() -> void:
 	if sound_propagation and sound_propagation.has_method("unregister_listener"):
 		sound_propagation.unregister_listener(self)
 
-## [Issue #711] Register as muzzle flash listener (call_deferred for autoload init).
-func _register_muzzle_flash_listener() -> void:
-	call_deferred("_deferred_register_muzzle_flash_listener")
-
-## [Issue #711] Deferred registration to ensure ImpactEffectsManager is ready.
-func _deferred_register_muzzle_flash_listener() -> void:
-	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_effects and impact_effects.has_signal("muzzle_flash_spawned"):
-		if not impact_effects.is_connected("muzzle_flash_spawned", _on_muzzle_flash_detected):
-			impact_effects.muzzle_flash_spawned.connect(_on_muzzle_flash_detected)
-			_log_to_file("[#711] Registered as muzzle flash listener")
-	else:
-		_log_to_file("[#711] WARNING: Could not register for muzzle flash (ImpactEffectsManager not found or signal missing)")
-
-## [Issue #711] Unregister from muzzle flash signals when dying or being destroyed.
-func _unregister_muzzle_flash_listener() -> void:
-	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_effects and impact_effects.has_signal("muzzle_flash_spawned"):
-		if impact_effects.is_connected("muzzle_flash_spawned", _on_muzzle_flash_detected):
-			impact_effects.muzzle_flash_spawned.disconnect(_on_muzzle_flash_detected)
-
-## [Issue #711] Called when ImpactEffectsManager detects a muzzle flash.
-## Enemies react by checking if they can see the flash and potentially firing suppression.
-func _on_muzzle_flash_detected(flash_position: Vector2, shooter_position: Vector2, source_node: Node2D, source_type: int) -> void:
-	# Only react to player muzzle flashes (source_type 0 = player)
-	if source_type != 0:
-		return
-
-	# Don't react if dead, blinded, or confused
-	if not _is_alive or _is_blinded or _memory_reset_confusion_timer > 0.0:
-		return
-
-	# Don't react if already suppressing
-	if _is_suppressing:
-		return
-
-	# Don't react if player is already directly visible (use aimed fire instead)
-	if _can_see_player:
-		return
-
-	# Check if muzzle flash is detectable from this enemy's position
-	if _muzzle_flash_detection == null:
-		return
-
-	var es: Node = get_node_or_null("/root/ExperimentalSettings")
-	var fov_on: bool = fov_enabled and es != null and es.has_method("is_fov_enabled") and es.is_fov_enabled()
-
-	var detected := _muzzle_flash_detection.check_flash(
-		global_position,
-		_enemy_model.global_rotation if _enemy_model else rotation,
-		fov_angle,
-		fov_on,
-		flash_position,
-		shooter_position,
-		_raycast
-	)
-
-	if detected:
-		_log_to_file("[#711] Muzzle flash detected at %s, shooter at %s" % [flash_position, shooter_position])
-
-		# Update memory with muzzle flash detection
-		if _memory:
-			_memory.update_position(shooter_position, MUZZLE_FLASH_DETECTION_CONFIDENCE)
-		_last_known_player_position = shooter_position
-
-		# Start suppression fire if in combat-related state and within suppression range
-		if _muzzle_flash_detection.is_in_suppression_range(global_position) and _muzzle_flash_detection.can_suppress:
-			_start_suppression_fire(flash_position)
-
-		# Transition to combat if in IDLE state
-		if _current_state == AIState.IDLE:
-			_log_to_file("[#711] Muzzle flash triggered combat from IDLE")
-			_transition_to_combat()
-
-## [Issue #711] Start suppression fire toward detected muzzle flash position.
-func _start_suppression_fire(target_position: Vector2) -> void:
-	if _is_melee_weapon:
-		return  # Melee enemies don't suppress
-
-	if _current_ammo <= 3:
-		return  # Don't suppress if low on ammo
-
-	_is_suppressing = true
-	_suppression_target = target_position
-	_suppression_burst_remaining = _muzzle_flash_detection.get_suppression_burst_count()
-	_suppression_burst_timer = 0.0
-	_muzzle_flash_detection.start_suppression()
-
-	_log_to_file("[#711] Started suppression fire: target=%s, burst=%d" % [target_position, _suppression_burst_remaining])
+func _register_muzzle_flash_listener() -> void: call_deferred("_deferred_register_muzzle_flash_listener")  # [#711]
+func _deferred_register_muzzle_flash_listener() -> void: var ie: Node = get_node_or_null("/root/ImpactEffectsManager"); if ie and ie.has_signal("muzzle_flash_spawned") and not ie.is_connected("muzzle_flash_spawned", _on_muzzle_flash_detected): ie.muzzle_flash_spawned.connect(_on_muzzle_flash_detected)
+func _unregister_muzzle_flash_listener() -> void: var ie: Node = get_node_or_null("/root/ImpactEffectsManager"); if ie and ie.has_signal("muzzle_flash_spawned") and ie.is_connected("muzzle_flash_spawned", _on_muzzle_flash_detected): ie.muzzle_flash_spawned.disconnect(_on_muzzle_flash_detected)
+func _on_muzzle_flash_detected(flash_position: Vector2, shooter_position: Vector2, source_node: Node2D, source_type: int) -> void:  # [#711]
+	if source_type != 0 or not _is_alive or _is_blinded or _memory_reset_confusion_timer > 0.0: return
+	if (_suppression_fire and _suppression_fire.is_active) or _can_see_player or _muzzle_flash_detection == null: return
+	var es: Node = get_node_or_null("/root/ExperimentalSettings"); var fov_on: bool = fov_enabled and es != null and es.has_method("is_fov_enabled") and es.is_fov_enabled()
+	if _muzzle_flash_detection.check_flash(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, fov_on, flash_position, shooter_position, _raycast):
+		if _memory: _memory.update_position(shooter_position, MUZZLE_FLASH_DETECTION_CONFIDENCE)
+		_last_known_player_position = shooter_position; if _muzzle_flash_detection.is_in_suppression_range(global_position) and _suppression_fire and _suppression_fire.can_suppress and not _is_melee_weapon and _current_ammo > 3: _suppression_fire.start_suppression(flash_position); _muzzle_flash_detection.start_suppression()
+		if _current_state == AIState.IDLE: _transition_to_combat()
 
 ## Called by SoundPropagation when a sound is heard. Delegates to on_sound_heard_with_intensity.
 func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source_node: Node2D) -> void:
@@ -815,15 +715,9 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_prediction.record_player_shot(sd)
 		_memory.update_shot_direction(sd)
 
-	# [Issue #711] Fire suppression burst toward gunshot sound if close enough and can't see player
-	# Only suppress if the sound is from a player, within suppression range, and not already suppressing
-	if source_type == 0 and not _can_see_player and not _is_suppressing and not _is_melee_weapon:
-		var suppression_sound_range := 500.0  # Only suppress if sound is within this range
-		if distance <= suppression_sound_range and _current_ammo > 3:
-			# Check if suppression is available (cooldown)
-			if _muzzle_flash_detection and _muzzle_flash_detection.can_suppress:
-				_log_to_file("[#711] Starting sound-based suppression fire toward %s (dist=%.0f)" % [position, distance])
-				_start_suppression_fire(position)
+	# [#711] Fire suppression burst toward gunshot sound if close enough
+	if source_type == 0 and not _can_see_player and not _is_melee_weapon and _suppression_fire and not _suppression_fire.is_active and _suppression_fire.can_suppress and SuppressionFireComponent.is_in_sound_range(distance) and _current_ammo > 3:
+		_suppression_fire.start_suppression(position)
 
 	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
@@ -872,13 +766,9 @@ func _initialize_memory() -> void:
 	if es and es.has_method("is_ai_prediction_enabled") and es.is_ai_prediction_enabled():
 		_prediction = PlayerPredictionComponent.new()
 		_prediction.debug_logging = debug_logging
-	# [Issue #574] Initialize flashlight detection component
-	_flashlight_detection = FlashlightDetectionComponent.new()
-	_flashlight_detection.debug_logging = debug_logging
-
-	# [Issue #711] Initialize muzzle flash detection component
-	_muzzle_flash_detection = MuzzleFlashDetectionComponent.new()
-	_muzzle_flash_detection.debug_logging = debug_logging
+	_flashlight_detection = FlashlightDetectionComponent.new(); _flashlight_detection.debug_logging = debug_logging  # #574
+	_muzzle_flash_detection = MuzzleFlashDetectionComponent.new(); _muzzle_flash_detection.debug_logging = debug_logging  # #711
+	_suppression_fire = SuppressionFireComponent.new(); _suppression_fire.debug_logging = debug_logging  # #711
 
 ## Connect to GameManager's debug mode signal for F7 toggle.
 func _connect_debug_mode_signal() -> void:
@@ -1216,90 +1106,15 @@ func _update_suppression(delta: float) -> void:
 			_under_fire = true
 			_suppression_timer = 0.0
 
-	# [Issue #711] Update muzzle flash detection timers
-	if _muzzle_flash_detection:
-		_muzzle_flash_detection.update(delta)
-
-	# [Issue #711] Process suppression fire
-	_update_suppression_fire(delta)
-
-## [Issue #711] Update suppression fire toward muzzle flash positions.
-func _update_suppression_fire(delta: float) -> void:
-	if not _is_suppressing:
-		return
-
-	# Check if we've completed the suppression burst
-	if _suppression_burst_remaining <= 0:
-		_is_suppressing = false
-		_log_to_file("[#711] Suppression fire complete")
-		return
-
-	# Update burst timer
-	_suppression_burst_timer += delta
-	if _suppression_burst_timer < SUPPRESSION_BURST_INTERVAL:
-		return
-
-	_suppression_burst_timer = 0.0
-
-	# Fire suppression shot
-	_fire_suppression_shot()
-	_suppression_burst_remaining -= 1
-
-## [Issue #711] Fire a single suppression shot toward the target.
-func _fire_suppression_shot() -> void:
-	if bullet_scene == null or not _is_alive:
-		return
-
-	if not _can_shoot():
-		return
-
-	# Calculate direction toward suppression target
-	var direction := (_suppression_target - global_position).normalized()
-
-	# Add suppression inaccuracy (blind fire spread)
-	var inaccuracy := _muzzle_flash_detection.get_suppression_inaccuracy() if _muzzle_flash_detection else 0.25
-	var spread_angle := randf_range(-inaccuracy, inaccuracy)
-	direction = direction.rotated(spread_angle)
-
-	# Rotate toward the target before shooting
-	if _enemy_model:
-		_enemy_model.global_rotation = direction.angle()
-
-	# Calculate bullet spawn position
-	var weapon_forward := _get_weapon_forward_direction()
-	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Check if shot would hit a wall
-	if not _is_bullet_spawn_clear(direction):
-		_log_to_file("[#711] Suppression shot blocked by wall")
-		return
-
-	# Fire bullet using _spawn_projectile
-	_spawn_projectile(direction, bullet_spawn_pos)
-	_spawn_muzzle_flash(bullet_spawn_pos, direction)
-
-	# Play sounds
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_m16_shot"):
-		audio_manager.play_m16_shot(global_position)
-
-	# Emit gunshot sound for in-game sound propagation
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
-		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
-
-	_play_delayed_shell_sound()
-
-	# Update ammo
-	_current_ammo -= 1
-	_shot_count += 1
-	_spread_timer = 0.0
-	ammo_changed.emit(_current_ammo, _reserve_ammo)
-
-	if _current_ammo <= 0 and _reserve_ammo > 0:
-		_start_reload()
-
-	_log_to_file("[#711] Suppression shot fired toward %s (remaining=%d)" % [_suppression_target, _suppression_burst_remaining])
+	if _muzzle_flash_detection: _muzzle_flash_detection.update(delta); if _suppression_fire: _suppression_fire.update(delta); _process_suppression_fire()  # [#711]
+func _process_suppression_fire() -> void:  # [#711]
+	if not _suppression_fire or not _suppression_fire.should_fire() or bullet_scene == null or not _is_alive or not _can_shoot(): return
+	var d := _suppression_fire.get_aim_direction(global_position); if _enemy_model: _enemy_model.global_rotation = d.angle()
+	var wf := _get_weapon_forward_direction(); var bsp := _get_bullet_spawn_position(wf); if not _is_bullet_spawn_clear(d): return
+	_spawn_projectile(d, bsp); _spawn_muzzle_flash(bsp, d); var a: Node = get_node_or_null("/root/AudioManager"); if a and a.has_method("play_m16_shot"): a.play_m16_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation"); if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	_play_delayed_shell_sound(); _current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0; ammo_changed.emit(_current_ammo, _reserve_ammo); _suppression_fire.shot_fired()
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Update reload state.
 func _update_reload(delta: float) -> void:
@@ -4035,22 +3850,11 @@ func _aim_at_player() -> void:
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
-	if bullet_scene == null or _player == null:
-		return
-
-	# Check if we can shoot (have ammo and not reloading)
-	if not _can_shoot():
-		return
-
+	if bullet_scene == null or _player == null: return
+	if not _can_shoot(): return
 	var target_position := _player.global_position
-
-	# Apply lead prediction if enabled
-	if enable_lead_prediction:
-		target_position = _calculate_lead_prediction()
-
-	# Check if the shot should be taken (friendly fire and cover checks)
-	if not _should_shoot_at_target(target_position):
-		return
+	if enable_lead_prediction: target_position = _calculate_lead_prediction()
+	if not _should_shoot_at_target(target_position): return
 
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -4516,9 +4320,7 @@ func _on_death() -> void:
 	_notify_nearby_enemies_of_death()  # Issue #409
 	_disable_hit_area_collision()  # Disable collision so bullets pass through dead enemies
 
-	# Unregister from sound propagation when dying
-	_unregister_sound_listener()
-	_unregister_muzzle_flash_listener()  # Issue #711
+	_unregister_sound_listener(); _unregister_muzzle_flash_listener()  # Unregister listeners on death [#711]
 
 	# Start death animation with the hit direction
 	if _death_animation and _death_animation.has_method("start_death_animation"):
