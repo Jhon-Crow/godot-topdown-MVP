@@ -174,3 +174,58 @@ that was expected to work across all weapon types.
 
 - `logs/game_log_20260209_033509.txt` — First testing session (8791 lines)
 - `logs/game_log_20260209_033930.txt` — Second testing session (5221 lines)
+
+---
+
+## Follow-up: GDScript Bullets Not Moving (2026-02-10)
+
+### Problem
+
+User reported (PR #706 comment 2026-02-10):
+> "пули у пистолетов полностью сломались - не летят, просто появляются красные прямоугольники"
+> Translation: "pistol bullets are completely broken - they don't fly, only red rectangles appear"
+
+### Initial Analysis
+
+Examined `game_log_20260210_221451.txt`:
+
+1. **C# Bullets (AssaultRifle) work correctly**:
+   - Line 604: `GUNSHOT, source=PLAYER (AssaultRifle)`
+   - Lines 607+: `[Bullet] _get_distance_to_shooter...` — bullets moving and hitting walls
+
+2. **GDScript Bullets (MakarovPM, Revolver) don't produce movement logs**:
+   - Line 309: `GUNSHOT, source=PLAYER (MakarovPM)` — shot fired
+   - No subsequent `[Bullet]` logs — bullets not moving
+
+### Weapon → Bullet Scene Mapping
+
+| Weapon | Bullet Scene | Script Type | Status |
+|--------|--------------|-------------|--------|
+| AssaultRifle | `csharp/Bullet.tscn` | C# `Bullet.cs` | ✅ Working |
+| MakarovPM | `Bullet9mm.tscn` | GDScript `bullet.gd` | ❌ Not Moving |
+| Revolver | `Bullet12p7mm.tscn` | GDScript `bullet.gd` | ❌ Not Moving |
+| SilencedPistol | `Bullet9mm.tscn` | GDScript `bullet.gd` | ❌ Not Moving |
+
+### Hypothesis
+
+The issue is specific to **GDScript bullets spawned from C# weapons**. The C# code uses
+`Node.Set("property_name", value)` to set GDScript properties before adding the bullet
+to the scene tree. Something in this flow may be causing properties (especially `direction`
+and `speed`) to not be applied correctly in release builds.
+
+### Diagnostic Logging Added
+
+Added logging to `bullet.gd` to capture property values:
+- `_ready()`: logs direction, speed, shooter_id, position when bullet initializes
+- `_physics_process()`: logs direction, speed, delta, position for first 3 frames
+
+This will reveal whether:
+1. Properties are being set correctly before/after AddChild
+2. `_physics_process` is running
+3. Direction/speed values are correct or defaulting
+
+### Next Steps
+
+1. User tests new build with diagnostic logging
+2. Analyze log output to identify exact failure point
+3. Fix the property-setting mechanism between C# and GDScript
