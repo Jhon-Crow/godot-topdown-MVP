@@ -190,6 +190,11 @@ var _debug_breaker: bool = false
 
 
 func _ready() -> void:
+	# Debug logging to diagnose Issue #704 bullet initialization
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[Bullet.gd] _ready() called: direction=%s, speed=%s, shooter_id=%s, position=%s" % [direction, speed, shooter_id, global_position])
+
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -262,7 +267,17 @@ func _log_penetration(message: String) -> void:
 		file_logger.log_info(full_message)
 
 
+## Counter to limit debug output (only log first 3 frames)
+var _debug_frame_count: int = 0
+
 func _physics_process(delta: float) -> void:
+	# Debug logging for first few frames to diagnose Issue #704
+	if _debug_frame_count < 3:
+		_debug_frame_count += 1
+		var file_logger: Node = get_node_or_null("/root/FileLogger")
+		if file_logger and file_logger.has_method("log_info"):
+			file_logger.log_info("[Bullet.gd] _physics_process frame %d: direction=%s, speed=%s, delta=%s, position=%s" % [_debug_frame_count, direction, speed, delta, global_position])
+
 	# Apply homing steering if enabled
 	if homing_enabled:
 		_apply_homing_steering(delta)
