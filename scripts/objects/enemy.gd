@@ -4994,7 +4994,6 @@ func _connect_casing_pusher_signals() -> void:
 func _on_casing_pusher_body_entered(body: Node2D) -> void:
 	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings:
 		_overlapping_casings.append(body)
-
 func _on_casing_pusher_body_exited(body: Node2D) -> void:
 	if body is RigidBody2D:
 		var idx := _overlapping_casings.find(body)
