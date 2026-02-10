@@ -755,6 +755,30 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Invisibility Suit System (Issue #673)
+
+    /// <summary>
+    /// Whether the invisibility suit is equipped (active item selected in armory).
+    /// </summary>
+    private bool _invisibilitySuitEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript invisibility suit effect node.
+    /// </summary>
+    private Node? _invisibilitySuitEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript invisibility HUD node.
+    /// </summary>
+    private Node? _invisibilityHud = null;
+
+    /// <summary>
+    /// Maximum charges per battle (matches invisibility_suit_effect.gd MAX_CHARGES).
+    /// </summary>
+    private const int InvisibilityMaxCharges = 2;
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -1006,6 +1030,9 @@ public partial class Player : BaseCharacter
 
         // Initialize homing bullets if active item manager has them selected (Issue #677)
         InitHomingBullets();
+
+        // Initialize invisibility suit if active item manager has it selected (Issue #673)
+        InitInvisibilitySuit();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1292,6 +1319,9 @@ public partial class Player : BaseCharacter
 
         // Update charge bar hide timer (auto-hide after 300ms) (Issue #700)
         UpdateChargeBarTimer((float)delta);
+
+        // Handle invisibility suit input (press Space to activate) (Issue #673)
+        HandleInvisibilitySuitInput();
     }
 
     /// <summary>
@@ -3116,6 +3146,10 @@ public partial class Player : BaseCharacter
         {
             grenadeType = GrenadeTimer.GrenadeType.Frag;
         }
+        else if (scenePath.Contains("Aggression", StringComparison.OrdinalIgnoreCase))
+        {
+            grenadeType = GrenadeTimer.GrenadeType.AggressionGas;
+        }
 
         // Create and configure the GrenadeTimer component
         var timer = new GrenadeTimer();
@@ -4239,7 +4273,35 @@ public partial class Player : BaseCharacter
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
         LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
 
+        // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
+        ResetAllEnemyMemories("teleport");
+
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Reset memory for all enemies in the scene (Issue #723).
+    /// Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
+    /// </summary>
+    /// <param name="reason">The reason for the memory reset (for logging purposes).</param>
+    private void ResetAllEnemyMemories(string reason = "teleport")
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int resetCount = 0;
+
+        foreach (var node in enemies)
+        {
+            if (node.HasMethod("reset_memory"))
+            {
+                node.Call("reset_memory");
+                resetCount++;
+            }
+        }
+
+        if (resetCount > 0)
+        {
+            LogToFile($"[Player] Reset memory for {resetCount} enemies ({reason} - Issue #723)");
+        }
     }
 
     /// <summary>
@@ -4619,6 +4681,146 @@ public partial class Player : BaseCharacter
     public bool IsHomingActive()
     {
         return _homingActive;
+    }
+
+    #endregion
+
+    #region Invisibility Suit Methods (Issue #673)
+
+    /// <summary>
+    /// Initialize the invisibility suit if the ActiveItemManager has it selected.
+    /// Loads the GDScript effect and HUD nodes and wires up signal callbacks.
+    /// </summary>
+    private void InitInvisibilitySuit()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.InvisibilitySuit] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_invisibility_suit"))
+        {
+            LogToFile("[Player.InvisibilitySuit] ActiveItemManager missing has_invisibility_suit method");
+            return;
+        }
+
+        bool hasInvisibilitySuit = (bool)activeItemManager.Call("has_invisibility_suit");
+        if (!hasInvisibilitySuit)
+        {
+            LogToFile("[Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.InvisibilitySuit] Invisibility suit is selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/invisibility_suit_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.InvisibilitySuit] WARNING: Failed to load invisibility_suit_effect.gd");
+            return;
+        }
+
+        _invisibilitySuitEffect = new Node();
+        _invisibilitySuitEffect.SetScript(effectScript);
+        _invisibilitySuitEffect.Name = "InvisibilitySuitEffect";
+        AddChild(_invisibilitySuitEffect);
+
+        // Initialize with player reference
+        _invisibilitySuitEffect.Call("initialize", this);
+
+        // Connect signals for HUD updates
+        _invisibilitySuitEffect.Connect("invisibility_activated", Callable.From<int>(OnInvisibilityActivated));
+        _invisibilitySuitEffect.Connect("invisibility_deactivated", Callable.From<int>(OnInvisibilityDeactivated));
+
+        _invisibilitySuitEquipped = true;
+        int charges = (int)_invisibilitySuitEffect.Call("get_charges");
+        LogToFile($"[Player.InvisibilitySuit] Invisibility suit equipped, charges: {charges}");
+
+        // Load and instantiate the GDScript charge bar (Node2D positioned above player)
+        var hudScript = GD.Load<Script>("res://scripts/ui/invisibility_hud.gd");
+        if (hudScript != null)
+        {
+            _invisibilityHud = new Node2D();
+            _invisibilityHud.SetScript(hudScript);
+            _invisibilityHud.Name = "InvisibilityHUD";
+            AddChild(_invisibilityHud);
+            _invisibilityHud.Call("initialize", _invisibilitySuitEffect);
+            LogToFile("[Player.InvisibilitySuit] Charge bar created");
+        }
+        else
+        {
+            LogToFile("[Player.InvisibilitySuit] WARNING: Failed to load invisibility_hud.gd");
+        }
+    }
+
+    /// <summary>
+    /// Handle invisibility suit input: press Space to activate.
+    /// Single press activates for full duration (4 seconds), auto-deactivates.
+    /// </summary>
+    private void HandleInvisibilitySuitInput()
+    {
+        if (!_invisibilitySuitEquipped || _invisibilitySuitEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_invisibilitySuitEffect))
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
+            if (!isActive)
+            {
+                _invisibilitySuitEffect.Call("activate");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Check if the player is currently invisible (Issue #673).
+    /// Called by enemy AI via duck typing (has_method + call).
+    /// </summary>
+    public bool is_invisible()
+    {
+        if (!_invisibilitySuitEquipped || _invisibilitySuitEffect == null)
+            return false;
+        if (!IsInstanceValid(_invisibilitySuitEffect))
+            return false;
+        return (bool)_invisibilitySuitEffect.Call("is_invisible");
+    }
+
+    /// <summary>
+    /// Callback when invisibility activates.
+    /// </summary>
+    private void OnInvisibilityActivated(int chargesRemaining)
+    {
+        if (_invisibilityHud != null && IsInstanceValid(_invisibilityHud))
+        {
+            _invisibilityHud.Call("set_active", true);
+            _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
+        }
+
+        // Issue #723: Reset enemy memory when player becomes invisible
+        // Enemies lose track and enter search mode at last known position
+        ResetAllEnemyMemories("invisibility activation");
+    }
+
+    /// <summary>
+    /// Callback when invisibility deactivates.
+    /// </summary>
+    private void OnInvisibilityDeactivated(int chargesRemaining)
+    {
+        if (_invisibilityHud != null && IsInstanceValid(_invisibilityHud))
+        {
+            _invisibilityHud.Call("set_active", false);
+            _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
+        }
     }
 
     #endregion

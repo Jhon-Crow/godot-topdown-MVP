@@ -342,6 +342,9 @@ func _ready() -> void:
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
+	
+	# Initialize invisibility suit if active item manager has it selected (Issue #673)
+	_init_invisibility_suit()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -445,6 +448,9 @@ func _physics_process(delta: float) -> void:
 
 	# Update charge bar hide timer (auto-hide after 300ms for charge-based items)
 	_update_charge_bar_timer(delta)
+	
+	# Handle invisibility suit input (press Space to activate) (Issue #673)
+	_handle_invisibility_suit_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -3139,7 +3145,7 @@ func _on_homing_charges_changed(_current: int, _maximum: int) -> void:
 	pass
 
 
-## Create and attach the progress bar node if not already present.
+## Create and attach progress bar node if not already present.
 func _ensure_progress_bar_node() -> void:
 	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
 		return
@@ -3173,7 +3179,7 @@ func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void
 	)
 
 
-## Update the progress bar value.
+## Update progress bar value.
 ## @param current: New current value.
 func _update_active_item_bar(current: float) -> void:
 	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
@@ -3184,3 +3190,101 @@ func _update_active_item_bar(current: float) -> void:
 func _hide_active_item_bar() -> void:
 	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
 		_active_item_progress_bar.hide_bar()
+
+
+# ============================================================================
+# Invisibility Suit System (Issue #673)
+# ============================================================================
+
+## Preloaded invisibility suit effect script.
+const InvisibilitySuitEffectScript = preload("res://scripts/effects/invisibility_suit_effect.gd")
+
+## Preloaded invisibility HUD script.
+const InvisibilityHudScript = preload("res://scripts/ui/invisibility_hud.gd")
+
+## Whether the invisibility suit is equipped (active item selected in armory).
+var _invisibility_suit_equipped: bool = false
+
+## Reference to the invisibility suit effect node.
+var _invisibility_suit: Node = null
+
+## Reference to the invisibility charge bar (Node2D above player).
+var _invisibility_hud: Node2D = null
+
+## Maximum charges per battle (matches invisibility_suit_effect.gd MAX_CHARGES).
+const INVISIBILITY_MAX_CHARGES: int = 2
+
+
+## Initialize invisibility suit if active item manager has it selected (Issue #673).
+func _init_invisibility_suit() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	if active_item_manager.get_current_active_item() == "invisibility_suit":
+		_invisibility_suit_equipped = true
+		FileLogger.info("[Player] Invisibility suit equipped (Issue #673)")
+
+
+## Handle invisibility suit input (press Space to activate) (Issue #673).
+func _handle_invisibility_suit_input() -> void:
+	if not _invisibility_suit_equipped:
+		return
+
+	if Input.is_action_just_pressed("active_item"):
+		_activate_invisibility_suit()
+
+
+## Activate invisibility suit effect.
+func _activate_invisibility_suit() -> void:
+	if _invisibility_suit == null:
+		_create_invisibility_suit_effect()
+	
+	if _invisibility_suit != null:
+		_invisibility_suit.call("activate")
+
+
+## Create invisibility suit effect and HUD nodes.
+func _create_invisibility_suit_effect() -> void:
+	# Create effect node
+	_invisibility_suit = InvisibilitySuitEffectScript.new()
+	_invisibility_suit.name = "InvisibilitySuitEffect"
+	add_child(_invisibility_suit)
+	
+	# Create HUD node
+	_invisibility_hud = InvisibilityHudScript.new()
+	_invisibility_hud.name = "InvisibilityHud"
+	
+	# Add HUD to scene tree (root level for visibility)
+	var root = get_tree().current_scene
+	root.add_child(_invisibility_hud)
+	
+	FileLogger.info("[Player] Invisibility suit effect and HUD created (Issue #673)")
+
+
+## Clean up invisibility suit effect and HUD.
+func _cleanup_invisibility_suit() -> void:
+	if _invisibility_suit != null and is_instance_valid(_invisibility_suit):
+		_invisibility_suit.queue_free()
+		_invisibility_suit = null
+	
+	if _invisibility_hud != null and is_instance_valid(_invisibility_hud):
+		_invisibility_hud.queue_free()
+		_invisibility_hud = null
+	
+	FileLogger.info("[Player] Invisibility suit cleaned up (Issue #673)")
+
+
+## Reset enemy AI memory when player becomes invisible.
+## This makes enemies "lose track" of the player when they disappear.
+func _reset_enemy_ai_memory(reason: String) -> void:
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var reset_count = 0
+	
+	for enemy in enemies:
+		if enemy.has_method("reset_player_memory"):
+			enemy.call("reset_player_memory")
+			reset_count += 1
+
+	if reset_count > 0:
+		FileLogger.info("[Player] Reset memory for %d enemies (%s - Issue #723)" % [reset_count, reason])
