@@ -4241,7 +4241,34 @@ public partial class Player : BaseCharacter
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
         LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
 
+        // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
+        ResetAllEnemyMemories();
+
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Reset memory for all enemies in the scene (Issue #723).
+    /// Called when player teleports, causing enemies to lose track and enter search mode.
+    /// </summary>
+    private void ResetAllEnemyMemories()
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int resetCount = 0;
+
+        foreach (var node in enemies)
+        {
+            if (node.HasMethod("reset_memory"))
+            {
+                node.Call("reset_memory");
+                resetCount++;
+            }
+        }
+
+        if (resetCount > 0)
+        {
+            LogToFile($"[Player.TeleportBracers] Reset memory for {resetCount} enemies (teleport effect - Issue #723)");
+        }
     }
 
     /// <summary>

@@ -3159,6 +3159,9 @@ func _on_invisibility_activated(charges_remaining: int) -> void:
 		_invisibility_hud.set_active(true)
 		_invisibility_hud.update_charges(charges_remaining, _invisibility_suit.MAX_CHARGES)
 
+	# Issue #723: Reset enemy memory when player becomes invisible - enemies lose track and enter search mode
+	_reset_all_enemy_memories("invisibility activation")
+
 
 ## Callback when invisibility deactivates.
 func _on_invisibility_deactivated(charges_remaining: int) -> void:
@@ -3188,3 +3191,18 @@ func is_invisible() -> bool:
 ## Get the invisibility suit effect node (for HUD queries).
 func get_invisibility_suit() -> Node:
 	return _invisibility_suit
+
+
+## Reset memory for all enemies in the scene (Issue #723).
+## Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
+func _reset_all_enemy_memories(reason: String) -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var reset_count := 0
+
+	for enemy in enemies:
+		if enemy.has_method("reset_memory"):
+			enemy.reset_memory()
+			reset_count += 1
+
+	if reset_count > 0:
+		FileLogger.info("[Player] Reset memory for %d enemies (%s - Issue #723)" % [reset_count, reason])
