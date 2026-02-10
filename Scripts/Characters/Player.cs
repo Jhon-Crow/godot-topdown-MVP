@@ -662,6 +662,16 @@ public partial class Player : BaseCharacter
     private const float PlayerCollisionRadius = 16.0f;
 
     /// <summary>
+    /// Path to the teleportation activation sound (Issue #719).
+    /// </summary>
+    private const string TeleportSoundPath = "res://assets/audio/teleport_activation.wav";
+
+    /// <summary>
+    /// AudioStreamPlayer for teleportation activation sound (Issue #719).
+    /// </summary>
+    private AudioStreamPlayer? _teleportAudioPlayer = null;
+
+    /// <summary>
     /// Signal emitted when teleport charges change.
     /// </summary>
     [Signal]
@@ -4199,6 +4209,9 @@ public partial class Player : BaseCharacter
 
         // Emit initial charge count for UI
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+
+        // Setup teleport activation sound (Issue #719)
+        SetupTeleportAudio();
     }
 
     /// <summary>
@@ -4253,6 +4266,9 @@ public partial class Player : BaseCharacter
         Vector2 oldPosition = GlobalPosition;
         GlobalPosition = _teleportTargetPosition;
         _teleportCharges--;
+
+        // Play teleportation sound (Issue #719)
+        PlayTeleportSound();
 
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
         LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
@@ -4453,6 +4469,40 @@ public partial class Player : BaseCharacter
         return position;
     }
 
+    /// <summary>
+    /// Set up the audio player for teleportation activation sound (Issue #719).
+    /// </summary>
+    private void SetupTeleportAudio()
+    {
+        if (ResourceLoader.Exists(TeleportSoundPath))
+        {
+            var stream = GD.Load<AudioStream>(TeleportSoundPath);
+            if (stream != null)
+            {
+                _teleportAudioPlayer = new AudioStreamPlayer();
+                _teleportAudioPlayer.Stream = stream;
+                _teleportAudioPlayer.VolumeDb = -6.0f;
+                AddChild(_teleportAudioPlayer);
+                LogToFile("[Player.TeleportBracers] Teleportation activation sound loaded");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.TeleportBracers] Teleportation activation sound not found: {TeleportSoundPath}");
+        }
+    }
+
+    /// <summary>
+    /// Play the teleportation activation sound (Issue #719).
+    /// </summary>
+    private void PlayTeleportSound()
+    {
+        if (_teleportAudioPlayer != null && IsInstanceValid(_teleportAudioPlayer))
+        {
+            _teleportAudioPlayer.Play();
+        }
+    }
+
     #endregion
 
     #region Homing Bullets Methods (Issue #677)
@@ -4627,7 +4677,7 @@ public partial class Player : BaseCharacter
             {
                 _homingAudioPlayer = new AudioStreamPlayer();
                 _homingAudioPlayer.Stream = stream;
-                _homingAudioPlayer.VolumeDb = -3.0f;
+                _homingAudioPlayer.VolumeDb = -10.0f;
                 AddChild(_homingAudioPlayer);
                 LogToFile("[Player.Homing] Homing activation sound loaded");
             }
