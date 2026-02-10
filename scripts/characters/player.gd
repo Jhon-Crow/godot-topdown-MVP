@@ -162,6 +162,9 @@ signal grenade_thrown
 ## Signal emitted when homing bullets charges change.
 signal homing_charges_changed(current: int, maximum: int)
 
+## Signal emitted when teleport charges change.
+signal teleport_charges_changed(current: int, maximum: int)
+
 ## Signal emitted when homing bullets effect activates.
 signal homing_activated
 
@@ -218,6 +221,32 @@ const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
 
 ## AudioStreamPlayer for homing activation sound.
 var _homing_audio_player: AudioStreamPlayer = null
+
+
+# ============================================================================
+# Teleport Bracers Active Item (Issue #719)
+# ============================================================================
+
+## Maximum number of teleport charges.
+const TELEPORT_MAX_CHARGES: int = 6
+
+## Path to the teleportation sound.
+const TELEPORT_SOUND_PATH: String = "res://assets/audio/teleportation.wav"
+
+## Whether teleport bracers are equipped.
+var _teleport_equipped: bool = false
+
+## Current number of teleport charges.
+var _teleport_charges: int = TELEPORT_MAX_CHARGES
+
+## AudioStreamPlayer for teleportation sound.
+var _teleport_audio_player: AudioStreamPlayer = null
+
+## Whether player is currently aiming teleport (holding Space).
+var _teleport_aiming: bool = false
+
+## Target position for teleportation.
+var _teleport_target: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -343,6 +372,9 @@ func _ready() -> void:
 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
 	_init_invisibility_suit()
 
+	# Initialize teleport bracers if active item manager has them selected (Issue #719)
+	_init_teleport_bracers()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -445,6 +477,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle invisibility suit input (press Space to activate) (Issue #673)
 	_handle_invisibility_suit_input()
+
+	# Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #719)
+	_handle_teleport_bracers_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -3056,7 +3091,7 @@ func _setup_homing_audio() -> void:
 		if stream:
 			_homing_audio_player = AudioStreamPlayer.new()
 			_homing_audio_player.stream = stream
-			_homing_audio_player.volume_db = -3.0
+			_homing_audio_player.volume_db = -8.0
 			add_child(_homing_audio_player)
 			FileLogger.info("[Player.Homing] Homing activation sound loaded")
 	else:
@@ -3188,3 +3223,98 @@ func is_invisible() -> bool:
 ## Get the invisibility suit effect node (for HUD queries).
 func get_invisibility_suit() -> Node:
 	return _invisibility_suit
+
+
+# ============================================================================
+# Teleport Bracers Active Item (Issue #719)
+# ============================================================================
+
+
+## Initialize teleport bracers if the ActiveItemManager has them selected.
+func _init_teleport_bracers() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Teleport] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_teleport_bracers"):
+		FileLogger.info("[Player.Teleport] ActiveItemManager missing has_teleport_bracers method")
+		return
+
+	if not active_item_manager.has_teleport_bracers():
+		FileLogger.info("[Player.Teleport] No teleport bracers selected in ActiveItemManager")
+		return
+
+	_teleport_equipped = true
+	_teleport_charges = TELEPORT_MAX_CHARGES
+	_setup_teleport_audio()
+	FileLogger.info("[Player.Teleport] Teleport bracers equipped with %d charges" % _teleport_charges)
+
+
+## Set up the audio player for teleportation sound.
+func _setup_teleport_audio() -> void:
+	if ResourceLoader.exists(TELEPORT_SOUND_PATH):
+		var stream = load(TELEPORT_SOUND_PATH)
+		if stream:
+			_teleport_audio_player = AudioStreamPlayer.new()
+			_teleport_audio_player.stream = stream
+			_teleport_audio_player.volume_db = -2.0
+			add_child(_teleport_audio_player)
+			FileLogger.info("[Player.Teleport] Teleportation sound loaded")
+	else:
+		FileLogger.info("[Player.Teleport] Teleportation sound not found: %s" % TELEPORT_SOUND_PATH)
+
+
+## Play the teleportation sound.
+func _play_teleport_sound() -> void:
+	if _teleport_audio_player and is_instance_valid(_teleport_audio_player):
+		_teleport_audio_player.play()
+
+
+## Handle teleport bracers input: hold Space to aim, release to teleport.
+func _handle_teleport_bracers_input() -> void:
+	if not _teleport_equipped:
+		return
+
+	# Handle aiming (hold Space)
+	if Input.is_action_pressed("flashlight_toggle"):
+		if not _teleport_aiming and _teleport_charges > 0:
+			_teleport_aiming = true
+			# Update target position to mouse position
+			_teleport_target = get_global_mouse_position()
+	elif _teleport_aiming:
+		# Release Space to teleport
+		_teleport_aiming = false
+		if _teleport_charges > 0:
+			_teleport_to_position()
+
+
+## Teleport the player to the target position.
+func _teleport_to_position() -> void:
+	if _teleport_charges <= 0:
+		return
+
+	# Play teleportation sound
+	_play_teleport_sound()
+
+	# Perform teleportation
+	global_position = _teleport_target
+	_teleport_charges -= 1
+	teleport_charges_changed.emit(_teleport_charges, TELEPORT_MAX_CHARGES)
+	
+	FileLogger.info("[Player.Teleport] Teleported! Charges remaining: %d/%d" % [_teleport_charges, TELEPORT_MAX_CHARGES])
+
+
+## Check if teleport bracers are currently equipped.
+func is_teleport_bracers_equipped() -> bool:
+	return _teleport_equipped
+
+
+## Get remaining teleport charges.
+func get_teleport_charges() -> int:
+	return _teleport_charges
+
+
+## Get maximum teleport charges.
+func get_max_teleport_charges() -> int:
+	return TELEPORT_MAX_CHARGES
