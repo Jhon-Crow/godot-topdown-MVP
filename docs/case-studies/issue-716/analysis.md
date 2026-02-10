@@ -5,24 +5,81 @@
 **Issue Number:** #716
 **Title:** fix револьвер (Fix revolver)
 **Date Reported:** 2026-02-09
-**Status:** In Progress
+**Status:** In Progress (v2 - Updated based on user testing feedback)
 
-### Requirements
+### Original Requirements
 
 The issue specifies two critical bugs in the revolver implementation:
 
 1. **Empty Cylinder Hammer Cocking**: When the cylinder (барабан) is empty, it should be possible to cock the hammer (взвести курок).
 2. **Empty Slot Click Sound**: When trying to fire from an empty cylinder slot, instead of a shot, the sound `assets/audio/Щелчок пустого револьвера.mp3` should play.
 
-### Additional Requirement
+### Updated Requirements (from Jhon-Crow's Feedback - 2026-02-10)
 
-The issue also requests a deep case study analysis with:
-- Timeline/sequence of events reconstruction
-- Root cause analysis
-- Proposed solutions
-- All relevant logs and data compiled to `./docs/case-studies/issue-{id}` folder
+The repository owner clarified the expected behavior with detailed testing feedback:
+
+1. **Empty Slot Hammer Cocking**: Should be able to cock hammer when:
+   - Current selected slot is empty, OR
+   - Entire cylinder is empty
+   - **(Not working in initial fix)**
+
+2. **Uncocked Fire (LMB without prior RMB)**:
+   - First, cylinder rotates to NEXT position
+   - Then, shot happens from the NEW slot (after rotation)
+
+3. **Cocked Fire (LMB after RMB cock)**:
+   - Fires from CURRENT slot (no rotation before firing)
+   - Either successful shot or empty click, depending on chamber state
 
 ## Technical Analysis
+
+### v1 Analysis (Initial - Incorrect)
+
+The initial analysis focused on:
+- Removing `CurrentAmmo <= 0` check from `ManualCockHammer()`
+- Adding empty click sound in `ExecuteShot()`
+
+This fix was **incomplete** because it didn't address the cylinder rotation timing issue.
+
+### v2 Analysis (Updated - Correct)
+
+#### Root Cause 1: Cylinder Rotation Timing
+
+**Problem:** The original code rotated the cylinder **AFTER** firing (in `ExecuteShot()`), but for uncocked fire, the cylinder should rotate **BEFORE** the shot.
+
+**Relevant Code (Before Fix):**
+```csharp
+// In Fire() - checked current chamber BEFORE any rotation
+bool currentChamberHasRound = _chamberOccupied[_currentChamberIndex];
+if (!currentChamberHasRound)
+{
+    PlayEmptyClickSound();  // Click from CURRENT slot
+    return false;
+}
+
+// In ExecuteShot() - rotated AFTER firing
+_currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+```
+
+**Expected Behavior:**
+- For **uncocked LMB**: Rotate first, then check/fire from NEW slot
+- For **cocked LMB**: Fire from CURRENT slot (no rotation)
+
+#### Root Cause 2: Empty Chamber Check in ManualCockHammer
+
+**Problem:** Issue #691 introduced per-chamber checking which blocked hammer cocking when current chamber was empty.
+
+```csharp
+// Issue #691 code - blocks cocking on empty chamber
+if (!currentChamberHasRound)
+{
+    PlayEmptyClickSound();
+    GD.Print($"[Revolver] Cannot cock - chamber {_currentChamberIndex} is empty");
+    return false;
+}
+```
+
+**Real Revolver Behavior:** Hammer can be cocked regardless of chamber state. The empty click occurs on trigger pull, not during cocking.
 
 ### Codebase Structure
 
@@ -31,81 +88,11 @@ The revolver implementation consists of:
 1. **Revolver.cs** - Main weapon logic (C# script at `Scripts/Weapons/Revolver.cs`)
 2. **audio_manager.gd** - Audio playback system (GDScript at `scripts/autoload/audio_manager.gd`)
 3. **player.gd** - Player controller (GDScript at `scripts/characters/player.gd`)
-4. **Test files**:
+4. **RevolverCylinderUI.cs** - Cylinder HUD (Issue #691)
+5. **Test files**:
    - `tests/unit/test_revolver_hammer_cock.gd`
    - `tests/unit/test_revolver_reload.gd`
-
-### Root Cause Analysis
-
-#### Problem 1: Empty Cylinder Hammer Cocking Blocked
-
-**Location:** `Scripts/Weapons/Revolver.cs`, lines 573-622 (ManualCockHammer method)
-
-**Current Behavior:**
-```csharp
-// Lines 587-592
-// Cannot cock with empty cylinder
-if (CurrentAmmo <= 0)
-{
-    PlayEmptyClickSound();
-    return false;
-}
-```
-
-**Root Cause:**
-The `ManualCockHammer()` method explicitly blocks hammer cocking when `CurrentAmmo <= 0`, playing an empty click sound instead. This was likely implemented as a safety check, but it doesn't match real-world revolver mechanics where the hammer can be cocked regardless of ammunition state.
-
-**Real-World Behavior:**
-In a real revolver, the hammer can be cocked even with an empty cylinder. The hammer mechanism is independent of the ammunition state. The empty click occurs when the trigger is pulled (firing pin strikes), not during cocking.
-
-**Impact:**
-- Players cannot cock the hammer when the cylinder is empty
-- Breaks immersion and realistic weapon mechanics
-- Blocks certain gameplay mechanics (e.g., intimidation, pre-cocking before reload)
-
-#### Problem 2: Empty Slot Click Sound
-
-**Location:** `Scripts/Weapons/Revolver.cs`, lines 514-519 (Fire method)
-
-**Current Implementation:**
-```csharp
-// Check for empty cylinder - play click sound
-if (CurrentAmmo <= 0)
-{
-    PlayEmptyClickSound();
-    return false;
-}
-```
-
-**Analysis:**
-The empty click sound implementation appears to be correct. The `Fire()` method properly checks for empty cylinder and calls `PlayEmptyClickSound()`, which is connected to the audio file `assets/audio/Щелчок пустого револьвера.mp3` (line 172 in audio_manager.gd).
-
-**Verification Needed:**
-The second requirement might already be working, but needs testing to confirm:
-- Does the sound play correctly?
-- Is the audio file path correct?
-- Are there any edge cases (e.g., partially loaded cylinder with empty chambers)?
-
-### Chamber-by-Chamber Mechanics
-
-The revolver implements advanced per-chamber tracking (Issue #668):
-
-```csharp
-// Line 94-100
-private bool[] _chamberOccupied = System.Array.Empty<bool>();
-private int _currentChamberIndex = 0;
-```
-
-**Important Note:**
-The revolver tracks each chamber individually. When firing, it should:
-1. Check if the current chamber is occupied (`_chamberOccupied[_currentChamberIndex]`)
-2. If empty, play the empty click sound
-3. If loaded, fire the bullet
-
-**Current Fire Logic:**
-The current implementation only checks `CurrentAmmo <= 0` (total ammo), not the individual chamber state. This means:
-- If cylinder has 3/5 rounds but current chamber is empty → should click, but might not
-- Need to verify chamber-specific empty click behavior
+   - `tests/unit/test_revolver_cylinder_ui.gd`
 
 ## Timeline of Events
 
@@ -116,70 +103,81 @@ The current implementation only checks `CurrentAmmo <= 0` (total ammo), not the 
 3. **Issue #659** - One cartridge per slot enforcement
 4. **Issue #661** - Hammer cock delay and sound added
 5. **Issue #668** - Per-chamber occupancy tracking
-6. **Issue #716** - Current issue: Empty cylinder hammer cocking blocked
+6. **Issue #691** - Cylinder HUD and per-chamber fire logic
+7. **Issue #716** - Current issue: Cylinder rotation timing and empty cocking
 
-### Bug Introduction
+### Bug Introduction Analysis
 
-The hammer cocking restriction was likely introduced in Issue #649 or #661 as a "feature" to prevent cocking with no ammo. However, this doesn't match real revolver behavior and creates the current bug.
+1. **Original Issue #649**: Introduced manual cocking with `CurrentAmmo <= 0` check
+2. **Issue #691**: Changed to per-chamber checking but made cocking logic MORE restrictive
+3. **Issue #716 v1 Fix**: Removed check but didn't fix rotation timing
+4. **Issue #716 v2 Fix**: Complete rewrite of fire sequence logic
 
-## Proposed Solution
+## Solution Implementation (v2)
 
-### Fix for Problem 1: Allow Empty Cylinder Hammer Cocking
+### Fix 1: Allow Empty Chamber Hammer Cocking
 
-**Modification:** Remove the `CurrentAmmo <= 0` check from `ManualCockHammer()` method.
+**Location:** `ManualCockHammer()` method
 
-**Implementation:**
+**Change:** Removed the per-chamber check entirely. Hammer can be cocked at any time (except when already cocked or cylinder is open).
+
 ```csharp
-// Modified ManualCockHammer() - Remove lines 587-592
-public bool ManualCockHammer()
+// Issue #716: Allow hammer cocking even with empty current chamber.
+// Real revolvers can cock the hammer regardless of ammo state - the hammer
+// mechanism is independent of whether chambers are loaded. The empty click
+// occurs when firing (trigger pull), not during cocking.
+```
+
+### Fix 2: Correct Cylinder Rotation Timing
+
+**Location:** `Fire()` method
+
+**For Cocked Fire (hammer already cocked via RMB):**
+```csharp
+if (_isManuallyHammerCocked)
 {
-    // Cannot cock while cylinder is open
-    if (ReloadState != RevolverReloadState.NotReloading)
+    _isManuallyHammerCocked = false;
+
+    // Check current chamber for cocked fire - click or shoot
+    bool currentChamberHasRound = _chamberOccupied[_currentChamberIndex];
+
+    if (!currentChamberHasRound)
     {
-        return false;
+        PlayEmptyClickSound();
+        GD.Print($"[Revolver] Click - cocked hammer on empty chamber");
+        return true; // Action performed
     }
 
-    // Cannot cock if already cocked (either manually or via LMB fire sequence)
-    if (_isHammerCocked || _isManuallyHammerCocked)
-    {
-        return false;
-    }
-
-    // CHECK REMOVED: Allow cocking even with empty cylinder
-    // Real revolvers can cock the hammer regardless of ammo state
-
-    // Check weapon data and bullet scene are available
-    if (WeaponData == null || BulletScene == null)
-    {
-        return false;
-    }
-
-    // ... rest of the method remains unchanged
+    ExecuteShot(direction);
+    return true;
 }
 ```
 
-**Alternative Approach (More Complex):**
-Add a parameter to distinguish between "action cocking" (which should always work) and "firing cocking" (which might have restrictions). However, this adds unnecessary complexity.
-
-### Fix for Problem 2: Verify/Enhance Empty Click Sound
-
-**Option A: Current Implementation is Correct**
-If testing confirms the sound works, no changes needed.
-
-**Option B: Add Chamber-Specific Check** (if needed)
+**For Uncocked Fire (normal LMB):**
 ```csharp
-// Enhanced Fire() method
-if (CurrentAmmo <= 0 || !IsCurrentChamberLoaded())
-{
-    PlayEmptyClickSound();
-    return false;
-}
+// Issue #716: Rotate cylinder FIRST before hammer cock animation
+int oldChamberIndex = _currentChamberIndex;
+_currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+GD.Print($"[Revolver] Cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
 
-private bool IsCurrentChamberLoaded()
+// Then cock hammer - shot happens after delay from NEW position
+_isHammerCocked = true;
+_hammerCockTimer = HammerCockDelay;
+_pendingShotDirection = direction;
+```
+
+### Fix 3: Remove Double Rotation
+
+**Location:** `ExecuteShot()` method
+
+**Change:** Removed cylinder rotation after firing (was causing double rotation for uncocked shots):
+```csharp
+// Issue #716: Do NOT rotate cylinder here - rotation already happened in Fire()
+// for uncocked shots. For cocked shots, cylinder stays at current position.
+if (_chamberOccupied.Length > 0)
 {
-    return _chamberOccupied.Length > 0
-        && _currentChamberIndex < _chamberOccupied.Length
-        && _chamberOccupied[_currentChamberIndex];
+    _chamberOccupied[_currentChamberIndex] = false;
+    // REMOVED: _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
 }
 ```
 
@@ -188,68 +186,62 @@ private bool IsCurrentChamberLoaded()
 ### Test Cases
 
 1. **Empty Cylinder Hammer Cock:**
-   - Load game with revolver
    - Fire all rounds (empty cylinder)
    - Press RMB to manually cock hammer
-   - **Expected:** Hammer cocks successfully, rotation sound plays
-   - **Actual (before fix):** Empty click sound plays, hammer doesn't cock
+   - **Expected:** Hammer cocks successfully, sounds play
+   - **Status:** Fixed in v2
 
-2. **Empty Cylinder Fire Attempt:**
-   - Empty cylinder (all 5 rounds fired)
-   - Press LMB to fire
-   - **Expected:** Empty click sound plays (`Щелчок пустого револьвера.mp3`)
-   - **Actual:** Needs verification
+2. **Empty Current Slot Hammer Cock:**
+   - Partially loaded cylinder
+   - Rotate to empty slot using scroll wheel
+   - Press RMB to cock
+   - **Expected:** Hammer cocks successfully
+   - **Status:** Fixed in v2
 
-3. **Partially Loaded Cylinder Empty Chamber:**
-   - Load 3 of 5 rounds
-   - Rotate to empty chamber
+3. **Uncocked Fire - Cylinder Rotation:**
+   - Loaded cylinder, slot 0 selected
+   - Press LMB (uncocked)
+   - **Expected:** Cylinder rotates to slot 1, fires from slot 1
+   - **Status:** Fixed in v2
+
+4. **Cocked Fire - No Rotation:**
+   - Loaded cylinder, slot 0 selected
+   - Press RMB to cock, then LMB to fire
+   - **Expected:** Fires from slot 0 (current), no rotation before shot
+   - **Status:** Fixed in v2
+
+5. **Cocked Fire on Empty Slot:**
+   - Rotate to empty slot
+   - Press RMB to cock
    - Press LMB to fire
    - **Expected:** Empty click sound plays
-   - **Actual:** Needs verification
+   - **Status:** Fixed in v2
 
-4. **Cock Then Fire Empty:**
-   - Empty cylinder
-   - Cock hammer (RMB)
-   - Fire (LMB)
-   - **Expected:** Empty click sound plays
-   - **Actual (after fix):** Should work correctly
+### Game Log Reference
 
-### Automated Tests
+User testing log attached: `game_log_20260210_230952.txt`
 
-Update existing test files:
-- `tests/unit/test_revolver_hammer_cock.gd` - Add empty cylinder cocking test
-- `tests/unit/test_revolver_reload.gd` - Verify no regression
+Key observations from log:
+- Player equipped Revolver (ammo: 5/5)
+- Multiple shots fired successfully
+- Sound propagation working
+- Bullet penetration working
 
 ## Risk Assessment
 
-### Low Risk Changes
+### Changes Made
 
-- Removing the ammo check from `ManualCockHammer()` is low risk
-- The method is only called from player input (RMB press)
-- Hammer cock is a preparatory action, not a firing action
-- Worst case: Player can cock hammer with no ammo (intended behavior)
+| Change | Risk Level | Reason |
+|--------|------------|--------|
+| Allow empty cocking | Low | Adds functionality, no breaking changes |
+| Rotation before fire | Medium | Changes fire sequence, needs thorough testing |
+| Remove double rotation | Medium | Affects chamber tracking, needs verification |
 
 ### Potential Side Effects
 
-1. **Gameplay Balance:** None expected - cocking empty revolver is a realistic mechanic
-2. **Performance:** No impact - same code path, just removed check
-3. **Audio System:** No changes needed - sounds already implemented
-4. **Animation System:** May need verification that animations work with empty cylinder
-
-## Implementation Plan
-
-1. ✅ Create case study directory structure
-2. ✅ Document root cause analysis
-3. ⏳ Modify `Scripts/Weapons/Revolver.cs`:
-   - Remove lines 587-592 (empty ammo check in ManualCockHammer)
-   - Add explanatory comment about why cocking is allowed when empty
-4. ⏳ Test the fix:
-   - Manual testing: Empty cylinder cocking
-   - Manual testing: Empty click sound verification
-   - Run existing unit tests
-5. ⏳ Commit changes with clear message
-6. ⏳ Update PR description with findings
-7. ⏳ Mark PR as ready for review
+1. **Cylinder HUD**: May need adjustment for rotation timing display
+2. **Replay System**: Rotation events may record differently
+3. **Sound Timing**: Rotation sound plays earlier in sequence
 
 ## References
 
@@ -259,18 +251,24 @@ Update existing test files:
 - #659 - One cartridge per slot
 - #661 - Hammer cock delay
 - #668 - Per-chamber occupancy tracking
+- #691 - Cylinder HUD and per-chamber logic
 
 ### Audio Files
 - `assets/audio/Щелчок пустого револьвера.mp3` - Empty revolver click
 - `assets/audio/взведение курка револьвера.mp3` - Hammer cock sound
+- Various cylinder rotation sounds (random variants)
 
 ### Code Locations
-- `Scripts/Weapons/Revolver.cs:573-622` - ManualCockHammer() method
-- `Scripts/Weapons/Revolver.cs:514-519` - Fire() empty check
-- `scripts/autoload/audio_manager.gd:936-937` - play_revolver_empty_click()
+- `Scripts/Weapons/Revolver.cs:568-632` - Fire() method
+- `Scripts/Weapons/Revolver.cs:672-731` - ManualCockHammer() method
+- `Scripts/Weapons/Revolver.cs:738-785` - ExecuteShot() method
 
 ## Conclusion
 
-This is a straightforward bug fix with clear root cause and low-risk solution. The main issue is an overly restrictive check that doesn't match real-world revolver mechanics. Removing this check will allow players to cock the hammer with an empty cylinder, which is both realistic and doesn't break any game mechanics.
+This issue required a deeper understanding of revolver mechanics beyond the initial analysis. The key insight from user testing feedback was that:
 
-The empty click sound appears to be already implemented correctly, but will be verified during testing.
+1. Uncocked fire should rotate BEFORE firing (not after)
+2. Cocked fire should NOT rotate (fire from selected slot)
+3. Hammer cocking is purely mechanical (independent of ammo state)
+
+The v2 fix addresses all three requirements and matches real-world single-action revolver behavior where cocking the hammer advances the cylinder, while pulling the trigger on an already-cocked hammer just fires.
