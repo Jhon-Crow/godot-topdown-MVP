@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
@@ -479,7 +480,33 @@ public partial class MakarovPM : BaseWeapon
             bulletNode.Set("stun_duration", StunDurationOnHit);
         }
 
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (IsBreakerBulletActive)
+        {
+            bulletNode.Set("is_breaker_bullet", true);
+        }
+
         GetTree().CurrentScene.AddChild(bulletNode);
+
+        // Enable homing on the bullet if the player's homing effect is active (Issue #704)
+        // When firing during activation, use aim-line targeting (nearest to crosshair)
+        var weaponOwner = GetParent();
+        if (weaponOwner is Player player && player.IsHomingActive())
+        {
+            Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
+            if (bullet != null)
+            {
+                bullet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+            }
+            else if (bulletNode.HasMethod("enable_homing_with_aim_line"))
+            {
+                bulletNode.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
+            }
+            else if (bulletNode.HasMethod("enable_homing"))
+            {
+                bulletNode.Call("enable_homing");
+            }
+        }
 
         // Spawn muzzle flash effect
         SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);

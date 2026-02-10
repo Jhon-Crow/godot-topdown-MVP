@@ -71,24 +71,13 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var magazine_size: int = 30  ## Bullets per magazine.
 @export var total_magazines: int = 5  ## Number of magazines carried.
 
-## Ammunition system - time to reload in seconds.
-@export var reload_time: float = 3.0
-
-## Delay between spotting player and shooting (gives reaction time).
-@export var detection_delay: float = 0.2
-## Min visibility time before enabling lead prediction.
-@export var lead_prediction_delay: float = 0.3
-## Min visibility ratio (0-1) for lead prediction (prevents pre-firing at cover edges).
-@export var lead_prediction_visibility_threshold: float = 0.6
-
-## Walking animation speed multiplier - higher = faster leg cycle.
-@export var walk_anim_speed: float = 12.0
-
-## Walking animation intensity - higher = more pronounced movement.
-@export var walk_anim_intensity: float = 1.0
-
-## Scale multiplier for enemy model (1.3 matches player size).
-@export var enemy_model_scale: float = 1.3
+@export var reload_time: float = 3.0  ## Time to reload in seconds.
+@export var detection_delay: float = 0.2  ## Delay between spotting player and shooting (reaction time).
+@export var lead_prediction_delay: float = 0.3  ## Min visibility time before enabling lead prediction.
+@export var lead_prediction_visibility_threshold: float = 0.6  ## Min visibility ratio for lead prediction.
+@export var walk_anim_speed: float = 12.0  ## Walking animation speed multiplier.
+@export var walk_anim_intensity: float = 1.0  ## Walking animation intensity.
+@export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 # Grenade System Configuration (Issue #363, #375)
@@ -341,7 +330,10 @@ var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
-var _grenade_avoidance: GrenadeAvoidanceComponent = null  ## [Grenade Avoidance - Issue #407]
+var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
+
+## [Grenade Avoidance - Issue #407] Component handles avoidance logic
+var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
 const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Maximum evasion time (seconds).
 var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion.
@@ -355,6 +347,8 @@ var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
+var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
+var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -379,6 +373,7 @@ func _ready() -> void:
 	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
+	_setup_aggression_component()  # Issue #675
 	_setup_machete_component()  # Issue #579
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -922,8 +917,9 @@ func _update_enemy_model_rotation() -> void:
 	var target_angle: float
 	var has_target := false
 	var rotation_reason := ""  # Issue #397 debug: track which priority was used
-	# Priority 1: Face player if visible
-	if _player != null and _can_see_player:
+	if _is_facing_for_grenade_throw and _grenade_throw_facing_direction != Vector2.ZERO:  # P0: Issue #712
+		target_angle = _grenade_throw_facing_direction.angle(); has_target = true; rotation_reason = "P0:grenade_throw"
+	elif _player != null and _can_see_player:  # P1: Face player if visible
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P1:visible"
@@ -985,9 +981,7 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Updates the walking animation based on enemy movement state.
-## Creates a natural bobbing motion for body parts during movement.
-## @param delta: Time since last frame.
+## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
 	if is_moving:
@@ -1158,6 +1152,9 @@ func _process_ai_state(delta: float) -> void:
 		_log_to_file("GRENADE DANGER: Entering EVADING_GRENADE state from %s" % AIState.keys()[_current_state])
 		_transition_to_evading_grenade()
 		return
+
+	if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
+		_aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
@@ -2839,9 +2836,7 @@ func _is_player_point_visible_to_enemy(point: Vector2) -> bool:
 
 	return true
 
-## Calculate what fraction of the player's body is visible to the enemy.
-## Returns a value from 0.0 (completely hidden) to 1.0 (fully visible).
-## Checks multiple points on the player's body (center + corners).
+## Calculate player body visibility fraction (0.0=hidden, 1.0=visible) using multi-point checks.
 func _calculate_player_visibility_ratio() -> float:
 	if _player == null:
 		return 0.0
@@ -3493,9 +3488,7 @@ func _find_flank_cover_toward_target() -> void:
 	else:
 		_has_flank_cover = false
 
-## Check if there's a wall ahead in the given direction and return avoidance direction.
-## Returns Vector2.ZERO if no wall detected, otherwise returns a vector to avoid the wall.
-## Enhanced version uses 8 raycasts with distance-weighted avoidance for better navigation.
+## Check for wall ahead and return avoidance direction (Vector2.ZERO if clear). Uses 8 distance-weighted raycasts.
 func _check_wall_ahead(direction: Vector2) -> Vector2:
 	if _wall_raycasts.is_empty():
 		return Vector2.ZERO
@@ -3612,6 +3605,10 @@ func _check_player_visibility() -> void:
 		return
 
 	if _player == null or not _raycast:
+		_continuous_visibility_timer = 0.0
+		return
+	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
+	if _player.has_method("is_invisible") and _player.is_invisible():
 		_continuous_visibility_timer = 0.0
 		return
 
@@ -3835,22 +3832,12 @@ func _aim_at_player() -> void:
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
-	if bullet_scene == null or _player == null:
-		return
-
-	# Check if we can shoot (have ammo and not reloading)
-	if not _can_shoot():
-		return
-
-	var target_position := _player.global_position
-
-	# Apply lead prediction if enabled
-	if enable_lead_prediction:
-		target_position = _calculate_lead_prediction()
-
-	# Check if the shot should be taken (friendly fire and cover checks)
-	if not _should_shoot_at_target(target_position):
-		return
+	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
+	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
+	if not _can_shoot(): return
+	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
+	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
+	if not _agg and not _should_shoot_at_target(target_position): return
 
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -4195,6 +4182,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
+		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4532,6 +4520,7 @@ func _update_debug_label() -> void:
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
+	if _aggression: t += _aggression.get_debug_text()
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4823,10 +4812,13 @@ func set_blinded(blinded: bool) -> void:
 
 func set_stunned(stunned: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_stunned(stunned)
-
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
-
+func _setup_aggression_component() -> void:  ## [Issue #675]
+	_aggression = AggressionComponent.new(); _aggression.name = "AggressionComponent"; add_child(_aggression)
+	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
+func set_aggressive(a: bool) -> void: if _aggression: _aggression.set_aggressive(a)
+func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggressive()
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
@@ -4845,6 +4837,8 @@ func _setup_grenade_component() -> void:
 	_grenade_component.throw_delay = grenade_throw_delay; _grenade_component.min_throw_distance = grenade_min_throw_distance
 	_grenade_component.debug_logging = grenade_debug_logging; _grenade_component.safety_margin = grenade_safety_margin
 	add_child(_grenade_component); _grenade_component.initialize()
+	_grenade_component.face_throw_direction.connect(_on_grenade_face_throw_direction)  # Issue #712: pre-throw rotation
+	_grenade_component.grenade_thrown.connect(_on_grenade_component_thrown)  # Issue #712: clear facing after throw
 	if is_grenadier:  # Connect grenadier signals + vest visual (Issue #604)
 		var gc := _grenade_component as GrenadierGrenadeComponent
 		gc.grenade_incoming.connect(_on_grenadier_grenade_incoming); gc.grenade_exploded_safe.connect(_on_grenadier_grenade_exploded)
@@ -4862,6 +4856,14 @@ func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_vulnerable_sound(position, _can_see_player)
+
+## Issue #712: Grenade throw facing - set direction before throw, clear after throw completes.
+func _on_grenade_face_throw_direction(target_direction: Vector2) -> void:
+	if target_direction == Vector2.ZERO: return
+	_grenade_throw_facing_direction = target_direction; _is_facing_for_grenade_throw = true
+
+func _on_grenade_component_thrown(_grenade: Node, _target_position: Vector2) -> void:
+	_grenade_throw_facing_direction = Vector2.ZERO; _is_facing_for_grenade_throw = false
 
 ## Called when ally dies. Handles grenade awareness (#407) and death observation (#409).
 func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction: Vector2 = Vector2.ZERO) -> void:
