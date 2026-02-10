@@ -4811,9 +4811,23 @@ func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
 func _setup_aggression_component() -> void:  ## [Issue #675]
 	_aggression = AggressionComponent.new(); _aggression.name = "AggressionComponent"; add_child(_aggression)
-	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
+	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); _on_aggression_changed(a))
 func set_aggressive(a: bool) -> void: if _aggression: _aggression.set_aggressive(a)
 func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggressive()
+
+## Handle aggression state changes properly (Issue #729 fix)
+## Aggressive enemies should NOT transition to regular combat - they use aggression component instead
+func _on_aggression_changed(is_aggressive: bool) -> void:
+	if is_aggressive:
+		_log_to_file("[#675] AGGRESSIVE")
+		# Aggressive enemies enter a special aggression state, not regular combat
+		# They will use AggressionComponent.process_combat() to target other enemies
+		if _current_state in [AIState.IDLE, AIState.IN_COVER]:
+			# Don't transition to combat - let aggression component handle behavior
+			pass
+	else:
+		_log_to_file("[#675] Aggression expired")
+
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
