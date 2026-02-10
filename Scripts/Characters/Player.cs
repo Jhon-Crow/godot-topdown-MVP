@@ -4242,16 +4242,17 @@ public partial class Player : BaseCharacter
         LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
 
         // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
-        ResetAllEnemyMemories();
+        ResetAllEnemyMemories("teleport");
 
         QueueRedraw();
     }
 
     /// <summary>
     /// Reset memory for all enemies in the scene (Issue #723).
-    /// Called when player teleports, causing enemies to lose track and enter search mode.
+    /// Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
     /// </summary>
-    private void ResetAllEnemyMemories()
+    /// <param name="reason">The reason for the memory reset (for logging purposes).</param>
+    private void ResetAllEnemyMemories(string reason = "teleport")
     {
         var enemies = GetTree().GetNodesInGroup("enemies");
         int resetCount = 0;
@@ -4267,7 +4268,7 @@ public partial class Player : BaseCharacter
 
         if (resetCount > 0)
         {
-            LogToFile($"[Player.TeleportBracers] Reset memory for {resetCount} enemies (teleport effect - Issue #723)");
+            LogToFile($"[Player] Reset memory for {resetCount} enemies ({reason} - Issue #723)");
         }
     }
 
@@ -4753,6 +4754,10 @@ public partial class Player : BaseCharacter
             _invisibilityHud.Call("set_active", true);
             _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
         }
+
+        // Issue #723: Reset enemy memory when player becomes invisible
+        // Enemies lose track and enter search mode at last known position
+        ResetAllEnemyMemories("invisibility activation");
     }
 
     /// <summary>
