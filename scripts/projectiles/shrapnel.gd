@@ -50,8 +50,27 @@ const VELOCITY_RETENTION: float = 0.8
 ## Random angle deviation for ricochet direction in degrees.
 const RICOCHET_ANGLE_DEVIATION: float = 15.0
 
+# ============================================================================
+# Issue #724: Optimization - Cached Manager References
+# ============================================================================
+
+## Cached reference to AudioManager autoload.
+var _audio_manager: Node = null
+
+## Cached reference to ImpactEffectsManager autoload.
+var _impact_manager: Node = null
+
+## Cached reference to ProjectilePool autoload.
+var _projectile_pool: Node = null
+
+## Whether this shrapnel is managed by the ProjectilePool.
+var _is_pooled: bool = false
+
 
 func _ready() -> void:
+	# Cache manager references once (Issue #724 optimization)
+	_cache_manager_references()
+
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
@@ -67,6 +86,40 @@ func _ready() -> void:
 	_update_rotation()
 
 
+## Caches references to autoload managers.
+## Issue #724 optimization: Reduces per-shrapnel overhead.
+func _cache_manager_references() -> void:
+	_audio_manager = get_node_or_null("/root/AudioManager")
+	_impact_manager = get_node_or_null("/root/ImpactEffectsManager")
+	_projectile_pool = get_node_or_null("/root/ProjectilePool")
+
+
+## Resets the shrapnel to its default state for object pool reuse.
+## Issue #724 optimization: Enables efficient shrapnel recycling.
+func reset_for_pool() -> void:
+	direction = Vector2.RIGHT
+	speed = 5000.0
+	damage = 1
+	source_id = -1
+	thrower_id = -1
+	max_ricochets = 3
+	_time_alive = 0.0
+	_ricochet_count = 0
+	rotation = 0.0
+	_position_history.clear()
+	if _trail:
+		_trail.clear_points()
+
+
+## Deactivates the shrapnel, returning it to the pool if pooled, or freeing it.
+## Issue #724 optimization: Enables shrapnel recycling.
+func deactivate() -> void:
+	if _is_pooled and _projectile_pool and _projectile_pool.has_method("return_shrapnel"):
+		_projectile_pool.return_shrapnel(self)
+	else:
+		queue_free()
+
+
 func _physics_process(delta: float) -> void:
 	# Move in the set direction
 	var movement := direction * speed * delta
@@ -78,7 +131,7 @@ func _physics_process(delta: float) -> void:
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		deactivate()
 
 
 ## Updates the shrapnel rotation to match its travel direction.
@@ -128,10 +181,10 @@ func _on_body_entered(body: Node2D) -> void:
 			return  # Shrapnel ricocheted, continue
 
 	# Play wall impact sound and destroy
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-		audio_manager.play_bullet_wall_hit(global_position)
-	queue_free()
+	# Issue #724: Use cached _audio_manager reference
+	if _audio_manager and _audio_manager.has_method("play_bullet_wall_hit"):
+		_audio_manager.play_bullet_wall_hit(global_position)
+	deactivate()
 
 
 func _on_area_entered(area: Area2D) -> void:
@@ -157,7 +210,7 @@ func _on_area_entered(area: Area2D) -> void:
 		else:
 			area.on_hit()
 
-		queue_free()
+		deactivate()
 
 
 ## Attempts to ricochet the shrapnel off a surface.
@@ -228,22 +281,22 @@ func _perform_ricochet(surface_normal: Vector2) -> void:
 
 
 ## Plays the ricochet sound effect.
+## Issue #724: Use cached _audio_manager reference.
 func _play_ricochet_sound() -> void:
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_bullet_ricochet"):
-		audio_manager.play_bullet_ricochet(global_position)
-	elif audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-		audio_manager.play_bullet_wall_hit(global_position)
+	if _audio_manager and _audio_manager.has_method("play_bullet_ricochet"):
+		_audio_manager.play_bullet_ricochet(global_position)
+	elif _audio_manager and _audio_manager.has_method("play_bullet_wall_hit"):
+		_audio_manager.play_bullet_wall_hit(global_position)
 
 
 ## Spawns dust/debris particles when shrapnel hits a wall.
+## Issue #724: Use cached _impact_manager reference.
 func _spawn_wall_hit_effect(body: Node2D) -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
+	if _impact_manager == null or not _impact_manager.has_method("spawn_dust_effect"):
 		return
 
 	# Get surface normal for particle direction
 	var surface_normal := _get_surface_normal(body)
 
 	# Spawn dust effect at hit position (without caliber data - small effect)
-	impact_manager.spawn_dust_effect(global_position, surface_normal, null)
+	_impact_manager.spawn_dust_effect(global_position, surface_normal, null)

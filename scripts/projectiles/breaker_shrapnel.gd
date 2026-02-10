@@ -48,8 +48,27 @@ var _trail_noise_speed: float = 0.0
 ## Enable/disable debug logging.
 var _debug: bool = false
 
+# ============================================================================
+# Issue #724: Optimization - Cached Manager References
+# ============================================================================
+
+## Cached reference to AudioManager autoload.
+var _audio_manager: Node = null
+
+## Cached reference to ImpactEffectsManager autoload.
+var _impact_manager: Node = null
+
+## Cached reference to ProjectilePool autoload.
+var _projectile_pool: Node = null
+
+## Whether this shrapnel is managed by the ProjectilePool.
+var _is_pooled: bool = false
+
 
 func _ready() -> void:
+	# Cache manager references once (Issue #724 optimization)
+	_cache_manager_references()
+
 	# Add to group for global shrapnel count tracking (Issue #678 optimization)
 	add_to_group("breaker_shrapnel")
 
@@ -72,6 +91,39 @@ func _ready() -> void:
 	_trail_noise_speed = randf_range(8.0, 15.0)
 
 
+## Caches references to autoload managers.
+## Issue #724 optimization: Reduces per-shrapnel overhead.
+func _cache_manager_references() -> void:
+	_audio_manager = get_node_or_null("/root/AudioManager")
+	_impact_manager = get_node_or_null("/root/ImpactEffectsManager")
+	_projectile_pool = get_node_or_null("/root/ProjectilePool")
+
+
+## Resets the breaker shrapnel to its default state for pool reuse.
+## Issue #724 optimization: Enables efficient shrapnel recycling.
+func reset_for_pool() -> void:
+	direction = Vector2.RIGHT
+	speed = 1800.0
+	damage = 0.1
+	source_id = -1
+	_time_alive = 0.0
+	rotation = 0.0
+	_trail_noise_offset = randf() * 100.0
+	_trail_noise_speed = randf_range(8.0, 15.0)
+	_position_history.clear()
+	if _trail:
+		_trail.clear_points()
+
+
+## Deactivates the shrapnel, returning it to the pool if pooled, or freeing it.
+## Issue #724 optimization: Enables shrapnel recycling.
+func deactivate() -> void:
+	if _is_pooled and _projectile_pool and _projectile_pool.has_method("return_breaker_shrapnel"):
+		_projectile_pool.return_breaker_shrapnel(self)
+	else:
+		queue_free()
+
+
 func _physics_process(delta: float) -> void:
 	# Move in the set direction
 	var movement := direction * speed * delta
@@ -86,7 +138,7 @@ func _physics_process(delta: float) -> void:
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		deactivate()
 
 
 ## Updates the shrapnel rotation to match its travel direction.
@@ -135,14 +187,14 @@ func _on_body_entered(body: Node2D) -> void:
 		_spawn_wall_hit_effect(body)
 
 		# Play wall impact sound and destroy
-		var audio_manager: Node = get_node_or_null("/root/AudioManager")
-		if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-			audio_manager.play_bullet_wall_hit(global_position)
-		queue_free()
+		# Issue #724: Use cached _audio_manager reference
+		if _audio_manager and _audio_manager.has_method("play_bullet_wall_hit"):
+			_audio_manager.play_bullet_wall_hit(global_position)
+		deactivate()
 		return
 
 	# Hit other bodies — destroy
-	queue_free()
+	deactivate()
 
 
 func _on_area_entered(area: Area2D) -> void:
@@ -165,20 +217,20 @@ func _on_area_entered(area: Area2D) -> void:
 		else:
 			area.on_hit()
 
-		queue_free()
+		deactivate()
 
 
 ## Spawns dust/debris particles when shrapnel hits a wall.
+## Issue #724: Use cached _impact_manager reference.
 func _spawn_wall_hit_effect(body: Node2D) -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
+	if _impact_manager == null or not _impact_manager.has_method("spawn_dust_effect"):
 		return
 
 	# Get surface normal for particle direction
 	var surface_normal := _get_surface_normal(body)
 
 	# Spawn dust effect at hit position (without caliber data - small effect)
-	impact_manager.spawn_dust_effect(global_position, surface_normal, null)
+	_impact_manager.spawn_dust_effect(global_position, surface_normal, null)
 
 
 ## Gets the surface normal at the collision point using raycasting.

@@ -171,8 +171,44 @@ var _breaker_shrapnel_scene: PackedScene = null
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
 
+# ============================================================================
+# Issue #724: Optimization - Cached Manager References
+# ============================================================================
+# These are cached once in _ready() to avoid repeated get_node_or_null() calls.
+# This reduces per-frame overhead in bullet-hell scenarios.
+
+## Cached reference to AudioManager autoload.
+var _audio_manager: Node = null
+
+## Cached reference to ImpactEffectsManager autoload.
+var _impact_manager: Node = null
+
+## Cached reference to HitEffectsManager autoload.
+var _hit_effects_manager: Node = null
+
+## Cached reference to DifficultyManager autoload.
+var _difficulty_manager: Node = null
+
+## Cached reference to StatusEffectsManager autoload.
+var _status_effects_manager: Node = null
+
+## Cached reference to SoundPropagation autoload.
+var _sound_propagation: Node = null
+
+## Cached reference to ProjectilePool autoload.
+var _projectile_pool: Node = null
+
+## Whether this bullet is managed by the ProjectilePool.
+## When true, destruction returns bullet to pool instead of queue_free().
+var _is_pooled: bool = false
+
+## Default caliber data resource (loaded once and reused).
+static var _default_caliber_data: Resource = null
+
 
 func _ready() -> void:
+	# Cache manager references once to avoid repeated get_node_or_null() calls
+	_cache_manager_references()
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -220,11 +256,77 @@ func _calculate_viewport_diagonal() -> void:
 
 
 ## Loads the default 5.45x39mm caliber data.
+## Uses static caching to avoid repeated resource loads (Issue #724 optimization).
 func _load_default_caliber_data() -> Resource:
+	if _default_caliber_data != null:
+		return _default_caliber_data
 	var path := "res://resources/calibers/caliber_545x39.tres"
 	if ResourceLoader.exists(path):
-		return load(path)
+		_default_caliber_data = load(path)
+		return _default_caliber_data
 	return null
+
+
+## Caches references to autoload managers.
+## Called once in _ready() to avoid repeated get_node_or_null() calls.
+## Issue #724 optimization: Reduces per-bullet overhead in bullet-hell scenarios.
+func _cache_manager_references() -> void:
+	_audio_manager = get_node_or_null("/root/AudioManager")
+	_impact_manager = get_node_or_null("/root/ImpactEffectsManager")
+	_hit_effects_manager = get_node_or_null("/root/HitEffectsManager")
+	_difficulty_manager = get_node_or_null("/root/DifficultyManager")
+	_status_effects_manager = get_node_or_null("/root/StatusEffectsManager")
+	_sound_propagation = get_node_or_null("/root/SoundPropagation")
+	_projectile_pool = get_node_or_null("/root/ProjectilePool")
+
+
+## Resets the bullet to its default state for object pool reuse.
+## Called by ProjectilePool before reactivating a pooled bullet.
+## Issue #724 optimization: Enables efficient bullet recycling.
+func reset_for_pool() -> void:
+	# Reset basic properties
+	direction = Vector2.RIGHT
+	speed = 2500.0
+	damage = 1.0
+	damage_multiplier = 1.0
+	shooter_id = -1
+	shooter_position = Vector2.ZERO
+	stun_duration = 0.0
+	homing_enabled = false
+	is_breaker_bullet = false
+	caliber_data = _load_default_caliber_data()
+
+	# Reset internal state
+	_time_alive = 0.0
+	_ricochet_count = 0
+	_has_ricocheted = false
+	_has_penetrated = false
+	_is_penetrating = false
+	_penetrating_body = null
+	_penetration_distance_traveled = 0.0
+	_penetration_entry_point = Vector2.ZERO
+	_distance_since_ricochet = 0.0
+	_ricochet_position = Vector2.ZERO
+	_max_post_ricochet_distance = 0.0
+	_homing_original_direction = Vector2.ZERO
+
+	# Clear trail
+	_position_history.clear()
+	if _trail:
+		_trail.clear_points()
+
+	# Reset visual state
+	rotation = 0.0
+
+
+## Deactivates the bullet, returning it to the pool if pooled, or freeing it.
+## Use this instead of queue_free() for proper pool support.
+## Issue #724 optimization: Enables bullet recycling to reduce allocations.
+func deactivate() -> void:
+	if _is_pooled and _projectile_pool and _projectile_pool.has_method("return_bullet"):
+		_projectile_pool.return_bullet(self)
+	else:
+		queue_free()
 
 
 ## Updates the bullet rotation to match its travel direction.
@@ -263,7 +365,7 @@ func _physics_process(delta: float) -> void:
 		if _distance_since_ricochet >= _max_post_ricochet_distance:
 			if _debug_ricochet:
 				print("[Bullet] Post-ricochet distance exceeded: ", _distance_since_ricochet, " >= ", _max_post_ricochet_distance)
-			queue_free()
+			deactivate()
 			return
 
 	# Track penetration distance while inside a wall
@@ -276,7 +378,7 @@ func _physics_process(delta: float) -> void:
 			_log_penetration("Max penetration distance exceeded: %s >= %s" % [_penetration_distance_traveled, max_pen_distance])
 			# Bullet stopped inside the wall - destroy it
 			# Visual effects disabled as per user request
-			queue_free()
+			deactivate()
 			return
 
 		# Check if we've exited the obstacle (raycast forward to see if still inside)
@@ -295,7 +397,7 @@ func _physics_process(delta: float) -> void:
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		deactivate()
 
 
 ## Updates the visual trail effect by maintaining position history.
@@ -382,10 +484,10 @@ func _on_body_entered(body: Node2D) -> void:
 				_log_penetration("Penetration failed (distance roll)")
 
 	# Play wall impact sound and destroy bullet
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-		audio_manager.play_bullet_wall_hit(global_position)
-	queue_free()
+	# Issue #724: Use cached _audio_manager reference
+	if _audio_manager and _audio_manager.has_method("play_bullet_wall_hit"):
+		_audio_manager.play_bullet_wall_hit(global_position)
+	deactivate()
 
 
 ## Called when the bullet exits a body (wall).
@@ -415,10 +517,10 @@ func _on_area_entered(area: Area2D) -> void:
 			return  # Don't hit the shooter with direct shots
 
 		# Power Fantasy mode: Ricocheted bullets do NOT damage the player
+		# Issue #724: Use cached _difficulty_manager reference
 		if _has_ricocheted and parent and parent.is_in_group("player"):
-			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-			if difficulty_manager and difficulty_manager.has_method("do_ricochets_damage_player"):
-				if not difficulty_manager.do_ricochets_damage_player():
+			if _difficulty_manager and _difficulty_manager.has_method("do_ricochets_damage_player"):
+				if not _difficulty_manager.do_ricochets_damage_player():
 					return  # Pass through player without damage in Power Fantasy mode
 
 		# Check if the parent is dead - bullets should pass through dead entities
@@ -450,7 +552,7 @@ func _on_area_entered(area: Area2D) -> void:
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
 
-		queue_free()
+		deactivate()
 
 
 ## Attempts to ricochet the bullet off a surface.
@@ -668,13 +770,13 @@ func _get_ricochet_deviation() -> float:
 
 
 ## Plays the ricochet sound effect.
+## Issue #724: Use cached _audio_manager reference.
 func _play_ricochet_sound() -> void:
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_bullet_ricochet"):
-		audio_manager.play_bullet_ricochet(global_position)
-	elif audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+	if _audio_manager and _audio_manager.has_method("play_bullet_ricochet"):
+		_audio_manager.play_bullet_ricochet(global_position)
+	elif _audio_manager and _audio_manager.has_method("play_bullet_wall_hit"):
 		# Fallback to wall hit sound if ricochet sound not available
-		audio_manager.play_bullet_wall_hit(global_position)
+		_audio_manager.play_bullet_wall_hit(global_position)
 
 
 ## Checks if this bullet was fired by the player.
@@ -696,22 +798,22 @@ func _is_player_bullet() -> bool:
 
 ## Triggers hit effects via the HitEffectsManager autoload.
 ## Effects: time slowdown to 0.9 for 3 seconds, saturation boost for 400ms.
+## Issue #724: Use cached _hit_effects_manager reference.
 func _trigger_player_hit_effects() -> void:
-	var hit_effects_manager: Node = get_node_or_null("/root/HitEffectsManager")
-	if hit_effects_manager and hit_effects_manager.has_method("on_player_hit_enemy"):
-		hit_effects_manager.on_player_hit_enemy()
+	if _hit_effects_manager and _hit_effects_manager.has_method("on_player_hit_enemy"):
+		_hit_effects_manager.on_player_hit_enemy()
 
 
 ## Applies stun effect to the hit enemy via StatusEffectsManager.
 ## Used by weapons like MakarovPM (100ms) and SilencedPistol (600ms).
+## Issue #724: Use cached _status_effects_manager reference.
 func _apply_stun_effect(enemy: Node) -> void:
 	if stun_duration <= 0:
 		return
 	if not enemy is Node2D:
 		return
-	var status_effects_manager: Node = get_node_or_null("/root/StatusEffectsManager")
-	if status_effects_manager and status_effects_manager.has_method("apply_stun"):
-		status_effects_manager.apply_stun(enemy, stun_duration)
+	if _status_effects_manager and _status_effects_manager.has_method("apply_stun"):
+		_status_effects_manager.apply_stun(enemy, stun_duration)
 
 
 ## Returns the current ricochet count.
@@ -733,16 +835,16 @@ func can_ricochet() -> bool:
 
 ## Spawns dust/debris particles when bullet hits a wall or static body.
 ## @param body: The body that was hit (used to get surface normal).
+## Issue #724: Use cached _impact_manager reference.
 func _spawn_wall_hit_effect(body: Node2D) -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
+	if _impact_manager == null or not _impact_manager.has_method("spawn_dust_effect"):
 		return
 
 	# Get surface normal for particle direction
 	var surface_normal := _get_surface_normal(body)
 
 	# Spawn dust effect at hit position
-	impact_manager.spawn_dust_effect(global_position, surface_normal, caliber_data)
+	_impact_manager.spawn_dust_effect(global_position, surface_normal, caliber_data)
 
 
 # ============================================================================
@@ -941,9 +1043,9 @@ func _exit_penetration() -> void:
 		_log_penetration("Damage multiplier after penetration: %s" % damage_multiplier)
 
 	# Play penetration exit sound (use wall hit sound for now)
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
-		audio_manager.play_bullet_wall_hit(exit_point)
+	# Issue #724: Use cached _audio_manager reference
+	if _audio_manager and _audio_manager.has_method("play_bullet_wall_hit"):
+		_audio_manager.play_bullet_wall_hit(exit_point)
 
 	# Reset penetration state
 	_is_penetrating = false
@@ -952,7 +1054,7 @@ func _exit_penetration() -> void:
 
 	# Destroy bullet after successful penetration
 	# Bullets don't continue flying after penetrating a wall
-	queue_free()
+	deactivate()
 
 
 ## Spawns a visual hole effect at penetration entry or exit point.
@@ -972,13 +1074,13 @@ func _spawn_penetration_hole_effect(_body: Node2D, _pos: Vector2, _is_entry: boo
 ## This allows other bullets and vision to pass through the hole.
 ## @param entry_point: Where the bullet entered the wall.
 ## @param exit_point: Where the bullet exited the wall.
+## Issue #724: Use cached _impact_manager reference.
 func _spawn_collision_hole(entry_point: Vector2, exit_point: Vector2) -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager == null:
+	if _impact_manager == null:
 		return
 
-	if impact_manager.has_method("spawn_collision_hole"):
-		impact_manager.spawn_collision_hole(entry_point, exit_point, direction, caliber_data)
+	if _impact_manager.has_method("spawn_collision_hole"):
+		_impact_manager.spawn_collision_hole(entry_point, exit_point, direction, caliber_data)
 		_log_penetration("Collision hole spawned from %s to %s" % [entry_point, exit_point])
 
 
@@ -1145,7 +1247,7 @@ func _breaker_detonate(detonation_pos: Vector2) -> void:
 	_breaker_play_explosion_sound(detonation_pos)
 
 	# 5. Destroy the bullet
-	queue_free()
+	deactivate()
 
 
 ## Applies explosion damage to all enemies within BREAKER_EXPLOSION_RADIUS.
@@ -1202,28 +1304,26 @@ func _breaker_has_line_of_sight(from: Vector2, to: Vector2) -> bool:
 
 
 ## Spawns a small visual explosion effect at the detonation point.
+## Issue #724: Use cached _impact_manager reference.
 func _breaker_spawn_explosion_effect(center: Vector2) -> void:
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-
-	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
-		impact_manager.spawn_explosion_effect(center, BREAKER_EXPLOSION_RADIUS)
+	if _impact_manager and _impact_manager.has_method("spawn_explosion_effect"):
+		_impact_manager.spawn_explosion_effect(center, BREAKER_EXPLOSION_RADIUS)
 	else:
 		# Fallback: create simple flash
 		_breaker_create_simple_flash(center)
 
 
 ## Plays a small explosion sound at the detonation point.
+## Issue #724: Use cached manager references.
 func _breaker_play_explosion_sound(center: Vector2) -> void:
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+	if _audio_manager and _audio_manager.has_method("play_bullet_wall_hit"):
 		# Use wall hit sound as explosion (small detonation)
-		audio_manager.play_bullet_wall_hit(center)
+		_audio_manager.play_bullet_wall_hit(center)
 
 	# Emit sound for AI awareness
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
+	if _sound_propagation and _sound_propagation.has_method("emit_sound"):
 		# Small explosion — use shorter range than grenade
-		sound_propagation.emit_sound(1, center, 0, self, 500.0)  # 1 = EXPLOSION, 0 = PLAYER
+		_sound_propagation.emit_sound(1, center, 0, self, 500.0)  # 1 = EXPLOSION, 0 = PLAYER
 
 
 ## Creates a simple explosion flash if no manager is available.

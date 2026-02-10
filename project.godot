@@ -32,6 +32,7 @@ ProgressManager="*res://scripts/autoload/progress_manager.gd"
 ReplayManager="*res://Scripts/Autoload/ReplayManager.cs"
 ActiveItemManager="*res://scripts/autoload/active_item_manager.gd"
 FlashbangPlayerEffectsManager="*res://scripts/autoload/flashbang_player_effects_manager.gd"
+ProjectilePool="*res://scripts/autoload/projectile_pool.gd"
 
 [application]
 
