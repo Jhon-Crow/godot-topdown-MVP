@@ -17,6 +17,15 @@ signal player_reached_exit
 ## Whether the exit zone is currently active (all enemies eliminated).
 var _is_active: bool = false
 
+## Whether the teleport animation is currently playing.
+var _teleport_animating: bool = false
+
+## Reference to the teleport effect instance.
+var _teleport_effect: Node2D = null
+
+## Teleport effect scene path.
+const TELEPORT_EFFECT_SCENE: String = "res://scenes/effects/TeleportEffect.tscn"
+
 ## Visual indicator for the exit.
 var _exit_visual: ColorRect = null
 
@@ -217,7 +226,71 @@ func _on_body_entered(body: Node2D) -> void:
 	if not _is_active:
 		return
 
+	# Prevent multiple triggers while animating
+	if _teleport_animating:
+		return
+
 	# Check if it's the player
 	if body.name == "Player" or body.is_in_group("player"):
-		print("[ExitZone] Player reached exit!")
+		print("[ExitZone] Player reached exit - starting teleport effect!")
+		_play_teleport_effect(body)
+
+
+## Play the teleport visual effect when player reaches exit (Issue #721).
+func _play_teleport_effect(player_body: Node2D) -> void:
+	_teleport_animating = true
+
+	# Disable player input during teleportation
+	if player_body.has_method("set_physics_process"):
+		player_body.set_physics_process(false)
+
+	# Try to load and instantiate the teleport effect
+	var effect_scene: PackedScene = null
+	if ResourceLoader.exists(TELEPORT_EFFECT_SCENE):
+		effect_scene = load(TELEPORT_EFFECT_SCENE)
+
+	if effect_scene:
+		_teleport_effect = effect_scene.instantiate()
+		_teleport_effect.global_position = player_body.global_position
+
+		# Add to scene tree (add to parent so it's at the same level as player)
+		var parent := player_body.get_parent()
+		if parent:
+			parent.add_child(_teleport_effect)
+		else:
+			add_child(_teleport_effect)
+
+		# Set target for visibility control
+		if _teleport_effect.has_method("set_target"):
+			_teleport_effect.set_target(player_body)
+
+		# Connect to animation finished signal
+		if _teleport_effect.has_signal("animation_finished"):
+			_teleport_effect.animation_finished.connect(_on_teleport_animation_finished)
+
+		# Start the disappear animation
+		if _teleport_effect.has_method("play_disappear"):
+			_teleport_effect.play_disappear()
+		else:
+			# Fallback: complete immediately if effect doesn't have play_disappear
+			_on_teleport_animation_finished("disappear")
+	else:
+		# Fallback: no effect scene, emit signal immediately
+		print("[ExitZone] Teleport effect scene not found, completing immediately")
+		_teleport_animating = false
 		player_reached_exit.emit()
+
+
+## Called when the teleport animation finishes.
+func _on_teleport_animation_finished(animation_type: String) -> void:
+	print("[ExitZone] Teleport animation finished: %s" % animation_type)
+
+	# Clean up the effect
+	if _teleport_effect and is_instance_valid(_teleport_effect):
+		_teleport_effect.queue_free()
+		_teleport_effect = null
+
+	_teleport_animating = false
+
+	# Emit the signal to complete the level
+	player_reached_exit.emit()

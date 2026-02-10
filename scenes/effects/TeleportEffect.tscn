@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://teleport_effect_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/teleport_effect.gd" id="1_teleport_effect"]
+
+[node name="TeleportEffect" type="Node2D"]
+z_index = 10
+script = ExtResource("1_teleport_effect")
