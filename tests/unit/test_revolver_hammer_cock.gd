@@ -54,10 +54,9 @@ class MockRevolverFire:
 		if is_hammer_cocked or is_manually_hammer_cocked:
 			return false
 
-		# Cannot cock with empty cylinder
-		if current_ammo <= 0:
-			empty_click_played = true
-			return false
+		# Issue #716: Allow hammer cocking even with empty cylinder.
+		# Real revolvers can cock the hammer regardless of ammo state.
+		# The empty click occurs when firing (trigger pull), not during cocking.
 
 		# Reset fire timer — manual cocking prepares the weapon for immediate fire
 		fire_timer = 0
@@ -130,7 +129,9 @@ class MockRevolverFire:
 		# Re-check conditions
 		if reload_state != NOT_RELOADING:
 			return
+		# Issue #716: Play empty click sound when firing with empty cylinder
 		if current_ammo <= 0:
+			empty_click_played = true
 			return
 
 		# Fire the shot
@@ -469,15 +470,15 @@ func test_cannot_manual_cock_while_auto_cocked() -> void:
 	assert_false(result, "Should not manually cock while auto-cock in progress")
 
 
-func test_cannot_manual_cock_with_empty_cylinder() -> void:
-	## Cannot manually cock with empty cylinder
+func test_can_manual_cock_with_empty_cylinder() -> void:
+	## Issue #716: CAN manually cock with empty cylinder (real revolver behavior)
 	revolver.current_ammo = 0
 
 	var result := revolver.manual_cock_hammer()
 
-	assert_false(result, "Should not cock with empty cylinder")
-	assert_true(revolver.empty_click_played, "Should play empty click sound")
-	assert_false(revolver.is_manually_hammer_cocked, "Should not be cocked")
+	assert_true(result, "Should be able to cock with empty cylinder (Issue #716)")
+	assert_false(revolver.empty_click_played, "Should NOT play empty click on cock (only on fire)")
+	assert_true(revolver.is_manually_hammer_cocked, "Hammer should be cocked even when empty")
 
 
 func test_manual_cock_works_during_fire_timer() -> void:
@@ -554,10 +555,14 @@ func test_multiple_manual_cock_shots() -> void:
 	assert_eq(revolver.fire_count, 3, "Should have fired 3 shots")
 	assert_eq(revolver.current_ammo, 0, "Should have 0 rounds left")
 
-	# Shot 4: manual cock should fail (empty)
+	# Shot 4: manual cock should succeed but fire should fail (empty) - Issue #716
 	var result := revolver.manual_cock_hammer()
-	assert_false(result, "Should not cock with empty cylinder")
-	assert_true(revolver.empty_click_played, "Should play empty click")
+	assert_true(result, "Should be able to cock with empty cylinder (Issue #716)")
+	revolver.reset_tracking()
+	var fire_result := revolver.fire(Vector2.RIGHT)
+	assert_true(fire_result, "Fire returns true but doesn't actually shoot")
+	assert_true(revolver.empty_click_played, "Should play empty click on fire attempt")
+	assert_false(revolver.shot_fired, "Shot should not fire when empty")
 
 
 func test_fire_then_immediate_manual_cock_then_fire() -> void:
@@ -602,3 +607,23 @@ func test_manual_cock_cylinder_open_cancels() -> void:
 
 	var result := revolver.fire(Vector2.RIGHT)
 	assert_false(result, "Should not fire - cylinder is open")
+
+
+func test_empty_cylinder_cock_then_fire_plays_click() -> void:
+	## Issue #716: Can cock empty cylinder, but firing should play empty click sound
+	revolver.current_ammo = 0
+
+	# Manual cock should succeed
+	var cock_result := revolver.manual_cock_hammer()
+	assert_true(cock_result, "Should cock with empty cylinder (Issue #716)")
+	assert_true(revolver.is_manually_hammer_cocked, "Hammer should be cocked")
+	assert_false(revolver.empty_click_played, "No click on cock")
+
+	revolver.reset_tracking()
+
+	# Fire should play empty click (not shoot)
+	var fire_result := revolver.fire(Vector2.RIGHT)
+	assert_true(fire_result, "Fire call returns true")
+	assert_true(revolver.empty_click_played, "Should play empty click on fire")
+	assert_false(revolver.shot_fired, "Should NOT fire bullet")
+	assert_eq(revolver.current_ammo, 0, "Ammo should remain 0")
