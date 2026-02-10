@@ -3141,6 +3141,7 @@ func _handle_bff_pendant_input() -> void:
 
 
 ## Summon the BFF companion near the player.
+## Issue #674: Spawn position now validated to avoid spawning inside walls.
 func _summon_bff_companion() -> void:
 	if _bff_companion_summoned:
 		return
@@ -3159,11 +3160,9 @@ func _summon_bff_companion() -> void:
 	# Add to the current scene (not as child of player, so it moves independently)
 	get_tree().current_scene.add_child(companion)
 
-	# Spawn slightly behind and to the side of the player
-	var spawn_offset := Vector2(-50, 30)
-	if _player_model:
-		spawn_offset = spawn_offset.rotated(_player_model.rotation)
-	companion.global_position = global_position + spawn_offset
+	# Find a valid spawn position that is not inside a wall
+	var spawn_pos := _find_valid_companion_spawn_position()
+	companion.global_position = spawn_pos
 
 	_bff_companion_node = companion
 	_bff_companion_summoned = true
@@ -3173,6 +3172,76 @@ func _summon_bff_companion() -> void:
 		companion.companion_died.connect(_on_bff_companion_died)
 
 	FileLogger.info("[Player.BffPendant] Companion summoned at position %s" % str(companion.global_position))
+
+
+## Find a valid spawn position for the companion that is not inside a wall.
+## Tries multiple offsets around the player until a valid position is found.
+## Issue #674: Prevents companion from spawning inside/behind walls.
+func _find_valid_companion_spawn_position() -> Vector2:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		# Fallback if physics state unavailable
+		FileLogger.info("[Player.BffPendant] WARNING: Physics state unavailable, using default spawn")
+		return global_position + Vector2(-50, 30)
+
+	# Companion collision radius for overlap check
+	const COMPANION_RADIUS: float = 24.0
+
+	# List of offset directions to try (relative to player facing or default)
+	var base_rotation: float = _player_model.rotation if _player_model else 0.0
+	var offsets: Array[Vector2] = [
+		Vector2(-50, 30).rotated(base_rotation),   # Behind and to the side (preferred)
+		Vector2(-60, 0).rotated(base_rotation),    # Directly behind
+		Vector2(-50, -30).rotated(base_rotation),  # Behind and other side
+		Vector2(0, 50).rotated(base_rotation),     # To the right
+		Vector2(0, -50).rotated(base_rotation),    # To the left
+		Vector2(50, 30).rotated(base_rotation),    # In front and to the side
+		Vector2(50, -30).rotated(base_rotation),   # In front and other side
+		Vector2(-30, 0).rotated(base_rotation),    # Closer behind
+	]
+
+	for offset in offsets:
+		var test_pos := global_position + offset
+
+		# Check if position is valid (not inside wall, has clear path from player)
+		if _is_spawn_position_valid(space_state, test_pos, COMPANION_RADIUS):
+			FileLogger.info("[Player.BffPendant] Found valid spawn at offset %s" % str(offset))
+			return test_pos
+
+	# If all positions failed, spawn at player position (will push out via physics)
+	FileLogger.info("[Player.BffPendant] WARNING: No valid spawn position found, spawning at player")
+	return global_position
+
+
+## Check if a position is valid for spawning the companion.
+## Returns true if the position is not inside a wall and has line of sight from player.
+func _is_spawn_position_valid(space_state: PhysicsDirectSpaceState2D, pos: Vector2, radius: float) -> bool:
+	# First check: line of sight from player to spawn position
+	var los_query := PhysicsRayQueryParameters2D.new()
+	los_query.from = global_position
+	los_query.to = pos
+	los_query.collision_mask = 1  # Walls only (layer 1)
+	los_query.exclude = [get_rid()]
+
+	var los_result := space_state.intersect_ray(los_query)
+	if not los_result.is_empty():
+		# Wall between player and spawn position
+		return false
+
+	# Second check: circle overlap at spawn position (is position inside a wall?)
+	var circle_query := PhysicsShapeQueryParameters2D.new()
+	var circle_shape := CircleShape2D.new()
+	circle_shape.radius = radius
+	circle_query.shape = circle_shape
+	circle_query.transform = Transform2D(0.0, pos)
+	circle_query.collision_mask = 1  # Walls only (layer 1)
+
+	var overlap_result := space_state.intersect_shape(circle_query, 1)
+	if not overlap_result.is_empty():
+		# Position overlaps with wall
+		return false
+
+	return true
 
 
 ## Called when the BFF companion dies.

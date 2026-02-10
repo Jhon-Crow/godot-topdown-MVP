@@ -4,7 +4,7 @@ extends CharacterBody2D
 ##
 ## A friendly companion that follows the player and shoots enemies with an M16.
 ## Has 2-4 HP and lasts until killed or the level ends.
-## Uses simplified AI: follows the player, detects enemies, and shoots them.
+## AI behavior: follows player (like escort), attacks enemies on sight (like aggressive enemy).
 
 ## Companion died signal (for enemy counter exclusion).
 signal companion_died
@@ -55,6 +55,9 @@ var _spread_increment: float = 0.6
 var _max_spread: float = 4.0
 var _spread_reset_time: float = 0.25
 
+## Navigation agent for pathfinding (Issue #674 AI fix).
+@onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D
+
 ## Node references (resolved from scene tree in _ready).
 @onready var _model: Node2D = $CompanionModel
 @onready var _body_sprite: Sprite2D = $CompanionModel/Body
@@ -80,9 +83,12 @@ var _rotation_speed: float = 20.0
 var _debug_frame_counter: int = 0
 const DEBUG_LOG_INTERVAL: int = 60
 
+## Navigation target for movement when no line of sight to enemy.
+var _nav_target: Node2D = null
+
 
 func _ready() -> void:
-	FileLogger.info("[BffCompanion] _ready() called, initializing companion...")
+	_log("[BffCompanion] _ready() called, initializing companion...")
 	add_to_group("bff_companions")
 	_initialize_health()
 	_find_player()
@@ -92,11 +98,35 @@ func _ready() -> void:
 	# Apply scale to model
 	if _model:
 		_model.scale = Vector2(model_scale, model_scale)
-		FileLogger.info("[BffCompanion] Model scale set to %s" % str(_model.scale))
+		_log("[BffCompanion] Model scale set to %s" % str(_model.scale))
 	else:
-		FileLogger.info("[BffCompanion] WARNING: _model is null, visual setup may fail")
+		_log("[BffCompanion] WARNING: _model is null, visual setup may fail")
 
-	FileLogger.info("[BffCompanion] Spawned with %d/%d HP, player found: %s" % [_current_health, _max_health, str(_player != null)])
+	# Setup navigation agent if available
+	if _nav_agent:
+		_nav_agent.path_desired_distance = 4.0
+		_nav_agent.target_desired_distance = 10.0
+		_log("[BffCompanion] NavigationAgent2D configured")
+	else:
+		_log("[BffCompanion] WARNING: NavigationAgent2D not found, using fallback movement")
+
+	_log("[BffCompanion] Spawned with %d/%d HP, player found: %s" % [_current_health, _max_health, str(_player != null)])
+
+
+## Unified logging function that uses FileLogger if available, else print.
+func _log(message: String) -> void:
+	if Engine.has_singleton("FileLogger"):
+		var fl = Engine.get_singleton("FileLogger")
+		if fl and fl.has_method("info"):
+			fl.info(message)
+			return
+	# Fallback: try autoload node
+	var fl_node = get_node_or_null("/root/FileLogger")
+	if fl_node and fl_node.has_method("info"):
+		fl_node.info(message)
+	else:
+		# Last resort: print to console
+		print(message)
 
 
 func _load_bullet_scene() -> void:
@@ -145,7 +175,7 @@ func _physics_process(delta: float) -> void:
 		_debug_frame_counter = 0
 		var target_name := "none" if _current_target == null else _current_target.name
 		var player_name := "none" if _player == null else _player.name
-		FileLogger.info("[BffCompanion] Status: pos=%s, player=%s, target=%s, ammo=%d, hp=%d" % [
+		_log("[BffCompanion] Status: pos=%s, player=%s, target=%s, ammo=%d, hp=%d" % [
 			str(global_position), player_name, target_name, _current_ammo, _current_health])
 
 	_shoot_timer += delta
@@ -171,31 +201,45 @@ func _physics_process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		_find_player()
 		if _player == null:
+			velocity = Vector2.ZERO
+			move_and_slide()
 			return
 
-	# Find closest enemy target
+	# Find closest enemy target with line of sight
 	_find_target()
 
-	# Rotate toward target (or player direction if no target)
+	# Process AI: attack enemies or follow player
 	if _current_target != null and is_instance_valid(_current_target):
-		var dir_to_target := (_current_target.global_position - global_position).normalized()
-		_rotate_model_toward(dir_to_target, delta)
-		_try_shoot(dir_to_target)
+		# Have target with LOS - engage in combat (like aggressive enemy)
+		_process_combat(delta)
 	else:
-		# Face same direction as player
-		if _model and _player:
-			var player_model := _player.get_node_or_null("PlayerModel")
-			if player_model:
-				var target_rot := player_model.global_rotation
-				_model.global_rotation = lerp_angle(_model.global_rotation, target_rot, _rotation_speed * delta)
-
-	# Follow player
-	_follow_player(delta)
+		# No visible target - follow player (like escort)
+		_process_follow_player(delta)
 
 	move_and_slide()
 
 
-func _follow_player(delta: float) -> void:
+## Process combat state: rotate toward target and shoot.
+## Similar to AggressionComponent.process_combat() from enemy AI.
+func _process_combat(delta: float) -> void:
+	if _current_target == null or not is_instance_valid(_current_target):
+		return
+
+	var dir_to_target := (_current_target.global_position - global_position).normalized()
+
+	# Rotate model toward target
+	_rotate_model_toward(dir_to_target, delta)
+
+	# Try to shoot if aligned
+	_try_shoot(dir_to_target)
+
+	# Stop moving when in combat (like aggressive enemy)
+	velocity = Vector2.ZERO
+
+
+## Process follow state: navigate toward player.
+## Uses NavigationAgent2D for proper pathfinding around obstacles.
+func _process_follow_player(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		velocity = Vector2.ZERO
 		return
@@ -204,10 +248,49 @@ func _follow_player(delta: float) -> void:
 	var distance := to_player.length()
 
 	if distance > follow_distance:
-		var direction := to_player.normalized()
-		velocity = direction * move_speed
+		# Use navigation for pathfinding
+		var direction := _get_nav_direction_to(_player.global_position)
+
+		if direction != Vector2.ZERO:
+			velocity = direction * move_speed
+			# Face same direction as player when following
+			if _model and _player:
+				var player_model := _player.get_node_or_null("PlayerModel")
+				if player_model:
+					var target_rot := player_model.global_rotation
+					_model.global_rotation = lerp_angle(_model.global_rotation, target_rot, _rotation_speed * delta)
+		else:
+			velocity = velocity.move_toward(Vector2.ZERO, 800.0 * delta)
 	else:
 		velocity = velocity.move_toward(Vector2.ZERO, 800.0 * delta)
+		# Face same direction as player when close
+		if _model and _player:
+			var player_model := _player.get_node_or_null("PlayerModel")
+			if player_model:
+				var target_rot := player_model.global_rotation
+				_model.global_rotation = lerp_angle(_model.global_rotation, target_rot, _rotation_speed * delta)
+
+
+## Get navigation direction to target position using NavigationAgent2D.
+## Returns Vector2.ZERO if navigation is finished or unavailable.
+func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
+	if _nav_agent == null:
+		# Fall back to direct movement if no navigation agent
+		return (target_pos - global_position).normalized()
+
+	# Set the target for navigation
+	_nav_agent.target_position = target_pos
+
+	# Check if navigation is finished
+	if _nav_agent.is_navigation_finished():
+		return Vector2.ZERO
+
+	# Get the next position in the path
+	var next_pos: Vector2 = _nav_agent.get_next_path_position()
+
+	# Calculate direction to next path position
+	var direction: Vector2 = (next_pos - global_position).normalized()
+	return direction
 
 
 func _find_target() -> void:
@@ -383,7 +466,7 @@ func on_hit(hit_direction: Vector2, damage: float = 1.0) -> void:
 	var actual_damage: int = maxi(int(round(damage)), 1)
 	_current_health -= actual_damage
 
-	FileLogger.info("[BffCompanion] Hit: dmg=%d, hp=%d/%d" % [actual_damage, _current_health, _max_health])
+	_log("[BffCompanion] Hit: dmg=%d, hp=%d/%d" % [actual_damage, _current_health, _max_health])
 
 	_show_hit_flash()
 
@@ -412,7 +495,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, _caliber_data: Resource, _h
 
 func _on_death() -> void:
 	_is_alive = false
-	FileLogger.info("[BffCompanion] Companion died")
+	_log("[BffCompanion] Companion died")
 	companion_died.emit()
 
 	# Visual death — fade out and remove
