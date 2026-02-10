@@ -737,6 +737,10 @@ public partial class SilencedPistol : BaseWeapon
             bulletNode.Set("is_breaker_bullet", true);
         }
 
+        // Set explosive on impact flag for silenced pistol bullets (Issue #714)
+        // Silenced pistol bullets with explosive detonator explode on impact with grenade-like sound
+        bulletNode.Set("explosive_on_impact", true);
+
         GetTree().CurrentScene.AddChild(bulletNode);
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #704)

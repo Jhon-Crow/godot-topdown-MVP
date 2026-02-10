@@ -171,6 +171,22 @@ var _breaker_shrapnel_scene: PackedScene = null
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
 
+## Whether this bullet explodes on impact (Issue #714).
+## Explosive bullets create a grenade-like explosion when they hit walls or enemies.
+## The explosion deals area damage, plays an offensive grenade sound, and creates a visual effect.
+var explosive_on_impact: bool = false
+
+## Explosion damage radius for explosive bullets (in pixels).
+## Larger than breaker bullets to simulate grenade-like blast.
+const EXPLOSIVE_BULLET_RADIUS: float = 100.0
+
+## Explosion damage dealt by explosive bullets.
+## Equal to bullet base damage - the explosion itself uses the bullet's damage value.
+const EXPLOSIVE_BULLET_DAMAGE_MULTIPLIER: float = 1.0
+
+## Enable/disable debug logging for explosive bullet behavior.
+var _debug_explosive: bool = false
+
 
 func _ready() -> void:
 	# Connect to collision signals
@@ -381,6 +397,11 @@ func _on_body_entered(body: Node2D) -> void:
 			else:
 				_log_penetration("Penetration failed (distance roll)")
 
+	# Check if this is an explosive bullet - trigger explosion instead of normal impact
+	if explosive_on_impact:
+		_explosive_detonate(global_position)
+		return
+
 	# Play wall impact sound and destroy bullet
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
@@ -449,6 +470,11 @@ func _on_area_entered(area: Area2D) -> void:
 		# Trigger hit effects if this is a player bullet hitting an enemy
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
+
+		# Check if this is an explosive bullet - trigger explosion instead of normal destruction
+		if explosive_on_impact:
+			_explosive_detonate(global_position)
+			return
 
 		queue_free()
 
@@ -1349,3 +1375,157 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if _debug_breaker:
 		print("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
 			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
+
+
+# ============================================================================
+# Explosive bullet on impact (Issue #714)
+# ============================================================================
+
+## Triggers explosive bullet detonation on impact.
+## Creates a grenade-like explosion with area damage, visual effects, and offensive grenade sound.
+## @param impact_pos: The position where the bullet impacts.
+func _explosive_detonate(impact_pos: Vector2) -> void:
+	if _debug_explosive:
+		print("[Bullet.Explosive] Detonating explosive bullet at ", impact_pos)
+
+	# 1. Apply explosion damage in radius
+	_explosive_apply_area_damage(impact_pos)
+
+	# 2. Spawn visual explosion effect
+	_explosive_spawn_effect(impact_pos)
+
+	# 3. Play offensive grenade explosion sound
+	_explosive_play_sound(impact_pos)
+
+	# 4. Destroy the bullet
+	queue_free()
+
+
+## Applies explosion damage to all enemies and players within EXPLOSIVE_BULLET_RADIUS.
+## @param center: Center of the explosion.
+func _explosive_apply_area_damage(center: Vector2) -> void:
+	# Find all enemies and players in the scene
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var players := get_tree().get_nodes_in_group("player")
+
+	# Calculate explosion damage based on bullet damage
+	var explosion_damage := damage * EXPLOSIVE_BULLET_DAMAGE_MULTIPLIER
+
+	# Check enemies in radius
+	for enemy in enemies:
+		if enemy is Node2D and enemy.has_method("is_alive") and enemy.is_alive():
+			var distance := center.distance_to(enemy.global_position)
+			if distance <= EXPLOSIVE_BULLET_RADIUS:
+				# Check line of sight (explosions don't go through walls)
+				if _explosive_has_line_of_sight(center, enemy.global_position):
+					_explosive_apply_damage_to(enemy, explosion_damage)
+					if _debug_explosive:
+						print("[Bullet.Explosive] Hit enemy at distance ", distance)
+
+	# Check players in radius
+	for player in players:
+		if player is Node2D:
+			# Don't damage the shooter with their own explosive bullet
+			if shooter_id == player.get_instance_id():
+				continue
+			var distance := center.distance_to(player.global_position)
+			if distance <= EXPLOSIVE_BULLET_RADIUS:
+				if _explosive_has_line_of_sight(center, player.global_position):
+					_explosive_apply_damage_to(player, explosion_damage)
+					if _debug_explosive:
+						print("[Bullet.Explosive] Hit player at distance ", distance)
+
+
+## Applies damage to a target from explosive bullet.
+## @param target: The target to damage.
+## @param amount: The damage amount.
+func _explosive_apply_damage_to(target: Node2D, amount: float) -> void:
+	var hit_direction := (target.global_position - global_position).normalized()
+
+	if target.has_method("on_hit_with_bullet_info_and_damage"):
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount)
+	elif target.has_method("on_hit_with_info"):
+		target.on_hit_with_info(hit_direction, null)
+	elif target.has_method("on_hit"):
+		target.on_hit()
+
+	if _debug_explosive:
+		print("[Bullet.Explosive] Explosion damage %.1f applied to %s" % [amount, target.name])
+
+
+## Checks line of sight from a position to a target position (for explosions).
+## @param from: Starting position.
+## @param to: Target position.
+## @return: true if line of sight is clear, false if blocked by obstacles.
+func _explosive_has_line_of_sight(from: Vector2, to: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(from, to)
+	query.collision_mask = 4  # Only check against obstacles (layer 3)
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()
+
+
+## Spawns a visual explosion effect at the impact point.
+## @param center: Center of the explosion.
+func _explosive_spawn_effect(center: Vector2) -> void:
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+
+	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
+		# Use larger explosion radius for grenade-like effect
+		impact_manager.spawn_explosion_effect(center, EXPLOSIVE_BULLET_RADIUS)
+		if _debug_explosive:
+			print("[Bullet.Explosive] Spawned explosion effect at ", center)
+	else:
+		# Fallback: create simple flash
+		_explosive_create_simple_flash(center)
+
+
+## Plays offensive grenade explosion sound at the impact point.
+## This is the same sound used for offensive grenades (RGD-5).
+## @param center: Center of the explosion.
+func _explosive_play_sound(center: Vector2) -> void:
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_offensive_grenade_explosion"):
+		audio_manager.play_offensive_grenade_explosion(center)
+		if _debug_explosive:
+			print("[Bullet.Explosive] Played offensive grenade explosion sound at ", center)
+
+	# Emit sound for AI awareness (enemies hear the explosion)
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		# Use grenade explosion sound type with large radius
+		# 1 = EXPLOSION, 0 = PLAYER (source team)
+		sound_propagation.emit_sound(1, center, 0, self, 800.0)
+
+
+## Creates a simple explosion flash if no manager is available.
+## @param center: Center of the explosion.
+func _explosive_create_simple_flash(center: Vector2) -> void:
+	var flash := Sprite2D.new()
+	var size := int(EXPLOSIVE_BULLET_RADIUS) * 2
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var img_center := Vector2(EXPLOSIVE_BULLET_RADIUS, EXPLOSIVE_BULLET_RADIUS)
+
+	for x in range(size):
+		for y in range(size):
+			var pos := Vector2(x, y)
+			var dist := pos.distance_to(img_center)
+			if dist <= EXPLOSIVE_BULLET_RADIUS:
+				var alpha := 1.0 - (dist / EXPLOSIVE_BULLET_RADIUS)
+				# Orange/yellow explosion color
+				image.set_pixel(x, y, Color(1.0, 0.6, 0.2, alpha))
+			else:
+				image.set_pixel(x, y, Color(0, 0, 0, 0))
+
+	flash.texture = ImageTexture.create_from_image(image)
+	flash.global_position = center
+	flash.modulate = Color(1.0, 0.5, 0.1, 0.9)
+	flash.z_index = 100
+
+	var scene := get_tree().current_scene
+	if scene:
+		scene.add_child(flash)
+		var tween := get_tree().create_tween()
+		tween.tween_property(flash, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(flash.queue_free)
