@@ -1,0 +1,22 @@
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/LaserGlowEffect.cs: public class LaserGlowEffect
+Jhon-Crow/godot-topdown-MVP:docs/case-studies/issue-654/README.md: - `LaserGlowEffect.cs` creates:
+Jhon-Crow/godot-topdown-MVP:docs/case-studies/issue-654/README.md: Zero `GD.Print` calls in `LaserGlowEffect` made it impossible to verify whether effects
+Jhon-Crow/godot-topdown-MVP:docs/case-studies/issue-652/analysis.md: Created `LaserGlowEffect` helper class in `Scripts/Weapons/LaserGlowEffect.cs`:
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/AKGL.cs: private LaserGlowEffect? _laserGlow;
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/AKGL.cs: _laserGlow = new LaserGlowEffect();
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/MiniUzi.cs: private LaserGlowEffect? _laserGlow;
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/MiniUzi.cs: _laserGlow = new LaserGlowEffect();
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/MakarovPM.cs: private LaserGlowEffect? _laserGlow;
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/MakarovPM.cs: _laserGlow = new LaserGlowEffect();
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/Shotgun.cs: private LaserGlowEffect? _laserGlow;
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/Shotgun.cs: _laserGlow = new LaserGlowEffect();
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/AssaultRifle.cs: private LaserGlowEffect? _laserGlow;
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/AssaultRifle.cs: _laserGlow = new LaserGlowEffect();
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/SilencedPistol.cs: private LaserGlowEffect? _laserGlow;
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/SilencedPistol.cs: _laserGlow = new LaserGlowEffect();
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/SniperRifle.cs: private LaserGlowEffect? _laserGlow;
+Jhon-Crow/godot-topdown-MVP:Scripts/Weapons/SniperRifle.cs: _laserGlow = new LaserGlowEffect();
+Jhon-Crow/godot-topdown-MVP:docs/case-studies/issue-694/README.md: All three are created as children of the weapon node in `LaserGlowEffect.Create()`.
+Jhon-Crow/godot-topdown-MVP:docs/case-studies/issue-694/README.md: 3. `LaserGlowEffect.Update()` — updates all glow components:
+Jhon-Crow/godot-topdown-MVP:docs/case-studies/issue-652/README.md: - Created `LaserGlowEffect.cs` - reusable class for laser glow
+Jhon-Crow/godot-topdown-MVP:docs/case-studies/issue-652/README.md: | `Scripts/Weapons/LaserGlowEffect.cs` | Fixed glow visibility and square artifact |
