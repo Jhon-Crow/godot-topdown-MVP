@@ -106,6 +106,12 @@ public abstract partial class BaseWeapon : Node2D
     public bool IsInReloadSequence { get; set; }
 
 
+    /// <summary>
+    /// Whether breaker bullets are active (passive item, Issue #678).
+    /// When true, spawned bullets will have is_breaker_bullet = true.
+    /// </summary>
+    public bool IsBreakerBulletActive { get; set; } = false;
+
     protected float _fireTimer;
     private float _reloadTimer;
 
@@ -429,6 +435,24 @@ public abstract partial class BaseWeapon : Node2D
         // Try both cases for compatibility with C# and GDScript bullets
         bullet.Set("ShooterPosition", GlobalPosition);
         bullet.Set("shooter_position", GlobalPosition);
+
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (IsBreakerBulletActive)
+        {
+            if (bullet is CSharpBullet csBulletBreaker)
+            {
+                csBulletBreaker.IsBreakerBullet = true;
+            }
+            else if (bullet is GodotTopDownTemplate.Projectiles.ShotgunPellet pelletBreaker)
+            {
+                pelletBreaker.IsBreakerBullet = true;
+            }
+            else
+            {
+                // GDScript bullet — set via property name
+                bullet.Set("is_breaker_bullet", true);
+            }
+        }
 
         GetTree().CurrentScene.AddChild(bullet);
 

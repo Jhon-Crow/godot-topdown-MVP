@@ -1700,7 +1700,7 @@ public partial class Shotgun : BaseWeapon
         var pellet = projectileScene.Instantiate<Node2D>();
         pellet.GlobalPosition = spawnPosition;
 
-        // Set pellet properties
+        // Set pellet properties - try both PascalCase (C#) and snake_case (GDScript)
         if (pellet.HasMethod("SetDirection"))
         {
             pellet.Call("SetDirection", direction);
@@ -1708,16 +1708,43 @@ public partial class Shotgun : BaseWeapon
         else
         {
             pellet.Set("Direction", direction);
+            pellet.Set("direction", direction);
         }
 
         // Set pellet speed from weapon data
         pellet.Set("Speed", WeaponData.BulletSpeed);
+        pellet.Set("speed", WeaponData.BulletSpeed);
 
         // Set shooter ID to prevent self-damage
         var owner = GetParent();
         if (owner != null)
         {
             pellet.Set("ShooterId", owner.GetInstanceId());
+            pellet.Set("shooter_id", owner.GetInstanceId());
+        }
+
+        // Set damage from weapon data
+        if (WeaponData != null)
+        {
+            pellet.Set("Damage", WeaponData.Damage);
+            pellet.Set("damage", WeaponData.Damage);
+        }
+
+        // Set shooter position for distance-based penetration calculations
+        pellet.Set("ShooterPosition", GlobalPosition);
+        pellet.Set("shooter_position", GlobalPosition);
+
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (IsBreakerBulletActive)
+        {
+            if (pellet is GodotTopDownTemplate.Projectiles.ShotgunPellet shotgunPellet)
+            {
+                shotgunPellet.IsBreakerBullet = true;
+            }
+            else
+            {
+                pellet.Set("is_breaker_bullet", true);
+            }
         }
 
         GetTree().CurrentScene.AddChild(pellet);
