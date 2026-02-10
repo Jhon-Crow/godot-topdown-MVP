@@ -167,6 +167,8 @@ that was expected to work across all weapon types.
 
 - `game_log_20260209_092738.txt` — Testing pistols with homing (12408 lines)
 - `game_log_20260209_093001.txt` — Testing shotgun and UZI with homing (8134 lines)
+- `game_log_20260209_102552.txt` — Extended testing session 1
+- `game_log_20260209_102645.txt` — Extended testing session 2
 
 ## Logs
 
