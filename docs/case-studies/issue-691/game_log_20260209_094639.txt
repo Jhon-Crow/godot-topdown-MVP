@@ -1,0 +1,1110 @@
+[09:46:39] [INFO] ============================================================
+[09:46:39] [INFO] GAME LOG STARTED
+[09:46:39] [INFO] ============================================================
+[09:46:39] [INFO] Timestamp: 2026-02-09T09:46:39
+[09:46:39] [INFO] Log file: I:/Загрузки/godot exe/револьвер/game_log_20260209_094639.txt
+[09:46:39] [INFO] Executable: I:/Загрузки/godot exe/револьвер/Godot-Top-Down-Template.exe
+[09:46:39] [INFO] OS: Windows
+[09:46:39] [INFO] Debug build: false
+[09:46:39] [INFO] Engine version: 4.3-stable (official)
+[09:46:39] [INFO] Project: Godot Top-Down Template
+[09:46:39] [INFO] ------------------------------------------------------------
+[09:46:39] [INFO] [GameManager] GameManager ready
+[09:46:39] [INFO] [ScoreManager] ScoreManager ready
+[09:46:39] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[09:46:39] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[09:46:39] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[09:46:39] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[09:46:39] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:46:39] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[09:46:39] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[09:46:39] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[09:46:39] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[09:46:39] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[09:46:39] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[09:46:39] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[09:46:39] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:46:39] [INFO] [LastChance] Last chance shader loaded successfully
+[09:46:39] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[09:46:39] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[09:46:39] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[09:46:39] [INFO] [LastChance]   Sepia intensity: 0.70
+[09:46:39] [INFO] [LastChance]   Brightness: 0.60
+[09:46:39] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[09:46:39] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[09:46:39] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[09:46:39] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false
+[09:46:39] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[09:46:39] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[09:46:39] [INFO] [CinemaEffects] Created effects layer at layer 99
+[09:46:39] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[09:46:39] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[09:46:39] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[09:46:39] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[09:46:39] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[09:46:39] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[09:46:39] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[09:46:39] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[09:46:39] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[09:46:39] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[09:46:39] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[09:46:39] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[09:46:39] [INFO] [GrenadeTimerHelper] Autoload ready
+[09:46:39] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[09:46:39] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[09:46:39] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[09:46:39] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[09:46:39] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[09:46:39] [INFO] [ProgressManager] ProgressManager ready, loaded 8 entries
+[09:46:39] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[09:46:39] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[09:46:39] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[09:46:39] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[09:46:39] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[09:46:39] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[09:46:39] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:39] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[09:46:39] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[09:46:39] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[09:46:39] [ENEMY] [Enemy1] Death animation component initialized
+[09:46:39] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:39] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[09:46:39] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[09:46:39] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[09:46:39] [ENEMY] [Enemy2] Death animation component initialized
+[09:46:39] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:39] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[09:46:39] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[09:46:39] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[09:46:39] [ENEMY] [Enemy3] Death animation component initialized
+[09:46:39] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:39] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[09:46:39] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[09:46:39] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[09:46:39] [ENEMY] [Enemy4] Death animation component initialized
+[09:46:39] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:39] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[09:46:39] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[09:46:39] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[09:46:39] [ENEMY] [Enemy5] Death animation component initialized
+[09:46:39] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:39] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:46:39] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:46:39] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:46:39] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:46:39] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:46:39] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:46:39] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:46:39] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:46:39] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:46:39] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:46:39] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:46:39] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[09:46:39] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[09:46:39] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[09:46:39] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 10/10
+[09:46:39] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:46:39] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[09:46:39] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[09:46:39] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:46:39] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:46:39] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:46:39] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:46:39] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:46:39] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[09:46:39] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
+[09:46:39] [INFO] [ScoreManager] Level started with 5 enemies
+[09:46:39] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[09:46:39] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[09:46:39] [INFO] [ReplayManager] Replay data cleared
+[09:46:39] [INFO] [LabyrinthLevel] Previous replay data cleared
+[09:46:39] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[09:46:39] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[09:46:39] [INFO] [ReplayManager] Level: LabyrinthLevel
+[09:46:39] [INFO] [ReplayManager] Player: Player (valid: True)
+[09:46:39] [INFO] [ReplayManager] Enemies count: 5
+[09:46:39] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[09:46:39] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[09:46:39] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[09:46:39] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[09:46:39] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[09:46:39] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[09:46:39] [INFO] [LabyrinthLevel] Replay recording started successfully
+[09:46:39] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[09:46:39] [INFO] [CinemaEffects] Found player node: Player
+[09:46:39] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:46:39] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[09:46:39] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[09:46:39] [ENEMY] [Enemy1] Registered as sound listener
+[09:46:39] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 2, behavior: GUARD
+[09:46:39] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[09:46:39] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[09:46:39] [ENEMY] [Enemy2] Registered as sound listener
+[09:46:39] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[09:46:39] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[09:46:39] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[09:46:39] [ENEMY] [Enemy3] Registered as sound listener
+[09:46:39] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[09:46:39] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[09:46:39] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[09:46:39] [ENEMY] [Enemy4] Registered as sound listener
+[09:46:39] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 2, behavior: GUARD
+[09:46:39] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[09:46:39] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[09:46:39] [ENEMY] [Enemy5] Registered as sound listener
+[09:46:39] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 4, behavior: GUARD
+[09:46:39] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:46:39] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[09:46:39] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[09:46:39] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[09:46:39] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=281.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[09:46:39] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:46:39] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[09:46:39] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[09:46:39] [INFO] [PenultimateHit] Shader warmup complete in 562 ms
+[09:46:39] [INFO] [LastChance] Shader warmup complete in 560 ms
+[09:46:39] [INFO] [CinemaEffects] Cinema shader warmup complete in 505 ms
+[09:46:39] [INFO] [FlashbangPlayer] Shader warmup complete in 494 ms
+[09:46:39] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:46:39] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:46:39] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:46:39] [INFO] [LastChance] Found player: Player
+[09:46:39] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:46:39] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:46:39] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:46:39] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:46:40] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 992 ms
+[09:46:41] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[09:46:41] [INFO] [PauseMenu] Armory button pressed
+[09:46:41] [INFO] [PauseMenu] Creating new armory menu instance
+[09:46:41] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[09:46:41] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[09:46:41] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[09:46:41] [INFO] [PauseMenu] back_pressed signal exists on instance
+[09:46:41] [INFO] [PauseMenu] back_pressed signal connected
+[09:46:41] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[09:46:41] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[09:46:42] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[09:46:43] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[09:46:43] [INFO] [GameManager] Weapon selected: revolver
+[09:46:43] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:46:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:43] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[09:46:43] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[09:46:43] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[09:46:43] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:46:43] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:46:43] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:46:43] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[09:46:43] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[09:46:43] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[09:46:43] [ENEMY] [Enemy1] Death animation component initialized
+[09:46:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:43] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[09:46:43] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[09:46:43] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[09:46:43] [ENEMY] [Enemy2] Death animation component initialized
+[09:46:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:43] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[09:46:43] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[09:46:43] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[09:46:43] [ENEMY] [Enemy3] Death animation component initialized
+[09:46:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:43] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[09:46:43] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[09:46:43] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[09:46:43] [ENEMY] [Enemy4] Death animation component initialized
+[09:46:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:43] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[09:46:43] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[09:46:43] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[09:46:43] [ENEMY] [Enemy5] Death animation component initialized
+[09:46:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:43] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:46:43] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:46:43] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:46:43] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:46:43] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:46:43] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+[09:46:43] [INFO] [Player.Weapon] Removed default MakarovPM
+[09:46:43] [INFO] [Player.Weapon] Equipped Revolver (ammo: 30/30)
+[09:46:43] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:46:43] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:46:43] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:46:43] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:46:43] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:46:43] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:46:43] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[09:46:43] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[09:46:43] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[09:46:43] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 10/10
+[09:46:43] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:46:43] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[09:46:43] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:46:43] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:46:43] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:46:43] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:46:43] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:46:43] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[09:46:43] [INFO] [LabyrinthLevel] Setting up weapon: revolver
+[09:46:43] [INFO] [ScoreManager] Level started with 5 enemies
+[09:46:43] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[09:46:43] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[09:46:43] [INFO] [ReplayManager] Replay data cleared
+[09:46:43] [INFO] [LabyrinthLevel] Previous replay data cleared
+[09:46:43] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[09:46:43] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[09:46:43] [INFO] [ReplayManager] Level: LabyrinthLevel
+[09:46:43] [INFO] [ReplayManager] Player: Player (valid: True)
+[09:46:43] [INFO] [ReplayManager] Enemies count: 5
+[09:46:43] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[09:46:43] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[09:46:43] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[09:46:43] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[09:46:43] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[09:46:43] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[09:46:43] [INFO] [LabyrinthLevel] Replay recording started successfully
+[09:46:43] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[09:46:43] [INFO] [CinemaEffects] Found player node: Player
+[09:46:43] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:46:43] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 6)
+[09:46:43] [ENEMY] [Enemy1] Registered as sound listener
+[09:46:43] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[09:46:43] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[09:46:43] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 7)
+[09:46:43] [ENEMY] [Enemy2] Registered as sound listener
+[09:46:43] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[09:46:43] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[09:46:43] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 8)
+[09:46:43] [ENEMY] [Enemy3] Registered as sound listener
+[09:46:43] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[09:46:43] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[09:46:43] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 9)
+[09:46:43] [ENEMY] [Enemy4] Registered as sound listener
+[09:46:43] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 2, behavior: GUARD
+[09:46:43] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[09:46:43] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 10)
+[09:46:43] [ENEMY] [Enemy5] Registered as sound listener
+[09:46:43] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[09:46:43] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:46:43] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[09:46:44] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[09:46:45] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[09:46:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:46:45] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:46:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:46:45] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:46:45] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:46:45] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[09:46:45] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[09:46:45] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[09:46:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:45] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:46:45] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:46:45] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:46:45] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:46:45] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:46:45] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+[09:46:45] [INFO] [Player.Weapon] Removed default MakarovPM
+[09:46:45] [INFO] [Player.Weapon] Equipped Revolver (ammo: 30/30)
+[09:46:45] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:46:45] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:46:45] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:46:45] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:46:45] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:46:45] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:46:45] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[09:46:45] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[09:46:45] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[09:46:45] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 10/10
+[09:46:45] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:46:45] [INFO] [CinemaEffects] Found player node: Player
+[09:46:45] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:46:45] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:46:46] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:46:46] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+[09:46:46] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[09:46:46] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:46:46] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:46:46] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:46:46] [INFO] [LastChance] Found player: Player
+[09:46:46] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:46:46] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:46:46] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:46:46] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:46:46] [INFO] [ReplayManager] Recording frame 180 (3,1s): player_valid=False, enemies=5
+[09:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Revolver), range=1469, listeners=10
+[09:46:46] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=139955538278, bullet_pos=(482.1825, 325.2015)
+[09:46:47] [INFO] [Bullet] Using shooter_position, distance=334.000183105469
+[09:46:47] [INFO] [Bullet] Distance to wall: 334.000183105469 (22.7426866398318% of viewport)
+[09:46:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:47] [INFO] [Bullet] Starting wall penetration at (482.1825, 325.2015)
+[09:46:47] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:47] [INFO] [Bullet] Exiting penetration at (497.1008, 323.6387) after traveling 10 pixels through wall
+[09:46:47] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:47] [INFO] [ReplayManager] Recording frame 240 (4,1s): player_valid=False, enemies=5
+[09:46:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:46:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:46:48] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:46:48] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:46:48] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[09:46:48] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[09:46:48] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[09:46:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:46:48] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:46:48] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:46:48] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:46:48] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:46:48] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:46:48] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+[09:46:48] [INFO] [Player.Weapon] Removed default MakarovPM
+[09:46:48] [INFO] [Player.Weapon] Equipped Revolver (ammo: 30/30)
+[09:46:48] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:46:48] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:46:48] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:46:48] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:46:48] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:46:48] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:46:48] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[09:46:48] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[09:46:48] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[09:46:48] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 10/10
+[09:46:48] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:46:48] [INFO] [CinemaEffects] Found player node: Player
+[09:46:48] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:46:48] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:46:48] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:46:48] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+[09:46:48] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[09:46:48] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:46:48] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:46:48] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:46:48] [INFO] [LastChance] Found player: Player
+[09:46:48] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:46:48] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:46:48] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:46:48] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:46:48] [INFO] [ReplayManager] Recording frame 300 (5,1s): player_valid=False, enemies=5
+[09:46:49] [INFO] [ReplayManager] Recording frame 360 (6,1s): player_valid=False, enemies=5
+[09:46:50] [INFO] [ReplayManager] Recording frame 420 (7,1s): player_valid=False, enemies=5
+[09:46:51] [INFO] [ReplayManager] Recording frame 480 (8,1s): player_valid=False, enemies=5
+[09:46:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 85.07472), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:51] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:52] [INFO] [ReplayManager] Recording frame 540 (9,1s): player_valid=False, enemies=5
+[09:46:52] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+[09:46:52] [INFO] [PowerFantasy] Starting power fantasy effect:
+[09:46:52] [INFO] [PowerFantasy]   - Time scale: 0.10
+[09:46:52] [INFO] [PowerFantasy]   - Duration: 300ms
+[09:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:53] [INFO] [PowerFantasy] Effect duration expired after 315.00 ms
+[09:46:53] [INFO] [PowerFantasy] Ending power fantasy effect
+[09:46:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:53] [INFO] [ReplayManager] Recording frame 600 (9,8s): player_valid=False, enemies=5
+[09:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:54] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:54] [INFO] [ReplayManager] Recording frame 660 (10,8s): player_valid=False, enemies=5
+[09:46:54] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:54] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:55] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:55] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1798.483, 418.9744)
+[09:46:55] [INFO] [Bullet] Using shooter_position, distance=1583.00402832031
+[09:46:55] [INFO] [Bullet] Distance to wall: 1583.00402832031 (107.789655176063% of viewport)
+[09:46:55] [INFO] [Bullet] Distance-based penetration chance: 28.4420689647875%
+[09:46:55] [INFO] [Bullet] Penetration failed (distance roll)
+[09:46:55] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:55] [INFO] [ReplayManager] Recording frame 720 (11,8s): player_valid=False, enemies=5
+[09:46:55] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1800.914, 496.0967)
+[09:46:55] [INFO] [Bullet] Using shooter_position, distance=1603.00354003906
+[09:46:55] [INFO] [Bullet] Distance to wall: 1603.00354003906 (109.151458704852% of viewport)
+[09:46:55] [INFO] [Bullet] Distance-based penetration chance: 28.1697082590297%
+[09:46:55] [INFO] [Bullet] Penetration failed (distance roll)
+[09:46:55] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:56] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:56] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(552.3464, 68.70178)
+[09:46:56] [INFO] [Bullet] Using shooter_position, distance=304.000152587891
+[09:46:56] [INFO] [Bullet] Distance to wall: 304.000152587891 (20.6999293966981% of viewport)
+[09:46:56] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:56] [INFO] [Bullet] Starting wall penetration at (552.3464, 68.70178)
+[09:46:56] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:56] [INFO] [Bullet] Raycast forward hit penetrating body at distance 43.1147880554199
+[09:46:56] [INFO] [Bullet] Raycast forward hit penetrating body at distance 33.1147804260254
+[09:46:56] [INFO] [Bullet] Raycast forward hit penetrating body at distance 23.1147747039795
+[09:46:56] [INFO] [Bullet] Raycast forward hit penetrating body at distance 13.1147699356079
+[09:46:56] [INFO] [Bullet] Raycast forward hit penetrating body at distance 3.11476373672485
+[09:46:56] [INFO] [ReplayManager] Recording frame 780 (12,8s): player_valid=False, enemies=5
+[09:46:56] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:56] [INFO] [Bullet] Exiting penetration at (617.1334, 63.44295) after traveling 59.9999885559082 pixels through wall
+[09:46:56] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1796.719, 648.5954)
+[09:46:56] [INFO] [Bullet] Using shooter_position, distance=1643.99755859375
+[09:46:56] [INFO] [Bullet] Distance to wall: 1643.99755859375 (111.942816809593% of viewport)
+[09:46:56] [INFO] [Bullet] Distance-based penetration chance: 27.6114366380813%
+[09:46:56] [INFO] [Bullet] Penetration failed (distance roll)
+[09:46:56] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(632.5405, 68.48016)
+[09:46:56] [INFO] [Bullet] Using shooter_position, distance=384.000457763672
+[09:46:56] [INFO] [Bullet] Distance to wall: 384.000457763672 (26.1472972837066% of viewport)
+[09:46:56] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:56] [INFO] [Bullet] Starting wall penetration at (632.5405, 68.48016)
+[09:46:56] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:56] [INFO] [Bullet] Exiting penetration at (647.5092, 67.51075) after traveling 10.0000019073486 pixels through wall
+[09:46:56] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1804.118, 487.625)
+[09:46:57] [INFO] [Bullet] Using shooter_position, distance=1604.00183105469
+[09:46:57] [INFO] [Bullet] Distance to wall: 1604.00183105469 (109.219434175801% of viewport)
+[09:46:57] [INFO] [Bullet] Distance-based penetration chance: 28.1561131648398%
+[09:46:57] [INFO] [Bullet] Starting wall penetration at (1804.118, 487.625)
+[09:46:57] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:57] [INFO] [Bullet] Exiting penetration at (1818.658, 491.3126) after traveling 10.0000009536743 pixels through wall
+[09:46:57] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:57] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1804.695, 442.1839)
+[09:46:57] [INFO] [Bullet] Using shooter_position, distance=1594.00207519531
+[09:46:57] [INFO] [Bullet] Distance to wall: 1594.00207519531 (108.538532411406% of viewport)
+[09:46:57] [INFO] [Bullet] Distance-based penetration chance: 28.2922935177187%
+[09:46:57] [INFO] [Bullet] Penetration failed (distance roll)
+[09:46:57] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(652.5784, 68.45072)
+[09:46:57] [INFO] [Bullet] Using shooter_position, distance=404.000335693359
+[09:46:57] [INFO] [Bullet] Distance to wall: 404.000335693359 (27.5091257484717% of viewport)
+[09:46:57] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:57] [INFO] [Bullet] Starting wall penetration at (652.5784, 68.45072)
+[09:46:57] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:57] [INFO] [Bullet] Exiting penetration at (667.55, 67.52821) after traveling 10.0000009536743 pixels through wall
+[09:46:57] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:57] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1800.846, 458.9286)
+[09:46:57] [INFO] [Bullet] Using shooter_position, distance=1594.00366210938
+[09:46:57] [INFO] [Bullet] Distance to wall: 1594.00366210938 (108.538640467303% of viewport)
+[09:46:57] [INFO] [Bullet] Distance-based penetration chance: 28.2922719065394%
+[09:46:57] [INFO] [Bullet] Starting wall penetration at (1800.846, 458.9286)
+[09:46:57] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:57] [INFO] [Bullet] Exiting penetration at (1815.446, 462.3693) after traveling 10.0000009536743 pixels through wall
+[09:46:57] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:57] [INFO] [ReplayManager] Recording frame 840 (13,8s): player_valid=False, enemies=5
+[09:46:57] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1802.034, 453.8344)
+[09:46:57] [INFO] [Bullet] Using shooter_position, distance=1593.99987792969
+[09:46:57] [INFO] [Bullet] Distance to wall: 1593.99987792969 (108.538382795549% of viewport)
+[09:46:57] [INFO] [Bullet] Distance-based penetration chance: 28.2923234408901%
+[09:46:57] [INFO] [Bullet] Starting wall penetration at (1802.034, 453.8344)
+[09:46:57] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:57] [INFO] [Bullet] Exiting penetration at (1816.645, 457.2271) after traveling 10 pixels through wall
+[09:46:57] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:57] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(812.8032, 68.64131)
+[09:46:58] [INFO] [Bullet] Using shooter_position, distance=563.99951171875
+[09:46:58] [INFO] [Bullet] Distance to wall: 563.99951171875 (38.4037638565823% of viewport)
+[09:46:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:58] [INFO] [Bullet] Starting wall penetration at (812.8032, 68.64131)
+[09:46:58] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:58] [INFO] [Bullet] Exiting penetration at (827.7888, 67.98558) after traveling 10 pixels through wall
+[09:46:58] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1800.403, 188.8261)
+[09:46:58] [INFO] [Bullet] Using shooter_position, distance=1553.99865722656
+[09:46:58] [INFO] [Bullet] Distance to wall: 1553.99865722656 (105.814626122115% of viewport)
+[09:46:58] [INFO] [Bullet] Distance-based penetration chance: 28.837074775577%
+[09:46:58] [INFO] [Bullet] Penetration failed (distance roll)
+[09:46:58] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(552.312, 68.28268)
+[09:46:58] [INFO] [Bullet] Using shooter_position, distance=304
+[09:46:58] [INFO] [Bullet] Distance to wall: 304 (20.699919006708% of viewport)
+[09:46:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:58] [INFO] [Bullet] Starting wall penetration at (552.312, 68.28268)
+[09:46:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1802.645, 139.7751)
+[09:46:58] [INFO] [Bullet] Using shooter_position, distance=1553.99731445313
+[09:46:58] [INFO] [Bullet] Distance to wall: 1553.99731445313 (105.814534690202% of viewport)
+[09:46:58] [INFO] [Bullet] Distance-based penetration chance: 28.8370930619595%
+[09:46:58] [INFO] [Bullet] Starting wall penetration at (1802.645, 139.7751)
+[09:46:58] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:58] [INFO] [Bullet] Exiting penetration at (1817.638, 140.2238) after traveling 9.99999904632568 pixels through wall
+[09:46:58] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 37.0479316711426
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 27.0478363037109
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 17.0478610992432
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 7.04776430130005
+[09:46:58] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:58] [INFO] [Bullet] Exiting penetration at (607.1253, 63.75708) after traveling 50 pixels through wall
+[09:46:58] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:58] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(552.3475, 68.71731)
+[09:46:58] [INFO] [Bullet] Using shooter_position, distance=304
+[09:46:58] [INFO] [Bullet] Distance to wall: 304 (20.699919006708% of viewport)
+[09:46:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:58] [INFO] [Bullet] Starting wall penetration at (552.3475, 68.71731)
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 43.3433876037598
+[09:46:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 33.3434219360352
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 23.3433952331543
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 13.343430519104
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 3.34346604347229
+[09:46:58] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:58] [INFO] [Bullet] Exiting penetration at (617.1349, 63.46179) after traveling 60 pixels through wall
+[09:46:58] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:58] [INFO] [ReplayManager] Recording frame 900 (14,8s): player_valid=False, enemies=5
+[09:46:58] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(562.3521, 68.37592)
+[09:46:58] [INFO] [Bullet] Using shooter_position, distance=313.999725341797
+[09:46:58] [INFO] [Bullet] Distance to wall: 313.999725341797 (21.3808186931045% of viewport)
+[09:46:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:46:58] [INFO] [Bullet] Starting wall penetration at (562.3521, 68.37592)
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 40.1355171203613
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 30.1355895996094
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 20.1355991363525
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 10.1356105804443
+[09:46:58] [INFO] [Bullet] Raycast forward hit penetrating body at distance 0.13562078773975
+[09:46:58] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:58] [INFO] [Bullet] Exiting penetration at (627.147, 63.2171) after traveling 60 pixels through wall
+[09:46:58] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1683.134, 68.91374)
+[09:46:58] [INFO] [Bullet] Using shooter_position, distance=1433.99792480469
+[09:46:58] [INFO] [Bullet] Distance to wall: 1433.99792480469 (97.6435555896199% of viewport)
+[09:46:58] [INFO] [Bullet] Distance-based penetration chance: 32.7491851454435%
+[09:46:58] [INFO] [Bullet] Starting wall penetration at (1683.134, 68.91374)
+[09:46:58] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:46:58] [INFO] [Bullet] Exiting penetration at (1698.131, 68.65869) after traveling 10 pixels through wall
+[09:46:58] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:46:58] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1801.428, 170.3454)
+[09:46:59] [INFO] [Bullet] Using shooter_position, distance=1553.99609375
+[09:46:59] [INFO] [Bullet] Distance to wall: 1553.99609375 (105.814451570282% of viewport)
+[09:46:59] [INFO] [Bullet] Distance-based penetration chance: 28.8371096859436%
+[09:46:59] [INFO] [Bullet] Penetration failed (distance roll)
+[09:46:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(249.3428, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:46:59] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:46:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:46:59] [INFO] [ReplayManager] Recording frame 960 (15,8s): player_valid=False, enemies=5
+[09:46:59] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+[09:46:59] [INFO] [PowerFantasy] Starting power fantasy effect:
+[09:46:59] [INFO] [PowerFantasy]   - Time scale: 0.10
+[09:46:59] [INFO] [PowerFantasy]   - Duration: 300ms
+[09:47:00] [INFO] [PowerFantasy] Effect duration expired after 300.00 ms
+[09:47:00] [INFO] [PowerFantasy] Ending power fantasy effect
+[09:47:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1799.18, 175.2544)
+[09:47:00] [INFO] [Bullet] Using shooter_position, distance=1552.00244140625
+[09:47:00] [INFO] [Bullet] Distance to wall: 1552.00244140625 (105.678700116193% of viewport)
+[09:47:00] [INFO] [Bullet] Distance-based penetration chance: 28.8642599767615%
+[09:47:00] [INFO] [Bullet] Penetration failed (distance roll)
+[09:47:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1801.191, 71.45531)
+[09:47:00] [INFO] [Bullet] Using shooter_position, distance=1552.00158691406
+[09:47:00] [INFO] [Bullet] Distance to wall: 1552.00158691406 (105.678641932248% of viewport)
+[09:47:00] [INFO] [Bullet] Distance-based penetration chance: 28.8642716135504%
+[09:47:00] [INFO] [Bullet] Starting wall penetration at (1801.191, 71.45531)
+[09:47:00] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:47:00] [INFO] [Bullet] Exiting penetration at (1816.189, 71.24422) after traveling 10 pixels through wall
+[09:47:00] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:47:00] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:47:00] [INFO] [ReplayManager] Recording frame 1020 (16,5s): player_valid=False, enemies=5
+[09:47:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(249.3428, 93.29694), shooter_id=150407742875, bullet_pos=(1471.099, 68.80877)
+[09:47:00] [INFO] [Bullet] Using shooter_position, distance=1222.00183105469
+[09:47:00] [INFO] [Bullet] Distance to wall: 1222.00183105469 (83.20835173974% of viewport)
+[09:47:00] [INFO] [Bullet] Distance-based penetration chance: 49.5902563036367%
+[09:47:00] [INFO] [Bullet] Starting wall penetration at (1471.099, 68.80877)
+[09:47:00] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:47:00] [INFO] [Bullet] Exiting penetration at (1486.096, 68.50818) after traveling 10 pixels through wall
+[09:47:00] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:47:01] [INFO] [ReplayManager] Recording frame 1080 (17,5s): player_valid=False, enemies=5
+[09:47:02] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[09:47:02] [INFO] [Player] Revolver: cylinder opened (R key)
+[09:47:02] [INFO] [ReplayManager] Recording frame 1140 (18,5s): player_valid=False, enemies=5
+[09:47:03] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+[09:47:03] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 6), target=(4, 6), base=(4, 6)
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(245.7472, 119.6676), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(242.8942, 108.287), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.4929, 108.1636), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(250.3957, 112.5315), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(247.6404, 104.9727), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.9305, 111.9922), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(236.8058, 106.9308), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.9959, 103.7876), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.5919, 110.1115), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.4982, 112.0272), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.8288, 107.7615), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(241.3304, 105.9831), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(238.1961, 109.4062), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.0144, 114.8733), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.4111, 108.1071), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(236.3181, 113.0376), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.9295, 109.2963), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(246.8134, 109.3796), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(232.6146, 104.2286), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.3648, 102.531), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.4401, 112.6867), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(244.5529, 110.1483), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.4166, 108.4452), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(241.0984, 110.0403), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.3164, 118.3412), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(245.7124, 119.8857), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(242.8115, 108.4752), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.5497, 108.3696), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(250.4095, 112.7503), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(247.5925, 105.1768), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.8476, 112.1928), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(236.6689, 107.0879), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.0858, 103.9744), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.671, 110.3052), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.4771, 112.2337), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.814, 107.9707), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(241.2152, 106.1608), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(238.073, 109.5766), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.9935, 115.0885), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.489, 108.3004), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(236.1987, 113.2181), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.9236, 109.5067), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(246.7763, 109.5901), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(232.4438, 104.3454), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.4545, 102.7197), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.5075, 112.8826), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(244.4968, 110.3512), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.4915, 108.646), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.9995, 110.2312), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.3045, 118.5585), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(242.6401, 108.8191), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.643, 108.7504), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(250.4135, 113.1473), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(247.49, 105.5512), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.6768, 112.5488), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(236.4008, 107.3669), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.2337, 104.3304), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.8028, 110.6698), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.4287, 112.617), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.7678, 108.356), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.9887, 106.4783), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(237.8364, 109.8851), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.9534, 115.4812), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.6243, 108.6631), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.8901, 109.8938), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(246.6899, 109.9724), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(232.1181, 104.552), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.5991, 103.0787), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.6284, 113.2493), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(244.373, 110.7196), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.6228, 109.0162), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.8067, 110.5742), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.2781, 118.9537), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(242.3403, 109.3576), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.7634, 109.3624), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(250.3886, 113.775), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(247.2943, 106.1392), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(235.9553, 107.7968), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.4312, 104.9145), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.9862, 111.2616), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.3285, 113.2276), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.6604, 108.9662), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.606, 106.9687), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(237.4435, 110.3662), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.8735, 116.1029), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.8155, 109.252), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.802, 110.5074), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(246.5225, 110.573), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.785, 103.6673), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.8039, 113.8425), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(244.1467, 111.2973), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(256.8089, 109.6126), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.4808, 111.1079), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.2198, 119.5792), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(241.8667, 110.1214), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.8859, 110.2588), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(250.3051, 114.6807), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(246.9566, 106.9739), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.6479, 105.783), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.2062, 112.1356), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.1421, 114.1092), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.4508, 109.842), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(240.0191, 107.6567), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(236.8484, 111.0471), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.724, 117), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.0453, 110.1228), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.6216, 111.3902), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(246.2334, 111.4305), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.9748, 104.5413), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(258.0229, 114.7168), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(243.7763, 112.1202), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.0326, 110.4907), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(239.9775, 111.8634), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.104, 120.4826), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.9695, 111.4869), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(250.1229, 115.9046), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(246.4216, 108.0783), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.8323, 106.9855), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.4321, 113.3434), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.0887, 111.015), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(239.1777, 108.5597), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(236.0036, 111.9482), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.4661, 118.2118), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.2791, 111.3277), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(248.3016, 112.5763), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(245.7745, 112.575), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.109, 105.7467), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(258.2603, 115.924), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(243.2145, 113.2161), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.26, 111.7025), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(239.2494, 112.8645), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.9605, 113.0851), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.7934, 117.4793), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(245.6319, 109.4662), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.9171, 108.5591), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.619, 114.9305), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(247.5184, 112.5072), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.4665, 112.9116), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(247.7884, 114.0909), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(245.0931, 114.0282), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.1143, 107.3152), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(258.4772, 117.5114), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.4417, 113.293), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.7967, 115.0821), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(249.263, 119.4289), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(244.5305, 111.1452), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.8282, 110.528), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.7104, 116.934), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.5463, 114.9098), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(244.135, 115.8044), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.914, 109.265), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(258.6235, 119.519), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.5171, 115.2977), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [ReplayManager] Recording frame 1200 (19,5s): player_valid=False, enemies=5
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(255.4918, 112.9053), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.4512, 117.3475), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.4347, 111.6039), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(258.641, 121.9789), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(257.4201, 117.7422), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(254.8391, 115.6967), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:03] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(253.6097, 114.3343), source=NEUTRAL (null), range=900, listeners=0
+[09:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:04] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+[09:47:04] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 6), target=(4, 6), base=(4, 6)
+[09:47:04] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:47:04] [INFO] [ReplayManager] Recording frame 1260 (20,5s): player_valid=False, enemies=5
+[09:47:05] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+[09:47:05] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 6), target=(4, 6), base=(4, 6)
+[09:47:05] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[09:47:05] [INFO] [SoundPropagation] Sound emitted: type=RELOAD_COMPLETE, pos=(368.3984, 93.29694), source=PLAYER (Player), range=900, listeners=0
+[09:47:05] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:05] [INFO] [Player] Revolver: cylinder closed (R key), reload complete
+[09:47:05] [INFO] [ReplayManager] Recording frame 1320 (21,5s): player_valid=False, enemies=5
+[09:47:05] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[09:47:06] [INFO] [ReplayManager] Recording frame 1380 (22,5s): player_valid=False, enemies=5
+[09:47:07] [INFO] [ReplayManager] Recording frame 1440 (23,5s): player_valid=False, enemies=5
+[09:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(368.3984, 93.29694), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:08] [INFO] [ReplayManager] Recording frame 1500 (24,5s): player_valid=False, enemies=5
+[09:47:09] [INFO] [ReplayManager] Recording frame 1560 (25,5s): player_valid=False, enemies=5
+[09:47:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:47:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:47:10] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:47:10] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:47:10] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[09:47:10] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[09:47:10] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[09:47:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:47:10] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:47:10] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:47:10] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:47:10] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:47:10] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:47:10] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+[09:47:10] [INFO] [Player.Weapon] Removed default MakarovPM
+[09:47:10] [INFO] [Player.Weapon] Equipped Revolver (ammo: 30/30)
+[09:47:10] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:47:10] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:47:10] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:47:10] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:47:10] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:47:10] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:47:10] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[09:47:10] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[09:47:10] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[09:47:10] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 10/10
+[09:47:10] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:47:10] [INFO] [CinemaEffects] Found player node: Player
+[09:47:10] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:47:10] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:47:10] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:47:10] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+[09:47:10] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[09:47:10] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:47:10] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:47:10] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:47:10] [INFO] [LastChance] Found player: Player
+[09:47:10] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:47:10] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:47:10] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:47:10] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:47:10] [INFO] [ReplayManager] Recording frame 1620 (26,5s): player_valid=False, enemies=5
+[09:47:11] [INFO] [ReplayManager] Recording frame 1680 (27,5s): player_valid=False, enemies=5
+[09:47:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 163.9444), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:11] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 163.9444), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:12] [INFO] [ReplayManager] Recording frame 1740 (28,5s): player_valid=False, enemies=5
+[09:47:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 163.9444), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:13] [INFO] [ReplayManager] Recording frame 1800 (29,5s): player_valid=False, enemies=5
+[09:47:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 163.9444), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 163.9444), shooter_id=204447156819, bullet_pos=(1801.795, 249.3449)
+[09:47:14] [INFO] [Bullet] Using shooter_position, distance=1654.00109863281
+[09:47:14] [INFO] [Bullet] Distance to wall: 1654.00109863281 (112.623976245741% of viewport)
+[09:47:14] [INFO] [Bullet] Distance-based penetration chance: 27.4752047508518%
+[09:47:14] [INFO] [Bullet] Penetration failed (distance roll)
+[09:47:14] [INFO] [ReplayManager] Recording frame 1860 (30,5s): player_valid=False, enemies=5
+[09:47:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 163.9444), shooter_id=204447156819, bullet_pos=(1801.798, 249.3373)
+[09:47:15] [INFO] [Bullet] Using shooter_position, distance=1654.00390625
+[09:47:15] [INFO] [Bullet] Distance to wall: 1654.00390625 (112.624167421558% of viewport)
+[09:47:15] [INFO] [Bullet] Distance-based penetration chance: 27.4751665156883%
+[09:47:15] [INFO] [Bullet] Penetration failed (distance roll)
+[09:47:15] [INFO] [ReplayManager] Recording frame 1920 (31,5s): player_valid=False, enemies=5
+[09:47:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 163.9444), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:16] [INFO] [ReplayManager] Recording frame 1980 (32,5s): player_valid=False, enemies=5
+[09:47:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 163.9444), shooter_id=204447156819, bullet_pos=(1801.798, 249.3373)
+[09:47:17] [INFO] [Bullet] Using shooter_position, distance=1654.00390625
+[09:47:17] [INFO] [Bullet] Distance to wall: 1654.00390625 (112.624167421558% of viewport)
+[09:47:17] [INFO] [Bullet] Distance-based penetration chance: 27.4751665156883%
+[09:47:17] [INFO] [Bullet] Starting wall penetration at (1801.798, 249.3373)
+[09:47:17] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:47:17] [INFO] [Bullet] Exiting penetration at (1816.778, 250.1117) after traveling 10.0000009536743 pixels through wall
+[09:47:17] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:47:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 163.9444), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:17] [INFO] [ReplayManager] Recording frame 2040 (33,5s): player_valid=False, enemies=5
+[09:47:18] [INFO] [ReplayManager] Recording frame 2100 (34,5s): player_valid=False, enemies=5
+[09:47:18] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 163.9444), shooter_id=204447156819, bullet_pos=(1801.798, 249.3373)
+[09:47:18] [INFO] [Bullet] Using shooter_position, distance=1654.00390625
+[09:47:18] [INFO] [Bullet] Distance to wall: 1654.00390625 (112.624167421558% of viewport)
+[09:47:18] [INFO] [Bullet] Distance-based penetration chance: 27.4751665156883%
+[09:47:18] [INFO] [Bullet] Starting wall penetration at (1801.798, 249.3373)
+[09:47:18] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:47:18] [INFO] [Bullet] Exiting penetration at (1816.778, 250.1117) after traveling 10.0000009536743 pixels through wall
+[09:47:18] [INFO] [Bullet] Damage multiplier after penetration: 0.7
+[09:47:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 163.9444), source=PLAYER (Revolver), range=1469, listeners=0
+[09:47:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:47:19] [INFO] [ReplayManager] Recording frame 2160 (35,5s): player_valid=False, enemies=5
+[09:47:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 163.9444), shooter_id=204447156819, bullet_pos=(1801.798, 249.3373)
+[09:47:20] [INFO] [Bullet] Using shooter_position, distance=1654.00390625
+[09:47:20] [INFO] [Bullet] Distance to wall: 1654.00390625 (112.624167421558% of viewport)
+[09:47:20] [INFO] [Bullet] Distance-based penetration chance: 27.4751665156883%
+[09:47:20] [INFO] [Bullet] Penetration failed (distance roll)
+[09:47:20] [INFO] [ReplayManager] Recording frame 2220 (36,5s): player_valid=False, enemies=5
+[09:47:20] [INFO] ------------------------------------------------------------
+[09:47:20] [INFO] GAME LOG ENDED: 2026-02-09T09:47:20
+[09:47:20] [INFO] ============================================================
