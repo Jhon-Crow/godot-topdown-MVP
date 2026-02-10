@@ -11,7 +11,8 @@ enum ActiveItemType {
 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
 	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
-	BFF_PENDANT        # BFF pendant - press Space to summon a friendly companion with M16
+	BFF_PENDANT,       # BFF pendant - press Space to summon a friendly companion with M16
+	INVISIBILITY_SUIT  # Invisibility cloak - press Space to become invisible (Issue #673)
 }
 
 ## Currently selected active item type.
@@ -28,7 +29,8 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.FLASHLIGHT: {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
+		"activation_hint": "Hold Space to activate"
 	},
 	ActiveItemType.HOMING_BULLETS: {
 		"name": "Homing Bullets",
@@ -38,12 +40,20 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.TELEPORT_BRACERS: {
 		"name": "Teleport Bracers",
 		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
-		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
+		"activation_hint": "Hold Space to aim, release to teleport"
 	},
 	ActiveItemType.BFF_PENDANT: {
 		"name": "BFF Pendant",
 		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
-		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
+		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle.",
+		"activation_hint": "Press Space to summon"
+	},
+	ActiveItemType.INVISIBILITY_SUIT: {
+		"name": "Invisibility",
+		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+		"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
 	}
 }
 
@@ -145,3 +155,8 @@ func has_teleport_bracers() -> bool:
 ## Check if BFF pendant is currently equipped.
 func has_bff_pendant() -> bool:
 	return current_active_item == ActiveItemType.BFF_PENDANT
+
+
+## Check if an invisibility suit is currently equipped (Issue #673).
+func has_invisibility_suit() -> bool:
+	return current_active_item == ActiveItemType.INVISIBILITY_SUIT

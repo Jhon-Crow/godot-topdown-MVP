@@ -66,8 +66,8 @@ var _spread_reset_time: float = 0.25
 ## Hit flash.
 var _hit_flash_timer: float = 0.0
 var _hit_flash_duration: float = 0.1
-var _full_health_color: Color = Color(0.2, 0.5, 1.0, 1.0)  # Blue tint for friendly
-var _low_health_color: Color = Color(0.1, 0.2, 0.5, 1.0)
+var _full_health_color: Color = Color(0.2, 1.0, 0.6, 1.0)  # Green-cyan tint for companion (different from player's blue)
+var _low_health_color: Color = Color(0.1, 0.4, 0.2, 1.0)
 var _hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
 
 ## Aim tolerance for shooting (dot product threshold).
@@ -76,8 +76,13 @@ const AIM_TOLERANCE_DOT: float = 0.95
 ## Rotation speed (rad/s).
 var _rotation_speed: float = 20.0
 
+## Debug frame counter for periodic logging (every ~60 frames = 1 second).
+var _debug_frame_counter: int = 0
+const DEBUG_LOG_INTERVAL: int = 60
+
 
 func _ready() -> void:
+	FileLogger.info("[BffCompanion] _ready() called, initializing companion...")
 	add_to_group("bff_companions")
 	_initialize_health()
 	_find_player()
@@ -87,8 +92,11 @@ func _ready() -> void:
 	# Apply scale to model
 	if _model:
 		_model.scale = Vector2(model_scale, model_scale)
+		FileLogger.info("[BffCompanion] Model scale set to %s" % str(_model.scale))
+	else:
+		FileLogger.info("[BffCompanion] WARNING: _model is null, visual setup may fail")
 
-	FileLogger.info("[BffCompanion] Spawned with %d HP" % _current_health)
+	FileLogger.info("[BffCompanion] Spawned with %d/%d HP, player found: %s" % [_current_health, _max_health, str(_player != null)])
 
 
 func _load_bullet_scene() -> void:
@@ -130,6 +138,15 @@ func _find_player_recursive(node: Node) -> Node2D:
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
+
+	# Periodic debug logging
+	_debug_frame_counter += 1
+	if _debug_frame_counter >= DEBUG_LOG_INTERVAL:
+		_debug_frame_counter = 0
+		var target_name := "none" if _current_target == null else _current_target.name
+		var player_name := "none" if _player == null else _player.name
+		FileLogger.info("[BffCompanion] Status: pos=%s, player=%s, target=%s, ammo=%d, hp=%d" % [
+			str(global_position), player_name, target_name, _current_ammo, _current_health])
 
 	_shoot_timer += delta
 	_spread_timer += delta

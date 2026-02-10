@@ -279,6 +279,11 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 		_log("Throw path blocked for %s to %s" % [_get_next_grenade_type_name(), target])
 		return false
 
+	# Issue #712: Check if target is visible to enemy (not throwing into unseen area)
+	if require_target_visibility and not _is_target_visible(target):
+		_log("Target not visible for %s at %s - skipping throw" % [_get_next_grenade_type_name(), target])
+		return false
+
 	_execute_grenadier_throw(target, is_alive, is_stunned, is_blinded)
 	return true
 
@@ -299,6 +304,15 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 	if _grenade_bag[0] == GrenadeType.OFFENSIVE:
 		fuse = 1.0  # Frag grenades explode on impact, short effective time
 
+	# Issue #712: Signal enemy to face throw direction before throwing
+	var throw_dir := (target - _enemy.global_position).normalized()
+	face_throw_direction.emit(throw_dir)
+	_log("Grenadier facing throw direction: %s (waiting %.1fs)" % [throw_dir, face_direction_delay])
+
+	# Wait for enemy to rotate toward target
+	if face_direction_delay > 0.0:
+		await get_tree().create_timer(face_direction_delay).timeout
+
 	# Signal allies to wait
 	grenade_incoming.emit(target, blast_radius, fuse)
 	_blocking_passage = true
@@ -314,6 +328,10 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
 	var grenade: Node2D = next_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
+
+	# Issue #692: Set thrower_id on the grenade so it won't damage the throwing enemy
+	if grenade.get("thrower_id") != null:
+		grenade.thrower_id = _enemy.get_instance_id()
 
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)
@@ -342,6 +360,9 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 
 	# Mark C# timer as thrown
 	_mark_grenade_thrown(grenade as RigidBody2D)
+
+	# Issue #692: Set thrower on C# GrenadeTimer for self-damage prevention
+	_set_grenade_thrower(grenade as RigidBody2D, _enemy.get_instance_id())
 
 	# Track active grenade for explosion detection
 	_active_grenade = grenade

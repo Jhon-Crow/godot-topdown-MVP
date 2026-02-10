@@ -115,7 +115,8 @@ class MockActiveItemManager:
 		FLASHLIGHT = 1,
 		HOMING_BULLETS = 2,
 		TELEPORT_BRACERS = 3,
-		BFF_PENDANT = 4
+		BFF_PENDANT = 4,
+		INVISIBILITY_SUIT = 5
 	}
 
 	## Currently selected active item type
@@ -147,6 +148,11 @@ class MockActiveItemManager:
 			"name": "BFF Pendant",
 			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
 			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
+		},
+		5: {
+			"name": "Invisibility",
+			"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+			"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
 		}
 	}
 
@@ -215,6 +221,10 @@ class MockActiveItemManager:
 	## Check if BFF pendant is currently equipped
 	func has_bff_pendant() -> bool:
 		return current_active_item == ActiveItemType.BFF_PENDANT
+
+	## Check if invisibility suit is currently equipped
+	func has_invisibility_suit() -> bool:
+		return current_active_item == ActiveItemType.INVISIBILITY_SUIT
 
 
 var manager: MockActiveItemManager
@@ -565,7 +575,8 @@ class MockArmoryWithActiveItems:
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
 		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
 		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
-		4: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"}
+		4: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"},
+		5: {"name": "Invisibility", "description": "Invisibility suit"}
 	}
 
 	## Applied active item type
