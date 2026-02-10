@@ -343,6 +343,9 @@ func _ready() -> void:
 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
 	_init_invisibility_suit()
 
+	# Initialize breaker bullets if active item manager has breaker bullets selected (Issue #678)
+	_init_breaker_bullets()
+
 	# Initialize force field if active item manager has force field selected (Issue #676)
 	_init_force_field()
 
@@ -696,6 +699,10 @@ func _shoot() -> void:
 	# Enable homing on the bullet if homing effect is active
 	if _homing_active:
 		bullet.enable_homing()
+
+	# Set breaker bullet flag if breaker bullets are active (Issue #678)
+	if _breaker_bullets_active:
+		bullet.is_breaker_bullet = true
 
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
@@ -2881,6 +2888,9 @@ var _flashlight_equipped: bool = false
 ## Reference to the flashlight effect node (child of PlayerModel).
 var _flashlight_node: Node2D = null
 
+## Whether breaker bullets are active (passive item, Issue #678).
+var _breaker_bullets_active: bool = false
+
 
 ## Initialize the flashlight if the ActiveItemManager has it selected.
 func _init_flashlight() -> void:
@@ -3170,6 +3180,9 @@ func _on_invisibility_activated(charges_remaining: int) -> void:
 		_invisibility_hud.set_active(true)
 		_invisibility_hud.update_charges(charges_remaining, _invisibility_suit.MAX_CHARGES)
 
+	# Issue #723: Reset enemy memory when player becomes invisible - enemies lose track and enter search mode
+	_reset_all_enemy_memories("invisibility activation")
+
 
 ## Callback when invisibility deactivates.
 func _on_invisibility_deactivated(charges_remaining: int) -> void:
@@ -3199,6 +3212,45 @@ func is_invisible() -> bool:
 ## Get the invisibility suit effect node (for HUD queries).
 func get_invisibility_suit() -> Node:
 	return _invisibility_suit
+
+
+## Reset memory for all enemies in the scene (Issue #723).
+## Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
+func _reset_all_enemy_memories(reason: String) -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var reset_count := 0
+
+	for enemy in enemies:
+		if enemy.has_method("reset_memory"):
+			enemy.reset_memory()
+			reset_count += 1
+
+	if reset_count > 0:
+		FileLogger.info("[Player] Reset memory for %d enemies (%s - Issue #723)" % [reset_count, reason])
+
+
+# ============================================================================
+# Breaker Bullets (Issue #678)
+# ============================================================================
+
+
+## Initialize breaker bullets if the ActiveItemManager has them selected.
+## Breaker bullets are a passive item — no special nodes needed,
+## just a flag that modifies bullet behavior on spawn.
+func _init_breaker_bullets() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	if not active_item_manager.has_method("has_breaker_bullets"):
+		return
+
+	if not active_item_manager.has_breaker_bullets():
+		FileLogger.info("[Player.BreakerBullets] Breaker bullets not selected")
+		return
+
+	_breaker_bullets_active = true
+	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
 
 
 # ============================================================================

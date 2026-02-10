@@ -116,7 +116,8 @@ class MockActiveItemManager:
 		HOMING_BULLETS = 2,
 		TELEPORT_BRACERS = 3,
 		INVISIBILITY_SUIT = 4,
-		FORCE_FIELD = 5
+		BREAKER_BULLETS = 5,
+		FORCE_FIELD = 6
 	}
 
 	## Currently selected active item type
@@ -150,6 +151,11 @@ class MockActiveItemManager:
 			"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
 		},
 		5: {
+			"name": "Breaker Bullets",
+			"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
+			"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
+		},
+		6: {
 			"name": "Force Field",
 			"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
 			"description": "Hold Space to activate a glowing force field that reflects all projectiles. 8 second charge, depletable. Shows progress bar."
@@ -221,6 +227,10 @@ class MockActiveItemManager:
 	## Check if invisibility suit is currently equipped
 	func has_invisibility_suit() -> bool:
 		return current_active_item == ActiveItemType.INVISIBILITY_SUIT
+
+	## Check if breaker bullets are currently equipped
+	func has_breaker_bullets() -> bool:
+		return current_active_item == ActiveItemType.BREAKER_BULLETS
 
 	## Check if force field is currently equipped
 	func has_force_field() -> bool:
@@ -577,7 +587,8 @@ class MockArmoryWithActiveItems:
 		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
 		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
 		4: {"name": "Invisibility", "description": "Invisibility suit"},
-		5: {"name": "Force Field", "description": "Hold Space to activate force field"}
+		5: {"name": "Breaker Bullets", "description": "Breaker bullets — passive"},
+		6: {"name": "Force Field", "description": "Hold Space to activate force field"}
 	}
 
 	## Applied active item type
@@ -660,12 +671,88 @@ func test_armory_switch_active_items() -> void:
 
 
 # ============================================================================
-# Force Field Tests
+# Breaker Bullets Tests (Issue #678)
+# ============================================================================
+
+
+func test_active_item_type_breaker_bullets_value() -> void:
+	# ActiveItemType.BREAKER_BULLETS should be 5
+	var expected := 5
+	assert_eq(expected, 5, "BREAKER_BULLETS should be the sixth active item type (5)")
+
+
+func test_active_item_data_has_breaker_bullets() -> void:
+	var data := manager.get_active_item_data(5)
+	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain BREAKER_BULLETS type")
+	assert_eq(data["name"], "Breaker Bullets", "Breaker Bullets should have correct name")
+
+
+func test_breaker_bullets_data_has_icon_path() -> void:
+	var data := manager.get_active_item_data(5)
+	assert_true(data["icon_path"].contains("breaker_bullets"),
+		"Breaker Bullets icon path should contain 'breaker_bullets'")
+
+
+func test_breaker_bullets_data_has_description() -> void:
+	var data := manager.get_active_item_data(5)
+	assert_true(data["description"].contains("passive"),
+		"Breaker Bullets description should mention passive behavior")
+
+
+func test_no_breaker_bullets_by_default() -> void:
+	assert_false(manager.has_breaker_bullets(),
+		"Breaker bullets should not be equipped by default")
+
+
+func test_has_breaker_bullets_after_selection() -> void:
+	manager.set_active_item(5)
+	assert_true(manager.has_breaker_bullets(),
+		"has_breaker_bullets should return true after selecting breaker bullets")
+
+
+func test_no_breaker_bullets_after_deselection() -> void:
+	manager.set_active_item(5)
+	manager.set_active_item(0)
+	assert_false(manager.has_breaker_bullets(),
+		"has_breaker_bullets should return false after switching back to none")
+
+
+func test_breaker_bullets_does_not_conflict_with_flashlight() -> void:
+	manager.set_active_item(5)
+	assert_false(manager.has_flashlight(),
+		"Flashlight should not be active when breaker bullets are selected")
+	assert_true(manager.has_breaker_bullets(),
+		"Breaker bullets should be active")
+
+
+func test_flashlight_does_not_conflict_with_breaker_bullets() -> void:
+	manager.set_active_item(1)
+	assert_true(manager.has_flashlight(),
+		"Flashlight should be active")
+	assert_false(manager.has_breaker_bullets(),
+		"Breaker bullets should not be active when flashlight is selected")
+
+
+func test_set_active_item_to_breaker_bullets() -> void:
+	manager.set_active_item(5)
+	assert_eq(manager.current_active_item, 5,
+		"Active item type should change to BREAKER_BULLETS")
+
+
+func test_armory_select_breaker_bullets() -> void:
+	var armory := MockArmoryWithActiveItems.new()
+	var result := armory.select_active_item(5)
+	assert_true(result, "Should select breaker bullets")
+	assert_eq(armory.pending_active_item, 5, "Pending should be breaker bullets")
+
+
+# ============================================================================
+# Force Field Tests (Issue #676)
 # ============================================================================
 
 
 func test_has_force_field_after_selection() -> void:
-	manager.set_active_item(5)
+	manager.set_active_item(6)
 	assert_true(manager.has_force_field(),
 		"has_force_field should return true after selecting force field")
 
@@ -676,21 +763,21 @@ func test_no_force_field_by_default() -> void:
 
 
 func test_force_field_data_has_name() -> void:
-	var data := manager.get_active_item_data(5)
+	var data := manager.get_active_item_data(6)
 	assert_eq(data["name"], "Force Field", "Force Field should have correct name")
 
 
 func test_force_field_data_has_description() -> void:
-	var data := manager.get_active_item_data(5)
+	var data := manager.get_active_item_data(6)
 	assert_true(data["description"].contains("Space"),
 		"Force field description should mention Space key")
 
 
 func test_armory_select_force_field() -> void:
 	var armory := MockArmoryWithActiveItems.new()
-	var result := armory.select_active_item(5)
+	var result := armory.select_active_item(6)
 	assert_true(result, "Should select force field")
-	assert_eq(armory.pending_active_item, 5, "Pending should be force field")
+	assert_eq(armory.pending_active_item, 6, "Pending should be force field")
 
 
 # ============================================================================

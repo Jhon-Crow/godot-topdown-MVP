@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
@@ -628,6 +629,22 @@ public partial class SniperRifle : BaseWeapon
         Vector2 fireDirection = _isScopeActive ? direction : _aimDirection;
         Vector2 spreadDirection = ApplyRecoil(fireDirection);
 
+        // When homing is active, redirect toward nearest enemy near the aim line (Issue #704)
+        // Store original direction for curved smoke trail (Issue #709)
+        Vector2 originalDirection = spreadDirection;
+        bool homingRedirected = false;
+        var weaponOwner = GetParent();
+        if (weaponOwner is Player player && player.IsHomingActive())
+        {
+            var homingTarget = FindNearestEnemyNearAimLine(GlobalPosition, spreadDirection);
+            if (homingTarget != Vector2.Zero)
+            {
+                spreadDirection = (homingTarget - GlobalPosition).Normalized();
+                homingRedirected = true;
+                GD.Print($"[SniperRifle] Homing: redirected hitscan toward enemy at {homingTarget}");
+            }
+        }
+
         // Skip bullet spawning - we use hitscan instead
         _skipBulletSpawn = true;
         bool result = base.Fire(spreadDirection);
@@ -635,8 +652,18 @@ public partial class SniperRifle : BaseWeapon
 
         if (result)
         {
-            // Perform hitscan - instant raycast damage along bullet path
-            Vector2 bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
+            Vector2 bulletEndPoint;
+
+            // Breaker bullets: detonate 60px before the first wall on the hitscan path (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                bulletEndPoint = PerformBreakerHitscan(GlobalPosition, spreadDirection);
+            }
+            else
+            {
+                // Normal hitscan - instant raycast damage along bullet path
+                bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
+            }
 
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
@@ -654,7 +681,15 @@ public partial class SniperRifle : BaseWeapon
             TriggerScreenShake(spreadDirection);
 
             // Spawn smoky tracer trail limited to the bullet's actual path
-            SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
+            // When homing redirected the shot, draw a curved trail (Issue #709)
+            if (homingRedirected)
+            {
+                SpawnCurvedSmokyTracer(GlobalPosition, originalDirection, bulletEndPoint);
+            }
+            else
+            {
+                SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
+            }
 
             // Spawn muzzle flash
             Vector2 muzzlePos = GlobalPosition + spreadDirection * BulletSpawnOffset;
@@ -814,6 +849,431 @@ public partial class SniperRifle : BaseWeapon
 
         GD.Print($"[SniperRifle] Hitscan complete: walls={wallsPenetrated}, enemies_hit={damagedEnemies.Count}, endpoint={bulletEndPoint}");
         return bulletEndPoint;
+    }
+
+    // =========================================================================
+    // Breaker Hitscan (Issue #678)
+    // =========================================================================
+
+    /// <summary>
+    /// Breaker detonation distance in pixels (same as bullet.gd BREAKER_DETONATION_DISTANCE).
+    /// </summary>
+    private const float BreakerDetonationDistance = 60.0f;
+
+    /// <summary>
+    /// Breaker explosion radius in pixels.
+    /// </summary>
+    private const float BreakerExplosionRadius = 15.0f;
+
+    /// <summary>
+    /// Breaker explosion damage.
+    /// </summary>
+    private const float BreakerExplosionDamage = 1.0f;
+
+    /// <summary>
+    /// Breaker shrapnel half-angle in degrees.
+    /// </summary>
+    private const float BreakerShrapnelHalfAngle = 30.0f;
+
+    /// <summary>
+    /// Breaker shrapnel damage per piece.
+    /// </summary>
+    private const float BreakerShrapnelDamage = 0.1f;
+
+    /// <summary>
+    /// Breaker shrapnel count multiplier (count = damage * multiplier).
+    /// </summary>
+    private const float BreakerShrapnelCountMultiplier = 10.0f;
+
+    /// <summary>
+    /// Breaker shrapnel scene path.
+    /// </summary>
+    private const string BreakerShrapnelScenePath = "res://scenes/projectiles/BreakerShrapnel.tscn";
+
+    /// <summary>
+    /// Performs breaker-mode hitscan: damages enemies along path until first wall,
+    /// then detonates 60px before the wall with explosion + shrapnel cone.
+    /// The smoke trail ends at the detonation point.
+    /// </summary>
+    /// <param name="origin">Starting position of the shot.</param>
+    /// <param name="direction">Normalized direction of the shot.</param>
+    /// <returns>The endpoint where the bullet detonated (for smoke tracer).</returns>
+    private Vector2 PerformBreakerHitscan(Vector2 origin, Vector2 direction)
+    {
+        float maxRange = 5000.0f;
+        Vector2 startPos = origin + direction * BulletSpawnOffset;
+        Vector2 endPos = origin + direction * maxRange;
+        float damage = WeaponData?.Damage ?? 50.0f;
+
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return endPos;
+        }
+
+        // Get shooter ID to prevent self-damage
+        var owner = GetParent();
+        ulong shooterId = owner?.GetInstanceId() ?? 0;
+
+        uint wallMask = 4;
+        uint enemyBodyMask = 2;
+        uint combinedMask = wallMask | enemyBodyMask;
+
+        Vector2 currentPos = startPos;
+        var excludeRids = new Godot.Collections.Array<Rid>();
+        var damagedEnemies = new HashSet<ulong>();
+
+        // Sequential raycasts — damage enemies until first wall, then detonate
+        for (int iteration = 0; iteration < 50; iteration++)
+        {
+            if (currentPos.DistanceTo(endPos) < 1.0f)
+            {
+                break;
+            }
+
+            var query = PhysicsRayQueryParameters2D.Create(
+                currentPos, endPos, combinedMask
+            );
+            query.Exclude = excludeRids;
+            query.HitFromInside = true;
+            query.CollideWithAreas = false;
+            query.CollideWithBodies = true;
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count == 0)
+            {
+                break; // No more hits — bullet travels to max range without detonation
+            }
+
+            var hitCollider = (Node2D)result["collider"];
+            var hitPosition = (Vector2)result["position"];
+            var hitRid = (Rid)result["rid"];
+
+            // Skip self
+            if (hitCollider.GetInstanceId() == shooterId)
+            {
+                excludeRids.Add(hitRid);
+                continue;
+            }
+
+            // Wall/obstacle: trigger breaker detonation
+            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            {
+                // Detonation point is 60px before the wall (or at current pos if too close)
+                float distToWall = currentPos.DistanceTo(hitPosition);
+                Vector2 detonationPos;
+                if (distToWall > BreakerDetonationDistance)
+                {
+                    detonationPos = hitPosition - direction * BreakerDetonationDistance;
+                }
+                else
+                {
+                    detonationPos = currentPos;
+                }
+
+                GD.Print($"[SniperRifle.Breaker] Detonating at {detonationPos}, wall at {hitPosition} (dist={distToWall:F0}px)");
+
+                // Apply explosion damage in radius
+                BreakerApplyExplosionDamage(detonationPos, shooterId);
+
+                // Spawn shrapnel cone
+                BreakerSpawnShrapnel(detonationPos, direction, damage, shooterId);
+
+                // Spawn explosion effect
+                BreakerSpawnExplosionEffect(detonationPos);
+
+                // Play explosion sound
+                BreakerPlayExplosionSound(detonationPos);
+
+                GD.Print($"[SniperRifle.Breaker] Breaker hitscan: enemies_hit={damagedEnemies.Count}, detonation at {detonationPos}");
+                return detonationPos;
+            }
+
+            // Enemy: detonate before alive enemies (breaker behavior, Issue #678)
+            if (hitCollider is CharacterBody2D)
+            {
+                var enemyId = hitCollider.GetInstanceId();
+
+                // Skip self and dead enemies
+                if (enemyId == shooterId)
+                {
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
+                bool isAlive = true;
+                if (hitCollider.HasMethod("is_alive"))
+                {
+                    isAlive = hitCollider.Call("is_alive").AsBool();
+                }
+
+                if (!isAlive)
+                {
+                    // Dead enemy — pass through
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
+                // Alive enemy — detonate 60px before them
+                float distToEnemy = currentPos.DistanceTo(hitPosition);
+                Vector2 detonationPos;
+                if (distToEnemy > BreakerDetonationDistance)
+                {
+                    detonationPos = hitPosition - direction * BreakerDetonationDistance;
+                }
+                else
+                {
+                    detonationPos = currentPos;
+                }
+
+                GD.Print($"[SniperRifle.Breaker] Detonating at {detonationPos}, enemy {hitCollider.Name} at {hitPosition} (dist={distToEnemy:F0}px)");
+
+                // Apply explosion damage in radius
+                BreakerApplyExplosionDamage(detonationPos, shooterId);
+
+                // Spawn shrapnel cone
+                BreakerSpawnShrapnel(detonationPos, direction, damage, shooterId);
+
+                // Spawn explosion effect
+                BreakerSpawnExplosionEffect(detonationPos);
+
+                // Play explosion sound
+                BreakerPlayExplosionSound(detonationPos);
+
+                return detonationPos;
+            }
+
+            // Unknown collider - skip
+            excludeRids.Add(hitRid);
+            currentPos = hitPosition + direction * 5.0f;
+        }
+
+        // No wall hit — bullet traveled to max range without detonation
+        GD.Print($"[SniperRifle.Breaker] No wall in range, no detonation. Enemies hit: {damagedEnemies.Count}");
+        return endPos;
+    }
+
+    /// <summary>
+    /// Applies breaker explosion damage to all enemies within radius.
+    /// </summary>
+    private void BreakerApplyExplosionDamage(Vector2 center, ulong shooterId)
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        foreach (var enemy in enemies)
+        {
+            if (enemy is Node2D enemyNode && enemyNode.HasMethod("is_alive") && enemyNode.Call("is_alive").AsBool())
+            {
+                float distance = center.DistanceTo(enemyNode.GlobalPosition);
+                if (distance <= BreakerExplosionRadius)
+                {
+                    if (enemyNode.HasMethod("take_damage"))
+                    {
+                        enemyNode.Call("take_damage", BreakerExplosionDamage);
+                        GD.Print($"[SniperRifle.Breaker] Explosion damage {BreakerExplosionDamage} to {enemyNode.Name}");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Maximum shrapnel per detonation for the sniper (performance cap).
+    /// </summary>
+    private const int BreakerMaxShrapnelPerDetonation = 30;
+
+    /// <summary>
+    /// Maximum total concurrent breaker shrapnel in the scene (global cap).
+    /// </summary>
+    private const int BreakerMaxConcurrentShrapnel = 60;
+
+    /// <summary>
+    /// Spawns breaker shrapnel pieces in a forward cone.
+    /// Shrapnel count is capped for performance (Issue #678 optimization).
+    /// </summary>
+    private void BreakerSpawnShrapnel(Vector2 center, Vector2 direction, float bulletDamage, ulong shooterId)
+    {
+        var shrapnelScene = GD.Load<PackedScene>(BreakerShrapnelScenePath);
+        if (shrapnelScene == null)
+        {
+            GD.PrintErr("[SniperRifle.Breaker] Cannot load shrapnel scene: " + BreakerShrapnelScenePath);
+            return;
+        }
+
+        // Check global concurrent shrapnel limit
+        var existingShrapnel = GetTree().GetNodesInGroup("breaker_shrapnel");
+        if (existingShrapnel.Count >= BreakerMaxConcurrentShrapnel)
+        {
+            GD.Print($"[SniperRifle.Breaker] Skipping shrapnel: global limit {BreakerMaxConcurrentShrapnel} reached");
+            return;
+        }
+
+        int uncappedCount = (int)(bulletDamage * BreakerShrapnelCountMultiplier);
+        int shrapnelCount = Mathf.Clamp(uncappedCount, 1, BreakerMaxShrapnelPerDetonation);
+
+        // Further reduce if approaching global limit
+        int remainingBudget = BreakerMaxConcurrentShrapnel - existingShrapnel.Count;
+        shrapnelCount = Mathf.Min(shrapnelCount, remainingBudget);
+
+        float halfAngleRad = Mathf.DegToRad(BreakerShrapnelHalfAngle);
+
+        for (int i = 0; i < shrapnelCount; i++)
+        {
+            float randomAngle = (float)GD.RandRange(-halfAngleRad, halfAngleRad);
+            Vector2 shrapnelDirection = direction.Rotated(randomAngle);
+
+            var shrapnel = shrapnelScene.Instantiate<Node2D>();
+            shrapnel.GlobalPosition = center + shrapnelDirection * 5.0f;
+            shrapnel.Set("direction", shrapnelDirection);
+            shrapnel.Set("source_id", (int)shooterId);
+            shrapnel.Set("damage", BreakerShrapnelDamage);
+            shrapnel.Set("speed", (float)GD.RandRange(1400.0, 2200.0));
+
+            // Use CallDeferred to batch scene tree changes (Issue #678 optimization)
+            GetTree().CurrentScene.CallDeferred("add_child", shrapnel);
+        }
+
+        GD.Print($"[SniperRifle.Breaker] Spawned {shrapnelCount} shrapnel (budget: {remainingBudget}, uncapped: {uncappedCount})");
+    }
+
+    /// <summary>
+    /// Spawns a visual explosion effect at the detonation point.
+    /// </summary>
+    private void BreakerSpawnExplosionEffect(Vector2 center)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_explosion_effect"))
+        {
+            impactManager.Call("spawn_explosion_effect", center, BreakerExplosionRadius);
+        }
+    }
+
+    /// <summary>
+    /// Plays explosion sound at the detonation point.
+    /// </summary>
+    private void BreakerPlayExplosionSound(Vector2 center)
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_bullet_wall_hit"))
+        {
+            audioManager.Call("play_bullet_wall_hit", center);
+        }
+
+        var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+        if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+        {
+            soundPropagation.Call("emit_sound", 1, center, 0, this, 500.0f);
+        }
+    }
+
+    /// <summary>
+    /// Finds the nearest alive enemy that is close to the player's aim line.
+    /// Uses perpendicular distance from the aim ray to find the best homing target.
+    /// The enemy must be within 110 degrees of the aim direction and within
+    /// a reasonable perpendicular distance (max 500px from the aim line).
+    /// Skips enemies blocked by walls (Issue #709).
+    /// Returns Vector2.Zero if no suitable target is found. (Issue #704)
+    /// </summary>
+    private Vector2 FindNearestEnemyNearAimLine(Vector2 origin, Vector2 aimDirection)
+    {
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return Vector2.Zero;
+        }
+
+        var enemies = tree.GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+        {
+            return Vector2.Zero;
+        }
+
+        var bestTarget = Vector2.Zero;
+        float bestScore = float.PositiveInfinity;
+        float maxPerpDistance = 500.0f; // Max perpendicular distance from aim line
+        float maxAngle = Mathf.DegToRad(110.0f); // Max angle from aim direction
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+
+            // Skip dead enemies
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+
+            Vector2 toEnemy = enemyNode.GlobalPosition - origin;
+            float distToEnemy = toEnemy.Length();
+            if (distToEnemy < 1.0f)
+            {
+                continue; // Too close, skip
+            }
+
+            // Check angle from aim direction
+            float angle = Mathf.Abs(aimDirection.AngleTo(toEnemy.Normalized()));
+            if (angle > maxAngle)
+            {
+                continue; // Too far off from aim direction
+            }
+
+            // Calculate perpendicular distance from the aim line
+            // perpDist = |toEnemy × aimDirection| (cross product magnitude in 2D)
+            float perpDist = Mathf.Abs(toEnemy.X * aimDirection.Y - toEnemy.Y * aimDirection.X);
+            if (perpDist > maxPerpDistance)
+            {
+                continue; // Too far from aim line
+            }
+
+            // Skip enemies behind walls (Issue #709)
+            // Start raycast from bullet spawn position (muzzle) to avoid hitting walls the player is near
+            // Use aimDirection for consistent muzzle position (not direction to each enemy)
+            Vector2 raycastStart = origin + aimDirection * BulletSpawnOffset;
+            if (!HasLineOfSightToTarget(raycastStart, enemyNode.GlobalPosition))
+            {
+                continue;
+            }
+
+            // Score: prioritize enemies closer to the aim line, with distance as tiebreaker
+            float score = perpDist + distToEnemy * 0.1f;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestTarget = enemyNode.GlobalPosition;
+            }
+        }
+
+        return bestTarget;
+    }
+
+    /// <summary>
+    /// Checks if there is a clear line of sight between two positions (Issue #709).
+    /// Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
+    /// Returns false if a wall blocks the path.
+    /// </summary>
+    private bool HasLineOfSightToTarget(Vector2 from, Vector2 to)
+    {
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return true; // Can't check, assume clear
+        }
+
+        var query = PhysicsRayQueryParameters2D.Create(from, to);
+        query.CollisionMask = 4; // Layer 3 = obstacles/walls only
+        query.CollideWithAreas = false;
+        query.CollideWithBodies = true;
+
+        var result = spaceState.IntersectRay(query);
+        return result.Count == 0; // True if no wall in the way
     }
 
     /// <summary>
@@ -1046,6 +1506,73 @@ public partial class SniperRifle : BaseWeapon
         // Add to scene
         GetTree().CurrentScene.AddChild(tracer);
         GD.Print($"[SniperRifle] Smoke tracer spawned: from={fromPosition + direction * BulletSpawnOffset} to={endPosition}, width={tracer.Width}");
+
+        // Start the fade-out animation
+        FadeOutTracer(tracer);
+    }
+
+    /// <summary>
+    /// Spawns a curved smoky tracer trail when homing redirected the shot (Issue #709).
+    /// The trail starts in the original firing direction and bends toward the actual
+    /// endpoint (the enemy position), creating a visible curve effect.
+    /// Uses a quadratic Bezier curve with intermediate points.
+    /// </summary>
+    /// <param name="fromPosition">The weapon's position when firing.</param>
+    /// <param name="originalDirection">The original aim direction before homing redirection.</param>
+    /// <param name="bulletEndPoint">The actual endpoint where hitscan hit (enemy or max range).</param>
+    private void SpawnCurvedSmokyTracer(Vector2 fromPosition, Vector2 originalDirection, Vector2 bulletEndPoint)
+    {
+        Vector2 startPos = fromPosition + originalDirection * BulletSpawnOffset;
+        Vector2 endPos = bulletEndPoint;
+
+        // Calculate control point for quadratic Bezier curve
+        // The control point is along the original firing direction at ~40% of the total distance
+        float totalDist = startPos.DistanceTo(endPos);
+        Vector2 controlPoint = startPos + originalDirection * (totalDist * 0.4f);
+
+        // Create the tracer as a Line2D with smoke-like appearance
+        var tracer = new Line2D
+        {
+            Name = "SniperTracerCurved",
+            Width = 5.0f,
+            DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+            TopLevel = true,
+            Position = Vector2.Zero,
+            ZIndex = 10
+        };
+
+        // Set up width curve - wider at start, tapers to narrower at end
+        var widthCurve = new Curve();
+        widthCurve.AddPoint(new Vector2(0.0f, 1.0f));
+        widthCurve.AddPoint(new Vector2(0.3f, 0.8f));
+        widthCurve.AddPoint(new Vector2(1.0f, 0.3f));
+        tracer.WidthCurve = widthCurve;
+
+        // Set up gradient - smoky white/gray that fades out
+        var gradient = new Gradient();
+        gradient.SetColor(0, new Color(0.9f, 0.9f, 0.85f, 0.8f));
+        gradient.AddPoint(0.5f, new Color(0.7f, 0.7f, 0.65f, 0.5f));
+        gradient.SetColor(gradient.GetPointCount() - 1, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+        tracer.Gradient = gradient;
+
+        // Generate Bezier curve points for a smooth curved trail
+        int segments = 16;
+        for (int i = 0; i <= segments; i++)
+        {
+            float t = (float)i / segments;
+            // Quadratic Bezier: B(t) = (1-t)^2 * P0 + 2*(1-t)*t * P1 + t^2 * P2
+            float oneMinusT = 1.0f - t;
+            Vector2 point = oneMinusT * oneMinusT * startPos
+                          + 2.0f * oneMinusT * t * controlPoint
+                          + t * t * endPos;
+            tracer.AddPoint(point);
+        }
+
+        // Add to scene
+        GetTree().CurrentScene.AddChild(tracer);
+        GD.Print($"[SniperRifle] Curved smoke tracer spawned (homing): from={startPos} to={endPos}, {segments} segments");
 
         // Start the fade-out animation
         FadeOutTracer(tracer);
