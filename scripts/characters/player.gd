@@ -446,6 +446,9 @@ func _physics_process(delta: float) -> void:
 	# Handle homing bullets input (press Space to activate, timer-based deactivation)
 	_handle_homing_input(delta)
 
+	# Update charge bar hide timer (auto-hide after 300ms for charge-based items)
+	_update_charge_bar_timer(delta)
+
 	# Handle invisibility suit input (press Space to activate) (Issue #673)
 	_handle_invisibility_suit_input()
 
@@ -3218,6 +3221,15 @@ func _reset_all_enemy_memories(reason: String) -> void:
 ## Reference to the progress bar node displayed above the player.
 var _active_item_progress_bar: Node2D = null
 
+## Timer for auto-hiding charge bar after activation (300ms).
+var _charge_bar_hide_timer: float = 0.0
+
+## Whether the charge bar hide timer is running.
+var _charge_bar_hide_pending: bool = false
+
+## Duration to show charge bar after activation before auto-hiding (in seconds).
+const CHARGE_BAR_HIDE_DELAY: float = 0.3
+
 
 ## Initialize the progress bar for the current active item.
 ## Called during _ready() after active item initialization.
@@ -3227,13 +3239,12 @@ func _init_active_item_progress_bar() -> void:
 	if active_item_manager == null:
 		return
 
-	# Currently no GDScript active items have limited usage
-	# (flashlight is unlimited). Progress bar infrastructure is ready
-	# for future limited items. When a charge-limited or time-limited
-	# active item is added to the GDScript player, call:
-	#   _show_active_item_charge_bar(current_charges, max_charges)
-	# or:
-	#   _show_active_item_timer_bar(time_remaining, max_time)
+	# Connect to homing bullets signals to show/hide progress bar on activation
+	if _homing_equipped:
+		homing_activated.connect(_on_homing_activated_show_bar)
+		homing_deactivated.connect(_on_homing_deactivated_hide_bar)
+		homing_charges_changed.connect(_on_homing_charges_changed)
+
 	FileLogger.info("[Player.ProgressBar] Active item progress bar initialized (Issue #700)")
 
 
@@ -3282,3 +3293,40 @@ func _update_active_item_bar(current: float) -> void:
 func _hide_active_item_bar() -> void:
 	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
 		_active_item_progress_bar.hide_bar()
+
+
+## Handle charge bar hide timer and active item timer bar updates.
+func _update_charge_bar_timer(delta: float) -> void:
+	# Update continuous timer bar while homing is active
+	if _homing_equipped and _homing_active:
+		_show_active_item_timer_bar(_homing_timer, HOMING_DURATION)
+
+	# Handle charge bar auto-hide (300ms delay for charge-based items)
+	if _charge_bar_hide_pending and not _homing_active:
+		_charge_bar_hide_timer -= delta
+		if _charge_bar_hide_timer <= 0.0:
+			_charge_bar_hide_pending = false
+			_hide_active_item_bar()
+
+
+## Called when homing bullets are activated - show the charge bar briefly,
+## then transition to continuous timer bar during active effect.
+func _on_homing_activated_show_bar() -> void:
+	# Show continuous timer bar during active effect
+	_show_active_item_timer_bar(HOMING_DURATION, HOMING_DURATION)
+	# Set up charge bar to show briefly after effect ends
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Called when homing bullets effect deactivates (timer expires).
+## Show charge bar briefly (300ms) then hide.
+func _on_homing_deactivated_hide_bar() -> void:
+	_show_active_item_charge_bar(_homing_charges, HOMING_MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Called when homing charges change.
+func _on_homing_charges_changed(_current: int, _maximum: int) -> void:
+	pass

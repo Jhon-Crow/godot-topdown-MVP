@@ -666,6 +666,21 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void TeleportChargesChangedEventHandler(int current, int maximum);
 
+    /// <summary>
+    /// Timer for auto-hiding charge bar after teleport (300ms delay).
+    /// </summary>
+    private float _teleportChargeBarHideTimer = 0.0f;
+
+    /// <summary>
+    /// Whether the charge bar should be shown (for 300ms after teleport).
+    /// </summary>
+    private bool _teleportChargeBarVisible = false;
+
+    /// <summary>
+    /// Duration to show charge bar after teleport before auto-hiding (in seconds).
+    /// </summary>
+    private const float TeleportChargeBarHideDelay = 0.3f;
+
     #endregion
 
     #region Homing Bullets System (Issue #677)
@@ -1288,6 +1303,9 @@ public partial class Player : BaseCharacter
 
         // Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #672)
         HandleTeleportBracersInput();
+
+        // Update teleport charge bar hide timer (Issue #700)
+        UpdateTeleportChargeBarTimer((float)delta);
 
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
@@ -4247,7 +4265,29 @@ public partial class Player : BaseCharacter
         // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
         ResetAllEnemyMemories("teleport");
 
+        // Show charge bar for 300ms after teleport (Issue #700)
+        _teleportChargeBarVisible = true;
+        _teleportChargeBarHideTimer = TeleportChargeBarHideDelay;
+
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Update the teleport charge bar hide timer (Issue #700).
+    /// Hides the charge bar 300ms after teleport activation.
+    /// </summary>
+    /// <param name="delta">Time delta in seconds.</param>
+    private void UpdateTeleportChargeBarTimer(float delta)
+    {
+        if (_teleportChargeBarVisible)
+        {
+            _teleportChargeBarHideTimer -= delta;
+            if (_teleportChargeBarHideTimer <= 0.0f)
+            {
+                _teleportChargeBarVisible = false;
+                QueueRedraw();
+            }
+        }
     }
 
     /// <summary>
@@ -4911,7 +4951,8 @@ public partial class Player : BaseCharacter
     public override void _Draw()
     {
         // Draw teleport bracers charge bar above player (Issue #700)
-        if (_teleportBracersEquipped)
+        // Only show for 300ms after teleport activation
+        if (_teleportBracersEquipped && _teleportChargeBarVisible)
         {
             DrawTeleportChargeBar();
         }
