@@ -35,19 +35,58 @@ func process_combat(delta: float, rotation_speed: float, shoot_cooldown: float, 
 		_target = _find_nearest_enemy_target()
 	if _target == null:
 		_parent.velocity = Vector2.ZERO; return
+	
+	var direction_to_target := (_target.global_position - _parent.global_position).normalized()
+	var distance_to_target := _parent.global_position.distance_to(_target.global_position)
+	
+	# Always rotate toward target
+	var ad := wrapf(direction_to_target.angle() - _parent.rotation, -PI, PI)
+	if abs(ad) <= rotation_speed * delta: 
+		_parent.rotation = direction_to_target.angle()
+	elif ad > 0: 
+		_parent.rotation += rotation_speed * delta
+	else: 
+		_parent.rotation -= rotation_speed * delta
+	if _parent.has_method("_force_model_to_face_direction"): 
+		_parent._force_model_to_face_direction(direction_to_target)
+	
+	# Shooting logic
+	var wf: Vector2 = _parent._get_weapon_forward_direction() if _parent.has_method("_get_weapon_forward_direction") else Vector2.RIGHT.rotated(_parent.rotation)
+	if wf.dot(direction_to_target) >= 0.866 and _parent._can_shoot() and _parent._shoot_timer >= shoot_cooldown:
+		_parent._shoot(); _parent._shoot_timer = 0.0
+	
+	# FIX: Add tactical movement instead of standing still
 	if _has_los(_target):
-		var d := (_target.global_position - _parent.global_position).normalized()
-		var ad := wrapf(d.angle() - _parent.rotation, -PI, PI)
-		if abs(ad) <= rotation_speed * delta: _parent.rotation = d.angle()
-		elif ad > 0: _parent.rotation += rotation_speed * delta
-		else: _parent.rotation -= rotation_speed * delta
-		if _parent.has_method("_force_model_to_face_direction"): _parent._force_model_to_face_direction(d)
-		var wf: Vector2 = _parent._get_weapon_forward_direction() if _parent.has_method("_get_weapon_forward_direction") else Vector2.RIGHT.rotated(_parent.rotation)
-		if wf.dot(d) >= 0.866 and _parent._can_shoot() and _parent._shoot_timer >= shoot_cooldown:
-			_parent._shoot(); _parent._shoot_timer = 0.0
-		_parent.velocity = Vector2.ZERO
+		# Check if we should attempt flanking
+		if _should_attempt_flank() and randf() < 0.3:  # 30% chance to flank when opportunity arises
+			var flank_pos := _calculate_flank_position()
+			if _parent.has_method("_move_to_target_nav"):
+				_parent._move_to_target_nav(flank_pos, combat_move_speed)
+				_log("Flanking to position %s" % str(flank_pos))
+		else:
+			# tactical movement behavior based on distance
+			if distance_to_target > 400.0:
+				# Long range: advance toward target
+				_parent.velocity = direction_to_target * combat_move_speed * 0.8
+				_log("Advancing on target (distance=%.0f)" % distance_to_target)
+			elif distance_to_target > 200.0:
+				# Medium range: advance with strafing
+				var strafe_dir := Vector2(-direction_to_target.y, direction_to_target.x).normalized()
+				var movement_dir := direction_to_target * 0.7 + strafe_dir * 0.3
+				_parent.velocity = movement_dir * combat_move_speed * 0.6
+				_log("Strafing toward target (distance=%.0f)" % distance_to_target)
+			else:
+				# Close range: circle strafe around target
+				var circle_angle := get_time() * 2.0  # Circle around target
+				var circle_dir := Vector2(cos(circle_angle), sin(circle_angle))
+				var movement_dir := direction_to_target * 0.2 + circle_dir * 0.8
+				_parent.velocity = movement_dir * combat_move_speed * 0.4
+				_log("Circle strafing target (distance=%.0f)" % distance_to_target)
 	else:
-		if _parent.has_method("_move_to_target_nav"): _parent._move_to_target_nav(_target.global_position, combat_move_speed)
+		# No line of sight: move toward target using navigation
+		if _parent.has_method("_move_to_target_nav"): 
+			_parent._move_to_target_nav(_target.global_position, combat_move_speed)
+			_log("Moving to target position (no LOS)")
 
 func check_retaliation(hit_direction: Vector2) -> void:
 	if not _parent: return
@@ -91,3 +130,34 @@ func _has_los(target: Node2D) -> bool:
 
 func _log(message: String) -> void:
 	if _parent and _parent.has_method("_log_to_file"): _parent._log_to_file("[#675] " + message)
+
+## Add flanking behavior for aggressive enemies
+func _should_attempt_flank() -> bool:
+	if not _parent or not _target: return false
+	var distance := _parent.global_position.distance_to(_target.global_position)
+	# Don't flank if too close or too far
+	if distance < 150.0 or distance > 500.0: return false
+	
+	# Check if target is engaged with another enemy
+	if not _target.has_method("_get_current_shooter"): return false
+	var current_shooter = _target._get_current_shooter()
+	if current_shooter and current_shooter != _parent:
+		# Target is shooting at someone else - good flanking opportunity
+		return true
+	return false
+
+## Calculate flanking position
+func _calculate_flank_position() -> Vector2:
+	if not _parent or not _target: return Vector2.ZERO
+	
+	# Calculate perpendicular direction for flanking
+	var direction_to_target := (_target.global_position - _parent.global_position).normalized()
+	var flank_dir := Vector2(-direction_to_target.y, direction_to_target.x).normalized()
+	
+	# Choose left or right flank randomly
+	if randf() < 0.5:
+		flank_dir = -flank_dir
+	
+	# Position at flanking distance
+	var flank_distance := 200.0
+	return _target.global_position + flank_dir * flank_distance
