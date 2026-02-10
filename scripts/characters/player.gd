@@ -3066,7 +3066,7 @@ func _setup_homing_audio() -> void:
 		if stream:
 			_homing_audio_player = AudioStreamPlayer.new()
 			_homing_audio_player.stream = stream
-			_homing_audio_player.volume_db = -3.0
+			_homing_audio_player.volume_db = -10.0
 			add_child(_homing_audio_player)
 			FileLogger.info("[Player.Homing] Homing activation sound loaded")
 	else:
