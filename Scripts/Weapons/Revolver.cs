@@ -101,6 +101,18 @@ public partial class Revolver : BaseWeapon
     private int _currentChamberIndex = 0;
 
     /// <summary>
+    /// Override CanFire for revolver's chamber-based system (Issue #716).
+    /// Revolvers can attempt to fire even when CurrentAmmo = 0 because:
+    /// 1. Individual chambers might still have rounds
+    /// 2. Empty chambers should produce click sounds
+    /// 3. Manual hammer cocking should work with empty cylinders
+    /// 
+    /// Only block fire when cylinder is open or hammer is cocked (handled in Fire()).
+    /// The actual ammo check happens per-chamber in ExecuteShot().
+    /// </summary>
+    public override bool CanFire => !IsReloading && _fireTimer <= 0;
+
+    /// <summary>
     /// Number of rounds actually fired since the last casing ejection (Issue #659).
     /// Incremented each time Fire() or FireChamberBullet() successfully fires.
     /// Used in OpenCylinder() to eject only the correct number of spent casings,
