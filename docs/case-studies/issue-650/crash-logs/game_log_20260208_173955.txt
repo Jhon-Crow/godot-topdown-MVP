@@ -1,0 +1,1089 @@
+[17:39:55] [INFO] ============================================================
+[17:39:55] [INFO] GAME LOG STARTED
+[17:39:55] [INFO] ============================================================
+[17:39:55] [INFO] Timestamp: 2026-02-08T17:39:55
+[17:39:55] [INFO] Log file: I:/Загрузки/godot exe/поиск/game_log_20260208_173955.txt
+[17:39:55] [INFO] Executable: I:/Загрузки/godot exe/поиск/Godot-Top-Down-Template.exe
+[17:39:55] [INFO] OS: Windows
+[17:39:55] [INFO] Debug build: false
+[17:39:55] [INFO] Engine version: 4.3-stable (official)
+[17:39:55] [INFO] Project: Godot Top-Down Template
+[17:39:55] [INFO] ------------------------------------------------------------
+[17:39:55] [INFO] [GameManager] GameManager ready
+[17:39:55] [INFO] [ScoreManager] ScoreManager ready
+[17:39:55] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[17:39:55] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[17:39:55] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[17:39:55] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[17:39:55] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:39:55] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[17:39:55] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[17:39:55] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[17:39:55] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[17:39:55] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[17:39:55] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[17:39:55] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[17:39:55] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:39:55] [INFO] [LastChance] Last chance shader loaded successfully
+[17:39:55] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[17:39:55] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[17:39:55] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[17:39:55] [INFO] [LastChance]   Sepia intensity: 0.70
+[17:39:55] [INFO] [LastChance]   Brightness: 0.60
+[17:39:55] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[17:39:55] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[17:39:55] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[17:39:55] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: true
+[17:39:55] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[17:39:55] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[17:39:55] [INFO] [CinemaEffects] Created effects layer at layer 99
+[17:39:55] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[17:39:55] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[17:39:55] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[17:39:55] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[17:39:55] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[17:39:55] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[17:39:55] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[17:39:55] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[17:39:55] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[17:39:55] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[17:39:55] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[17:39:55] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[17:39:55] [INFO] [GrenadeTimerHelper] Autoload ready
+[17:39:55] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[17:39:55] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[17:39:55] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[17:39:55] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[17:39:55] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[17:39:55] [INFO] [ProgressManager] ProgressManager ready, loaded 7 entries
+[17:39:55] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[17:39:55] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[17:39:55] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[17:39:55] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[17:39:55] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[17:39:55] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[17:39:55] [ENEMY] [Enemy1] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[17:39:55] [ENEMY] [Enemy2] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[17:39:55] [ENEMY] [Enemy3] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[17:39:55] [ENEMY] [Enemy4] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[17:39:55] [ENEMY] [Enemy5] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[17:39:55] [ENEMY] [Enemy6] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[17:39:55] [ENEMY] [Enemy7] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[17:39:55] [ENEMY] [Enemy8] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[17:39:55] [ENEMY] [Enemy9] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[17:39:55] [ENEMY] [Enemy10] Death animation component initialized
+[17:39:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:39:55] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:39:55] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:39:55] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:39:55] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[17:39:55] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[17:39:55] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:39:55] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:39:55] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:39:55] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:39:55] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:39:55] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:39:55] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[17:39:55] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 10/10
+[17:39:55] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:39:55] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[17:39:55] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[17:39:55] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[17:39:55] [INFO] [BuildingLevel] Setting up weapon: makarov_pm
+[17:39:55] [INFO] [ScoreManager] Level started with 10 enemies
+[17:39:55] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[17:39:55] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[17:39:55] [INFO] [ReplayManager] Replay data cleared
+[17:39:55] [INFO] [BuildingLevel] Previous replay data cleared
+[17:39:55] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[17:39:55] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[17:39:55] [INFO] [ReplayManager] Level: BuildingLevel
+[17:39:55] [INFO] [ReplayManager] Player: Player (valid: True)
+[17:39:55] [INFO] [ReplayManager] Enemies count: 10
+[17:39:55] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[17:39:55] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[17:39:55] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[17:39:55] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[17:39:55] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[17:39:55] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[17:39:55] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[17:39:55] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[17:39:55] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[17:39:55] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[17:39:55] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[17:39:55] [INFO] [BuildingLevel] Replay recording started successfully
+[17:39:55] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[17:39:56] [INFO] [CinemaEffects] Found player node: Player
+[17:39:56] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[17:39:56] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[17:39:56] [ENEMY] [Enemy1] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 3, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[17:39:56] [ENEMY] [Enemy2] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[17:39:56] [ENEMY] [Enemy3] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[17:39:56] [ENEMY] [Enemy4] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[17:39:56] [ENEMY] [Enemy5] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[17:39:56] [ENEMY] [Enemy6] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[17:39:56] [ENEMY] [Enemy7] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 2, behavior: PATROL
+[17:39:56] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[17:39:56] [ENEMY] [Enemy8] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 4, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[17:39:56] [ENEMY] [Enemy9] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 3, behavior: GUARD
+[17:39:56] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[17:39:56] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[17:39:56] [ENEMY] [Enemy10] Registered as sound listener
+[17:39:56] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[17:39:56] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:39:56] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=78.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:39:56] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:39:56] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[17:39:56] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[17:39:56] [INFO] [PenultimateHit] Shader warmup complete in 587 ms
+[17:39:56] [INFO] [LastChance] Shader warmup complete in 586 ms
+[17:39:56] [INFO] [CinemaEffects] Cinema shader warmup complete in 534 ms
+[17:39:56] [INFO] [FlashbangPlayer] Shader warmup complete in 524 ms
+[17:39:56] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:39:56] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:39:56] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:39:56] [INFO] [LastChance] Found player: Player
+[17:39:56] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:39:56] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:39:56] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:39:56] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[17:39:56] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 912 ms
+[17:39:57] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[17:39:58] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[17:39:58] [INFO] [ExperimentalSettings] Realistic visibility disabled
+[17:39:59] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[17:40:00] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[17:40:00] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[17:40:00] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:40:00] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:40:00] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:40:00] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[17:40:00] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[17:40:00] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[17:40:00] [ENEMY] [Enemy1] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[17:40:00] [ENEMY] [Enemy2] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[17:40:00] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[17:40:00] [ENEMY] [Enemy3] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[17:40:00] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[17:40:00] [ENEMY] [Enemy4] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[17:40:00] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[17:40:00] [ENEMY] [Enemy5] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[17:40:00] [ENEMY] [Enemy6] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[17:40:00] [ENEMY] [Enemy7] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[17:40:00] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[17:40:00] [ENEMY] [Enemy8] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[17:40:00] [ENEMY] [Enemy9] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[17:40:00] [ENEMY] [Enemy10] Death animation component initialized
+[17:40:00] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:40:00] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:40:00] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:40:00] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:40:00] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[17:40:00] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[17:40:00] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:40:00] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:40:00] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:40:00] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:40:00] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:40:00] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:40:00] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[17:40:00] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 3/4
+[17:40:00] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:40:00] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[17:40:00] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[17:40:00] [INFO] [BuildingLevel] Setting up weapon: makarov_pm
+[17:40:00] [INFO] [ScoreManager] Level started with 10 enemies
+[17:40:00] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[17:40:00] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[17:40:00] [INFO] [ReplayManager] Replay data cleared
+[17:40:00] [INFO] [BuildingLevel] Previous replay data cleared
+[17:40:00] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[17:40:00] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[17:40:00] [INFO] [ReplayManager] Level: BuildingLevel
+[17:40:00] [INFO] [ReplayManager] Player: Player (valid: True)
+[17:40:00] [INFO] [ReplayManager] Enemies count: 10
+[17:40:00] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[17:40:00] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[17:40:00] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[17:40:00] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[17:40:00] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[17:40:00] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[17:40:00] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[17:40:00] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[17:40:00] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[17:40:00] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[17:40:00] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[17:40:00] [INFO] [BuildingLevel] Replay recording started successfully
+[17:40:00] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[17:40:00] [INFO] [CinemaEffects] Found player node: Player
+[17:40:00] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[17:40:00] [ENEMY] [Enemy1] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[17:40:00] [ENEMY] [Enemy2] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 3, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[17:40:00] [ENEMY] [Enemy3] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[17:40:00] [ENEMY] [Enemy4] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[17:40:00] [ENEMY] [Enemy5] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 3, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[17:40:00] [ENEMY] [Enemy6] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[17:40:00] [ENEMY] [Enemy7] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 3, behavior: PATROL
+[17:40:00] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[17:40:00] [ENEMY] [Enemy8] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 2, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[17:40:00] [ENEMY] [Enemy9] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[17:40:00] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[17:40:00] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[17:40:00] [ENEMY] [Enemy10] Registered as sound listener
+[17:40:00] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 2, behavior: PATROL
+[17:40:00] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:40:00] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[17:40:00] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=236.3°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=123.7°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(450,1249), corner_timer=0.00
+[17:40:00] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:40:00] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[17:40:00] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[17:40:00] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:40:00] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:40:00] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:40:00] [INFO] [LastChance] Found player: Player
+[17:40:00] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:40:00] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:40:00] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:40:00] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[17:40:01] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[17:40:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 820.1666), source=PLAYER (MakarovPM), range=1469, listeners=20
+[17:40:02] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[17:40:02] [ENEMY] [Enemy1] Heard gunshot at (450, 820.1666), source_type=0, intensity=0.01, distance=494
+[17:40:02] [ENEMY] [Enemy2] Heard gunshot at (450, 820.1666), source_type=0, intensity=0.03, distance=275
+[17:40:02] [ENEMY] [Enemy3] Heard gunshot at (450, 820.1666), source_type=0, intensity=0.04, distance=260
+[17:40:02] [ENEMY] [Enemy4] Heard gunshot at (450, 820.1666), source_type=0, intensity=0.02, distance=359
+[17:40:02] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[17:40:02] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=72.1°, current=-33.8°, player=(450,814), corner_timer=0.00
+[17:40:02] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=79.3°, current=168.8°, player=(450,814), corner_timer=0.00
+[17:40:02] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=165.6°, current=-123.8°, player=(450,814), corner_timer=0.00
+[17:40:02] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-166.2°, current=168.8°, player=(450,814), corner_timer=0.00
+[17:40:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 820.1666), shooter_id=110159203461, bullet_pos=(500.6222, 818.0446)
+[17:40:02] [INFO] [Bullet] Using shooter_position, distance=50.6666526794434
+[17:40:02] [INFO] [Bullet] Distance to wall: 50.6666526794434 (3.44998554870225% of viewport)
+[17:40:02] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[17:40:02] [INFO] [Bullet] Caliber cannot penetrate walls
+[17:40:02] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[17:40:02] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[17:40:02] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(453,782), corner_timer=0.30
+[17:40:02] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(453,782), corner_timer=0.30
+[17:40:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.8215, 744.399), source=PLAYER (MakarovPM), range=1469, listeners=10
+[17:40:02] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[17:40:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(522,726), corner_timer=-0.02
+[17:40:02] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[17:40:02] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(522,726), corner_timer=-0.02
+[17:40:02] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[17:40:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(527.4521, 732.4097), source=PLAYER (MakarovPM), range=1469, listeners=10
+[17:40:02] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[17:40:02] [ENEMY] [Enemy3] Hit: dmg=1, hp=2/2->1/2
+[17:40:02] [INFO] [ImpactEffects] spawn_blood_effect called at (684.4485, 753.7583), dir=(0.999798, 0.020089), lethal=false
+[17:40:02] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[17:40:02] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[17:40:02] [INFO] [ImpactEffects] Blood effect spawned at (684.4485, 753.7583) (scale=0.5)
+[17:40:02] [INFO] [FlashbangStatus] Status: STUNNED applied
+[17:40:02] [ENEMY] [Enemy3] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-170.1°, current=-178.8°, player=(527,726), corner_timer=0.00
+[17:40:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(527,726), corner_timer=0.30
+[17:40:02] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(527,726), corner_timer=0.30
+[17:40:02] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[17:40:02] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[17:40:02] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[17:40:02] [ENEMY] [Enemy3] Hit: dmg=1, hp=1/2->0/2
+[17:40:02] [INFO] [ImpactEffects] spawn_blood_effect called at (684.4485, 753.7583), dir=(0.994831, 0.101548), lethal=true
+[17:40:02] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[17:40:02] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[17:40:02] [INFO] [ImpactEffects] Blood effect spawned at (684.4485, 753.7583) (scale=0.75)
+[17:40:02] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[17:40:02] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[17:40:02] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+[17:40:02] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[17:40:02] [INFO] [DeathAnim] Started - Angle: 5.8 deg, Index: 12
+[17:40:02] [ENEMY] [Enemy3] Death animation started with hit direction: (0.994831, 0.101548)
+[17:40:02] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[17:40:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(582.4521, 732.4097), source=PLAYER (MakarovPM), range=1469, listeners=9
+[17:40:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[17:40:02] [INFO] [FlashbangStatus] Status: STUNNED removed
+[17:40:02] [INFO] [BloodDecal] Blood puddle created at (730.267, 780.8659) (added to group)
+[17:40:02] [INFO] [BloodDecal] Blood puddle created at (763.5379, 771.4167) (added to group)
+[17:40:02] [INFO] [BloodDecal] Blood puddle created at (746.1082, 764.3066) (added to group)
+[17:40:02] [INFO] [BloodDecal] Blood puddle created at (737.5029, 751.0425) (added to group)
+[17:40:02] [INFO] [BloodDecal] Blood puddle created at (740.5292, 802.7907) (added to group)
+[17:40:02] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(631,726), corner_timer=-0.02
+[17:40:02] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[17:40:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(637.4521, 732.4097), source=PLAYER (MakarovPM), range=1469, listeners=9
+[17:40:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[17:40:02] [INFO] [BloodDecal] Blood puddle created at (763.5733, 756.2217) (added to group)
+[17:40:02] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(637,726), corner_timer=0.30
+[17:40:02] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=33.8°, current=82.9°, player=(642,726), corner_timer=0.00
+[17:40:02] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[17:40:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(403.0171, 565.713), source=ENEMY (Enemy2), range=1469, listeners=9
+[17:40:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=3
+[17:40:02] [INFO] [BloodDecal] Blood puddle created at (738.3026, 763.6419) (added to group)
+[17:40:03] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (745.2217, 785.8487) (added to group)
+[17:40:03] [INFO] [LastChance] Threat detected: Bullet
+[17:40:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[17:40:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (745.7972, 777.0062) (added to group)
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(637.4521, 732.4097), shooter_id=110159203461, bullet_pos=(744.4443, 813.0859)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=134
+[17:40:03] [INFO] [Bullet] Distance to wall: 134 (9.12430640427263% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [INFO] [Bullet] Caliber cannot penetrate walls
+[17:40:03] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[17:40:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(421.2542, 576.7794), source=ENEMY (Enemy2), range=1469, listeners=9
+[17:40:03] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=3
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(582.4521, 732.4097), shooter_id=110159203461, bullet_pos=(915.323, 842.7014)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=350.666961669922
+[17:40:03] [INFO] [Bullet] Distance to wall: 350.666961669922 (23.8775582397887% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [INFO] [Bullet] Caliber cannot penetrate walls
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (753.2119, 773.166) (added to group)
+[17:40:03] [INFO] [LastChance] Threat detected: @Area2D@582
+[17:40:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[17:40:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[17:40:03] [ENEMY] [Enemy3] Ragdoll activated
+[17:40:03] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (858.4323, 851.1458) (added to group)
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (804.0045, 825.2595) (added to group)
+[17:40:03] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[17:40:03] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[17:40:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(451.4837, 597.7892), source=ENEMY (Enemy2), range=1469, listeners=9
+[17:40:03] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=3
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(454.84308, 609.8113), shooter_id=106451438504, bullet_pos=(939.1086, 935.02673)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=583,3337
+[17:40:03] [INFO] [Bullet] Distance to wall: 583,3337 (39,720264% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [INFO] [Bullet] Starting wall penetration at (939.1086, 935.02673)
+[17:40:03] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[17:40:03] [INFO] [Bullet] Exiting penetration at (977.8498, 961.04395) after traveling 41,666668 pixels through wall
+[17:40:03] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (872.778, 854.8036) (added to group)
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (904.3197, 889.6813) (added to group)
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (800.3369, 814.2778) (added to group)
+[17:40:03] [INFO] [LastChance] Threat detected: @Area2D@606
+[17:40:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[17:40:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[17:40:03] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[17:40:03] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[17:40:03] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(733,706), corner_timer=-0.02
+[17:40:03] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (816.7089, 826.2285) (added to group)
+[17:40:03] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[17:40:03] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(737,702), corner_timer=0.30
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (901.623, 877.2115) (added to group)
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (880.3059, 819.9124) (added to group)
+[17:40:03] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[17:40:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(451.8854, 579.7149), source=ENEMY (Enemy2), range=1469, listeners=9
+[17:40:03] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=3
+[17:40:03] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=-92.7°, current=21.4°, player=(749,690), corner_timer=0.00
+[17:40:03] [INFO] [BloodDecal] Blood puddle created at (865.9878, 864.9998) (added to group)
+[17:40:03] [INFO] [LastChance] Threat detected: Bullet
+[17:40:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[17:40:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[17:40:03] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(509.8418, 632.78827), shooter_id=106451438504, bullet_pos=(928.4682, 819.3928)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=458,3332
+[17:40:03] [INFO] [Bullet] Distance to wall: 458,3332 (31,20875% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(475.96707, 617.24054), shooter_id=106451438504, bullet_pos=(1159.2815, 1017.0129)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=791,66693
+[17:40:03] [INFO] [Bullet] Distance to wall: 791,66693 (53,90606% of viewport)
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(509.8418, 632.78827), shooter_id=106451438504, bullet_pos=(758.7899, 885.45056)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=354,70184
+[17:40:03] [INFO] [Bullet] Distance to wall: 354,70184 (24,152302% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(511.98672, 611.6278), shooter_id=106451438504, bullet_pos=(939.69293, 776.3606)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=458,33337
+[17:40:03] [INFO] [Bullet] Distance to wall: 458,33337 (31,208763% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [ENEMY] [Enemy4] ROT_CHANGE: P2:combat_state -> P4:velocity, state=SEEKING_COVER, target=159.3°, current=-156.0°, player=(791,647), corner_timer=0.00
+[17:40:03] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(475.96707, 617.24054), shooter_id=106451438504, bullet_pos=(1391.64, 917.1314)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=963,53076
+[17:40:03] [INFO] [Bullet] Distance to wall: 963,53076 (65,60858% of viewport)
+[17:40:03] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(509.8418, 632.78827), shooter_id=106451438504, bullet_pos=(910.4079, 920.0729)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=492,93576
+[17:40:03] [INFO] [Bullet] Distance to wall: 492,93576 (33,564903% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [INFO] [Bullet] Starting wall penetration at (910.4079, 920.0729)
+[17:40:03] [INFO] [Bullet] Raycast backward hit penetrating body at distance 8,853281
+[17:40:03] [INFO] [Bullet] Body exited signal received for penetrating body
+[17:40:03] [INFO] [Bullet] Exiting penetration at (944.6311, 927.8878) after traveling 30,104168 pixels through wall
+[17:40:03] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[17:40:03] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(811,628), corner_timer=-0.02
+[17:40:03] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[17:40:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(511.98672, 611.6278), shooter_id=106451438504, bullet_pos=(731.63135, 839.7372)
+[17:40:03] [INFO] [Bullet] Using shooter_position, distance=316,66647
+[17:40:03] [INFO] [Bullet] Distance to wall: 316,66647 (21,562403% of viewport)
+[17:40:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:40:03] [INFO] [Bullet] Starting wall penetration at (731.63135, 839.7372)
+[17:40:03] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(815,624), corner_timer=0.30
+[17:40:03] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[17:40:03] [INFO] [Bullet] Exiting penetration at (692.96857, 851.51404) after traveling 35,416664 pixels through wall
+[17:40:03] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[17:40:03] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[17:40:03] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[17:40:03] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[17:40:03] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[17:40:03] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(889,550), corner_timer=-0.02
+[17:40:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[17:40:03] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(893,546), corner_timer=0.30
+[17:40:04] [ENEMY] [Enemy3] Death animation completed
+[17:40:04] [ENEMY] [Enemy1] PURSUING corner check: angle -132.7°
+[17:40:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(1047,508), corner_timer=-0.02
+[17:40:04] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[17:40:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(1053,508), corner_timer=0.30
+[17:40:04] [ENEMY] [Enemy1] PURSUING corner check: angle -74.5°
+[17:40:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:04] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[17:40:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(1155,515), corner_timer=-0.02
+[17:40:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[17:40:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(1159,517), corner_timer=0.30
+[17:40:04] [ENEMY] [Enemy1] PURSUING corner check: angle -73.5°
+[17:40:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:05] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.4°, current=120.7°, player=(1235,587), corner_timer=-0.02
+[17:40:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[17:40:05] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.7°, current=123.6°, player=(1239,590), corner_timer=0.30
+[17:40:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:05] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.9°, current=89.7°, player=(1313,664), corner_timer=-0.02
+[17:40:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[17:40:05] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=92.5°, player=(1316,668), corner_timer=0.30
+[17:40:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:05] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=10
+[17:40:05] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.7°, current=89.6°, player=(1390,674), corner_timer=-0.02
+[17:40:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[17:40:05] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(1394,675), corner_timer=0.30
+[17:40:05] [ENEMY] [Enemy2] State: SUPPRESSED -> IN_COVER
+[17:40:05] [ENEMY] [Enemy2] State: IN_COVER -> PURSUING
+[17:40:05] [ENEMY] [Enemy2] ROT_CHANGE: P4:velocity -> P2:combat_state, state=PURSUING, target=7.5°, current=6.3°, player=(1414,687), corner_timer=0.00
+[17:40:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:06] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.5°, player=(1443,741), corner_timer=-0.02
+[17:40:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[17:40:06] [ENEMY] [Enemy4] State: SUPPRESSED -> IN_COVER
+[17:40:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(1442,745), corner_timer=0.30
+[17:40:06] [ENEMY] [Enemy4] State: IN_COVER -> PURSUING
+[17:40:06] [ENEMY] [Enemy4] ROT_CHANGE: P4:velocity -> P2:combat_state, state=PURSUING, target=-12.8°, current=-139.1°, player=(1441,751), corner_timer=0.00
+[17:40:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.4°, current=89.5°, player=(1380,759), corner_timer=-0.02
+[17:40:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[17:40:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.3°, player=(1374,760), corner_timer=0.30
+[17:40:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:06] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=10
+[17:40:06] [ENEMY] [Enemy1] PURSUING corner check: angle -169.2°
+[17:40:06] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.5°, player=(1270,760), corner_timer=-0.02
+[17:40:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:06] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1264,760), corner_timer=0.30
+[17:40:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:07] [INFO] [Player.Debug] Debug mode toggled: ON
+[17:40:07] [INFO] [GameManager] Debug mode toggled: ON
+[17:40:07] [ENEMY] [Enemy1] PURSUING corner check: angle 10.8°
+[17:40:07] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(1160,760), corner_timer=-0.02
+[17:40:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:07] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1154,760), corner_timer=0.30
+[17:40:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:07] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[17:40:07] [ENEMY] [Enemy2] FLANKING started: target=(1045.399, 549.6954), side=right, pos=(453.5042, 561.1758)
+[17:40:07] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[17:40:07] [ENEMY] [Enemy2] FLANKING corner check: angle -176.5°
+[17:40:07] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(1086,730), corner_timer=-0.02
+[17:40:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:07] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1084,728), corner_timer=0.30
+[17:40:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:07] [INFO] [ScoreManager] Combo ended at 1. Max combo: 1
+[17:40:07] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=10
+[17:40:07] [ENEMY] [Enemy2] FLANKING corner check: angle 79.3°
+[17:40:07] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:07] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:07] [ENEMY] [Enemy4] PURSUING corner check: angle -84.1°
+[17:40:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:08] [ENEMY] [Enemy2] FLANKING corner check: angle -100.9°
+[17:40:08] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:08] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:08] [ENEMY] [Enemy2] FLANKING corner check: angle -101.0°
+[17:40:08] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:08] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:08] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=True, enemies=10
+[17:40:08] [ENEMY] [Enemy2] FLANKING corner check: angle -99.9°
+[17:40:08] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:08] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:09] [ENEMY] [Enemy2] FLANKING corner check: angle -92.5°
+[17:40:09] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:09] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy2] FLANKING corner check: angle -78.2°
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [ReplayManager] Recording frame 540 (9,0s): player_valid=True, enemies=10
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (266 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (261 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy4] PURSUING corner check: angle -96.9°
+[17:40:09] [ENEMY] [Enemy2] FLANKING corner check: angle -75.1°
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (256 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (251 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (246 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (241 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (236 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (231 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (226 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (221 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (216 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (211 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (206 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (201 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:09] [INFO] [EnemyGrenade] Unsafe throw distance (195 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (190 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (185 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy2] FLANKING corner check: angle -75.1°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy2] FLANKING corner check: angle -91.7°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:10] [ENEMY] [Enemy1] PURSUING corner check: angle 150.5°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [ReplayManager] Recording frame 600 (10,0s): player_valid=True, enemies=10
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy2] FLANKING corner check: angle 23.3°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1078,728), corner_timer=-0.02
+[17:40:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1078,728), corner_timer=0.30
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=FLANKING, target=-179.1°, current=-136.7°, player=(1078,728), corner_timer=0.20
+[17:40:10] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[17:40:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1398.122, 732.9344), source=ENEMY (Enemy2), range=1469, listeners=9
+[17:40:10] [ENEMY] [Enemy5] Heard gunshot at (1398.122, 732.9344), source_type=1, intensity=0.01, distance=488
+[17:40:10] [ENEMY] [Enemy7] Heard gunshot at (1398.122, 732.9344), source_type=1, intensity=0.03, distance=270
+[17:40:10] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=6
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy5] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=148.7°, current=87.8°, player=(1078,728), corner_timer=0.00
+[17:40:10] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P2:combat_state, state=COMBAT, target=-162.2°, current=89.4°, player=(1078,728), corner_timer=0.20
+[17:40:10] [ENEMY] [Enemy2] State: FLANKING -> COMBAT
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:10] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [LastChance] Threat detected: Bullet
+[17:40:11] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[17:40:11] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [Player] Spawning blood effect at (1078.6719, 728.0651), dir=(1, 0), lethal=False (C#)
+[17:40:11] [INFO] [ImpactEffects] spawn_blood_effect called at (1078.672, 728.0651), dir=(1, 0), lethal=false
+[17:40:11] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[17:40:11] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[17:40:11] [INFO] [ImpactEffects] Blood effect spawned at (1078.672, 728.0651) (scale=1)
+[17:40:11] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[17:40:11] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[17:40:11] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[17:40:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1368.112, 751.4305), source=ENEMY (Enemy2), range=1469, listeners=9
+[17:40:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=6
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [LastChance] Threat detected: @Area2D@639
+[17:40:11] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[17:40:11] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [Player] Spawning blood effect at (1078.6719, 728.0651), dir=(1, 0), lethal=False (C#)
+[17:40:11] [INFO] [ImpactEffects] spawn_blood_effect called at (1078.672, 728.0651), dir=(1, 0), lethal=false
+[17:40:11] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[17:40:11] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[17:40:11] [INFO] [ImpactEffects] Blood effect spawned at (1078.672, 728.0651) (scale=1)
+[17:40:11] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[17:40:11] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[17:40:11] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[17:40:11] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[17:40:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1332.491, 762.593), source=ENEMY (Enemy2), range=1469, listeners=9
+[17:40:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=6
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:11] [INFO] [LastChance] Threat detected: Bullet
+[17:40:11] [INFO] [LastChance] Triggering last chance effect!
+[17:40:11] [INFO] [LastChance] Starting last chance effect:
+[17:40:11] [INFO] [LastChance]   - Time will be frozen (except player)
+[17:40:11] [INFO] [LastChance]   - Duration: 6.00 real seconds
+[17:40:11] [INFO] [LastChance]   - Trigger: threat detected
+[17:40:11] [INFO] [LastChance]   - Sepia intensity: 0.70
+[17:40:11] [INFO] [LastChance]   - Brightness: 0.60
+[17:40:11] [INFO] [LastChance] Pushed bullet Bullet from distance 147.1 to 200.0
+[17:40:11] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[17:40:11] [INFO] [LastChance] Set player Player and all 26 children to PROCESS_MODE_ALWAYS
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[17:40:11] [INFO] [LastChance] Skipping player node: Player
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: Casing
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@561
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@564
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@566
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@573
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@576
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@584
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@608
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@623
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@638
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@641
+[17:40:11] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@644
+[17:40:11] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[17:40:11] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[17:40:11] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1139.477, 770.2579) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1168.619, 764.7318) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1157.085, 759.9512) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1161.392, 758.1248) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1191.982, 731.6251) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1143.193, 773.7949) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1151.077, 773.0543) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1222.127, 780.603) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1176.383, 765.8207) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1212.996, 763.8911) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1147.562, 770.8392) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1150.706, 749.344) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1225.984, 796.8386) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1211.318, 805.8779) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1224.818, 778.4539) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1194.497, 773.2446) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1188.868, 837.5782) (added to group)
+[17:40:11] [INFO] [ReplayManager] Recording frame 660 (11,0s): player_valid=True, enemies=10
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1324.83, 842.8588) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1241.099, 753.5292) (added to group)
+[17:40:11] [INFO] [BloodDecal] Blood puddle created at (1221.314, 828.1315) (added to group)
+[17:40:11] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[17:40:12] [INFO] [ReplayManager] Recording frame 720 (12,0s): player_valid=True, enemies=10
+[17:40:13] [INFO] [ReplayManager] Recording frame 780 (13,0s): player_valid=True, enemies=10
+[17:40:13] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[17:40:14] [INFO] [ReplayManager] Recording frame 840 (14,0s): player_valid=True, enemies=10
+[17:40:15] [INFO] [ReplayManager] Recording frame 900 (15,0s): player_valid=True, enemies=10
+[17:40:16] [INFO] [ReplayManager] Recording frame 960 (16,0s): player_valid=True, enemies=10
+[17:40:17] [INFO] [LastChance] Effect duration expired after 6.01 real seconds
+[17:40:17] [INFO] [LastChance] Ending last chance effect
+[17:40:17] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=true
+[17:40:17] [ENEMY] [Enemy1] Search mode: PURSUING -> SEARCHING at (745.2803, 694.6106)
+[17:40:17] [ENEMY] [Enemy1] SEARCHING started: center=(745.2803, 694.6106), radius=100, waypoints=5
+[17:40:17] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=true
+[17:40:17] [ENEMY] [Enemy2] Search mode: RETREATING -> SEARCHING at (1078.672, 728.0651)
+[17:40:17] [ENEMY] [Enemy2] SEARCHING started: center=(1078.672, 728.0651), radius=100, waypoints=5
+[17:40:17] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=true
+[17:40:17] [ENEMY] [Enemy4] Search mode: PURSUING -> SEARCHING at (745.2803, 694.6106)
+[17:40:17] [ENEMY] [Enemy4] SEARCHING started: center=(745.2803, 694.6106), radius=100, waypoints=5
+[17:40:17] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=true
+[17:40:17] [ENEMY] [Enemy5] Search mode: COMBAT -> SEARCHING at (1398.122, 732.9344)
+[17:40:17] [ENEMY] [Enemy5] SEARCHING started: center=(1398.122, 732.9344), radius=100, waypoints=5
+[17:40:17] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=true
+[17:40:17] [ENEMY] [Enemy6] Search mode: IDLE -> SEARCHING at (745.2803, 694.6106)
+[17:40:17] [ENEMY] [Enemy6] SEARCHING started: center=(745.2803, 694.6106), radius=100, waypoints=5
+[17:40:17] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=true
+[17:40:17] [ENEMY] [Enemy7] Search mode: COMBAT -> SEARCHING at (1078.672, 728.0651)
+[17:40:17] [ENEMY] [Enemy7] SEARCHING started: center=(1078.672, 728.0651), radius=100, waypoints=5
+[17:40:17] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[17:40:17] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[17:40:17] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[17:40:17] [INFO] [LastChance] Reset memory for 9 enemies (player teleport effect)
+[17:40:17] [INFO] [LastChance] All process modes restored
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: Casing
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@561
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@564
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@566
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@573
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@576
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@584
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@608
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@623
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@638
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@641
+[17:40:17] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@644
+[17:40:17] [INFO] [LastChance] Starting visual effects fade-out over 400ms
+[17:40:17] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P3:corner, state=SEARCHING, target=150.5°, current=7.4°, player=(1014,185), corner_timer=0.17
+[17:40:17] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P3:corner, state=SEARCHING, target=23.3°, current=-171.3°, player=(1014,185), corner_timer=0.20
+[17:40:17] [ENEMY] [Enemy4] ROT_CHANGE: P2:combat_state -> P3:corner, state=SEARCHING, target=-96.9°, current=-14.0°, player=(1014,185), corner_timer=0.07
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (180 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy5] ROT_CHANGE: P2:combat_state -> P4:velocity, state=SEARCHING, target=-177.9°, current=-166.2°, player=(1014,185), corner_timer=0.00
+[17:40:17] [ENEMY] [Enemy5] SEARCHING corner check: angle -40.5°
+[17:40:17] [ENEMY] [Enemy6] SEARCHING corner check: angle 37.1°
+[17:40:17] [ENEMY] [Enemy7] ROT_CHANGE: P2:combat_state -> P3:corner, state=SEARCHING, target=89.4°, current=154.0°, player=(1014,185), corner_timer=0.20
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (175 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy5] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=-40.5°, current=-177.1°, player=(1014,185), corner_timer=0.30
+[17:40:17] [ENEMY] [Enemy6] ROT_CHANGE: P5:idle_scan -> P3:corner, state=SEARCHING, target=37.1°, current=66.8°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (170 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (165 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (160 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy4] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=-70.3°, current=-38.4°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (155 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy4] SEARCHING corner check: angle -160.3°
+[17:40:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:17] [ENEMY] [Enemy4] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=-160.3°, current=-42.8°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (151 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (146 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (141 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (136 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (132 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy1] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=9.6°, current=0.7°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [ENEMY] [Enemy1] SEARCHING corner check: angle -80.4°
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (127 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [BloodyFeet:Enemy2] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[17:40:17] [ENEMY] [Enemy1] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=-80.4°, current=1.6°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (122 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy2] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=-174.0°, current=150.0°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [ENEMY] [Enemy2] SEARCHING corner check: angle 96.0°
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (117 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=-14.1°, current=-143.2°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [ENEMY] [Enemy7] SEARCHING corner check: angle 75.9°
+[17:40:17] [ENEMY] [Enemy2] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=96.0°, current=152.8°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (111 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=75.9°, current=-136.3°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (106 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (101 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy1] Hit: dmg=1, hp=4/4->3/4
+[17:40:17] [INFO] [ImpactEffects] spawn_blood_effect called at (568.6061, 664.7524), dir=(1, 0), lethal=false
+[17:40:17] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[17:40:17] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[17:40:17] [INFO] [ImpactEffects] Blood effect spawned at (568.6061, 664.7524) (scale=1)
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (96 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (91 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (86 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (81 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy5] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=49.5°, current=165.7°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [ENEMY] [Enemy5] SEARCHING corner check: angle -40.5°
+[17:40:17] [ENEMY] [Enemy6] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=127.1°, current=106.7°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [ENEMY] [Enemy6] SEARCHING corner check: angle 37.1°
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (76 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy5] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=-40.5°, current=161.4°, player=(1014,185), corner_timer=0.30
+[17:40:17] [ENEMY] [Enemy6] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=37.1°, current=111.4°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (70 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (65 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [LastChance] Visual effects fade-out complete
+[17:40:17] [INFO] [LastChance] Restored original colors to 5 player sprites
+[17:40:17] [INFO] [LastChance] Called player RefreshHealthVisual (C#)
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (60 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy4] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=-45.5°, current=-93.5°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (55 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.5°
+[17:40:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[17:40:17] [ENEMY] [Enemy4] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=-135.5°, current=-90.3°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [INFO] [ReplayManager] Recording frame 1020 (17,0s): player_valid=True, enemies=10
+[17:40:17] [ENEMY] [Enemy1] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=9.6°, current=-149.8°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [ENEMY] [Enemy1] SEARCHING corner check: angle -80.4°
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy1] ROT_CHANGE: P4:velocity -> P3:corner, state=SEARCHING, target=-80.4°, current=-147.3°, player=(1014,185), corner_timer=0.30
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[17:40:17] [ENEMY] [Enemy2] ROT_CHANGE: P3:corner -> P4:velocity, state=SEARCHING, target=-174.0°, current=97.8°, player=(1014,185), corner_timer=-0.02
+[17:40:17] [ENEMY] [Enemy2] SEARCHING corner check: angle 96.0°
+[17:40:17] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw

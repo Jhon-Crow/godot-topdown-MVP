@@ -465,7 +465,7 @@ func test_attack_distracted_player_cost_when_not_distracted() -> void:
 func test_create_all_actions_returns_all_actions() -> void:
 	var actions: Array[GOAPAction] = EnemyActions.create_all_actions()
 
-	assert_eq(actions.size(), 20, "Should create 20 enemy actions")
+	assert_eq(actions.size(), 21, "Should create 21 enemy actions")
 
 
 func test_create_all_actions_includes_all_types() -> void:
@@ -489,6 +489,7 @@ func test_create_all_actions_includes_all_types() -> void:
 	assert_has(action_names, "attack_distracted_player", "Should include attack_distracted_player")
 	assert_has(action_names, "attack_vulnerable_player", "Should include attack_vulnerable_player")
 	assert_has(action_names, "intercept_predicted_position", "Should include intercept_predicted_position")
+	assert_has(action_names, "coordinated_search", "Should include coordinated_search")
 
 
 # ============================================================================
@@ -916,3 +917,47 @@ func test_intercept_predicted_position_integration_with_planner() -> void:
 	var plan: Array[GOAPAction] = planner.plan(state, goal)
 
 	assert_gt(plan.size(), 0, "Planner should find a plan to intercept predicted position")
+
+
+# ============================================================================
+# CoordinatedSearchAction Tests (Issue #650)
+# ============================================================================
+
+
+func test_coordinated_search_action_initialization() -> void:
+	var action := EnemyActions.CoordinatedSearchAction.new()
+	assert_eq(action.action_name, "coordinated_search", "Action name should be 'coordinated_search'")
+	assert_eq(action.cost, 2.5, "Base cost should be 2.5")
+
+
+func test_coordinated_search_action_preconditions() -> void:
+	var action := EnemyActions.CoordinatedSearchAction.new()
+	assert_eq(action.preconditions["player_visible"], false, "Requires player not visible")
+	assert_eq(action.preconditions["has_suspected_position"], true, "Requires suspected position")
+	assert_eq(action.preconditions["is_searching"], true, "Requires already searching")
+
+
+func test_coordinated_search_action_effects() -> void:
+	var action := EnemyActions.CoordinatedSearchAction.new()
+	assert_eq(action.effects["area_patrolled"], true, "Effect should set area_patrolled")
+
+
+func test_coordinated_search_action_cost_when_searching() -> void:
+	var action := EnemyActions.CoordinatedSearchAction.new()
+	var cost := action.get_cost(null, {"is_searching": true})
+	assert_eq(cost, 2.0, "Cost should be 2.0 when searching (lower than solo search)")
+
+
+func test_coordinated_search_action_cost_when_not_searching() -> void:
+	var action := EnemyActions.CoordinatedSearchAction.new()
+	var cost := action.get_cost(null, {"is_searching": false})
+	assert_eq(cost, 100.0, "Cost should be very high when not searching")
+
+
+func test_coordinated_search_in_create_all_actions() -> void:
+	var actions := EnemyActions.create_all_actions()
+	var found := false
+	for action in actions:
+		if action.action_name == "coordinated_search":
+			found = true; break
+	assert_true(found, "CoordinatedSearchAction should be included in create_all_actions()")
