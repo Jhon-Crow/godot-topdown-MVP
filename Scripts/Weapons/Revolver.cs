@@ -264,11 +264,11 @@ public partial class Revolver : BaseWeapon
         int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
 
         // Issue #668: Initialize per-chamber tracking array.
-        // All chambers start as occupied (full cylinder at game start).
+        // Chambers start based on CurrentAmmo (empty drum support - Issue #716).
         _chamberOccupied = new bool[cylinderCapacity];
         for (int i = 0; i < cylinderCapacity; i++)
         {
-            _chamberOccupied[i] = true;
+            _chamberOccupied[i] = i < CurrentAmmo;
         }
         _currentChamberIndex = 0;
 
