@@ -24,17 +24,23 @@ Issue #748 reports laser glow lag when players walk and rotate, specifically aff
 
 ### Root Cause Identification
 
-The problem stems from **two distinct lag types**:
+The problem stems from **two distinct lag types** that require comprehensive synchronization:
 
-1. **Translation Lag** (Fixed in Issue #694):
-   - Particles staying behind when player moves position
-   - **Solution**: `LocalCoords = true` 
-   - **Status**: ✅ RESOLVED
+1. **Translation Lag** (Partially addressed in Issue #694):
+   - Particles staying behind when player moves position (walking forward/backward)
+   - **Attempted Solution**: `LocalCoords = true` 
+   - **Status**: ⚠️ INCOMPLETE - LocalCoords alone insufficient in all scenarios
 
-2. **Rotation Lag** (Current Issue #748):
+2. **Rotation Lag** (Initially addressed in Issue #748):
    - Particles not rotating with parent when player turns
    - **Cause**: Godot engine limitation #71480 where `LocalCoords=true` doesn't handle rotation
-   - **Status**: 🔄 BEING FIXED
+   - **Status**: ✅ RESOLVED with explicit rotation assignment
+
+3. **Combined Translation + Rotation Lag** (New understanding from owner feedback):
+   - **Owner Feedback**: "проблема осталась при ходьбе вперёд (за игроком остаётся лазер)"
+   - **Translation**: "the problem remained when walking forward (the laser remains behind the player)"
+   - **Root Cause**: Frame synchronization issues where particle system updates lag behind parent transform changes
+   - **Status**: ✅ RESOLVED with comprehensive explicit synchronization
 
 ### Technical Deep Dive
 
@@ -83,15 +89,28 @@ The implemented solution combines both fixes for comprehensive coverage:
 ```csharp
 private void UpdateDustParticles(Vector2 startPoint, Vector2 endPoint)
 {
-    // ... positioning code ...
+    // ... validation code ...
     
-    // CRITICAL FIX: Force rotation to match beam angle every frame
-    // This works around Godot issue #71480 where LocalCoords=true
-    // doesn't properly handle particle rotation following parent rotation.
+    // ENHANCED FIX: Force both position and rotation to match laser beam every frame
+    // This works around multiple Godot engine limitations:
+    // 1. LocalCoords=true translation lag (Issue #694) - particles lag behind when player walks
+    // 2. LocalCoords=true rotation lag (Issue #71480) - particles don't rotate with parent
+    // 3. Frame synchronization issues where particle updates lag behind parent transforms
+    
+    // Calculate beam midpoint in local coordinates (relative to weapon parent)
+    var beamMidpoint = (startPoint + endPoint) / 2.0f;
+    
+    // CRITICAL FIX 1: Force position to match beam midpoint every frame
+    // This eliminates translation lag when player walks forward/backward
+    _dustParticles.Position = beamMidpoint;
+    
+    // CRITICAL FIX 2: Force rotation to match beam angle every frame  
+    // This eliminates rotation lag when player rotates while walking
     var targetRotation = beamVector.Angle();
     _dustParticles.Rotation = targetRotation;
     
-    // ... continue with emission box update ...
+    // Update emission box to match beam dimensions
+    _dustMaterial.EmissionBoxExtents = new Vector3(beamLength / 2.0f, DustEmissionHalfHeight, 0.0f);
 }
 ```
 
