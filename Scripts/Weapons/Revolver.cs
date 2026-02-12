@@ -580,20 +580,6 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Issue #691: Check if the CURRENT chamber has a round, not just total ammo.
-        // This allows cylinder rotation to actually matter - rotating to an empty chamber
-        // will cause a click even if other chambers have rounds.
-        bool currentChamberHasRound = _chamberOccupied.Length > 0
-                                      && _currentChamberIndex < _chamberOccupied.Length
-                                      && _chamberOccupied[_currentChamberIndex];
-
-        if (!currentChamberHasRound)
-        {
-            PlayEmptyClickSound();
-            GD.Print($"[Revolver] Click - chamber {_currentChamberIndex} is empty (total ammo: {CurrentAmmo})");
-            return false;
-        }
-
         // Check if we can fire at all (fire rate, etc)
         if (!CanFire || WeaponData == null || BulletScene == null)
         {
@@ -601,17 +587,40 @@ public partial class Revolver : BaseWeapon
         }
 
         // Issue #649: If hammer was manually cocked (RMB), fire immediately without delay.
-        // The hammer cock + cylinder rotation already happened during ManualCockHammer().
+        // When hammer is cocked, player fires from the CURRENT slot (no rotation).
+        // Issue #716: Current chamber is checked - either fires or clicks.
         if (_isManuallyHammerCocked)
         {
             _isManuallyHammerCocked = false;
+
+            // Issue #716: Check current chamber for cocked fire - click or shoot
+            bool currentChamberHasRound = _chamberOccupied.Length > 0
+                                          && _currentChamberIndex < _chamberOccupied.Length
+                                          && _chamberOccupied[_currentChamberIndex];
+
+            if (!currentChamberHasRound)
+            {
+                // Issue #716: Play empty click sound when firing cocked hammer on empty chamber
+                PlayEmptyClickSound();
+                GD.Print($"[Revolver] Click - cocked hammer on empty chamber {_currentChamberIndex}");
+                return true; // Return true - action was performed (click)
+            }
+
             GD.Print("[Revolver] Firing with manually cocked hammer - instant shot");
             ExecuteShot(direction);
             return true;
         }
 
-        // Issue #661: Normal fire - cock the hammer and rotate the cylinder before firing.
-        // The actual shot happens after a short delay (HammerCockDelay).
+        // Issue #716: Normal fire (uncocked) - cylinder rotates FIRST, then fire from NEW slot.
+        // Step 1: Rotate cylinder to next position BEFORE hammer cock animation
+        int oldChamberIndex = _currentChamberIndex;
+        if (_chamberOccupied.Length > 0)
+        {
+            _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+        }
+        GD.Print($"[Revolver] Cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
+
+        // Issue #661: Now cock the hammer - shot happens after delay from NEW position
         _isHammerCocked = true;
         _hammerCockTimer = HammerCockDelay;
         _pendingShotDirection = direction;
@@ -626,7 +635,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.HammerCocked);
         EmitSignal(SignalName.CylinderStateChanged);
 
-        GD.Print("[Revolver] Hammer cocked, cylinder rotated - shot pending");
+        GD.Print($"[Revolver] Hammer cocked - shot pending from chamber {_currentChamberIndex}");
 
         return true;
     }
@@ -660,13 +669,13 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Manually cocks the hammer by pressing RMB (Issue #649).
+    /// Manually cocks the hammer by pressing RMB (Issue #649, #716 v3).
     /// This instantly cocks the hammer and rotates the cylinder,
     /// so the next LMB press fires immediately without the normal 0.15s delay.
-    /// Can only be done when the cylinder is closed, there is ammo,
-    /// and the hammer is not already cocked.
+    /// Can only be done when the cylinder is closed and the hammer is not already cocked.
     /// Unlike normal fire, manual cocking is NOT blocked by the fire timer —
     /// the whole point is to let the player bypass the fire delay between shots.
+    /// Issue #716 v3: Cylinder rotation now happens during hammer cock (like real revolvers).
     /// </summary>
     /// <returns>True if the hammer was manually cocked successfully.</returns>
     public bool ManualCockHammer()
@@ -683,18 +692,12 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Issue #691: Check if the CURRENT chamber has a round, not just total ammo.
-        // Cannot cock if the current chamber is empty (would just click anyway).
-        bool currentChamberHasRound = _chamberOccupied.Length > 0
-                                      && _currentChamberIndex < _chamberOccupied.Length
-                                      && _chamberOccupied[_currentChamberIndex];
-
-        if (!currentChamberHasRound)
-        {
-            PlayEmptyClickSound();
-            GD.Print($"[Revolver] Cannot cock - chamber {_currentChamberIndex} is empty");
-            return false;
-        }
+        // Issue #716: Allow hammer cocking even with empty current chamber.
+        // Real revolvers can cock the hammer regardless of ammo state - the hammer
+        // mechanism is independent of whether chambers are loaded. The empty click
+        // occurs when firing (trigger pull), not during cocking.
+        // This allows players to cock the hammer with an empty slot selected,
+        // or with a completely empty cylinder - the click happens on LMB.
 
         // Check weapon data and bullet scene are available
         if (WeaponData == null || BulletScene == null)
@@ -711,6 +714,15 @@ public partial class Revolver : BaseWeapon
         // Reset fire timer — manual cocking prepares the weapon for immediate fire
         _fireTimer = 0;
 
+        // Issue #716 v3: Rotate cylinder BEFORE cocking hammer (like real single-action revolvers)
+        // The cylinder rotates to advance to the next chamber when pulling back the hammer.
+        int oldChamberIndex = _currentChamberIndex;
+        if (_chamberOccupied.Length > 0)
+        {
+            _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+        }
+        GD.Print($"[Revolver] Manual cock - cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
+
         // Instantly cock the hammer (no delay - that's the point of manual cocking)
         _isManuallyHammerCocked = true;
 
@@ -722,7 +734,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.HammerCocked);
         EmitSignal(SignalName.CylinderStateChanged);
 
-        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly");
+        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly from chamber {_currentChamberIndex}");
 
         return true;
     }
@@ -741,14 +753,23 @@ public partial class Revolver : BaseWeapon
             return;
         }
 
-        // Issue #691: Check current chamber, not just total ammo
+        // Issue #716: Check current chamber - the cylinder was already rotated in Fire()
+        // for uncocked shots, so this checks the NEW position.
         bool currentChamberHasRound = _chamberOccupied.Length > 0
                                       && _currentChamberIndex < _chamberOccupied.Length
                                       && _chamberOccupied[_currentChamberIndex];
 
-        if (!currentChamberHasRound || WeaponData == null || BulletScene == null)
+        if (!currentChamberHasRound)
         {
-            GD.Print("[Revolver] Shot cancelled - conditions changed during hammer cock");
+            // Issue #716: Play empty click sound when hammer falls on empty chamber
+            PlayEmptyClickSound();
+            GD.Print($"[Revolver] Click - chamber {_currentChamberIndex} is empty");
+            return;
+        }
+
+        if (WeaponData == null || BulletScene == null)
+        {
+            GD.Print("[Revolver] Shot cancelled - weapon data or bullet scene missing");
             return;
         }
 
@@ -767,11 +788,11 @@ public partial class Revolver : BaseWeapon
             // until the player opens it (casings eject in OpenCylinder → SpawnEjectedCasings)
             _roundsFiredSinceLastEject++;
             // Issue #668: Mark the current chamber as empty after firing.
+            // Issue #716: Do NOT rotate cylinder here - rotation already happened in Fire()
+            // for uncocked shots. For cocked shots, cylinder stays at current position.
             if (_chamberOccupied.Length > 0)
             {
                 _chamberOccupied[_currentChamberIndex] = false;
-                // Advance chamber index (cylinder rotates after each shot)
-                _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
             }
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
