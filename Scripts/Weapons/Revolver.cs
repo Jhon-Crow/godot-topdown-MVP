@@ -373,6 +373,9 @@ public partial class Revolver : BaseWeapon
             {
                 ExecuteShot(_pendingShotDirection);
                 _isHammerCocked = false;
+                // Issue #747: Emit CylinderStateChanged signal when hammer becomes uncocked
+                // This ensures the UI updates from red (cocked) back to yellow (uncocked)
+                EmitSignal(SignalName.CylinderStateChanged);
             }
         }
 
@@ -615,6 +618,9 @@ public partial class Revolver : BaseWeapon
                 // Issue #716: Play empty click sound when firing cocked hammer on empty chamber
                 PlayEmptyClickSound();
                 GD.Print($"[Revolver] Click - cocked hammer on empty chamber {_currentChamberIndex}");
+                // Issue #747: Emit CylinderStateChanged signal when hammer becomes uncocked
+                // This ensures the UI updates from red (cocked) back to yellow (uncocked)
+                EmitSignal(SignalName.CylinderStateChanged);
                 return true; // Return true - action was performed (click)
             }
 
@@ -776,12 +782,18 @@ public partial class Revolver : BaseWeapon
             // Issue #716: Play empty click sound when hammer falls on empty chamber
             PlayEmptyClickSound();
             GD.Print($"[Revolver] Click - chamber {_currentChamberIndex} is empty");
+            // Issue #747: Emit CylinderStateChanged signal even on empty chamber
+            // The hammer state changed from cocked to uncocked, so UI must update
+            EmitSignal(SignalName.CylinderStateChanged);
             return;
         }
 
         if (WeaponData == null || BulletScene == null)
         {
             GD.Print("[Revolver] Shot cancelled - weapon data or bullet scene missing");
+            // Issue #747: Emit CylinderStateChanged signal even on cancellation
+            // The hammer state changed from cocked to uncocked, so UI must update
+            EmitSignal(SignalName.CylinderStateChanged);
             return;
         }
 
@@ -808,9 +820,12 @@ public partial class Revolver : BaseWeapon
             }
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
-            // Issue #691: Notify UI of cylinder state change
-            EmitSignal(SignalName.CylinderStateChanged);
         }
+        
+        // Issue #747: Always emit CylinderStateChanged signal after shot sequence
+        // Whether successful or not, the hammer has fallen from cocked to uncocked
+        // and the chamber state may have changed, so the UI must update
+        EmitSignal(SignalName.CylinderStateChanged);
     }
 
     /// <summary>
