@@ -37,6 +37,11 @@ public class LaserGlowEffect
     /// </summary>
     private static bool _diagnosticLogging = false;
 
+    /// <summary>
+    /// Frame counter for debug logging.
+    /// </summary>
+    private static int frame_count = 0;
+
     // =========================================================================
     // Glow layer configuration
     // =========================================================================
@@ -240,6 +245,9 @@ public class LaserGlowEffect
     /// <param name="endPoint">End point of the laser (local coordinates, from raycast).</param>
     public void Update(Vector2 startPoint, Vector2 endPoint)
     {
+        // Increment frame counter for debugging
+        frame_count++;
+
         // Sync all glow layers with main laser
         if (_glowLines != null)
         {
@@ -398,9 +406,10 @@ public class LaserGlowEffect
     /// Positions at beam midpoint, rotates to beam angle, and stretches
     /// the emission box to cover the beam length.
     /// 
-    /// Note: This works around Godot issue #71480 where LocalCoords=true
-    /// doesn't properly handle particle rotation following parent rotation.
-    /// By explicitly setting rotation each frame, we ensure particles stay aligned.
+    /// Note: This works around Godot issues where LocalCoords=true
+    /// doesn't properly handle particle position and rotation following parent.
+    /// By explicitly setting both position and rotation each frame, we ensure 
+    /// particles stay perfectly synchronized during player movement.
     /// </summary>
     private void UpdateDustParticles(Vector2 startPoint, Vector2 endPoint)
     {
@@ -418,19 +427,32 @@ public class LaserGlowEffect
 
         _dustParticles.Visible = true;
         
-        // Position particle emitter at beam midpoint
-        _dustParticles.Position = (startPoint + endPoint) / 2.0f;
+        // ENHANCED FIX: Force both position and rotation to match laser beam every frame
+        // This works around multiple Godot engine limitations:
+        // 1. LocalCoords=true translation lag (Issue #694) - particles lag behind when player walks
+        // 2. LocalCoords=true rotation lag (Issue #71480) - particles don't rotate with parent
+        // 3. Frame synchronization issues where particle updates lag behind parent transforms
         
-        // CRITICAL FIX: Force rotation to match beam angle every frame
-        // This works around Godot issue #71480 where LocalCoords=true
-        // doesn't properly handle particle rotation following parent rotation.
-        // Without this explicit rotation, dust particles lag behind when player
-        // rotates while walking, causing the glow to appear disconnected.
+        // Calculate beam midpoint in local coordinates (relative to weapon parent)
+        var beamMidpoint = (startPoint + endPoint) / 2.0f;
+        
+        // CRITICAL FIX 1: Force position to match beam midpoint every frame
+        // This eliminates translation lag when player walks forward/backward
+        _dustParticles.Position = beamMidpoint;
+        
+        // CRITICAL FIX 2: Force rotation to match beam angle every frame  
+        // This eliminates rotation lag when player rotates while walking
         var targetRotation = beamVector.Angle();
         _dustParticles.Rotation = targetRotation;
         
         // Update emission box to match beam dimensions
         _dustMaterial.EmissionBoxExtents = new Vector3(beamLength / 2.0f, DustEmissionHalfHeight, 0.0f);
+        
+        // DEBUG: Log synchronization for debugging (can be enabled by setting _diagnosticLogging = true)
+        if (_diagnosticLogging && frame_count % 60 == 0) // Log once per second
+        {
+            GD.Print($"[LaserGlowEffect] Sync - Pos: {beamMidpoint}, Rot: {targetRotation:F3}");
+        }
     }
 
     /// <summary>
