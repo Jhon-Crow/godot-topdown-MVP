@@ -27,6 +27,12 @@ const FADE_OUT_TIME: float = 0.5
 ## Shader path for the invisibility cloak effect.
 const SHADER_PATH: String = "res://scripts/shaders/invisibility_cloak.gdshader"
 
+## Path to the invisibility activation sound file.
+const ACTIVATION_SOUND_PATH: String = "res://assets/audio/invisibility_activation.wav"
+
+## Path to the invisibility deactivation sound file.
+const DEACTIVATION_SOUND_PATH: String = "res://assets/audio/invisibility_deactivation.wav"
+
 ## Current number of charges remaining.
 var charges: int = MAX_CHARGES
 
@@ -51,6 +57,12 @@ var _shader_material: ShaderMaterial = null
 
 ## Reference to the player node.
 var _player: Node2D = null
+
+## AudioStreamPlayer for invisibility activation sound.
+var _activation_audio_player: AudioStreamPlayer = null
+
+## AudioStreamPlayer for invisibility deactivation sound.
+var _deactivation_audio_player: AudioStreamPlayer = null
 
 ## List of sprite nodes that have the shader applied.
 var _affected_sprites: Array[CanvasItem] = []
@@ -81,6 +93,9 @@ func _ready() -> void:
 			FileLogger.info("[InvisibilitySuit] WARNING: Failed to load shader")
 	else:
 		FileLogger.info("[InvisibilitySuit] WARNING: Shader not found: %s" % SHADER_PATH)
+	
+	# Setup audio players
+	_setup_audio()
 
 
 ## Initialize with a reference to the player node.
@@ -117,6 +132,9 @@ func activate() -> bool:
 		EFFECT_DURATION, charges, MAX_CHARGES
 	])
 
+	# Play activation sound
+	_play_activation_sound()
+
 	invisibility_activated.emit(charges)
 	charges_changed.emit(charges, MAX_CHARGES)
 	return true
@@ -130,6 +148,9 @@ func deactivate() -> void:
 	_is_fading_in = false
 	_is_fading_out = true
 	FileLogger.info("[InvisibilitySuit] Deactivating (fade out)")
+	
+	# Play deactivation sound
+	_play_deactivation_sound()
 
 
 ## Force-stop the invisibility effect immediately (no fade).
@@ -141,6 +162,10 @@ func force_stop() -> void:
 	_effect_timer = 0.0
 	_remove_shader_from_player()
 	FileLogger.info("[InvisibilitySuit] Force stopped")
+	
+	# Play deactivation sound
+	_play_deactivation_sound()
+	
 	invisibility_deactivated.emit(charges)
 
 
@@ -269,3 +294,46 @@ func _remove_shader_from_player() -> void:
 
 	_affected_sprites.clear()
 	_original_materials.clear()
+
+
+## Set up the audio players for invisibility sounds.
+func _setup_audio() -> void:
+	# Setup activation sound
+	if ResourceLoader.exists(ACTIVATION_SOUND_PATH):
+		var activation_stream = load(ACTIVATION_SOUND_PATH)
+		if activation_stream:
+			_activation_audio_player = AudioStreamPlayer.new()
+			_activation_audio_player.stream = activation_stream
+			_activation_audio_player.volume_db = 0.0
+			add_child(_activation_audio_player)
+			FileLogger.info("[InvisibilitySuit] Activation sound loaded")
+		else:
+			FileLogger.info("[InvisibilitySuit] WARNING: Failed to load activation sound")
+	else:
+		FileLogger.info("[InvisibilitySuit] WARNING: Activation sound not found: %s" % ACTIVATION_SOUND_PATH)
+	
+	# Setup deactivation sound
+	if ResourceLoader.exists(DEACTIVATION_SOUND_PATH):
+		var deactivation_stream = load(DEACTIVATION_SOUND_PATH)
+		if deactivation_stream:
+			_deactivation_audio_player = AudioStreamPlayer.new()
+			_deactivation_audio_player.stream = deactivation_stream
+			_deactivation_audio_player.volume_db = 0.0
+			add_child(_deactivation_audio_player)
+			FileLogger.info("[InvisibilitySuit] Deactivation sound loaded")
+		else:
+			FileLogger.info("[InvisibilitySuit] WARNING: Failed to load deactivation sound")
+	else:
+		FileLogger.info("[InvisibilitySuit] WARNING: Deactivation sound not found: %s" % DEACTIVATION_SOUND_PATH)
+
+
+## Play the invisibility activation sound.
+func _play_activation_sound() -> void:
+	if _activation_audio_player and is_instance_valid(_activation_audio_player):
+		_activation_audio_player.play()
+
+
+## Play the invisibility deactivation sound.
+func _play_deactivation_sound() -> void:
+	if _deactivation_audio_player and is_instance_valid(_deactivation_audio_player):
+		_deactivation_audio_player.play()
