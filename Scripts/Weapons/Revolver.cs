@@ -101,6 +101,18 @@ public partial class Revolver : BaseWeapon
     private int _currentChamberIndex = 0;
 
     /// <summary>
+    /// Override CanFire for revolver's chamber-based system (Issue #716).
+    /// Revolvers can attempt to fire even when CurrentAmmo = 0 because:
+    /// 1. Individual chambers might still have rounds
+    /// 2. Empty chambers should produce click sounds
+    /// 3. Manual hammer cocking should work with empty cylinders
+    /// 
+    /// Only block fire when cylinder is open or hammer is cocked (handled in Fire()).
+    /// The actual ammo check happens per-chamber in ExecuteShot().
+    /// </summary>
+    public override bool CanFire => !IsReloading && _fireTimer <= 0;
+
+    /// <summary>
     /// Number of rounds actually fired since the last casing ejection (Issue #659).
     /// Incremented each time Fire() or FireChamberBullet() successfully fires.
     /// Used in OpenCylinder() to eject only the correct number of spent casings,
@@ -264,11 +276,11 @@ public partial class Revolver : BaseWeapon
         int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
 
         // Issue #668: Initialize per-chamber tracking array.
-        // All chambers start as occupied (full cylinder at game start).
+        // Chambers start based on CurrentAmmo (empty drum support - Issue #716).
         _chamberOccupied = new bool[cylinderCapacity];
         for (int i = 0; i < cylinderCapacity; i++)
         {
-            _chamberOccupied[i] = true;
+            _chamberOccupied[i] = i < CurrentAmmo;
         }
         _currentChamberIndex = 0;
 
