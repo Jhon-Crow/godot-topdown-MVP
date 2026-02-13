@@ -30,7 +30,7 @@ func after_each() -> void:
 func test_pool_initializes_with_expected_constants() -> void:
 	# Check that pool constants are reasonable values
 	assert_eq(pool.MIN_BULLET_POOL_SIZE, 64, "Minimum bullet pool size should be 64")
-	assert_eq(pool.MIN_SHRAPNEL_POOL_SIZE, 32, "Minimum shrapnel pool size should be 32")
+	assert_eq(pool.MIN_SHRAPNEL_POOL_SIZE, 48, "Minimum shrapnel pool size should be 48 (for F-1 grenade)")
 	assert_eq(pool.MIN_BREAKER_SHRAPNEL_POOL_SIZE, 60, "Minimum breaker shrapnel pool size should be 60")
 
 
