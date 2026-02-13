@@ -1349,3 +1349,149 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if _debug_breaker:
 		print("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
 			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
+
+
+# ============================================================================
+# Object Pooling Support (Issue #724)
+# ============================================================================
+
+
+## Whether this bullet is currently pooled (inactive).
+var _is_pooled: bool = false
+
+## Original speed value for reset.
+var _original_speed: float = 2500.0
+
+
+## Activates the bullet from the pool with the given parameters.
+## Call this instead of setting properties directly after getting from pool.
+## @param pos: Global position to spawn at.
+## @param dir: Direction of travel.
+## @param shooter: Instance ID of the shooter (for self-damage prevention).
+## @param caliber: Optional caliber data resource.
+func pool_activate(pos: Vector2, dir: Vector2, shooter: int, caliber: Resource = null) -> void:
+	# Reset all state to defaults
+	_reset_state()
+
+	# Set activation parameters
+	global_position = pos
+	direction = dir.normalized()
+	shooter_id = shooter
+	shooter_position = pos
+	caliber_data = caliber if caliber else _load_default_caliber_data()
+
+	# Update rotation to match direction
+	_update_rotation()
+
+	# Re-enable processing and visibility
+	visible = true
+	set_physics_process(true)
+	set_process(true)
+
+	# Re-enable collision detection
+	monitoring = true
+	monitorable = true
+
+	_is_pooled = false
+
+
+## Deactivates the bullet and prepares it for return to the pool.
+## Call this instead of queue_free() when using pooling.
+func pool_deactivate() -> void:
+	if _is_pooled:
+		return
+
+	_is_pooled = true
+
+	# Disable processing
+	set_physics_process(false)
+	set_process(false)
+
+	# Hide bullet
+	visible = false
+
+	# Disable collision detection
+	monitoring = false
+	monitorable = false
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+	_position_history.clear()
+
+	# Return to pool manager
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager and pool_manager.has_method("return_bullet"):
+		pool_manager.return_bullet(self)
+
+
+## Resets all bullet state to defaults for reuse.
+func _reset_state() -> void:
+	# Reset core properties
+	speed = _original_speed
+	damage = 1.0
+	damage_multiplier = 1.0
+	_time_alive = 0.0
+	direction = Vector2.RIGHT
+	shooter_id = -1
+	shooter_position = Vector2.ZERO
+
+	# Reset ricochet state
+	_ricochet_count = 0
+	_has_ricocheted = false
+	_distance_since_ricochet = 0.0
+	_ricochet_position = Vector2.ZERO
+	_max_post_ricochet_distance = 0.0
+
+	# Reset penetration state
+	_is_penetrating = false
+	_penetration_distance_traveled = 0.0
+	_penetration_entry_point = Vector2.ZERO
+	_penetrating_body = null
+	_has_penetrated = false
+
+	# Reset homing state
+	homing_enabled = false
+	_homing_original_direction = Vector2.ZERO
+
+	# Reset breaker state
+	is_breaker_bullet = false
+	_breaker_shrapnel_scene = null
+
+	# Reset stun
+	stun_duration = 0.0
+
+	# Clear position history
+	_position_history.clear()
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+
+
+## Returns whether this bullet is currently pooled (inactive).
+func is_pooled() -> bool:
+	return _is_pooled
+
+
+## Override queue_free to use pooling when available.
+## This allows existing code to continue using queue_free() without changes.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		# If we're being deleted and pool manager exists, this might be an error
+		# The pool system should use pool_deactivate instead
+		pass
+
+
+## Convenience method to get a bullet from the pool.
+## Returns null if pool manager not available, in which case use instantiate().
+static func from_pool() -> Node:
+	var pool_manager: Node = Engine.get_singleton("ProjectilePoolManager") if Engine.has_singleton("ProjectilePoolManager") else null
+	if pool_manager == null:
+		# Try alternative path
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree:
+			pool_manager = tree.root.get_node_or_null("ProjectilePoolManager")
+	if pool_manager and pool_manager.has_method("get_bullet"):
+		return pool_manager.get_bullet()
+	return null

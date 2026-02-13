@@ -247,3 +247,110 @@ func _spawn_wall_hit_effect(body: Node2D) -> void:
 
 	# Spawn dust effect at hit position (without caliber data - small effect)
 	impact_manager.spawn_dust_effect(global_position, surface_normal, null)
+
+
+# ============================================================================
+# Object Pooling Support (Issue #724)
+# ============================================================================
+
+
+## Whether this shrapnel is currently pooled (inactive).
+var _is_pooled: bool = false
+
+## Original speed value for reset.
+var _original_speed: float = 5000.0
+
+
+## Activates the shrapnel from the pool with the given parameters.
+## @param pos: Global position to spawn at.
+## @param dir: Direction of travel.
+## @param source: Instance ID of the source (grenade) for self-damage prevention.
+## @param thrower: Instance ID of the enemy thrower (for friendly fire prevention).
+func pool_activate(pos: Vector2, dir: Vector2, source: int, thrower: int = -1) -> void:
+	# Reset all state to defaults
+	_reset_state()
+
+	# Set activation parameters
+	global_position = pos
+	direction = dir.normalized()
+	source_id = source
+	thrower_id = thrower
+
+	# Update rotation to match direction
+	_update_rotation()
+
+	# Re-enable processing and visibility
+	visible = true
+	set_physics_process(true)
+	set_process(true)
+
+	# Re-enable collision detection
+	monitoring = true
+	monitorable = true
+
+	_is_pooled = false
+
+
+## Deactivates the shrapnel and prepares it for return to the pool.
+func pool_deactivate() -> void:
+	if _is_pooled:
+		return
+
+	_is_pooled = true
+
+	# Disable processing
+	set_physics_process(false)
+	set_process(false)
+
+	# Hide shrapnel
+	visible = false
+
+	# Disable collision detection
+	monitoring = false
+	monitorable = false
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+	_position_history.clear()
+
+	# Return to pool manager
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager and pool_manager.has_method("return_shrapnel"):
+		pool_manager.return_shrapnel(self)
+
+
+## Resets all shrapnel state to defaults for reuse.
+func _reset_state() -> void:
+	# Reset core properties
+	speed = _original_speed
+	damage = 1
+	_time_alive = 0.0
+	direction = Vector2.RIGHT
+	source_id = -1
+	thrower_id = -1
+
+	# Reset ricochet state
+	_ricochet_count = 0
+
+	# Clear position history
+	_position_history.clear()
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+
+
+## Returns whether this shrapnel is currently pooled (inactive).
+func is_pooled() -> bool:
+	return _is_pooled
+
+
+## Convenience method to get a shrapnel from the pool.
+static func from_pool() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree:
+		var pool_manager: Node = tree.root.get_node_or_null("ProjectilePoolManager")
+		if pool_manager and pool_manager.has_method("get_shrapnel"):
+			return pool_manager.get_shrapnel()
+	return null
