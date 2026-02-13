@@ -19,13 +19,13 @@ signal pool_stats_changed(stats: Dictionary)
 
 ## Minimum pool size for each projectile type (preallocated at startup).
 const MIN_BULLET_POOL_SIZE: int = 64
-const MIN_SHRAPNEL_POOL_SIZE: int = 32
+const MIN_SHRAPNEL_POOL_SIZE: int = 48  # Increased for F-1 grenade (spawns 40 at once)
 const MIN_BREAKER_SHRAPNEL_POOL_SIZE: int = 60
 
 ## Maximum pool size limits to prevent memory issues.
 ## -1 for unlimited (not recommended for production).
 const MAX_BULLET_POOL_SIZE: int = 256
-const MAX_SHRAPNEL_POOL_SIZE: int = 128
+const MAX_SHRAPNEL_POOL_SIZE: int = 200  # Increased to handle multiple F-1 explosions
 const MAX_BREAKER_SHRAPNEL_POOL_SIZE: int = 120
 
 ## Scene paths for projectile types.
@@ -225,6 +225,9 @@ func get_bullet(parent: Node = null) -> Area2D:
 	# Reset bullet state
 	_reset_bullet(bullet)
 
+	# Mark as pooled so deactivate() returns to pool instead of queue_free()
+	bullet.set("_is_pooled", true)
+
 	# Reparent to the specified parent (or current scene)
 	if parent:
 		bullet.reparent(parent)
@@ -263,6 +266,9 @@ func get_shrapnel(parent: Node = null) -> Area2D:
 
 	_reset_shrapnel(shrapnel)
 
+	# Mark as pooled so deactivate() returns to pool instead of queue_free()
+	shrapnel.set("_is_pooled", true)
+
 	if parent:
 		shrapnel.reparent(parent)
 	else:
@@ -295,6 +301,9 @@ func get_breaker_shrapnel(parent: Node = null) -> Area2D:
 		return null
 
 	_reset_breaker_shrapnel(breaker)
+
+	# Mark as pooled so deactivate() returns to pool instead of queue_free()
+	breaker.set("_is_pooled", true)
 
 	if parent:
 		breaker.reparent(parent)

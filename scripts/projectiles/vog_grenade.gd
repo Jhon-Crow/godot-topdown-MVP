@@ -264,12 +264,18 @@ func _apply_explosion_damage(enemy: Node2D) -> void:
 
 
 ## Spawn shrapnel pieces in all directions (8 pieces for VOG).
+## Issue #724 optimization: Uses ProjectilePool for better performance.
 func _spawn_shrapnel() -> void:
-	if shrapnel_scene == null:
-		FileLogger.info("[VOGGrenade] Cannot spawn shrapnel: scene is null")
+	# Issue #724: Use ProjectilePool for better performance in bullet-hell scenarios
+	var projectile_pool: Node = get_node_or_null("/root/ProjectilePool")
+	var use_pool := projectile_pool != null and projectile_pool.has_method("get_shrapnel")
+
+	if not use_pool and shrapnel_scene == null:
+		FileLogger.info("[VOGGrenade] Cannot spawn shrapnel: scene is null and pool unavailable")
 		return
 
 	var angle_step := TAU / shrapnel_count
+	var scene := get_tree().current_scene
 
 	for i in range(shrapnel_count):
 		var base_angle := i * angle_step
@@ -278,7 +284,15 @@ func _spawn_shrapnel() -> void:
 
 		var direction := Vector2(cos(final_angle), sin(final_angle))
 
-		var shrapnel := shrapnel_scene.instantiate()
+		# Create shrapnel instance (from pool or instantiate)
+		var shrapnel: Area2D = null
+		if use_pool:
+			shrapnel = projectile_pool.get_shrapnel(scene)
+		if shrapnel == null and shrapnel_scene != null:
+			# Fallback to direct instantiation if pool fails
+			shrapnel = shrapnel_scene.instantiate()
+			if shrapnel != null and scene != null:
+				scene.add_child(shrapnel)
 		if shrapnel == null:
 			continue
 
@@ -286,9 +300,7 @@ func _spawn_shrapnel() -> void:
 		shrapnel.direction = direction
 		shrapnel.source_id = get_instance_id()
 
-		get_tree().current_scene.add_child(shrapnel)
-
-		FileLogger.info("[VOGGrenade] Spawned shrapnel #%d at angle %.1f degrees" % [i + 1, rad_to_deg(final_angle)])
+		FileLogger.info("[VOGGrenade] Spawned shrapnel #%d at angle %.1f degrees (pooled: %s)" % [i + 1, rad_to_deg(final_angle), use_pool])
 
 
 ## Spawn visual explosion effect at explosion position.

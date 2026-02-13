@@ -1381,10 +1381,14 @@ func _is_position_inside_wall(pos: Vector2) -> bool:
 ## Spawns breaker shrapnel pieces in a forward cone.
 ## Shrapnel count is capped for performance (Issue #678 optimization).
 ## Validates spawn positions to prevent shrapnel spawning behind walls (Issue #740).
+## Issue #724 optimization: Uses ProjectilePool for better performance.
 func _breaker_spawn_shrapnel(center: Vector2) -> void:
-	if _breaker_shrapnel_scene == null:
+	# Issue #724: Use ProjectilePool for better performance in bullet-hell scenarios
+	var use_pool := _projectile_pool != null and _projectile_pool.has_method("get_breaker_shrapnel")
+
+	if not use_pool and _breaker_shrapnel_scene == null:
 		if _debug_breaker:
-			print("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
+			print("[Bullet.Breaker] Cannot spawn shrapnel: scene is null and pool unavailable")
 		return
 
 	# Check global concurrent shrapnel limit
@@ -1428,8 +1432,16 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 			skipped_count += 1
 			continue
 
-		# Create shrapnel instance
-		var shrapnel := _breaker_shrapnel_scene.instantiate()
+		# Create shrapnel instance (from pool or instantiate)
+		var shrapnel: Area2D = null
+		if use_pool:
+			shrapnel = _projectile_pool.get_breaker_shrapnel(scene)
+		if shrapnel == null and _breaker_shrapnel_scene != null:
+			# Fallback to direct instantiation if pool fails
+			shrapnel = _breaker_shrapnel_scene.instantiate()
+			if shrapnel != null:
+				# Add to scene using call_deferred to batch scene tree changes (Issue #678 optimization)
+				scene.call_deferred("add_child", shrapnel)
 		if shrapnel == null:
 			continue
 
@@ -1442,10 +1454,8 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		# Vary speed slightly for natural spread
 		shrapnel.speed = randf_range(1400.0, 2200.0)
 
-		# Add to scene using call_deferred to batch scene tree changes (Issue #678 optimization)
-		scene.call_deferred("add_child", shrapnel)
 		spawned_count += 1
 
 	if _debug_breaker:
-		print("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
-			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
+		print("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d, pooled: %s) in %.0f-degree cone" % [
+			spawned_count, skipped_count, remaining_budget, use_pool, BREAKER_SHRAPNEL_HALF_ANGLE * 2])

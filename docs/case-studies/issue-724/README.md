@@ -145,10 +145,109 @@ Cache frequently accessed nodes:
    - Centralized ProjectileManager with batch processing
    - MultiMesh rendering
 
+## Root Cause Analysis (February 2026 Update)
+
+### Issue 1: Missing Breaker Shrapnel
+
+**Symptom:** Breaker bullet shrapnel was visually absent from gameplay.
+
+**Root Cause:** The ProjectilePool was created with methods `get_breaker_shrapnel()` and `return_breaker_shrapnel()`, but:
+1. The `_breaker_spawn_shrapnel()` function in `bullet.gd` was still using direct `instantiate()` instead of the pool
+2. The `_is_pooled` flag was **never set to true** when projectiles were retrieved from the pool
+3. When pooled projectiles called `deactivate()`, it checked `_is_pooled`, which was always `false`, so it fell back to `queue_free()` instead of returning to the pool
+
+### Issue 2: F-1 Grenade Performance Lag
+
+**Symptom:** Significant lag when the F-1 (defensive) grenade exploded.
+
+**Root Cause:**
+1. F-1 grenade spawns 40 shrapnel pieces at once using `shrapnel_scene.instantiate()`
+2. Each instantiation is expensive (scene parsing, node creation, script initialization)
+3. The pool was implemented but `defensive_grenade.gd` was never updated to use it
+4. Same issue affected `frag_grenade.gd` and `vog_grenade.gd`
+
+### Timeline of Events
+
+1. **Initial PR (commit 788d2323):** ProjectilePool autoload was created with proper methods, cached references were added to projectile scripts, `deactivate()` methods were added, but:
+   - Pool methods were never actually called by spawning code
+   - `_is_pooled` flag was never set when getting projectiles from pool
+
+2. **User Feedback:** Repository owner reported both bugs - missing breaker shrapnel and F-1 lag
+
+3. **Root Cause Discovery:** Code analysis revealed the pool was "dead code" - implemented but not integrated
+
+## Fix Implementation
+
+### Fix 1: Set `_is_pooled` Flag in Pool
+
+In `projectile_pool.gd`, added `projectile.set("_is_pooled", true)` when getting projectiles:
+
+```gdscript
+# Mark as pooled so deactivate() returns to pool instead of queue_free()
+bullet.set("_is_pooled", true)
+```
+
+### Fix 2: Update Grenade Shrapnel Spawning
+
+In `defensive_grenade.gd`, `frag_grenade.gd`, and `vog_grenade.gd`:
+
+```gdscript
+# Issue #724: Use ProjectilePool for better performance
+var projectile_pool: Node = get_node_or_null("/root/ProjectilePool")
+var use_pool := projectile_pool != null and projectile_pool.has_method("get_shrapnel")
+
+# Create shrapnel instance (from pool or instantiate)
+var shrapnel: Area2D = null
+if use_pool:
+    shrapnel = projectile_pool.get_shrapnel(scene)
+if shrapnel == null and shrapnel_scene != null:
+    # Fallback to direct instantiation if pool fails
+    shrapnel = shrapnel_scene.instantiate()
+```
+
+### Fix 3: Update Breaker Bullet Shrapnel Spawning
+
+In `bullet.gd` `_breaker_spawn_shrapnel()`:
+
+```gdscript
+# Issue #724: Use ProjectilePool for better performance
+var use_pool := _projectile_pool != null and _projectile_pool.has_method("get_breaker_shrapnel")
+
+# Create shrapnel instance (from pool or instantiate)
+var shrapnel: Area2D = null
+if use_pool:
+    shrapnel = _projectile_pool.get_breaker_shrapnel(scene)
+```
+
+### Fix 4: Increase Pool Sizes
+
+Increased shrapnel pool sizes to accommodate F-1 grenade (40 shrapnel at once):
+- `MIN_SHRAPNEL_POOL_SIZE`: 32 → 48
+- `MAX_SHRAPNEL_POOL_SIZE`: 128 → 200
+
+## Expected Performance Impact
+
+Based on community research and benchmarks:
+
+| Metric | Before Pooling | After Pooling |
+|--------|----------------|---------------|
+| FPS during F-1 explosion | Significant drop | Stable 60 FPS |
+| Memory allocation spikes | Every shrapnel spawn | Pre-allocated at startup |
+| GC pressure | High (40 instantiate + queue_free per explosion) | Minimal (reuse existing objects) |
+
+## Lessons Learned
+
+1. **Integration Testing:** When implementing optimization systems, verify they are actually being used by the code paths they're meant to optimize
+2. **Flag Initialization:** When pooled objects have a `_is_pooled` flag, ensure it's set when retrieving from pool
+3. **Graceful Fallback:** Implement fallback to direct instantiation when pool is unavailable for robustness
+
 ## Sources
 
 - [Collision Pairs: optimizing performance of bullet hell games - Godot Forum](https://forum.godotengine.org/t/collision-pairs-optimizing-performance-of-bullet-hell-enemy-hell-games/35027)
 - [Bullet Hell Optimization - Godot Forum](https://forum.godotengine.org/t/bullet-hell-optimization/129732)
 - [Object Pooling in Game Development: The Complete Guide - Medium](https://medium.com/@mikaznavodya/object-pooling-in-game-development-the-complete-guide-8c52bef04597)
 - [Why Your Game Crashes When You Fire 100 Bullets: Mastering Object Pooling - Outscal](https://outscal.com/blog/unreal-engine-object-pooling)
+- [Complete Guide to Object Pooling for Godot Performance](https://uhiyama-lab.com/en/notes/godot/godot-object-pooling-basics/)
+- [Performance drops when instantiating thousands of objects - Godot Forum](https://forum.godotengine.org/t/performance-drops-when-instantiating-thousands-of-objects/105227)
+- [Godot-PerfBullets Plugin](https://github.com/Moonzel/Godot-PerfBullets)
 - Existing codebase: `scripts/autoload/audio_manager.gd` (object pool example)
