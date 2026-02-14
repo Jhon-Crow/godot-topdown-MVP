@@ -1168,12 +1168,9 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Finds the nearest alive enemy that is close to the player's aim line.
-    /// Uses perpendicular distance from the aim ray to find the best homing target.
-    /// The enemy must be within 110 degrees of the aim direction and within
-    /// a reasonable perpendicular distance (max 500px from the aim line).
-    /// Skips enemies blocked by walls (Issue #709).
-    /// Returns Vector2.Zero if no suitable target is found. (Issue #704)
+    /// Finds the nearest alive enemy that is close to the player's aim line (Issue #704).
+    /// Delegates to <see cref="HomingUtils.FindEnemyNearestToAimLine"/>.
+    /// Includes line-of-sight check to skip enemies behind walls (Issue #709).
     /// </summary>
     private Vector2 FindNearestEnemyNearAimLine(Vector2 origin, Vector2 aimDirection)
     {
@@ -1189,91 +1186,11 @@ public partial class SniperRifle : BaseWeapon
             return Vector2.Zero;
         }
 
-        var bestTarget = Vector2.Zero;
-        float bestScore = float.PositiveInfinity;
-        float maxPerpDistance = 500.0f; // Max perpendicular distance from aim line
-        float maxAngle = Mathf.DegToRad(110.0f); // Max angle from aim direction
-
-        foreach (var enemy in enemies)
-        {
-            if (enemy is not Node2D enemyNode)
-            {
-                continue;
-            }
-
-            // Skip dead enemies
-            if (enemyNode.HasMethod("is_alive"))
-            {
-                bool alive = (bool)enemyNode.Call("is_alive");
-                if (!alive)
-                {
-                    continue;
-                }
-            }
-
-            Vector2 toEnemy = enemyNode.GlobalPosition - origin;
-            float distToEnemy = toEnemy.Length();
-            if (distToEnemy < 1.0f)
-            {
-                continue; // Too close, skip
-            }
-
-            // Check angle from aim direction
-            float angle = Mathf.Abs(aimDirection.AngleTo(toEnemy.Normalized()));
-            if (angle > maxAngle)
-            {
-                continue; // Too far off from aim direction
-            }
-
-            // Calculate perpendicular distance from the aim line
-            // perpDist = |toEnemy × aimDirection| (cross product magnitude in 2D)
-            float perpDist = Mathf.Abs(toEnemy.X * aimDirection.Y - toEnemy.Y * aimDirection.X);
-            if (perpDist > maxPerpDistance)
-            {
-                continue; // Too far from aim line
-            }
-
-            // Skip enemies behind walls (Issue #709)
-            // Start raycast from bullet spawn position (muzzle) to avoid hitting walls the player is near
-            // Use aimDirection for consistent muzzle position (not direction to each enemy)
-            Vector2 raycastStart = origin + aimDirection * BulletSpawnOffset;
-            if (!HasLineOfSightToTarget(raycastStart, enemyNode.GlobalPosition))
-            {
-                continue;
-            }
-
-            // Score: prioritize enemies closer to the aim line, with distance as tiebreaker
-            float score = perpDist + distToEnemy * 0.1f;
-            if (score < bestScore)
-            {
-                bestScore = score;
-                bestTarget = enemyNode.GlobalPosition;
-            }
-        }
-
-        return bestTarget;
-    }
-
-    /// <summary>
-    /// Checks if there is a clear line of sight between two positions (Issue #709).
-    /// Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
-    /// Returns false if a wall blocks the path.
-    /// </summary>
-    private bool HasLineOfSightToTarget(Vector2 from, Vector2 to)
-    {
-        var spaceState = GetWorld2D()?.DirectSpaceState;
-        if (spaceState == null)
-        {
-            return true; // Can't check, assume clear
-        }
-
-        var query = PhysicsRayQueryParameters2D.Create(from, to);
-        query.CollisionMask = 4; // Layer 3 = obstacles/walls only
-        query.CollideWithAreas = false;
-        query.CollideWithBodies = true;
-
-        var result = spaceState.IntersectRay(query);
-        return result.Count == 0; // True if no wall in the way
+        // Start raycast from bullet spawn position (muzzle) to avoid hitting walls the player is near
+        Vector2 raycastStart = origin + aimDirection * BulletSpawnOffset;
+        return HomingUtils.FindEnemyNearestToAimLine(
+            enemies, origin, aimDirection, HomingUtils.DefaultMaxAngle,
+            HomingUtils.DefaultMaxPerpDistance, GetWorld2D(), raycastStart);
     }
 
     /// <summary>

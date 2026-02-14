@@ -1343,7 +1343,7 @@ public partial class Bullet : Area2D
     /// Steering speed for homing (radians per second of turning).
     /// Increased from 8.0 to 50.0 for sharp turning (rounded angle, not semicircle) (Issue #709).
     /// </summary>
-    private float _homingSteerSpeed = 50.0f;
+    private const float HomingSteerSpeed = 50.0f;
 
     /// <summary>
     /// The original firing direction (stored when homing is enabled).
@@ -1439,7 +1439,7 @@ public partial class Bullet : Area2D
         float angleDiff = Direction.AngleTo(toTarget);
 
         // Limit per-frame steering (smooth turning)
-        float maxSteerThisFrame = _homingSteerSpeed * delta;
+        float maxSteerThisFrame = HomingSteerSpeed * delta;
         angleDiff = Mathf.Clamp(angleDiff, -maxSteerThisFrame, maxSteerThisFrame);
 
         // Calculate proposed new direction
@@ -1510,7 +1510,7 @@ public partial class Bullet : Area2D
                 }
             }
             // Skip enemies behind walls (Issue #709)
-            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
+            if (!HomingUtils.HasLineOfSightToTarget(GetWorld2D(), GlobalPosition, enemyNode.GlobalPosition))
             {
                 if (DebugHoming)
                 {
@@ -1531,94 +1531,13 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Finds the enemy closest to the player's aim line (Issue #704).
-    /// Uses perpendicular distance from the aim ray to score enemies.
-    /// Only considers enemies within max turn angle (170 degrees, Issue #737) of the aim direction.
-    /// Skips enemies blocked by walls (Issue #709).
+    /// Delegates to <see cref="HomingUtils.FindEnemyNearestToAimLine"/>.
+    /// Includes line-of-sight check to skip enemies behind walls (Issue #709).
     /// </summary>
     private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
     {
-        var bestTarget = Vector2.Zero;
-        float bestScore = float.PositiveInfinity;
-        float maxPerpDistance = 500.0f;
-        float maxAngle = _homingMaxTurnAngle;
-
-        foreach (var enemy in enemies)
-        {
-            if (enemy is not Node2D enemyNode)
-            {
-                continue;
-            }
-            if (enemyNode.HasMethod("is_alive"))
-            {
-                bool alive = (bool)enemyNode.Call("is_alive");
-                if (!alive)
-                {
-                    continue;
-                }
-            }
-
-            Vector2 toEnemy = enemyNode.GlobalPosition - _shooterOrigin;
-            float distToEnemy = toEnemy.Length();
-            if (distToEnemy < 1.0f)
-            {
-                continue;
-            }
-
-            // Check angle from aim direction
-            float angle = Mathf.Abs(_shooterAimDirection.AngleTo(toEnemy.Normalized()));
-            if (angle > maxAngle)
-            {
-                continue;
-            }
-
-            // Perpendicular distance from aim line
-            float perpDist = Mathf.Abs(toEnemy.X * _shooterAimDirection.Y - toEnemy.Y * _shooterAimDirection.X);
-            if (perpDist > maxPerpDistance)
-            {
-                continue;
-            }
-
-            // Skip enemies behind walls (Issue #709)
-            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
-            {
-                if (DebugHoming)
-                {
-                    GD.Print($"[Bullet] Skipping enemy {enemyNode.Name} - wall blocks line of sight (aim-line)");
-                }
-                continue;
-            }
-
-            // Score: prioritize closeness to aim line, with distance as tiebreaker
-            float score = perpDist + distToEnemy * 0.1f;
-            if (score < bestScore)
-            {
-                bestScore = score;
-                bestTarget = enemyNode.GlobalPosition;
-            }
-        }
-
-        return bestTarget;
-    }
-
-    /// <summary>
-    /// Checks if there is a clear line of sight from the bullet to a target position (Issue #709).
-    /// Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
-    /// Returns false if a wall blocks the path, preventing the bullet from turning into walls.
-    /// </summary>
-    private bool HasLineOfSightToTarget(Vector2 targetPos)
-    {
-        var spaceState = GetWorld2D()?.DirectSpaceState;
-        if (spaceState == null)
-        {
-            return true; // Can't check, assume clear
-        }
-
-        var query = PhysicsRayQueryParameters2D.Create(GlobalPosition, targetPos);
-        query.CollisionMask = 4; // Layer 3 = obstacles/walls only
-        query.CollideWithAreas = false;
-        query.CollideWithBodies = true;
-
-        var result = spaceState.IntersectRay(query);
-        return result.Count == 0; // True if no wall in the way
+        return HomingUtils.FindEnemyNearestToAimLine(
+            enemies, _shooterOrigin, _shooterAimDirection, _homingMaxTurnAngle,
+            HomingUtils.DefaultMaxPerpDistance, GetWorld2D(), GlobalPosition);
     }
 }
