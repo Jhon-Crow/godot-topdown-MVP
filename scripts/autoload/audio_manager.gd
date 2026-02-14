@@ -109,6 +109,8 @@ const VOLUME_SILENCED_SHOT: float = -18.0
 ## Makarov PM pistol sounds.
 ## PM shot sound.
 const PM_SHOT: String = "res://assets/audio/звук выстрела пм.mp3"
+## PM empty click sound (attempt to fire without ammo).
+const PM_EMPTY_CLICK: String = "res://assets/audio/попытка выстрелить без заряда ПМ.mp3"
 ## PM reload first action (eject magazine).
 const PM_RELOAD_ACTION_1: String = "res://assets/audio/первое действие перезарядки.mp3"
 ## PM reload second action (insert magazine).
@@ -371,6 +373,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append_array(SILENCED_SHOTS)
 	# Makarov PM sounds
 	all_sounds.append(PM_SHOT)
+	all_sounds.append(PM_EMPTY_CLICK)
 	all_sounds.append(PM_RELOAD_ACTION_1)
 	all_sounds.append(PM_RELOAD_ACTION_2)
 	# ASVK sniper rifle sounds
@@ -849,6 +852,12 @@ func play_silenced_shot(position: Vector2) -> void:
 ## Uses CRITICAL priority for player shooting sounds.
 func play_pm_shot(position: Vector2) -> void:
 	play_sound_2d_with_priority(PM_SHOT, position, VOLUME_PM_SHOT, SoundPriority.CRITICAL)
+
+
+## Plays the Makarov PM empty click sound (attempt to fire without ammo) at the given position.
+## Uses CRITICAL priority for player feedback sounds.
+func play_pm_empty_click(position: Vector2) -> void:
+	play_sound_2d_with_priority(PM_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
 
 
 ## Plays the first PM reload action sound (eject magazine) at the given position.

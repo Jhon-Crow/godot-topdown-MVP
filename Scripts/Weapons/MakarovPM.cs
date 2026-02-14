@@ -293,14 +293,14 @@ public partial class MakarovPM : BaseWeapon
     }
 
     /// <summary>
-    /// Plays the empty gun click sound.
+    /// Plays the empty gun click sound for PM.
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_pm_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            audioManager.Call("play_pm_empty_click", GlobalPosition);
         }
     }
 
