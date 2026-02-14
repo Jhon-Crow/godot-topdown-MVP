@@ -1473,7 +1473,7 @@ public partial class Shotgun : BaseWeapon
         if (ActionState != ShotgunActionState.Ready)
         {
             GD.Print($"[Shotgun] Cannot fire - pump action required: {ActionState}");
-            PlayEmptyClickSound();
+            PlayDryFireSound();
             return false;
         }
 
@@ -1774,6 +1774,19 @@ public partial class Shotgun : BaseWeapon
         if (audioManager != null && audioManager.HasMethod("play_shotgun_empty_click"))
         {
             audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the shotgun dry fire sound (when not ready to fire - needs pump action).
+    /// Issue #761: Different sound for "not ready" vs "empty tube".
+    /// </summary>
+    private void PlayDryFireSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_shotgun_dry_fire"))
+        {
+            audioManager.Call("play_shotgun_dry_fire", GlobalPosition);
         }
     }
 
