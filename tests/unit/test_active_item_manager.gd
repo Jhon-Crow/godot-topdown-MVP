@@ -115,8 +115,9 @@ class MockActiveItemManager:
 		FLASHLIGHT = 1,
 		HOMING_BULLETS = 2,
 		TELEPORT_BRACERS = 3,
-		INVISIBILITY_SUIT = 4,
-		BREAKER_BULLETS = 5
+		BFF_PENDANT = 4,
+		INVISIBILITY_SUIT = 5,
+		BREAKER_BULLETS = 6
 	}
 
 	## Currently selected active item type
@@ -145,11 +146,16 @@ class MockActiveItemManager:
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
 		},
 		4: {
+			"name": "BFF Pendant",
+			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
+			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
+		},
+		5: {
 			"name": "Invisibility",
 			"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
 			"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
 		},
-		5: {
+		6: {
 			"name": "Breaker Bullets",
 			"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
 			"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
@@ -217,6 +223,10 @@ class MockActiveItemManager:
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+	## Check if BFF pendant is currently equipped
+	func has_bff_pendant() -> bool:
+		return current_active_item == ActiveItemType.BFF_PENDANT
 
 	## Check if invisibility suit is currently equipped
 	func has_invisibility_suit() -> bool:
@@ -376,14 +386,15 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 6,
-		"Should return 6 active item types")
+	assert_eq(types.size(), 7,
+		"Should return 7 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
 	assert_true(3 in types)
 	assert_true(4 in types)
 	assert_true(5 in types)
+	assert_true(6 in types)
 
 
 func test_get_active_item_name_none() -> void:
@@ -576,8 +587,9 @@ class MockArmoryWithActiveItems:
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
 		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
 		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
-		4: {"name": "Invisibility", "description": "Invisibility suit"},
-		5: {"name": "Breaker Bullets", "description": "Breaker bullets — passive"}
+		4: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"},
+		5: {"name": "Invisibility", "description": "Invisibility suit"},
+		6: {"name": "Breaker Bullets", "description": "Breaker bullets — passive"}
 	}
 
 	## Applied active item type
@@ -665,25 +677,25 @@ func test_armory_switch_active_items() -> void:
 
 
 func test_active_item_type_breaker_bullets_value() -> void:
-	# ActiveItemType.BREAKER_BULLETS should be 5
-	var expected := 5
-	assert_eq(expected, 5, "BREAKER_BULLETS should be the sixth active item type (5)")
+	# ActiveItemType.BREAKER_BULLETS should be 6
+	var expected := 6
+	assert_eq(expected, 6, "BREAKER_BULLETS should be the seventh active item type (6)")
 
 
 func test_active_item_data_has_breaker_bullets() -> void:
-	var data := manager.get_active_item_data(5)
+	var data := manager.get_active_item_data(6)
 	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain BREAKER_BULLETS type")
 	assert_eq(data["name"], "Breaker Bullets", "Breaker Bullets should have correct name")
 
 
 func test_breaker_bullets_data_has_icon_path() -> void:
-	var data := manager.get_active_item_data(5)
+	var data := manager.get_active_item_data(6)
 	assert_true(data["icon_path"].contains("breaker_bullets"),
 		"Breaker Bullets icon path should contain 'breaker_bullets'")
 
 
 func test_breaker_bullets_data_has_description() -> void:
-	var data := manager.get_active_item_data(5)
+	var data := manager.get_active_item_data(6)
 	assert_true(data["description"].contains("passive"),
 		"Breaker Bullets description should mention passive behavior")
 
@@ -694,20 +706,20 @@ func test_no_breaker_bullets_by_default() -> void:
 
 
 func test_has_breaker_bullets_after_selection() -> void:
-	manager.set_active_item(5)
+	manager.set_active_item(6)
 	assert_true(manager.has_breaker_bullets(),
 		"has_breaker_bullets should return true after selecting breaker bullets")
 
 
 func test_no_breaker_bullets_after_deselection() -> void:
-	manager.set_active_item(5)
+	manager.set_active_item(6)
 	manager.set_active_item(0)
 	assert_false(manager.has_breaker_bullets(),
 		"has_breaker_bullets should return false after switching back to none")
 
 
 func test_breaker_bullets_does_not_conflict_with_flashlight() -> void:
-	manager.set_active_item(5)
+	manager.set_active_item(6)
 	assert_false(manager.has_flashlight(),
 		"Flashlight should not be active when breaker bullets are selected")
 	assert_true(manager.has_breaker_bullets(),
@@ -723,13 +735,13 @@ func test_flashlight_does_not_conflict_with_breaker_bullets() -> void:
 
 
 func test_set_active_item_to_breaker_bullets() -> void:
-	manager.set_active_item(5)
-	assert_eq(manager.current_active_item, 5,
+	manager.set_active_item(6)
+	assert_eq(manager.current_active_item, 6,
 		"Active item type should change to BREAKER_BULLETS")
 
 
 func test_armory_select_breaker_bullets() -> void:
 	var armory := MockArmoryWithActiveItems.new()
-	var result := armory.select_active_item(5)
+	var result := armory.select_active_item(6)
 	assert_true(result, "Should select breaker bullets")
-	assert_eq(armory.pending_active_item, 5, "Pending should be breaker bullets")
+	assert_eq(armory.pending_active_item, 6, "Pending should be breaker bullets")

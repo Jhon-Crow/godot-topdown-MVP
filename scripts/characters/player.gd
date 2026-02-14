@@ -340,6 +340,9 @@ func _ready() -> void:
 	# Initialize homing bullets if active item manager has homing bullets selected
 	_init_homing_bullets()
 
+	# Initialize BFF pendant if active item manager has it selected (Issue #674)
+	_init_bff_pendant()
+
 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
 	_init_invisibility_suit()
 
@@ -448,6 +451,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle homing bullets input (press Space to activate, timer-based deactivation)
 	_handle_homing_input(delta)
+
+	# Handle BFF pendant input (press Space to summon companion, Issue #674)
+	_handle_bff_pendant_input()
 
 	# Update charge bar hide timer (auto-hide after 300ms for charge-based items)
 	_update_charge_bar_timer(delta)
@@ -3083,6 +3089,192 @@ func _setup_homing_audio() -> void:
 func _play_homing_sound() -> void:
 	if _homing_audio_player and is_instance_valid(_homing_audio_player):
 		_homing_audio_player.play()
+
+
+# ============================================================================
+# BFF Pendant System (Issue #674)
+# ============================================================================
+
+## BFF companion scene path.
+const BFF_COMPANION_SCENE_PATH: String = "res://scenes/objects/BffCompanion.tscn"
+
+## Whether the BFF pendant is equipped (active item selected in armory).
+var _bff_pendant_equipped: bool = false
+
+## Whether the companion has already been summoned this battle (one charge per battle).
+var _bff_companion_summoned: bool = false
+
+## Reference to the summoned companion node.
+var _bff_companion_node: Node2D = null
+
+
+## Initialize the BFF pendant if the ActiveItemManager has it selected.
+func _init_bff_pendant() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.BffPendant] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_bff_pendant"):
+		FileLogger.info("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method")
+		return
+
+	if not active_item_manager.has_bff_pendant():
+		FileLogger.info("[Player.BffPendant] No BFF pendant selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.BffPendant] BFF pendant is selected, ready to summon companion")
+
+	# Verify companion scene exists
+	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
+		return
+
+	_bff_pendant_equipped = true
+	_bff_companion_summoned = false
+	FileLogger.info("[Player.BffPendant] BFF pendant equipped — press Space to summon companion")
+
+
+## Handle BFF pendant input: press Space to summon a companion (one charge per battle).
+func _handle_bff_pendant_input() -> void:
+	if not _bff_pendant_equipped:
+		return
+	if _bff_companion_summoned:
+		return
+
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		_summon_bff_companion()
+
+
+## Summon the BFF companion near the player.
+## Issue #674: Spawn position now validated to avoid spawning inside walls.
+func _summon_bff_companion() -> void:
+	if _bff_companion_summoned:
+		return
+
+	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
+		return
+
+	var companion_scene: PackedScene = load(BFF_COMPANION_SCENE_PATH)
+	if companion_scene == null:
+		FileLogger.info("[Player.BffPendant] WARNING: Failed to load companion scene")
+		return
+
+	var companion := companion_scene.instantiate()
+
+	# Add to the current scene (not as child of player, so it moves independently)
+	get_tree().current_scene.add_child(companion)
+
+	# Find a valid spawn position that is not inside a wall
+	var spawn_pos := _find_valid_companion_spawn_position()
+	companion.global_position = spawn_pos
+
+	_bff_companion_node = companion
+	_bff_companion_summoned = true
+
+	# Connect companion death signal
+	if companion.has_signal("companion_died"):
+		companion.companion_died.connect(_on_bff_companion_died)
+
+	FileLogger.info("[Player.BffPendant] Companion summoned at position %s" % str(companion.global_position))
+
+
+## Find a valid spawn position for the companion that is not inside a wall.
+## Tries multiple offsets around the player until a valid position is found.
+## Issue #674: Prevents companion from spawning inside/behind walls.
+func _find_valid_companion_spawn_position() -> Vector2:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		# Fallback if physics state unavailable
+		FileLogger.info("[Player.BffPendant] WARNING: Physics state unavailable, using default spawn")
+		return global_position + Vector2(-50, 30)
+
+	# Companion collision radius for overlap check
+	const COMPANION_RADIUS: float = 24.0
+
+	# List of offset directions to try (relative to player facing or default)
+	var base_rotation: float = _player_model.rotation if _player_model else 0.0
+	var offsets: Array[Vector2] = [
+		Vector2(-50, 30).rotated(base_rotation),   # Behind and to the side (preferred)
+		Vector2(-60, 0).rotated(base_rotation),    # Directly behind
+		Vector2(-50, -30).rotated(base_rotation),  # Behind and other side
+		Vector2(0, 50).rotated(base_rotation),     # To the right
+		Vector2(0, -50).rotated(base_rotation),    # To the left
+		Vector2(50, 30).rotated(base_rotation),    # In front and to the side
+		Vector2(50, -30).rotated(base_rotation),   # In front and other side
+		Vector2(-30, 0).rotated(base_rotation),    # Closer behind
+	]
+
+	for offset in offsets:
+		var test_pos := global_position + offset
+
+		# Check if position is valid (not inside wall, has clear path from player)
+		if _is_spawn_position_valid(space_state, test_pos, COMPANION_RADIUS):
+			FileLogger.info("[Player.BffPendant] Found valid spawn at offset %s" % str(offset))
+			return test_pos
+
+	# If all positions failed, spawn at player position (will push out via physics)
+	FileLogger.info("[Player.BffPendant] WARNING: No valid spawn position found, spawning at player")
+	return global_position
+
+
+## Check if a position is valid for spawning the companion.
+## Returns true if the position is not inside a wall and has line of sight from player.
+func _is_spawn_position_valid(space_state: PhysicsDirectSpaceState2D, pos: Vector2, radius: float) -> bool:
+	# First check: line of sight from player to spawn position
+	var los_query := PhysicsRayQueryParameters2D.new()
+	los_query.from = global_position
+	los_query.to = pos
+	los_query.collision_mask = 1  # Walls only (layer 1)
+	los_query.exclude = [get_rid()]
+
+	var los_result := space_state.intersect_ray(los_query)
+	if not los_result.is_empty():
+		# Wall between player and spawn position
+		return false
+
+	# Second check: circle overlap at spawn position (is position inside a wall?)
+	var circle_query := PhysicsShapeQueryParameters2D.new()
+	var circle_shape := CircleShape2D.new()
+	circle_shape.radius = radius
+	circle_query.shape = circle_shape
+	circle_query.transform = Transform2D(0.0, pos)
+	circle_query.collision_mask = 1  # Walls only (layer 1)
+
+	var overlap_result := space_state.intersect_shape(circle_query, 1)
+	if not overlap_result.is_empty():
+		# Position overlaps with wall
+		return false
+
+	return true
+
+
+## Called when the BFF companion dies.
+func _on_bff_companion_died() -> void:
+	FileLogger.info("[Player.BffPendant] Companion has been killed")
+	_bff_companion_node = null
+
+
+## Check if the BFF pendant is equipped.
+func has_bff_pendant() -> bool:
+	return _bff_pendant_equipped
+
+
+## Check if the BFF companion has been summoned.
+func is_bff_companion_summoned() -> bool:
+	return _bff_companion_summoned
+
+
+## Check if the BFF companion is currently alive.
+func is_bff_companion_alive() -> bool:
+	if _bff_companion_node == null:
+		return false
+	if not is_instance_valid(_bff_companion_node):
+		return false
+	if _bff_companion_node.has_method("is_alive"):
+		return _bff_companion_node.is_alive()
+	return false
 
 
 # ============================================================================

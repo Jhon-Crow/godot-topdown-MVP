@@ -746,6 +746,30 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region BFF Pendant System (Issue #674)
+
+    /// <summary>
+    /// Path to the BFF companion scene.
+    /// </summary>
+    private const string BffCompanionScenePath = "res://scenes/objects/BffCompanion.tscn";
+
+    /// <summary>
+    /// Whether the BFF pendant is equipped (active item selected in armory).
+    /// </summary>
+    private bool _bffPendantEquipped = false;
+
+    /// <summary>
+    /// Whether the companion has already been summoned this battle (one charge per battle).
+    /// </summary>
+    private bool _bffCompanionSummoned = false;
+
+    /// <summary>
+    /// Reference to the summoned companion node.
+    /// </summary>
+    private Node2D? _bffCompanionNode = null;
+
+    #endregion
+
     #region Invisibility Suit System (Issue #673)
 
     /// <summary>
@@ -1021,6 +1045,9 @@ public partial class Player : BaseCharacter
 
         // Initialize homing bullets if active item manager has them selected (Issue #677)
         InitHomingBullets();
+
+        // Initialize BFF pendant if active item manager has it selected (Issue #674)
+        InitBffPendant();
 
         // Initialize invisibility suit if active item manager has it selected (Issue #673)
         InitInvisibilitySuit();
@@ -1313,6 +1340,9 @@ public partial class Player : BaseCharacter
 
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
+
+        // Handle BFF pendant input (press Space to summon companion) (Issue #674)
+        HandleBffPendantInput();
 
         // Handle invisibility suit input (press Space to activate) (Issue #673)
         HandleInvisibilitySuitInput();
@@ -4698,6 +4728,135 @@ public partial class Player : BaseCharacter
     public bool IsHomingActive()
     {
         return _homingActive;
+    }
+
+    #endregion
+
+    #region BFF Pendant Methods (Issue #674)
+
+    /// <summary>
+    /// Initialize the BFF pendant if the ActiveItemManager has it selected.
+    /// </summary>
+    private void InitBffPendant()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_bff_pendant"))
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method");
+            return;
+        }
+
+        bool hasBffPendant = (bool)activeItemManager.Call("has_bff_pendant");
+        if (!hasBffPendant)
+        {
+            LogToFile("[Player.BffPendant] No BFF pendant selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.BffPendant] BFF pendant is selected, ready to summon companion");
+
+        // Verify companion scene exists
+        if (!ResourceLoader.Exists(BffCompanionScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Companion scene not found: {BffCompanionScenePath}");
+            return;
+        }
+
+        _bffPendantEquipped = true;
+        _bffCompanionSummoned = false;
+        LogToFile("[Player.BffPendant] BFF pendant equipped — press Space to summon companion");
+    }
+
+    /// <summary>
+    /// Handle BFF pendant input: press Space to summon a companion (one charge per battle).
+    /// </summary>
+    private void HandleBffPendantInput()
+    {
+        if (!_bffPendantEquipped)
+        {
+            return;
+        }
+
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            SummonBffCompanion();
+        }
+    }
+
+    /// <summary>
+    /// Summon the BFF companion near the player.
+    /// </summary>
+    private void SummonBffCompanion()
+    {
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (!ResourceLoader.Exists(BffCompanionScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Companion scene not found: {BffCompanionScenePath}");
+            return;
+        }
+
+        var companionScene = GD.Load<PackedScene>(BffCompanionScenePath);
+        if (companionScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: Failed to load companion scene");
+            return;
+        }
+
+        var companion = companionScene.Instantiate<Node2D>();
+
+        // Add to the current scene (not as child of player, so it moves independently)
+        var tree = GetTree();
+        if (tree?.CurrentScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: No current scene to add companion to");
+            companion.QueueFree();
+            return;
+        }
+
+        tree.CurrentScene.AddChild(companion);
+
+        // Spawn slightly behind and to the side of the player
+        var spawnOffset = new Vector2(-50, 30);
+        if (_playerModel != null)
+        {
+            spawnOffset = spawnOffset.Rotated(_playerModel.Rotation);
+        }
+        companion.GlobalPosition = GlobalPosition + spawnOffset;
+
+        _bffCompanionNode = companion;
+        _bffCompanionSummoned = true;
+
+        // Connect companion death signal if it exists
+        if (companion.HasSignal("companion_died"))
+        {
+            companion.Connect("companion_died", Callable.From(OnBffCompanionDied));
+        }
+
+        LogToFile($"[Player.BffPendant] Companion summoned at position {companion.GlobalPosition}");
+    }
+
+    /// <summary>
+    /// Called when the BFF companion dies.
+    /// </summary>
+    private void OnBffCompanionDied()
+    {
+        LogToFile("[Player.BffPendant] Companion has been killed");
+        _bffCompanionNode = null;
     }
 
     #endregion

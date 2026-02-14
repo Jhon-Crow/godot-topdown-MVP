@@ -11,6 +11,7 @@ enum ActiveItemType {
 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
 	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
+	BFF_PENDANT,       # BFF pendant - press Space to summon a friendly companion with M16
 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
 	BREAKER_BULLETS    # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
 }
@@ -42,6 +43,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
 		"activation_hint": "Hold Space to aim, release to teleport"
+	},
+	ActiveItemType.BFF_PENDANT: {
+		"name": "BFF Pendant",
+		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
+		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle.",
+		"activation_hint": "Press Space to summon"
 	},
 	ActiveItemType.INVISIBILITY_SUIT: {
 		"name": "Invisibility",
@@ -149,6 +156,11 @@ func has_homing_bullets() -> bool:
 ## Check if teleport bracers are currently equipped.
 func has_teleport_bracers() -> bool:
 	return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+
+## Check if BFF pendant is currently equipped.
+func has_bff_pendant() -> bool:
+	return current_active_item == ActiveItemType.BFF_PENDANT
 
 
 ## Check if an invisibility suit is currently equipped (Issue #673).
