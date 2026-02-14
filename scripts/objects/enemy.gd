@@ -3872,14 +3872,27 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
+## Spawn a projectile. Try pool first for performance (Issue #724), fallback to instantiate.
 func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
-	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
+	var p: Node = null
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	var sid := get_instance_id()
+
+	# Try pooled bullet first for performance
+	if pool_manager and pool_manager.has_method("get_bullet"):
+		p = pool_manager.get_bullet()
+		if p and p.has_method("pool_activate"):
+			p.pool_activate(spawn_pos, direction, sid, null)
+			if p.get("shooter_position") != null:
+				p.shooter_position = spawn_pos
+			return
+
+	# Fallback to instantiation (also handles C# bullets)
+	p = bullet_scene.instantiate(); p.global_position = spawn_pos
 	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
 	if p.has_method("SetDirection"): p.SetDirection(direction)
 	elif p.get("direction") != null: p.direction = direction
 	elif p.get("Direction") != null: p.Direction = direction
-	var sid := get_instance_id()
 	if p.has_method("SetShooterId"): p.SetShooterId(sid)
 	elif p.get("shooter_id") != null: p.shooter_id = sid
 	elif p.get("ShooterId") != null: p.ShooterId = sid

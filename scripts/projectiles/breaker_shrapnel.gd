@@ -86,7 +86,7 @@ func _physics_process(delta: float) -> void:
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		_destroy()
 
 
 ## Updates the shrapnel rotation to match its travel direction.
@@ -138,11 +138,11 @@ func _on_body_entered(body: Node2D) -> void:
 		var audio_manager: Node = get_node_or_null("/root/AudioManager")
 		if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 			audio_manager.play_bullet_wall_hit(global_position)
-		queue_free()
+		_destroy()
 		return
 
 	# Hit other bodies — destroy
-	queue_free()
+	_destroy()
 
 
 func _on_area_entered(area: Area2D) -> void:
@@ -165,7 +165,7 @@ func _on_area_entered(area: Area2D) -> void:
 		else:
 			area.on_hit()
 
-		queue_free()
+		_destroy()
 
 
 ## Spawns dust/debris particles when shrapnel hits a wall.
@@ -273,6 +273,18 @@ func pool_deactivate() -> void:
 	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
 	if pool_manager and pool_manager.has_method("return_breaker_shrapnel"):
 		pool_manager.return_breaker_shrapnel(self)
+
+
+## Destroys the breaker shrapnel using pooling when available, otherwise queue_free.
+func _destroy() -> void:
+	if _is_pooled:
+		return
+
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager:
+		pool_deactivate()
+	else:
+		queue_free()
 
 
 ## Resets all breaker shrapnel state to defaults for reuse.

@@ -277,12 +277,24 @@ func _spawn_shrapnel() -> void:
 		var final_angle := base_angle + deviation
 
 		var direction := Vector2(cos(final_angle), sin(final_angle))
+		var spawn_pos := global_position + direction * 10.0
 
-		var shrapnel := shrapnel_scene.instantiate()
+		# Try pooled shrapnel first for performance (Issue #724)
+		var shrapnel: Node = null
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+
+		if pool_manager and pool_manager.has_method("get_shrapnel"):
+			shrapnel = pool_manager.get_shrapnel()
+			if shrapnel and shrapnel.has_method("pool_activate"):
+				shrapnel.pool_activate(spawn_pos, direction, get_instance_id(), -1)
+				continue  # Shrapnel is ready, skip to next
+
+		# Fallback to instantiation
+		shrapnel = shrapnel_scene.instantiate()
 		if shrapnel == null:
 			continue
 
-		shrapnel.global_position = global_position + direction * 10.0
+		shrapnel.global_position = spawn_pos
 		shrapnel.direction = direction
 		shrapnel.source_id = get_instance_id()
 

@@ -6,8 +6,17 @@ The game needs optimized bullets and shrapnel (fragments) that can handle bullet
 
 **Requirements:**
 - Optimize bullets and shrapnel for mass spawning (bullet-hell situations)
-- Do not reduce quantity or functionality
+- Support 200+ simultaneous projectiles on screen (like The Binding of Isaac: Rebirth)
+- Do not reduce quantity, visible bullets, or effects
 - Support hundreds to thousands of projectiles simultaneously
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [README.md](./README.md) | This overview document |
+| [research.md](./research.md) | **Deep case study with online research**, optimization techniques, benchmarks |
+| [performance_benchmark.md](./performance_benchmark.md) | Benchmark methodology and results |
 
 ## Current Architecture Analysis
 
@@ -69,7 +78,7 @@ The codebase already has some optimizations:
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐       │
 │  │ Bullet Pool │ │ Shrapnel    │ │ BreakerShrapnel    │       │
-│  │  (100 max)  │ │ Pool (50)   │ │ Pool (80)          │       │
+│  │  (300 max)  │ │ Pool (150)  │ │ Pool (200)         │       │
 │  └─────────────┘ └─────────────┘ └─────────────────────┘       │
 │                                                                  │
 │  Methods:                                                        │
@@ -122,8 +131,20 @@ See:
 
 ## References
 
+### Godot Community Resources
 - [Godot Forum: Bullet Hell Optimization](https://forum.godotengine.org/t/bullet-hell-optimization/129732)
 - [Godot Forum: Object Pooling](https://forum.godotengine.org/t/object-pooling-with-bullets-of-different-hitboxes/81553)
-- [godot-object-pool addon](https://github.com/godot-addons/godot-object-pool)
+- [Godot Forum: Collision Pairs Optimization](https://forum.godotengine.org/t/collision-pairs-optimizing-performance-of-bullet-hell-enemy-hell-games/35027)
 - [Performance Optimization for Bullet Hells](https://godotforums.org/d/23940-performance-optimization-for-bullet-hells)
-- [Complete Guide to Object Pooling in Godot](https://uhiyama-lab.com/en/notes/godot/godot-object-pooling-basics/)
+
+### Godot Plugins for Bullet-Hell
+- [PerfBullets (MultiMesh + C++)](https://github.com/Moonzel/Godot-PerfBullets)
+- [BlastBullets2D (Full-featured C++)](https://github.com/nikoladevelops/godot-blast-bullets-2d)
+
+### Game Development Techniques
+- [Little Polygon: Bullet Tech Breakdown](https://blog.littlepolygon.com/posts/bullets/)
+- [Toptal: Collision Detection Physics](https://www.toptal.com/game/video-game-physics-part-ii-collision-detection-for-solid-objects)
+- [Broad Phase Collision Detection](http://buildnewgames.com/broad-phase-collision-detection/)
+
+### Reference Game
+- [The Binding of Isaac: Rebirth Performance Guide](https://www.gamehelper.io/games/the-binding-of-isaac-rebirth/articles/the-binding-of-isaac-rebirth-performance-optimization-guide-best-settings-for-maximum-fps)

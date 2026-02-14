@@ -263,7 +263,7 @@ func _physics_process(delta: float) -> void:
 		if _distance_since_ricochet >= _max_post_ricochet_distance:
 			if _debug_ricochet:
 				print("[Bullet] Post-ricochet distance exceeded: ", _distance_since_ricochet, " >= ", _max_post_ricochet_distance)
-			queue_free()
+			_destroy()
 			return
 
 	# Track penetration distance while inside a wall
@@ -276,7 +276,7 @@ func _physics_process(delta: float) -> void:
 			_log_penetration("Max penetration distance exceeded: %s >= %s" % [_penetration_distance_traveled, max_pen_distance])
 			# Bullet stopped inside the wall - destroy it
 			# Visual effects disabled as per user request
-			queue_free()
+			_destroy()
 			return
 
 		# Check if we've exited the obstacle (raycast forward to see if still inside)
@@ -295,7 +295,7 @@ func _physics_process(delta: float) -> void:
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		_destroy()
 
 
 ## Updates the visual trail effect by maintaining position history.
@@ -385,7 +385,7 @@ func _on_body_entered(body: Node2D) -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		audio_manager.play_bullet_wall_hit(global_position)
-	queue_free()
+	_destroy()
 
 
 ## Called when the bullet exits a body (wall).
@@ -450,7 +450,7 @@ func _on_area_entered(area: Area2D) -> void:
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
 
-		queue_free()
+		_destroy()
 
 
 ## Attempts to ricochet the bullet off a surface.
@@ -952,7 +952,7 @@ func _exit_penetration() -> void:
 
 	# Destroy bullet after successful penetration
 	# Bullets don't continue flying after penetrating a wall
-	queue_free()
+	_destroy()
 
 
 ## Spawns a visual hole effect at penetration entry or exit point.
@@ -1145,7 +1145,7 @@ func _breaker_detonate(detonation_pos: Vector2) -> void:
 	_breaker_play_explosion_sound(detonation_pos)
 
 	# 5. Destroy the bullet
-	queue_free()
+	_destroy()
 
 
 ## Applies explosion damage to all enemies within BREAKER_EXPLOSION_RADIUS.
@@ -1328,8 +1328,21 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 			skipped_count += 1
 			continue
 
-		# Create shrapnel instance
-		var shrapnel := _breaker_shrapnel_scene.instantiate()
+		# Try pooled breaker shrapnel first for performance (Issue #724)
+		var shrapnel: Node = null
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+
+		if pool_manager and pool_manager.has_method("get_breaker_shrapnel"):
+			shrapnel = pool_manager.get_breaker_shrapnel()
+			if shrapnel and shrapnel.has_method("pool_activate"):
+				shrapnel.pool_activate(spawn_pos, shrapnel_direction, shooter_id)
+				shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
+				shrapnel.speed = randf_range(1400.0, 2200.0)
+				spawned_count += 1
+				continue  # Shrapnel is ready, skip to next
+
+		# Fallback to instantiation
+		shrapnel = _breaker_shrapnel_scene.instantiate()
 		if shrapnel == null:
 			continue
 
@@ -1472,6 +1485,20 @@ func _reset_state() -> void:
 ## Returns whether this bullet is currently pooled (inactive).
 func is_pooled() -> bool:
 	return _is_pooled
+
+
+## Destroys the bullet using pooling when available, otherwise queue_free.
+## This method should be used instead of direct queue_free() calls for proper pooling.
+func _destroy() -> void:
+	if _is_pooled:
+		return  # Already pooled
+
+	# Try to use pooling if pool manager is available
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager:
+		pool_deactivate()
+	else:
+		queue_free()
 
 
 ## Override queue_free to use pooling when available.

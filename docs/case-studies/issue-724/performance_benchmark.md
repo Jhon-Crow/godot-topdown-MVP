@@ -69,23 +69,29 @@ Or attach the script to a Node in a test scene.
 
 ## Tuning Pool Sizes
 
-Default pool sizes in `ProjectilePoolManager`:
-- Bullets: 100
-- Shrapnel: 50
-- Breaker Shrapnel: 80
+Default pool sizes in `ProjectilePoolManager` (optimized for 200+ concurrent projectiles):
+- Bullets: 300 (supports 200+ active with headroom for recycling)
+- Shrapnel: 150 (for multiple grenade explosions, 4 shrapnel each)
+- Breaker Shrapnel: 200 (for breaker bullet chains, up to 10 per breaker)
+
+These sizes are based on research for bullet-hell scenarios like The Binding of Isaac: Rebirth.
+See [research.md](./research.md) for detailed optimization research.
 
 Adjust based on your game's requirements:
 
 ```gdscript
 # In project settings or script:
 var pool_manager = get_node("/root/ProjectilePoolManager")
-pool_manager.bullet_pool_size = 200  # For more intense combat
+pool_manager.bullet_pool_size = 400  # For more intense combat
 ```
 
 ## Integration Checklist
 
-- [ ] ProjectilePoolManager registered as autoload
-- [ ] Call `warmup()` during loading screen
-- [ ] Weapons use `get_bullet()` instead of `instantiate()`
-- [ ] Bullets call `pool_deactivate()` instead of `queue_free()`
-- [ ] Monitor stats in debug builds
+- [x] ProjectilePoolManager registered as autoload
+- [x] Pool warmup configured
+- [x] Player uses pooled bullets via `get_bullet()` with fallback
+- [x] Enemy uses pooled bullets via `get_bullet()` with fallback
+- [x] Grenades use pooled shrapnel via `get_shrapnel()` with fallback
+- [x] Breaker bullets use pooled shrapnel via `get_breaker_shrapnel()` with fallback
+- [x] Bullets call `_destroy()` which uses `pool_deactivate()` when available
+- [x] All projectile types support automatic pooling

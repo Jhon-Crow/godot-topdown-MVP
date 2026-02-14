@@ -24,10 +24,14 @@ class_name ProjectilePoolManager
 ##
 ## Issue #724: Optimize projectiles for bullet-hell scenarios.
 
-## Pool sizes - can be adjusted based on game requirements
-@export var bullet_pool_size: int = 100
-@export var shrapnel_pool_size: int = 50
-@export var breaker_shrapnel_pool_size: int = 80
+## Pool sizes - optimized for 200+ concurrent projectiles (bullet-hell scenarios)
+## Based on research from Issue #724 case study (see docs/case-studies/issue-724/)
+## Bullets: 300 allows 200+ active with headroom for recycling
+## Shrapnel: 150 for multiple grenade explosions (4 shrapnel each)
+## Breaker: 200 for breaker bullet chains (up to 10 shrapnel per breaker)
+@export var bullet_pool_size: int = 300
+@export var shrapnel_pool_size: int = 150
+@export var breaker_shrapnel_pool_size: int = 200
 
 ## Scene references for instantiation
 var _bullet_scene: PackedScene
