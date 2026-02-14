@@ -89,8 +89,11 @@ const SHOTGUN_SHOTS: Array[String] = [
 const SHOTGUN_ACTION_OPEN: String = "res://assets/audio/открытие затвора дробовика.wav"
 const SHOTGUN_ACTION_CLOSE: String = "res://assets/audio/закрытие затвора дробовика.wav"
 
-## Shotgun empty click sound.
+## Shotgun empty click sound (when tube is empty).
 const SHOTGUN_EMPTY_CLICK: String = "res://assets/audio/выстрел без патронов дробовик.mp3"
+
+## Shotgun dry fire sound (when not ready to fire - needs pump action).
+const SHOTGUN_DRY_FIRE: String = "res://assets/audio/попытка выстрела без заряда ДРОБОВИК.mp3"
 
 ## Shotgun reload (load single shell) sound.
 const SHOTGUN_LOAD_SHELL: String = "res://assets/audio/зарядил один патрон в дробовик.mp3"
@@ -365,6 +368,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(SHOTGUN_ACTION_OPEN)
 	all_sounds.append(SHOTGUN_ACTION_CLOSE)
 	all_sounds.append(SHOTGUN_EMPTY_CLICK)
+	all_sounds.append(SHOTGUN_DRY_FIRE)
 	all_sounds.append(SHOTGUN_LOAD_SHELL)
 	all_sounds.append(SHELL_SHOTGUN)
 	# Silenced weapon sounds
@@ -816,10 +820,16 @@ func play_shell_shotgun(position: Vector2) -> void:
 	play_sound_2d_with_priority(SHELL_SHOTGUN, position, VOLUME_SHELL, SoundPriority.LOW)
 
 
-## Plays shotgun empty click sound at the given position.
+## Plays shotgun empty click sound at the given position (when tube is empty).
 ## Uses CRITICAL priority for player feedback.
 func play_shotgun_empty_click(position: Vector2) -> void:
 	play_sound_2d_with_priority(SHOTGUN_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
+
+
+## Plays shotgun dry fire sound at the given position (when not ready to fire - needs pump action).
+## Uses CRITICAL priority for player feedback.
+func play_shotgun_dry_fire(position: Vector2) -> void:
+	play_sound_2d_with_priority(SHOTGUN_DRY_FIRE, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
 
 
 ## Plays shotgun shell loading sound at the given position.
