@@ -17,6 +17,8 @@ The game needs optimized bullets and shrapnel (fragments) that can handle bullet
 | [README.md](./README.md) | This overview document |
 | [research.md](./research.md) | **Deep case study with online research**, optimization techniques, benchmarks |
 | [performance_benchmark.md](./performance_benchmark.md) | Benchmark methodology and results |
+| [fps_drop_investigation_2026-02-14.md](./fps_drop_investigation_2026-02-14.md) | Investigation of FPS drops with breaker bullets and F-1 grenade |
+| [logs/](./logs/) | User-provided game logs for analysis |
 
 ## Current Architecture Analysis
 

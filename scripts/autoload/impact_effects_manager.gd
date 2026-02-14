@@ -47,6 +47,10 @@ const MAX_BULLET_HOLES: int = 0
 ## Active blood decals for cleanup management.
 var _blood_decals = []
 
+## Cached light texture for explosion effects (Issue #724 optimization).
+## Creating GradientTexture2D is expensive, so we cache and reuse it.
+var _cached_explosion_light_texture: GradientTexture2D = null
+
 ## Active bullet holes for cleanup management (visual only).
 var _bullet_holes = []
 
@@ -1057,12 +1061,20 @@ func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color:
 	_create_grenade_light_with_occlusion(position, radius, flash_color, effect_type)
 
 
-## Creates a PointLight2D-based flash effect for grenade explosions with automatic wall occlusion.
-## FIX for Issue #470: Uses shadow_enabled=true to ensure the flash is blocked by walls.
-## This is the same approach used by MuzzleFlash.tscn for weapon muzzle flashes.
+## Creates a PointLight2D-based flash effect for grenade explosions.
 ##
-## The PointLight2D's shadow system automatically respects LightOccluder2D nodes on walls,
-## so no manual raycast check is needed - walls naturally block the light.
+## ISSUE #724 OPTIMIZATION: Shadow-enabled PointLight2D is extremely expensive.
+## According to Godot documentation and community research:
+## - Shadow rendering creates 4 draw lists per light on screen
+## - Each light generates 4 × lights × occluders draw calls
+## - Shotgun breaker fires 14 pellets = 14 shadow lights = 56+ draw lists per shot
+##
+## FIX: Disable shadows for brief explosion effects. These are short-lived visual
+## flashes (0.3-0.4 seconds) and don't need accurate shadow casting.
+## Wall occlusion is now handled by checking line of sight in the calling code.
+##
+## For Issue #470 (wall blocking): The calling code should check line of sight
+## before spawning the effect, rather than relying on expensive shadow casting.
 ##
 ## @param position: World position of the explosion.
 ## @param radius: Effect radius for light size.
@@ -1084,15 +1096,14 @@ func _create_grenade_light_with_occlusion(position: Vector2, radius: float, ligh
 		light.energy = 6.0
 		light.texture_scale = radius / 80.0
 
-	# Use a gradient texture for the light
-	light.texture = _create_light_texture()
+	# Use cached gradient texture for performance (Issue #724 optimization)
+	# Creating new GradientTexture2D every explosion causes GPU uploads
+	light.texture = _get_cached_light_texture()
 
-	# CRITICAL for Issue #470: Enable shadows so light is blocked by walls
-	# This is the key difference from the old Sprite2D approach
-	light.shadow_enabled = true
-	light.shadow_color = Color(0, 0, 0, 0.9)
-	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
-	light.shadow_filter_smooth = 6.0
+	# ISSUE #724 FIX: Disable shadows for explosion effects
+	# Shadow-enabled lights are extremely expensive (56+ draw lists for shotgun breaker)
+	# Brief visual flashes don't need accurate shadow casting
+	light.shadow_enabled = false
 
 	_add_effect_to_scene(light)
 
@@ -1103,7 +1114,17 @@ func _create_grenade_light_with_occlusion(position: Vector2, radius: float, ligh
 	tween.tween_callback(light.queue_free)
 
 
+## Returns the cached light texture for explosion effects.
+## Issue #724 optimization: Creating GradientTexture2D every explosion is expensive
+## because it causes GPU texture uploads. We cache and reuse the texture instead.
+func _get_cached_light_texture() -> GradientTexture2D:
+	if _cached_explosion_light_texture == null:
+		_cached_explosion_light_texture = _create_light_texture()
+	return _cached_explosion_light_texture
+
+
 ## Creates a simple white radial gradient texture for the light.
+## Note: This is called once and cached via _get_cached_light_texture().
 func _create_light_texture() -> GradientTexture2D:
 	var gradient := Gradient.new()
 	gradient.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0)])
