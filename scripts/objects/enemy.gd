@@ -3872,20 +3872,22 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
-func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
-	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
-	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
-	if p.has_method("SetDirection"): p.SetDirection(direction)
-	elif p.get("direction") != null: p.direction = direction
-	elif p.get("Direction") != null: p.Direction = direction
-	var sid := get_instance_id()
+## Spawn projectile. Pool first (Issue #724), fallback instantiate (Issue #516, #550).
+func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
+	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pm and pm.has_method("get_bullet"):
+		var p = pm.get_bullet()
+		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
+	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
+	if p.has_method("SetDirection"): p.SetDirection(dir)
+	elif p.get("direction") != null: p.direction = dir
+	elif p.get("Direction") != null: p.Direction = dir
 	if p.has_method("SetShooterId"): p.SetShooterId(sid)
 	elif p.get("shooter_id") != null: p.shooter_id = sid
 	elif p.get("ShooterId") != null: p.ShooterId = sid
-	if p.has_method("SetShooterPosition"): p.SetShooterPosition(spawn_pos)
-	elif p.get("shooter_position") != null: p.shooter_position = spawn_pos
-	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
+	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
+	elif p.get("shooter_position") != null: p.shooter_position = pos
+	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
