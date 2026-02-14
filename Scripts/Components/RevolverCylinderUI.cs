@@ -39,6 +39,12 @@ public partial class RevolverCylinderUI : Control
     private int _cylinderCapacity = 5;
 
     /// <summary>
+    /// Issue #770: Current reload state of the revolver.
+    /// Used to determine if the cylinder is open for transparency effect.
+    /// </summary>
+    private RevolverReloadState _reloadState = RevolverReloadState.NotReloading;
+
+    /// <summary>
     /// Base size of a chamber slot circle (radius in pixels).
     /// </summary>
     private const float SlotRadius = 8.0f;
@@ -77,6 +83,16 @@ public partial class RevolverCylinderUI : Control
     /// Background color for the cylinder display panel.
     /// </summary>
     private static readonly Color BackgroundColor = new(0.0f, 0.0f, 0.0f, 0.4f);
+
+    /// <summary>
+    /// Issue #770: Opacity level when cylinder is open (transparent).
+    /// </summary>
+    private const float OpenCylinderOpacity = 0.3f;
+
+    /// <summary>
+    /// Issue #770: Full opacity when cylinder is closed.
+    /// </summary>
+    private const float ClosedCylinderOpacity = 1.0f;
 
     /// <summary>
     /// Connects to the given revolver and starts displaying its cylinder state.
@@ -122,6 +138,7 @@ public partial class RevolverCylinderUI : Control
 
     /// <summary>
     /// Reads the current cylinder state from the revolver and triggers a redraw.
+    /// Issue #770: Also updates transparency based on cylinder open/closed state.
     /// </summary>
     private void UpdateCylinderState()
     {
@@ -134,8 +151,26 @@ public partial class RevolverCylinderUI : Control
         _currentChamberIndex = _revolver.CurrentChamberIndex;
         _isHammerCocked = _revolver.IsHammerCocked;
         _cylinderCapacity = _revolver.CylinderCapacity;
+        _reloadState = _revolver.ReloadState;
+
+        // Issue #770: Update transparency based on cylinder state
+        UpdateTransparency();
 
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Issue #770: Updates the UI transparency based on cylinder state.
+    /// When cylinder is open (CylinderOpen or Loading), UI becomes transparent.
+    /// When cylinder is closed (NotReloading), UI is fully opaque.
+    /// </summary>
+    private void UpdateTransparency()
+    {
+        float targetOpacity = (_reloadState == RevolverReloadState.CylinderOpen || _reloadState == RevolverReloadState.Loading)
+            ? OpenCylinderOpacity
+            : ClosedCylinderOpacity;
+
+        Modulate = new Color(Modulate.R, Modulate.G, Modulate.B, targetOpacity);
     }
 
     public override void _Draw()
