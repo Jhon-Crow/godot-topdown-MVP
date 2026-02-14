@@ -346,6 +346,9 @@ func _ready() -> void:
 	# Initialize breaker bullets if active item manager has breaker bullets selected (Issue #678)
 	_init_breaker_bullets()
 
+	# Initialize trajectory glasses if active item manager has trajectory glasses selected (Issue #744)
+	_init_trajectory_glasses()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
@@ -454,6 +457,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle invisibility suit input (press Space to activate) (Issue #673)
 	_handle_invisibility_suit_input()
+
+	# Handle trajectory glasses input (press Space to activate) (Issue #744)
+	_handle_trajectory_glasses_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -3246,6 +3252,151 @@ func _init_breaker_bullets() -> void:
 
 	_breaker_bullets_active = true
 	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+
+
+# ============================================================================
+# Trajectory Glasses (Issue #744)
+# ============================================================================
+
+
+## Preload the trajectory glasses effect script.
+const TrajectoryGlassesEffectScript = preload("res://scripts/effects/trajectory_glasses_effect.gd")
+
+## Preload the trajectory glasses HUD script.
+const TrajectoryGlassesHudScript = preload("res://scripts/ui/trajectory_glasses_hud.gd")
+
+## Whether trajectory glasses are equipped.
+var _trajectory_glasses_equipped: bool = false
+
+## Reference to the trajectory glasses effect node.
+var _trajectory_glasses: Node = null
+
+## Reference to the trajectory glasses HUD node.
+var _trajectory_glasses_hud: Node2D = null
+
+## Signal emitted when trajectory glasses state changes.
+signal trajectory_glasses_changed(is_active: bool, charges: int, max_charges: int)
+
+## Signal emitted when trajectory glasses charges change.
+signal trajectory_glasses_charges_changed(current: int, maximum: int)
+
+
+## Initialize the trajectory glasses if the ActiveItemManager has them selected.
+func _init_trajectory_glasses() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.TrajectoryGlasses] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_trajectory_glasses"):
+		FileLogger.info("[Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method")
+		return
+
+	if not active_item_manager.has_trajectory_glasses():
+		FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses not selected")
+		return
+
+	FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...")
+
+	# Create the trajectory glasses effect node
+	_trajectory_glasses = TrajectoryGlassesEffectScript.new()
+	_trajectory_glasses.name = "TrajectoryGlassesEffect"
+	add_child(_trajectory_glasses)
+
+	# Initialize with player reference
+	_trajectory_glasses.initialize(self)
+
+	# Try to get current weapon for aim direction
+	_update_trajectory_glasses_weapon()
+
+	# Connect signals for HUD updates
+	_trajectory_glasses.trajectory_activated.connect(_on_trajectory_activated)
+	_trajectory_glasses.trajectory_deactivated.connect(_on_trajectory_deactivated)
+	_trajectory_glasses.charges_changed.connect(_on_trajectory_charges_changed)
+
+	_trajectory_glasses_equipped = true
+	FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: %d" % _trajectory_glasses.charges)
+
+	# Create HUD overlay for displaying charges and timer
+	_trajectory_glasses_hud = TrajectoryGlassesHudScript.new()
+	_trajectory_glasses_hud.name = "TrajectoryGlassesHUD"
+	add_child(_trajectory_glasses_hud)
+	_trajectory_glasses_hud.initialize(_trajectory_glasses)
+
+	# Emit initial charges state for HUD
+	trajectory_glasses_charges_changed.emit(_trajectory_glasses.charges, _trajectory_glasses.MAX_CHARGES)
+
+
+## Update the weapon reference for trajectory glasses aim direction.
+func _update_trajectory_glasses_weapon() -> void:
+	if _trajectory_glasses == null:
+		return
+
+	# Try to find a weapon attached to the player
+	var weapon: Node2D = null
+
+	# Check for common weapon types
+	for weapon_name in ["AssaultRifle", "SilencedPistol", "MiniUzi", "Shotgun", "SniperRifle", "Revolver", "MakarovPM"]:
+		var found := get_node_or_null(weapon_name)
+		if found and found is Node2D:
+			weapon = found
+			break
+
+	if weapon:
+		_trajectory_glasses.set_weapon(weapon)
+
+
+## Handle trajectory glasses input: press Space to activate.
+func _handle_trajectory_glasses_input() -> void:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return
+
+	if not is_instance_valid(_trajectory_glasses):
+		return
+
+	# Activate on Space press (not hold — single press activates for full duration)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if not _trajectory_glasses.is_active:
+			# Update weapon reference before activation (in case player switched weapons)
+			_update_trajectory_glasses_weapon()
+			_trajectory_glasses.activate()
+
+
+## Callback when trajectory glasses activates.
+func _on_trajectory_activated(charges_remaining: int) -> void:
+	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.set_active(true)
+		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+
+
+## Callback when trajectory glasses deactivates.
+func _on_trajectory_deactivated(charges_remaining: int) -> void:
+	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.set_active(false)
+		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+
+
+## Callback when trajectory glasses charges change.
+func _on_trajectory_charges_changed(current: int, maximum: int) -> void:
+	trajectory_glasses_charges_changed.emit(current, maximum)
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.update_charges(current, maximum)
+
+
+## Check if trajectory glasses effect is currently active.
+func is_trajectory_glasses_active() -> bool:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return false
+	if not is_instance_valid(_trajectory_glasses):
+		return false
+	return _trajectory_glasses.is_active
+
+
+## Get the trajectory glasses effect node (for HUD queries).
+func get_trajectory_glasses() -> Node:
+	return _trajectory_glasses
 
 
 # ============================================================================
