@@ -5,6 +5,7 @@
 The BFF companion spawned correctly but had no functional AI behavior. Users reported:
 1. "у напарника сейчас нет ии" (The companion currently has no AI)
 2. "не должен спавниться в или за стеной" (Should not spawn in or behind walls)
+3. "не работает. можешь просто копировать ии врага, но чтоб он был в состоянии agressive" (Doesn't work. Just copy the enemy AI in aggressive state)
 
 ## Timeline of Events
 
@@ -13,24 +14,32 @@ The BFF companion spawned correctly but had no functional AI behavior. Users rep
 | 2026-02-09 | Initial companion implementation | Companion visual appears |
 | 2026-02-10 19:46 | User feedback via PR comment | AI not working, wall spawn issue |
 | 2026-02-10 | Debug logging added | No [BffCompanion] logs appeared |
+| 2026-02-10 20:26 | User feedback | "не работает" - still not working, request to copy aggressive enemy AI |
+| 2026-02-15 | AI rewrite | Complete rewrite to mirror AggressionComponent exactly |
 
 ## Root Cause Analysis
 
-### Issue 1: AI Not Working
+### Issue 1: AI Not Working (Original - Feb 10)
 
 **Evidence from game logs:**
 - `[Player.BffPendant] Companion summoned at position (393.0791, 1209.7606)` appears
 - NO `[BffCompanion]` logs appear (should log every ~1 second)
 - Game runs for 5+ seconds after spawn with zero companion status logs
 
-**Diagnosis:**
-The companion script's `_ready()` and `_physics_process()` methods were executing, but:
-1. The `FileLogger.info()` calls might have been silently failing
-2. The AI logic worked but didn't produce visible behavior in-game
+**Original diagnosis:** FileLogger timing issues and simplified movement logic.
+
+### Issue 2: AI Still Not Working (Feb 10 - Second Report)
+
+**User feedback:** "не работает" (doesn't work)
+
+**User solution request:** "можешь просто копировать ии врага, но чтоб он был в состоянии agressive и не считал игрока врагом" (just copy the enemy AI in aggressive state but don't consider player as enemy)
 
 **Root Cause:**
-1. **FileLogger access issue**: Direct `FileLogger.info()` calls from dynamically instantiated scenes may have timing issues. The FileLogger autoload might not be fully initialized when accessed.
-2. **Simplified movement logic**: Original implementation used basic velocity-based movement instead of proper NavigationAgent2D pathfinding, causing the companion to get stuck on walls.
+The custom AI implementation deviated significantly from the enemy AI patterns:
+1. **Different rotation logic**: Used lerp_angle instead of enemy's wrapf-based rotation
+2. **Different aim tolerance**: Used 0.95 instead of enemy's 0.866 (cos 30°)
+3. **Different cooldown values**: Custom values instead of enemy defaults
+4. **Different combat flow**: Separate functions for different states instead of unified process_combat pattern
 
 ### Issue 2: Spawning Inside/Behind Walls
 
@@ -49,67 +58,65 @@ This could place the companion:
 
 ## Fixes Applied
 
-### Fix 1: Robust Logging Function
+### Fix 1 (Feb 10): Robust Logging Function
+Added fallback logging to ensure debug messages appear.
 
-Added a unified `_log()` function with multiple fallbacks:
+### Fix 2 (Feb 10): NavigationAgent2D-based Movement
+Changed from simple velocity to proper pathfinding.
+
+### Fix 3 (Feb 10): Wall-Safe Spawn Position
+Added spawn position validation with fallback positions.
+
+### Fix 4 (Feb 15): Complete AI Rewrite - Mirror AggressionComponent
+
+**Key change:** Rewrote `_process_combat_ai()` to EXACTLY mirror `AggressionComponent.process_combat()`:
+
 ```gdscript
-func _log(message: String) -> void:
-    if Engine.has_singleton("FileLogger"):
-        var fl = Engine.get_singleton("FileLogger")
-        if fl and fl.has_method("info"):
-            fl.info(message)
-            return
-    # Fallback: try autoload node
-    var fl_node = get_node_or_null("/root/FileLogger")
-    if fl_node and fl_node.has_method("info"):
-        fl_node.info(message)
+func _process_combat_ai(delta: float) -> void:
+    # Step 1: Find enemy target with LOS (like _find_nearest_enemy_target_with_los)
+    if _current_target == null or not is_instance_valid(_current_target) or _current_target.get("_is_alive") == false:
+        _current_target = _find_enemy_with_los()
+
+    # Step 2: If we have LOS to target, engage in combat
+    if _current_target != null and _has_los_to(_current_target):
+        var dir := (_current_target.global_position - global_position).normalized()
+
+        # Rotate toward target (SAME logic as AggressionComponent)
+        var angle_diff := wrapf(dir.angle() - rotation, -PI, PI)
+        if abs(angle_diff) <= rotation_speed * delta:
+            rotation = dir.angle()
+        elif angle_diff > 0:
+            rotation += rotation_speed * delta
+        else:
+            rotation -= rotation_speed * delta
+
+        if _model:
+            _model.rotation = rotation
+
+        # Check aim and shoot (SAME as AggressionComponent)
+        var weapon_forward := Vector2.RIGHT.rotated(rotation)
+        if weapon_forward.dot(dir) >= AIM_TOLERANCE_DOT and _can_shoot() and _shoot_timer >= shoot_cooldown:
+            _shoot(weapon_forward)
+            _shoot_timer = 0.0
+
+        velocity = Vector2.ZERO  # Stop moving during combat
+
+    elif _current_target != null:
+        _move_to_target_nav(_current_target.global_position, combat_move_speed)
+
     else:
-        # Last resort: print to console
-        print(message)
+        _nav_target = _find_any_enemy()
+        if _nav_target != null:
+            _move_to_target_nav(_nav_target.global_position, combat_move_speed)
+        else:
+            _process_follow_player(delta)  # Only difference: follow player instead of search
 ```
 
-### Fix 2: NavigationAgent2D-based Movement
-
-Changed from simple velocity-based movement to proper pathfinding:
-```gdscript
-func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
-    if _nav_agent == null:
-        return (target_pos - global_position).normalized()
-
-    _nav_agent.target_position = target_pos
-
-    if _nav_agent.is_navigation_finished():
-        return Vector2.ZERO
-
-    var next_pos: Vector2 = _nav_agent.get_next_path_position()
-    return (next_pos - global_position).normalized()
-```
-
-### Fix 3: Wall-Safe Spawn Position
-
-Added spawn position validation with multiple fallback positions:
-```gdscript
-func _find_valid_companion_spawn_position() -> Vector2:
-    var offsets: Array[Vector2] = [
-        Vector2(-50, 30).rotated(base_rotation),   # Behind and to the side
-        Vector2(-60, 0).rotated(base_rotation),    # Directly behind
-        Vector2(-50, -30).rotated(base_rotation),  # Behind and other side
-        # ... more fallback positions
-    ]
-
-    for offset in offsets:
-        var test_pos := global_position + offset
-        if _is_spawn_position_valid(space_state, test_pos, COMPANION_RADIUS):
-            return test_pos
-
-    # Final fallback: spawn at player position
-    return global_position
-
-func _is_spawn_position_valid(space_state, pos, radius) -> bool:
-    # Check 1: Line of sight from player
-    # Check 2: Circle overlap test (not inside wall)
-    return no_wall_between and not_overlapping_wall
-```
+**Parameters matched to enemy:**
+- `rotation_speed = 25.0` (same as enemy)
+- `shoot_cooldown = 0.1` (same as enemy)
+- `AIM_TOLERANCE_DOT = 0.866` (cos 30°, same as enemy)
+- `combat_move_speed = 320.0` (same as enemy)
 
 ## AI Behavior Design (User Requirement)
 
@@ -117,22 +124,21 @@ User specified: "должно быть как у врага в режиме аг
 
 Translation: "Should be like enemy in aggressive mode under gas grenade effect, but instead of searching - following the player"
 
-**Implemented behavior:**
-1. **Follow player** when no enemies visible (not search like aggressive enemy)
-2. **Attack enemies on sight** (like aggressive enemy behavior)
-3. **Stop moving during combat** (like aggressive enemy)
-4. **Use navigation** for pathfinding around obstacles
+## Comparison with AggressionComponent (Issue #675)
 
-## Comparison with Enemy AI
+| Aspect | AggressionComponent | BFF Companion (New) |
+|--------|---------------------|---------------------|
+| Target group | "enemies" (other enemies) | "enemies" (hostile NPCs) |
+| Rotation logic | `wrapf(angle_diff)` + delta | **SAME** |
+| Aim tolerance | `0.866` (cos 30°) | **SAME** |
+| Shoot check | `weapon_forward.dot(dir) >= AIM_TOLERANCE_DOT` | **SAME** |
+| Combat velocity | `Vector2.ZERO` (stop) | **SAME** |
+| When no LOS | `_move_to_target_nav()` | **SAME** |
+| When no target | `_find_nearest_enemy_any()` | Follow player instead |
+| Rotation speed | 25.0 rad/s | **SAME** |
+| Shoot cooldown | 0.1s | **SAME** |
 
-| Aspect | Aggressive Enemy | BFF Companion |
-|--------|------------------|---------------|
-| Primary goal | Attack other enemies | Attack enemies, follow player |
-| When no target | Search for any enemy | Follow player |
-| Movement | NavigationAgent2D | NavigationAgent2D |
-| Combat | Stop and shoot | Stop and shoot |
-| Targeting | Nearest enemy with LOS | Nearest enemy with LOS |
-| Friendly fire prevention | N/A | Check if player in firing line |
+The ONLY behavioral difference is: when no enemies exist, the companion follows the player instead of searching/wandering.
 
 ## Files Changed
 

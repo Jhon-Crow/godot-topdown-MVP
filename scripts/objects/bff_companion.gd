@@ -2,24 +2,23 @@ class_name BffCompanion
 extends CharacterBody2D
 ## BFF Companion NPC summoned by the BFF Pendant active item (Issue #674).
 ##
-## A friendly companion that follows the player and shoots enemies with an M16.
-## Has 2-4 HP and lasts until killed or the level ends.
-## AI behavior: follows player (like escort), attacks enemies on sight (like aggressive enemy).
+## AI modeled EXACTLY after enemy AggressionComponent (Issue #675 gas grenade behavior).
+## Differences: targets enemies group (not other enemies), follows player when no target.
+## User feedback: "копировать ии врага, но чтоб он был в состоянии agressive"
 
 ## Companion died signal (for enemy counter exclusion).
 signal companion_died
 
-## Movement speed when following the player (px/s).
-var move_speed: float = 200.0
+## Movement speed (px/s) — matches enemy combat_move_speed.
+var move_speed: float = 220.0
+var combat_move_speed: float = 320.0
 
 ## Distance to maintain from the player (px).
 var follow_distance: float = 80.0
 
-## Detection range for enemies (px).
-var detection_range: float = 500.0
-
-## Weapon configuration — uses RIFLE (M16).
-var shoot_cooldown: float = 0.15
+## Weapon configuration — uses RIFLE (M16), same as enemy defaults.
+var shoot_cooldown: float = 0.1  # Match enemy default (10 rounds/sec)
+var rotation_speed: float = 25.0  # Match enemy rotation_speed for aim-before-shoot
 var bullet_speed: float = 2500.0
 var bullet_spawn_offset: float = 30.0
 var magazine_size: int = 30
@@ -36,17 +35,18 @@ var _current_health: int = 0
 var _max_health: int = 0
 var _is_alive: bool = true
 var _player: Node2D = null
-var _current_target: Node2D = null
+var _current_target: Node2D = null  # Enemy target with LOS
+var _nav_target: Node2D = null  # Enemy target for navigation (no LOS)
 var _shoot_timer: float = 0.0
 var _current_ammo: int = 30
 var _reload_timer: float = 0.0
 var _is_reloading: bool = false
-var _reload_time: float = 2.5
+var _reload_time: float = 3.0  # Match enemy reload_time
 
 ## Bullet scene.
 var _bullet_scene: PackedScene = null
 
-## Spread tracking (progressive spread like enemies).
+## Spread tracking (progressive spread like enemies - Issue #516).
 var _shot_count: int = 0
 var _spread_timer: float = 0.0
 var _spread_threshold: int = 3
@@ -55,7 +55,7 @@ var _spread_increment: float = 0.6
 var _max_spread: float = 4.0
 var _spread_reset_time: float = 0.25
 
-## Navigation agent for pathfinding (Issue #674 AI fix).
+## Navigation agent for pathfinding.
 @onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D
 
 ## Node references (resolved from scene tree in _ready).
@@ -69,48 +69,39 @@ var _spread_reset_time: float = 0.25
 ## Hit flash.
 var _hit_flash_timer: float = 0.0
 var _hit_flash_duration: float = 0.1
-var _full_health_color: Color = Color(0.2, 1.0, 0.6, 1.0)  # Green-cyan tint for companion (different from player's blue)
+var _full_health_color: Color = Color(0.2, 1.0, 0.6, 1.0)  # Green-cyan tint for companion
 var _low_health_color: Color = Color(0.1, 0.4, 0.2, 1.0)
 var _hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
 
-## Aim tolerance for shooting (dot product threshold).
-const AIM_TOLERANCE_DOT: float = 0.95
-
-## Rotation speed (rad/s).
-var _rotation_speed: float = 20.0
+## Aim tolerance for shooting (dot product threshold) — cos(30°) same as enemy.
+const AIM_TOLERANCE_DOT: float = 0.866
 
 ## Debug frame counter for periodic logging (every ~60 frames = 1 second).
 var _debug_frame_counter: int = 0
 const DEBUG_LOG_INTERVAL: int = 60
 
-## Navigation target for movement when no line of sight to enemy.
-var _nav_target: Node2D = null
+## Throttle navigation logs to once per second.
+var _last_nav_log_frame: int = -100
 
 
 func _ready() -> void:
-	_log("[BffCompanion] _ready() called, initializing companion...")
+	_log("[BffCompanion] _ready() called")
 	add_to_group("bff_companions")
 	_initialize_health()
 	_find_player()
 	_load_bullet_scene()
 	_update_health_visual()
 
-	# Apply scale to model
+	# Apply scale to model (same as enemy)
 	if _model:
 		_model.scale = Vector2(model_scale, model_scale)
-		_log("[BffCompanion] Model scale set to %s" % str(_model.scale))
-	else:
-		_log("[BffCompanion] WARNING: _model is null, visual setup may fail")
 
-	# Setup navigation agent if available
+	# Setup navigation agent
 	if _nav_agent:
 		_nav_agent.path_desired_distance = 4.0
 		_nav_agent.target_desired_distance = 10.0
-		_log("[BffCompanion] NavigationAgent2D configured")
-	else:
-		_log("[BffCompanion] WARNING: NavigationAgent2D not found, using fallback movement")
 
-	_log("[BffCompanion] Spawned with %d/%d HP, player found: %s" % [_current_health, _max_health, str(_player != null)])
+	_log("[BffCompanion] Spawned: HP=%d/%d, player=%s" % [_current_health, _max_health, str(_player != null)])
 
 
 ## Unified logging function that uses FileLogger if available, else print.
@@ -169,27 +160,20 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
-	# Periodic debug logging
-	_debug_frame_counter += 1
-	if _debug_frame_counter >= DEBUG_LOG_INTERVAL:
-		_debug_frame_counter = 0
-		var target_name := "none" if _current_target == null else _current_target.name
-		var player_name := "none" if _player == null else _player.name
-		_log("[BffCompanion] Status: pos=%s, player=%s, target=%s, ammo=%d, hp=%d" % [
-			str(global_position), player_name, target_name, _current_ammo, _current_health])
-
+	# Update timers (same as enemy)
 	_shoot_timer += delta
 	_spread_timer += delta
 	if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0:
 		_shot_count = 0
 
-	# Update reload
+	# Update reload (same as enemy)
 	if _is_reloading:
 		_reload_timer += delta
 		if _reload_timer >= _reload_time:
 			_current_ammo = magazine_size
 			_is_reloading = false
 			_reload_timer = 0.0
+			_log("[BffCompanion] Reload complete: %d/%d" % [_current_ammo, magazine_size])
 
 	# Update hit flash
 	if _hit_flash_timer > 0.0:
@@ -200,45 +184,159 @@ func _physics_process(delta: float) -> void:
 	# Find player if lost
 	if _player == null or not is_instance_valid(_player):
 		_find_player()
-		if _player == null:
-			velocity = Vector2.ZERO
-			move_and_slide()
-			return
 
-	# Find closest enemy target with line of sight
-	_find_target()
+	# Periodic debug logging
+	_debug_frame_counter += 1
+	if _debug_frame_counter >= DEBUG_LOG_INTERVAL:
+		_debug_frame_counter = 0
+		var t := "none" if _current_target == null else _current_target.name
+		_log("[BffCompanion] pos=%s, target=%s, ammo=%d, hp=%d" % [
+			str(global_position).substr(0, 20), t, _current_ammo, _current_health])
 
-	# Process AI: attack enemies or follow player
-	if _current_target != null and is_instance_valid(_current_target):
-		# Have target with LOS - engage in combat (like aggressive enemy)
-		_process_combat(delta)
-	else:
-		# No visible target - follow player (like escort)
-		_process_follow_player(delta)
+	# === AI Logic (mirrors AggressionComponent.process_combat) ===
+	_process_combat_ai(delta)
 
 	move_and_slide()
 
 
-## Process combat state: rotate toward target and shoot.
-## Similar to AggressionComponent.process_combat() from enemy AI.
-func _process_combat(delta: float) -> void:
-	if _current_target == null or not is_instance_valid(_current_target):
+## Process combat AI — mirrors AggressionComponent.process_combat() exactly.
+## Key difference: targets "enemies" group, follows player when no enemies.
+func _process_combat_ai(delta: float) -> void:
+	# Step 1: Find enemy target with LOS (like _find_nearest_enemy_target_with_los)
+	if _current_target == null or not is_instance_valid(_current_target) or _current_target.get("_is_alive") == false:
+		_current_target = _find_enemy_with_los()
+
+	# Step 2: If we have LOS to target, engage in combat
+	if _current_target != null and _has_los_to(_current_target):
+		# Combat mode: rotate toward target and shoot (like aggressive enemy)
+		var dir := (_current_target.global_position - global_position).normalized()
+
+		# Rotate toward target (same logic as AggressionComponent)
+		var angle_diff := wrapf(dir.angle() - rotation, -PI, PI)
+		if abs(angle_diff) <= rotation_speed * delta:
+			rotation = dir.angle()
+		elif angle_diff > 0:
+			rotation += rotation_speed * delta
+		else:
+			rotation -= rotation_speed * delta
+
+		# Force model to face direction
+		if _model:
+			_model.rotation = rotation
+
+		# Check aim and shoot (same as AggressionComponent)
+		var weapon_forward := Vector2.RIGHT.rotated(rotation)
+		if weapon_forward.dot(dir) >= AIM_TOLERANCE_DOT and _can_shoot() and _shoot_timer >= shoot_cooldown:
+			_shoot(weapon_forward)
+			_shoot_timer = 0.0
+
+		# Stop moving during combat (like aggressive enemy)
+		velocity = Vector2.ZERO
+
+	elif _current_target != null:
+		# Have target but no LOS — navigate toward them
+		_move_to_target_nav(_current_target.global_position, combat_move_speed)
+
+	else:
+		# No visible target — find any enemy and navigate, OR follow player
+		_nav_target = _find_any_enemy()
+		if _nav_target != null:
+			# Navigate toward enemy (like aggressive enemy with no LOS)
+			_move_to_target_nav(_nav_target.global_position, combat_move_speed)
+			# Throttle logging
+			var frame := Engine.get_physics_frames()
+			if frame - _last_nav_log_frame >= 60:
+				_last_nav_log_frame = frame
+				_log("[BffCompanion] Moving to %s (no LOS)" % _nav_target.name)
+		else:
+			# No enemies at all — follow player
+			_process_follow_player(delta)
+
+
+## Find nearest enemy with line of sight (for combat targeting).
+## Mirrors AggressionComponent._find_nearest_enemy_target_with_los().
+func _find_enemy_with_los() -> Node2D:
+	var best: Node2D = null
+	var best_dist := INF
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		if enemy.get("_is_alive") == false:
+			continue
+		var dist := global_position.distance_to(enemy.global_position)
+		if dist < best_dist and _has_los_to(enemy):
+			best_dist = dist
+			best = enemy
+	return best
+
+
+## Find nearest enemy regardless of line of sight (for navigation).
+## Mirrors AggressionComponent._find_nearest_enemy_any().
+func _find_any_enemy() -> Node2D:
+	var best: Node2D = null
+	var best_dist := INF
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		if enemy.get("_is_alive") == false:
+			continue
+		var dist := global_position.distance_to(enemy.global_position)
+		if dist < best_dist:
+			best_dist = dist
+			best = enemy
+	return best
+
+
+## Check line of sight to target.
+## Mirrors AggressionComponent._has_los().
+func _has_los_to(target: Node2D) -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	var query := PhysicsRayQueryParameters2D.create(global_position, target.global_position)
+	query.collision_mask = 4  # Walls (layer 3)
+	query.exclude = [self]
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## Move toward target using NavigationAgent2D.
+## Mirrors enemy._move_to_target_nav().
+func _move_to_target_nav(target_pos: Vector2, speed: float) -> void:
+	if _nav_agent == null:
+		# Fallback: direct movement
+		var dir := (target_pos - global_position).normalized()
+		velocity = dir * speed
+		rotation = dir.angle()
+		if _model:
+			_model.rotation = rotation
 		return
 
-	var dir_to_target := (_current_target.global_position - global_position).normalized()
+	_nav_agent.target_position = target_pos
 
-	# Rotate model toward target
-	_rotate_model_toward(dir_to_target, delta)
+	if _nav_agent.is_navigation_finished():
+		velocity = Vector2.ZERO
+		return
 
-	# Try to shoot if aligned
-	_try_shoot(dir_to_target)
+	var next_pos: Vector2 = _nav_agent.get_next_path_position()
+	var direction: Vector2 = (next_pos - global_position).normalized()
 
-	# Stop moving when in combat (like aggressive enemy)
-	velocity = Vector2.ZERO
+	velocity = direction * speed
+	rotation = direction.angle()
+	if _model:
+		_model.rotation = rotation
 
 
-## Process follow state: navigate toward player.
-## Uses NavigationAgent2D for proper pathfinding around obstacles.
+## Check if can shoot (has ammo and not reloading).
+## Mirrors enemy._can_shoot().
+func _can_shoot() -> bool:
+	if _is_reloading:
+		return false
+	if _current_ammo <= 0:
+		_start_reload()
+		return false
+	return true
+
+
+## Process follow state: navigate toward player when no enemies.
 func _process_follow_player(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		velocity = Vector2.ZERO
@@ -248,159 +346,29 @@ func _process_follow_player(delta: float) -> void:
 	var distance := to_player.length()
 
 	if distance > follow_distance:
-		# Use navigation for pathfinding
-		var direction := _get_nav_direction_to(_player.global_position)
-
-		if direction != Vector2.ZERO:
-			velocity = direction * move_speed
-			# Face same direction as player when following
-			if _model and _player:
-				var player_model := _player.get_node_or_null("PlayerModel")
-				if player_model:
-					var target_rot := player_model.global_rotation
-					_model.global_rotation = lerp_angle(_model.global_rotation, target_rot, _rotation_speed * delta)
-		else:
-			velocity = velocity.move_toward(Vector2.ZERO, 800.0 * delta)
+		# Navigate toward player
+		_move_to_target_nav(_player.global_position, move_speed)
 	else:
-		velocity = velocity.move_toward(Vector2.ZERO, 800.0 * delta)
-		# Face same direction as player when close
-		if _model and _player:
+		# Close enough — stop and face same direction as player
+		velocity = Vector2.ZERO
+		if _player:
 			var player_model := _player.get_node_or_null("PlayerModel")
 			if player_model:
 				var target_rot := player_model.global_rotation
-				_model.global_rotation = lerp_angle(_model.global_rotation, target_rot, _rotation_speed * delta)
+				rotation = lerp_angle(rotation, target_rot, rotation_speed * delta)
+				if _model:
+					_model.rotation = rotation
 
 
-## Get navigation direction to target position using NavigationAgent2D.
-## Returns Vector2.ZERO if navigation is finished or unavailable.
-func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
-	if _nav_agent == null:
-		# Fall back to direct movement if no navigation agent
-		return (target_pos - global_position).normalized()
-
-	# Set the target for navigation
-	_nav_agent.target_position = target_pos
-
-	# Check if navigation is finished
-	if _nav_agent.is_navigation_finished():
-		return Vector2.ZERO
-
-	# Get the next position in the path
-	var next_pos: Vector2 = _nav_agent.get_next_path_position()
-
-	# Calculate direction to next path position
-	var direction: Vector2 = (next_pos - global_position).normalized()
-	return direction
-
-
-func _find_target() -> void:
-	_current_target = null
-	var closest_dist := detection_range
-	var enemies := get_tree().get_nodes_in_group("enemies")
-
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-		if not enemy is CharacterBody2D:
-			continue
-		# Check if the enemy is alive
-		if enemy.has_method("is_alive") and not enemy.is_alive():
-			continue
-		# Check if enemy has _is_alive property
-		if "_is_alive" in enemy and not enemy._is_alive:
-			continue
-
-		var dist := global_position.distance_to(enemy.global_position)
-		if dist < closest_dist:
-			# Check line of sight
-			if _has_line_of_sight(enemy.global_position):
-				closest_dist = dist
-				_current_target = enemy
-
-
-func _has_line_of_sight(target_pos: Vector2) -> bool:
-	var space_state := get_world_2d().direct_space_state
-	if space_state == null:
-		return false
-
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position
-	query.to = target_pos
-	query.collision_mask = 1  # Walls only (layer 1)
-	query.exclude = [get_rid()]
-
-	var result := space_state.intersect_ray(query)
-	return result.is_empty()  # True if no wall in the way
-
-
-func _rotate_model_toward(direction: Vector2, delta: float) -> void:
-	if _model == null:
-		return
-	var target_angle := direction.angle()
-	_model.rotation = lerp_angle(_model.rotation, target_angle, _rotation_speed * delta)
-
-
-func _try_shoot(direction: Vector2) -> void:
-	if _bullet_scene == null:
-		return
-	if _is_reloading:
-		return
-	if _current_ammo <= 0:
-		_start_reload()
-		return
-	if _shoot_timer < shoot_cooldown:
-		return
-
-	# Check aim alignment
-	var weapon_forward := Vector2.RIGHT.rotated(_model.rotation) if _model else direction
-	var aim_dot := weapon_forward.dot(direction)
-	if aim_dot < AIM_TOLERANCE_DOT:
-		return
-
-	# Check friendly fire — don't shoot if player is in the way
-	if _player and is_instance_valid(_player):
-		if _is_player_in_firing_line(direction):
-			return
-
-	# Shoot
-	_shoot(weapon_forward)
-
-
-func _is_player_in_firing_line(direction: Vector2) -> bool:
-	if _player == null or not is_instance_valid(_player):
-		return false
-
-	var space_state := get_world_2d().direct_space_state
-	if space_state == null:
-		return false
-
-	var muzzle_pos := global_position + direction * bullet_spawn_offset
-	var target_pos := global_position + direction * detection_range
-
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = muzzle_pos
-	query.to = target_pos
-	query.collision_mask = 4  # Player collision layer
-	query.exclude = [get_rid()]
-
-	var result := space_state.intersect_ray(query)
-	if result.is_empty():
-		return false
-
-	# Check if the hit is the player
-	var hit_body = result.get("collider")
-	if hit_body == _player:
-		return true
-	return false
-
-
+## Shoot a bullet in the given direction.
+## Mirrors enemy._shoot() but simpler (no shotgun/machete variants).
 func _shoot(direction: Vector2) -> void:
 	if _bullet_scene == null:
 		return
 
 	var bullet_spawn_pos := global_position + direction * bullet_spawn_offset
 
-	# Apply progressive spread
+	# Apply progressive spread (same as enemy - Issue #516)
 	var spread_deg: float = 0.0
 	if _shot_count >= _spread_threshold:
 		var excess: int = _shot_count - _spread_threshold
@@ -427,12 +395,12 @@ func _shoot(direction: Vector2) -> void:
 	if "shooter_id" in bullet:
 		bullet.shooter_id = get_instance_id()
 
-	# Play shoot sound
+	# Play shoot sound (same as enemy)
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio and audio.has_method("play_m16_shot"):
 		audio.play_m16_shot(global_position)
 
-	# Sound propagation
+	# Sound propagation (same as enemy)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	if sp and sp.has_method("emit_sound"):
 		sp.emit_sound(0, global_position, 1, self, 1469.0)
@@ -440,7 +408,6 @@ func _shoot(direction: Vector2) -> void:
 	_current_ammo -= 1
 	_shot_count += 1
 	_spread_timer = 0.0
-	_shoot_timer = 0.0
 
 	if _current_ammo <= 0:
 		_start_reload()
