@@ -12,6 +12,9 @@ signal back_pressed
 ## Signal emitted when a weapon is selected.
 signal weapon_selected(weapon_id: String)
 
+## Path to weapon case icon used for locked/closed items.
+const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
+
 ## Firearms data — weapons the player can equip.
 ## Keys: weapon_id, Values: dictionary with name, icon_path, unlocked, description
 const FIREARMS: Dictionary = {
@@ -631,6 +634,7 @@ func _add_category_header(parent: VBoxContainer, text: String) -> void:
 
 
 ## Create an item slot (used for both weapons and grenades).
+## Locked items show weapon case icon and hidden name for future animated opening.
 func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = item_id + "_slot"
@@ -645,7 +649,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 	vbox.add_theme_constant_override("separation", 3)
 	slot.add_child(vbox)
 
-	# Item icon or lock placeholder
+	# Item icon or weapon case for locked items
 	var icon_container := CenterContainer.new()
 	icon_container.custom_minimum_size = Vector2(48, 48)
 	vbox.add_child(icon_container)
@@ -663,24 +667,35 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 			texture_rect.texture = texture
 		icon_container.add_child(texture_rect)
 	else:
-		var lock_label := Label.new()
-		lock_label.text = "?"
-		lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_label.add_theme_font_size_override("font_size", 24)
-		lock_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
-		icon_container.add_child(lock_label)
+		# Locked item: show weapon case icon instead of "?"
+		var case_texture_rect := TextureRect.new()
+		case_texture_rect.custom_minimum_size = Vector2(48, 48)
+		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		case_texture_rect.name = "WeaponCaseIcon"  # Named for future animation access
 
-	# Item name
+		if ResourceLoader.exists(WEAPON_CASE_ICON_PATH):
+			var case_texture: Texture2D = load(WEAPON_CASE_ICON_PATH)
+			if case_texture:
+				case_texture_rect.texture = case_texture
+		icon_container.add_child(case_texture_rect)
+
+	# Item name - hidden for locked items (requirement: names of closed items should be hidden)
 	var name_label := Label.new()
-	name_label.text = item_data.get("name", "???")
+	if is_unlocked:
+		name_label.text = item_data.get("name", "???")
+	else:
+		# Hide name for locked items - empty label preserves slot layout
+		name_label.text = ""
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 11)
-	if not is_unlocked:
-		name_label.modulate = Color(0.5, 0.5, 0.5)
 	vbox.add_child(name_label)
 
-	# Tooltip
-	slot.tooltip_text = item_data.get("description", "")
+	# Tooltip - hidden for locked items
+	if is_unlocked:
+		slot.tooltip_text = item_data.get("description", "")
+	else:
+		slot.tooltip_text = ""  # No tooltip for locked items
 
 	# Make unlocked items clickable
 	if is_unlocked:
@@ -697,6 +712,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 
 
 ## Create an active item slot (separate handler for active item clicks).
+## Locked items show weapon case icon and hidden name for future animated opening.
 func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = "active_" + item_id + "_slot"
@@ -716,8 +732,24 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	icon_container.custom_minimum_size = Vector2(48, 48)
 	vbox.add_child(icon_container)
 
+	var is_unlocked: bool = item_data.get("unlocked", true)  # Default unlocked for active items
 	var icon_path: String = item_data.get("icon_path", "")
-	if icon_path != "" and ResourceLoader.exists(icon_path):
+	var item_name: String = item_data.get("name", "")
+
+	if not is_unlocked:
+		# Locked active item: show weapon case icon
+		var case_texture_rect := TextureRect.new()
+		case_texture_rect.custom_minimum_size = Vector2(48, 48)
+		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		case_texture_rect.name = "WeaponCaseIcon"
+
+		if ResourceLoader.exists(WEAPON_CASE_ICON_PATH):
+			var case_texture: Texture2D = load(WEAPON_CASE_ICON_PATH)
+			if case_texture:
+				case_texture_rect.texture = case_texture
+		icon_container.add_child(case_texture_rect)
+	elif icon_path != "" and ResourceLoader.exists(icon_path):
 		var texture_rect := TextureRect.new()
 		texture_rect.custom_minimum_size = Vector2(48, 48)
 		texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
@@ -730,26 +762,35 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	else:
 		# "None" item or missing icon — show dash
 		var none_label := Label.new()
-		none_label.text = "-" if item_data.get("name", "") == "None" else "?"
+		none_label.text = "-" if item_name == "None" else "?"
 		none_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		none_label.add_theme_font_size_override("font_size", 24)
 		none_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
 		icon_container.add_child(none_label)
 
-	# Item name
+	# Item name - hidden for locked items
 	var name_label := Label.new()
-	name_label.text = item_data.get("name", "???")
+	if is_unlocked:
+		name_label.text = item_name if item_name != "" else "???"
+	else:
+		name_label.text = ""  # Hide name for locked items
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(name_label)
 
-	# Tooltip
-	slot.tooltip_text = item_data.get("description", "")
+	# Tooltip - hidden for locked items
+	if is_unlocked:
+		slot.tooltip_text = item_data.get("description", "")
+	else:
+		slot.tooltip_text = ""
 
-	# Make clickable
-	slot.mouse_filter = Control.MOUSE_FILTER_STOP
-	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type))
-	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	# Make clickable only if unlocked
+	if is_unlocked:
+		slot.mouse_filter = Control.MOUSE_FILTER_STOP
+		slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type))
+		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	else:
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# Default style
 	_apply_default_style(slot)
