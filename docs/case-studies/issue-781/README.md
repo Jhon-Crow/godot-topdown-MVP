@@ -71,17 +71,70 @@ Added `enable_homing_with_aim_line(shooter_pos, aim_dir)` to `bullet.gd`:
    - `_find_enemy_nearest_to_aim_line(enemies)` - finds enemy closest to crosshair
    - `_has_line_of_sight_to_target(target_pos)` - wall-awareness (Issue #709)
 
+## Regression: Bullets Not Flying (2026-02-15)
+
+### Symptom
+
+After the initial fix, user reported:
+> "пистолетные пули полностью сломались - при стрельбе появляются красные прямоугольники, но не летят"
+> (Pistol bullets completely broken - when shooting, red rectangles appear but don't fly)
+
+### Root Cause: Missing @export Annotations
+
+**Critical finding:** In Godot 4.x, `Node.Set()` called from C# can only set **exported** (`@export`) properties on GDScript nodes. Non-exported variables are silently ignored.
+
+The `bullet.gd` had several variables that were set from C# weapons but were NOT exported:
+
+```gdscript
+# BEFORE (broken):
+var direction: Vector2 = Vector2.RIGHT       # ❌ Not exported
+var shooter_id: int = -1                     # ❌ Not exported
+var shooter_position: Vector2 = Vector2.ZERO # ❌ Not exported
+var stun_duration: float = 0.0               # ❌ Not exported
+var is_breaker_bullet: bool = false          # ❌ Not exported
+```
+
+When C# called `bulletNode.Set("direction", direction)`, it **silently failed**, leaving `direction = Vector2.RIGHT` (default value pointing right). The bullet would spawn but:
+1. Direction wasn't set → bullet always moved right
+2. If spawn position was behind a wall facing right → bullet immediately destroyed
+3. Visual "red rectangle" appeared briefly before destruction
+
+### Fix
+
+Added `@export` annotation to all variables set from C#:
+
+```gdscript
+# AFTER (fixed):
+@export var direction: Vector2 = Vector2.RIGHT       # ✅ Exported
+@export var shooter_id: int = -1                     # ✅ Exported
+@export var shooter_position: Vector2 = Vector2.ZERO # ✅ Exported
+@export var stun_duration: float = 0.0               # ✅ Exported
+@export var is_breaker_bullet: bool = false          # ✅ Exported
+@export var homing_enabled: bool = false             # ✅ Exported
+@export var damage_multiplier: float = 1.0           # ✅ Exported
+```
+
+### Lesson Learned
+
+**When using C#/GDScript interop in Godot 4.x:**
+- `Node.Set("property", value)` only works on `@export` properties
+- Non-exported variables are silently ignored (no error, no warning)
+- Always use `@export` for any GDScript variable that C# needs to set
+- Alternatively, use `Call("method_name", args)` to call setter methods
+
 ## Files Modified
 
-- `scripts/projectiles/bullet.gd` - Added aim-line targeting implementation
+- `scripts/projectiles/bullet.gd` - Added aim-line targeting implementation + @export annotations
 - `tests/unit/test_homing_bullets.gd` - Added unit tests
 
 ## Test Data
 
-- `game_log_20260215_154849.txt` - Original game log from issue report
+- `logs/game_log_20260215_154849.txt` - Original game log from issue report
+- `logs/game_log_20260215_164144.txt` - Regression log (bullets not flying)
 
 ## References
 
 - Issue #781: Original bug report
 - Issue #709: Wall-awareness for homing (integrated)
 - Issue #737: Max turn angle for aim-line targeting
+- Godot 4.x C#/GDScript interop: https://docs.godotengine.org/en/stable/tutorials/scripting/cross_language_scripting.html

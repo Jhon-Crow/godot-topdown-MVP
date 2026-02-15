@@ -35,14 +35,17 @@ extends Area2D
 @export var damage: float = 1.0
 
 ## Direction the bullet travels (set by the shooter).
-var direction: Vector2 = Vector2.RIGHT
+## Must be @export for C# interop - Node.Set() only works on exported properties.
+@export var direction: Vector2 = Vector2.RIGHT
 
 ## Instance ID of the node that shot this bullet.
 ## Used to prevent self-detection (e.g., enemies detecting their own bullets).
-var shooter_id: int = -1
+## Must be @export for C# interop - Node.Set() only works on exported properties.
+@export var shooter_id: int = -1
 
 ## Current damage multiplier (decreases with each ricochet).
-var damage_multiplier: float = 1.0
+## Must be @export for C# interop - Node.Set() only works on exported properties.
+@export var damage_multiplier: float = 1.0
 
 ## Timer tracking remaining lifetime.
 var _time_alive: float = 0.0
@@ -116,14 +119,17 @@ const RICOCHET_RULES_DISTANCE_RATIO: float = 0.4  # 40% of viewport = ricochet r
 const MAX_PENETRATION_CHANCE_AT_DISTANCE: float = 0.3  # 30% max at viewport distance
 
 ## Shooter's position at the time of firing (for distance-based penetration).
-var shooter_position: Vector2 = Vector2.ZERO
+## Must be @export for C# interop - Node.Set() only works on exported properties.
+@export var shooter_position: Vector2 = Vector2.ZERO
 
 ## Duration in seconds to stun enemies on hit (0 = no stun effect).
 ## Set by weapons like MakarovPM and SilencedPistol via Node.Set().
-var stun_duration: float = 0.0
+## Must be @export for C# interop - Node.Set() only works on exported properties.
+@export var stun_duration: float = 0.0
 
 ## Whether this bullet has homing enabled (steers toward nearest enemy).
-var homing_enabled: bool = false
+## Must be @export for C# interop - Node.Set() only works on exported properties.
+@export var homing_enabled: bool = false
 
 ## Maximum angle (in radians) the bullet can turn from its original direction.
 ## Default 110 degrees = ~1.92 radians.
@@ -152,7 +158,8 @@ var _shooter_aim_direction: Vector2 = Vector2.ZERO
 
 ## Whether this bullet uses breaker behavior (Issue #678).
 ## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
-var is_breaker_bullet: bool = false
+## Must be @export for C# interop - Node.Set() only works on exported properties.
+@export var is_breaker_bullet: bool = false
 
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
 const BREAKER_DETONATION_DISTANCE: float = 60.0
