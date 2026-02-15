@@ -1425,27 +1425,25 @@ public partial class SniperRifle : BaseWeapon
 
         if (isGdScriptBullet)
         {
-            // GDScript fallback - must set properties AFTER AddChild() for @export to work
-            // Only use snake_case - Godot 4 GDScript @export requires exact property name
-            bulletNode.Set("direction", direction);
+            // GDScript bullet - use Call() with setter methods instead of Set()
+            // Issue #781: Node.Set() doesn't work for non-@export GDScript properties
+            bulletNode.Call("set_direction", direction);
 
             if (WeaponData != null)
             {
-                bulletNode.Set("speed", WeaponData.BulletSpeed);
-                bulletNode.Set("damage", WeaponData.Damage);
+                bulletNode.Call("set_speed", WeaponData.BulletSpeed);
+                bulletNode.Call("set_damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("shooter_id", (int)owner.GetInstanceId());
+                bulletNode.Call("set_shooter_id", (int)owner.GetInstanceId());
             }
 
-            bulletNode.Set("shooter_position", GlobalPosition);
+            bulletNode.Call("set_shooter_position", GlobalPosition);
 
-            // Verify the direction was set correctly
-            var actualDir = bulletNode.Get("direction");
-            GD.Print($"[SniperRifle] GDScript bullet: set direction={direction}, actual={actualDir}");
+            GD.Print($"[SniperRifle] GDScript bullet spawned: direction={direction}");
         }
 
         // Spawn muzzle flash effect - large flash for 12.7mm

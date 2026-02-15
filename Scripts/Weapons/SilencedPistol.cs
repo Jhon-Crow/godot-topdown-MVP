@@ -709,37 +709,32 @@ public partial class SilencedPistol : BaseWeapon
 
         if (isGdScriptBullet)
         {
-            // GDScript bullet - must set properties AFTER AddChild() for @export to work
-            // Only use snake_case - Godot 4 GDScript @export requires exact property name
-            bulletNode.Set("direction", direction);
+            // GDScript bullet - use Call() with setter methods instead of Set()
+            // Issue #781: Node.Set() doesn't work for non-@export GDScript properties
+            bulletNode.Call("set_direction", direction);
 
             if (WeaponData != null)
             {
-                bulletNode.Set("speed", WeaponData.BulletSpeed);
-                // Set damage from weapon data - critical for one-shot kills
-                bulletNode.Set("damage", WeaponData.Damage);
+                bulletNode.Call("set_speed", WeaponData.BulletSpeed);
+                bulletNode.Call("set_damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("shooter_id", (int)owner.GetInstanceId());
+                bulletNode.Call("set_shooter_id", (int)owner.GetInstanceId());
             }
 
-            bulletNode.Set("shooter_position", GlobalPosition);
-
-            // Set stun duration via Set() for GDScript bullets
-            bulletNode.Set("stun_duration", StunDurationOnHit);
+            bulletNode.Call("set_shooter_position", GlobalPosition);
+            bulletNode.Call("set_stun_duration", StunDurationOnHit);
 
             // Set breaker bullet flag if active (Issue #678)
             if (IsBreakerBulletActive)
             {
-                bulletNode.Set("is_breaker_bullet", true);
+                bulletNode.Call("set_is_breaker_bullet", true);
             }
 
-            // Verify the direction was set correctly
-            var actualDir = bulletNode.Get("direction");
-            GD.Print($"[SilencedPistol] GDScript bullet: set direction={direction}, actual={actualDir}, damage={WeaponData?.Damage ?? 1.0f}");
+            GD.Print($"[SilencedPistol] GDScript bullet spawned: direction={direction}, damage={WeaponData?.Damage ?? 1.0f}");
         }
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #704)

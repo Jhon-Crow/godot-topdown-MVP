@@ -35,17 +35,14 @@ extends Area2D
 @export var damage: float = 1.0
 
 ## Direction the bullet travels (set by the shooter).
-## Must be @export for C# interop - Node.Set() only works on exported properties.
-@export var direction: Vector2 = Vector2.RIGHT
+var direction: Vector2 = Vector2.RIGHT
 
 ## Instance ID of the node that shot this bullet.
 ## Used to prevent self-detection (e.g., enemies detecting their own bullets).
-## Must be @export for C# interop - Node.Set() only works on exported properties.
-@export var shooter_id: int = -1
+var shooter_id: int = -1
 
 ## Current damage multiplier (decreases with each ricochet).
-## Must be @export for C# interop - Node.Set() only works on exported properties.
-@export var damage_multiplier: float = 1.0
+var damage_multiplier: float = 1.0
 
 ## Timer tracking remaining lifetime.
 var _time_alive: float = 0.0
@@ -119,17 +116,14 @@ const RICOCHET_RULES_DISTANCE_RATIO: float = 0.4  # 40% of viewport = ricochet r
 const MAX_PENETRATION_CHANCE_AT_DISTANCE: float = 0.3  # 30% max at viewport distance
 
 ## Shooter's position at the time of firing (for distance-based penetration).
-## Must be @export for C# interop - Node.Set() only works on exported properties.
-@export var shooter_position: Vector2 = Vector2.ZERO
+var shooter_position: Vector2 = Vector2.ZERO
 
 ## Duration in seconds to stun enemies on hit (0 = no stun effect).
 ## Set by weapons like MakarovPM and SilencedPistol via Node.Set().
-## Must be @export for C# interop - Node.Set() only works on exported properties.
-@export var stun_duration: float = 0.0
+var stun_duration: float = 0.0
 
 ## Whether this bullet has homing enabled (steers toward nearest enemy).
-## Must be @export for C# interop - Node.Set() only works on exported properties.
-@export var homing_enabled: bool = false
+var homing_enabled: bool = false
 
 ## Maximum angle (in radians) the bullet can turn from its original direction.
 ## Default 110 degrees = ~1.92 radians.
@@ -158,8 +152,7 @@ var _shooter_aim_direction: Vector2 = Vector2.ZERO
 
 ## Whether this bullet uses breaker behavior (Issue #678).
 ## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
-## Must be @export for C# interop - Node.Set() only works on exported properties.
-@export var is_breaker_bullet: bool = false
+var is_breaker_bullet: bool = false
 
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
 const BREAKER_DETONATION_DISTANCE: float = 60.0
@@ -188,18 +181,8 @@ var _breaker_shrapnel_scene: PackedScene = null
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
 
-## Enable/disable debug logging for bullet spawning (Issue #781 diagnosis).
-var _debug_spawn: bool = true
-
 
 func _ready() -> void:
-	# Log initial state for debugging (Issue #781)
-	if _debug_spawn:
-		var file_logger: Node = get_node_or_null("/root/FileLogger")
-		var msg := "[Bullet] _ready: direction=%s, speed=%s, global_pos=%s" % [direction, speed, global_position]
-		print(msg)
-		if file_logger and file_logger.has_method("log_info"):
-			file_logger.log_info(msg)
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -259,6 +242,49 @@ func _update_rotation() -> void:
 	rotation = direction.angle()
 
 
+# ============================================================================
+# Setter Methods for C# Interop (Issue #781)
+# C# weapons call these methods instead of using Node.Set() which doesn't work
+# for non-@export properties in GDScript.
+# ============================================================================
+
+
+## Sets the bullet's direction. Called by C# weapons via Call().
+func set_direction(dir: Vector2) -> void:
+	direction = dir.normalized()
+	_update_rotation()
+
+
+## Sets the bullet's speed. Called by C# weapons via Call().
+func set_speed(spd: float) -> void:
+	speed = spd
+
+
+## Sets the bullet's damage. Called by C# weapons via Call().
+func set_damage(dmg: float) -> void:
+	damage = dmg
+
+
+## Sets the shooter's instance ID. Called by C# weapons via Call().
+func set_shooter_id(id: int) -> void:
+	shooter_id = id
+
+
+## Sets the shooter's position. Called by C# weapons via Call().
+func set_shooter_position(pos: Vector2) -> void:
+	shooter_position = pos
+
+
+## Sets the stun duration. Called by C# weapons via Call().
+func set_stun_duration(duration: float) -> void:
+	stun_duration = duration
+
+
+## Sets the breaker bullet flag. Called by C# weapons via Call().
+func set_is_breaker_bullet(is_breaker: bool) -> void:
+	is_breaker_bullet = is_breaker
+
+
 ## Logs a penetration-related message to both console and file logger.
 ## @param message: The message to log.
 func _log_penetration(message: String) -> void:
@@ -273,21 +299,6 @@ func _log_penetration(message: String) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	# Log first frame for debugging (Issue #781)
-	if _debug_spawn and _time_alive == 0:
-		var file_logger: Node = get_node_or_null("/root/FileLogger")
-		var msg := "[Bullet] _physics_process first frame: direction=%s, speed=%s, process_mode=%s" % [direction, speed, process_mode]
-		print(msg)
-		if file_logger and file_logger.has_method("log_info"):
-			file_logger.log_info(msg)
-		# Log warning if direction is zero
-		if direction.length_squared() < 0.001:
-			var warning_msg := "[Bullet] WARNING: direction is zero or near-zero! Bullet will not move."
-			push_warning(warning_msg)
-			print(warning_msg)
-			if file_logger and file_logger.has_method("log_warning"):
-				file_logger.log_warning(warning_msg)
-
 	# Apply homing steering if enabled
 	if homing_enabled:
 		_apply_homing_steering(delta)
@@ -1056,7 +1067,6 @@ func enable_homing() -> void:
 ## Enables homing on this bullet with aim-line targeting (Issue #781).
 ## Called when firing new bullets during homing activation.
 ## Targets the enemy closest to the player's line of fire (crosshair direction).
-## This provides better UX by targeting what the player is actually aiming at.
 ## @param shooter_pos: The player's position when firing.
 ## @param aim_dir: The player's aim direction when firing.
 func enable_homing_with_aim_line(shooter_pos: Vector2, aim_dir: Vector2) -> void:
@@ -1065,9 +1075,9 @@ func enable_homing_with_aim_line(shooter_pos: Vector2, aim_dir: Vector2) -> void
 	_use_aim_line_targeting = true
 	_shooter_origin = shooter_pos
 	_shooter_aim_direction = aim_dir.normalized()
-	# Increase max turn angle to 170 degrees for aim-line targeting (Issue #737)
+	# Increase max turn angle to 170 degrees for aim-line targeting
 	homing_max_turn_angle = deg_to_rad(170.0)
-	# Increase steer speed for sharper turns (Issue #709)
+	# Increase steer speed for sharper turns
 	homing_steer_speed = 50.0
 	if _debug_homing:
 		print("[Bullet] Homing enabled with aim-line targeting, aim: ", _shooter_aim_direction)
@@ -1117,7 +1127,7 @@ func _apply_homing_steering(delta: float) -> void:
 ## Finds the position of the best homing target enemy.
 ## When aim-line targeting is active (Issue #781), finds the enemy closest
 ## to the player's line of fire. Otherwise, finds the nearest enemy to the bullet.
-## Skips enemies blocked by walls (Issue #709).
+## Skips enemies blocked by walls.
 ## Returns Vector2.ZERO if no enemies are found.
 func _find_nearest_enemy_position() -> Vector2:
 	var tree := get_tree()
@@ -1140,7 +1150,7 @@ func _find_nearest_enemy_position() -> Vector2:
 		# Skip dead enemies
 		if enemy.has_method("is_alive") and not enemy.is_alive():
 			continue
-		# Skip enemies behind walls (Issue #709)
+		# Skip enemies behind walls
 		if not _has_line_of_sight_to_target(enemy.global_position):
 			if _debug_homing:
 				print("[Bullet] Skipping enemy ", enemy.name, " - wall blocks line of sight")
@@ -1156,7 +1166,7 @@ func _find_nearest_enemy_position() -> Vector2:
 ## Finds the enemy closest to the player's aim line (Issue #781).
 ## Uses perpendicular distance from the aim ray to score enemies.
 ## Only considers enemies within max turn angle of the aim direction.
-## Skips enemies blocked by walls (Issue #709).
+## Skips enemies blocked by walls.
 func _find_enemy_nearest_to_aim_line(enemies: Array[Node]) -> Vector2:
 	var best_target := Vector2.ZERO
 	var best_score := INF
@@ -1184,7 +1194,7 @@ func _find_enemy_nearest_to_aim_line(enemies: Array[Node]) -> Vector2:
 		if perp_dist > max_perp_distance:
 			continue
 
-		# Skip enemies behind walls (Issue #709)
+		# Skip enemies behind walls
 		if not _has_line_of_sight_to_target(enemy.global_position):
 			if _debug_homing:
 				print("[Bullet] Skipping enemy ", enemy.name, " - wall blocks line of sight (aim-line)")
@@ -1199,7 +1209,7 @@ func _find_enemy_nearest_to_aim_line(enemies: Array[Node]) -> Vector2:
 	return best_target
 
 
-## Checks if there is a clear line of sight from the bullet to a target position (Issue #709).
+## Checks if there is a clear line of sight from the bullet to a target position.
 ## Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
 ## Returns false if a wall blocks the path, preventing the bullet from turning into walls.
 func _has_line_of_sight_to_target(target_pos: Vector2) -> bool:

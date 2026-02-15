@@ -433,33 +433,31 @@ public abstract partial class BaseWeapon : Node2D
 
         if (!isCSharpBullet)
         {
-            // GDScript bullet - must set properties AFTER AddChild() for @export to work
-            bullet.Set("direction", direction);
+            // GDScript bullet - use Call() with setter methods instead of Set()
+            // Issue #781: Node.Set() doesn't work for non-@export GDScript properties
+            bullet.Call("set_direction", direction);
 
             if (WeaponData != null)
             {
-                bullet.Set("speed", WeaponData.BulletSpeed);
-                bullet.Set("damage", WeaponData.Damage);
+                bullet.Call("set_speed", WeaponData.BulletSpeed);
+                bullet.Call("set_damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
             if (owner != null)
             {
-                // Cast to int for GDScript compatibility
-                bullet.Set("shooter_id", (int)owner.GetInstanceId());
+                bullet.Call("set_shooter_id", (int)owner.GetInstanceId());
             }
 
-            bullet.Set("shooter_position", GlobalPosition);
+            bullet.Call("set_shooter_position", GlobalPosition);
 
             // Set breaker bullet flag if active (Issue #678)
             if (IsBreakerBulletActive)
             {
-                bullet.Set("is_breaker_bullet", true);
+                bullet.Call("set_is_breaker_bullet", true);
             }
 
-            // Verify the direction was set (Issue #781 debugging)
-            var actualDir = bullet.Get("direction");
-            GD.Print($"[BaseWeapon] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
+            GD.Print($"[BaseWeapon] GDScript bullet spawned: direction={direction}");
         }
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #677, #704)

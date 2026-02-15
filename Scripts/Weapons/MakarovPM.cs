@@ -470,39 +470,35 @@ public partial class MakarovPM : BaseWeapon
 
         if (isGdScriptBullet)
         {
-            // GDScript bullet - must set properties AFTER AddChild() for @export to work
-            GD.Print($"[MakarovPM] GDScript bullet: setting properties after AddChild");
-
-            // Set direction - for @export var direction in GDScript
-            bulletNode.Set("direction", direction);
+            // GDScript bullet - use Call() with setter methods instead of Set()
+            // Issue #781: Node.Set() doesn't work for non-@export GDScript properties
+            bulletNode.Call("set_direction", direction);
 
             if (WeaponData != null)
             {
-                bulletNode.Set("speed", WeaponData.BulletSpeed);
-                bulletNode.Set("damage", WeaponData.Damage);
+                bulletNode.Call("set_speed", WeaponData.BulletSpeed);
+                bulletNode.Call("set_damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("shooter_id", (int)owner.GetInstanceId());
+                bulletNode.Call("set_shooter_id", (int)owner.GetInstanceId());
             }
 
-            bulletNode.Set("shooter_position", GlobalPosition);
-            bulletNode.Set("stun_duration", StunDurationOnHit);
+            bulletNode.Call("set_shooter_position", GlobalPosition);
+            bulletNode.Call("set_stun_duration", StunDurationOnHit);
 
             // Set breaker bullet flag if active (Issue #678)
             if (IsBreakerBulletActive)
             {
-                bulletNode.Set("is_breaker_bullet", true);
+                bulletNode.Call("set_is_breaker_bullet", true);
             }
 
-            // Verify the direction was set correctly (after AddChild)
-            var actualDir = bulletNode.Get("direction");
-            GD.Print($"[MakarovPM] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
+            GD.Print($"[MakarovPM] GDScript bullet spawned: direction={direction}");
             if (fileLogger != null && fileLogger.HasMethod("log_info"))
             {
-                fileLogger.Call("log_info", $"[MakarovPM] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
+                fileLogger.Call("log_info", $"[MakarovPM] GDScript bullet spawned: direction={direction}");
             }
         }
 
