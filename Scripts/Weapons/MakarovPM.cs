@@ -431,6 +431,17 @@ public partial class MakarovPM : BaseWeapon
         var owner = GetParent();
         ulong shooterId = owner?.GetInstanceId() ?? 0;
 
+        // Diagnostic logging for Issue #704 - trace bullet type detection
+        var scriptObj = bulletNode.GetScript();
+        var scriptPath = scriptObj.VariantType != Variant.Type.Nil
+            ? scriptObj.AsGodotObject()?.Get("resource_path").AsString() ?? "null"
+            : "no_script";
+        var isCsBullet = bulletNode is Bullet;
+        var hasInitMethod = bulletNode.HasMethod("initialize_bullet");
+        var hasHomingMethod = bulletNode.HasMethod("enable_homing_with_aim_line");
+        GD.Print($"[MakarovPM.SpawnBullet] Bullet spawned: type={bulletNode.GetType().Name}, script={scriptPath}");
+        GD.Print($"[MakarovPM.SpawnBullet] Type checks: is_cs_bullet={isCsBullet}, has_initialize={hasInitMethod}, has_homing={hasHomingMethod}");
+
         // Check if this is a C# bullet (use 'is' pattern, not 'as', to avoid GDScript false positive)
         if (bulletNode is Bullet csBullet)
         {
@@ -487,19 +498,31 @@ public partial class MakarovPM : BaseWeapon
         var weaponOwner = GetParent();
         if (weaponOwner is Player player && player.IsHomingActive())
         {
+            GD.Print($"[MakarovPM.SpawnBullet] Homing is active! Enabling on bullet...");
             Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
             if (bulletNode is Bullet csBulletHoming)
             {
+                GD.Print($"[MakarovPM.SpawnBullet] Using C# EnableHomingWithAimLine path");
                 csBulletHoming.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
             }
             else if (bulletNode.HasMethod("enable_homing_with_aim_line"))
             {
+                GD.Print($"[MakarovPM.SpawnBullet] Calling GDScript enable_homing_with_aim_line()");
                 bulletNode.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
             }
             else if (bulletNode.HasMethod("enable_homing"))
             {
+                GD.Print($"[MakarovPM.SpawnBullet] Falling back to enable_homing()");
                 bulletNode.Call("enable_homing");
             }
+            else
+            {
+                GD.Print($"[MakarovPM.SpawnBullet] WARNING: No homing method found on bullet!");
+            }
+        }
+        else
+        {
+            GD.Print($"[MakarovPM.SpawnBullet] Homing NOT active (owner is Player: {weaponOwner is Player}, IsHomingActive: {(weaponOwner is Player p ? p.IsHomingActive() : false)})");
         }
 
         // Spawn muzzle flash effect

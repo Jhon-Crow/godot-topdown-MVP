@@ -742,9 +742,13 @@ func _is_player_bullet() -> bool:
 	if shooter == null:
 		return false
 
-	# Check if the shooter is a player by script path
+	# Check if the shooter is in the "player" group (works for both C# and GDScript players)
+	if shooter is Node and (shooter as Node).is_in_group("player"):
+		return true
+
+	# Fallback: Check if the shooter is a player by script path (case-insensitive)
 	var script: Script = shooter.get_script()
-	if script and script.resource_path.contains("player"):
+	if script and script.resource_path.to_lower().contains("player"):
 		return true
 
 	return false
@@ -1072,6 +1076,11 @@ func enable_homing() -> void:
 ## @param shooter_origin: The player's position when the bullet was fired.
 ## @param aim_dir: The player's normalized aim direction.
 func enable_homing_with_aim_line(shooter_origin: Vector2, aim_dir: Vector2) -> void:
+	# Always log this call to diagnose Issue #704
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[Bullet.gd] enable_homing_with_aim_line() called! origin=%s, aim=%s, direction=%s" % [shooter_origin, aim_dir, direction])
+
 	homing_enabled = true
 	_use_aim_line_targeting = true
 	_shooter_origin = shooter_origin
@@ -1086,9 +1095,19 @@ func enable_homing_with_aim_line(shooter_origin: Vector2, aim_dir: Vector2) -> v
 ## Applies homing steering toward the nearest alive enemy.
 ## The bullet turns toward the nearest enemy but cannot exceed the max turn angle
 ## from its original firing direction (110 degrees each side).
+## Flag to prevent repeated logging for non-player bullet check
+var _logged_not_player_bullet: bool = false
+
 func _apply_homing_steering(delta: float) -> void:
 	# Only player bullets should home
-	if not _is_player_bullet():
+	var is_player := _is_player_bullet()
+	if not is_player:
+		# Diagnostic logging for Issue #704 (only log once per bullet)
+		if not _logged_not_player_bullet:
+			_logged_not_player_bullet = true
+			var file_logger: Node = get_node_or_null("/root/FileLogger")
+			if file_logger and file_logger.has_method("log_info"):
+				file_logger.log_info("[Bullet.gd] _apply_homing_steering: NOT a player bullet! shooter_id=%s" % shooter_id)
 		return
 
 	# Find nearest alive enemy
