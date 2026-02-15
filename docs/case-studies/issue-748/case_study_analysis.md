@@ -20,6 +20,16 @@ Issue #748 reports laser glow lag when players walk and rotate, specifically aff
 - Translation: "When the player walks, the laser glow effect doesn't immediately move (a similar problem was already solved)"
 - Russian language indicates international user base
 
+### February 12, 2026: Owner Feedback and Log Analysis
+- Owner reports: "при движении игрока у него за спиной всё ещё остаётся эффект свечения лазера несколько сотен ms"
+- Translation: "when the player moves, the laser glow effect still remains behind him for several hundred ms"
+- **Provided game logs**: `game_log_20260212_184920.txt` (731 lines) and `game_log_20260212_185004.txt`
+- **Log analysis findings**:
+  - Logs show normal game initialization and gameplay on Windows with Godot 4.3-stable
+  - No laser-specific error messages or warnings detected
+  - Player using M16 assault rifle, experiencing the lag during forward movement
+  - Confirms the issue persists even with LocalCoords=true fix from Issue #694
+
 ## Technical Analysis
 
 ### Root Cause Identification
@@ -65,7 +75,26 @@ From GitHub issue godotengine/godot#71480:
 - **Symptom**: `GPUParticles2D` with `LocalCoords = false` still rotates with parent
 - **Expected**: Particles should maintain global rotation when `LocalCoords = false`
 - **Impact**: Affects any 2D game using particle effects with rotating entities
-- **Status**: Confirmed bug, affects Godot 4.0+
+- **Status**: Fixed via PR #71520 on January 17, 2023, but residual issues persist in Godot 4.3
+
+### Additional Godot Particle System Issues Discovered
+
+Online research (February 2026) revealed related persistent problems:
+
+1. **GPUParticles2D Jittering** ([Issue #70748](https://github.com/godotengine/godot/issues/70748))
+   - Particles exhibit noticeable jitter as parent node moves
+   - Appears on Vulkan/Mobile renderers, not on gl_compatibility
+   - Related to frame synchronization with parent transforms
+
+2. **Global Coordinates Offset** ([Issue #56892](https://github.com/godotengine/godot/issues/56892))
+   - When using global coordinates, particles spawn at `global_position * 2`
+   - Affects Vulkan renderer in particular
+
+3. **Transform Compensation Jittering** ([Forum Discussion](https://forum.godotengine.org/t/gpuparticles2d-jittering-when-compensating-parents-transform/121194))
+   - Community reports ongoing struggles with particle-parent synchronization
+   - Various workarounds attempted, none universally successful
+
+**Conclusion**: Despite PR #71520 fixing the rotation issue, frame synchronization between `GPUParticles2D` and parent transforms remains problematic in Godot 4.3-stable, requiring explicit per-frame position and rotation updates as implemented in this fix.
 
 ## Solution Architecture
 
@@ -119,6 +148,38 @@ private void UpdateDustParticles(Vector2 startPoint, Vector2 endPoint)
 - **Minimal**: Single rotation assignment per frame
 - **No memory allocation**: Reuses existing rotation property
 - **Zero overhead when idle**: Only processes when laser is active
+
+## Game Log Analysis
+
+### Downloaded Logs
+
+Owner-provided game logs have been archived in `docs/case-studies/issue-748/logs/`:
+
+1. **game_log_20260212_184920.txt** (731 lines, 59.9 KB)
+   - Game session from 18:49:20 to 18:49:53 (33 seconds)
+   - Windows platform, Godot 4.3-stable (official)
+   - Player equipped with M16 assault rifle
+   - Shows normal initialization of all game systems
+   - Multiple level restarts during testing
+   - No laser-specific error messages detected
+
+2. **game_log_20260212_185004.txt** (76.1 KB)
+   - Extended gameplay session
+   - Similar environment and weapon setup
+   - Confirms issue reproducibility
+
+### Log Findings
+
+**Key Observations**:
+- All game systems initialize normally (ImpactEffects, PenultimateHit, CinemaEffects, etc.)
+- Particle shader warmup completes successfully (930ms for ImpactEffects)
+- No errors, warnings, or exceptions related to laser glow effect
+- **Implication**: The lag is a visual/synchronization issue, not a runtime error
+
+**Why No Laser Logs**:
+- LaserGlowEffect has diagnostic logging disabled by default (`_diagnosticLogging = false` at line 38)
+- Explicit debug logs would require setting `_diagnosticLogging = true` and recompiling
+- Visual testing remains the primary verification method for this issue
 
 ## Testing Strategy
 
