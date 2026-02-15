@@ -190,20 +190,26 @@ var _unlock_hold_active: bool = false
 
 
 func _ready() -> void:
+	FileLogger.info("[ArmoryMenu] _ready() called")
+
 	# Get GrenadeManager reference
 	_grenade_manager = get_node_or_null("/root/GrenadeManager")
+	FileLogger.info("[ArmoryMenu] GrenadeManager: %s" % ("found" if _grenade_manager else "NOT found"))
 
 	# Get ActiveItemManager reference
 	_active_item_manager = get_node_or_null("/root/ActiveItemManager")
+	FileLogger.info("[ArmoryMenu] ActiveItemManager: %s" % ("found" if _active_item_manager else "NOT found"))
 
 	# Get UnlockManager reference (Issue #785)
 	_unlock_manager = get_node_or_null("/root/UnlockManager")
+	FileLogger.info("[ArmoryMenu] UnlockManager: %s" % ("found" if _unlock_manager else "NOT found"))
 
 	# Get AudioManager reference
 	_audio_manager = get_node_or_null("/root/AudioManager")
 
 	# Load weapon resource data
 	_load_weapon_resources()
+	FileLogger.info("[ArmoryMenu] Weapon resources loaded: %d" % _weapon_resources.size())
 
 	# Initialize pending selections from current state
 	if GameManager:
@@ -221,11 +227,16 @@ func _ready() -> void:
 	else:
 		_pending_active_item_type = 0
 
+	FileLogger.info("[ArmoryMenu] Pending selections: weapon=%s, grenade=%d, item=%d" % [_pending_weapon_id, _pending_grenade_type, _pending_active_item_type])
+
 	# Build the entire UI programmatically
+	FileLogger.info("[ArmoryMenu] Calling _build_ui()...")
 	_build_ui()
+	FileLogger.info("[ArmoryMenu] _build_ui() completed")
 
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	FileLogger.info("[ArmoryMenu] _ready() completed")
 
 
 ## Process frame for hold-to-unlock tracking (Issue #785).
@@ -277,11 +288,18 @@ func _load_weapon_resources() -> void:
 
 ## Build the complete UI layout programmatically.
 func _build_ui() -> void:
+	FileLogger.info("[ArmoryMenu._build_ui] Starting UI build...")
+
 	# Root container that fills the screen
 	var root_control := Control.new()
 	root_control.name = "MenuContainer"
+	# Set anchors for full rect (CanvasLayer children need explicit sizing)
 	root_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Ensure grow directions are set for proper sizing
+	root_control.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	root_control.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(root_control)
+	FileLogger.info("[ArmoryMenu._build_ui] Root control created and added, size: %s" % str(root_control.size))
 
 	# Semi-transparent background
 	var bg := ColorRect.new()
@@ -289,11 +307,12 @@ func _build_ui() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color(0.0, 0.0, 0.0, 0.6)
 	root_control.add_child(bg)
+	FileLogger.info("[ArmoryMenu._build_ui] Background created")
 
 	# Main panel — wider to accommodate sidebar layout
 	var panel := PanelContainer.new()
 	panel.name = "MainPanel"
-	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	# Set anchors manually for center positioning (preset + manual anchors)
 	panel.anchor_left = 0.5
 	panel.anchor_top = 0.5
 	panel.anchor_right = 0.5
@@ -304,6 +323,7 @@ func _build_ui() -> void:
 	panel.offset_bottom = 380
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	FileLogger.info("[ArmoryMenu._build_ui] Panel anchors set: offsets=(%d,%d,%d,%d)" % [panel.offset_left, panel.offset_top, panel.offset_right, panel.offset_bottom])
 
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.12, 0.12, 0.15, 0.95)
@@ -318,6 +338,7 @@ func _build_ui() -> void:
 	panel_style.border_width_bottom = 1
 	panel.add_theme_stylebox_override("panel", panel_style)
 	root_control.add_child(panel)
+	FileLogger.info("[ArmoryMenu._build_ui] Panel created and added to root_control")
 
 	# Margin inside panel
 	var margin := MarginContainer.new()
@@ -352,18 +373,23 @@ func _build_ui() -> void:
 	content_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content_hbox.add_theme_constant_override("separation", 12)
 	main_vbox.add_child(content_hbox)
+	FileLogger.info("[ArmoryMenu._build_ui] Content HBox created")
 
 	# --- LEFT SIDEBAR: Loadout stats ---
+	FileLogger.info("[ArmoryMenu._build_ui] Building sidebar...")
 	var sidebar := _build_sidebar()
 	content_hbox.add_child(sidebar)
+	FileLogger.info("[ArmoryMenu._build_ui] Sidebar built and added")
 
 	# Vertical separator
 	var vsep := VSeparator.new()
 	content_hbox.add_child(vsep)
 
 	# --- RIGHT AREA: Weapon and grenade grids ---
+	FileLogger.info("[ArmoryMenu._build_ui] Building right area (weapon/grenade grids)...")
 	var right_area := _build_right_area()
 	content_hbox.add_child(right_area)
+	FileLogger.info("[ArmoryMenu._build_ui] Right area built and added")
 
 	# --- BOTTOM BUTTONS ---
 	var bottom_sep := HSeparator.new()
@@ -414,9 +440,11 @@ func _build_ui() -> void:
 	_apply_button.add_theme_stylebox_override("disabled", apply_style_disabled)
 
 	# Initial highlight and stats
+	FileLogger.info("[ArmoryMenu._build_ui] Calling highlight and stats update...")
 	_highlight_selected_items()
 	_update_loadout_panel()
 	_update_apply_button_state()
+	FileLogger.info("[ArmoryMenu._build_ui] UI build completed successfully")
 
 
 ## Build the left sidebar with weapon and grenade stats.
