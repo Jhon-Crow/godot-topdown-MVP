@@ -3094,9 +3094,12 @@ func _play_homing_sound() -> void:
 # ============================================================================
 # BFF Pendant System (Issue #674)
 # ============================================================================
+# User feedback: "просто добавь врага в постоянном aggressive состоянии"
+# Solution: Spawn an actual Enemy scene in permanent aggressive state that
+# targets other enemies (not the player). This reuses the proven enemy AI.
 
-## BFF companion scene path.
-const BFF_COMPANION_SCENE_PATH: String = "res://scenes/objects/BffCompanion.tscn"
+## Enemy scene path for BFF companion (spawn actual enemy with aggressive AI).
+const BFF_ENEMY_SCENE_PATH: String = "res://scenes/objects/Enemy.tscn"
 
 ## Whether the BFF pendant is equipped (active item selected in armory).
 var _bff_pendant_equipped: bool = false
@@ -3104,7 +3107,7 @@ var _bff_pendant_equipped: bool = false
 ## Whether the companion has already been summoned this battle (one charge per battle).
 var _bff_companion_summoned: bool = false
 
-## Reference to the summoned companion node.
+## Reference to the summoned companion node (actually an Enemy instance).
 var _bff_companion_node: Node2D = null
 
 
@@ -3125,9 +3128,9 @@ func _init_bff_pendant() -> void:
 
 	FileLogger.info("[Player.BffPendant] BFF pendant is selected, ready to summon companion")
 
-	# Verify companion scene exists
-	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
-		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
+	# Verify enemy scene exists (we spawn an actual enemy as companion)
+	if not ResourceLoader.exists(BFF_ENEMY_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Enemy scene not found: %s" % BFF_ENEMY_SCENE_PATH)
 		return
 
 	_bff_pendant_equipped = true
@@ -3147,37 +3150,76 @@ func _handle_bff_pendant_input() -> void:
 
 
 ## Summon the BFF companion near the player.
-## Issue #674: Spawn position now validated to avoid spawning inside walls.
+## Issue #674: Spawns an actual Enemy in permanent aggressive state.
+## User feedback: "копировать ии врага, но чтоб он был в состоянии agressive"
 func _summon_bff_companion() -> void:
 	if _bff_companion_summoned:
 		return
 
-	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
-		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
+	if not ResourceLoader.exists(BFF_ENEMY_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Enemy scene not found: %s" % BFF_ENEMY_SCENE_PATH)
 		return
 
-	var companion_scene: PackedScene = load(BFF_COMPANION_SCENE_PATH)
-	if companion_scene == null:
-		FileLogger.info("[Player.BffPendant] WARNING: Failed to load companion scene")
+	var enemy_scene: PackedScene = load(BFF_ENEMY_SCENE_PATH)
+	if enemy_scene == null:
+		FileLogger.info("[Player.BffPendant] WARNING: Failed to load enemy scene")
 		return
 
-	var companion := companion_scene.instantiate()
+	var companion := enemy_scene.instantiate()
 
-	# Add to the current scene (not as child of player, so it moves independently)
+	# Configure companion before adding to scene tree:
+	# - Set health range to 2-4 HP as per issue requirements
+	companion.min_health = 2
+	companion.max_health = 4
+
+	# Add to the current scene
 	get_tree().current_scene.add_child(companion)
 
 	# Find a valid spawn position that is not inside a wall
 	var spawn_pos := _find_valid_companion_spawn_position()
 	companion.global_position = spawn_pos
 
+	# CRITICAL: Remove from "enemies" group so other enemies don't target it
+	# and so it doesn't count toward level enemy counter
+	companion.remove_from_group("enemies")
+
+	# Add to "bff_companions" group for identification
+	companion.add_to_group("bff_companions")
+
+	# Set companion name for logging
+	companion.name = "BffCompanion"
+
+	# Make companion permanently aggressive (uses AggressionComponent AI to attack enemies)
+	if companion.has_method("set_aggressive"):
+		companion.set_aggressive(true)
+		FileLogger.info("[Player.BffPendant] Companion set to aggressive state")
+
+	# Apply green-cyan tint to distinguish from regular enemies
+	_apply_companion_visual_tint(companion)
+
 	_bff_companion_node = companion
 	_bff_companion_summoned = true
 
 	# Connect companion death signal
-	if companion.has_signal("companion_died"):
-		companion.companion_died.connect(_on_bff_companion_died)
+	if companion.has_signal("died"):
+		companion.died.connect(_on_bff_companion_died)
 
-	FileLogger.info("[Player.BffPendant] Companion summoned at position %s" % str(companion.global_position))
+	FileLogger.info("[Player.BffPendant] Companion spawned at %s (aggressive enemy)" % str(spawn_pos))
+
+
+## Apply a green-cyan tint to the companion to distinguish it from enemies.
+func _apply_companion_visual_tint(companion: Node2D) -> void:
+	var model := companion.get_node_or_null("EnemyModel")
+	if model == null:
+		return
+
+	# Green-cyan tint color for friendly companion
+	var tint := Color(0.3, 1.0, 0.7, 1.0)
+
+	for sprite_name in ["Body", "Head", "LeftArm", "RightArm"]:
+		var sprite := model.get_node_or_null(sprite_name)
+		if sprite is Sprite2D:
+			sprite.modulate = tint
 
 
 ## Find a valid spawn position for the companion that is not inside a wall.
