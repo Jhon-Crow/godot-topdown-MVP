@@ -414,6 +414,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and shooter_id == parent.get_instance_id() and not _has_ricocheted:
 			return  # Don't hit the shooter with direct shots
 
+		# Force field protection: Block damage if target has active force field (Issue #676)
+		if parent and parent.has_method("is_force_field_active"):
+			if parent.is_force_field_active():
+				return  # Bullet is reflected by force field, damage blocked
+
 		# Power Fantasy mode: Ricocheted bullets do NOT damage the player
 		if _has_ricocheted and parent and parent.is_in_group("player"):
 			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
