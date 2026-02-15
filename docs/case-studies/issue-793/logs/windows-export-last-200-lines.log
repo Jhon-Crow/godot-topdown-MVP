@@ -1,0 +1,200 @@
+Windows Export	Export game	2026-02-15T20:48:28.4630638Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:652)
+Windows Export	Export game	2026-02-15T20:48:28.4631422Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.4632119Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:726)
+Windows Export	Export game	2026-02-15T20:48:28.4640262Z ERROR: Failed to load script "res://tests/unit/test_grenade_base.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.4642817Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.7124979Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7127624Z           at: GDScript::reload (res://tests/unit/test_issue_716_comprehensive.gd:17)
+Windows Export	Export game	2026-02-15T20:48:28.7141912Z ERROR: Failed to load script "res://tests/unit/test_issue_716_comprehensive.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.7142838Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.7485732Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7486774Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:15)
+Windows Export	Export game	2026-02-15T20:48:28.7489580Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7492582Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:36)
+Windows Export	Export game	2026-02-15T20:48:28.7493592Z SCRIPT ERROR: Parse Error: Identifier "cock_result" not declared in the current scope.
+Windows Export	Export game	2026-02-15T20:48:28.7494503Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:51)
+Windows Export	Export game	2026-02-15T20:48:28.7495461Z SCRIPT ERROR: Parse Error: Identifier "cock_result" not declared in the current scope.
+Windows Export	Export game	2026-02-15T20:48:28.7496326Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:52)
+Windows Export	Export game	2026-02-15T20:48:28.7501162Z ERROR: Failed to load script "res://tests/unit/test_issue_716_integration.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.7502050Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.7674061Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7677151Z           at: GDScript::reload (res://tests/unit/test_issue_716_verification.gd:23)
+Windows Export	Export game	2026-02-15T20:48:28.7685369Z ERROR: Failed to load script "res://tests/unit/test_issue_716_verification.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.7687264Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.8375658Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8376658Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1140)
+Windows Export	Export game	2026-02-15T20:48:28.8377622Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8378476Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1141)
+Windows Export	Export game	2026-02-15T20:48:28.8379558Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8380386Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1142)
+Windows Export	Export game	2026-02-15T20:48:28.8381290Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8382108Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1143)
+Windows Export	Export game	2026-02-15T20:48:28.8383033Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8383862Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1144)
+Windows Export	Export game	2026-02-15T20:48:28.8384750Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8385572Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1145)
+Windows Export	Export game	2026-02-15T20:48:28.8386467Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8387273Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1197)
+Windows Export	Export game	2026-02-15T20:48:28.8388172Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8389122Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1198)
+Windows Export	Export game	2026-02-15T20:48:28.8390024Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8390898Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1199)
+Windows Export	Export game	2026-02-15T20:48:28.8391787Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8392611Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1200)
+Windows Export	Export game	2026-02-15T20:48:28.8393493Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8394314Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1201)
+Windows Export	Export game	2026-02-15T20:48:28.8395205Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8396034Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1202)
+Windows Export	Export game	2026-02-15T20:48:28.8397167Z ERROR: Failed to load script "res://tests/unit/test_last_chance_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.8398036Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.0025954Z SCRIPT ERROR: Parse Error: The member "Range" shadows a native class.
+Windows Export	Export game	2026-02-15T20:48:29.0026943Z           at: GDScript::reload (res://tests/unit/test_makarov_pm.gd:26)
+Windows Export	Export game	2026-02-15T20:48:29.0033825Z ERROR: Failed to load script "res://tests/unit/test_makarov_pm.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.0034637Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.0866607Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0867659Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1034)
+Windows Export	Export game	2026-02-15T20:48:29.0868571Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0869438Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1035)
+Windows Export	Export game	2026-02-15T20:48:29.0870069Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0870635Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1036)
+Windows Export	Export game	2026-02-15T20:48:29.0871610Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0872352Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1037)
+Windows Export	Export game	2026-02-15T20:48:29.0872967Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0873523Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1038)
+Windows Export	Export game	2026-02-15T20:48:29.0874124Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0874687Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1039)
+Windows Export	Export game	2026-02-15T20:48:29.0875287Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0875849Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1367)
+Windows Export	Export game	2026-02-15T20:48:29.0876458Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0877015Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1368)
+Windows Export	Export game	2026-02-15T20:48:29.0877621Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0878164Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1369)
+Windows Export	Export game	2026-02-15T20:48:29.0879087Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0879971Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1370)
+Windows Export	Export game	2026-02-15T20:48:29.0880816Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0881411Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1371)
+Windows Export	Export game	2026-02-15T20:48:29.0882037Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0882611Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1372)
+Windows Export	Export game	2026-02-15T20:48:29.0883424Z ERROR: Failed to load script "res://tests/unit/test_penultimate_hit_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.0884031Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.1530988Z SCRIPT ERROR: Parse Error: Cannot infer the type of "shift_dir" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1532529Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:273)
+Windows Export	Export game	2026-02-15T20:48:29.1533994Z SCRIPT ERROR: Parse Error: Cannot infer the type of "dist" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1535171Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:315)
+Windows Export	Export game	2026-02-15T20:48:29.1536330Z SCRIPT ERROR: Parse Error: Cannot infer the type of "to_cover" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1537041Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:459)
+Windows Export	Export game	2026-02-15T20:48:29.1537881Z SCRIPT ERROR: Parse Error: Cannot infer the type of "enemy_to_cover" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1538598Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:470)
+Windows Export	Export game	2026-02-15T20:48:29.1539731Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.1540573Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:582)
+Windows Export	Export game	2026-02-15T20:48:29.1541055Z SCRIPT ERROR: Compile Error: 
+Windows Export	Export game	2026-02-15T20:48:29.1541445Z           at: GDScript::reload (res://tests/unit/test_player_prediction.gd:-1)
+Windows Export	Export game	2026-02-15T20:48:29.1558133Z ERROR: Failed to load script "res://tests/unit/test_player_prediction.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.1558691Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.1825146Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:29.1826635Z           at: GDScript::reload (res://tests/unit/test_power_fantasy_effects_manager.gd:40)
+Windows Export	Export game	2026-02-15T20:48:29.1827944Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.1829197Z           at: GDScript::reload (res://tests/unit/test_power_fantasy_effects_manager.gd:40)
+Windows Export	Export game	2026-02-15T20:48:29.1842949Z ERROR: Failed to load script "res://tests/unit/test_power_fantasy_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.1843838Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.5087582Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.5088350Z           at: GDScript::reload (res://tests/unit/test_shrapnel.gd:369)
+Windows Export	Export game	2026-02-15T20:48:29.5095174Z ERROR: Failed to load script "res://tests/unit/test_shrapnel.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.5096020Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.5575336Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:29.5576867Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	Export game	2026-02-15T20:48:29.5577889Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:29.5579078Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:564)
+Windows Export	Export game	2026-02-15T20:48:29.5580377Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5581523Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:24)
+Windows Export	Export game	2026-02-15T20:48:29.5582703Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5584079Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	Export game	2026-02-15T20:48:29.5585287Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5586231Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:549)
+Windows Export	Export game	2026-02-15T20:48:29.5587243Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5588140Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:564)
+Windows Export	Export game	2026-02-15T20:48:29.5588949Z ERROR: Failed to load script "res://tests/unit/test_status_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.5589479Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.6293942Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.6295145Z           at: GDScript::reload (res://tests/unit/test_threat_sphere.gd:122)
+Windows Export	Export game	2026-02-15T20:48:29.6300806Z ERROR: Failed to load script "res://tests/unit/test_threat_sphere.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.6301431Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.8202169Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8203635Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:388)
+Windows Export	Export game	2026-02-15T20:48:29.8204912Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8206134Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:395)
+Windows Export	Export game	2026-02-15T20:48:29.8207174Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8207853Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:402)
+Windows Export	Export game	2026-02-15T20:48:29.8208591Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8209544Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:409)
+Windows Export	Export game	2026-02-15T20:48:29.8210289Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8210957Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:416)
+Windows Export	Export game	2026-02-15T20:48:29.8211689Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8212344Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:423)
+Windows Export	Export game	2026-02-15T20:48:29.8213064Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8213942Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:432)
+Windows Export	Export game	2026-02-15T20:48:29.8215093Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8215752Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:441)
+Windows Export	Export game	2026-02-15T20:48:29.8216479Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8217143Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:454)
+Windows Export	Export game	2026-02-15T20:48:29.8217871Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8218482Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:461)
+Windows Export	Export game	2026-02-15T20:48:29.8219241Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8219823Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:468)
+Windows Export	Export game	2026-02-15T20:48:29.8220459Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8221028Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:475)
+Windows Export	Export game	2026-02-15T20:48:29.8221681Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8222247Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:482)
+Windows Export	Export game	2026-02-15T20:48:29.8222873Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8223444Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:489)
+Windows Export	Export game	2026-02-15T20:48:29.8224067Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8224639Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:496)
+Windows Export	Export game	2026-02-15T20:48:29.8225260Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8225834Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:503)
+Windows Export	Export game	2026-02-15T20:48:29.8226464Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8227032Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:510)
+Windows Export	Export game	2026-02-15T20:48:29.8227827Z ERROR: Failed to load script "res://tests/unit/test_weapon_config_component.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.8228341Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:30.3866622Z WARNING: res://resources/calibers/caliber_9x19.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	Export game	2026-02-15T20:48:30.3867778Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:30.3870950Z WARNING: res://resources/calibers/caliber_9x18.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	Export game	2026-02-15T20:48:30.3871909Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:30.3873975Z WARNING: res://scenes/weapons/csharp/MakarovPM.tscn:7 - ext_resource, invalid UID: uid://makarov_pm_topdown - using text path instead: res://assets/sprites/weapons/makarov_pm_topdown.png
+Windows Export	Export game	2026-02-15T20:48:30.3874952Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:31.5374955Z ##[endgroup]
+Windows Export	Export game	2026-02-15T20:48:31.5376572Z 🎯 Using project file at /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot
+Windows Export	Export game	2026-02-15T20:48:31.5391869Z ##[group]1️⃣ Export binary for preset "Windows Desktop"
+Windows Export	Export game	2026-02-15T20:48:31.5401391Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot --headless --export-release Windows Desktop /home/runner/.local/share/godot/builds/Windows Desktop/Godot-Top-Down-Template.exe
+Windows Export	Export game	2026-02-15T20:48:31.5586897Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	Export game	2026-02-15T20:48:31.5772149Z 
+Windows Export	Export game	2026-02-15T20:48:34.9592898Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/GrenadeTimerHelper.cs' is not compiling.
+Windows Export	Export game	2026-02-15T20:48:34.9594697Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-02-15T20:48:34.9705301Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/ReplayManager.cs' is not compiling.
+Windows Export	Export game	2026-02-15T20:48:34.9706467Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-02-15T20:48:35.4165058Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Windows Export	Export game	2026-02-15T20:48:35.9413186Z dotnet_publish_project: begin: Publishing .NET project... steps: 1
+Windows Export	Export game	2026-02-15T20:48:35.9414521Z 	dotnet_publish_project: step 0: Running dotnet publish
+Windows Export	Export game	2026-02-15T20:48:41.5374375Z ERROR: Caller thread can't call this function in this node (/root). Use call_deferred() or call_thread_group() instead.
+Windows Export	Export game	2026-02-15T20:48:41.5375742Z    at: propagate_notification (scene/main/node.cpp:2422)
+Windows Export	Export game	2026-02-15T20:48:41.5376253Z 
+Windows Export	Export game	2026-02-15T20:48:41.5376732Z ================================================================
+Windows Export	Export game	2026-02-15T20:48:41.5377314Z handle_crash: Program crashed with signal 11
+Windows Export	Export game	2026-02-15T20:48:41.5378322Z Engine version: Godot Engine v4.3.stable.mono.official (77dcf97d82cbfe4e4615475fa52ca03da645dbd8)
+Windows Export	Export game	2026-02-15T20:48:41.5379726Z Dumping the backtrace. Please include this when reporting the bug to the project developer.
+Windows Export	Export game	2026-02-15T20:48:45.4417278Z ##[error]The process '/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64' failed with exit code null
+Windows Export	Post Checkout	﻿2026-02-15T20:48:45.4596049Z Post job cleanup.
+Windows Export	Post Checkout	2026-02-15T20:48:45.5631819Z [command]/usr/bin/git version
+Windows Export	Post Checkout	2026-02-15T20:48:45.5674593Z git version 2.52.0
+Windows Export	Post Checkout	2026-02-15T20:48:45.5729347Z Temporarily overriding HOME='/home/runner/work/_temp/46cc6b8a-e12b-43d2-be6b-8e5cc67804d9' before making global git config changes
+Windows Export	Post Checkout	2026-02-15T20:48:45.5730808Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Post Checkout	2026-02-15T20:48:45.5735967Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Post Checkout	2026-02-15T20:48:45.5776816Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Post Checkout	2026-02-15T20:48:45.5816662Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Post Checkout	2026-02-15T20:48:45.6091838Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Post Checkout	2026-02-15T20:48:45.6116057Z http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-02-15T20:48:45.6130737Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-02-15T20:48:45.6165549Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Post Checkout	2026-02-15T20:48:45.6429951Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Post Checkout	2026-02-15T20:48:45.6480080Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Complete job	﻿2026-02-15T20:48:45.6915727Z Cleaning up orphan processes
+Windows Export	Complete job	2026-02-15T20:48:45.7234909Z Terminate orphan process: pid (2695) (VBCSCompiler)

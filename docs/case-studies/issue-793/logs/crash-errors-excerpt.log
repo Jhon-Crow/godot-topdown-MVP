@@ -1,0 +1,100 @@
+372:Windows Export	Export game	2026-02-15T20:48:23.6296902Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/GrenadeTimerHelper.cs' is not compiling.
+374:Windows Export	Export game	2026-02-15T20:48:23.6416220Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/ReplayManager.cs' is not compiling.
+376:Windows Export	Export game	2026-02-15T20:48:23.6671332Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+378:Windows Export	Export game	2026-02-15T20:48:23.6674554Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+380:Windows Export	Export game	2026-02-15T20:48:23.6676846Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+382:Windows Export	Export game	2026-02-15T20:48:23.6679250Z ERROR: Unable to open file: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex.
+384:Windows Export	Export game	2026-02-15T20:48:23.6681571Z ERROR: Failed loading resource: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+386:Windows Export	Export game	2026-02-15T20:48:23.6683471Z ERROR: Failed loading resource: res://addons/gut/gui/arrow.png. Make sure resources have been imported by opening the project in the editor at least once.
+388:Windows Export	Export game	2026-02-15T20:48:23.6684616Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+390:Windows Export	Export game	2026-02-15T20:48:23.6686052Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+392:Windows Export	Export game	2026-02-15T20:48:23.6688028Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+394:Windows Export	Export game	2026-02-15T20:48:24.0640389Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+396:Windows Export	Export game	2026-02-15T20:48:24.0642743Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+398:Windows Export	Export game	2026-02-15T20:48:24.0645393Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+400:Windows Export	Export game	2026-02-15T20:48:24.0647266Z ERROR: Unable to open file: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex.
+402:Windows Export	Export game	2026-02-15T20:48:24.0649171Z ERROR: Failed loading resource: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+404:Windows Export	Export game	2026-02-15T20:48:24.0650773Z ERROR: Failed loading resource: res://addons/gut/images/green.png. Make sure resources have been imported by opening the project in the editor at least once.
+406:Windows Export	Export game	2026-02-15T20:48:24.0651971Z ERROR: Unable to open file: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex.
+408:Windows Export	Export game	2026-02-15T20:48:24.0653431Z ERROR: Failed loading resource: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+410:Windows Export	Export game	2026-02-15T20:48:24.0654951Z ERROR: Failed loading resource: res://addons/gut/images/yellow.png. Make sure resources have been imported by opening the project in the editor at least once.
+412:Windows Export	Export game	2026-02-15T20:48:24.0892255Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+413:Windows Export	Export game	2026-02-15T20:48:24.2063036Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+415:Windows Export	Export game	2026-02-15T20:48:24.2070230Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+417:Windows Export	Export game	2026-02-15T20:48:24.2072939Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+420:Windows Export	Export game	2026-02-15T20:48:26.7813065Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+422:Windows Export	Export game	2026-02-15T20:48:26.7816257Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+424:Windows Export	Export game	2026-02-15T20:48:26.7819078Z ERROR: Failed to load script "res://experiments/test_asvk_casing_ejection.gd" with error "Parse error".
+426:Windows Export	Export game	2026-02-15T20:48:26.7999470Z SCRIPT ERROR: Parse Error: There is already a variable named "has_velocity" declared in this scope.
+428:Windows Export	Export game	2026-02-15T20:48:26.8002915Z ERROR: Failed to load script "res://experiments/test_issue_393_fix.gd" with error "Parse error".
+430:Windows Export	Export game	2026-02-15T20:48:26.8042412Z SCRIPT ERROR: Parse Error: Cannot infer the type of "loaded" variable because the value doesn't have a set type.
+432:Windows Export	Export game	2026-02-15T20:48:26.8045160Z SCRIPT ERROR: Parse Error: Cannot infer the type of "spare" variable because the value doesn't have a set type.
+434:Windows Export	Export game	2026-02-15T20:48:26.8047343Z SCRIPT ERROR: Parse Error: Cannot infer the type of "total" variable because the value doesn't have a set type.
+436:Windows Export	Export game	2026-02-15T20:48:26.8050955Z SCRIPT ERROR: Parse Error: Cannot infer the type of "test_passed" variable because the value doesn't have a set type.
+438:Windows Export	Export game	2026-02-15T20:48:26.8053070Z ERROR: Failed to load script "res://experiments/test_silenced_pistol_ammo.gd" with error "Parse error".
+442:Windows Export	Export game	2026-02-15T20:48:26.9621986Z SCRIPT ERROR: Parse Error: Cannot infer the type of "shift_dir" variable because the value doesn't have a set type.
+444:Windows Export	Export game	2026-02-15T20:48:26.9634907Z SCRIPT ERROR: Parse Error: Cannot infer the type of "dist" variable because the value doesn't have a set type.
+446:Windows Export	Export game	2026-02-15T20:48:26.9637150Z SCRIPT ERROR: Parse Error: Cannot infer the type of "to_cover" variable because the value doesn't have a set type.
+448:Windows Export	Export game	2026-02-15T20:48:26.9639634Z SCRIPT ERROR: Parse Error: Cannot infer the type of "enemy_to_cover" variable because the value doesn't have a set type.
+450:Windows Export	Export game	2026-02-15T20:48:26.9642262Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+454:Windows Export	Export game	2026-02-15T20:48:27.0158625Z SCRIPT ERROR: Compile Error: 
+456:Windows Export	Export game	2026-02-15T20:48:27.0218938Z ERROR: Failed to load script "res://scripts/objects/enemy.gd" with error "Parse error".
+460:Windows Export	Export game	2026-02-15T20:48:27.0737432Z SCRIPT ERROR: Parse Error: Cannot find member "PRESET_BOTTOM_CENTER" in base "Control".
+462:Windows Export	Export game	2026-02-15T20:48:27.0743012Z ERROR: Failed to load script "res://scripts/autoload/replay_system.gd" with error "Parse error".
+464:Windows Export	Export game	2026-02-15T20:48:27.1764101Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+466:Windows Export	Export game	2026-02-15T20:48:27.1766585Z ERROR: Failed to load script "res://scripts/effects/flashlight_effect.gd" with error "Parse error".
+468:Windows Export	Export game	2026-02-15T20:48:27.5998422Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+470:Windows Export	Export game	2026-02-15T20:48:27.6001169Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+472:Windows Export	Export game	2026-02-15T20:48:27.6002934Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+474:Windows Export	Export game	2026-02-15T20:48:27.6004621Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+476:Windows Export	Export game	2026-02-15T20:48:27.6008151Z ERROR: Failed to load script "res://tests/unit/test_aggression_cloud_visual.gd" with error "Parse error".
+478:Windows Export	Export game	2026-02-15T20:48:27.6175496Z SCRIPT ERROR: Parse Error: Member "velocity" redefined (original in native class 'CharacterBody2D')
+480:Windows Export	Export game	2026-02-15T20:48:27.6184528Z ERROR: Failed to load script "res://tests/unit/test_aggression_component.gd" with error "Parse error".
+482:Windows Export	Export game	2026-02-15T20:48:27.6606351Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+484:Windows Export	Export game	2026-02-15T20:48:27.6617014Z ERROR: Failed to load script "res://tests/unit/test_animated_score_screen.gd" with error "Parse error".
+486:Windows Export	Export game	2026-02-15T20:48:27.7211518Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected_alpha" variable because the value doesn't have a set type.
+488:Windows Export	Export game	2026-02-15T20:48:27.7214552Z SCRIPT ERROR: Parse Error: Cannot infer the type of "calculated_alpha" variable because the value doesn't have a set type.
+490:Windows Export	Export game	2026-02-15T20:48:27.7216795Z SCRIPT ERROR: Parse Error: Cannot infer the type of "initial" variable because the value doesn't have a set type.
+492:Windows Export	Export game	2026-02-15T20:48:27.7221901Z SCRIPT ERROR: Parse Error: Cannot infer the type of "decay" variable because the value doesn't have a set type.
+494:Windows Export	Export game	2026-02-15T20:48:27.7224406Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_1" variable because the value doesn't have a set type.
+496:Windows Export	Export game	2026-02-15T20:48:27.7226717Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_2" variable because the value doesn't have a set type.
+498:Windows Export	Export game	2026-02-15T20:48:27.7229089Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_3" variable because the value doesn't have a set type.
+500:Windows Export	Export game	2026-02-15T20:48:27.7231284Z SCRIPT ERROR: Parse Error: Cannot infer the type of "steps" variable because the value doesn't have a set type.
+502:Windows Export	Export game	2026-02-15T20:48:27.7233484Z SCRIPT ERROR: Parse Error: Cannot infer the type of "last_step_index" variable because the value doesn't have a set type.
+504:Windows Export	Export game	2026-02-15T20:48:27.7235837Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected_alpha" variable because the value doesn't have a set type.
+506:Windows Export	Export game	2026-02-15T20:48:27.7238107Z SCRIPT ERROR: Parse Error: Cannot infer the type of "bad_component" variable because the value doesn't have a set type.
+508:Windows Export	Export game	2026-02-15T20:48:27.7240477Z ERROR: Failed to load script "res://tests/unit/test_bloody_feet_component.gd" with error "Parse error".
+510:Windows Export	Export game	2026-02-15T20:48:27.7434562Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+512:Windows Export	Export game	2026-02-15T20:48:27.7449146Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+514:Windows Export	Export game	2026-02-15T20:48:27.7450829Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+516:Windows Export	Export game	2026-02-15T20:48:27.7452433Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+518:Windows Export	Export game	2026-02-15T20:48:27.7454111Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+520:Windows Export	Export game	2026-02-15T20:48:27.7455895Z ERROR: Failed to load script "res://tests/unit/test_blood_effects.gd" with error "Parse error".
+522:Windows Export	Export game	2026-02-15T20:48:27.7636470Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+524:Windows Export	Export game	2026-02-15T20:48:27.7638695Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+526:Windows Export	Export game	2026-02-15T20:48:27.7640972Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+528:Windows Export	Export game	2026-02-15T20:48:27.7643940Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+530:Windows Export	Export game	2026-02-15T20:48:27.7646534Z ERROR: Failed to load script "res://tests/unit/test_breaker_bullet.gd" with error "Parse error".
+532:Windows Export	Export game	2026-02-15T20:48:27.7822652Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+534:Windows Export	Export game	2026-02-15T20:48:27.7824997Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+536:Windows Export	Export game	2026-02-15T20:48:27.7831101Z ERROR: Failed to load script "res://tests/unit/test_breaker_shrapnel.gd" with error "Parse error".
+538:Windows Export	Export game	2026-02-15T20:48:27.8247692Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+540:Windows Export	Export game	2026-02-15T20:48:27.8250376Z SCRIPT ERROR: Parse Error: Cannot infer the type of "direction" variable because the value doesn't have a set type.
+542:Windows Export	Export game	2026-02-15T20:48:27.8252580Z SCRIPT ERROR: Parse Error: Cannot infer the type of "impulse" variable because the value doesn't have a set type.
+544:Windows Export	Export game	2026-02-15T20:48:27.8255315Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+546:Windows Export	Export game	2026-02-15T20:48:27.8257908Z ERROR: Failed to load script "res://tests/unit/test_casing_explosion_reaction.gd" with error "Parse error".
+548:Windows Export	Export game	2026-02-15T20:48:27.8573092Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+550:Windows Export	Export game	2026-02-15T20:48:27.8575810Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+552:Windows Export	Export game	2026-02-15T20:48:27.8577594Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+554:Windows Export	Export game	2026-02-15T20:48:27.8579445Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+556:Windows Export	Export game	2026-02-15T20:48:27.8588963Z ERROR: Failed to load script "res://tests/unit/test_cinema_effects_manager.gd" with error "Parse error".
+558:Windows Export	Export game	2026-02-15T20:48:27.9215066Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+560:Windows Export	Export game	2026-02-15T20:48:27.9220486Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+562:Windows Export	Export game	2026-02-15T20:48:27.9226365Z ERROR: Failed to load script "res://tests/unit/test_defensive_grenade.gd" with error "Parse error".
+564:Windows Export	Export game	2026-02-15T20:48:27.9602833Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+566:Windows Export	Export game	2026-02-15T20:48:27.9604921Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+568:Windows Export	Export game	2026-02-15T20:48:27.9606498Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+570:Windows Export	Export game	2026-02-15T20:48:27.9608021Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+572:Windows Export	Export game	2026-02-15T20:48:27.9609877Z ERROR: Failed to load script "res://tests/unit/test_effects.gd" with error "Parse error".
+574:Windows Export	Export game	2026-02-15T20:48:28.0213333Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+576:Windows Export	Export game	2026-02-15T20:48:28.0224337Z ERROR: Failed to load script "res://tests/unit/test_enemy.gd" with error "Parse error".
