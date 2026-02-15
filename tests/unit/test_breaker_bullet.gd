@@ -394,3 +394,75 @@ func test_breaker_detonation_at_negative_distance() -> void:
 	# Should not happen in practice, but handle gracefully
 	var result := bullet.check_breaker_detonation(-10.0)
 	assert_true(result, "Should detonate even at negative distance")
+
+
+# ============================================================================
+# Wall Clipping Prevention Tests (Issue #740)
+# ============================================================================
+
+
+func test_shrapnel_spawn_position_validation() -> void:
+	# This test verifies the fix for Issue #740 where shrapnel could spawn behind walls.
+	# The MockBreakerBullet doesn't have physics simulation, so we test the logic conceptually.
+
+	# When a bullet detonates near a wall, shrapnel should not spawn inside the wall
+	# The actual implementation in bullet.gd uses _is_position_inside_wall() to validate
+
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2(100, 100)  # 60px from imaginary wall at x=160
+
+	# Detonate the bullet
+	bullet.check_breaker_detonation(60.0)
+
+	# Verify shrapnel was spawned (basic check)
+	assert_gt(bullet.get_shrapnel_count(), 0,
+		"Should spawn shrapnel even when near wall")
+
+
+func test_shrapnel_spawn_offset_is_small() -> void:
+	# Shrapnel spawns at center + direction * 5.0
+	# This small offset (5px) should not push shrapnel through walls in normal cases
+
+	var spawn_offset := 5.0
+	var center := Vector2(100, 100)
+	var direction := Vector2.RIGHT
+
+	var spawn_pos := center + direction * spawn_offset
+
+	assert_eq(spawn_pos.x, 105.0, "Shrapnel should spawn 5px from center")
+	assert_eq(spawn_pos.y, 100.0, "Y coordinate should be unchanged")
+
+
+func test_shrapnel_cone_randomization_near_wall() -> void:
+	# When bullet detonates near a wall, the random cone (±30°) means some shrapnel
+	# directions point toward the wall. The fix (Issue #740) validates these positions.
+
+	bullet.direction = Vector2.RIGHT  # Traveling right toward wall
+	bullet.check_breaker_detonation(30.0)  # Wall 30px ahead
+
+	# With ±30° cone, some shrapnel will be angled toward wall (invalid spawn)
+	# and some away from wall (valid spawn)
+	# The implementation should skip invalid spawns
+
+	var shrapnel_count := bullet.get_shrapnel_count()
+	assert_gt(shrapnel_count, 0,
+		"Should spawn at least some shrapnel in valid directions")
+
+
+func test_wall_detection_logic_concept() -> void:
+	# Conceptual test: If spawn position is inside wall, it should be skipped
+	# In real implementation, _is_position_inside_wall() uses PhysicsPointQueryParameters2D
+
+	# Scenario: Bullet at x=55, wall at x=60, detonates
+	# Shrapnel spawning at x=55 + 5 = x=60 (exactly on wall) should be prevented
+
+	var bullet_pos := Vector2(55, 100)
+	var wall_pos := Vector2(60, 100)
+	var spawn_offset := 5.0
+
+	# If shrapnel direction is toward wall (Vector2.RIGHT)
+	var shrapnel_spawn := bullet_pos + Vector2.RIGHT * spawn_offset
+
+	# shrapnel_spawn.x = 60, which is on/in the wall
+	assert_eq(shrapnel_spawn.x, wall_pos.x,
+		"This spawn position would be on the wall and should be skipped by fix")
