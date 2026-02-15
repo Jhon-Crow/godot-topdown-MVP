@@ -4,5 +4,5 @@
 
 [node name="ArmoryMenu" type="CanvasLayer"]
 layer = 101
-process_mode = 2
+process_mode = 3
 script = ExtResource("1_armory")
