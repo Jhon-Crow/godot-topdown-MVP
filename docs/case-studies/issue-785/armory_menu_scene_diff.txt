@@ -1,0 +1,11 @@
+diff --git a/scenes/ui/ArmoryMenu.tscn b/scenes/ui/ArmoryMenu.tscn
+index b4793b54..9752a0ac 100644
+--- a/scenes/ui/ArmoryMenu.tscn
++++ b/scenes/ui/ArmoryMenu.tscn
+@@ -4,5 +4,5 @@
+ 
+ [node name="ArmoryMenu" type="CanvasLayer"]
+ layer = 101
+-process_mode = 2
++process_mode = 3
+ script = ExtResource("1_armory")

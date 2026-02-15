@@ -229,14 +229,27 @@ func _ready() -> void:
 
 	FileLogger.info("[ArmoryMenu] Pending selections: weapon=%s, grenade=%d, item=%d" % [_pending_weapon_id, _pending_grenade_type, _pending_active_item_type])
 
-	# Build the entire UI programmatically
-	FileLogger.info("[ArmoryMenu] Calling _build_ui()...")
-	_build_ui()
-	FileLogger.info("[ArmoryMenu] _build_ui() completed")
+	# Check viewport size (for debugging)
+	var viewport_rect: Rect2 = get_viewport_rect()
+	FileLogger.info("[ArmoryMenu] Viewport rect in _ready(): %s" % viewport_rect)
+
+	# Defer UI building to next frame to ensure viewport is ready (Issue #785 fix)
+	# This fixes the issue where Control nodes had zero size when built immediately in _ready()
+	FileLogger.info("[ArmoryMenu] Deferring _build_ui() to next frame...")
+	call_deferred("_build_ui_deferred")
 
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	FileLogger.info("[ArmoryMenu] _ready() completed")
+
+
+## Deferred UI building to ensure viewport is ready (Issue #785 fix).
+func _build_ui_deferred() -> void:
+	var viewport_rect: Rect2 = get_viewport_rect()
+	FileLogger.info("[ArmoryMenu._build_ui_deferred] Viewport rect: %s" % viewport_rect)
+	FileLogger.info("[ArmoryMenu._build_ui_deferred] Calling _build_ui()...")
+	_build_ui()
+	FileLogger.info("[ArmoryMenu._build_ui_deferred] _build_ui() completed")
 
 
 ## Process frame for hold-to-unlock tracking (Issue #785).
@@ -299,7 +312,8 @@ func _build_ui() -> void:
 	root_control.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	root_control.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(root_control)
-	FileLogger.info("[ArmoryMenu._build_ui] Root control created and added, size: %s" % str(root_control.size))
+	FileLogger.info("[ArmoryMenu._build_ui] Root control created and added, size: %s, position: %s" % [str(root_control.size), str(root_control.position)])
+	FileLogger.info("[ArmoryMenu._build_ui] Root control anchors: left=%s, top=%s, right=%s, bottom=%s" % [root_control.anchor_left, root_control.anchor_top, root_control.anchor_right, root_control.anchor_bottom])
 
 	# Semi-transparent background
 	var bg := ColorRect.new()
@@ -307,7 +321,7 @@ func _build_ui() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color(0.0, 0.0, 0.0, 0.6)
 	root_control.add_child(bg)
-	FileLogger.info("[ArmoryMenu._build_ui] Background created")
+	FileLogger.info("[ArmoryMenu._build_ui] Background created, size: %s, color: %s" % [str(bg.size), str(bg.color)])
 
 	# Main panel — wider to accommodate sidebar layout
 	var panel := PanelContainer.new()
