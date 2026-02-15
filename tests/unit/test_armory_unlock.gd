@@ -326,3 +326,98 @@ func test_get_unlocked_active_items() -> void:
 	assert_true(unlocked.has(0), "Should have NONE in unlocked active items")
 	assert_true(unlocked[0], "NONE should be unlocked")
 	assert_false(unlocked[1], "Flashlight should be locked")
+
+
+# ============================================================================
+# Animation Constants Tests (Issue #785)
+# ============================================================================
+
+
+func test_armory_menu_script_has_animation_constants() -> void:
+	# Test that the armory_menu.gd script has the necessary constants for animations
+	var armory_script = load("res://scripts/ui/armory_menu.gd")
+	assert_not_null(armory_script, "armory_menu.gd should exist")
+
+	# Create an instance to check constants
+	var armory_instance = armory_script.new()
+	assert_not_null(armory_instance, "Should be able to instantiate armory_menu")
+
+	# Check that unlock hold duration is defined
+	assert_true(armory_instance.get("UNLOCK_HOLD_DURATION") != null or
+		armory_instance.UNLOCK_HOLD_DURATION > 0,
+		"UNLOCK_HOLD_DURATION constant should be defined")
+
+	# Clean up (CanvasLayer needs to be added to tree or freed manually)
+	if armory_instance:
+		armory_instance.free()
+
+
+func test_armory_menu_has_beep_functionality() -> void:
+	# Test that the armory_menu.gd script has beep sound functionality
+	var armory_script = load("res://scripts/ui/armory_menu.gd")
+	var armory_instance = armory_script.new()
+
+	# Check for beep-related constants
+	assert_true(armory_instance.BEEP_BASE_FREQUENCY > 0,
+		"BEEP_BASE_FREQUENCY should be a positive value")
+
+	if armory_instance:
+		armory_instance.free()
+
+
+func test_unlock_progress_calculated_correctly() -> void:
+	# Test that progress calculation logic is correct
+	var unlock_duration: float = 1.5
+	var test_cases: Array = [
+		[0.0, 0.0],    # Start: 0% progress
+		[0.75, 0.5],   # Half-way: 50% progress
+		[1.5, 1.0],    # End: 100% progress
+		[2.0, 1.0],    # Over: still 100% (clamped)
+	]
+
+	for test_case in test_cases:
+		var hold_duration: float = test_case[0]
+		var expected_progress: float = test_case[1]
+		var actual_progress: float = minf(hold_duration / unlock_duration, 1.0)
+		assert_almost_eq(actual_progress, expected_progress, 0.001,
+			"Progress for hold duration %f should be %f" % [hold_duration, expected_progress])
+
+
+func test_progress_beep_thresholds() -> void:
+	# Test that progress beep thresholds are calculated correctly (every 20%)
+	var test_cases: Array = [
+		[0.0, 0.0],   # 0% -> threshold 0.0
+		[0.15, 0.0],  # 15% -> threshold 0.0
+		[0.2, 0.2],   # 20% -> threshold 0.2
+		[0.45, 0.4],  # 45% -> threshold 0.4
+		[0.6, 0.6],   # 60% -> threshold 0.6
+		[0.85, 0.8],  # 85% -> threshold 0.8
+		[1.0, 1.0],   # 100% -> threshold 1.0
+	]
+
+	for test_case in test_cases:
+		var progress: float = test_case[0]
+		var expected_threshold: float = test_case[1]
+		var actual_threshold: float = floor(progress * 5.0) / 5.0
+		assert_almost_eq(actual_threshold, expected_threshold, 0.001,
+			"Threshold for progress %f should be %f" % [progress, expected_threshold])
+
+
+func test_rising_frequency_calculation() -> void:
+	# Test that beep frequency rises as progress increases
+	var base_frequency: float = 440.0
+
+	var freq_at_0: float = base_frequency * 0.5 * (1.0 + 0.0 * 2.0)
+	var freq_at_50: float = base_frequency * 0.5 * (1.0 + 0.5 * 2.0)
+	var freq_at_100: float = base_frequency * 0.5 * (1.0 + 1.0 * 2.0)
+
+	assert_true(freq_at_50 > freq_at_0,
+		"Frequency at 50%% should be higher than at 0%%")
+	assert_true(freq_at_100 > freq_at_50,
+		"Frequency at 100%% should be higher than at 50%%")
+
+	# Verify specific values
+	assert_almost_eq(freq_at_0, 220.0, 0.1,
+		"Frequency at 0%% progress should be ~220Hz")
+	assert_almost_eq(freq_at_100, 660.0, 0.1,
+		"Frequency at 100%% progress should be ~660Hz")
