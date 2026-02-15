@@ -3247,7 +3247,7 @@ func _init_breaker_bullets() -> void:
 		return
 
 	if not active_item_manager.has_breaker_bullets():
-		FileLogger.info("[Player.BreakerBullets] Breaker bullets not selected")
+		FileLogger.info("[Player.BreakerBullets] No breaker bullets selected in ActiveItemManager")
 		return
 
 	_breaker_bullets_active = true
@@ -3283,6 +3283,7 @@ signal trajectory_glasses_charges_changed(current: int, maximum: int)
 
 ## Initialize the trajectory glasses if the ActiveItemManager has them selected.
 func _init_trajectory_glasses() -> void:
+	FileLogger.info("[Player.TrajectoryGlasses] Checking trajectory glasses...")
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager == null:
 		FileLogger.info("[Player.TrajectoryGlasses] ActiveItemManager not found")
@@ -3293,7 +3294,7 @@ func _init_trajectory_glasses() -> void:
 		return
 
 	if not active_item_manager.has_trajectory_glasses():
-		FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses not selected")
+		FileLogger.info("[Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager")
 		return
 
 	FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...")

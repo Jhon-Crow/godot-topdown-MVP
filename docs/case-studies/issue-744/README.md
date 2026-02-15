@@ -128,6 +128,68 @@ After fixes:
 - Icon: Updated to proper glasses design
 - Code path: `_init_trajectory_glasses()` now called alongside `_init_active_item_progress_bar()`
 
+## Follow-up Analysis (2026-02-15)
+
+### Second User Test (2026-02-10 23:53)
+
+After the initial fix, user @Jhon-Crow tested again and reported the item still wasn't working.
+
+**New log file**: `game_log_20260210_235359.txt`
+
+**Analysis**:
+
+The log analysis revealed a **version mismatch** between the repository code and the user's tested build:
+
+1. **Log messages differ from source code**:
+   - Log shows: `"[Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager"`
+   - Source code has: `"[Player.BreakerBullets] Breaker bullets not selected"`
+   - Log shows `[Player.TeleportBracers]` messages, but no teleport bracers code exists in the branch
+
+2. **Missing trajectory glasses log**:
+   - Still no `[Player.TrajectoryGlasses]` message appears in the log
+   - This suggests the user's build was from a different branch/version
+
+3. **Possible causes**:
+   - User may have tested an older cached build
+   - CI artifacts may have been from a different commit
+   - Build wasn't updated after the fix commit
+
+**Action taken**:
+
+1. Added entry-point debug logging to `_init_trajectory_glasses()`:
+   ```gdscript
+   FileLogger.info("[Player.TrajectoryGlasses] Checking trajectory glasses...")
+   ```
+   This will confirm the function is being called in future builds.
+
+2. Made log messages consistent across all active items (using "No X selected in ActiveItemManager" pattern).
+
+### Verification Steps for User
+
+When testing the next build, the user should see one of these log entries:
+
+1. If trajectory glasses is selected:
+   ```
+   [Player.TrajectoryGlasses] Checking trajectory glasses...
+   [Player.TrajectoryGlasses] Trajectory glasses selected, initializing...
+   [Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
+   ```
+
+2. If trajectory glasses is NOT selected:
+   ```
+   [Player.TrajectoryGlasses] Checking trajectory glasses...
+   [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+   ```
+
+3. If ActiveItemManager is missing the method (outdated build):
+   ```
+   [Player.TrajectoryGlasses] Checking trajectory glasses...
+   [Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method
+   ```
+
+If NONE of these messages appear, the build doesn't include the trajectory glasses code at all.
+
 ## Related Files
 
-- `game_log_20260210_231250.txt` - Original game log showing the bug
+- `logs/game_log_20260210_231250.txt` - Original game log showing the bug
+- `logs/game_log_20260210_235359.txt` - Follow-up test log showing version mismatch
