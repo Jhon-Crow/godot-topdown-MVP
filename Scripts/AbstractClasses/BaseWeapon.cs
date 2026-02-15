@@ -402,7 +402,7 @@ public abstract partial class BaseWeapon : Node2D
 
         if (isCSharpBullet)
         {
-            // C# bullet - direct property access works
+            // C# bullet - direct property access works before AddChild
             var csBullet = (CSharpBullet)bullet;
             csBullet.Direction = direction;
             if (WeaponData != null)
@@ -417,12 +417,23 @@ public abstract partial class BaseWeapon : Node2D
             }
             csBullet.ShooterPosition = GlobalPosition;
 
+            // Set breaker bullet flag if active (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                csBullet.IsBreakerBullet = true;
+            }
+
             GD.Print($"[BaseWeapon] C# bullet spawned: direction={direction}");
         }
-        else
+
+        // Add bullet to scene FIRST for GDScript bullets
+        // Issue #781: GDScript @export properties can only be set via Set() AFTER AddChild()
+        // because the node's script properties are not initialized until it enters the scene tree.
+        GetTree().CurrentScene.AddChild(bullet);
+
+        if (!isCSharpBullet)
         {
-            // GDScript bullet - use snake_case property names with Set()
-            // For @export properties in GDScript, Node.Set() from C# requires the exact property name
+            // GDScript bullet - must set properties AFTER AddChild() for @export to work
             bullet.Set("direction", direction);
 
             if (WeaponData != null)
@@ -440,30 +451,16 @@ public abstract partial class BaseWeapon : Node2D
 
             bullet.Set("shooter_position", GlobalPosition);
 
+            // Set breaker bullet flag if active (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                bullet.Set("is_breaker_bullet", true);
+            }
+
             // Verify the direction was set (Issue #781 debugging)
             var actualDir = bullet.Get("direction");
             GD.Print($"[BaseWeapon] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
         }
-
-        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
-        if (IsBreakerBulletActive)
-        {
-            if (bullet is CSharpBullet csBulletBreaker)
-            {
-                csBulletBreaker.IsBreakerBullet = true;
-            }
-            else if (bullet is GodotTopDownTemplate.Projectiles.ShotgunPellet pelletBreaker)
-            {
-                pelletBreaker.IsBreakerBullet = true;
-            }
-            else
-            {
-                // GDScript bullet — set via property name
-                bullet.Set("is_breaker_bullet", true);
-            }
-        }
-
-        GetTree().CurrentScene.AddChild(bullet);
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #677, #704)
         // When firing during activation, use aim-line targeting (nearest to crosshair)

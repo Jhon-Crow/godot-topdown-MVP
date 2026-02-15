@@ -432,10 +432,11 @@ public partial class MakarovPM : BaseWeapon
 
         // Try to cast to C# Bullet type for direct property access
         var bullet = bulletNode as Bullet;
+        bool isGdScriptBullet = bullet == null;
 
         if (bullet != null)
         {
-            // C# Bullet - direct property access
+            // C# Bullet - direct property access works before AddChild
             bullet.Direction = direction;
             if (WeaponData != null)
             {
@@ -450,16 +451,27 @@ public partial class MakarovPM : BaseWeapon
             bullet.ShooterPosition = GlobalPosition;
             bullet.StunDuration = StunDurationOnHit;
 
+            // Set breaker bullet flag if active (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                bullet.IsBreakerBullet = true;
+            }
+
             GD.Print($"[MakarovPM] C# bullet spawned: direction={direction}, speed={bullet.Speed}");
             if (fileLogger != null && fileLogger.HasMethod("log_info"))
             {
                 fileLogger.Call("log_info", $"[MakarovPM] C# bullet spawned: direction={direction}, speed={bullet.Speed}");
             }
         }
-        else
+
+        // Add bullet to scene FIRST for GDScript bullets
+        // Issue #781: GDScript @export properties can only be set via Set() AFTER AddChild()
+        GetTree().CurrentScene.AddChild(bulletNode);
+
+        if (isGdScriptBullet)
         {
-            // GDScript bullet fallback - must use snake_case property names
-            GD.Print($"[MakarovPM] GDScript bullet detected, setting properties via Set()");
+            // GDScript bullet - must set properties AFTER AddChild() for @export to work
+            GD.Print($"[MakarovPM] GDScript bullet: setting properties after AddChild");
 
             // Set direction - for @export var direction in GDScript
             bulletNode.Set("direction", direction);
@@ -479,22 +491,20 @@ public partial class MakarovPM : BaseWeapon
             bulletNode.Set("shooter_position", GlobalPosition);
             bulletNode.Set("stun_duration", StunDurationOnHit);
 
-            // Verify the direction was set correctly
+            // Set breaker bullet flag if active (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                bulletNode.Set("is_breaker_bullet", true);
+            }
+
+            // Verify the direction was set correctly (after AddChild)
             var actualDir = bulletNode.Get("direction");
-            GD.Print($"[MakarovPM] GDScript bullet spawned: set direction={direction}, actual direction={actualDir}");
+            GD.Print($"[MakarovPM] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
             if (fileLogger != null && fileLogger.HasMethod("log_info"))
             {
                 fileLogger.Call("log_info", $"[MakarovPM] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
             }
         }
-
-        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
-        if (IsBreakerBulletActive)
-        {
-            bulletNode.Set("is_breaker_bullet", true);
-        }
-
-        GetTree().CurrentScene.AddChild(bulletNode);
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #704)
         // When firing during activation, use aim-line targeting (nearest to crosshair)

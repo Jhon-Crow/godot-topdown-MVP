@@ -1398,10 +1398,11 @@ public partial class SniperRifle : BaseWeapon
 
         // Try to cast to C# SniperBullet for direct property access
         var sniperBullet = bulletNode as SniperBullet;
+        bool isGdScriptBullet = sniperBullet == null;
 
         if (sniperBullet != null)
         {
-            // SniperBullet - set properties directly
+            // SniperBullet - set properties directly (works before AddChild for C#)
             sniperBullet.Direction = direction;
             if (WeaponData != null)
             {
@@ -1417,39 +1418,35 @@ public partial class SniperRifle : BaseWeapon
             sniperBullet.MaxWallPenetrations = MaxWallPenetrations;
             GD.Print($"[SniperRifle] Spawned SniperBullet: Damage={sniperBullet.Damage}, Speed={sniperBullet.Speed}, MaxWallPen={MaxWallPenetrations}");
         }
-        else
+
+        // Add bullet to scene FIRST for GDScript bullets
+        // Issue #781: GDScript @export properties can only be set via Set() AFTER AddChild()
+        GetTree().CurrentScene.AddChild(bulletNode);
+
+        if (isGdScriptBullet)
         {
-            // Fallback for any bullet type
-            if (bulletNode.HasMethod("SetDirection"))
-            {
-                bulletNode.Call("SetDirection", direction);
-            }
-            else
-            {
-                bulletNode.Set("Direction", direction);
-                bulletNode.Set("direction", direction);
-            }
+            // GDScript fallback - must set properties AFTER AddChild() for @export to work
+            // Only use snake_case - Godot 4 GDScript @export requires exact property name
+            bulletNode.Set("direction", direction);
 
             if (WeaponData != null)
             {
-                bulletNode.Set("Speed", WeaponData.BulletSpeed);
                 bulletNode.Set("speed", WeaponData.BulletSpeed);
-                bulletNode.Set("Damage", WeaponData.Damage);
                 bulletNode.Set("damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("ShooterId", owner.GetInstanceId());
-                bulletNode.Set("shooter_id", owner.GetInstanceId());
+                bulletNode.Set("shooter_id", (int)owner.GetInstanceId());
             }
 
-            bulletNode.Set("ShooterPosition", GlobalPosition);
             bulletNode.Set("shooter_position", GlobalPosition);
-        }
 
-        GetTree().CurrentScene.AddChild(bulletNode);
+            // Verify the direction was set correctly
+            var actualDir = bulletNode.Get("direction");
+            GD.Print($"[SniperRifle] GDScript bullet: set direction={direction}, actual={actualDir}");
+        }
 
         // Spawn muzzle flash effect - large flash for 12.7mm
         SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);

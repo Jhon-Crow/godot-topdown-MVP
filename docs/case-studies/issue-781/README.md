@@ -172,11 +172,74 @@ When calling `Node.Set()` from C# to set a GDScript `@export` property:
 - PascalCase names like `Set("Direction", value)` don't work
 - The property MUST be `@export` decorated in GDScript
 
+## Third Regression: Set() Before AddChild() Doesn't Work (2026-02-15 21:14 UTC)
+
+### Symptom
+
+After confirming @export annotations were in place, user reported:
+> "все ещё неподвижные прямоугольники вместо пистолетных пуль"
+> (still stationary rectangles instead of pistol bullets)
+
+Log file `game_log_20260215_212611.txt` showed:
+```
+[MakarovPM] GDScript bullet spawned: set direction=(0.9162935, 0.4005073), actual=
+```
+
+The `actual=` field was **empty**, meaning `bulletNode.Get("direction")` returned `Variant.Nil`.
+
+### Root Cause: GDScript Properties Not Initialized Before AddChild()
+
+**Critical Godot 4 behavior discovered:**
+
+In Godot 4.x, when you instantiate a GDScript node from C# and try to set `@export` properties via `Set()` **before** calling `AddChild()`:
+
+1. The node's GDScript properties are **not fully initialized** until the node enters the scene tree
+2. `Set()` on `@export` properties silently fails or has no effect
+3. `Get()` returns `Variant.Nil` (empty) because properties don't exist yet
+
+**The code was:**
+```csharp
+var bulletNode = BulletScene.Instantiate<Node2D>();
+bulletNode.Set("direction", direction);  // ❌ Fails - GDScript not initialized
+GetTree().CurrentScene.AddChild(bulletNode);  // Node enters tree here
+```
+
+**The fix:**
+```csharp
+var bulletNode = BulletScene.Instantiate<Node2D>();
+GetTree().CurrentScene.AddChild(bulletNode);  // ✅ Initialize first
+bulletNode.Set("direction", direction);  // ✅ Now works
+```
+
+### Technical Details
+
+According to [Godot documentation](https://docs.godotengine.org/en/stable/classes/class_node.html):
+> "_Set is called before it or any of its children enter the tree"
+
+This means GDScript's property initialization happens when the node is added to the scene tree, not when instantiated. For C# bullets, direct property assignment works because C# objects are fully initialized on `new()`.
+
+### Files Modified
+
+- `Scripts/Weapons/MakarovPM.cs` - Move GDScript property setting AFTER AddChild()
+- `Scripts/Weapons/SilencedPistol.cs` - Same fix
+- `Scripts/Weapons/SniperRifle.cs` - Same fix (for fallback path)
+- `Scripts/AbstractClasses/BaseWeapon.cs` - Same fix for base implementation
+
+### Lesson Learned #2
+
+**When setting properties on GDScript nodes from C#:**
+
+1. C# bullets (direct property access): Can set before `AddChild()` - works fine
+2. GDScript bullets (`Set()` method): MUST set AFTER `AddChild()` - properties only exist after node enters tree
+
+This is a subtle but critical difference between C# and GDScript object lifecycle in Godot 4.
+
 ## Test Data
 
 - `logs/game_log_20260215_154849.txt` - Original game log from issue report
 - `logs/game_log_20260215_164144.txt` - Regression log (bullets not flying, first report)
 - `logs/game_log_20260215_211028.txt` - Second regression log (still not flying)
+- `logs/game_log_20260215_212611.txt` - Third regression log (actual= empty)
 
 ## References
 
@@ -184,3 +247,4 @@ When calling `Node.Set()` from C# to set a GDScript `@export` property:
 - Issue #709: Wall-awareness for homing (integrated)
 - Issue #737: Max turn angle for aim-line targeting
 - Godot 4.x C#/GDScript interop: https://docs.godotengine.org/en/stable/tutorials/scripting/cross_language_scripting.html
+- Godot Node lifecycle: https://docs.godotengine.org/en/stable/classes/class_node.html

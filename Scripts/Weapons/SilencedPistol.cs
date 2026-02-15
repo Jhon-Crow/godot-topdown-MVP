@@ -669,10 +669,12 @@ public partial class SilencedPistol : BaseWeapon
 
         // Try to cast to C# Bullet type for direct property access
         var bullet = bulletNode as Bullet;
+        bool isGdScriptBullet = bullet == null;
 
         if (bullet != null)
         {
             // C# Bullet - set properties directly for reliable stun effect
+            // C# properties work before AddChild
             bullet.Direction = direction;
             if (WeaponData != null)
             {
@@ -691,53 +693,54 @@ public partial class SilencedPistol : BaseWeapon
             // Enemies hit by silenced pistol bullets are briefly stunned,
             // allowing for follow-up shots while they can't retaliate
             bullet.StunDuration = StunDurationOnHit;
+
+            // Set breaker bullet flag if active (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                bullet.IsBreakerBullet = true;
+            }
+
             GD.Print($"[SilencedPistol] Spawned C# bullet with Damage={bullet.Damage}, StunDuration={StunDurationOnHit}s");
         }
-        else
+
+        // Add bullet to scene FIRST for GDScript bullets
+        // Issue #781: GDScript @export properties can only be set via Set() AFTER AddChild()
+        GetTree().CurrentScene.AddChild(bulletNode);
+
+        if (isGdScriptBullet)
         {
-            // GDScript bullet fallback - use Node.Set() for compatibility
-            if (bulletNode.HasMethod("SetDirection"))
-            {
-                bulletNode.Call("SetDirection", direction);
-            }
-            else
-            {
-                bulletNode.Set("Direction", direction);
-                bulletNode.Set("direction", direction);
-            }
+            // GDScript bullet - must set properties AFTER AddChild() for @export to work
+            // Only use snake_case - Godot 4 GDScript @export requires exact property name
+            bulletNode.Set("direction", direction);
 
             if (WeaponData != null)
             {
-                bulletNode.Set("Speed", WeaponData.BulletSpeed);
                 bulletNode.Set("speed", WeaponData.BulletSpeed);
                 // Set damage from weapon data - critical for one-shot kills
-                bulletNode.Set("Damage", WeaponData.Damage);
                 bulletNode.Set("damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("ShooterId", owner.GetInstanceId());
-                bulletNode.Set("shooter_id", owner.GetInstanceId());
+                bulletNode.Set("shooter_id", (int)owner.GetInstanceId());
             }
 
-            bulletNode.Set("ShooterPosition", GlobalPosition);
             bulletNode.Set("shooter_position", GlobalPosition);
 
-            // Try to set stun duration via Set() for GDScript bullets
-            bulletNode.Set("StunDuration", StunDurationOnHit);
+            // Set stun duration via Set() for GDScript bullets
             bulletNode.Set("stun_duration", StunDurationOnHit);
-            GD.Print($"[SilencedPistol] Spawned GDScript bullet with Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
-        }
 
-        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
-        if (IsBreakerBulletActive)
-        {
-            bulletNode.Set("is_breaker_bullet", true);
-        }
+            // Set breaker bullet flag if active (Issue #678)
+            if (IsBreakerBulletActive)
+            {
+                bulletNode.Set("is_breaker_bullet", true);
+            }
 
-        GetTree().CurrentScene.AddChild(bulletNode);
+            // Verify the direction was set correctly
+            var actualDir = bulletNode.Get("direction");
+            GD.Print($"[SilencedPistol] GDScript bullet: set direction={direction}, actual={actualDir}, damage={WeaponData?.Damage ?? 1.0f}");
+        }
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #704)
         // When firing during activation, use aim-line targeting (nearest to crosshair)
