@@ -54,12 +54,6 @@ const FIREARMS: Dictionary = {
 		"unlocked": true,
 		"description": "Beretta M9 with suppressor — silent, stuns enemies on hit"
 	},
-	"sniper": {
-		"name": "ASVK",
-		"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
-		"unlocked": true,
-		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom)."
-	},
 	"revolver": {
 		"name": "RSh-12",
 		"icon_path": "res://assets/sprites/weapons/revolver_icon.png",
@@ -87,7 +81,6 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 	"shotgun": "res://resources/weapons/ShotgunData.tres",
 	"mini_uzi": "res://resources/weapons/MiniUziData.tres",
 	"silenced_pistol": "res://resources/weapons/SilencedPistolData.tres",
-	"sniper": "res://resources/weapons/SniperRifleData.tres",
 	"revolver": "res://resources/weapons/RevolverData.tres",
 	"ak_gl": "res://resources/weapons/AKGLData.tres"
 }

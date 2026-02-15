@@ -293,7 +293,6 @@ public partial class LevelInitFallback : Node
         Node? weapon = _player.GetNodeOrNull("Shotgun");
         weapon ??= _player.GetNodeOrNull("MiniUzi");
         weapon ??= _player.GetNodeOrNull("SilencedPistol");
-        weapon ??= _player.GetNodeOrNull("SniperRifle");
         weapon ??= _player.GetNodeOrNull("AssaultRifle");
         weapon ??= _player.GetNodeOrNull("Revolver");
         weapon ??= _player.GetNodeOrNull("AKGL");

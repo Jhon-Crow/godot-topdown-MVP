@@ -456,8 +456,6 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("SilencedPistol")
 	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
@@ -1159,7 +1157,7 @@ func _setup_selected_weapon() -> void:
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
-			"sniper": "SniperRifle",
+			,
 			"m16": "AssaultRifle"
 		}
 		if selected_weapon_id in weapon_names:
@@ -1234,26 +1232,6 @@ func _setup_selected_weapon() -> void:
 			print("LabyrinthLevel: Silenced Pistol equipped successfully")
 		else:
 			push_error("LabyrinthLevel: Failed to load SilencedPistol scene!")
-	elif selected_weapon_id == "sniper":
-		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-			print("LabyrinthLevel: Removed default MakarovPM")
-
-		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
-		if sniper_scene:
-			var sniper = sniper_scene.instantiate()
-			sniper.name = "SniperRifle"
-			_player.add_child(sniper)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(sniper)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = sniper
-
-			print("LabyrinthLevel: ASVK Sniper Rifle equipped successfully")
-		else:
-			push_error("LabyrinthLevel: Failed to load SniperRifle scene!")
 	elif selected_weapon_id == "m16":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov:

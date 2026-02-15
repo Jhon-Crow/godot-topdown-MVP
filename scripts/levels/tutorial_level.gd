@@ -174,7 +174,7 @@ func _setup_selected_weapon() -> void:
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
-			"sniper": "SniperRifle",
+			,
 			"m16": "AssaultRifle",
 			"ak_gl": "AKGL",
 			"revolver": "Revolver"
@@ -258,30 +258,6 @@ func _setup_selected_weapon() -> void:
 			print("Tutorial: Silenced Pistol equipped successfully")
 		else:
 			push_error("Tutorial: Failed to load SilencedPistol scene!")
-	# If Sniper Rifle (ASVK) is selected, swap weapons
-	elif selected_weapon_id == "sniper":
-		# Remove the default MakarovPM
-		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-			print("Tutorial: Removed default MakarovPM")
-
-		# Load and add the Sniper Rifle
-		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
-		if sniper_scene:
-			var sniper = sniper_scene.instantiate()
-			sniper.name = "SniperRifle"
-			_player.add_child(sniper)
-
-			# Set the CurrentWeapon reference in C# Player
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(sniper)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = sniper
-
-			print("Tutorial: ASVK Sniper Rifle equipped successfully")
-		else:
-			push_error("Tutorial: Failed to load SniperRifle scene!")
 	# If M16 (assault rifle) is selected, swap weapons
 	elif selected_weapon_id == "m16":
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -387,7 +363,6 @@ func _connect_player_signals() -> void:
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
-	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
 	var makarov_pm = _player.get_node_or_null("MakarovPM")
@@ -508,7 +483,6 @@ func _setup_ammo_tracking() -> void:
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
 	var silenced_pistol = _player.get_node_or_null("SilencedPistol")
-	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var weapon = _player.get_node_or_null("AssaultRifle")
 	var makarov_pm = _player.get_node_or_null("MakarovPM")
 	var revolver = _player.get_node_or_null("Revolver")

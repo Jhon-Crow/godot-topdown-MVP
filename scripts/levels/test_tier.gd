@@ -269,14 +269,12 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then Sniper Rifle, then assault rifle
+	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle
 	var weapon = _player.get_node_or_null("Shotgun")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MiniUzi")
 	if weapon == null:
 		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
@@ -1254,7 +1252,7 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager).
 	# This prevents double-equipping when both C# and GDScript weapon setup succeed.
-	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "sniper": "SniperRifle", "m16": "AssaultRifle", "ak_gl": "AKGL"}
+	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "m16": "AssaultRifle", "ak_gl": "AKGL"}
 	if selected_weapon_id in weapon_names:
 		var expected_name: String = weapon_names[selected_weapon_id]
 		var existing = _player.get_node_or_null(expected_name)
@@ -1334,30 +1332,6 @@ func _setup_selected_weapon() -> void:
 			print("TestTier: Silenced Pistol equipped successfully")
 		else:
 			push_error("TestTier: Failed to load SilencedPistol scene!")
-	# If Sniper Rifle (ASVK) is selected, swap weapons
-	elif selected_weapon_id == "sniper":
-		# Remove the default MakarovPM
-		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-			print("TestTier: Removed default MakarovPM")
-
-		# Load and add the Sniper Rifle
-		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
-		if sniper_scene:
-			var sniper = sniper_scene.instantiate()
-			sniper.name = "SniperRifle"
-			_player.add_child(sniper)
-
-			# Set the CurrentWeapon reference in C# Player
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(sniper)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = sniper
-
-			print("TestTier: ASVK Sniper Rifle equipped successfully")
-		else:
-			push_error("TestTier: Failed to load SniperRifle scene!")
 	# If M16 (assault rifle) is selected, swap weapons
 	elif selected_weapon_id == "m16":
 		var makarov = _player.get_node_or_null("MakarovPM")

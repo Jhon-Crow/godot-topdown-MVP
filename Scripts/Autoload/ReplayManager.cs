@@ -1438,12 +1438,6 @@ namespace GodotTopDownTemplate.Autoload
                 _playerWeaponSpriteOffset = new Vector2(20, 0);
                 LogToFile("Detected player weapon: Shotgun");
             }
-            else if (player.GetNodeOrNull("SniperRifle") != null)
-            {
-                _playerWeaponTexturePath = "res://assets/sprites/weapons/asvk_topdown.png";
-                _playerWeaponSpriteOffset = new Vector2(25, 0);
-                LogToFile("Detected player weapon: Sniper Rifle (ASVK)");
-            }
             else if (player.GetNodeOrNull("SilencedPistol") != null)
             {
                 _playerWeaponTexturePath = "res://assets/sprites/weapons/silenced_pistol_topdown.png";

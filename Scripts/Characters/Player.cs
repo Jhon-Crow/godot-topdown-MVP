@@ -249,8 +249,7 @@ public partial class Player : BaseCharacter
         Rifle,      // Default - extended grip (e.g., AssaultRifle)
         SMG,        // Compact grip (e.g., MiniUzi)
         Shotgun,    // Similar to rifle but slightly tighter
-        Pistol,     // Compact one-handed/two-handed pistol grip (e.g., SilencedPistol)
-        Sniper      // Extended heavy grip (e.g., ASVK SniperRifle)
+        Pistol      // Compact one-handed/two-handed pistol grip (e.g., SilencedPistol)
     }
 
     /// <summary>
@@ -1244,17 +1243,13 @@ public partial class Player : BaseCharacter
         // Handle throw rotation animation (restore player rotation after throw)
         HandleThrowRotationAnimation((float)delta);
 
-        // Handle sniper scope input (RMB) when SniperRifle is equipped
-        // This takes priority over grenade input since the sniper uses RMB for scoping
-        bool sniperScopeConsumedInput = HandleSniperScopeInput();
-
         // Handle AKGL grenade launcher input (RMB) when AKGL is equipped
         // This takes priority over grenade input since the underbarrel uses RMB for firing
         bool akglGrenadeLauncherConsumedInput = HandleAKGLGrenadeLauncherInput();
 
         // Handle grenade input first (so it can consume shoot input)
-        // Skip if sniper scope or AKGL grenade launcher already consumed the RMB input
-        if (!sniperScopeConsumedInput && !akglGrenadeLauncherConsumedInput)
+        // Skip if AKGL grenade launcher already consumed the RMB input
+        if (!akglGrenadeLauncherConsumedInput)
         {
             HandleGrenadeInput();
         }
@@ -1276,8 +1271,8 @@ public partial class Player : BaseCharacter
 
         // Handle revolver manual hammer cocking with RMB (Issue #649)
         // RMB instantly cocks the hammer so the next LMB fires without delay.
-        // Only when not preparing grenade (G not held) and not in sniper scope.
-        if (CurrentWeapon is Revolver revolverForCock && !sniperScopeConsumedInput
+        // Only when not preparing grenade (G not held).
+        if (CurrentWeapon is Revolver revolverForCock
             && _grenadeState == GrenadeState.Idle
             && Input.IsActionJustPressed("grenade_throw"))
         {
@@ -1500,10 +1495,6 @@ public partial class Player : BaseCharacter
         {
             aimDirection = assaultRifle.AimDirection;
         }
-        else if (CurrentWeapon is SniperRifle sniperRifle)
-        {
-            aimDirection = sniperRifle.AimDirection;
-        }
         else if (CurrentWeapon is Revolver revolver)
         {
             aimDirection = revolver.AimDirection;
@@ -1555,8 +1546,7 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: SniperRifle, AKGL, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
-        var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
+        // Check in order of specificity: AKGL, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
         var akgl = GetNodeOrNull<BaseWeapon>("AKGL");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
@@ -1564,12 +1554,7 @@ public partial class Player : BaseCharacter
         var makarovPM = GetNodeOrNull<BaseWeapon>("MakarovPM");
         var revolver = GetNodeOrNull<BaseWeapon>("Revolver");
 
-        if (sniperRifle != null)
-        {
-            detectedType = WeaponType.Sniper;
-            LogToFile("[Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)");
-        }
-        else if (akgl != null)
+        if (akgl != null)
         {
             detectedType = WeaponType.Rifle;
             LogToFile("[Player] Detected weapon: AK + GL (Rifle pose)");
@@ -1648,15 +1633,6 @@ public partial class Player : BaseCharacter
                 LogToFile($"[Player] Applied Pistol arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
                 break;
 
-            case WeaponType.Sniper:
-                // Sniper pose: Extended forward grip for long heavy weapon (ASVK)
-                // Left arm reaches further forward to support the heavy barrel
-                // Right arm stays close to body for stable trigger control
-                _baseLeftArmPos = originalLeftArmPos + new Vector2(4, 0);
-                _baseRightArmPos = originalRightArmPos + new Vector2(-1, 0);
-                LogToFile($"[Player] Applied Sniper arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
-                break;
-
             case WeaponType.Rifle:
             default:
                 // Rifle pose: Standard extended grip (original positions)
@@ -1679,30 +1655,15 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Gets the normalized input direction from player input.
-    /// When the sniper rifle is bolt cycling, only WASD keys are used for movement.
-    /// Arrow keys are reserved for the bolt-action sequence during cycling.
     /// </summary>
     /// <returns>Normalized direction vector.</returns>
     private Vector2 GetInputDirection()
     {
         Vector2 direction = Vector2.Zero;
 
-        // Check if sniper rifle bolt cycling is in progress
-        if (CurrentWeapon is SniperRifle sniperRifle && sniperRifle.IsBoltCycling)
-        {
-            // During bolt cycling: only WASD keys move the player (arrows are for bolt action)
-            // Use physical key detection for WASD only
-            if (Input.IsPhysicalKeyPressed(Key.A)) direction.X -= 1.0f;
-            if (Input.IsPhysicalKeyPressed(Key.D)) direction.X += 1.0f;
-            if (Input.IsPhysicalKeyPressed(Key.W)) direction.Y -= 1.0f;
-            if (Input.IsPhysicalKeyPressed(Key.S)) direction.Y += 1.0f;
-        }
-        else
-        {
-            // Normal mode: use all configured input actions (WASD + arrows)
-            direction.X = Input.GetAxis("move_left", "move_right");
-            direction.Y = Input.GetAxis("move_up", "move_down");
-        }
+        // Use all configured input actions (WASD + arrows)
+        direction.X = Input.GetAxis("move_left", "move_right");
+        direction.Y = Input.GetAxis("move_up", "move_down");
 
         // Normalize to prevent faster diagonal movement
         if (direction.Length() > 1.0f)
@@ -2127,15 +2088,6 @@ public partial class Player : BaseCharacter
         // If we have a weapon equipped, use it
         if (CurrentWeapon != null)
         {
-            // When SniperRifle scope is active, fire towards the scope crosshair center
-            // instead of the mouse cursor (the camera is offset, so mouse != crosshair)
-            var sniperRifle = CurrentWeapon as SniperRifle;
-            if (sniperRifle != null && sniperRifle.IsScopeActive)
-            {
-                Vector2 scopeTarget = sniperRifle.GetScopeAimTarget();
-                shootDirection = (scopeTarget - GlobalPosition).Normalized();
-            }
-
             CurrentWeapon.Fire(shootDirection);
             return;
         }
@@ -2435,10 +2387,6 @@ public partial class Player : BaseCharacter
                 scenePath = "res://scenes/weapons/csharp/SilencedPistol.tscn";
                 weaponNodeName = "SilencedPistol";
                 break;
-            case "sniper":
-                scenePath = "res://scenes/weapons/csharp/SniperRifle.tscn";
-                weaponNodeName = "SniperRifle";
-                break;
             case "revolver":
                 scenePath = "res://scenes/weapons/csharp/Revolver.tscn";
                 weaponNodeName = "Revolver";
@@ -2483,89 +2431,6 @@ public partial class Player : BaseCharacter
             LogToFile($"[Player.Weapon] ERROR: Failed to load weapon scene: {scenePath}");
         }
     }
-
-    #region Sniper Scope System
-
-    /// <summary>
-    /// Handles sniper scope input when the SniperRifle is equipped.
-    /// RMB activates the scope for aiming beyond the viewport.
-    /// Mouse wheel adjusts zoom distance while scoped.
-    /// Returns true if the sniper scope consumed the RMB input.
-    /// </summary>
-    private bool HandleSniperScopeInput()
-    {
-        // Only handle scope when a SniperRifle is the current weapon
-        var sniperRifle = CurrentWeapon as SniperRifle;
-        if (sniperRifle == null)
-        {
-            return false;
-        }
-
-        // Handle RMB press to activate scope
-        if (Input.IsActionJustPressed("grenade_throw"))
-        {
-            // Only activate scope if not already in a grenade action
-            if (_grenadeState == GrenadeState.Idle && !Input.IsActionPressed("grenade_prepare"))
-            {
-                sniperRifle.ActivateScope();
-                return true;
-            }
-        }
-
-        // Handle RMB release to deactivate scope
-        if (Input.IsActionJustReleased("grenade_throw") && sniperRifle.IsScopeActive)
-        {
-            sniperRifle.DeactivateScope();
-            return true;
-        }
-
-        // While scope is active, consume RMB input to prevent grenade handling
-        if (sniperRifle.IsScopeActive)
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Handles mouse wheel input for scope zoom when sniper scope is active.
-    /// This is called from _UnhandledInput to capture wheel events.
-    /// </summary>
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        base._UnhandledInput(@event);
-
-        var sniperRifle = CurrentWeapon as SniperRifle;
-        if (sniperRifle == null || !sniperRifle.IsScopeActive)
-        {
-            return;
-        }
-
-        if (@event is InputEventMouseButton mouseButton)
-        {
-            if (mouseButton.Pressed)
-            {
-                if (mouseButton.ButtonIndex == MouseButton.WheelUp)
-                {
-                    sniperRifle.AdjustScopeZoom(1.0f);
-                    GetViewport().SetInputAsHandled();
-                }
-                else if (mouseButton.ButtonIndex == MouseButton.WheelDown)
-                {
-                    sniperRifle.AdjustScopeZoom(-1.0f);
-                    GetViewport().SetInputAsHandled();
-                }
-            }
-        }
-        // Handle mouse movement for scope fine-tuning (closer/further by ~1/3 viewport)
-        else if (@event is InputEventMouseMotion mouseMotion)
-        {
-            sniperRifle.AdjustScopeFineTune(mouseMotion.Relative);
-        }
-    }
-
-    #endregion
 
     #region AKGL Grenade Launcher System
 
