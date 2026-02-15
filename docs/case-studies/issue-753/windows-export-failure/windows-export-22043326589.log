@@ -1,0 +1,350 @@
+Windows Export	Set up job	﻿2026-02-15T21:24:04.8364423Z Current runner version: '2.331.0'
+Windows Export	Set up job	2026-02-15T21:24:04.8390703Z ##[group]Runner Image Provisioner
+Windows Export	Set up job	2026-02-15T21:24:04.8391741Z Hosted Compute Agent
+Windows Export	Set up job	2026-02-15T21:24:04.8392639Z Version: 20260123.484
+Windows Export	Set up job	2026-02-15T21:24:04.8393233Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+Windows Export	Set up job	2026-02-15T21:24:04.8394059Z Build Date: 2026-01-23T19:41:17Z
+Windows Export	Set up job	2026-02-15T21:24:04.8394744Z Worker ID: {518d7bc5-40f9-4999-8ecd-f27dd42035a0}
+Windows Export	Set up job	2026-02-15T21:24:04.8395388Z Azure Region: westus
+Windows Export	Set up job	2026-02-15T21:24:04.8396016Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T21:24:04.8397464Z ##[group]Operating System
+Windows Export	Set up job	2026-02-15T21:24:04.8398084Z Ubuntu
+Windows Export	Set up job	2026-02-15T21:24:04.8398820Z 24.04.3
+Windows Export	Set up job	2026-02-15T21:24:04.8399318Z LTS
+Windows Export	Set up job	2026-02-15T21:24:04.8399757Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T21:24:04.8400346Z ##[group]Runner Image
+Windows Export	Set up job	2026-02-15T21:24:04.8400950Z Image: ubuntu-24.04
+Windows Export	Set up job	2026-02-15T21:24:04.8401476Z Version: 20260209.23.1
+Windows Export	Set up job	2026-02-15T21:24:04.8402554Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260209.23/images/ubuntu/Ubuntu2404-Readme.md
+Windows Export	Set up job	2026-02-15T21:24:04.8404176Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260209.23
+Windows Export	Set up job	2026-02-15T21:24:04.8405181Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T21:24:04.8406231Z ##[group]GITHUB_TOKEN Permissions
+Windows Export	Set up job	2026-02-15T21:24:04.8408455Z Contents: write
+Windows Export	Set up job	2026-02-15T21:24:04.8409093Z Metadata: read
+Windows Export	Set up job	2026-02-15T21:24:04.8409574Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T21:24:04.8411623Z Secret source: Actions
+Windows Export	Set up job	2026-02-15T21:24:04.8412601Z Prepare workflow directory
+Windows Export	Set up job	2026-02-15T21:24:04.8759116Z Prepare all required actions
+Windows Export	Set up job	2026-02-15T21:24:04.8816346Z Getting action download info
+Windows Export	Set up job	2026-02-15T21:24:05.3753014Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Windows Export	Set up job	2026-02-15T21:24:05.4896415Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+Windows Export	Set up job	2026-02-15T21:24:06.0765345Z Download action repository 'firebelley/godot-export@v7.0.0' (SHA:930577654862a320eef793f399ee911b4479efb9)
+Windows Export	Set up job	2026-02-15T21:24:06.6136905Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Windows Export	Set up job	2026-02-15T21:24:06.8574279Z Complete job name: Windows Export
+Windows Export	Checkout	﻿2026-02-15T21:24:06.9439139Z ##[group]Run actions/checkout@v4
+Windows Export	Checkout	2026-02-15T21:24:06.9440478Z with:
+Windows Export	Checkout	2026-02-15T21:24:06.9441295Z   ref: 88f44b2dcf2c724fc2d3a706519360a2c0e774c4
+Windows Export	Checkout	2026-02-15T21:24:06.9442450Z   repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T21:24:06.9443745Z   token: ***
+Windows Export	Checkout	2026-02-15T21:24:06.9444482Z   ssh-strict: true
+Windows Export	Checkout	2026-02-15T21:24:06.9445241Z   ssh-user: git
+Windows Export	Checkout	2026-02-15T21:24:06.9446024Z   persist-credentials: true
+Windows Export	Checkout	2026-02-15T21:24:06.9446889Z   clean: true
+Windows Export	Checkout	2026-02-15T21:24:06.9447671Z   sparse-checkout-cone-mode: true
+Windows Export	Checkout	2026-02-15T21:24:06.9448817Z   fetch-depth: 1
+Windows Export	Checkout	2026-02-15T21:24:06.9449591Z   fetch-tags: false
+Windows Export	Checkout	2026-02-15T21:24:06.9450376Z   show-progress: true
+Windows Export	Checkout	2026-02-15T21:24:06.9451173Z   lfs: false
+Windows Export	Checkout	2026-02-15T21:24:06.9451890Z   submodules: false
+Windows Export	Checkout	2026-02-15T21:24:06.9452695Z   set-safe-directory: true
+Windows Export	Checkout	2026-02-15T21:24:06.9453802Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:07.0561977Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T21:24:07.0565803Z ##[group]Getting Git version info
+Windows Export	Checkout	2026-02-15T21:24:07.0568019Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-02-15T21:24:07.0570439Z [command]/usr/bin/git version
+Windows Export	Checkout	2026-02-15T21:24:07.0573794Z git version 2.52.0
+Windows Export	Checkout	2026-02-15T21:24:07.0601686Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:07.0617936Z Temporarily overriding HOME='/home/runner/work/_temp/d9b5d89e-8b81-4f2c-91e0-52dbd61f76e5' before making global git config changes
+Windows Export	Checkout	2026-02-15T21:24:07.0622987Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Checkout	2026-02-15T21:24:07.0627245Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T21:24:07.0668728Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-02-15T21:24:07.0672802Z ##[group]Initializing the repository
+Windows Export	Checkout	2026-02-15T21:24:07.0677721Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T21:24:07.0777913Z hint: Using 'master' as the name for the initial branch. This default branch name
+Windows Export	Checkout	2026-02-15T21:24:07.0780624Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Windows Export	Checkout	2026-02-15T21:24:07.0783347Z hint: to use in all of your new repositories, which will suppress this warning,
+Windows Export	Checkout	2026-02-15T21:24:07.0785886Z hint: call:
+Windows Export	Checkout	2026-02-15T21:24:07.0787322Z hint:
+Windows Export	Checkout	2026-02-15T21:24:07.0789206Z hint: 	git config --global init.defaultBranch <name>
+Windows Export	Checkout	2026-02-15T21:24:07.0791162Z hint:
+Windows Export	Checkout	2026-02-15T21:24:07.0793040Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Windows Export	Checkout	2026-02-15T21:24:07.0796357Z hint: 'development'. The just-created branch can be renamed via this command:
+Windows Export	Checkout	2026-02-15T21:24:07.0799323Z hint:
+Windows Export	Checkout	2026-02-15T21:24:07.0800664Z hint: 	git branch -m <name>
+Windows Export	Checkout	2026-02-15T21:24:07.0802412Z hint:
+Windows Export	Checkout	2026-02-15T21:24:07.0803898Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Windows Export	Checkout	2026-02-15T21:24:07.0806366Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Windows Export	Checkout	2026-02-15T21:24:07.0812784Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T21:24:07.0833966Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:07.0836822Z ##[group]Disabling automatic garbage collection
+Windows Export	Checkout	2026-02-15T21:24:07.0839361Z [command]/usr/bin/git config --local gc.auto 0
+Windows Export	Checkout	2026-02-15T21:24:07.0869596Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:07.0872223Z ##[group]Setting up auth
+Windows Export	Checkout	2026-02-15T21:24:07.0876837Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Checkout	2026-02-15T21:24:07.0911527Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Checkout	2026-02-15T21:24:07.1276804Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Checkout	2026-02-15T21:24:07.1310459Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Checkout	2026-02-15T21:24:07.1550697Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Checkout	2026-02-15T21:24:07.1581542Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Checkout	2026-02-15T21:24:07.1816176Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Windows Export	Checkout	2026-02-15T21:24:07.1852095Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:07.1854837Z ##[group]Fetching the repository
+Windows Export	Checkout	2026-02-15T21:24:07.1863639Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 88f44b2dcf2c724fc2d3a706519360a2c0e774c4
+Windows Export	Checkout	2026-02-15T21:24:09.8902954Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T21:24:09.8904095Z  * branch            88f44b2dcf2c724fc2d3a706519360a2c0e774c4 -> FETCH_HEAD
+Windows Export	Checkout	2026-02-15T21:24:09.8926598Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:09.8929749Z ##[group]Determining the checkout info
+Windows Export	Checkout	2026-02-15T21:24:09.8936917Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:09.8937635Z [command]/usr/bin/git sparse-checkout disable
+Windows Export	Checkout	2026-02-15T21:24:09.8981418Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Windows Export	Checkout	2026-02-15T21:24:09.9014920Z ##[group]Checking out the ref
+Windows Export	Checkout	2026-02-15T21:24:09.9015856Z [command]/usr/bin/git checkout --progress --force 88f44b2dcf2c724fc2d3a706519360a2c0e774c4
+Windows Export	Checkout	2026-02-15T21:24:10.6721883Z Note: switching to '88f44b2dcf2c724fc2d3a706519360a2c0e774c4'.
+Windows Export	Checkout	2026-02-15T21:24:10.6722527Z 
+Windows Export	Checkout	2026-02-15T21:24:10.6722885Z You are in 'detached HEAD' state. You can look around, make experimental
+Windows Export	Checkout	2026-02-15T21:24:10.6723694Z changes and commit them, and you can discard any commits you make in this
+Windows Export	Checkout	2026-02-15T21:24:10.6724857Z state without impacting any branches by switching back to a branch.
+Windows Export	Checkout	2026-02-15T21:24:10.6725380Z 
+Windows Export	Checkout	2026-02-15T21:24:10.6726099Z If you want to create a new branch to retain commits you create, you may
+Windows Export	Checkout	2026-02-15T21:24:10.6726887Z do so (now or later) by using -c with the switch command. Example:
+Windows Export	Checkout	2026-02-15T21:24:10.6727577Z 
+Windows Export	Checkout	2026-02-15T21:24:10.6727786Z   git switch -c <new-branch-name>
+Windows Export	Checkout	2026-02-15T21:24:10.6728374Z 
+Windows Export	Checkout	2026-02-15T21:24:10.6728644Z Or undo this operation with:
+Windows Export	Checkout	2026-02-15T21:24:10.6728985Z 
+Windows Export	Checkout	2026-02-15T21:24:10.6729137Z   git switch -
+Windows Export	Checkout	2026-02-15T21:24:10.6729487Z 
+Windows Export	Checkout	2026-02-15T21:24:10.6729953Z Turn off this advice by setting config variable advice.detachedHead to false
+Windows Export	Checkout	2026-02-15T21:24:10.6730512Z 
+Windows Export	Checkout	2026-02-15T21:24:10.6730811Z HEAD is now at 88f44b2 Revert "Initial commit with task details"
+Windows Export	Checkout	2026-02-15T21:24:10.6802331Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T21:24:10.6847805Z [command]/usr/bin/git log -1 --format=%H
+Windows Export	Checkout	2026-02-15T21:24:10.6870913Z 88f44b2dcf2c724fc2d3a706519360a2c0e774c4
+Windows Export	Setup .NET	﻿2026-02-15T21:24:10.7080284Z ##[group]Run actions/setup-dotnet@v4
+Windows Export	Setup .NET	2026-02-15T21:24:10.7080639Z with:
+Windows Export	Setup .NET	2026-02-15T21:24:10.7081037Z   dotnet-version: 8.0.x
+Windows Export	Setup .NET	2026-02-15T21:24:10.7081372Z   cache: false
+Windows Export	Setup .NET	2026-02-15T21:24:10.7081637Z ##[endgroup]
+Windows Export	Setup .NET	2026-02-15T21:24:10.8928390Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+Windows Export	Setup .NET	2026-02-15T21:24:11.1796177Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.3/dotnet-runtime-10.0.3-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T21:24:11.4787632Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.3/dotnet-runtime-10.0.3-linux-x64.tar.gz size is 36636310 bytes.
+Windows Export	Setup .NET	2026-02-15T21:24:11.4791415Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.3/dotnet-runtime-10.0.3-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T21:24:12.1428881Z dotnet-install: Downloaded file size is 36636310 bytes.
+Windows Export	Setup .NET	2026-02-15T21:24:12.1430474Z dotnet-install: The remote and local file sizes are equal.
+Windows Export	Setup .NET	2026-02-15T21:24:12.1747754Z dotnet-install: Installed version is 10.0.3
+Windows Export	Setup .NET	2026-02-15T21:24:12.1813721Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Windows Export	Setup .NET	2026-02-15T21:24:12.1815354Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Windows Export	Setup .NET	2026-02-15T21:24:12.1818471Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Windows Export	Setup .NET	2026-02-15T21:24:12.1819889Z dotnet-install: Installation finished successfully.
+Windows Export	Setup .NET	2026-02-15T21:24:12.1847270Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+Windows Export	Setup .NET	2026-02-15T21:24:12.4191785Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T21:24:13.7933528Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz size is 217238248 bytes.
+Windows Export	Setup .NET	2026-02-15T21:24:13.7935495Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T21:24:18.2945335Z dotnet-install: Downloaded file size is 217238248 bytes.
+Windows Export	Setup .NET	2026-02-15T21:24:18.2946347Z dotnet-install: The remote and local file sizes are equal.
+Windows Export	Setup .NET	2026-02-15T21:24:18.5558374Z dotnet-install: Installed version is 8.0.418
+Windows Export	Setup .NET	2026-02-15T21:24:18.5621692Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Windows Export	Setup .NET	2026-02-15T21:24:18.5623371Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Windows Export	Setup .NET	2026-02-15T21:24:18.5624855Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Windows Export	Setup .NET	2026-02-15T21:24:18.5626204Z dotnet-install: Installation finished successfully.
+Windows Export	Build .NET project	﻿2026-02-15T21:24:18.5760727Z ##[group]Run dotnet restore GodotTopDownTemplate.sln
+Windows Export	Build .NET project	2026-02-15T21:24:18.5761153Z [36;1mdotnet restore GodotTopDownTemplate.sln[0m
+Windows Export	Build .NET project	2026-02-15T21:24:18.5761557Z [36;1mdotnet build GodotTopDownTemplate.sln --configuration Release[0m
+Windows Export	Build .NET project	2026-02-15T21:24:18.5814116Z shell: /usr/bin/bash -e {0}
+Windows Export	Build .NET project	2026-02-15T21:24:18.5814355Z env:
+Windows Export	Build .NET project	2026-02-15T21:24:18.5814531Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Build .NET project	2026-02-15T21:24:18.5814759Z ##[endgroup]
+Windows Export	Build .NET project	2026-02-15T21:24:23.0287577Z   Determining projects to restore...
+Windows Export	Build .NET project	2026-02-15T21:24:24.3341795Z   Restored /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj (in 805 ms).
+Windows Export	Build .NET project	2026-02-15T21:24:25.0981608Z   Determining projects to restore...
+Windows Export	Build .NET project	2026-02-15T21:24:25.6791945Z   Restored /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj (in 232 ms).
+Windows Export	Build .NET project	2026-02-15T21:24:32.4634249Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Shotgun.cs(1320,17): warning CS0114: 'Shotgun.StartReload()' hides inherited member 'BaseWeapon.StartReload()'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4652745Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(379,49): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4659037Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(599,67): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4664626Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(558,34): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4670572Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(559,45): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4676348Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(560,38): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4682160Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(645,69): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4687675Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(668,73): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4695767Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(781,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4705540Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(960,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4711997Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(1291,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4716967Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(362,90): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4722694Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(498,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4727868Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SilencedPistol.cs(786,94): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4733761Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Characters/Player.cs(2294,89): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4742304Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(217,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4748617Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(393,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4753987Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Revolver.cs(1005,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4761975Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(131,53): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4768917Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(243,36): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4774089Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(251,78): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4778934Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(341,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4786405Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(485,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4792572Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(584,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4796852Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(795,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4799735Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(806,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4801999Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(819,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4804172Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(827,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4806337Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(835,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4808698Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(979,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4810969Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1037,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4813133Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1164,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4815519Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1288,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4818498Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1307,109): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4821440Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(278,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4823676Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1391,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4825824Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1411,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4828011Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(344,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4830608Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(364,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4832783Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1454,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4834955Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1465,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4837130Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(407,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4839614Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(418,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4841792Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1517,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4843957Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(470,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4846119Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1586,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4848465Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(537,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4852648Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(609,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4856212Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(650,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4858826Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(774,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4861123Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(784,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4863338Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(794,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4865535Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(802,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4867740Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(812,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4870316Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(819,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.4872531Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(921,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5340038Z   GodotTopDownTemplate -> /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.godot/mono/temp/bin/ExportRelease/GodotTopDownTemplate.dll
+Windows Export	Build .NET project	2026-02-15T21:24:32.5451027Z 
+Windows Export	Build .NET project	2026-02-15T21:24:32.5457122Z Build succeeded.
+Windows Export	Build .NET project	2026-02-15T21:24:32.5457569Z 
+Windows Export	Build .NET project	2026-02-15T21:24:32.5461902Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Shotgun.cs(1320,17): warning CS0114: 'Shotgun.StartReload()' hides inherited member 'BaseWeapon.StartReload()'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5469375Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(379,49): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5472961Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(599,67): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5476352Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(558,34): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5480326Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(559,45): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5483488Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(560,38): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5486668Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(645,69): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5492557Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(668,73): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5499966Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(781,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5506882Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(960,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5510508Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(1291,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5513234Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(362,90): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5516195Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(498,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5519135Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SilencedPistol.cs(786,94): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5522128Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Characters/Player.cs(2294,89): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5526828Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(217,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5530421Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(393,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5533316Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Revolver.cs(1005,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5537697Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(131,53): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5541527Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(243,36): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5545719Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(251,78): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5549908Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(341,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5555980Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(485,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5559753Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(584,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5562122Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(795,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5564307Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(806,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5566437Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(819,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5569249Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(827,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5571446Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(835,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5573581Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(979,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5575722Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1037,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5577900Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1164,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5580501Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1288,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5582984Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1307,109): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5585333Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(278,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5587546Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1391,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5589911Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1411,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5592077Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(344,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5594258Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(364,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5596439Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1454,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5598777Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1465,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5601064Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(407,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5603636Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(418,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5606010Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1517,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5608672Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(470,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5611218Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1586,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5613706Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(537,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5618324Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(609,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5622147Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(650,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5624825Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(774,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5627293Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(784,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5630015Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(794,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5632600Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(802,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5635212Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(812,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5637842Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(819,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5640721Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(921,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T21:24:32.5642548Z     56 Warning(s)
+Windows Export	Build .NET project	2026-02-15T21:24:32.5643114Z     0 Error(s)
+Windows Export	Build .NET project	2026-02-15T21:24:32.5643544Z 
+Windows Export	Build .NET project	2026-02-15T21:24:32.5643671Z Time Elapsed 00:00:07.94
+Windows Export	Export game	﻿2026-02-15T21:24:32.5795316Z ##[group]Run firebelley/godot-export@v7.0.0
+Windows Export	Export game	2026-02-15T21:24:32.5795599Z with:
+Windows Export	Export game	2026-02-15T21:24:32.5796131Z   godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-02-15T21:24:32.5797078Z   godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-02-15T21:24:32.5797691Z   relative_project_path: ./
+Windows Export	Export game	2026-02-15T21:24:32.5797898Z   archive_output: true
+Windows Export	Export game	2026-02-15T21:24:32.5798097Z   archive_root_folder: false
+Windows Export	Export game	2026-02-15T21:24:32.5798449Z   cache: false
+Windows Export	Export game	2026-02-15T21:24:32.5798627Z   use_preset_export_path: false
+Windows Export	Export game	2026-02-15T21:24:32.5798837Z   export_debug: false
+Windows Export	Export game	2026-02-15T21:24:32.5799017Z   verbose: false
+Windows Export	Export game	2026-02-15T21:24:32.5799183Z   use_godot_3: false
+Windows Export	Export game	2026-02-15T21:24:32.5799379Z   export_as_pack: false
+Windows Export	Export game	2026-02-15T21:24:32.5799562Z env:
+Windows Export	Export game	2026-02-15T21:24:32.5799723Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Export game	2026-02-15T21:24:32.5799936Z ##[endgroup]
+Windows Export	Export game	2026-02-15T21:24:32.7137293Z ##[group]🕹️ Downloading Godot
+Windows Export	Export game	2026-02-15T21:24:32.7145871Z Working path created /home/runner/.local/share/godot
+Windows Export	Export game	2026-02-15T21:24:32.7147926Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-02-15T21:24:32.7185806Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip -O /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-02-15T21:24:33.4278363Z 2026-02-15 21:24:33 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/a33495e9-6c7d-4203-ae9a-1bd09369c46b?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-02-15T22%3A06%3A59Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_linux_x86_64.zip&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-02-15T21%3A06%3A42Z&ske=2026-02-15T22%3A06%3A59Z&sks=b&skv=2018-11-09&sig=UBUSlfNOTn%2FWst1jKynOqlopt4effpd4RSP6DEYyYqg%3D&jwt=*** [70627262/70627262] -> "/home/runner/.local/share/godot/godot.zip" [1]
+Windows Export	Export game	2026-02-15T21:24:33.4299835Z Extracting /home/runner/.local/share/godot/godot.zip to /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-02-15T21:24:33.4323879Z [command]/usr/bin/7z x /home/runner/.local/share/godot/godot.zip -o/home/runner/.local/share/godot/godot_executable -y
+Windows Export	Export game	2026-02-15T21:24:33.6541773Z 
+Windows Export	Export game	2026-02-15T21:24:33.6542597Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	Export game	2026-02-15T21:24:33.6543081Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	Export game	2026-02-15T21:24:33.6543323Z 
+Windows Export	Export game	2026-02-15T21:24:33.6543453Z Scanning the drive for archives:
+Windows Export	Export game	2026-02-15T21:24:33.6543775Z 1 file, 70627262 bytes (68 MiB)
+Windows Export	Export game	2026-02-15T21:24:33.6543950Z 
+Windows Export	Export game	2026-02-15T21:24:33.6544177Z Extracting archive: /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-02-15T21:24:34.5512249Z --
+Windows Export	Export game	2026-02-15T21:24:34.5512747Z Path = /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-02-15T21:24:34.5513208Z Type = zip
+Windows Export	Export game	2026-02-15T21:24:34.5513908Z Physical Size = 70627262
+Windows Export	Export game	2026-02-15T21:24:34.5514184Z 
+Windows Export	Export game	2026-02-15T21:24:34.5514432Z Everything is Ok
+Windows Export	Export game	2026-02-15T21:24:34.5529029Z 
+Windows Export	Export game	2026-02-15T21:24:34.5529389Z Folders: 7
+Windows Export	Export game	2026-02-15T21:24:34.5529745Z Files: 42
+Windows Export	Export game	2026-02-15T21:24:34.5530039Z Size:       169544185
+Windows Export	Export game	2026-02-15T21:24:34.5530388Z Compressed: 70627262
+Windows Export	Export game	2026-02-15T21:24:34.5531192Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-02-15T21:24:34.5532004Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64
+Windows Export	Export game	2026-02-15T21:24:34.5533121Z Found executable at /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64
+Windows Export	Export game	2026-02-15T21:24:34.5533875Z Preparing templates
+Windows Export	Export game	2026-02-15T21:24:34.5535023Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 --version
+Windows Export	Export game	2026-02-15T21:24:34.5997081Z 4.3.stable.mono.official.77dcf97d8
+Windows Export	Export game	2026-02-15T21:24:34.6034160Z ⬇️ Missing templates for Godot 4.3.stable.mono. Downloading...
+Windows Export	Export game	2026-02-15T21:24:34.6035389Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-02-15T21:24:34.6049832Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz -O /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	Export game	2026-02-15T21:24:34.7691342Z https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz:
+Windows Export	Export game	2026-02-15T21:24:34.7692375Z 2026-02-15 21:24:34 ERROR 502: Bad Gateway or Proxy Error.
+Windows Export	Export game	2026-02-15T21:24:34.7718761Z ##[error]The process '/usr/bin/wget' failed with exit code 8
+Windows Export	Post Checkout	﻿2026-02-15T21:24:34.7848467Z Post job cleanup.
+Windows Export	Post Checkout	2026-02-15T21:24:34.8798776Z [command]/usr/bin/git version
+Windows Export	Post Checkout	2026-02-15T21:24:34.8841749Z git version 2.52.0
+Windows Export	Post Checkout	2026-02-15T21:24:34.8885758Z Temporarily overriding HOME='/home/runner/work/_temp/a793d5d2-0d2d-4e40-a42d-85045ebe006f' before making global git config changes
+Windows Export	Post Checkout	2026-02-15T21:24:34.8887142Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Post Checkout	2026-02-15T21:24:34.8892263Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Post Checkout	2026-02-15T21:24:34.8927333Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Post Checkout	2026-02-15T21:24:34.8961262Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Post Checkout	2026-02-15T21:24:34.9201838Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Post Checkout	2026-02-15T21:24:34.9224178Z http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-02-15T21:24:34.9237449Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-02-15T21:24:34.9270193Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Post Checkout	2026-02-15T21:24:34.9506230Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Post Checkout	2026-02-15T21:24:34.9537860Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Complete job	﻿2026-02-15T21:24:34.9886640Z Cleaning up orphan processes
+Windows Export	Complete job	2026-02-15T21:24:35.0156406Z Terminate orphan process: pid (2795) (VBCSCompiler)
