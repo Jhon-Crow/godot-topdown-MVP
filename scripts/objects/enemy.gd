@@ -659,6 +659,37 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 				# If no cover available, stay in current state but with cleared vulnerability flags
 		return
 
+	# Issue #805: Handle EXPLOSION sounds (sound_type 1 = EXPLOSION) - grenades, breaker bullets, etc.
+	# Explosions are very loud - enemies should react similarly to gunshots.
+	if sound_type == 1:
+		_log_debug("Heard EXPLOSION (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard EXPLOSION at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
+
+		# Explosions should alert enemies just like gunshots
+		# React based on current state (same logic as gunshots)
+		var should_react_explosion := false
+		if _current_state == AIState.IDLE:
+			# In IDLE state, always investigate explosions above minimal threshold
+			should_react_explosion = intensity >= 0.01
+		elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
+			# In tactical movement states, react to loud nearby explosions
+			should_react_explosion = intensity >= 0.3
+		else:
+			# In combat-related states, only react to very loud explosions
+			should_react_explosion = false
+
+		if should_react_explosion:
+			# Store the position of the explosion as a point of interest
+			_last_known_player_position = position
+
+			# Update memory system with sound-based detection
+			if _memory:
+				_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+
+			# Transition to combat mode to investigate the explosion
+			_transition_to_combat()
+		return
+
 	# Handle gunshot sounds (sound_type 0 = GUNSHOT)
 	if sound_type != 0:
 		return
