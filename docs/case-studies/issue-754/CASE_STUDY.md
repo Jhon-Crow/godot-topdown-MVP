@@ -491,6 +491,23 @@ The muzzle flash detection feature has been implemented with the following compo
    - Detection logic in `_update_memory()` following flashlight detection pattern
    - Updates enemy memory with estimated player position at confidence 0.65
 
+### Bug Fix (Session 2)
+
+The initial implementation had issues that prevented muzzle flash detection from working:
+
+1. **LOS Check Bug**: The `_check_los_to_position()` function was using the enemy's raycast which collides with both walls (layer 3) AND the player (layer 1). When checking LOS to the muzzle flash position (which is near the player), the ray would hit the player first, incorrectly reporting "no line of sight".
+
+   **Fix**: Changed to use direct physics query with collision mask 4 (walls only), ignoring the player.
+
+2. **Inefficient Singleton Access**: The code attempted to use `Engine.has_singleton()` / `Engine.get_singleton()` to access the ImpactEffectsManager autoload, but these methods only work for C++ engine singletons, not GDScript autoloads.
+
+   **Fix**: Removed the inefficient Engine.get_singleton() call and use direct `/root/ImpactEffectsManager` access via player node.
+
+3. **Enhanced Debug Logging**: Added detailed debug logging to help trace detection issues:
+   - Logs when active flashes are found
+   - Logs specific reasons for filtering (age, distance, FOV angle, wall blocked)
+   - Logs successful detections with estimated player position
+
 ### Test Data
 
 Game log from testing session saved to: `docs/case-studies/issue-754/game_log_20260216_003239.txt`

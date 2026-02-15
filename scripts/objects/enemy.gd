@@ -751,58 +751,37 @@ func _initialize_goap_state() -> void:
 		"player_preparing_grenade": false
 	}
 
-## Initialize the enemy memory, prediction, flashlight, and muzzle flash detection systems (Issue #297, #298, #574, #754).
+## Initialize memory, prediction, flashlight and muzzle flash detection (Issue #297, #298, #574, #754).
 func _initialize_memory() -> void:
 	_memory = EnemyMemory.new()
 	var es: Node = get_node_or_null("/root/ExperimentalSettings")
 	if es and es.has_method("is_ai_prediction_enabled") and es.is_ai_prediction_enabled():
-		_prediction = PlayerPredictionComponent.new()
-		_prediction.debug_logging = debug_logging
-	# [Issue #574] Initialize flashlight detection component
-	_flashlight_detection = FlashlightDetectionComponent.new()
-	_flashlight_detection.debug_logging = debug_logging
-	# [Issue #754] Initialize muzzle flash detection component
-	_muzzle_flash_detection = MuzzleFlashDetectionComponent.new()
-	_muzzle_flash_detection.debug_logging = debug_logging
+		_prediction = PlayerPredictionComponent.new(); _prediction.debug_logging = debug_logging
+	_flashlight_detection = FlashlightDetectionComponent.new(); _flashlight_detection.debug_logging = debug_logging
+	_muzzle_flash_detection = MuzzleFlashDetectionComponent.new(); _muzzle_flash_detection.debug_logging = debug_logging
 
-## Connect to GameManager's debug mode signal for F7 toggle.
+## Connect to GameManager's debug mode signal (F7 toggle).
 func _connect_debug_mode_signal() -> void:
-	var game_manager: Node = get_node_or_null("/root/GameManager")
-	if game_manager:
-		# Connect to debug mode toggle signal
-		if game_manager.has_signal("debug_mode_toggled"):
-			game_manager.debug_mode_toggled.connect(_on_debug_mode_toggled)
-		# Sync with current debug mode state
-		if game_manager.has_method("is_debug_mode_enabled"):
-			debug_label_enabled = game_manager.is_debug_mode_enabled()
+	var gm: Node = get_node_or_null("/root/GameManager")
+	if gm:
+		if gm.has_signal("debug_mode_toggled"): gm.debug_mode_toggled.connect(_on_debug_mode_toggled)
+		if gm.has_method("is_debug_mode_enabled"): debug_label_enabled = gm.is_debug_mode_enabled()
 
-## Called when debug mode is toggled via F7 key.
 func _on_debug_mode_toggled(enabled: bool) -> void:
-	debug_label_enabled = enabled
-	_update_debug_label()
-	queue_redraw()  # Redraw to show/hide FOV cone
+	debug_label_enabled = enabled; _update_debug_label(); queue_redraw()
 
 ## Find the player node in the scene tree.
 func _find_player() -> void:
-	# Try to find the player by group first
 	var players := get_tree().get_nodes_in_group("player")
-	if players.size() > 0:
-		_player = players[0]
-		return
-
-	# Fallback: search for player by node name or type
+	if players.size() > 0: _player = players[0]; return
 	var root := get_tree().current_scene
-	if root:
-		_player = _find_player_recursive(root)
+	if root: _player = _find_player_recursive(root)
 
-## Recursively search for a player node.
 func _find_player_recursive(node: Node) -> Node2D:
-	if node.name == "Player" and node is Node2D:
-		return node
+	if node.name == "Player" and node is Node2D: return node
 	for child in node.get_children():
 		var result := _find_player_recursive(child)
-		if result:
-			return result
+		if result: return result
 	return null
 
 func _physics_process(delta: float) -> void:
@@ -3676,62 +3655,34 @@ func _update_memory(delta: float) -> void:
 		_prediction.process_frame(_can_see_player, _was_player_visible, _player.global_position if _player else Vector2.ZERO, global_position, f, delta, _memory)
 	_was_player_visible = _can_see_player
 
-	# [Issue #574] Flashlight beam detection: enemy detects beam when any part of it falls within their FOV
+	# [Issue #574] Flashlight beam detection
 	if _flashlight_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
 		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
 		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
-		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta)
-		if flashlight_detected:
-			# Update memory with flashlight-based detection
+		if _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta):
 			_memory.update_position(_flashlight_detection.estimated_player_position, FlashlightDetectionComponent.FLASHLIGHT_DETECTION_CONFIDENCE)
 			_last_known_player_position = _flashlight_detection.estimated_player_position
-			_log_to_file("[#574] Flashlight detected: estimated_pos=%s, beam_dir=%s" % [
-				_flashlight_detection.estimated_player_position, _flashlight_detection.beam_direction
-			])
-			# If in IDLE state, react to flashlight detection by investigating
+			_log_to_file("[#574] Flashlight detected: estimated_pos=%s, beam_dir=%s" % [_flashlight_detection.estimated_player_position, _flashlight_detection.beam_direction])
 			if _current_state == AIState.IDLE:
-				_log_to_file("[#574] Flashlight triggered pursuit from IDLE")
-				_transition_to_pursuing()
+				_log_to_file("[#574] Flashlight triggered pursuit from IDLE"); _transition_to_pursuing()
 	elif _flashlight_detection and (_can_see_player or _is_blinded or _memory_reset_confusion_timer > 0.0):
-		# Reset flashlight detection when player is directly visible or enemy is blinded/confused
 		_flashlight_detection.reset()
 
-	# [Issue #754] Muzzle flash detection: enemy detects player weapon muzzle flash when player is hidden
-	# Update player_preparing_grenade state for GOAP
-	var preparing_grenade := false
-	if _player and _player.has_method("is_preparing_grenade"):
-		preparing_grenade = _player.is_preparing_grenade()
-	_goap_world_state["player_preparing_grenade"] = preparing_grenade
-
+	# [Issue #754] Muzzle flash detection
+	_goap_world_state["player_preparing_grenade"] = _player != null and _player.has_method("is_preparing_grenade") and _player.is_preparing_grenade()
 	if _muzzle_flash_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
 		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
 		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
-		var muzzle_flash_detected := _muzzle_flash_detection.check_muzzle_flash(
-			global_position,
-			_enemy_model.global_rotation if _enemy_model else rotation,
-			fov_angle,
-			_fov_on,
-			_player,
-			_raycast,
-			_can_see_player,
-			delta
-		)
+		var muzzle_flash_detected := _muzzle_flash_detection.check_muzzle_flash(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, _can_see_player, delta)
 		_goap_world_state["muzzle_flash_detected"] = muzzle_flash_detected
 		if muzzle_flash_detected:
-			# Update memory with muzzle flash-based detection
 			_memory.update_position(_muzzle_flash_detection.estimated_player_position, MuzzleFlashDetectionComponent.MUZZLE_FLASH_DETECTION_CONFIDENCE)
 			_last_known_player_position = _muzzle_flash_detection.estimated_player_position
-			_log_to_file("[#754] Muzzle flash detected: estimated_pos=%s, flash_dir=%s" % [
-				_muzzle_flash_detection.estimated_player_position, _muzzle_flash_detection.flash_direction
-			])
-			# If in IDLE state, react to muzzle flash detection by investigating
+			_log_to_file("[#754] Muzzle flash detected: estimated_pos=%s, flash_dir=%s" % [_muzzle_flash_detection.estimated_player_position, _muzzle_flash_detection.flash_direction])
 			if _current_state == AIState.IDLE:
-				_log_to_file("[#754] Muzzle flash triggered pursuit from IDLE")
-				_transition_to_pursuing()
+				_log_to_file("[#754] Muzzle flash triggered pursuit from IDLE"); _transition_to_pursuing()
 	elif _muzzle_flash_detection and (_can_see_player or _is_blinded or _memory_reset_confusion_timer > 0.0):
-		# Reset muzzle flash detection when player is directly visible or enemy is blinded/confused
-		_muzzle_flash_detection.reset()
-		_goap_world_state["muzzle_flash_detected"] = false
+		_muzzle_flash_detection.reset(); _goap_world_state["muzzle_flash_detected"] = false
 
 	# Apply confidence decay over time
 	_memory.decay(delta)

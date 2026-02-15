@@ -108,12 +108,12 @@ func check_muzzle_flash(
 					print("[MuzzleFlashDetection] Skipping - player preparing grenade")
 				return false
 
-	# Get ImpactEffectsManager reference
+	# Get ImpactEffectsManager reference (autoload, not Engine singleton)
+	if _impact_manager == null and player != null:
+		_impact_manager = player.get_node_or_null("/root/ImpactEffectsManager")
 	if _impact_manager == null:
-		_impact_manager = Engine.get_singleton("ImpactEffectsManager") if Engine.has_singleton("ImpactEffectsManager") else null
-		if _impact_manager == null and player != null:
-			_impact_manager = player.get_node_or_null("/root/ImpactEffectsManager")
-	if _impact_manager == null:
+		if debug_logging:
+			print("[MuzzleFlashDetection] ImpactEffectsManager not found")
 		return false
 
 	# Check for active muzzle flashes
@@ -126,6 +126,9 @@ func check_muzzle_flash(
 	if active_flashes.is_empty():
 		return false
 
+	if debug_logging:
+		print("[MuzzleFlashDetection] Found %d active flashes, checking..." % active_flashes.size())
+
 	# Check each flash for visibility
 	var enemy_facing_dir := Vector2.from_angle(enemy_facing_angle)
 	var fov_half_angle_rad := deg_to_rad(enemy_fov_deg / 2.0) if enemy_fov_deg > 0.0 else PI
@@ -137,11 +140,15 @@ func check_muzzle_flash(
 
 		# Skip old flashes
 		if f_age > FLASH_MAX_AGE:
+			if debug_logging:
+				print("[MuzzleFlashDetection] Flash too old: %.3fs > %.3fs" % [f_age, FLASH_MAX_AGE])
 			continue
 
 		# Check distance
 		var dist: float = enemy_pos.distance_to(f_pos)
 		if dist > MUZZLE_FLASH_MAX_RANGE:
+			if debug_logging:
+				print("[MuzzleFlashDetection] Flash too far: %.0fpx > %.0fpx" % [dist, MUZZLE_FLASH_MAX_RANGE])
 			continue
 
 		# Check FOV (if enabled)
@@ -150,15 +157,16 @@ func check_muzzle_flash(
 			var dot := enemy_facing_dir.dot(dir_to_flash)
 			if dot < cos(fov_half_angle_rad):
 				if debug_logging:
-					print("[MuzzleFlashDetection] Flash outside FOV")
+					var angle_deg := rad_to_deg(acos(clampf(dot, -1.0, 1.0)))
+					print("[MuzzleFlashDetection] Flash outside FOV: %.1f° > %.1f°" % [angle_deg, enemy_fov_deg / 2.0])
 				continue  # Outside FOV
 
-		# Check line-of-sight to flash position
+		# Check line-of-sight to flash position (walls only)
 		if raycast != null:
 			var has_los := _check_los_to_position(enemy_pos, f_pos, raycast)
 			if not has_los:
 				if debug_logging:
-					print("[MuzzleFlashDetection] No LOS to flash at ", f_pos)
+					print("[MuzzleFlashDetection] No LOS to flash at %s (wall blocked)" % f_pos)
 				continue
 
 		# Detection confirmed!
@@ -173,44 +181,41 @@ func check_muzzle_flash(
 		estimated_player_position = f_pos - f_dir * estimated_offset
 
 		if debug_logging:
-			print("[MuzzleFlashDetection] DETECTED flash at ", f_pos, " -> estimated player at ", estimated_player_position)
+			print("[MuzzleFlashDetection] DETECTED flash at %s -> estimated player at %s" % [f_pos, estimated_player_position])
 
 		return true
 
 	return false
 
 
-## Check line-of-sight from enemy to a position.
+## Check line-of-sight from enemy to a position (walls only, ignores player).
+## Uses direct physics query with collision mask 4 (walls/obstacles only).
 func _check_los_to_position(enemy_pos: Vector2, target_pos: Vector2, raycast: RayCast2D) -> bool:
 	if raycast == null:
 		return true  # Assume LOS if no raycast available
 
-	# Save original raycast state
-	var original_target := raycast.target_position
-	var original_enabled := raycast.enabled
+	# Use direct physics query to check only walls (mask 4), ignoring player
+	var enemy_node := raycast.get_parent() as Node2D
+	if enemy_node == null:
+		return true
 
-	# Configure raycast toward target
-	var direction := target_pos - enemy_pos
-	raycast.target_position = direction
-	raycast.enabled = true
-	raycast.force_raycast_update()
+	var space_state := enemy_node.get_world_2d().direct_space_state
+	if space_state == null:
+		return true
 
-	var has_los := true
+	var query := PhysicsRayQueryParameters2D.create(enemy_pos, target_pos)
+	query.collision_mask = 4  # Layer 3: walls/obstacles only
+	var result := space_state.intersect_ray(query)
 
-	if raycast.is_colliding():
-		var collision_point := raycast.get_collision_point()
-		var enemy_parent := raycast.get_parent() as Node2D
-		if enemy_parent:
-			var distance_to_target := enemy_parent.global_position.distance_to(target_pos)
-			var distance_to_collision := enemy_parent.global_position.distance_to(collision_point)
-			# Wall is before the target - LOS blocked
-			has_los = distance_to_collision >= distance_to_target - 10.0
+	# No collision = clear LOS
+	if result.is_empty():
+		return true
 
-	# Restore raycast state
-	raycast.target_position = original_target
-	raycast.enabled = original_enabled
-
-	return has_los
+	# Check if wall is before the target (with 10px tolerance)
+	var collision_point: Vector2 = result.position
+	var distance_to_target := enemy_pos.distance_to(target_pos)
+	var distance_to_collision := enemy_pos.distance_to(collision_point)
+	return distance_to_collision >= distance_to_target - 10.0
 
 
 ## Reset detection state.
