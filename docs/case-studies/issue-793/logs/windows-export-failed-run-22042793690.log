@@ -1,0 +1,872 @@
+Windows Export	Set up job	﻿2026-02-15T20:47:29.9438673Z Current runner version: '2.331.0'
+Windows Export	Set up job	2026-02-15T20:47:29.9467984Z ##[group]Runner Image Provisioner
+Windows Export	Set up job	2026-02-15T20:47:29.9469838Z Hosted Compute Agent
+Windows Export	Set up job	2026-02-15T20:47:29.9470851Z Version: 20260123.484
+Windows Export	Set up job	2026-02-15T20:47:29.9472011Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+Windows Export	Set up job	2026-02-15T20:47:29.9473144Z Build Date: 2026-01-23T19:41:17Z
+Windows Export	Set up job	2026-02-15T20:47:29.9474480Z Worker ID: {2d8d2bd8-f5b1-46f4-a791-e9a78d1a1599}
+Windows Export	Set up job	2026-02-15T20:47:29.9475729Z Azure Region: centralus
+Windows Export	Set up job	2026-02-15T20:47:29.9476715Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T20:47:29.9479399Z ##[group]Operating System
+Windows Export	Set up job	2026-02-15T20:47:29.9480403Z Ubuntu
+Windows Export	Set up job	2026-02-15T20:47:29.9481244Z 24.04.3
+Windows Export	Set up job	2026-02-15T20:47:29.9481973Z LTS
+Windows Export	Set up job	2026-02-15T20:47:29.9482955Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T20:47:29.9483779Z ##[group]Runner Image
+Windows Export	Set up job	2026-02-15T20:47:29.9484751Z Image: ubuntu-24.04
+Windows Export	Set up job	2026-02-15T20:47:29.9485776Z Version: 20260209.23.1
+Windows Export	Set up job	2026-02-15T20:47:29.9487590Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260209.23/images/ubuntu/Ubuntu2404-Readme.md
+Windows Export	Set up job	2026-02-15T20:47:29.9490676Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260209.23
+Windows Export	Set up job	2026-02-15T20:47:29.9492306Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T20:47:29.9494209Z ##[group]GITHUB_TOKEN Permissions
+Windows Export	Set up job	2026-02-15T20:47:29.9496973Z Contents: write
+Windows Export	Set up job	2026-02-15T20:47:29.9497850Z Metadata: read
+Windows Export	Set up job	2026-02-15T20:47:29.9498996Z ##[endgroup]
+Windows Export	Set up job	2026-02-15T20:47:29.9501517Z Secret source: Actions
+Windows Export	Set up job	2026-02-15T20:47:29.9502978Z Prepare workflow directory
+Windows Export	Set up job	2026-02-15T20:47:29.9872707Z Prepare all required actions
+Windows Export	Set up job	2026-02-15T20:47:29.9918356Z Getting action download info
+Windows Export	Set up job	2026-02-15T20:47:30.4337295Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Windows Export	Set up job	2026-02-15T20:47:30.6131215Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+Windows Export	Set up job	2026-02-15T20:47:31.2142785Z Download action repository 'firebelley/godot-export@v7.0.0' (SHA:930577654862a320eef793f399ee911b4479efb9)
+Windows Export	Set up job	2026-02-15T20:47:31.7024265Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Windows Export	Set up job	2026-02-15T20:47:31.9410654Z Complete job name: Windows Export
+Windows Export	Checkout	﻿2026-02-15T20:47:32.0270880Z ##[group]Run actions/checkout@v4
+Windows Export	Checkout	2026-02-15T20:47:32.0272201Z with:
+Windows Export	Checkout	2026-02-15T20:47:32.0273042Z   ref: 50a99015aacd67ac73ac5b347aa0ba22e54a0acb
+Windows Export	Checkout	2026-02-15T20:47:32.0274225Z   repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T20:47:32.0275528Z   token: ***
+Windows Export	Checkout	2026-02-15T20:47:32.0276268Z   ssh-strict: true
+Windows Export	Checkout	2026-02-15T20:47:32.0277050Z   ssh-user: git
+Windows Export	Checkout	2026-02-15T20:47:32.0277845Z   persist-credentials: true
+Windows Export	Checkout	2026-02-15T20:47:32.0278900Z   clean: true
+Windows Export	Checkout	2026-02-15T20:47:32.0279703Z   sparse-checkout-cone-mode: true
+Windows Export	Checkout	2026-02-15T20:47:32.0280689Z   fetch-depth: 1
+Windows Export	Checkout	2026-02-15T20:47:32.0281460Z   fetch-tags: false
+Windows Export	Checkout	2026-02-15T20:47:32.0282260Z   show-progress: true
+Windows Export	Checkout	2026-02-15T20:47:32.0283060Z   lfs: false
+Windows Export	Checkout	2026-02-15T20:47:32.0283803Z   submodules: false
+Windows Export	Checkout	2026-02-15T20:47:32.0284623Z   set-safe-directory: true
+Windows Export	Checkout	2026-02-15T20:47:32.0285748Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:32.1415699Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T20:47:32.1418387Z ##[group]Getting Git version info
+Windows Export	Checkout	2026-02-15T20:47:32.1420269Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-02-15T20:47:32.1422519Z [command]/usr/bin/git version
+Windows Export	Checkout	2026-02-15T20:47:32.1423910Z git version 2.52.0
+Windows Export	Checkout	2026-02-15T20:47:32.1450154Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:32.1465298Z Temporarily overriding HOME='/home/runner/work/_temp/c8152c5d-84d7-4287-9ae2-02114fba72f2' before making global git config changes
+Windows Export	Checkout	2026-02-15T20:47:32.1468070Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Checkout	2026-02-15T20:47:32.1471137Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T20:47:32.1510754Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-02-15T20:47:32.1513755Z ##[group]Initializing the repository
+Windows Export	Checkout	2026-02-15T20:47:32.1518346Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T20:47:32.1647445Z hint: Using 'master' as the name for the initial branch. This default branch name
+Windows Export	Checkout	2026-02-15T20:47:32.1649691Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Windows Export	Checkout	2026-02-15T20:47:32.1652550Z hint: to use in all of your new repositories, which will suppress this warning,
+Windows Export	Checkout	2026-02-15T20:47:32.1655150Z hint: call:
+Windows Export	Checkout	2026-02-15T20:47:32.1656627Z hint:
+Windows Export	Checkout	2026-02-15T20:47:32.1658289Z hint: 	git config --global init.defaultBranch <name>
+Windows Export	Checkout	2026-02-15T20:47:32.1660590Z hint:
+Windows Export	Checkout	2026-02-15T20:47:32.1662465Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Windows Export	Checkout	2026-02-15T20:47:32.1666168Z hint: 'development'. The just-created branch can be renamed via this command:
+Windows Export	Checkout	2026-02-15T20:47:32.1669071Z hint:
+Windows Export	Checkout	2026-02-15T20:47:32.1670511Z hint: 	git branch -m <name>
+Windows Export	Checkout	2026-02-15T20:47:32.1672413Z hint:
+Windows Export	Checkout	2026-02-15T20:47:32.1673720Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Windows Export	Checkout	2026-02-15T20:47:32.1676078Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Windows Export	Checkout	2026-02-15T20:47:32.1682222Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T20:47:32.1704661Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:32.1707449Z ##[group]Disabling automatic garbage collection
+Windows Export	Checkout	2026-02-15T20:47:32.1709415Z [command]/usr/bin/git config --local gc.auto 0
+Windows Export	Checkout	2026-02-15T20:47:32.1739254Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:32.1740878Z ##[group]Setting up auth
+Windows Export	Checkout	2026-02-15T20:47:32.1745269Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Checkout	2026-02-15T20:47:32.1778004Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Checkout	2026-02-15T20:47:32.2129197Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Checkout	2026-02-15T20:47:32.2160781Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Checkout	2026-02-15T20:47:32.2399383Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Checkout	2026-02-15T20:47:32.2429434Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Checkout	2026-02-15T20:47:32.2671365Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Windows Export	Checkout	2026-02-15T20:47:32.2707464Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:32.2709463Z ##[group]Fetching the repository
+Windows Export	Checkout	2026-02-15T20:47:32.2717951Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 50a99015aacd67ac73ac5b347aa0ba22e54a0acb
+Windows Export	Checkout	2026-02-15T20:47:34.8253117Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-02-15T20:47:34.8254442Z  * branch            50a99015aacd67ac73ac5b347aa0ba22e54a0acb -> FETCH_HEAD
+Windows Export	Checkout	2026-02-15T20:47:34.8283533Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:34.8285520Z ##[group]Determining the checkout info
+Windows Export	Checkout	2026-02-15T20:47:34.8287056Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:34.8292875Z [command]/usr/bin/git sparse-checkout disable
+Windows Export	Checkout	2026-02-15T20:47:34.8339031Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Windows Export	Checkout	2026-02-15T20:47:34.8369366Z ##[group]Checking out the ref
+Windows Export	Checkout	2026-02-15T20:47:34.8374796Z [command]/usr/bin/git checkout --progress --force 50a99015aacd67ac73ac5b347aa0ba22e54a0acb
+Windows Export	Checkout	2026-02-15T20:47:35.6096873Z Note: switching to '50a99015aacd67ac73ac5b347aa0ba22e54a0acb'.
+Windows Export	Checkout	2026-02-15T20:47:35.6101156Z 
+Windows Export	Checkout	2026-02-15T20:47:35.6101793Z You are in 'detached HEAD' state. You can look around, make experimental
+Windows Export	Checkout	2026-02-15T20:47:35.6103025Z changes and commit them, and you can discard any commits you make in this
+Windows Export	Checkout	2026-02-15T20:47:35.6104266Z state without impacting any branches by switching back to a branch.
+Windows Export	Checkout	2026-02-15T20:47:35.6105680Z 
+Windows Export	Checkout	2026-02-15T20:47:35.6106714Z If you want to create a new branch to retain commits you create, you may
+Windows Export	Checkout	2026-02-15T20:47:35.6107737Z do so (now or later) by using -c with the switch command. Example:
+Windows Export	Checkout	2026-02-15T20:47:35.6108329Z 
+Windows Export	Checkout	2026-02-15T20:47:35.6108533Z   git switch -c <new-branch-name>
+Windows Export	Checkout	2026-02-15T20:47:35.6109086Z 
+Windows Export	Checkout	2026-02-15T20:47:35.6109243Z Or undo this operation with:
+Windows Export	Checkout	2026-02-15T20:47:35.6109448Z 
+Windows Export	Checkout	2026-02-15T20:47:35.6109570Z   git switch -
+Windows Export	Checkout	2026-02-15T20:47:35.6109859Z 
+Windows Export	Checkout	2026-02-15T20:47:35.6110143Z Turn off this advice by setting config variable advice.detachedHead to false
+Windows Export	Checkout	2026-02-15T20:47:35.6110510Z 
+Windows Export	Checkout	2026-02-15T20:47:35.6110760Z HEAD is now at 50a9901 Revert "Initial commit with task details"
+Windows Export	Checkout	2026-02-15T20:47:35.6176406Z ##[endgroup]
+Windows Export	Checkout	2026-02-15T20:47:35.6217094Z [command]/usr/bin/git log -1 --format=%H
+Windows Export	Checkout	2026-02-15T20:47:35.6240572Z 50a99015aacd67ac73ac5b347aa0ba22e54a0acb
+Windows Export	Setup .NET	﻿2026-02-15T20:47:35.6455285Z ##[group]Run actions/setup-dotnet@v4
+Windows Export	Setup .NET	2026-02-15T20:47:35.6455683Z with:
+Windows Export	Setup .NET	2026-02-15T20:47:35.6455995Z   dotnet-version: 8.0.x
+Windows Export	Setup .NET	2026-02-15T20:47:35.6456394Z   cache: false
+Windows Export	Setup .NET	2026-02-15T20:47:35.6456727Z ##[endgroup]
+Windows Export	Setup .NET	2026-02-15T20:47:35.8437461Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+Windows Export	Setup .NET	2026-02-15T20:47:36.4451059Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.3/dotnet-runtime-10.0.3-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T20:47:37.0740254Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.3/dotnet-runtime-10.0.3-linux-x64.tar.gz size is 36636310 bytes.
+Windows Export	Setup .NET	2026-02-15T20:47:37.0743483Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.3/dotnet-runtime-10.0.3-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T20:47:37.7496855Z dotnet-install: Downloaded file size is 36636310 bytes.
+Windows Export	Setup .NET	2026-02-15T20:47:37.7497724Z dotnet-install: The remote and local file sizes are equal.
+Windows Export	Setup .NET	2026-02-15T20:47:37.7819498Z dotnet-install: Installed version is 10.0.3
+Windows Export	Setup .NET	2026-02-15T20:47:37.7881779Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Windows Export	Setup .NET	2026-02-15T20:47:37.7887007Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Windows Export	Setup .NET	2026-02-15T20:47:37.7888670Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Windows Export	Setup .NET	2026-02-15T20:47:37.7890335Z dotnet-install: Installation finished successfully.
+Windows Export	Setup .NET	2026-02-15T20:47:37.7916283Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+Windows Export	Setup .NET	2026-02-15T20:47:38.2955004Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T20:47:39.8145764Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz size is 217238248 bytes.
+Windows Export	Setup .NET	2026-02-15T20:47:39.8150104Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-02-15T20:47:44.4268268Z dotnet-install: Downloaded file size is 217238248 bytes.
+Windows Export	Setup .NET	2026-02-15T20:47:44.4270183Z dotnet-install: The remote and local file sizes are equal.
+Windows Export	Setup .NET	2026-02-15T20:47:44.6914663Z dotnet-install: Installed version is 8.0.418
+Windows Export	Setup .NET	2026-02-15T20:47:44.6976336Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Windows Export	Setup .NET	2026-02-15T20:47:44.6977646Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Windows Export	Setup .NET	2026-02-15T20:47:44.6979409Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Windows Export	Setup .NET	2026-02-15T20:47:44.6980804Z dotnet-install: Installation finished successfully.
+Windows Export	Build .NET project	﻿2026-02-15T20:47:44.7123385Z ##[group]Run dotnet restore GodotTopDownTemplate.sln
+Windows Export	Build .NET project	2026-02-15T20:47:44.7123832Z [36;1mdotnet restore GodotTopDownTemplate.sln[0m
+Windows Export	Build .NET project	2026-02-15T20:47:44.7124280Z [36;1mdotnet build GodotTopDownTemplate.sln --configuration Release[0m
+Windows Export	Build .NET project	2026-02-15T20:47:44.7181222Z shell: /usr/bin/bash -e {0}
+Windows Export	Build .NET project	2026-02-15T20:47:44.7181633Z env:
+Windows Export	Build .NET project	2026-02-15T20:47:44.7181903Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Build .NET project	2026-02-15T20:47:44.7182189Z ##[endgroup]
+Windows Export	Build .NET project	2026-02-15T20:47:49.5477856Z   Determining projects to restore...
+Windows Export	Build .NET project	2026-02-15T20:47:50.7019428Z   Restored /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj (in 693 ms).
+Windows Export	Build .NET project	2026-02-15T20:47:51.4894761Z   Determining projects to restore...
+Windows Export	Build .NET project	2026-02-15T20:47:52.0744327Z   Restored /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj (in 241 ms).
+Windows Export	Build .NET project	2026-02-15T20:47:58.6163326Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Shotgun.cs(1320,17): warning CS0114: 'Shotgun.StartReload()' hides inherited member 'BaseWeapon.StartReload()'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6181856Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(379,49): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6187980Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(599,67): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6193754Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(558,34): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6199658Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(559,45): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6205397Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(560,38): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6211148Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(645,69): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6216957Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(668,73): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6225461Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(781,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6235573Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(960,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6242148Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(1291,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6247470Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(362,90): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6253438Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(498,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6259123Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SilencedPistol.cs(786,94): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6265021Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Characters/Player.cs(2294,89): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6273601Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(217,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6279948Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(393,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6285527Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Revolver.cs(1005,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6290499Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(278,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6294808Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(344,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6299724Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(364,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6304065Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(407,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6308503Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(418,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6313214Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(470,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6317701Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(537,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6324656Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(609,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6328373Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(650,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6331300Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(774,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6333677Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(784,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6336073Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(794,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6338369Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(802,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6340966Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(812,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6343241Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(819,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6345588Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(921,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6350278Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(131,53): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6354007Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(243,36): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6356681Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(251,78): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6359282Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(341,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6363532Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(485,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6366834Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(584,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6369441Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(795,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6371808Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(806,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6374032Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(819,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6376255Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(827,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6378525Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(835,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6381882Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(979,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6384370Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1037,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6386663Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1164,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6389682Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1288,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6392347Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1307,109): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6394711Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1391,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6396982Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1411,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6399403Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1454,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6401692Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1465,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6403938Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1517,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6406190Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1586,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6837949Z   GodotTopDownTemplate -> /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.godot/mono/temp/bin/ExportRelease/GodotTopDownTemplate.dll
+Windows Export	Build .NET project	2026-02-15T20:47:58.6954274Z 
+Windows Export	Build .NET project	2026-02-15T20:47:58.6961775Z Build succeeded.
+Windows Export	Build .NET project	2026-02-15T20:47:58.6962059Z 
+Windows Export	Build .NET project	2026-02-15T20:47:58.6966492Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Shotgun.cs(1320,17): warning CS0114: 'Shotgun.StartReload()' hides inherited member 'BaseWeapon.StartReload()'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6974661Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(379,49): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6981604Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(599,67): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6987413Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(558,34): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6992670Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(559,45): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.6998722Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Components/LevelInitFallback.cs(560,38): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7004271Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(645,69): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7008145Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/GrenadeTimer.cs(668,73): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7016989Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(781,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7026783Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(960,63): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7033387Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SniperRifle.cs(1291,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7038500Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(362,90): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7044636Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/AbstractClasses/BaseWeapon.cs(498,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7050471Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/SilencedPistol.cs(786,94): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7056226Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Characters/Player.cs(2294,89): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7064360Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(217,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7069778Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/SniperBullet.cs(393,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7074907Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Weapons/Revolver.cs(1005,75): warning CS8604: Possible null reference argument for parameter 'from' in 'Variant.implicit operator Variant(GodotObject from)'. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7077702Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(278,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7080411Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(344,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7082788Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(364,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7085113Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(407,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7087490Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(418,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7090158Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(470,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7092501Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(537,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7096771Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(609,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7100407Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(650,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7102839Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(774,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7105587Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(784,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7107977Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(794,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7110536Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(802,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7112824Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(812,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7115177Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(819,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7117517Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/ShotgunPellet.cs(921,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7122367Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(131,53): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7126069Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(243,36): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7129130Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/BreakerDetonation.cs(251,78): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7131939Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(341,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7136562Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(485,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7140384Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(584,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7143127Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(795,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7146051Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(806,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7148641Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(819,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7151414Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(827,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7153979Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(835,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7156707Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(979,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7159588Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1037,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7162330Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1164,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7165499Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1288,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7168939Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1307,109): warning CS8625: Cannot convert null literal to non-nullable reference type. [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7171534Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1391,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7173824Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1411,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7176126Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1454,17): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7178427Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1465,13): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7180929Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1517,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7183202Z ##[warning]/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/Scripts/Projectiles/Bullet.cs(1586,21): warning CS0162: Unreachable code detected [/home/runner/work/godot-topdown-MVP/godot-topdown-MVP/GodotTopDownTemplate.csproj]
+Windows Export	Build .NET project	2026-02-15T20:47:58.7184525Z     56 Warning(s)
+Windows Export	Build .NET project	2026-02-15T20:47:58.7184894Z     0 Error(s)
+Windows Export	Build .NET project	2026-02-15T20:47:58.7185144Z 
+Windows Export	Build .NET project	2026-02-15T20:47:58.7185254Z Time Elapsed 00:00:07.73
+Windows Export	Export game	﻿2026-02-15T20:47:58.7324551Z ##[group]Run firebelley/godot-export@v7.0.0
+Windows Export	Export game	2026-02-15T20:47:58.7324869Z with:
+Windows Export	Export game	2026-02-15T20:47:58.7325415Z   godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-02-15T20:47:58.7326449Z   godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-02-15T20:47:58.7327101Z   relative_project_path: ./
+Windows Export	Export game	2026-02-15T20:47:58.7327328Z   archive_output: true
+Windows Export	Export game	2026-02-15T20:47:58.7327544Z   archive_root_folder: false
+Windows Export	Export game	2026-02-15T20:47:58.7327756Z   cache: false
+Windows Export	Export game	2026-02-15T20:47:58.7327948Z   use_preset_export_path: false
+Windows Export	Export game	2026-02-15T20:47:58.7328175Z   export_debug: false
+Windows Export	Export game	2026-02-15T20:47:58.7328377Z   verbose: false
+Windows Export	Export game	2026-02-15T20:47:58.7328555Z   use_godot_3: false
+Windows Export	Export game	2026-02-15T20:47:58.7329010Z   export_as_pack: false
+Windows Export	Export game	2026-02-15T20:47:58.7329239Z env:
+Windows Export	Export game	2026-02-15T20:47:58.7329415Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Export game	2026-02-15T20:47:58.7329647Z ##[endgroup]
+Windows Export	Export game	2026-02-15T20:47:58.8693609Z ##[group]🕹️ Downloading Godot
+Windows Export	Export game	2026-02-15T20:47:58.8701942Z Working path created /home/runner/.local/share/godot
+Windows Export	Export game	2026-02-15T20:47:58.8704036Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-02-15T20:47:58.8739712Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip -O /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-02-15T20:47:59.3766069Z 2026-02-15 20:47:59 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/a33495e9-6c7d-4203-ae9a-1bd09369c46b?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-02-15T21%3A30%3A25Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_linux_x86_64.zip&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-02-15T20%3A29%3A39Z&ske=2026-02-15T21%3A30%3A25Z&sks=b&skv=2018-11-09&sig=%2BD0Zb3g4ppBg8UGDaJWyHT6Aay6tlyv3j0Oe2m285As%3D&jwt=*** [70627262/70627262] -> "/home/runner/.local/share/godot/godot.zip" [1]
+Windows Export	Export game	2026-02-15T20:47:59.3786880Z Extracting /home/runner/.local/share/godot/godot.zip to /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-02-15T20:47:59.3812822Z [command]/usr/bin/7z x /home/runner/.local/share/godot/godot.zip -o/home/runner/.local/share/godot/godot_executable -y
+Windows Export	Export game	2026-02-15T20:47:59.5783243Z 
+Windows Export	Export game	2026-02-15T20:47:59.5783920Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	Export game	2026-02-15T20:47:59.5784560Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	Export game	2026-02-15T20:47:59.5784908Z 
+Windows Export	Export game	2026-02-15T20:47:59.5785086Z Scanning the drive for archives:
+Windows Export	Export game	2026-02-15T20:47:59.5785529Z 1 file, 70627262 bytes (68 MiB)
+Windows Export	Export game	2026-02-15T20:47:59.5785775Z 
+Windows Export	Export game	2026-02-15T20:47:59.5786088Z Extracting archive: /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-02-15T20:48:00.4765605Z --
+Windows Export	Export game	2026-02-15T20:48:00.4766360Z Path = /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-02-15T20:48:00.4766994Z Type = zip
+Windows Export	Export game	2026-02-15T20:48:00.4767278Z Physical Size = 70627262
+Windows Export	Export game	2026-02-15T20:48:00.4767483Z 
+Windows Export	Export game	2026-02-15T20:48:00.4767602Z Everything is Ok
+Windows Export	Export game	2026-02-15T20:48:00.4767763Z 
+Windows Export	Export game	2026-02-15T20:48:00.4767857Z Folders: 7
+Windows Export	Export game	2026-02-15T20:48:00.4768189Z Files: 42
+Windows Export	Export game	2026-02-15T20:48:00.4768589Z Size:       169544185
+Windows Export	Export game	2026-02-15T20:48:00.4769286Z Compressed: 70627262
+Windows Export	Export game	2026-02-15T20:48:00.4776215Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-02-15T20:48:00.4778002Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64
+Windows Export	Export game	2026-02-15T20:48:00.4782057Z Found executable at /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64
+Windows Export	Export game	2026-02-15T20:48:00.4783226Z Preparing templates
+Windows Export	Export game	2026-02-15T20:48:00.4789188Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 --version
+Windows Export	Export game	2026-02-15T20:48:00.6390537Z 4.3.stable.mono.official.77dcf97d8
+Windows Export	Export game	2026-02-15T20:48:00.6431491Z ⬇️ Missing templates for Godot 4.3.stable.mono. Downloading...
+Windows Export	Export game	2026-02-15T20:48:00.6432950Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-02-15T20:48:00.6453813Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz -O /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	Export game	2026-02-15T20:48:05.0260179Z 2026-02-15 20:48:05 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/597dac49-985f-4d66-b3f8-f8bf34563ce2?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-02-15T21%3A36%3A18Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_export_templates.tpz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-02-15T20%3A35%3A38Z&ske=2026-02-15T21%3A36%3A18Z&sks=b&skv=2018-11-09&sig=TtAvWWxEfFSRuwUShxUBQv3qRanpIZoMdEO9iBXM3xw%3D&jwt=*** [1002307334/1002307334] -> "/home/runner/.local/share/godot/godot_templates.tpz" [1]
+Windows Export	Export game	2026-02-15T20:48:05.0285250Z [command]/usr/bin/unzip -o -j /home/runner/.local/share/godot/godot_templates.tpz -d /home/runner/.local/share/godot/export_templates/4.3.stable.mono
+Windows Export	Export game	2026-02-15T20:48:05.0311554Z Archive:  /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	Export game	2026-02-15T20:48:06.0180908Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_debug.apk  
+Windows Export	Export game	2026-02-15T20:48:06.5996329Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_release.apk  
+Windows Export	Export game	2026-02-15T20:48:07.5926117Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_source.zip  
+Windows Export	Export game	2026-02-15T20:48:08.6902413Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/ios.zip  
+Windows Export	Export game	2026-02-15T20:48:09.1177246Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm32  
+Windows Export	Export game	2026-02-15T20:48:09.5698270Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm64  
+Windows Export	Export game	2026-02-15T20:48:10.0533883Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_32  
+Windows Export	Export game	2026-02-15T20:48:10.5300166Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_64  
+Windows Export	Export game	2026-02-15T20:48:10.9730146Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm32  
+Windows Export	Export game	2026-02-15T20:48:11.4273305Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm64  
+Windows Export	Export game	2026-02-15T20:48:11.9382748Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_32  
+Windows Export	Export game	2026-02-15T20:48:12.4278177Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_64  
+Windows Export	Export game	2026-02-15T20:48:13.0558429Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/macos.zip  
+Windows Export	Export game	2026-02-15T20:48:13.0559806Z  extracting: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/version.txt  
+Windows Export	Export game	2026-02-15T20:48:13.0568706Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64_console.exe  
+Windows Export	Export game	2026-02-15T20:48:13.6254517Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64.exe  
+Windows Export	Export game	2026-02-15T20:48:13.6266619Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32_console.exe  
+Windows Export	Export game	2026-02-15T20:48:14.2884534Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32.exe  
+Windows Export	Export game	2026-02-15T20:48:14.2896298Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64_console.exe  
+Windows Export	Export game	2026-02-15T20:48:14.8970850Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64.exe  
+Windows Export	Export game	2026-02-15T20:48:14.8980071Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64_console.exe  
+Windows Export	Export game	2026-02-15T20:48:15.4205663Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64.exe  
+Windows Export	Export game	2026-02-15T20:48:15.4217470Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32_console.exe  
+Windows Export	Export game	2026-02-15T20:48:16.0787847Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32.exe  
+Windows Export	Export game	2026-02-15T20:48:16.0799726Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64_console.exe  
+Windows Export	Export game	2026-02-15T20:48:16.6977794Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64.exe  
+Windows Export	Export game	2026-02-15T20:48:16.6986706Z ##[endgroup]
+Windows Export	Export game	2026-02-15T20:48:16.6987618Z ##[group]🔍 Adding Editor Settings
+Windows Export	Export game	2026-02-15T20:48:16.7003400Z Wrote editor settings to /home/runner/.config/godot/editor_settings-4.tres
+Windows Export	Export game	2026-02-15T20:48:16.7004637Z ##[endgroup]
+Windows Export	Export game	2026-02-15T20:48:16.7005477Z ##[group]📝 Configuring android export
+Windows Export	Export game	2026-02-15T20:48:16.7005994Z Made gradlew executable.
+Windows Export	Export game	2026-02-15T20:48:16.7006718Z ##[endgroup]
+Windows Export	Export game	2026-02-15T20:48:16.7007421Z ##[group]🎲 Import project
+Windows Export	Export game	2026-02-15T20:48:16.7011325Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot --headless --import
+Windows Export	Export game	2026-02-15T20:48:16.7198415Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	Export game	2026-02-15T20:48:16.7377333Z 
+Windows Export	Export game	2026-02-15T20:48:23.6296902Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/GrenadeTimerHelper.cs' is not compiling.
+Windows Export	Export game	2026-02-15T20:48:23.6298621Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-02-15T20:48:23.6416220Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/ReplayManager.cs' is not compiling.
+Windows Export	Export game	2026-02-15T20:48:23.6417057Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-02-15T20:48:23.6671332Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Windows Export	Export game	2026-02-15T20:48:23.6672499Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-02-15T20:48:23.6674554Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:23.6675923Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:23.6676846Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:23.6677909Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:23.6679250Z ERROR: Unable to open file: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex.
+Windows Export	Export game	2026-02-15T20:48:23.6680356Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-02-15T20:48:23.6681571Z ERROR: Failed loading resource: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:23.6682610Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:23.6683471Z ERROR: Failed loading resource: res://addons/gut/gui/arrow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:23.6684128Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:23.6684616Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Windows Export	Export game	2026-02-15T20:48:23.6685115Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-02-15T20:48:23.6686052Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:23.6687295Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:23.6688028Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:23.6688680Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.0640389Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Windows Export	Export game	2026-02-15T20:48:24.0641246Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-02-15T20:48:24.0642743Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.0644051Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.0645393Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.0646576Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.0647266Z ERROR: Unable to open file: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex.
+Windows Export	Export game	2026-02-15T20:48:24.0647846Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-02-15T20:48:24.0649171Z ERROR: Failed loading resource: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.0650023Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.0650773Z ERROR: Failed loading resource: res://addons/gut/images/green.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.0651453Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.0651971Z ERROR: Unable to open file: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex.
+Windows Export	Export game	2026-02-15T20:48:24.0652496Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-02-15T20:48:24.0653431Z ERROR: Failed loading resource: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.0654224Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.0654951Z ERROR: Failed loading resource: res://addons/gut/images/yellow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.0655602Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.0892255Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Windows Export	Export game	2026-02-15T20:48:24.2063036Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Windows Export	Export game	2026-02-15T20:48:24.2064270Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-02-15T20:48:24.2070230Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.2071678Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.2072939Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-02-15T20:48:24.2074113Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-02-15T20:48:24.2074812Z GUT got some new images that are not imported yet.  Please restart Godot.
+Windows Export	Export game	2026-02-15T20:48:26.7813065Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Windows Export	Export game	2026-02-15T20:48:26.7815311Z           at: GDScript::reload (res://experiments/test_asvk_casing_ejection.gd:37)
+Windows Export	Export game	2026-02-15T20:48:26.7816257Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Windows Export	Export game	2026-02-15T20:48:26.7817527Z           at: GDScript::reload (res://experiments/test_asvk_casing_ejection.gd:105)
+Windows Export	Export game	2026-02-15T20:48:26.7819078Z ERROR: Failed to load script "res://experiments/test_asvk_casing_ejection.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:26.7819958Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:26.7999470Z SCRIPT ERROR: Parse Error: There is already a variable named "has_velocity" declared in this scope.
+Windows Export	Export game	2026-02-15T20:48:26.8001870Z           at: GDScript::reload (res://experiments/test_issue_393_fix.gd:75)
+Windows Export	Export game	2026-02-15T20:48:26.8002915Z ERROR: Failed to load script "res://experiments/test_issue_393_fix.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:26.8003737Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:26.8042412Z SCRIPT ERROR: Parse Error: Cannot infer the type of "loaded" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.8043931Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:32)
+Windows Export	Export game	2026-02-15T20:48:26.8045160Z SCRIPT ERROR: Parse Error: Cannot infer the type of "spare" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.8046210Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:33)
+Windows Export	Export game	2026-02-15T20:48:26.8047343Z SCRIPT ERROR: Parse Error: Cannot infer the type of "total" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.8048343Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:34)
+Windows Export	Export game	2026-02-15T20:48:26.8050955Z SCRIPT ERROR: Parse Error: Cannot infer the type of "test_passed" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.8052000Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:40)
+Windows Export	Export game	2026-02-15T20:48:26.8053070Z ERROR: Failed to load script "res://experiments/test_silenced_pistol_ammo.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:26.8053919Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:26.9033471Z WARNING: res://scenes/effects/Casing.tscn:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	Export game	2026-02-15T20:48:26.9034888Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:26.9621986Z SCRIPT ERROR: Parse Error: Cannot infer the type of "shift_dir" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.9633665Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:273)
+Windows Export	Export game	2026-02-15T20:48:26.9634907Z SCRIPT ERROR: Parse Error: Cannot infer the type of "dist" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.9635963Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:315)
+Windows Export	Export game	2026-02-15T20:48:26.9637150Z SCRIPT ERROR: Parse Error: Cannot infer the type of "to_cover" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.9638214Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:459)
+Windows Export	Export game	2026-02-15T20:48:26.9639634Z SCRIPT ERROR: Parse Error: Cannot infer the type of "enemy_to_cover" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:26.9640753Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:470)
+Windows Export	Export game	2026-02-15T20:48:26.9642262Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:26.9643552Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:582)
+Windows Export	Export game	2026-02-15T20:48:26.9914441Z WARNING: res://scenes/projectiles/FragGrenade.tscn:4 - ext_resource, invalid UID: uid://cfrag7qx4h3k5m2 - using text path instead: res://assets/sprites/weapons/frag_grenade.png
+Windows Export	Export game	2026-02-15T20:48:26.9916301Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:27.0158625Z SCRIPT ERROR: Compile Error: 
+Windows Export	Export game	2026-02-15T20:48:27.0160982Z           at: GDScript::reload (res://scripts/objects/enemy.gd:-1)
+Windows Export	Export game	2026-02-15T20:48:27.0218938Z ERROR: Failed to load script "res://scripts/objects/enemy.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.0219927Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.0334096Z WARNING: res://resources/calibers/caliber_12p7x55.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	Export game	2026-02-15T20:48:27.0336758Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:27.0737432Z SCRIPT ERROR: Parse Error: Cannot find member "PRESET_BOTTOM_CENTER" in base "Control".
+Windows Export	Export game	2026-02-15T20:48:27.0738460Z           at: GDScript::reload (res://scripts/autoload/replay_system.gd:1220)
+Windows Export	Export game	2026-02-15T20:48:27.0743012Z ERROR: Failed to load script "res://scripts/autoload/replay_system.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.0743895Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.1764101Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:27.1765501Z           at: GDScript::reload (res://scripts/effects/flashlight_effect.gd:405)
+Windows Export	Export game	2026-02-15T20:48:27.1766585Z ERROR: Failed to load script "res://scripts/effects/flashlight_effect.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.1767418Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.5998422Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.5999928Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:111)
+Windows Export	Export game	2026-02-15T20:48:27.6001169Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.6002061Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:132)
+Windows Export	Export game	2026-02-15T20:48:27.6002934Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.6003731Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:133)
+Windows Export	Export game	2026-02-15T20:48:27.6004621Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.6005415Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:212)
+Windows Export	Export game	2026-02-15T20:48:27.6008151Z ERROR: Failed to load script "res://tests/unit/test_aggression_cloud_visual.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.6009218Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.6175496Z SCRIPT ERROR: Parse Error: Member "velocity" redefined (original in native class 'CharacterBody2D')
+Windows Export	Export game	2026-02-15T20:48:27.6176566Z           at: GDScript::reload (res://tests/unit/test_aggression_component.gd:14)
+Windows Export	Export game	2026-02-15T20:48:27.6184528Z ERROR: Failed to load script "res://tests/unit/test_aggression_component.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.6186385Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.6606351Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.6608105Z           at: GDScript::reload (res://tests/unit/test_animated_score_screen.gd:344)
+Windows Export	Export game	2026-02-15T20:48:27.6617014Z ERROR: Failed to load script "res://tests/unit/test_animated_score_screen.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.6617917Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.7211518Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected_alpha" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7213281Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:114)
+Windows Export	Export game	2026-02-15T20:48:27.7214552Z SCRIPT ERROR: Parse Error: Cannot infer the type of "calculated_alpha" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7215677Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:116)
+Windows Export	Export game	2026-02-15T20:48:27.7216795Z SCRIPT ERROR: Parse Error: Cannot infer the type of "initial" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7217799Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:122)
+Windows Export	Export game	2026-02-15T20:48:27.7221901Z SCRIPT ERROR: Parse Error: Cannot infer the type of "decay" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7223246Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:123)
+Windows Export	Export game	2026-02-15T20:48:27.7224406Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_1" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7225586Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:126)
+Windows Export	Export game	2026-02-15T20:48:27.7226717Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_2" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7227735Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:128)
+Windows Export	Export game	2026-02-15T20:48:27.7229089Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_3" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7230142Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:130)
+Windows Export	Export game	2026-02-15T20:48:27.7231284Z SCRIPT ERROR: Parse Error: Cannot infer the type of "steps" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7232308Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:139)
+Windows Export	Export game	2026-02-15T20:48:27.7233484Z SCRIPT ERROR: Parse Error: Cannot infer the type of "last_step_index" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7234665Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:140)
+Windows Export	Export game	2026-02-15T20:48:27.7235837Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected_alpha" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7236915Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:141)
+Windows Export	Export game	2026-02-15T20:48:27.7238107Z SCRIPT ERROR: Parse Error: Cannot infer the type of "bad_component" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.7239368Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:152)
+Windows Export	Export game	2026-02-15T20:48:27.7240477Z ERROR: Failed to load script "res://tests/unit/test_bloody_feet_component.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.7241347Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.7434562Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7438400Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:716)
+Windows Export	Export game	2026-02-15T20:48:27.7449146Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7449990Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:718)
+Windows Export	Export game	2026-02-15T20:48:27.7450829Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7451592Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:723)
+Windows Export	Export game	2026-02-15T20:48:27.7452433Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7453222Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:725)
+Windows Export	Export game	2026-02-15T20:48:27.7454111Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7454891Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:735)
+Windows Export	Export game	2026-02-15T20:48:27.7455895Z ERROR: Failed to load script "res://tests/unit/test_blood_effects.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.7456710Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.7636470Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7637773Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:243)
+Windows Export	Export game	2026-02-15T20:48:27.7638695Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7639660Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:268)
+Windows Export	Export game	2026-02-15T20:48:27.7640972Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:27.7642500Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:264)
+Windows Export	Export game	2026-02-15T20:48:27.7643940Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:27.7645105Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:279)
+Windows Export	Export game	2026-02-15T20:48:27.7646534Z ERROR: Failed to load script "res://tests/unit/test_breaker_bullet.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.7648389Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.7822652Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7823876Z           at: GDScript::reload (res://tests/unit/test_breaker_shrapnel.gd:241)
+Windows Export	Export game	2026-02-15T20:48:27.7824997Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.7825867Z           at: GDScript::reload (res://tests/unit/test_breaker_shrapnel.gd:380)
+Windows Export	Export game	2026-02-15T20:48:27.7831101Z ERROR: Failed to load script "res://tests/unit/test_breaker_shrapnel.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.7832276Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.8247692Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:27.8249172Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:41)
+Windows Export	Export game	2026-02-15T20:48:27.8250376Z SCRIPT ERROR: Parse Error: Cannot infer the type of "direction" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.8251443Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:128)
+Windows Export	Export game	2026-02-15T20:48:27.8252580Z SCRIPT ERROR: Parse Error: Cannot infer the type of "impulse" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:27.8253617Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:143)
+Windows Export	Export game	2026-02-15T20:48:27.8255315Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:27.8256789Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:41)
+Windows Export	Export game	2026-02-15T20:48:27.8257908Z ERROR: Failed to load script "res://tests/unit/test_casing_explosion_reaction.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.8258924Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.8573092Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.8574664Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1324)
+Windows Export	Export game	2026-02-15T20:48:27.8575810Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.8576673Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1326)
+Windows Export	Export game	2026-02-15T20:48:27.8577594Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.8578413Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1328)
+Windows Export	Export game	2026-02-15T20:48:27.8579445Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.8580257Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1330)
+Windows Export	Export game	2026-02-15T20:48:27.8588963Z ERROR: Failed to load script "res://tests/unit/test_cinema_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.8590081Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.9215066Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:27.9216762Z           at: GDScript::reload (res://tests/unit/test_defensive_grenade.gd:35)
+Windows Export	Export game	2026-02-15T20:48:27.9220486Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:27.9225343Z           at: GDScript::reload (res://tests/unit/test_defensive_grenade.gd:35)
+Windows Export	Export game	2026-02-15T20:48:27.9226365Z ERROR: Failed to load script "res://tests/unit/test_defensive_grenade.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.9227203Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:27.9602833Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.9604038Z           at: GDScript::reload (res://tests/unit/test_effects.gd:395)
+Windows Export	Export game	2026-02-15T20:48:27.9604921Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.9605689Z           at: GDScript::reload (res://tests/unit/test_effects.gd:396)
+Windows Export	Export game	2026-02-15T20:48:27.9606498Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.9607217Z           at: GDScript::reload (res://tests/unit/test_effects.gd:397)
+Windows Export	Export game	2026-02-15T20:48:27.9608021Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:27.9608959Z           at: GDScript::reload (res://tests/unit/test_effects.gd:398)
+Windows Export	Export game	2026-02-15T20:48:27.9609877Z ERROR: Failed to load script "res://tests/unit/test_effects.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:27.9610637Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.0213333Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:28.0214586Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:326)
+Windows Export	Export game	2026-02-15T20:48:28.0224337Z ERROR: Failed to load script "res://tests/unit/test_enemy.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.0225109Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.1335201Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:28.1336649Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:55)
+Windows Export	Export game	2026-02-15T20:48:28.1340177Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1341187Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:76)
+Windows Export	Export game	2026-02-15T20:48:28.1342300Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1343310Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:83)
+Windows Export	Export game	2026-02-15T20:48:28.1344366Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1345364Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:90)
+Windows Export	Export game	2026-02-15T20:48:28.1346459Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1347468Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:98)
+Windows Export	Export game	2026-02-15T20:48:28.1348542Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1349755Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:106)
+Windows Export	Export game	2026-02-15T20:48:28.1350819Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1351826Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:115)
+Windows Export	Export game	2026-02-15T20:48:28.1352913Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1353924Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:122)
+Windows Export	Export game	2026-02-15T20:48:28.1355033Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1356511Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:135)
+Windows Export	Export game	2026-02-15T20:48:28.1357635Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1359051Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:142)
+Windows Export	Export game	2026-02-15T20:48:28.1360177Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1361178Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:149)
+Windows Export	Export game	2026-02-15T20:48:28.1362280Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1363276Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:161)
+Windows Export	Export game	2026-02-15T20:48:28.1364372Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1365364Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:169)
+Windows Export	Export game	2026-02-15T20:48:28.1366461Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1367450Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:182)
+Windows Export	Export game	2026-02-15T20:48:28.1368529Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1369675Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:193)
+Windows Export	Export game	2026-02-15T20:48:28.1370765Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1371726Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:204)
+Windows Export	Export game	2026-02-15T20:48:28.1372849Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1373848Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:221)
+Windows Export	Export game	2026-02-15T20:48:28.1374964Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1375986Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:232)
+Windows Export	Export game	2026-02-15T20:48:28.1377094Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1378103Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:244)
+Windows Export	Export game	2026-02-15T20:48:28.1379377Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1380392Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:257)
+Windows Export	Export game	2026-02-15T20:48:28.1381616Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1382605Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:269)
+Windows Export	Export game	2026-02-15T20:48:28.1383708Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1384698Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:283)
+Windows Export	Export game	2026-02-15T20:48:28.1385779Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1386772Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:299)
+Windows Export	Export game	2026-02-15T20:48:28.1387864Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1389148Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:316)
+Windows Export	Export game	2026-02-15T20:48:28.1390258Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1391241Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:336)
+Windows Export	Export game	2026-02-15T20:48:28.1392527Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1393463Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:347)
+Windows Export	Export game	2026-02-15T20:48:28.1394711Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1395837Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:364)
+Windows Export	Export game	2026-02-15T20:48:28.1396912Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1397909Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:400)
+Windows Export	Export game	2026-02-15T20:48:28.1399170Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1400189Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:419)
+Windows Export	Export game	2026-02-15T20:48:28.1401301Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1402312Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:437)
+Windows Export	Export game	2026-02-15T20:48:28.1403431Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1404438Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:449)
+Windows Export	Export game	2026-02-15T20:48:28.1405541Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1406544Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:465)
+Windows Export	Export game	2026-02-15T20:48:28.1407629Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Windows Export	Export game	2026-02-15T20:48:28.1408621Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:478)
+Windows Export	Export game	2026-02-15T20:48:28.1410727Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:28.1412194Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:55)
+Windows Export	Export game	2026-02-15T20:48:28.1413192Z ERROR: Failed to load script "res://tests/unit/test_enemy_states.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.1413998Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.3308106Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:28.3311048Z           at: GDScript::reload (res://tests/unit/test_flashlight_effect.gd:201)
+Windows Export	Export game	2026-02-15T20:48:28.3319037Z ERROR: Failed to load script "res://tests/unit/test_flashlight_effect.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.3321320Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.3498971Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:28.3501705Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Windows Export	Export game	2026-02-15T20:48:28.3503303Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:28.3504674Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Windows Export	Export game	2026-02-15T20:48:28.3507938Z ERROR: Failed to load script "res://tests/unit/test_frag_grenade.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.3508977Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.4357864Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.4360298Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:747)
+Windows Export	Export game	2026-02-15T20:48:28.4363039Z SCRIPT ERROR: Parse Error: The method "force_raycast_update()" overrides a method from native class "RayCast2D". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:28.4366689Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:63)
+Windows Export	Export game	2026-02-15T20:48:28.4368627Z SCRIPT ERROR: Parse Error: The method "is_colliding()" overrides a method from native class "RayCast2D". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:28.4370302Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:67)
+Windows Export	Export game	2026-02-15T20:48:28.4371986Z SCRIPT ERROR: Parse Error: The method "get_collider()" overrides a method from native class "RayCast2D". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:28.4373563Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:70)
+Windows Export	Export game	2026-02-15T20:48:28.4374692Z ERROR: Failed to load script "res://tests/unit/test_grenade_avoidance_component.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.4377016Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.4626676Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.4627510Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:395)
+Windows Export	Export game	2026-02-15T20:48:28.4628284Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.4629162Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:402)
+Windows Export	Export game	2026-02-15T20:48:28.4629908Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.4630638Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:652)
+Windows Export	Export game	2026-02-15T20:48:28.4631422Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.4632119Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:726)
+Windows Export	Export game	2026-02-15T20:48:28.4640262Z ERROR: Failed to load script "res://tests/unit/test_grenade_base.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.4642817Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.7124979Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7127624Z           at: GDScript::reload (res://tests/unit/test_issue_716_comprehensive.gd:17)
+Windows Export	Export game	2026-02-15T20:48:28.7141912Z ERROR: Failed to load script "res://tests/unit/test_issue_716_comprehensive.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.7142838Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.7485732Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7486774Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:15)
+Windows Export	Export game	2026-02-15T20:48:28.7489580Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7492582Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:36)
+Windows Export	Export game	2026-02-15T20:48:28.7493592Z SCRIPT ERROR: Parse Error: Identifier "cock_result" not declared in the current scope.
+Windows Export	Export game	2026-02-15T20:48:28.7494503Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:51)
+Windows Export	Export game	2026-02-15T20:48:28.7495461Z SCRIPT ERROR: Parse Error: Identifier "cock_result" not declared in the current scope.
+Windows Export	Export game	2026-02-15T20:48:28.7496326Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:52)
+Windows Export	Export game	2026-02-15T20:48:28.7501162Z ERROR: Failed to load script "res://tests/unit/test_issue_716_integration.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.7502050Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.7674061Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Windows Export	Export game	2026-02-15T20:48:28.7677151Z           at: GDScript::reload (res://tests/unit/test_issue_716_verification.gd:23)
+Windows Export	Export game	2026-02-15T20:48:28.7685369Z ERROR: Failed to load script "res://tests/unit/test_issue_716_verification.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.7687264Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:28.8375658Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8376658Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1140)
+Windows Export	Export game	2026-02-15T20:48:28.8377622Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8378476Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1141)
+Windows Export	Export game	2026-02-15T20:48:28.8379558Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8380386Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1142)
+Windows Export	Export game	2026-02-15T20:48:28.8381290Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8382108Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1143)
+Windows Export	Export game	2026-02-15T20:48:28.8383033Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8383862Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1144)
+Windows Export	Export game	2026-02-15T20:48:28.8384750Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8385572Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1145)
+Windows Export	Export game	2026-02-15T20:48:28.8386467Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8387273Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1197)
+Windows Export	Export game	2026-02-15T20:48:28.8388172Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8389122Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1198)
+Windows Export	Export game	2026-02-15T20:48:28.8390024Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8390898Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1199)
+Windows Export	Export game	2026-02-15T20:48:28.8391787Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8392611Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1200)
+Windows Export	Export game	2026-02-15T20:48:28.8393493Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8394314Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1201)
+Windows Export	Export game	2026-02-15T20:48:28.8395205Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:28.8396034Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1202)
+Windows Export	Export game	2026-02-15T20:48:28.8397167Z ERROR: Failed to load script "res://tests/unit/test_last_chance_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:28.8398036Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.0025954Z SCRIPT ERROR: Parse Error: The member "Range" shadows a native class.
+Windows Export	Export game	2026-02-15T20:48:29.0026943Z           at: GDScript::reload (res://tests/unit/test_makarov_pm.gd:26)
+Windows Export	Export game	2026-02-15T20:48:29.0033825Z ERROR: Failed to load script "res://tests/unit/test_makarov_pm.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.0034637Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.0866607Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0867659Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1034)
+Windows Export	Export game	2026-02-15T20:48:29.0868571Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0869438Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1035)
+Windows Export	Export game	2026-02-15T20:48:29.0870069Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0870635Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1036)
+Windows Export	Export game	2026-02-15T20:48:29.0871610Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0872352Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1037)
+Windows Export	Export game	2026-02-15T20:48:29.0872967Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0873523Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1038)
+Windows Export	Export game	2026-02-15T20:48:29.0874124Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0874687Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1039)
+Windows Export	Export game	2026-02-15T20:48:29.0875287Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0875849Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1367)
+Windows Export	Export game	2026-02-15T20:48:29.0876458Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0877015Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1368)
+Windows Export	Export game	2026-02-15T20:48:29.0877621Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0878164Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1369)
+Windows Export	Export game	2026-02-15T20:48:29.0879087Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0879971Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1370)
+Windows Export	Export game	2026-02-15T20:48:29.0880816Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0881411Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1371)
+Windows Export	Export game	2026-02-15T20:48:29.0882037Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.0882611Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1372)
+Windows Export	Export game	2026-02-15T20:48:29.0883424Z ERROR: Failed to load script "res://tests/unit/test_penultimate_hit_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.0884031Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.1530988Z SCRIPT ERROR: Parse Error: Cannot infer the type of "shift_dir" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1532529Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:273)
+Windows Export	Export game	2026-02-15T20:48:29.1533994Z SCRIPT ERROR: Parse Error: Cannot infer the type of "dist" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1535171Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:315)
+Windows Export	Export game	2026-02-15T20:48:29.1536330Z SCRIPT ERROR: Parse Error: Cannot infer the type of "to_cover" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1537041Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:459)
+Windows Export	Export game	2026-02-15T20:48:29.1537881Z SCRIPT ERROR: Parse Error: Cannot infer the type of "enemy_to_cover" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.1538598Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:470)
+Windows Export	Export game	2026-02-15T20:48:29.1539731Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.1540573Z           at: GDScript::reload (res://scripts/ai/player_prediction_component.gd:582)
+Windows Export	Export game	2026-02-15T20:48:29.1541055Z SCRIPT ERROR: Compile Error: 
+Windows Export	Export game	2026-02-15T20:48:29.1541445Z           at: GDScript::reload (res://tests/unit/test_player_prediction.gd:-1)
+Windows Export	Export game	2026-02-15T20:48:29.1558133Z ERROR: Failed to load script "res://tests/unit/test_player_prediction.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.1558691Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.1825146Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:29.1826635Z           at: GDScript::reload (res://tests/unit/test_power_fantasy_effects_manager.gd:40)
+Windows Export	Export game	2026-02-15T20:48:29.1827944Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.1829197Z           at: GDScript::reload (res://tests/unit/test_power_fantasy_effects_manager.gd:40)
+Windows Export	Export game	2026-02-15T20:48:29.1842949Z ERROR: Failed to load script "res://tests/unit/test_power_fantasy_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.1843838Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.5087582Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-02-15T20:48:29.5088350Z           at: GDScript::reload (res://tests/unit/test_shrapnel.gd:369)
+Windows Export	Export game	2026-02-15T20:48:29.5095174Z ERROR: Failed to load script "res://tests/unit/test_shrapnel.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.5096020Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.5575336Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:29.5576867Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	Export game	2026-02-15T20:48:29.5577889Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-02-15T20:48:29.5579078Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:564)
+Windows Export	Export game	2026-02-15T20:48:29.5580377Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5581523Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:24)
+Windows Export	Export game	2026-02-15T20:48:29.5582703Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5584079Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	Export game	2026-02-15T20:48:29.5585287Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5586231Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:549)
+Windows Export	Export game	2026-02-15T20:48:29.5587243Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.5588140Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:564)
+Windows Export	Export game	2026-02-15T20:48:29.5588949Z ERROR: Failed to load script "res://tests/unit/test_status_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.5589479Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.6293942Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-02-15T20:48:29.6295145Z           at: GDScript::reload (res://tests/unit/test_threat_sphere.gd:122)
+Windows Export	Export game	2026-02-15T20:48:29.6300806Z ERROR: Failed to load script "res://tests/unit/test_threat_sphere.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.6301431Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:29.8202169Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8203635Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:388)
+Windows Export	Export game	2026-02-15T20:48:29.8204912Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8206134Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:395)
+Windows Export	Export game	2026-02-15T20:48:29.8207174Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8207853Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:402)
+Windows Export	Export game	2026-02-15T20:48:29.8208591Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8209544Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:409)
+Windows Export	Export game	2026-02-15T20:48:29.8210289Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8210957Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:416)
+Windows Export	Export game	2026-02-15T20:48:29.8211689Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8212344Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:423)
+Windows Export	Export game	2026-02-15T20:48:29.8213064Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8213942Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:432)
+Windows Export	Export game	2026-02-15T20:48:29.8215093Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8215752Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:441)
+Windows Export	Export game	2026-02-15T20:48:29.8216479Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8217143Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:454)
+Windows Export	Export game	2026-02-15T20:48:29.8217871Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8218482Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:461)
+Windows Export	Export game	2026-02-15T20:48:29.8219241Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8219823Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:468)
+Windows Export	Export game	2026-02-15T20:48:29.8220459Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8221028Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:475)
+Windows Export	Export game	2026-02-15T20:48:29.8221681Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8222247Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:482)
+Windows Export	Export game	2026-02-15T20:48:29.8222873Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8223444Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:489)
+Windows Export	Export game	2026-02-15T20:48:29.8224067Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8224639Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:496)
+Windows Export	Export game	2026-02-15T20:48:29.8225260Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8225834Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:503)
+Windows Export	Export game	2026-02-15T20:48:29.8226464Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-02-15T20:48:29.8227032Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:510)
+Windows Export	Export game	2026-02-15T20:48:29.8227827Z ERROR: Failed to load script "res://tests/unit/test_weapon_config_component.gd" with error "Parse error".
+Windows Export	Export game	2026-02-15T20:48:29.8228341Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-02-15T20:48:30.3866622Z WARNING: res://resources/calibers/caliber_9x19.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	Export game	2026-02-15T20:48:30.3867778Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:30.3870950Z WARNING: res://resources/calibers/caliber_9x18.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	Export game	2026-02-15T20:48:30.3871909Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:30.3873975Z WARNING: res://scenes/weapons/csharp/MakarovPM.tscn:7 - ext_resource, invalid UID: uid://makarov_pm_topdown - using text path instead: res://assets/sprites/weapons/makarov_pm_topdown.png
+Windows Export	Export game	2026-02-15T20:48:30.3874952Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-02-15T20:48:31.5374955Z ##[endgroup]
+Windows Export	Export game	2026-02-15T20:48:31.5376572Z 🎯 Using project file at /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot
+Windows Export	Export game	2026-02-15T20:48:31.5391869Z ##[group]1️⃣ Export binary for preset "Windows Desktop"
+Windows Export	Export game	2026-02-15T20:48:31.5401391Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot --headless --export-release Windows Desktop /home/runner/.local/share/godot/builds/Windows Desktop/Godot-Top-Down-Template.exe
+Windows Export	Export game	2026-02-15T20:48:31.5586897Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	Export game	2026-02-15T20:48:31.5772149Z 
+Windows Export	Export game	2026-02-15T20:48:34.9592898Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/GrenadeTimerHelper.cs' is not compiling.
+Windows Export	Export game	2026-02-15T20:48:34.9594697Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-02-15T20:48:34.9705301Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/ReplayManager.cs' is not compiling.
+Windows Export	Export game	2026-02-15T20:48:34.9706467Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-02-15T20:48:35.4165058Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Windows Export	Export game	2026-02-15T20:48:35.9413186Z dotnet_publish_project: begin: Publishing .NET project... steps: 1
+Windows Export	Export game	2026-02-15T20:48:35.9414521Z 	dotnet_publish_project: step 0: Running dotnet publish
+Windows Export	Export game	2026-02-15T20:48:41.5374375Z ERROR: Caller thread can't call this function in this node (/root). Use call_deferred() or call_thread_group() instead.
+Windows Export	Export game	2026-02-15T20:48:41.5375742Z    at: propagate_notification (scene/main/node.cpp:2422)
+Windows Export	Export game	2026-02-15T20:48:41.5376253Z 
+Windows Export	Export game	2026-02-15T20:48:41.5376732Z ================================================================
+Windows Export	Export game	2026-02-15T20:48:41.5377314Z handle_crash: Program crashed with signal 11
+Windows Export	Export game	2026-02-15T20:48:41.5378322Z Engine version: Godot Engine v4.3.stable.mono.official (77dcf97d82cbfe4e4615475fa52ca03da645dbd8)
+Windows Export	Export game	2026-02-15T20:48:41.5379726Z Dumping the backtrace. Please include this when reporting the bug to the project developer.
+Windows Export	Export game	2026-02-15T20:48:45.4417278Z ##[error]The process '/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64' failed with exit code null
+Windows Export	Post Checkout	﻿2026-02-15T20:48:45.4596049Z Post job cleanup.
+Windows Export	Post Checkout	2026-02-15T20:48:45.5631819Z [command]/usr/bin/git version
+Windows Export	Post Checkout	2026-02-15T20:48:45.5674593Z git version 2.52.0
+Windows Export	Post Checkout	2026-02-15T20:48:45.5729347Z Temporarily overriding HOME='/home/runner/work/_temp/46cc6b8a-e12b-43d2-be6b-8e5cc67804d9' before making global git config changes
+Windows Export	Post Checkout	2026-02-15T20:48:45.5730808Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Post Checkout	2026-02-15T20:48:45.5735967Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Post Checkout	2026-02-15T20:48:45.5776816Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Post Checkout	2026-02-15T20:48:45.5816662Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Post Checkout	2026-02-15T20:48:45.6091838Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Post Checkout	2026-02-15T20:48:45.6116057Z http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-02-15T20:48:45.6130737Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-02-15T20:48:45.6165549Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Post Checkout	2026-02-15T20:48:45.6429951Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Post Checkout	2026-02-15T20:48:45.6480080Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Complete job	﻿2026-02-15T20:48:45.6915727Z Cleaning up orphan processes
+Windows Export	Complete job	2026-02-15T20:48:45.7234909Z Terminate orphan process: pid (2695) (VBCSCompiler)
