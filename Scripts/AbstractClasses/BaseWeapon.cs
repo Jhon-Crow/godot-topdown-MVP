@@ -396,45 +396,54 @@ public abstract partial class BaseWeapon : Node2D
         var bullet = BulletScene.Instantiate<Node2D>();
         bullet.GlobalPosition = spawnPosition;
 
-        // Set bullet properties - try both PascalCase (C#) and snake_case (GDScript)
-        // C# bullets use PascalCase (Direction, Speed, ShooterId, ShooterPosition)
-        // GDScript bullets use snake_case (direction, speed, shooter_id, shooter_position)
-        if (bullet.HasMethod("SetDirection"))
+        // Check if this is a C# bullet or GDScript bullet
+        // C# bullets can use direct property access, GDScript bullets need Set()
+        var isCSharpBullet = bullet is CSharpBullet;
+
+        if (isCSharpBullet)
         {
-            bullet.Call("SetDirection", direction);
+            // C# bullet - direct property access works
+            var csBullet = (CSharpBullet)bullet;
+            csBullet.Direction = direction;
+            if (WeaponData != null)
+            {
+                csBullet.Speed = WeaponData.BulletSpeed;
+                csBullet.Damage = WeaponData.Damage;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                csBullet.ShooterId = owner.GetInstanceId();
+            }
+            csBullet.ShooterPosition = GlobalPosition;
+
+            GD.Print($"[BaseWeapon] C# bullet spawned: direction={direction}");
         }
         else
         {
-            // Try PascalCase first (C# Bullet.cs), then snake_case (GDScript bullet.gd)
-            bullet.Set("Direction", direction);
+            // GDScript bullet - use snake_case property names with Set()
+            // For @export properties in GDScript, Node.Set() from C# requires the exact property name
             bullet.Set("direction", direction);
-        }
 
-        // Set bullet speed and damage from weapon data
-        if (WeaponData != null)
-        {
-            // Try both cases for compatibility with C# and GDScript bullets
-            bullet.Set("Speed", WeaponData.BulletSpeed);
-            bullet.Set("speed", WeaponData.BulletSpeed);
-            // Set damage - critical for weapons with custom damage values
-            bullet.Set("Damage", WeaponData.Damage);
-            bullet.Set("damage", WeaponData.Damage);
-        }
+            if (WeaponData != null)
+            {
+                bullet.Set("speed", WeaponData.BulletSpeed);
+                bullet.Set("damage", WeaponData.Damage);
+            }
 
-        // Set shooter ID to prevent self-damage
-        // The shooter is the owner of the weapon (parent node)
-        var owner = GetParent();
-        if (owner != null)
-        {
-            // Try both cases for compatibility with C# and GDScript bullets
-            bullet.Set("ShooterId", owner.GetInstanceId());
-            bullet.Set("shooter_id", owner.GetInstanceId());
-        }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                // Cast to int for GDScript compatibility
+                bullet.Set("shooter_id", (int)owner.GetInstanceId());
+            }
 
-        // Set shooter position for distance-based penetration calculations
-        // Try both cases for compatibility with C# and GDScript bullets
-        bullet.Set("ShooterPosition", GlobalPosition);
-        bullet.Set("shooter_position", GlobalPosition);
+            bullet.Set("shooter_position", GlobalPosition);
+
+            // Verify the direction was set (Issue #781 debugging)
+            var actualDir = bullet.Get("direction");
+            GD.Print($"[BaseWeapon] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
+        }
 
         // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
         if (IsBreakerBulletActive)

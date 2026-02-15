@@ -427,11 +427,15 @@ public partial class MakarovPM : BaseWeapon
         var bulletNode = BulletScene.Instantiate<Node2D>();
         bulletNode.GlobalPosition = spawnPosition;
 
+        // Log bullet spawn for debugging (Issue #781)
+        var fileLogger = GetNodeOrNull("/root/FileLogger");
+
         // Try to cast to C# Bullet type for direct property access
         var bullet = bulletNode as Bullet;
 
         if (bullet != null)
         {
+            // C# Bullet - direct property access
             bullet.Direction = direction;
             if (WeaponData != null)
             {
@@ -445,39 +449,43 @@ public partial class MakarovPM : BaseWeapon
             }
             bullet.ShooterPosition = GlobalPosition;
             bullet.StunDuration = StunDurationOnHit;
+
+            GD.Print($"[MakarovPM] C# bullet spawned: direction={direction}, speed={bullet.Speed}");
+            if (fileLogger != null && fileLogger.HasMethod("log_info"))
+            {
+                fileLogger.Call("log_info", $"[MakarovPM] C# bullet spawned: direction={direction}, speed={bullet.Speed}");
+            }
         }
         else
         {
-            // GDScript bullet fallback
-            if (bulletNode.HasMethod("SetDirection"))
-            {
-                bulletNode.Call("SetDirection", direction);
-            }
-            else
-            {
-                bulletNode.Set("Direction", direction);
-                bulletNode.Set("direction", direction);
-            }
+            // GDScript bullet fallback - must use snake_case property names
+            GD.Print($"[MakarovPM] GDScript bullet detected, setting properties via Set()");
+
+            // Set direction - for @export var direction in GDScript
+            bulletNode.Set("direction", direction);
 
             if (WeaponData != null)
             {
-                bulletNode.Set("Speed", WeaponData.BulletSpeed);
                 bulletNode.Set("speed", WeaponData.BulletSpeed);
-                bulletNode.Set("Damage", WeaponData.Damage);
                 bulletNode.Set("damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("ShooterId", owner.GetInstanceId());
-                bulletNode.Set("shooter_id", owner.GetInstanceId());
+                bulletNode.Set("shooter_id", (int)owner.GetInstanceId());
             }
 
-            bulletNode.Set("ShooterPosition", GlobalPosition);
             bulletNode.Set("shooter_position", GlobalPosition);
-            bulletNode.Set("StunDuration", StunDurationOnHit);
             bulletNode.Set("stun_duration", StunDurationOnHit);
+
+            // Verify the direction was set correctly
+            var actualDir = bulletNode.Get("direction");
+            GD.Print($"[MakarovPM] GDScript bullet spawned: set direction={direction}, actual direction={actualDir}");
+            if (fileLogger != null && fileLogger.HasMethod("log_info"))
+            {
+                fileLogger.Call("log_info", $"[MakarovPM] GDScript bullet spawned: set direction={direction}, actual={actualDir}");
+            }
         }
 
         // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)

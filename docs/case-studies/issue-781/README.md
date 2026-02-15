@@ -127,10 +127,56 @@ Added `@export` annotation to all variables set from C#:
 - `scripts/projectiles/bullet.gd` - Added aim-line targeting implementation + @export annotations
 - `tests/unit/test_homing_bullets.gd` - Added unit tests
 
+## Second Regression: Bullets Still Not Flying (2026-02-15 18:11 UTC)
+
+### Symptom
+
+After the @export fix was pushed, user reported:
+> "пули всё ещё сломаны, проверь С#"
+> (bullets still broken, check C#)
+
+### Analysis
+
+1. **Log Analysis:** The new log (`game_log_20260215_211028.txt`) shows:
+   - Player fires Makarov PM (lines 326, 330, 338, etc.)
+   - **NO `[Bullet]` debug messages appear**
+   - This indicates either outdated build or different issue
+
+2. **Timeline Mismatch:**
+   - User's log timestamp: 18:11 UTC
+   - Fix commit timestamp: 17:42 UTC
+   - User likely used old exported build without @export fix
+
+3. **Additional Investigation:**
+   - Added diagnostic logging to `MakarovPM.cs` and `BaseWeapon.cs`
+   - Log now shows `[MakarovPM] GDScript bullet detected` and actual direction after Set()
+   - Simplified property setting: only use snake_case (GDScript convention)
+   - Removed redundant PascalCase attempts that don't work with GDScript
+
+### Changes Made (2026-02-15 18:30+ UTC)
+
+1. **MakarovPM.cs:**
+   - Simplified GDScript bullet property setting
+   - Added diagnostic logging to verify direction is set correctly
+   - Use only snake_case property names: `direction`, `speed`, `shooter_id`, etc.
+
+2. **BaseWeapon.cs:**
+   - Restructured SpawnBullet to clearly separate C# vs GDScript paths
+   - Added verification that direction was actually set
+   - Added `[BaseWeapon]` logging for debugging
+
+### Key Insight: C# to GDScript Property Interop
+
+When calling `Node.Set()` from C# to set a GDScript `@export` property:
+- Use the **exact snake_case name** as defined in GDScript: `Set("direction", value)`
+- PascalCase names like `Set("Direction", value)` don't work
+- The property MUST be `@export` decorated in GDScript
+
 ## Test Data
 
 - `logs/game_log_20260215_154849.txt` - Original game log from issue report
-- `logs/game_log_20260215_164144.txt` - Regression log (bullets not flying)
+- `logs/game_log_20260215_164144.txt` - Regression log (bullets not flying, first report)
+- `logs/game_log_20260215_211028.txt` - Second regression log (still not flying)
 
 ## References
 
