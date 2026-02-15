@@ -150,6 +150,12 @@ var _grenade_manager: Node = null
 ## Reference to ActiveItemManager autoload.
 var _active_item_manager: Node = null
 
+## Reference to UnlockManager autoload (Issue #785).
+var _unlock_manager: Node = null
+
+## Reference to AudioManager autoload.
+var _audio_manager: Node = null
+
 ## Cached weapon resource data.
 var _weapon_resources: Dictionary = {}
 
@@ -162,6 +168,26 @@ var _grenade_overflow_slots: Array = []
 ## Overflow active item slots (hidden when collapsed).
 var _active_item_overflow_slots: Array = []
 
+## --- Hold-to-unlock state (Issue #785) ---
+
+## Currently held slot for unlock (null if not holding).
+var _unlock_target_slot: PanelContainer = null
+
+## Type of item being unlocked ("weapon", "grenade", "active_item").
+var _unlock_target_type: String = ""
+
+## ID of item being unlocked.
+var _unlock_target_id: String = ""
+
+## Time when LMB was pressed on locked item (for hold duration tracking).
+var _unlock_hold_start_time: float = 0.0
+
+## Progress bar for unlock feedback.
+var _unlock_progress_bar: ProgressBar = null
+
+## Whether unlock hold is currently active.
+var _unlock_hold_active: bool = false
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -169,6 +195,12 @@ func _ready() -> void:
 
 	# Get ActiveItemManager reference
 	_active_item_manager = get_node_or_null("/root/ActiveItemManager")
+
+	# Get UnlockManager reference (Issue #785)
+	_unlock_manager = get_node_or_null("/root/UnlockManager")
+
+	# Get AudioManager reference
+	_audio_manager = get_node_or_null("/root/AudioManager")
 
 	# Load weapon resource data
 	_load_weapon_resources()
@@ -194,6 +226,45 @@ func _ready() -> void:
 
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+## Process frame for hold-to-unlock tracking (Issue #785).
+func _process(delta: float) -> void:
+	if not _unlock_hold_active:
+		return
+
+	# Check if LMB is still held
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_cancel_unlock_hold()
+		return
+
+	# Calculate hold progress
+	var hold_time: float = _get_unlock_hold_time()
+	var elapsed: float = (Time.get_ticks_msec() / 1000.0) - _unlock_hold_start_time
+	var progress: float = clamp(elapsed / hold_time, 0.0, 1.0)
+
+	# Update progress bar
+	if _unlock_progress_bar and is_instance_valid(_unlock_progress_bar):
+		_unlock_progress_bar.value = progress
+
+	# Check if unlock is complete
+	if progress >= 1.0:
+		_complete_unlock()
+
+
+## Get the hold time required for unlock from UnlockManager.
+func _get_unlock_hold_time() -> float:
+	if _unlock_manager and _unlock_manager.has_method("get_unlock_hold_time"):
+		return _unlock_manager.get_unlock_hold_time()
+	return 1.5  # Fallback default
+
+
+## Handle input events for unlock cancellation (Issue #785).
+func _input(event: InputEvent) -> void:
+	# Cancel unlock if mouse button is released
+	if event is InputEventMouseButton and not event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT and _unlock_hold_active:
+			_cancel_unlock_hold()
 
 
 ## Load weapon .tres resources for stats display.
@@ -641,6 +712,7 @@ func _add_category_header(parent: VBoxContainer, text: String) -> void:
 
 ## Create an item slot (used for both weapons and grenades).
 ## Locked items show weapon case icon and hidden name for future animated opening.
+## Uses UnlockManager to determine unlock state (Issue #785).
 func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = item_id + "_slot"
@@ -651,16 +723,24 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 	slot.set_meta("is_grenade", is_grenade)
 
 	var vbox := VBoxContainer.new()
+	vbox.name = "VBoxContainer"
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 3)
 	slot.add_child(vbox)
 
 	# Item icon or weapon case for locked items
 	var icon_container := CenterContainer.new()
+	icon_container.name = "CenterContainer"
 	icon_container.custom_minimum_size = Vector2(48, 48)
 	vbox.add_child(icon_container)
 
-	var is_unlocked: bool = item_data.get("unlocked", false)
+	# Use UnlockManager to check unlock state (Issue #785)
+	var is_unlocked: bool
+	if is_grenade:
+		var grenade_type: int = item_data.get("grenade_type", 0)
+		is_unlocked = _is_grenade_unlocked(grenade_type)
+	else:
+		is_unlocked = _is_weapon_unlocked(item_id)
 
 	if is_unlocked and item_data.get("icon_path", "") != "":
 		var texture_rect := TextureRect.new()
@@ -678,7 +758,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 		case_texture_rect.custom_minimum_size = Vector2(48, 48)
 		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		case_texture_rect.name = "CaseIcon"  # Named for future animation access
+		case_texture_rect.name = "CaseIcon"  # Named for animation access
 
 		# Choose icon based on item type
 		var case_icon_path: String
@@ -708,24 +788,36 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 	if is_unlocked:
 		slot.tooltip_text = item_data.get("description", "")
 	else:
-		slot.tooltip_text = ""  # No tooltip for locked items
+		slot.tooltip_text = "Hold LMB to unlock"  # Hint for locked items
 
-	# Make unlocked items clickable
+	# Make items clickable (both unlocked for selection, locked for hold-to-unlock)
+	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
 	if is_unlocked:
-		slot.mouse_filter = Control.MOUSE_FILTER_STOP
 		slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data))
-		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	else:
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Connect hold-to-unlock handler for locked items (Issue #785)
+		var item_type_str: String = "grenade" if is_grenade else "weapon"
+		var item_id_str: String
+		if is_grenade:
+			item_id_str = str(item_data.get("grenade_type", 0))
+		else:
+			item_id_str = item_id
+		slot.gui_input.connect(_on_locked_slot_gui_input.bind(slot, item_type_str, item_id_str))
 
-	# Default style
-	_apply_default_style(slot)
+	# Default style (use locked style for locked items)
+	if is_unlocked:
+		_apply_default_style(slot)
+	else:
+		_apply_locked_style(slot)
 
 	return slot
 
 
 ## Create an active item slot (separate handler for active item clicks).
 ## Locked items show weapon case icon and hidden name for future animated opening.
+## Uses UnlockManager to determine unlock state (Issue #785).
 func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = "active_" + item_id + "_slot"
@@ -736,16 +828,19 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	slot.set_meta("is_active_item", true)
 
 	var vbox := VBoxContainer.new()
+	vbox.name = "VBoxContainer"
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 3)
 	slot.add_child(vbox)
 
 	# Item icon or placeholder
 	var icon_container := CenterContainer.new()
+	icon_container.name = "CenterContainer"
 	icon_container.custom_minimum_size = Vector2(48, 48)
 	vbox.add_child(icon_container)
 
-	var is_unlocked: bool = item_data.get("unlocked", true)  # Default unlocked for active items
+	# Use UnlockManager to check unlock state (Issue #785)
+	var is_unlocked: bool = _is_active_item_unlocked(item_type)
 	var icon_path: String = item_data.get("icon_path", "")
 	var item_name: String = item_data.get("name", "")
 
@@ -755,7 +850,7 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 		case_texture_rect.custom_minimum_size = Vector2(48, 48)
 		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		case_texture_rect.name = "ItemCaseIcon"
+		case_texture_rect.name = "CaseIcon"
 
 		if ResourceLoader.exists(ITEM_CASE_ICON_PATH):
 			var case_texture: Texture2D = load(ITEM_CASE_ICON_PATH)
@@ -795,18 +890,23 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	if is_unlocked:
 		slot.tooltip_text = item_data.get("description", "")
 	else:
-		slot.tooltip_text = ""
+		slot.tooltip_text = "Hold LMB to unlock"  # Hint for locked items
 
-	# Make clickable only if unlocked
+	# Make items clickable (both unlocked for selection, locked for hold-to-unlock)
+	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
 	if is_unlocked:
-		slot.mouse_filter = Control.MOUSE_FILTER_STOP
 		slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type))
-		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	else:
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Connect hold-to-unlock handler for locked items (Issue #785)
+		slot.gui_input.connect(_on_locked_slot_gui_input.bind(slot, "active_item", str(item_type)))
 
-	# Default style
-	_apply_default_style(slot)
+	# Style (use locked style for locked items)
+	if is_unlocked:
+		_apply_default_style(slot)
+	else:
+		_apply_locked_style(slot)
 
 	return slot
 
@@ -852,6 +952,34 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 	selected_style.corner_radius_bottom_left = 4
 	selected_style.corner_radius_bottom_right = 4
 	slot.add_theme_stylebox_override("panel", selected_style)
+
+
+## Apply locked style to a slot (Issue #785).
+func _apply_locked_style(slot: PanelContainer) -> void:
+	var locked_style := StyleBoxFlat.new()
+	locked_style.bg_color = Color(0.15, 0.15, 0.18, 0.7)
+	locked_style.border_color = Color(0.35, 0.35, 0.4, 0.6)
+	locked_style.border_width_left = 1
+	locked_style.border_width_right = 1
+	locked_style.border_width_top = 1
+	locked_style.border_width_bottom = 1
+	locked_style.corner_radius_top_left = 4
+	locked_style.corner_radius_top_right = 4
+	locked_style.corner_radius_bottom_left = 4
+	locked_style.corner_radius_bottom_right = 4
+	slot.add_theme_stylebox_override("panel", locked_style)
+
+
+## Handle input on a locked slot for hold-to-unlock (Issue #785).
+func _on_locked_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: String, item_id: String) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			# Start hold-to-unlock
+			_start_unlock_hold(slot, item_type, item_id)
+		else:
+			# Mouse released - cancel if still holding
+			if _unlock_hold_active and _unlock_target_slot == slot:
+				_cancel_unlock_hold()
 
 
 ## Handle click on an item slot.
@@ -1118,3 +1246,296 @@ func _populate_weapon_grid() -> void:
 
 func _on_back_pressed() -> void:
 	back_pressed.emit()
+
+
+# ============================================================================
+# Hold-to-unlock functionality (Issue #785)
+# ============================================================================
+
+## Start tracking hold for unlocking a locked item.
+## @param slot: The PanelContainer slot being held.
+## @param item_type: "weapon", "grenade", or "active_item".
+## @param item_id: The item ID or type value as string.
+func _start_unlock_hold(slot: PanelContainer, item_type: String, item_id: String) -> void:
+	if _unlock_hold_active:
+		return  # Already holding another item
+
+	_unlock_target_slot = slot
+	_unlock_target_type = item_type
+	_unlock_target_id = item_id
+	_unlock_hold_start_time = Time.get_ticks_msec() / 1000.0
+	_unlock_hold_active = true
+
+	# Play start sound
+	if _audio_manager and _audio_manager.has_method("play_case_open_start"):
+		_audio_manager.play_case_open_start()
+
+	# Create and show progress bar overlay on the slot
+	_create_unlock_progress_bar(slot)
+
+
+## Cancel the current unlock hold operation.
+func _cancel_unlock_hold() -> void:
+	if not _unlock_hold_active:
+		return
+
+	_unlock_hold_active = false
+	_unlock_target_slot = null
+	_unlock_target_type = ""
+	_unlock_target_id = ""
+
+	# Remove progress bar
+	_remove_unlock_progress_bar()
+
+
+## Complete the unlock operation and trigger animation.
+func _complete_unlock() -> void:
+	if not _unlock_hold_active:
+		return
+
+	var slot := _unlock_target_slot
+	var item_type := _unlock_target_type
+	var item_id := _unlock_target_id
+
+	# Stop tracking
+	_unlock_hold_active = false
+	_unlock_target_slot = null
+	_unlock_target_type = ""
+	_unlock_target_id = ""
+
+	# Remove progress bar
+	_remove_unlock_progress_bar()
+
+	# Play success sound
+	if _audio_manager and _audio_manager.has_method("play_case_open_success"):
+		_audio_manager.play_case_open_success()
+
+	# Unlock in UnlockManager
+	if _unlock_manager:
+		match item_type:
+			"weapon":
+				_unlock_manager.unlock_weapon(item_id)
+			"grenade":
+				_unlock_manager.unlock_grenade(int(item_id))
+			"active_item":
+				_unlock_manager.unlock_active_item(int(item_id))
+
+	# Play unlock animation on the slot
+	if slot and is_instance_valid(slot):
+		_play_unlock_animation(slot, item_type, item_id)
+
+
+## Create a progress bar overlay on the target slot.
+func _create_unlock_progress_bar(slot: PanelContainer) -> void:
+	if _unlock_progress_bar != null and is_instance_valid(_unlock_progress_bar):
+		_unlock_progress_bar.queue_free()
+
+	_unlock_progress_bar = ProgressBar.new()
+	_unlock_progress_bar.name = "UnlockProgressBar"
+	_unlock_progress_bar.min_value = 0.0
+	_unlock_progress_bar.max_value = 1.0
+	_unlock_progress_bar.value = 0.0
+	_unlock_progress_bar.show_percentage = false
+
+	# Position at bottom of slot
+	_unlock_progress_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_unlock_progress_bar.custom_minimum_size = Vector2(0, 8)
+	_unlock_progress_bar.offset_top = -8
+
+	# Style the progress bar
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = Color(0.2, 0.8, 0.3, 0.9)
+	fill_style.corner_radius_bottom_left = 3
+	fill_style.corner_radius_bottom_right = 3
+	_unlock_progress_bar.add_theme_stylebox_override("fill", fill_style)
+
+	var bg_style := StyleBoxFlat.new()
+	bg_style.bg_color = Color(0.1, 0.1, 0.12, 0.8)
+	bg_style.corner_radius_bottom_left = 3
+	bg_style.corner_radius_bottom_right = 3
+	_unlock_progress_bar.add_theme_stylebox_override("background", bg_style)
+
+	slot.add_child(_unlock_progress_bar)
+
+
+## Remove the unlock progress bar.
+func _remove_unlock_progress_bar() -> void:
+	if _unlock_progress_bar != null and is_instance_valid(_unlock_progress_bar):
+		_unlock_progress_bar.queue_free()
+		_unlock_progress_bar = null
+
+
+## Play the unlock animation on a slot (tween-based).
+func _play_unlock_animation(slot: PanelContainer, item_type: String, item_id: String) -> void:
+	# Get the case icon texture rect
+	var icon_container := slot.get_node_or_null("VBoxContainer/CenterContainer")
+	if not icon_container:
+		# Fallback: just rebuild the slot
+		_rebuild_slot_as_unlocked(slot, item_type, item_id)
+		return
+
+	var case_icon: TextureRect = null
+	for child in icon_container.get_children():
+		if child is TextureRect and child.name == "CaseIcon":
+			case_icon = child
+			break
+		elif child is TextureRect and child.name == "ItemCaseIcon":
+			case_icon = child
+			break
+
+	if not case_icon:
+		# Just rebuild
+		_rebuild_slot_as_unlocked(slot, item_type, item_id)
+		return
+
+	# Create tween animation
+	var tween := create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_BACK)
+
+	# Phase 1: Scale up and rotate (anticipation)
+	tween.tween_property(case_icon, "scale", Vector2(1.3, 1.3), 0.15)
+	tween.parallel().tween_property(case_icon, "rotation", 0.1, 0.15)
+
+	# Phase 2: Quick scale down with spin
+	tween.tween_property(case_icon, "scale", Vector2(0.0, 0.0), 0.2)
+	tween.parallel().tween_property(case_icon, "rotation", PI * 2, 0.2)
+	tween.parallel().tween_property(case_icon, "modulate:a", 0.0, 0.2)
+
+	# Phase 3: Swap to unlocked icon (via callback)
+	tween.tween_callback(_rebuild_slot_as_unlocked.bind(slot, item_type, item_id))
+
+	# Phase 4: Scale in the new icon
+	tween.tween_interval(0.05)
+	tween.tween_callback(_animate_new_icon_in.bind(slot))
+
+
+## Animate the new unlocked icon appearing.
+func _animate_new_icon_in(slot: PanelContainer) -> void:
+	var icon_container := slot.get_node_or_null("VBoxContainer/CenterContainer")
+	if not icon_container:
+		return
+
+	var new_icon: TextureRect = null
+	for child in icon_container.get_children():
+		if child is TextureRect:
+			new_icon = child
+			break
+
+	if new_icon:
+		# Start small
+		new_icon.scale = Vector2(0.5, 0.5)
+		new_icon.modulate.a = 0.0
+
+		# Animate in
+		var tween := create_tween()
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_ELASTIC)
+		tween.tween_property(new_icon, "scale", Vector2(1.0, 1.0), 0.3)
+		tween.parallel().tween_property(new_icon, "modulate:a", 1.0, 0.15)
+
+
+## Rebuild a slot as unlocked (replace case icon with item icon).
+func _rebuild_slot_as_unlocked(slot: PanelContainer, item_type: String, item_id: String) -> void:
+	# Get item data
+	var item_data: Dictionary = {}
+	var item_name: String = ""
+	var icon_path: String = ""
+	var description: String = ""
+
+	match item_type:
+		"weapon":
+			item_data = FIREARMS.get(item_id, {})
+			item_name = item_data.get("name", "???")
+			icon_path = item_data.get("icon_path", "")
+			description = item_data.get("description", "")
+		"grenade":
+			if _grenade_manager:
+				item_data = _grenade_manager.get_grenade_data(int(item_id))
+			item_name = item_data.get("name", "???")
+			icon_path = item_data.get("icon_path", "")
+			description = item_data.get("description", "")
+		"active_item":
+			if _active_item_manager:
+				item_data = _active_item_manager.get_active_item_data(int(item_id))
+			item_name = item_data.get("name", "???")
+			icon_path = item_data.get("icon_path", "")
+			description = item_data.get("description", "")
+
+	# Update icon
+	var icon_container := slot.get_node_or_null("VBoxContainer/CenterContainer")
+	if icon_container:
+		# Remove old icons
+		for child in icon_container.get_children():
+			child.queue_free()
+
+		# Add new icon
+		if icon_path != "" and ResourceLoader.exists(icon_path):
+			var texture_rect := TextureRect.new()
+			texture_rect.custom_minimum_size = Vector2(48, 48)
+			texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+
+			var texture: Texture2D = load(icon_path)
+			if texture:
+				texture_rect.texture = texture
+			icon_container.add_child(texture_rect)
+
+	# Update name label
+	var vbox := slot.get_node_or_null("VBoxContainer")
+	if vbox:
+		for child in vbox.get_children():
+			if child is Label:
+				child.text = item_name
+				break
+
+	# Update tooltip
+	slot.tooltip_text = description
+
+	# Make clickable
+	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+	# Reconnect click handler for selection (disconnect old handler first)
+	if slot.gui_input.get_connections().size() > 0:
+		for connection in slot.gui_input.get_connections():
+			slot.gui_input.disconnect(connection["callable"])
+
+	match item_type:
+		"weapon":
+			var weapon_data := FIREARMS.get(item_id, {}).duplicate()
+			weapon_data["unlocked"] = true
+			slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, false, weapon_data))
+		"grenade":
+			var grenade_data := {}
+			if _grenade_manager:
+				grenade_data = _grenade_manager.get_grenade_data(int(item_id)).duplicate()
+			grenade_data["unlocked"] = true
+			grenade_data["grenade_type"] = int(item_id)
+			slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, true, grenade_data))
+		"active_item":
+			slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, int(item_id)))
+
+
+## Check if a weapon is unlocked using UnlockManager.
+func _is_weapon_unlocked(weapon_id: String) -> bool:
+	if _unlock_manager and _unlock_manager.has_method("is_weapon_unlocked"):
+		return _unlock_manager.is_weapon_unlocked(weapon_id)
+	# Fallback: check FIREARMS constant
+	return FIREARMS.get(weapon_id, {}).get("unlocked", false)
+
+
+## Check if a grenade is unlocked using UnlockManager.
+func _is_grenade_unlocked(grenade_type: int) -> bool:
+	if _unlock_manager and _unlock_manager.has_method("is_grenade_unlocked"):
+		return _unlock_manager.is_grenade_unlocked(grenade_type)
+	# Fallback: all grenades unlocked
+	return true
+
+
+## Check if an active item is unlocked using UnlockManager.
+func _is_active_item_unlocked(item_type: int) -> bool:
+	if _unlock_manager and _unlock_manager.has_method("is_active_item_unlocked"):
+		return _unlock_manager.is_active_item_unlocked(item_type)
+	# Fallback: all active items unlocked
+	return true

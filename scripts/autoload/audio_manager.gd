@@ -218,6 +218,21 @@ const VOLUME_GRENADE_EXPLOSION: float = 0.0
 const VOLUME_SHOTGUN_SHOT: float = -3.0
 const VOLUME_SHOTGUN_ACTION: float = -5.0
 
+## Case opening sounds (Issue #785).
+## These sounds are used for the armory item unlock experience.
+## Using existing sounds as placeholders until dedicated case opening sounds are added.
+## Case open start click (when hold begins) - use revolver cylinder open as placeholder.
+const CASE_OPEN_START: String = "res://assets/audio/Щелчок при открытии барабана револьвера.mp3"
+## Case open success (when item is unlocked) - use revolver cylinder close as placeholder.
+const CASE_OPEN_SUCCESS: String = "res://assets/audio/Щелчок при закрытии барабана револьвера.mp3"
+## Volume for case opening sounds.
+const VOLUME_CASE_OPEN: float = -3.0
+
+## UI click sound for menu interactions.
+const UI_CLICK: String = "res://assets/audio/Щелчок при открытии барабана револьвера.mp3"
+## Volume for UI sounds.
+const VOLUME_UI: float = -6.0
+
 ## Preloaded audio streams cache.
 var _audio_cache: Dictionary = {}
 
@@ -396,6 +411,10 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(REVOLVER_SHOT_2)
 	all_sounds.append(REVOLVER_SHOT_3)
 	all_sounds.append(REVOLVER_SHOT_4)
+	# Case opening sounds (Issue #785)
+	all_sounds.append(CASE_OPEN_START)
+	all_sounds.append(CASE_OPEN_SUCCESS)
+	all_sounds.append(UI_CLICK)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -986,3 +1005,25 @@ func get_playing_2d_count() -> int:
 		if player.playing:
 			count += 1
 	return count
+
+
+# ============================================================================
+# Case opening sounds (Issue #785)
+# ============================================================================
+
+## Plays the case open start sound (when hold begins).
+## Uses MEDIUM priority for UI feedback.
+func play_case_open_start() -> void:
+	play_sound_with_priority(CASE_OPEN_START, VOLUME_CASE_OPEN, SoundPriority.MEDIUM)
+
+
+## Plays the case open success sound (when item is unlocked).
+## Uses HIGH priority for reward feedback.
+func play_case_open_success() -> void:
+	play_sound_with_priority(CASE_OPEN_SUCCESS, VOLUME_CASE_OPEN, SoundPriority.HIGH)
+
+
+## Plays a UI click sound for menu interactions.
+## Uses LOW priority.
+func play_ui_click() -> void:
+	play_sound_with_priority(UI_CLICK, VOLUME_UI, SoundPriority.LOW)
