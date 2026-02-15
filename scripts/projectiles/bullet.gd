@@ -181,8 +181,18 @@ var _breaker_shrapnel_scene: PackedScene = null
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
 
+## Enable/disable debug logging for bullet spawning (Issue #781 diagnosis).
+var _debug_spawn: bool = true
+
 
 func _ready() -> void:
+	# Log initial state for debugging (Issue #781)
+	if _debug_spawn:
+		var file_logger: Node = get_node_or_null("/root/FileLogger")
+		var msg := "[Bullet] _ready: direction=%s, speed=%s, global_pos=%s" % [direction, speed, global_position]
+		print(msg)
+		if file_logger and file_logger.has_method("log_info"):
+			file_logger.log_info(msg)
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -256,6 +266,21 @@ func _log_penetration(message: String) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Log first frame for debugging (Issue #781)
+	if _debug_spawn and _time_alive == 0:
+		var file_logger: Node = get_node_or_null("/root/FileLogger")
+		var msg := "[Bullet] _physics_process first frame: direction=%s, speed=%s, process_mode=%s" % [direction, speed, process_mode]
+		print(msg)
+		if file_logger and file_logger.has_method("log_info"):
+			file_logger.log_info(msg)
+		# Log warning if direction is zero
+		if direction.length_squared() < 0.001:
+			var warning_msg := "[Bullet] WARNING: direction is zero or near-zero! Bullet will not move."
+			push_warning(warning_msg)
+			print(warning_msg)
+			if file_logger and file_logger.has_method("log_warning"):
+				file_logger.log_warning(warning_msg)
+
 	# Apply homing steering if enabled
 	if homing_enabled:
 		_apply_homing_steering(delta)
