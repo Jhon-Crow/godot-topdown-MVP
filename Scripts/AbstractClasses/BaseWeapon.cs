@@ -169,9 +169,10 @@ public abstract partial class BaseWeapon : Node2D
         GD.Print($"[BaseWeapon]   WeaponData.Name: {WeaponData.Name}");
         GD.Print($"[BaseWeapon]   WeaponData.MagazineSize: {WeaponData.MagazineSize}");
         GD.Print($"[BaseWeapon]   WeaponData.Caliber: {(WeaponData.Caliber != null ? "Present" : "NULL")}");
-        if (WeaponData.Caliber != null && WeaponData.Caliber is CaliberData caliber)
+        if (WeaponData.Caliber != null)
         {
-            GD.Print($"[BaseWeapon]   Caliber.caliber_name: {caliber.Get("caliber_name")}");
+            var caliberName = WeaponData.Caliber.Get("caliber_name");
+            GD.Print($"[BaseWeapon]   Caliber.caliber_name: {caliberName}");
         }
         GD.Print($"[BaseWeapon]   WeaponData resource path: {WeaponData.ResourcePath}");
 
@@ -544,12 +545,12 @@ public abstract partial class BaseWeapon : Node2D
         }
 
         // Diagnostic logging for Issue #765 (verify caliber data is correct)
-        if (caliber != null && caliber is CaliberData caliberData)
+        if (caliber != null)
         {
-            var caliberName = caliberData.Get("caliber_name");
+            var caliberName = caliber.Get("caliber_name");
             GD.Print($"[BaseWeapon] Spawning casing for {Name} with caliber: {caliberName}");
         }
-        else if (caliber == null)
+        else
         {
             GD.PrintErr($"[BaseWeapon] WARNING: Spawning casing for {Name} with NULL caliber!");
         }
