@@ -152,23 +152,30 @@ public abstract partial class BaseWeapon : Node2D
         // Diagnostic logging for Issue #765 (weapon data corruption after restart)
         GD.Print($"[BaseWeapon] _Ready() called for weapon: {Name}");
         GD.Print($"[BaseWeapon]   WeaponData: {(WeaponData != null ? "Present" : "NULL")}");
-        if (WeaponData != null)
-        {
-            GD.Print($"[BaseWeapon]   WeaponData.Name: {WeaponData.Name}");
-            GD.Print($"[BaseWeapon]   WeaponData.MagazineSize: {WeaponData.MagazineSize}");
-            GD.Print($"[BaseWeapon]   WeaponData.Caliber: {(WeaponData.Caliber != null ? "Present" : "NULL")}");
-            if (WeaponData.Caliber != null && WeaponData.Caliber is CaliberData caliber)
-            {
-                GD.Print($"[BaseWeapon]   Caliber.caliber_name: {caliber.Get("caliber_name")}");
-            }
-            GD.Print($"[BaseWeapon]   WeaponData resource path: {WeaponData.ResourcePath}");
 
-            InitializeMagazinesWithDifficulty();
-        }
-        else
+        // Issue #765 Fix: Validate WeaponData and provide clear error if missing
+        if (WeaponData == null)
         {
-            GD.PrintErr($"[BaseWeapon] WARNING: WeaponData is NULL for weapon {Name}! This will cause incorrect initialization.");
+            GD.PrintErr($"[BaseWeapon] CRITICAL ERROR: WeaponData is NULL for weapon {Name}!");
+            GD.PrintErr($"[BaseWeapon] This weapon will not function correctly. Check that:");
+            GD.PrintErr($"[BaseWeapon]   1. The weapon scene (.tscn) has WeaponData resource assigned");
+            GD.PrintErr($"[BaseWeapon]   2. The .tres file exists and is not corrupted");
+            GD.PrintErr($"[BaseWeapon]   3. Scene reload hasn't cleared the resource reference");
+            // Don't initialize if WeaponData is missing - prevents using wrong defaults
+            return;
         }
+
+        // Log weapon data for diagnostics
+        GD.Print($"[BaseWeapon]   WeaponData.Name: {WeaponData.Name}");
+        GD.Print($"[BaseWeapon]   WeaponData.MagazineSize: {WeaponData.MagazineSize}");
+        GD.Print($"[BaseWeapon]   WeaponData.Caliber: {(WeaponData.Caliber != null ? "Present" : "NULL")}");
+        if (WeaponData.Caliber != null && WeaponData.Caliber is CaliberData caliber)
+        {
+            GD.Print($"[BaseWeapon]   Caliber.caliber_name: {caliber.Get("caliber_name")}");
+        }
+        GD.Print($"[BaseWeapon]   WeaponData resource path: {WeaponData.ResourcePath}");
+
+        InitializeMagazinesWithDifficulty();
 
         // Connect to difficulty_changed signal to re-initialize ammo when difficulty changes
         var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
