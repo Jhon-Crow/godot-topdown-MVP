@@ -12,8 +12,14 @@ signal back_pressed
 ## Signal emitted when a weapon is selected.
 signal weapon_selected(weapon_id: String)
 
-## Path to weapon case icon used for locked/closed items.
+## Path to weapon case icon used for locked/closed weapons.
 const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
+
+## Path to grenade case icon used for locked/closed grenades.
+const GRENADE_CASE_ICON_PATH: String = "res://assets/sprites/weapons/grenade_case_icon.png"
+
+## Path to item case icon used for locked/closed active items.
+const ITEM_CASE_ICON_PATH: String = "res://assets/sprites/weapons/item_case_icon.png"
 
 ## Firearms data — weapons the player can equip.
 ## Keys: weapon_id, Values: dictionary with name, icon_path, unlocked, description
@@ -667,15 +673,22 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 			texture_rect.texture = texture
 		icon_container.add_child(texture_rect)
 	else:
-		# Locked item: show weapon case icon instead of "?"
+		# Locked item: show appropriate case icon based on type
 		var case_texture_rect := TextureRect.new()
 		case_texture_rect.custom_minimum_size = Vector2(48, 48)
 		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		case_texture_rect.name = "WeaponCaseIcon"  # Named for future animation access
+		case_texture_rect.name = "CaseIcon"  # Named for future animation access
 
-		if ResourceLoader.exists(WEAPON_CASE_ICON_PATH):
-			var case_texture: Texture2D = load(WEAPON_CASE_ICON_PATH)
+		# Choose icon based on item type
+		var case_icon_path: String
+		if is_grenade:
+			case_icon_path = GRENADE_CASE_ICON_PATH
+		else:
+			case_icon_path = WEAPON_CASE_ICON_PATH
+
+		if ResourceLoader.exists(case_icon_path):
+			var case_texture: Texture2D = load(case_icon_path)
 			if case_texture:
 				case_texture_rect.texture = case_texture
 		icon_container.add_child(case_texture_rect)
@@ -737,15 +750,15 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	var item_name: String = item_data.get("name", "")
 
 	if not is_unlocked:
-		# Locked active item: show weapon case icon
+		# Locked active item: show item case icon
 		var case_texture_rect := TextureRect.new()
 		case_texture_rect.custom_minimum_size = Vector2(48, 48)
 		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		case_texture_rect.name = "WeaponCaseIcon"
+		case_texture_rect.name = "ItemCaseIcon"
 
-		if ResourceLoader.exists(WEAPON_CASE_ICON_PATH):
-			var case_texture: Texture2D = load(WEAPON_CASE_ICON_PATH)
+		if ResourceLoader.exists(ITEM_CASE_ICON_PATH):
+			var case_texture: Texture2D = load(ITEM_CASE_ICON_PATH)
 			if case_texture:
 				case_texture_rect.texture = case_texture
 		icon_container.add_child(case_texture_rect)
