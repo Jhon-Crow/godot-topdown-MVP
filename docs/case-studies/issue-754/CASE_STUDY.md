@@ -459,3 +459,38 @@ When shooting at muzzle flash:
 - Total: ~245 lines of new/modified code
 
 **Risk Level**: Low - follows established patterns in codebase
+
+---
+
+## Implementation Status
+
+### Implemented (PR #800)
+
+The muzzle flash detection feature has been implemented with the following components:
+
+1. **MuzzleFlashDetectionComponent** (`scripts/components/muzzle_flash_detection_component.gd`)
+   - Detects player weapon muzzle flashes within enemy FOV
+   - Estimates player position from flash location and direction
+   - Uses interval-based checking (0.1s) to reduce overhead
+   - Respects activation conditions: player not visible AND not preparing grenade
+
+2. **ImpactEffectsManager modifications** (`scripts/autoload/impact_effects_manager.gd`)
+   - Added `_active_muzzle_flashes` array to track recent flashes
+   - Added `_track_muzzle_flash()` function called when spawning muzzle flash
+   - Added `get_active_muzzle_flashes()` public function for enemy detection
+   - Flash tracking limited to 10 entries, auto-cleaned after 0.5s
+
+3. **ShootAtMuzzleFlashAction** (`scripts/ai/enemy_actions.gd`)
+   - New GOAP action for suppressive fire at muzzle flash position
+   - Preconditions: `player_visible=false`, `muzzle_flash_detected=true`, `player_preparing_grenade=false`
+   - Cost: 1.0 (higher priority than patrol, similar to flashlight investigation)
+
+4. **Enemy integration** (`scripts/objects/enemy.gd`)
+   - Added `_muzzle_flash_detection` component initialization
+   - Added GOAP world state: `muzzle_flash_detected`, `player_preparing_grenade`
+   - Detection logic in `_update_memory()` following flashlight detection pattern
+   - Updates enemy memory with estimated player position at confidence 0.65
+
+### Test Data
+
+Game log from testing session saved to: `docs/case-studies/issue-754/game_log_20260216_003239.txt`

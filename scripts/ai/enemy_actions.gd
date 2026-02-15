@@ -486,6 +486,41 @@ class ThrowGrenadeAction extends GOAPAction:
 		return 100.0
 
 
+## Action to shoot suppressive fire at detected muzzle flash position (Issue #754).
+## When an enemy cannot see the player directly but can see their muzzle flash,
+## this action fires suppressive rounds at the estimated player position.
+##
+## Activation conditions:
+## - player_visible == false (can't see player)
+## - muzzle_flash_detected == true (can see muzzle flash)
+## - player_preparing_grenade == false (player not throwing grenade)
+##
+## This behavior adds tactical depth: players can't simply fire from cover
+## without consequence. Enemies will suppress the position.
+class ShootAtMuzzleFlashAction extends GOAPAction:
+	func _init() -> void:
+		super._init("shoot_at_muzzle_flash", 1.3)
+		preconditions = {
+			"player_visible": false,
+			"muzzle_flash_detected": true,
+			"player_preparing_grenade": false
+		}
+		effects = {
+			"suppressive_fire_delivered": true,
+			"player_engaged": true  # Partial engagement via suppression
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Action should have medium priority:
+		# - Higher than patrol (patrol cost: 1.0)
+		# - Lower than direct engagement when player visible
+		# - Similar priority to flashlight investigation
+		if world_state.get("muzzle_flash_detected", false):
+			# Recently detected - high priority
+			return 1.0
+		return 100.0  # Should not happen due to preconditions
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -518,4 +553,6 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(AvoidFlashlightPassageAction.new())
 	# Grenadier grenade throw action (Issue #657)
 	actions.append(ThrowGrenadeAction.new())
+	# Muzzle flash detection action (Issue #754)
+	actions.append(ShootAtMuzzleFlashAction.new())
 	return actions

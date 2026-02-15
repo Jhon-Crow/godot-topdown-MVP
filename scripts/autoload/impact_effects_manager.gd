@@ -53,6 +53,16 @@ var _bullet_holes = []
 ## Active penetration collision holes for cleanup management.
 var _penetration_holes = []
 
+## Active muzzle flash data for enemy detection (Issue #754).
+## Each entry contains position, direction, and timestamp.
+var _active_muzzle_flashes: Array = []
+
+## Maximum number of tracked muzzle flashes to prevent memory growth.
+const MAX_TRACKED_FLASHES: int = 10
+
+## Maximum age before flash is removed from tracking (seconds).
+const FLASH_TRACKING_MAX_AGE: float = 0.5
+
 ## Penetration hole scene.
 var _penetration_hole_scene: PackedScene = null
 
@@ -377,8 +387,46 @@ func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Res
 	# Add to scene tree
 	_add_effect_to_scene(effect)
 
+	# Track flash for enemy detection (Issue #754)
+	_track_muzzle_flash(position, direction)
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] Muzzle flash spawned at ", position, " with scale=", effect_scale)
+
+
+## Track a muzzle flash for enemy detection (Issue #754).
+func _track_muzzle_flash(position: Vector2, direction: Vector2) -> void:
+	var flash_data := {
+		"position": position,
+		"direction": direction.normalized(),
+		"timestamp": Time.get_ticks_msec() / 1000.0
+	}
+	_active_muzzle_flashes.append(flash_data)
+
+	# Limit tracked flashes to prevent memory growth
+	while _active_muzzle_flashes.size() > MAX_TRACKED_FLASHES:
+		_active_muzzle_flashes.pop_front()
+
+
+## Get active muzzle flashes for enemy detection (Issue #754).
+## Returns array of dictionaries with: position, direction, age.
+func get_active_muzzle_flashes() -> Array:
+	var current_time := Time.get_ticks_msec() / 1000.0
+
+	# Clean up old flashes
+	_active_muzzle_flashes = _active_muzzle_flashes.filter(
+		func(f): return current_time - f.timestamp < FLASH_TRACKING_MAX_AGE
+	)
+
+	# Return with age calculated
+	var result: Array = []
+	for flash in _active_muzzle_flashes:
+		result.append({
+			"position": flash.position,
+			"direction": flash.direction,
+			"age": current_time - flash.timestamp
+		})
+	return result
 
 
 ## Spawns a flashbang visual effect at the given position.
