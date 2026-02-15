@@ -1078,28 +1078,40 @@ func _on_apply_pressed() -> void:
 
 ## Highlight the currently selected (pending) weapon, grenade, and active item slots.
 func _highlight_selected_items() -> void:
-	# Reset all weapon slots to default
+	# Reset all weapon slots (preserve locked style for locked items)
 	for wid in _weapon_slots:
-		_apply_default_style(_weapon_slots[wid])
+		var is_locked := not _is_weapon_unlocked(wid)
+		if is_locked:
+			_apply_locked_style(_weapon_slots[wid])
+		else:
+			_apply_default_style(_weapon_slots[wid])
 
-	# Reset all grenade slots to default
+	# Reset all grenade slots (preserve locked style for locked items)
 	for gtype in _grenade_slots:
-		_apply_default_style(_grenade_slots[gtype])
+		var is_locked := not _is_grenade_unlocked(gtype)
+		if is_locked:
+			_apply_locked_style(_grenade_slots[gtype])
+		else:
+			_apply_default_style(_grenade_slots[gtype])
 
-	# Reset all active item slots to default
+	# Reset all active item slots (preserve locked style for locked items)
 	for atype in _active_item_slots:
-		_apply_default_style(_active_item_slots[atype])
+		var is_locked := not _is_active_item_unlocked(atype)
+		if is_locked:
+			_apply_locked_style(_active_item_slots[atype])
+		else:
+			_apply_default_style(_active_item_slots[atype])
 
-	# Highlight pending weapon
-	if _pending_weapon_id in _weapon_slots:
+	# Highlight pending weapon (only if unlocked)
+	if _pending_weapon_id in _weapon_slots and _is_weapon_unlocked(_pending_weapon_id):
 		_apply_selected_style(_weapon_slots[_pending_weapon_id])
 
-	# Highlight pending grenade
-	if _pending_grenade_type in _grenade_slots:
+	# Highlight pending grenade (only if unlocked)
+	if _pending_grenade_type in _grenade_slots and _is_grenade_unlocked(_pending_grenade_type):
 		_apply_selected_style(_grenade_slots[_pending_grenade_type])
 
-	# Highlight pending active item
-	if _pending_active_item_type in _active_item_slots:
+	# Highlight pending active item (only if unlocked)
+	if _pending_active_item_type in _active_item_slots and _is_active_item_unlocked(_pending_active_item_type):
 		_apply_selected_style(_active_item_slots[_pending_active_item_type])
 
 
