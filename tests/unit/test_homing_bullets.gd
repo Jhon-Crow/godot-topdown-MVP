@@ -973,3 +973,108 @@ func test_los_wall_parallel_to_aim_does_not_block() -> void:
 	var target := bullet.find_nearest_visible_enemy(enemies)
 	assert_eq(target, Vector2(300, 0),
 		"Wall parallel to aim should not block enemy")
+
+
+# ============================================================================
+# GDScript Bullet Aim-Line Homing Tests (Issue #781)
+# ============================================================================
+# These tests verify that GDScript bullets (used by pistol weapons like MiniUzi,
+# Revolver) have the enable_homing_with_aim_line method that BaseWeapon.SpawnBullet()
+# tries to call. Before Issue #781 fix, this method was missing from bullet.gd.
+
+
+## Mock for GDScript bullet that simulates the real bullet.gd implementation.
+## Verifies the enable_homing_with_aim_line method exists and works correctly.
+class MockGDScriptBullet:
+	var homing_enabled: bool = false
+	var homing_max_turn_angle: float = deg_to_rad(110.0)
+	var homing_steer_speed: float = 8.0
+	var direction: Vector2 = Vector2.RIGHT
+	var global_position: Vector2 = Vector2.ZERO
+	var _homing_original_direction: Vector2 = Vector2.ZERO
+	var rotation: float = 0.0
+
+	## Aim-line targeting fields (Issue #781 fix).
+	var _use_aim_line_targeting: bool = false
+	var _shooter_origin: Vector2 = Vector2.ZERO
+	var _shooter_aim_direction: Vector2 = Vector2.ZERO
+
+	## Basic enable_homing (for airborne bullets - Issue #677).
+	func enable_homing() -> void:
+		homing_enabled = true
+		_homing_original_direction = direction.normalized()
+
+	## Enable homing with aim-line targeting (Issue #781 fix).
+	## This is the method that was missing from bullet.gd before the fix.
+	func enable_homing_with_aim_line(shooter_pos: Vector2, aim_dir: Vector2) -> void:
+		homing_enabled = true
+		_homing_original_direction = direction.normalized()
+		_use_aim_line_targeting = true
+		_shooter_origin = shooter_pos
+		_shooter_aim_direction = aim_dir.normalized()
+		# Increase max turn angle to 170 degrees for aim-line targeting (Issue #737)
+		homing_max_turn_angle = deg_to_rad(170.0)
+		# Increase steer speed for sharper turns (Issue #709)
+		homing_steer_speed = 50.0
+
+
+func test_gdscript_bullet_has_enable_homing_with_aim_line() -> void:
+	# This test verifies Issue #781 fix: GDScript bullets must have the
+	# enable_homing_with_aim_line method that BaseWeapon.SpawnBullet() calls.
+	var bullet := MockGDScriptBullet.new()
+	assert_true(bullet.has_method("enable_homing_with_aim_line"),
+		"GDScript bullet must have enable_homing_with_aim_line method (Issue #781)")
+
+
+func test_gdscript_bullet_aim_line_homing_enables_correctly() -> void:
+	var bullet := MockGDScriptBullet.new()
+	bullet.direction = Vector2(1, 1).normalized()
+	bullet.enable_homing_with_aim_line(Vector2(100, 100), Vector2.RIGHT)
+
+	assert_true(bullet.homing_enabled,
+		"Homing should be enabled after enable_homing_with_aim_line (Issue #781)")
+	assert_true(bullet._use_aim_line_targeting,
+		"Aim-line targeting should be enabled (Issue #781)")
+	assert_eq(bullet._shooter_origin, Vector2(100, 100),
+		"Shooter origin should be stored (Issue #781)")
+	assert_almost_eq(bullet._shooter_aim_direction.x, 1.0, 0.001,
+		"Aim direction X should be normalized (Issue #781)")
+	assert_almost_eq(bullet._shooter_aim_direction.y, 0.0, 0.001,
+		"Aim direction Y should be normalized (Issue #781)")
+
+
+func test_gdscript_bullet_aim_line_increases_turn_angle() -> void:
+	var bullet := MockGDScriptBullet.new()
+	var original_angle := bullet.homing_max_turn_angle
+	bullet.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+
+	# Should increase to 170 degrees for better aim-line following (Issue #737)
+	assert_almost_eq(bullet.homing_max_turn_angle, deg_to_rad(170.0), 0.001,
+		"Max turn angle should be 170° for aim-line targeting (Issue #737)")
+	assert_true(bullet.homing_max_turn_angle > original_angle,
+		"Aim-line targeting should allow wider turns than default")
+
+
+func test_gdscript_bullet_aim_line_increases_steer_speed() -> void:
+	var bullet := MockGDScriptBullet.new()
+	var original_speed := bullet.homing_steer_speed
+	bullet.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+
+	# Should increase to 50.0 for sharper turns (Issue #709)
+	assert_eq(bullet.homing_steer_speed, 50.0,
+		"Steer speed should be 50.0 for aim-line targeting (Issue #709)")
+	assert_true(bullet.homing_steer_speed > original_speed,
+		"Aim-line targeting should have faster steering than default")
+
+
+func test_gdscript_bullet_stores_original_direction() -> void:
+	var bullet := MockGDScriptBullet.new()
+	bullet.direction = Vector2(0.6, 0.8)  # Not normalized
+	bullet.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+
+	# Original direction should be normalized
+	var expected := Vector2(0.6, 0.8).normalized()
+	assert_almost_eq(bullet._homing_original_direction.x, expected.x, 0.001,
+		"Original direction X should be stored normalized (Issue #781)")
+	assert_almost_eq(bullet._homing_original_direction.y, expected.y, 0.001,
+		"Original direction Y should be stored normalized (Issue #781)")
