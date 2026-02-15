@@ -189,7 +189,64 @@ When testing the next build, the user should see one of these log entries:
 
 If NONE of these messages appear, the build doesn't include the trajectory glasses code at all.
 
+### Third User Test (2026-02-15 21:54)
+
+**User Report**: "в логе написано что выбраны не trajectory glasses, но я выбирал именно их"
+(Translation: "the log says trajectory glasses is not selected, but I specifically selected them")
+
+**New log file**: `logs/game_log_20260215_215418.txt`
+
+**Analysis**:
+
+Line 194 shows successful selection:
+```
+[21:54:24] [INFO] [ActiveItemManager] Active item changed from None to Trajectory Glasses
+```
+
+After level restart (lines 240-244), other items log their status:
+```
+[21:54:24] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[21:54:24] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[21:54:24] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[21:54:24] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[21:54:24] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+```
+
+**Critical Finding**: The log shows `[Player.TeleportBracers]` but this code DOES NOT EXIST in the repository!
+
+**Proof**:
+1. Searched entire repository for `[Player.TeleportBracers]` - no matches in any .gd file
+2. Our branch has `_init_trajectory_glasses()` at line 350, but NO teleport bracers init function
+3. The main branch also has no teleport bracers init code in player.gd
+
+**Conclusion**: The user is running a **completely different build** that:
+- Has teleport bracers initialization code (which doesn't exist in this repo)
+- Does NOT have trajectory glasses code (no `[Player.TrajectoryGlasses]` log at all)
+
+This build may be from:
+1. A local modification the user made
+2. A build from a different PR/branch
+3. A corrupted/incomplete download
+4. A cached older version
+
+**Action Required**:
+
+User needs to download a fresh build from the CI artifacts:
+1. Go to https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions?query=branch%3Aissue-744-95dafced7ca4
+2. Find the most recent successful workflow run (should show commit `f8c60d06`)
+3. Download the Windows artifact
+4. Extract to a NEW folder (not the existing one)
+5. Run the new executable
+
+The correct build will show these log messages after selecting Trajectory Glasses:
+```
+[Player.TrajectoryGlasses] Checking trajectory glasses...
+[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...
+[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
+```
+
 ## Related Files
 
 - `logs/game_log_20260210_231250.txt` - Original game log showing the bug
 - `logs/game_log_20260210_235359.txt` - Follow-up test log showing version mismatch
+- `logs/game_log_20260215_215418.txt` - Third test showing different build with teleport bracers code
