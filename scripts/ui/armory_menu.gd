@@ -164,6 +164,19 @@ const UNLOCK_HOLD_DURATION: float = 1.5
 ## Timer for processing LMB hold progress.
 var _unlock_timer: Timer = null
 
+## Audio player for unlock sound effects (generated beeps).
+var _unlock_audio_player: AudioStreamPlayer = null
+
+## Base frequency for unlock beeps (Hz).
+const BEEP_BASE_FREQUENCY: float = 440.0
+
+## Dictionary: slot -> progress_overlay (ColorRect for visual progress indicator)
+var _slot_progress_overlays: Dictionary = {}
+
+## Animation state tracking for reveal animations.
+## Dictionary: slot -> tween reference
+var _active_reveal_tweens: Dictionary = {}
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -199,10 +212,15 @@ func _ready() -> void:
 
 	# Create timer for unlock progress tracking
 	_unlock_timer = Timer.new()
-	_unlock_timer.wait_time = 0.05  # Check every 50ms for smooth progress
+	_unlock_timer.wait_time = 0.016  # ~60 FPS for smoother progress updates
 	_unlock_timer.one_shot = false
 	_unlock_timer.timeout.connect(_on_unlock_timer_timeout)
 	add_child(_unlock_timer)
+
+	# Create audio player for unlock sound effects
+	_unlock_audio_player = AudioStreamPlayer.new()
+	_unlock_audio_player.bus = "Master"
+	add_child(_unlock_audio_player)
 
 
 ## Load weapon .tres resources for stats display.
@@ -857,9 +875,11 @@ func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, ite
 				else:
 					_unlock_timer.start()
 		else:
-			# LMB released: stop tracking this slot
+			# LMB released: stop tracking this slot and clean up visuals
 			if slot in _lmb_hold_tracking:
 				_lmb_hold_tracking.erase(slot)
+				# Clean up progress overlay
+				_remove_progress_overlay(slot)
 			# Stop timer if no slots are being tracked
 			if _lmb_hold_tracking.size() == 0:
 				_unlock_timer.stop()
@@ -930,9 +950,11 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 				else:
 					_unlock_timer.start()
 		else:
-			# LMB released: stop tracking this slot
+			# LMB released: stop tracking this slot and clean up visuals
 			if slot in _lmb_hold_tracking:
 				_lmb_hold_tracking.erase(slot)
+				# Clean up progress overlay
+				_remove_progress_overlay(slot)
 			# Stop timer if no slots are being tracked
 			if _lmb_hold_tracking.size() == 0:
 				_unlock_timer.stop()
@@ -1180,6 +1202,7 @@ func _populate_weapon_grid() -> void:
 
 
 ## Timer callback for checking unlock progress.
+## Updates visual progress indicators and triggers unlock when threshold reached.
 func _on_unlock_timer_timeout() -> void:
 	var current_time: float = Time.get_ticks_msec() / 1000.0
 	var slots_to_remove: Array = []
@@ -1187,30 +1210,49 @@ func _on_unlock_timer_timeout() -> void:
 	for slot in _lmb_hold_tracking:
 		var track_data: Dictionary = _lmb_hold_tracking[slot]
 		var hold_duration: float = current_time - track_data["start_time"]
+		var progress: float = minf(hold_duration / UNLOCK_HOLD_DURATION, 1.0)
+
+		# Update visual progress
+		_update_progress_overlay(slot, progress)
+
+		# Play progress beep at certain thresholds (every 20% progress)
+		var last_beep_threshold: float = track_data.get("last_beep_threshold", 0.0)
+		var current_threshold: float = floor(progress * 5.0) / 5.0  # 0.0, 0.2, 0.4, 0.6, 0.8
+		if current_threshold > last_beep_threshold:
+			_play_progress_beep(progress)
+			track_data["last_beep_threshold"] = current_threshold
 
 		if hold_duration >= UNLOCK_HOLD_DURATION:
-			# Unlock threshold reached - unlock the item
+			# Unlock threshold reached - play reveal animation then unlock
+			var slot_ref: PanelContainer = slot  # Capture for closure
+
 			if track_data["is_active_item"]:
 				# Unlock active item
 				var item_type: int = track_data["active_item_type"]
-				if _active_item_manager and _active_item_manager.has_method("unlock_active_item"):
-					_active_item_manager.unlock_active_item(item_type)
-					# Rebuild the slot to show unlocked state
-					_rebuild_active_item_slot(item_type)
+				_play_unlock_reveal_animation(slot_ref, func():
+					if _active_item_manager and _active_item_manager.has_method("unlock_active_item"):
+						_active_item_manager.unlock_active_item(item_type)
+						# Rebuild the slot to show unlocked state
+						_rebuild_active_item_slot_animated(item_type)
+				)
 			elif track_data["is_grenade"]:
 				# Unlock grenade
 				var grenade_type: int = track_data["grenade_type"]
-				if _grenade_manager and _grenade_manager.has_method("unlock_grenade"):
-					_grenade_manager.unlock_grenade(grenade_type)
-					# Rebuild the slot to show unlocked state
-					_rebuild_grenade_slot(grenade_type)
+				_play_unlock_reveal_animation(slot_ref, func():
+					if _grenade_manager and _grenade_manager.has_method("unlock_grenade"):
+						_grenade_manager.unlock_grenade(grenade_type)
+						# Rebuild the slot to show unlocked state
+						_rebuild_grenade_slot_animated(grenade_type)
+				)
 			else:
 				# Unlock weapon
 				var weapon_id: String = track_data["item_id"]
-				if GameManager and GameManager.has_method("unlock_weapon"):
-					GameManager.unlock_weapon(weapon_id)
-					# Rebuild the slot to show unlocked state
-					_rebuild_weapon_slot(weapon_id)
+				_play_unlock_reveal_animation(slot_ref, func():
+					if GameManager and GameManager.has_method("unlock_weapon"):
+						GameManager.unlock_weapon(weapon_id)
+						# Rebuild the slot to show unlocked state
+						_rebuild_weapon_slot_animated(weapon_id)
+				)
 
 			# Mark this slot for removal from tracking
 			slots_to_remove.append(slot)
@@ -1224,7 +1266,7 @@ func _on_unlock_timer_timeout() -> void:
 		_unlock_timer.stop()
 
 
-## Rebuild a weapon slot to show unlocked state.
+## Rebuild a weapon slot to show unlocked state (legacy, no animation).
 func _rebuild_weapon_slot(weapon_id: String) -> void:
 	if weapon_id not in _weapon_slots:
 		return
@@ -1250,7 +1292,37 @@ func _rebuild_weapon_slot(weapon_id: String) -> void:
 	_highlight_selected_items()
 
 
-## Rebuild a grenade slot to show unlocked state.
+## Rebuild a weapon slot with animated item reveal.
+func _rebuild_weapon_slot_animated(weapon_id: String) -> void:
+	if weapon_id not in _weapon_slots:
+		return
+
+	var old_slot: PanelContainer = _weapon_slots[weapon_id]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot with initial fade-in state
+	var weapon_data: Dictionary = FIREARMS[weapon_id]
+	var new_slot := _create_item_slot(weapon_id, weapon_data, false, true)
+	new_slot.modulate.a = 0.0  # Start invisible for fade-in
+
+	# Insert at same position
+	parent.add_child(new_slot)
+	parent.move_child(new_slot, slot_index)
+	_weapon_slots[weapon_id] = new_slot
+
+	# Animate the new slot appearing
+	_animate_slot_reveal(new_slot)
+
+	# Update visuals
+	_highlight_selected_items()
+
+
+## Rebuild a grenade slot to show unlocked state (legacy, no animation).
 func _rebuild_grenade_slot(grenade_type: int) -> void:
 	if grenade_type not in _grenade_slots:
 		return
@@ -1283,7 +1355,44 @@ func _rebuild_grenade_slot(grenade_type: int) -> void:
 		_highlight_selected_items()
 
 
-## Rebuild an active item slot to show unlocked state.
+## Rebuild a grenade slot with animated item reveal.
+func _rebuild_grenade_slot_animated(grenade_type: int) -> void:
+	if grenade_type not in _grenade_slots:
+		return
+
+	var old_slot: PanelContainer = _grenade_slots[grenade_type]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot
+	if _grenade_manager:
+		var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+		var grenade_info := {
+			"name": gdata.get("name", "Unknown"),
+			"icon_path": gdata.get("icon_path", ""),
+			"description": gdata.get("description", ""),
+			"grenade_type": grenade_type
+		}
+		var new_slot := _create_item_slot(str(grenade_type), grenade_info, true, true)
+		new_slot.modulate.a = 0.0  # Start invisible for fade-in
+
+		# Insert at same position
+		parent.add_child(new_slot)
+		parent.move_child(new_slot, slot_index)
+		_grenade_slots[grenade_type] = new_slot
+
+		# Animate the new slot appearing
+		_animate_slot_reveal(new_slot)
+
+		# Update visuals
+		_highlight_selected_items()
+
+
+## Rebuild an active item slot to show unlocked state (legacy, no animation).
 func _rebuild_active_item_slot(item_type: int) -> void:
 	if item_type not in _active_item_slots:
 		return
@@ -1316,5 +1425,216 @@ func _rebuild_active_item_slot(item_type: int) -> void:
 		_highlight_selected_items()
 
 
+## Rebuild an active item slot with animated item reveal.
+func _rebuild_active_item_slot_animated(item_type: int) -> void:
+	if item_type not in _active_item_slots:
+		return
+
+	var old_slot: PanelContainer = _active_item_slots[item_type]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot
+	if _active_item_manager:
+		var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+		var item_info := {
+			"name": adata.get("name", "Unknown"),
+			"icon_path": adata.get("icon_path", ""),
+			"description": adata.get("description", ""),
+			"active_item_type": item_type
+		}
+		var new_slot := _create_active_item_slot(str(item_type), item_info, item_type, true)
+		new_slot.modulate.a = 0.0  # Start invisible for fade-in
+
+		# Insert at same position
+		parent.add_child(new_slot)
+		parent.move_child(new_slot, slot_index)
+		_active_item_slots[item_type] = new_slot
+
+		# Animate the new slot appearing
+		_animate_slot_reveal(new_slot)
+
+		# Update visuals
+		_highlight_selected_items()
+
+
+## Animates a newly created slot appearing with fade-in and scale pop.
+func _animate_slot_reveal(slot: PanelContainer) -> void:
+	# Get the VBoxContainer for scale animation
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox:
+		vbox.pivot_offset = vbox.size / 2
+		vbox.scale = Vector2(0.5, 0.5)
+
+	# Create the reveal animation
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(slot, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
+	if vbox:
+		tween.tween_property(vbox, "scale", Vector2(1.0, 1.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
+
+
+## Creates a simple sine wave beep sound and plays it.
+## @param frequency: The frequency of the beep in Hz.
+## @param duration: Duration of the beep in seconds.
+## @param volume_db: Volume in decibels (default -10).
+func _play_beep(frequency: float, duration: float = 0.05, volume_db: float = -10.0) -> void:
+	if _unlock_audio_player == null:
+		return
+
+	# Create a simple AudioStreamGenerator for the beep
+	var generator := AudioStreamGenerator.new()
+	generator.mix_rate = 44100.0
+	generator.buffer_length = 0.1
+
+	_unlock_audio_player.stream = generator
+	_unlock_audio_player.volume_db = volume_db
+	_unlock_audio_player.play()
+
+	var playback: AudioStreamGeneratorPlayback = _unlock_audio_player.get_stream_playback()
+
+	# Generate sine wave samples
+	var sample_rate: float = 44100.0
+	var num_samples: int = int(duration * sample_rate)
+
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		# Sine wave with envelope (fade out)
+		var envelope: float = 1.0 - (float(i) / float(num_samples))
+		envelope = envelope * envelope  # Quadratic falloff
+		var sample: float = sin(2.0 * PI * frequency * t) * envelope * 0.3
+		playback.push_frame(Vector2(sample, sample))
+
+
+## Plays a rising anticipation beep based on progress (0.0 to 1.0).
+## The frequency increases as progress approaches completion.
+func _play_progress_beep(progress: float) -> void:
+	# Frequency rises from 220Hz to 880Hz based on progress
+	var frequency: float = BEEP_BASE_FREQUENCY * 0.5 * (1.0 + progress * 2.0)
+	_play_beep(frequency, 0.03, -15.0)
+
+
+## Plays a celebratory success sound when item is unlocked.
+func _play_unlock_success_sound() -> void:
+	# Play ascending arpeggio for celebration
+	var base: float = BEEP_BASE_FREQUENCY
+	for i in range(4):
+		var semitones: int = [0, 4, 7, 12][i]
+		var frequency: float = base * pow(2.0, float(semitones) / 12.0)
+		get_tree().create_timer(i * 0.08).timeout.connect(
+			func(): _play_beep(frequency, 0.15, -8.0)
+		)
+
+
+## Creates a progress overlay for a slot to show unlock progress.
+## Returns the created ColorRect overlay.
+func _create_progress_overlay(slot: PanelContainer) -> ColorRect:
+	# Create progress bar overlay
+	var overlay := ColorRect.new()
+	overlay.name = "UnlockProgressOverlay"
+	overlay.color = Color(0.3, 0.8, 0.3, 0.0)  # Start invisible
+	overlay.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	overlay.anchor_top = 1.0
+	overlay.anchor_bottom = 1.0
+	overlay.offset_top = -4
+	overlay.offset_bottom = 0
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(overlay)
+	return overlay
+
+
+## Creates a glow/flash overlay for the unlock animation.
+func _create_glow_overlay(slot: PanelContainer) -> ColorRect:
+	var glow := ColorRect.new()
+	glow.name = "UnlockGlowOverlay"
+	glow.color = Color(1.0, 1.0, 1.0, 0.0)  # Start invisible
+	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(glow)
+	return glow
+
+
+## Updates the progress overlay visual to show current unlock progress.
+func _update_progress_overlay(slot: PanelContainer, progress: float) -> void:
+	var overlay: ColorRect = _slot_progress_overlays.get(slot)
+	if overlay == null:
+		overlay = _create_progress_overlay(slot)
+		_slot_progress_overlays[slot] = overlay
+
+	# Update overlay height to show progress (from bottom up)
+	var slot_height: float = slot.size.y
+	overlay.anchor_top = 1.0 - progress
+	overlay.anchor_bottom = 1.0
+	overlay.offset_top = 0
+	overlay.offset_bottom = 0
+
+	# Fade in the overlay
+	overlay.color = Color(0.3, 0.8, 0.3, 0.4 + progress * 0.3)
+
+	# Apply shaking effect based on progress
+	var shake_intensity: float = progress * 3.0
+	slot.position = Vector2(
+		randf_range(-shake_intensity, shake_intensity),
+		randf_range(-shake_intensity, shake_intensity)
+	)
+
+
+## Removes the progress overlay from a slot and resets position.
+func _remove_progress_overlay(slot: PanelContainer) -> void:
+	var overlay: ColorRect = _slot_progress_overlays.get(slot)
+	if overlay != null:
+		overlay.queue_free()
+		_slot_progress_overlays.erase(slot)
+	# Reset slot position
+	slot.position = Vector2.ZERO
+
+
+## Plays the animated unlock reveal sequence for a slot.
+func _play_unlock_reveal_animation(slot: PanelContainer, callback: Callable) -> void:
+	# Remove any progress overlay first
+	_remove_progress_overlay(slot)
+
+	# Play success sound
+	_play_unlock_success_sound()
+
+	# Create glow overlay for flash effect
+	var glow := _create_glow_overlay(slot)
+
+	# Get the icon container for scale animation
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer if vbox else null
+
+	# Create the reveal animation sequence
+	var tween := create_tween()
+	_active_reveal_tweens[slot] = tween
+
+	# Phase 1: Flash white (0.15s)
+	tween.tween_property(glow, "color:a", 0.8, 0.1).set_ease(Tween.EASE_OUT)
+
+	# Phase 2: Pop scale effect (0.2s)
+	if icon_container:
+		tween.set_parallel(true)
+		tween.tween_property(icon_container, "scale", Vector2(1.3, 1.3), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tween.set_parallel(false)
+
+	# Phase 3: Settle back and fade glow (0.3s)
+	tween.tween_property(glow, "color:a", 0.0, 0.3).set_ease(Tween.EASE_IN)
+	if icon_container:
+		tween.set_parallel(true)
+		tween.tween_property(icon_container, "scale", Vector2(1.0, 1.0), 0.2).set_ease(Tween.EASE_OUT)
+		tween.set_parallel(false)
+
+	# Cleanup and trigger callback after animation
+	tween.tween_callback(func():
+		glow.queue_free()
+		_active_reveal_tweens.erase(slot)
+		callback.call()
+	)
