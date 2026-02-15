@@ -57,8 +57,8 @@ class MockEnemyWithSoundHandling extends Node2D:
 		on_sound_heard_with_intensity(sound_type, position, source_type, source_node, 1.0)
 
 	## Called by SoundPropagation with intensity.
-	## This is a simplified version of the enemy's actual implementation.
-	func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
+	## Mirrors the refactored enemy.gd implementation (Issue #805).
+	func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, _source_node: Node2D, intensity: float) -> void:
 		if not _is_alive or _memory_reset_confusion_timer > 0.0:
 			return
 
@@ -69,35 +69,25 @@ class MockEnemyWithSoundHandling extends Node2D:
 			"intensity": intensity
 		})
 
-		# Issue #805: Handle EXPLOSION sounds (sound_type 1)
-		if sound_type == 1:  # EXPLOSION
-			explosions_heard.append({
-				"position": position,
-				"intensity": intensity
-			})
-
-			var should_react_explosion := false
-			if _current_state == AIState.IDLE:
-				should_react_explosion = intensity >= 0.01
-			elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-				should_react_explosion = intensity >= 0.3
-
-			if should_react_explosion:
-				_last_known_player_position = position
-				_transition_to_combat()
+		# Issue #805: Handle GUNSHOT (0) and EXPLOSION (1) sounds - both alert enemies similarly
+		if sound_type != 0 and sound_type != 1:
 			return
 
-		# Handle GUNSHOT (sound_type 0)
-		if sound_type != 0:
-			return
+		# Track explosions specifically for test verification
+		if sound_type == 1:
+			explosions_heard.append({"position": position, "intensity": intensity})
 
+		# React based on current state (same for gunshots and explosions)
 		var should_react := false
 		if _current_state == AIState.IDLE:
 			should_react = intensity >= 0.01
+		elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
+			should_react = intensity >= 0.3
+		if not should_react:
+			return
 
-		if should_react:
-			_last_known_player_position = position
-			_transition_to_combat()
+		_last_known_player_position = position
+		_transition_to_combat()
 
 	func _transition_to_combat() -> void:
 		_current_state = AIState.COMBAT

@@ -38,18 +38,18 @@ func _ready() -> void:
 	var content = file.get_as_text()
 	file.close()
 
-	# Check for EXPLOSION handling code
+	# Check for EXPLOSION handling code (refactored to handle both GUNSHOT and EXPLOSION together)
 	var has_explosion_handling = content.find("Issue #805") != -1
-	var has_sound_type_1 = content.find("sound_type == 1") != -1
+	var has_sound_type_check = content.find("sound_type != 0 and sound_type != 1") != -1
 
-	if has_explosion_handling and has_sound_type_1:
+	if has_explosion_handling and has_sound_type_check:
 		print("  Found Issue #805 EXPLOSION handling code")
-		print("  Found sound_type == 1 check")
+		print("  Found combined GUNSHOT/EXPLOSION check: sound_type != 0 and sound_type != 1")
 		print("  PASS: Enemy has EXPLOSION sound handling\n")
 	else:
 		print("  ERROR: Enemy missing EXPLOSION sound handling")
 		print("  has_explosion_handling: %s" % has_explosion_handling)
-		print("  has_sound_type_1: %s" % has_sound_type_1)
+		print("  has_sound_type_check: %s" % has_sound_type_check)
 		print("  FAIL\n")
 		get_tree().quit(1)
 		return
@@ -57,17 +57,17 @@ func _ready() -> void:
 	# Test 3: Check the logic flow
 	print("Test 3: EXPLOSION handling logic")
 
-	# Find the EXPLOSION handling block
-	var explosion_block_start = content.find("# Issue #805: Handle EXPLOSION sounds")
+	# Find the refactored EXPLOSION handling block
+	var explosion_block_start = content.find("# Issue #805: Handle GUNSHOT (0) and EXPLOSION (1)")
 	if explosion_block_start != -1:
 		# Get a chunk of the code around this area
-		var explosion_block = content.substr(explosion_block_start, 1000)
+		var explosion_block = content.substr(explosion_block_start, 600)
 
 		# Verify key elements
 		var has_transition_to_combat = explosion_block.find("_transition_to_combat()") != -1
 		var has_last_known_position = explosion_block.find("_last_known_player_position") != -1
 		var has_memory_update = explosion_block.find("_memory.update_position") != -1
-		var has_intensity_check = explosion_block.find("should_react_explosion") != -1
+		var has_intensity_check = explosion_block.find("should_react") != -1
 
 		print("  Checks:")
 		print("    - Transitions to COMBAT: %s" % ("PASS" if has_transition_to_combat else "FAIL"))
