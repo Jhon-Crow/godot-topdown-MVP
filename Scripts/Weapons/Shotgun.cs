@@ -1472,7 +1472,8 @@ public partial class Shotgun : BaseWeapon
         // Check if action is ready
         if (ActionState != ShotgunActionState.Ready)
         {
-            GD.Print($"[Shotgun] Cannot fire - pump action required: {ActionState}");
+            LogToFile($"[Shotgun.Fire] Cannot fire - pump action required: {ActionState}");
+            LogToFile($"[Shotgun.Fire] Playing dry fire sound (Issue #761)");
             PlayDryFireSound();
             return false;
         }
@@ -1786,7 +1787,12 @@ public partial class Shotgun : BaseWeapon
         var audioManager = GetNodeOrNull("/root/AudioManager");
         if (audioManager != null && audioManager.HasMethod("play_shotgun_dry_fire"))
         {
+            LogToFile($"[Shotgun.Audio] Playing dry fire sound at position {GlobalPosition}");
             audioManager.Call("play_shotgun_dry_fire", GlobalPosition);
+        }
+        else
+        {
+            LogToFile($"[Shotgun.Audio] ERROR: AudioManager not found or play_shotgun_dry_fire method missing!");
         }
     }
 
