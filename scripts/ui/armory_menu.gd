@@ -302,12 +302,21 @@ func _build_ui() -> void:
 	var sep := HSeparator.new()
 	main_vbox.add_child(sep)
 
+	# --- SCROLLABLE CONTENT AREA ---
+	# Wrap content in a ScrollContainer so buttons stay fixed at bottom
+	var scroll_container := ScrollContainer.new()
+	scroll_container.layout_mode = 2
+	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	main_vbox.add_child(scroll_container)
+
 	# --- HORIZONTAL LAYOUT: LEFT SIDEBAR + RIGHT GRIDS ---
 	var content_hbox := HBoxContainer.new()
 	content_hbox.layout_mode = 2
-	content_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_hbox.add_theme_constant_override("separation", 12)
-	main_vbox.add_child(content_hbox)
+	scroll_container.add_child(content_hbox)
 
 	# --- LEFT SIDEBAR: Loadout stats ---
 	var sidebar := _build_sidebar()
