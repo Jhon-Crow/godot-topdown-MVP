@@ -149,6 +149,11 @@ var is_breaker_bullet: bool = false
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
 var penetrates_enemies: bool = false
 
+## Set of enemy bodies this bullet has already penetrated (Issue #829).
+## Prevents the bullet from re-triggering on the same enemy CharacterBody2D
+## when the physics engine re-reports the collision in subsequent frames.
+var _penetrated_enemy_bodies: Array = []
+
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
 const BREAKER_DETONATION_DISTANCE: float = 60.0
 
@@ -331,6 +336,16 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("is_alive") and not body.is_alive():
 		return  # Pass through dead entities
 
+	# Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
+	# allow the bullet to pass through without being destroyed.
+	# The _on_area_entered handler takes care of dealing damage via the enemy's HitArea.
+	# We track which enemy bodies we've already passed through to suppress re-entry signals.
+	if penetrates_enemies and body.has_method("is_alive") and body.is_alive():
+		if body not in _penetrated_enemy_bodies:
+			_penetrated_enemy_bodies.append(body)
+			print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
+		return  # Don't destroy the bullet - it passes through the enemy body
+
 	# If we're currently penetrating the same body, ignore re-entry
 	if _is_penetrating and _penetrating_body == body:
 		return
@@ -432,6 +447,13 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
 			return  # Pass through dead entities
 
+		# Issue #829: When penetrating enemies, only deal damage to each enemy once per pass-through.
+		# The area_entered signal fires once on entry, but we guard against future re-entries
+		# (e.g., if the enemy has multiple hit areas or the bullet passes through slowly).
+		if penetrates_enemies and parent != null:
+			if parent in _penetrated_enemy_bodies:
+				return  # Already dealt damage to this enemy during this pass-through
+
 		# Calculate effective damage (base damage × multiplier from ricochets/penetration)
 		var effective_damage: float = damage * damage_multiplier
 
@@ -459,6 +481,9 @@ func _on_area_entered(area: Area2D) -> void:
 		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
 		if penetrates_enemies:
 			print("[Bullet]: Penetrating through enemy, bullet continues flying")
+			# Track the enemy so we don't re-apply damage on subsequent area_entered calls
+			if parent != null and parent not in _penetrated_enemy_bodies:
+				_penetrated_enemy_bodies.append(parent)
 			return  # Don't destroy the bullet - it passes through
 
 		queue_free()

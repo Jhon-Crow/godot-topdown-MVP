@@ -238,6 +238,13 @@ public partial class Bullet : Area2D
     public bool PenetratesEnemies { get; set; } = false;
 
     /// <summary>
+    /// Set of enemy bodies this bullet has already penetrated (Issue #829).
+    /// Prevents the bullet from re-triggering on the same enemy CharacterBody2D
+    /// when the physics engine re-reports the collision in subsequent frames.
+    /// </summary>
+    private readonly System.Collections.Generic.HashSet<Node2D> _penetratedEnemyBodies = new();
+
+    /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
@@ -477,6 +484,23 @@ public partial class Bullet : Area2D
             }
         }
 
+        // Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
+        // allow the bullet to pass through without being destroyed.
+        // The OnAreaEntered handler takes care of dealing damage via the enemy's HitArea.
+        // We track which enemy bodies we've already passed through to suppress re-entry signals.
+        if (PenetratesEnemies && body.HasMethod("is_alive"))
+        {
+            var isAlive = body.Call("is_alive").AsBool();
+            if (isAlive)
+            {
+                if (_penetratedEnemyBodies.Add(body))
+                {
+                    GD.Print($"[Bullet]: Penetrating through enemy CharacterBody2D {body.Name}, bullet continues flying");
+                }
+                return; // Don't destroy the bullet - it passes through the enemy body
+            }
+        }
+
         // If we're currently penetrating the same body, ignore re-entry
         if (_isPenetrating && _penetratingBody == body)
         {
@@ -640,6 +664,16 @@ public partial class Bullet : Area2D
             }
         }
 
+        // Issue #829: When penetrating enemies, only deal damage to each enemy once per pass-through.
+        // Guard against future re-entries (e.g., multiple hit areas on the same enemy).
+        if (PenetratesEnemies && parent is Node2D parentNode2D)
+        {
+            if (_penetratedEnemyBodies.Contains(parentNode2D))
+            {
+                return; // Already dealt damage to this enemy during this pass-through
+            }
+        }
+
         // Track if this is a valid hit on an enemy target
         bool hitEnemy = false;
 
@@ -693,6 +727,11 @@ public partial class Bullet : Area2D
         if (hitEnemy && PenetratesEnemies)
         {
             GD.Print($"[Bullet]: Penetrating through enemy, bullet continues flying");
+            // Track the enemy so we don't re-apply damage on subsequent area_entered calls
+            if (parent is Node2D parentNode2DTrack)
+            {
+                _penetratedEnemyBodies.Add(parentNode2DTrack);
+            }
             return; // Don't destroy the bullet - it passes through
         }
 
