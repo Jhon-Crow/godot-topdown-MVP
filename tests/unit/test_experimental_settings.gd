@@ -29,6 +29,9 @@ class MockExperimentalSettings:
 	## Whether realistic visibility mode is enabled (Issue #540).
 	var realistic_visibility_enabled: bool = false
 
+	## Whether log recording is enabled (Issue #848).
+	var logging_enabled: bool = true
+
 	## Signal tracking
 	var settings_changed_emitted: int = 0
 
@@ -101,6 +104,17 @@ class MockExperimentalSettings:
 	func is_realistic_visibility_enabled() -> bool:
 		return realistic_visibility_enabled
 
+	## Set log recording enabled/disabled (Issue #848).
+	func set_logging_enabled(enabled: bool) -> void:
+		if logging_enabled != enabled:
+			logging_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if log recording is enabled (Issue #848).
+	func is_logging_enabled() -> bool:
+		return logging_enabled
+
 	## Save settings (simulated).
 	func _save_settings() -> void:
 		_saved_settings["fov_enabled"] = fov_enabled
@@ -109,6 +123,7 @@ class MockExperimentalSettings:
 		_saved_settings["debug_mode_enabled"] = debug_mode_enabled
 		_saved_settings["invincibility_enabled"] = invincibility_enabled
 		_saved_settings["realistic_visibility_enabled"] = realistic_visibility_enabled
+		_saved_settings["logging_enabled"] = logging_enabled
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
@@ -136,6 +151,10 @@ class MockExperimentalSettings:
 			realistic_visibility_enabled = _saved_settings["realistic_visibility_enabled"]
 		else:
 			realistic_visibility_enabled = false
+		if _saved_settings.has("logging_enabled"):
+			logging_enabled = _saved_settings["logging_enabled"]
+		else:
+			logging_enabled = true
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
@@ -145,6 +164,7 @@ class MockExperimentalSettings:
 		debug_mode_enabled = false
 		invincibility_enabled = false
 		realistic_visibility_enabled = false
+		logging_enabled = true
 		settings_changed_emitted += 1
 		_saved_settings.clear()
 
@@ -754,6 +774,7 @@ func test_save_and_load_all_settings() -> void:
 	settings.set_debug_mode_enabled(true)
 	settings.set_invincibility_enabled(true)
 	settings.set_realistic_visibility_enabled(true)
+	settings.set_logging_enabled(false)
 
 	# Reset in-memory state
 	settings.fov_enabled = false
@@ -762,6 +783,7 @@ func test_save_and_load_all_settings() -> void:
 	settings.debug_mode_enabled = false
 	settings.invincibility_enabled = false
 	settings.realistic_visibility_enabled = false
+	settings.logging_enabled = true
 
 	# Load from saved
 	settings._load_settings()
@@ -772,6 +794,7 @@ func test_save_and_load_all_settings() -> void:
 	assert_true(settings.is_debug_mode_enabled(), "Debug mode should be restored")
 	assert_true(settings.is_invincibility_enabled(), "Invincibility should be restored")
 	assert_true(settings.is_realistic_visibility_enabled(), "Realistic visibility should be restored")
+	assert_false(settings.is_logging_enabled(), "Logging should be restored as disabled")
 
 
 func test_reset_clears_realistic_visibility() -> void:
@@ -779,3 +802,124 @@ func test_reset_clears_realistic_visibility() -> void:
 	settings.reset_to_defaults()
 	assert_false(settings.realistic_visibility_enabled,
 		"Reset should disable realistic visibility")
+
+
+# ============================================================================
+# Log Recording Setting Tests (Issue #848)
+# ============================================================================
+
+
+func test_default_logging_enabled() -> void:
+	assert_true(settings.logging_enabled,
+		"Log recording should be enabled by default")
+
+
+func test_is_logging_enabled_returns_true_by_default() -> void:
+	assert_true(settings.is_logging_enabled(),
+		"is_logging_enabled should return true by default")
+
+
+func test_set_logging_enabled_false() -> void:
+	settings.set_logging_enabled(false)
+
+	assert_false(settings.logging_enabled,
+		"Log recording should be disabled after set_logging_enabled(false)")
+
+
+func test_set_logging_enabled_true() -> void:
+	settings.logging_enabled = false
+	settings.set_logging_enabled(true)
+
+	assert_true(settings.logging_enabled,
+		"Log recording should be enabled after set_logging_enabled(true)")
+
+
+func test_set_logging_enabled_emits_signal() -> void:
+	settings.set_logging_enabled(false)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when disabling log recording")
+
+
+func test_set_logging_enabled_no_signal_if_same_value() -> void:
+	settings.settings_changed_emitted = 0
+
+	settings.set_logging_enabled(true)  # Same value (default is true)
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if logging_enabled value unchanged")
+
+
+func test_set_logging_enabled_saves_settings() -> void:
+	settings.set_logging_enabled(false)
+
+	assert_true(settings._saved_settings.has("logging_enabled"),
+		"Settings should contain logging_enabled")
+	assert_false(settings._saved_settings["logging_enabled"],
+		"Saved value should match disabled state")
+
+
+func test_load_settings_restores_logging_disabled() -> void:
+	settings._saved_settings["logging_enabled"] = false
+	settings._load_settings()
+
+	assert_false(settings.logging_enabled,
+		"Load should restore saved logging disabled setting")
+
+
+func test_load_settings_restores_logging_enabled() -> void:
+	settings._saved_settings["logging_enabled"] = true
+	settings._load_settings()
+
+	assert_true(settings.logging_enabled,
+		"Load should restore saved logging enabled setting")
+
+
+func test_load_settings_logging_defaults_to_true_when_empty() -> void:
+	settings.logging_enabled = false
+	settings._saved_settings.clear()
+	settings._load_settings()
+
+	assert_true(settings.logging_enabled,
+		"Load should default logging to true when no saved settings")
+
+
+func test_reset_restores_logging_enabled() -> void:
+	settings.set_logging_enabled(false)
+	settings.reset_to_defaults()
+
+	assert_true(settings.logging_enabled,
+		"Reset should re-enable log recording")
+
+
+func test_logging_independent_of_other_settings() -> void:
+	settings.set_logging_enabled(false)
+	assert_false(settings.is_logging_enabled(), "Logging should be disabled")
+	assert_true(settings.is_fov_enabled(), "FOV should still be enabled (default)")
+	assert_false(settings.is_complex_grenade_throwing(), "Grenades should still be disabled")
+	assert_false(settings.is_ai_prediction_enabled(), "AI prediction should still be disabled")
+	assert_false(settings.is_debug_mode_enabled(), "Debug mode should still be disabled")
+	assert_false(settings.is_invincibility_enabled(), "Invincibility should still be disabled")
+	assert_false(settings.is_realistic_visibility_enabled(), "Realistic visibility should still be disabled")
+
+
+func test_save_and_load_logging_disabled() -> void:
+	settings.set_logging_enabled(false)
+
+	# Reset in-memory state
+	settings.logging_enabled = true
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_false(settings.is_logging_enabled(), "Logging disabled state should survive reload")
+
+
+func test_logging_toggle_on_off() -> void:
+	settings.set_logging_enabled(false)
+	settings.set_logging_enabled(true)
+
+	assert_true(settings.logging_enabled,
+		"Toggle back on should re-enable logging")
+	assert_eq(settings.settings_changed_emitted, 2,
+		"Two signals should be emitted for on->off->on")
