@@ -1372,11 +1372,18 @@ public partial class Player : BaseCharacter
             bool shotgunReloading = shotgun != null &&
                 shotgun.ReloadState != ShotgunReloadState.NotReloading;
 
-            if (isReloading || shotgunNeedsPump || revolverReloading || shotgunReloading)
+            // Check if weapon has no ammo (Issue #835)
+            // Clicking on an empty weapon should not buffer a shot for after reload -
+            // it should only play an empty click sound. Otherwise the buffered click
+            // from an empty weapon fires automatically right after reload completes.
+            bool weaponEmpty = CurrentWeapon.CurrentAmmo <= 0;
+
+            if (isReloading || shotgunNeedsPump || revolverReloading || shotgunReloading || weaponEmpty)
             {
                 // Issue #821: Don't buffer shots during reload/pump - play empty click instead
+                // Issue #835: Don't buffer shots when weapon is empty
                 PlayEmptyClickSound();
-                GD.Print($"[Player.FIX#821] Click during reload/pump - playing empty click (isReloading={isReloading}, shotgunNeedsPump={shotgunNeedsPump}, revolverReloading={revolverReloading}, shotgunReloading={shotgunReloading})");
+                GD.Print($"[Player.FIX#821/#835] Click during reload/pump/empty - playing empty click (isReloading={isReloading}, shotgunNeedsPump={shotgunNeedsPump}, revolverReloading={revolverReloading}, shotgunReloading={shotgunReloading}, weaponEmpty={weaponEmpty})");
             }
             else
             {
@@ -2106,6 +2113,11 @@ public partial class Player : BaseCharacter
 
         // Perform instant reload
         CurrentWeapon.InstantReload();
+
+        // Issue #835: Clear any buffered shot from before/during reload.
+        // If player clicked LMB on an empty weapon before reload started, that click
+        // should not automatically fire after reload completes.
+        _semiAutoShootBuffered = false;
 
         GD.Print("[Player] Reload sequence complete! Magazine refilled instantly.");
         EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);

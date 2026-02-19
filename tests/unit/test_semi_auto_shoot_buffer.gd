@@ -74,13 +74,24 @@ class MockShootingInput:
 		_just_released = false
 
 
+	func complete_reload() -> void:
+		## Simulates reload sequence completing (mirrors CompleteReloadSequence in Player.cs).
+		weapon.current_ammo = 9  # Reload fills the magazine
+		weapon.is_reloading = false
+		weapon._fire_timer = 0.0
+		# Issue #835: Clear any buffered shot from before/during reload
+		_semi_auto_shoot_buffered = false
+
+
 	func handle_shooting_input() -> bool:
 		## Returns true if a shot was fired this frame.
 
 		# Buffer semi-auto clicks - Issue #821 FIX: Only buffer if NOT reloading
 		if not weapon.is_automatic and _just_pressed:
 			# Issue #821: Don't buffer clicks during reload
-			if weapon.is_reloading:
+			# Issue #835: Also don't buffer if weapon has no ammo
+			var weapon_empty := weapon.current_ammo <= 0
+			if weapon.is_reloading or weapon_empty:
 				# Play empty click sound (simulated - just skip buffering)
 				pass
 			else:
@@ -362,3 +373,96 @@ func test_buffer_still_works_during_fire_cooldown() -> void:
 
 	assert_true(fired, "Buffered click should fire after cooldown")
 	assert_eq(weapon.shots_fired, 2, "Two shots total")
+
+
+## Issue #835 FIX: Clicking on empty weapon should NOT buffer a shot for after reload.
+## Old behavior: click on empty weapon → buffer set → reload completes → auto-shot!
+## Expected behavior: click on empty weapon plays empty click, does NOT buffer.
+func test_click_on_empty_weapon_does_not_buffer_issue_835() -> void:
+	weapon.current_ammo = 0
+
+	# Click with empty weapon - should NOT buffer (Issue #835 fix)
+	input.simulate_click()
+	var fired := input.handle_shooting_input()
+
+	assert_false(fired, "Should not fire with empty weapon")
+	assert_false(input._semi_auto_shoot_buffered,
+		"Click on empty weapon should NOT be buffered (Issue #835)")
+
+
+## Issue #835 FIX: After reload completes, buffer should be cleared (secondary safety net).
+## Even if somehow a buffered shot got through, it should be cleared on reload complete.
+func test_buffer_cleared_after_reload_completes_issue_835() -> void:
+	weapon.current_ammo = 0
+
+	# Click with empty weapon (before reload is started)
+	input.simulate_click()
+	input.handle_shooting_input()
+	input.clear_input()
+
+	# Verify no buffer (primary fix: empty weapon check)
+	assert_false(input._semi_auto_shoot_buffered,
+		"Click on empty weapon should not be buffered")
+
+	# Simulate reload completing (secondary fix: clears buffer)
+	input.complete_reload()
+
+	# Should not fire after reload (no buffered shot)
+	var fired := input.handle_shooting_input()
+	assert_false(fired,
+		"Should not auto-fire after reload when no click was buffered (Issue #835)")
+	assert_eq(weapon.shots_fired, 0, "No shots should have been fired")
+
+
+## Issue #835: Full scenario - empty magazine, click, reload, verify no auto-shot.
+## This is the exact reproduction case from the bug report.
+func test_full_scenario_empty_reload_no_autoshot_issue_835() -> void:
+	# Start with 1 bullet, fire it
+	weapon.current_ammo = 1
+	input.simulate_click()
+	input.handle_shooting_input()
+	input.clear_input()
+	assert_eq(weapon.shots_fired, 1, "First shot fired")
+	assert_eq(weapon.current_ammo, 0, "Magazine now empty")
+
+	# Click again with empty magazine (player tries to fire empty weapon)
+	input.simulate_click()
+	var fired := input.handle_shooting_input()
+	input.clear_input()
+	assert_false(fired, "Should not fire with empty magazine")
+	assert_false(input._semi_auto_shoot_buffered,
+		"Click on empty weapon should NOT be buffered (Issue #835 primary fix)")
+
+	# Simulate reload sequence (set reloading flag)
+	weapon.is_reloading = true
+
+	# Complete reload
+	input.complete_reload()  # This also clears buffer (secondary fix)
+	assert_false(input._semi_auto_shoot_buffered,
+		"Buffer should be cleared after reload (Issue #835 secondary fix)")
+
+	# Verify no automatic shot after reload
+	fired = input.handle_shooting_input()
+	assert_false(fired, "Should NOT auto-fire after reload (Issue #835 bug fixed)")
+	assert_eq(weapon.shots_fired, 1, "Only the first shot should have been fired")
+
+
+## Issue #835: After fix, a new explicit click after reload should work normally.
+## Make sure the fix doesn't break the ability to fire after reloading.
+func test_explicit_click_after_reload_fires_normally_issue_835() -> void:
+	weapon.current_ammo = 0
+
+	# Click with empty weapon
+	input.simulate_click()
+	input.handle_shooting_input()
+	input.clear_input()
+
+	# Reload
+	input.complete_reload()
+
+	# Explicit new click after reload - should fire
+	input.simulate_click()
+	var fired := input.handle_shooting_input()
+
+	assert_true(fired, "New explicit click after reload should fire (not broken by Issue #835 fix)")
+	assert_eq(weapon.shots_fired, 1, "One shot should be fired")
