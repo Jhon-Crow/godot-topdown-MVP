@@ -124,6 +124,10 @@ class MockTutorialLevel:
 			_dismiss_hint(HINT_SCOPE)
 			advance_to_step(TutorialStep.THROW_GRENADE)
 
+	func on_hammer_cocked() -> void:
+		## Dismiss hammer cock hint when hammer is cocked (RMB or LMB fire) (Issue #808).
+		_dismiss_hint(HINT_HAMMER_COCK)
+
 	func on_reload_completed() -> void:
 		if _current_step != TutorialStep.RELOAD:
 			return
@@ -495,6 +499,65 @@ func test_non_revolver_no_hammer_cock_hint() -> void:
 
 	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
 		"Default weapon should not have hammer cock hint")
+
+
+func test_revolver_hammer_cocked_dismisses_hammer_hint() -> void:
+	## When revolver hammer is cocked (RMB), hammer cock hint should disappear (Issue #808)
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	tutorial.on_hammer_cocked()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Hammer cock hint dismissed when hammer is cocked (Issue #808)")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Reload hint remains after hammer cocked")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint remains after hammer cocked")
+
+
+func test_revolver_hammer_cocked_twice_is_safe() -> void:
+	## Cocking hammer twice should not cause errors (idempotent)
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	tutorial.on_hammer_cocked()
+	tutorial.on_hammer_cocked()  # Second call should be ignored
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Hammer hint still gone after double cock")
+
+
+func test_revolver_complete_flow_with_hammer_cock() -> void:
+	## Full revolver flow: cock hammer first, then reload, then grenade
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	# Cock hammer — only hammer hint disappears
+	tutorial.on_hammer_cocked()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Hammer hint dismissed after cock")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Reload hint remains")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint remains")
+
+	# Complete reload — only reload hint disappears
+	tutorial.on_reload_completed()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Reload hint dismissed after reload")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint still visible")
+
+	# Throw grenade — complete tutorial
+	tutorial.on_grenade_thrown()
+
+	assert_true(tutorial.is_tutorial_complete(),
+		"Tutorial completes after all actions")
+	assert_false(tutorial.is_any_hint_active(),
+		"No hints remain after completion")
 
 
 # ============================================================================

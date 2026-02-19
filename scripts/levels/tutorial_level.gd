@@ -462,6 +462,11 @@ func _connect_player_signals() -> void:
 		elif _player.has_signal("reload_completed"):
 			_player.reload_completed.connect(_on_player_reload_completed)
 
+		# Connect to hammer cocked signal to dismiss hammer hint (Issue #808)
+		if revolver.has_signal("HammerCocked"):
+			revolver.HammerCocked.connect(_on_revolver_hammer_cocked)
+			print("Tutorial: Connected to HammerCocked signal")
+
 		# Connect to revolver ammo signal
 		if revolver.has_signal("AmmoChanged"):
 			revolver.AmmoChanged.connect(_on_weapon_ammo_changed)
@@ -718,6 +723,12 @@ func _on_player_reload_completed() -> void:
 			_advance_to_step(TutorialStep.COMPLETED)
 		else:
 			_advance_to_step(TutorialStep.THROW_GRENADE)
+
+
+## Called when the revolver hammer is cocked (RMB press or LMB fire).
+## Dismisses the hammer cock hint the first time the hammer is cocked (Issue #808).
+func _on_revolver_hammer_cocked() -> void:
+	_dismiss_hint(HINT_HAMMER_COCK)
 
 
 ## Called when player throws a grenade.

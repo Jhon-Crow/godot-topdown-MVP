@@ -68,15 +68,47 @@ var _enemies: Array = []
 ## Cached reference to the ReplayManager autoload (C# singleton).
 var _replay_manager: Node = null
 
-## Tutorial hint labels for the Laboratory level (Issue #808).
-## Keys: "move", "shoot", "reload" — each dismissed when the action is performed.
+## ============================================================
+## Tutorial hint system for the Laboratory level (Issue #808)
+## Mirrors tutorial_level.gd: weapon-dependent hints, grenade hint, no walk/shoot hints.
+## ============================================================
+
+## Tutorial hint labels: hint_key -> Label node.
 var _tutorial_hints: Dictionary = {}
 
-## Whether the player has shot at least once (to dismiss shoot hint).
-var _tutorial_shot_fired: bool = false
+## Tutorial state machine (same as tutorial_level.gd).
+enum TutorialStep {
+	RELOAD,
+	THROW_GRENADE,
+	COMPLETED
+}
 
-## Whether the player has reloaded at least once (to dismiss reload hint).
-var _tutorial_reloaded: bool = false
+## Current tutorial step.
+var _tutorial_step: TutorialStep = TutorialStep.RELOAD
+
+## Whether the player has reloaded (for step tracking).
+var _tutorial_has_reloaded: bool = false
+
+## Whether the player has thrown a grenade (for step tracking).
+var _tutorial_has_thrown_grenade: bool = false
+
+## Whether the player has a shotgun (shotgun-specific reload hint).
+var _tutorial_has_shotgun: bool = false
+
+## Whether the player has a sniper rifle (bolt-cycle hint).
+var _tutorial_has_sniper_rifle: bool = false
+
+## Whether the player has a revolver (hammer cock hint).
+var _tutorial_has_revolver: bool = false
+
+## Whether the player has a Makarov PM (R->R reload hint).
+var _tutorial_has_makarov_pm: bool = false
+
+## Hint keys (same as tutorial_level.gd).
+const TUTORIAL_HINT_RELOAD := "reload"
+const TUTORIAL_HINT_GRENADE := "grenade"
+const TUTORIAL_HINT_HAMMER_COCK := "hammer_cock"
+const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
 
 ## Vertical spacing between stacked tutorial hints (pixels).
 const TUTORIAL_HINT_SPACING: float = 35.0
@@ -479,6 +511,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
@@ -496,6 +530,22 @@ func _setup_player_tracking() -> void:
 			_update_magazines_label(mag_counts)
 		_configure_silenced_pistol_ammo(weapon)
 		_configure_makarov_pm_ammo(weapon)
+
+		# Detect weapon type for tutorial hints (Issue #808)
+		match weapon.name:
+			"Shotgun":
+				_tutorial_has_shotgun = true
+			"SniperRifle":
+				_tutorial_has_sniper_rifle = true
+				if weapon.has_signal("BoltStepChanged"):
+					weapon.BoltStepChanged.connect(_on_tutorial_sniper_bolt_step_changed)
+			"Revolver":
+				_tutorial_has_revolver = true
+				# Connect to HammerCocked signal to dismiss hammer hint (Issue #808)
+				if weapon.has_signal("HammerCocked"):
+					weapon.HammerCocked.connect(_on_tutorial_hammer_cocked)
+			"MakarovPM":
+				_tutorial_has_makarov_pm = true
 	else:
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
@@ -517,6 +567,12 @@ func _setup_player_tracking() -> void:
 		_player.AmmoDepleted.connect(_on_player_ammo_depleted)
 	elif _player.has_signal("ammo_depleted"):
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
+
+	# Connect to grenade thrown signal for grenade tutorial hint (Issue #808)
+	if _player.has_signal("GrenadeThrown"):
+		_player.GrenadeThrown.connect(_on_tutorial_grenade_thrown)
+	elif _player.has_signal("grenade_thrown"):
+		_player.grenade_thrown.connect(_on_tutorial_grenade_thrown)
 
 
 ## Setup tracking for all enemies in the scene.
@@ -732,10 +788,6 @@ func _on_enemy_hit() -> void:
 func _on_shot_fired() -> void:
 	if GameManager:
 		GameManager.register_shot()
-	# Dismiss shoot tutorial hint on first shot (Issue #808)
-	if not _tutorial_shot_fired:
-		_tutorial_shot_fired = true
-		_dismiss_tutorial_hint("shoot")
 
 
 ## Called when player ammo changes (GDScript Player).
@@ -743,10 +795,6 @@ func _on_player_ammo_changed(current: int, maximum: int) -> void:
 	_update_ammo_label(current, maximum)
 	if GameManager:
 		GameManager.register_shot()
-	# Dismiss shoot tutorial hint on first shot (Issue #808)
-	if not _tutorial_shot_fired:
-		_tutorial_shot_fired = true
-		_dismiss_tutorial_hint("shoot")
 
 
 ## Called when weapon ammo changes (C# Player).
@@ -799,10 +847,8 @@ func _on_player_reload_started() -> void:
 func _on_player_reload_completed() -> void:
 	_broadcast_player_reloading(false)
 	_broadcast_player_ammo_empty(false)
-	# Dismiss reload tutorial hint on first reload (Issue #808)
-	if not _tutorial_reloaded:
-		_tutorial_reloaded = true
-		_dismiss_tutorial_hint("reload")
+	# Tutorial: handle reload step (Issue #808)
+	_on_tutorial_reload_completed()
 
 
 ## Broadcast player reloading state to all enemies.
@@ -1430,21 +1476,102 @@ func _disable_player_controls() -> void:
 
 ## ============================================================
 ## Tutorial hints for the Laboratory level (Issue #808)
+## Weapon-dependent hints mirroring tutorial_level.gd behavior.
+## No walk/shoot hints. Shows: reload (weapon-specific), hammer cock (revolver),
+## bolt cycle (sniper), and grenade throw — same as Tutorial level.
 ## ============================================================
 
 
-## Create and show basic control tutorial hints at level start.
-## Shows: movement (WASD), shooting (LMB), reloading (R).
-## Each hint disappears independently when the player performs the action.
+## Create and show weapon-dependent tutorial hints at level start (Issue #808).
+## Mirrors tutorial_level.gd: shows reload + weapon-feature + grenade hints.
+## No movement or shooting hints (owner request).
 func _setup_tutorial_hints() -> void:
 	var canvas_layer := get_node_or_null("CanvasLayer")
 	if canvas_layer == null:
 		return
 
-	_add_tutorial_hint("move", "[WASD] Двигайся", canvas_layer)
-	_add_tutorial_hint("shoot", "[ЛКМ] Стреляй", canvas_layer)
-	_add_tutorial_hint("reload", "[R] Перезаряжайся", canvas_layer)
-	print("[LabyrinthLevel] Tutorial hints shown for Laboratory level (Issue #808)")
+	_tutorial_step = TutorialStep.RELOAD
+	_add_tutorial_reload_hints(canvas_layer)
+	print("[LabyrinthLevel] Weapon-dependent tutorial hints shown (Issue #808)")
+
+
+## Add reload-related hints for the current weapon type, plus grenade hint.
+## Mirrors _add_reload_hints() from tutorial_level.gd.
+func _add_tutorial_reload_hints(canvas_layer: Node) -> void:
+	if _tutorial_has_shotgun:
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]", canvas_layer)
+	elif _tutorial_has_sniper_rifle:
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE, "[←↓↑→] Передёрни затвор", canvas_layer)
+	elif _tutorial_has_revolver:
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[ПКМ] Взведи курок", canvas_layer)
+	elif _tutorial_has_makarov_pm:
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R] [R] Перезарядись", canvas_layer)
+	else:
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
+
+	# Always show grenade hint alongside reload (Issue #808)
+	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
+		_add_tutorial_hint(TUTORIAL_HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+
+
+## Called when sniper bolt step changes (Issue #808 - Lab sniper tutorial).
+func _on_tutorial_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
+	if _tutorial_step != TutorialStep.RELOAD:
+		return
+	if step >= total_steps and not _tutorial_has_reloaded:
+		_tutorial_has_reloaded = true
+		_dismiss_tutorial_hint(TUTORIAL_HINT_RELOAD)
+		_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
+		if _tutorial_has_thrown_grenade:
+			_tutorial_step = TutorialStep.COMPLETED
+			_dismiss_all_tutorial_hints()
+		else:
+			_tutorial_step = TutorialStep.THROW_GRENADE
+
+
+## Called when revolver hammer is cocked — dismisses hammer hint (Issue #808).
+func _on_tutorial_hammer_cocked() -> void:
+	_dismiss_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK)
+
+
+## Called on tutorial reload completion (Issue #808).
+func _on_tutorial_reload_completed() -> void:
+	if _tutorial_step != TutorialStep.RELOAD:
+		return
+	if not _tutorial_has_reloaded:
+		_tutorial_has_reloaded = true
+		_dismiss_tutorial_hint(TUTORIAL_HINT_RELOAD)
+		_dismiss_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK)
+		if _tutorial_has_thrown_grenade:
+			_tutorial_step = TutorialStep.COMPLETED
+			_dismiss_all_tutorial_hints()
+		else:
+			_tutorial_step = TutorialStep.THROW_GRENADE
+			# Ensure grenade hint is visible (may have already been added)
+			if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
+				var canvas_layer := get_node_or_null("CanvasLayer")
+				if canvas_layer:
+					_add_tutorial_hint(TUTORIAL_HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+
+
+## Called when player throws a grenade — dismisses grenade hint (Issue #808).
+func _on_tutorial_grenade_thrown() -> void:
+	if _tutorial_step != TutorialStep.THROW_GRENADE and _tutorial_step != TutorialStep.RELOAD:
+		return
+	if not _tutorial_has_thrown_grenade:
+		_tutorial_has_thrown_grenade = true
+		_dismiss_tutorial_hint(TUTORIAL_HINT_GRENADE)
+		if _tutorial_step == TutorialStep.THROW_GRENADE:
+			_tutorial_step = TutorialStep.COMPLETED
+			_dismiss_all_tutorial_hints()
+
+
+## Dismiss all remaining tutorial hints.
+func _dismiss_all_tutorial_hints() -> void:
+	for key in _tutorial_hints.keys():
+		_dismiss_tutorial_hint(key)
 
 
 ## Create and register a tutorial hint label.
