@@ -46,6 +46,11 @@ var realistic_visibility_enabled: bool = false
 ## When disabled (default), the "Watch Replay" button is hidden on score screens.
 var replay_enabled: bool = false
 
+## Whether log recording is enabled (Issue #848).
+## When enabled (default), game events are written to a log file for debugging.
+## When disabled, no log file is created, which can improve performance (FPS).
+var logging_enabled: bool = true
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -53,7 +58,11 @@ const SETTINGS_PATH := "user://experimental_settings.cfg"
 func _ready() -> void:
 	# Load saved settings on startup
 	_load_settings()
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled])
+	# Apply logging setting to FileLogger (Issue #848)
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("set_logging_enabled"):
+		file_logger.set_logging_enabled(logging_enabled)
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -154,6 +163,24 @@ func is_replay_enabled() -> bool:
 	return replay_enabled
 
 
+## Set log recording enabled/disabled (Issue #848).
+func set_logging_enabled(enabled: bool) -> void:
+	if logging_enabled != enabled:
+		logging_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Log recording %s" % ("enabled" if enabled else "disabled"))
+		# Notify FileLogger about the change
+		var file_logger: Node = get_node_or_null("/root/FileLogger")
+		if file_logger and file_logger.has_method("set_logging_enabled"):
+			file_logger.set_logging_enabled(enabled)
+
+
+## Check if log recording is enabled (Issue #848).
+func is_logging_enabled() -> bool:
+	return logging_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -164,6 +191,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "invincibility_enabled", invincibility_enabled)
 	config.set_value("experimental", "realistic_visibility_enabled", realistic_visibility_enabled)
 	config.set_value("experimental", "replay_enabled", replay_enabled)
+	config.set_value("experimental", "logging_enabled", logging_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -181,6 +209,7 @@ func _load_settings() -> void:
 		invincibility_enabled = config.get_value("experimental", "invincibility_enabled", false)
 		realistic_visibility_enabled = config.get_value("experimental", "realistic_visibility_enabled", false)
 		replay_enabled = config.get_value("experimental", "replay_enabled", false)
+		logging_enabled = config.get_value("experimental", "logging_enabled", true)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -190,6 +219,7 @@ func _load_settings() -> void:
 		invincibility_enabled = false
 		realistic_visibility_enabled = false
 		replay_enabled = false
+		logging_enabled = true
 
 
 ## Log a message to the file logger if available.
