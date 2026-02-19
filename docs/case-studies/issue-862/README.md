@@ -190,11 +190,57 @@ var _debug_penetration: bool = false
 
 ---
 
+## Online Research Findings (2024–2026)
+
+### Why node pooling is non-optional in Godot 4
+
+The engine team acknowledged in [godotengine/godot#71182](https://github.com/godotengine/godot/issues/71182) that
+Godot 4.x creates nodes ~4× slower than Godot 3.x due to the new
+scene-tree architecture.  Without pooling, GC spikes cause visible frame
+drops; community benchmarks show framerate swinging between 10–50 FPS,
+while with pooling a constant 60 FPS is maintained.
+
+Reference: <https://uhiyama-lab.com/en/notes/godot/godot-object-pooling-basics/>
+
+### Collision pair count grows O(n²)
+
+With 100 enemies clustered together, Godot generates ~10,000 collision
+pairs per frame.  Exceeding 5,000 starts degrading performance on
+mid-range hardware.
+
+Reference: <https://forum.godotengine.org/t/collision-pairs-optimizing-performance-of-bullet-hell-enemy-hell-games/35027>
+
+Relevant to this fix: disabling `monitoring = false` on idle pooled
+bullets eliminates their contribution to the broadphase query set.
+
+### Direct PhysicsServer2D / rendering (future consideration)
+
+For scenarios with 1,000+ simultaneous bullets, bypassing the scene tree
+entirely and communicating directly with `PhysicsServer2D` + a single
+`_draw()` call can reduce per-physics-step cost from ~230 ms to near-zero.
+This is the approach used by the [PerfBullets](https://github.com/Moonzel/Godot-PerfBullets)
+and [BlastBullets2D](https://github.com/nikoladevelops/godot-blast-bullets-2d)
+plugins.  Not implemented here because the game's bullet count
+(≤200 concurrent) is well within the pool approach's sweet spot.
+
+### Single manager vs. per-bullet `_physics_process`
+
+Moving bullet movement logic into a single centralized manager that
+iterates an array is more efficient than 200 individual `_physics_process`
+callbacks due to ScriptLanguage dispatch overhead.  This is a potential
+future optimisation if profiling reveals per-bullet callback overhead
+remains a bottleneck after the pool is in place.
+
+Reference: <https://docs.godotengine.org/en/stable/tutorials/best_practices/node_alternatives.html>
+
+---
+
 ## Existing Alternatives / Libraries Considered
 
 | Option | Assessment |
 |--------|-----------|
 | **Godot MultiMesh** | Can render thousands of identical meshes cheaply, but requires manual collision tracking; overkill for <200 concurrent bullets with complex per-bullet logic (ricochet, penetration, homing). |
+| **PerfBullets / BlastBullets2D** | Direct PhysicsServer2D plugins. Optimal for 1000+ bullets; adds external dependency. Current bullet count does not require it. |
 | **EasyPool addon** (<https://godotassetlibrary.com/asset/o5JHgu/easypool>) | Generic object pool addon. Our custom pool is simpler and integrates directly with the existing bullet lifecycle. No external dependency needed. |
 | **godot-object-pool** (<https://github.com/godot-addons/godot-object-pool>) | Similar to above. |
 | **Reduce bullet lifetime** | Lowering `lifetime = 3.0 s` would reduce concurrent bullets but would change visible gameplay. Excluded per issue requirement "no visible/audible cutbacks". |
