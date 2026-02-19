@@ -352,9 +352,9 @@ public partial class MiniUzi : BaseWeapon
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_pistol_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
         }
     }
 

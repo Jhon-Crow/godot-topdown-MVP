@@ -50,6 +50,9 @@ const PISTOL_BOLT: String = "res://assets/audio/взвод затвора пис
 ## Empty gun click sound (used for all weapons when out of ammo).
 const EMPTY_GUN_CLICK: String = "res://assets/audio/кончились патроны в пистолете.wav"
 
+## Empty gun click sound for pistols (PM, UZI, silenced pistol) - Issue #840.
+const PISTOL_EMPTY_CLICK: String = "res://assets/audio/попытка выстрелить без заряда ПМ.mp3"
+
 ## Hit sounds.
 const HIT_LETHAL: String = "res://assets/audio/звук смертельного попадания.wav"
 const HIT_NON_LETHAL: String = "res://assets/audio/звук попадания не смертельного попадания.wav"
@@ -342,6 +345,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(RELOAD_FULL)
 	all_sounds.append(PISTOL_BOLT)
 	all_sounds.append(EMPTY_GUN_CLICK)
+	all_sounds.append(PISTOL_EMPTY_CLICK)
 	all_sounds.append(FIRE_MODE_TOGGLE)
 	all_sounds.append(HIT_LETHAL)
 	all_sounds.append(HIT_NON_LETHAL)
@@ -678,6 +682,12 @@ func play_reload_full(position: Vector2) -> void:
 ## Uses CRITICAL priority for player feedback sounds.
 func play_empty_click(position: Vector2) -> void:
 	play_sound_2d_with_priority(EMPTY_GUN_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
+
+
+## Plays pistol empty click sound for PM, UZI, and silenced pistol (Issue #840).
+## Uses CRITICAL priority for player feedback sounds.
+func play_pistol_empty_click(position: Vector2) -> void:
+	play_sound_2d_with_priority(PISTOL_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
 
 
 ## Plays fire mode toggle sound (B key) at the given position.
