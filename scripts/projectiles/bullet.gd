@@ -204,7 +204,7 @@ func _ready() -> void:
 		if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
 			_breaker_shrapnel_scene = load(BREAKER_SHRAPNEL_SCENE_PATH)
 		if _debug_breaker:
-			print("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
+			FileLogger.info("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
 				"loaded" if _breaker_shrapnel_scene else "MISSING"))
 
 
@@ -1112,7 +1112,7 @@ func _check_breaker_detonation() -> bool:
 		# Wall detected within range — trigger detonation!
 		var detonation_pos := global_position
 		if _debug_breaker:
-			print("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
+			FileLogger.info("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
 				global_position.distance_to(result.position), detonation_pos])
 		_breaker_detonate(detonation_pos)
 		return true
@@ -1121,7 +1121,7 @@ func _check_breaker_detonation() -> bool:
 		if collider.has_method("is_alive") and collider.is_alive():
 			var detonation_pos := global_position
 			if _debug_breaker:
-				print("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
+				FileLogger.info("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
 					collider.name, global_position.distance_to(result.position), detonation_pos])
 			_breaker_detonate(detonation_pos)
 			return true
@@ -1188,7 +1188,7 @@ func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
 		target.on_hit()
 
 	if _debug_breaker:
-		print("[Bullet.Breaker] Explosion damage %.1f applied to %s" % [amount, target.name])
+		FileLogger.info("[Bullet.Breaker] Explosion damage %.1f applied to %s" % [amount, target.name])
 
 
 ## Checks line of sight from a position to a target position.
@@ -1284,14 +1284,14 @@ func _is_position_inside_wall(pos: Vector2) -> bool:
 func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if _breaker_shrapnel_scene == null:
 		if _debug_breaker:
-			print("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
+			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
 		return
 
 	# Check global concurrent shrapnel limit
 	var existing_shrapnel := get_tree().get_nodes_in_group("breaker_shrapnel")
 	if existing_shrapnel.size() >= BREAKER_MAX_CONCURRENT_SHRAPNEL:
 		if _debug_breaker:
-			print("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
+			FileLogger.info("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
 		return
 
 	# Calculate shrapnel count based on bullet damage, capped for performance
@@ -1324,7 +1324,7 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		# Check if spawn position is inside a wall (Issue #740 fix)
 		if _is_position_inside_wall(spawn_pos):
 			if _debug_breaker:
-				print("[Bullet.Breaker] Skipping shrapnel #%d: spawn position inside wall at %s" % [i, spawn_pos])
+				FileLogger.info("[Bullet.Breaker] Skipping shrapnel #%d: spawn position inside wall at %s" % [i, spawn_pos])
 			skipped_count += 1
 			continue
 
@@ -1347,5 +1347,5 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		spawned_count += 1
 
 	if _debug_breaker:
-		print("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
+		FileLogger.info("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
 			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])

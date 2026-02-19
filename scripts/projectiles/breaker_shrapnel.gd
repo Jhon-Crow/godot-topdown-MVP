@@ -50,6 +50,9 @@ var _debug: bool = false
 
 
 func _ready() -> void:
+	if _debug:
+		FileLogger.info("[BreakerShrapnel] Spawned at %s, direction: %s, source_id: %d" % [
+			global_position, direction, source_id])
 	# Add to group for global shrapnel count tracking (Issue #678 optimization)
 	add_to_group("breaker_shrapnel")
 
@@ -131,6 +134,8 @@ func _on_body_entered(body: Node2D) -> void:
 
 	# Hit a wall/obstacle — breaker shrapnel does NOT ricochet, just destroy
 	if body is StaticBody2D or body is TileMap:
+		if _debug:
+			FileLogger.info("[BreakerShrapnel] Hit wall at %s, destroying (no ricochet)" % global_position)
 		# Spawn wall hit effect
 		_spawn_wall_hit_effect(body)
 
@@ -158,6 +163,9 @@ func _on_area_entered(area: Area2D) -> void:
 			return  # Pass through dead entities
 
 		# Deal fractional damage (0.1)
+		if _debug:
+			FileLogger.info("[BreakerShrapnel] Hit target at %s, dealing %.1f damage" % [
+				global_position, damage])
 		if area.has_method("on_hit_with_bullet_info_and_damage"):
 			area.on_hit_with_bullet_info_and_damage(direction, null, false, false, damage)
 		elif area.has_method("on_hit_with_info"):
