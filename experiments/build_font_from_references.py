@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-"""Extract Gothic character glyphs from calligraphy image (v5).
+"""Build Gothic font sprite sheet from reference letter images.
 
-Refined character boundaries based on pixel-level alpha density analysis
-combined with 4x zoomed grid overlay visual verification.
-
-Uses transparent-background source image for clean alpha extraction.
-Produces a BMFont-compatible sprite sheet and .fnt file for Godot 4.x.
+This script takes individual letter images provided by the user
+and combines them into a BMFont-compatible sprite sheet.
 """
 
 from PIL import Image, ImageDraw
@@ -15,51 +12,69 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 
-INPUT_IMAGE = os.path.join(PROJECT_DIR, "assets", "fonts", "gothic_source_nobg.png")
+# Reference images directory
+REFERENCE_DIR = "/tmp/gh-issue-solver-1771528529067/reference_letters"
 OUTPUT_DIR = os.path.join(PROJECT_DIR, "assets", "fonts")
 EXPERIMENT_DIR = SCRIPT_DIR
 
-# Row definitions with manually specified x-split points for each character.
-# Based on zoomed 4x grid images with 10px grid lines.
-# Format: (chars, y1, y2, x_splits)
-#   where x_splits is list of x-boundaries: [x_start, split1, split2, ..., x_end]
-#   giving len(chars)+1 values
+# Mapping of letter numbers to characters (from analysis of images)
+# letter_01 = A, letter_02 = B, ..., letter_26 = Z
+LETTER_MAPPING = {
+    'letter_01.png': 'A', 'letter_02.png': 'B', 'letter_03.png': 'C',
+    'letter_04.png': 'D', 'letter_05.png': 'E', 'letter_06.png': 'F',
+    'letter_07.png': 'G', 'letter_08.png': 'H', 'letter_09.png': 'I',
+    'letter_10.png': 'J', 'letter_11.png': 'K', 'letter_12.png': 'L',
+    'letter_13.png': 'M', 'letter_14.png': 'N', 'letter_15.png': 'O',
+    'letter_16.png': 'P', 'letter_17.png': 'Q', 'letter_18.png': 'R',
+    'letter_19.png': 'S', 'letter_20.png': 'T', 'letter_21.png': 'U',
+    'letter_22.png': 'V', 'letter_23.png': 'W', 'letter_24.png': 'X',
+    'letter_25.png': 'Y', 'letter_26.png': 'Z',
+}
 
-ROWS = [
-    # Row 1: A B C D E F G (y=130-213)
-    # Corrected splits using per-column alpha density minimum analysis:
-    # A/B: x=163 (density=5.8), B/C: x=203 (3.5), C/D: x=239 (6.9, was 248@186),
-    # D/E: x=280 (5.3), E/F: x=323 (6.7), F/G: x=359 (15.6)
-    (list("ABCDEFG"), 130, 213,
-     [93, 163, 203, 239, 280, 323, 359, 398]),
+# Full character set we want to include
+# A-Z (from reference images), 0-9 (from original source), special chars (from original source)
+FULL_CHARSET = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:&?!-+x ")
 
-    # Row 2: H I J K L M N O P (y=210-296)
-    # Corrected splits: H/I: x=100 (4.0), I/J: x=133 (1.8), J/K: x=176 (4.6),
-    # K/L: x=216 (1.5), L/M: x=257 (11.1, was 252@25), M/N: x=293 (6.2),
-    # N/O: x=340 (3.2, was 336@6.3), O/P: x=393 (14.0, was 390@75.5)
-    (list("HIJKLMNOP"), 210, 296,
-     [78, 100, 133, 176, 216, 257, 293, 340, 393, 435]),
 
-    # Row 3: Q R S T U V W X Y Z (y=295-380)
-    # Corrected splits: Q/R: x=86 (17.9), R/S: x=122 (10.9), S/T: x=164 (13.2, was 157@88.8),
-    # T/U: x=206 (8.2), U/V: x=227 (2.3, was 240@193.9 - CRITICAL FIX),
-    # V/W: x=276 (9.3), W/X: x=312 (6.8, was 320@68.1),
-    # X/Y: x=346 (9.9, was 360@116.9 - CRITICAL FIX), Y/Z: x=415 (10.8)
-    (list("QRSTUVWXYZ"), 295, 380,
-     [45, 86, 122, 164, 206, 227, 276, 312, 346, 415, 467]),
+def convert_to_white_on_alpha(img):
+    """Convert an image to white pixels on transparent background.
 
-    # Row 4: 0 1 2 3 4 5 6 7 8 9 (y=380-458)
-    # Corrected splits: 6/7: x=321 (20.6), 7/8: x=350 (29.4, was 358@170.1 - CRITICAL FIX),
-    # 8/9: x=382 (14.2, was 390@168.4 - CRITICAL FIX)
-    (list("0123456789"), 380, 458,
-     [93, 130, 152, 190, 224, 252, 288, 322, 350, 382, 416]),
+    Takes any image (including those with checkered transparency pattern)
+    and extracts pixel density to create white letters.
 
-    # Row 5: : & ? ! - (y=462-527)
-    # Corrected splits: &/?: x=238 (17.0), ?/!: x=277 (10.0, was 268@145.4 - CRITICAL FIX),
-    # !/- : x=311 (10.3, was 306@44.5)
-    (list(":&?!-"), 462, 527,
-     [156, 170, 238, 277, 311, 342]),
-]
+    The reference images have a checkered pattern background:
+    - White pixels [255,255,255] = transparent
+    - Gray pixels [204,204,204] = transparent (checkered pattern)
+    - Dark pixels = ink (should become white with alpha)
+    """
+    img_rgb = img.convert('RGB')
+    arr = np.array(img_rgb)
+
+    # Calculate grayscale
+    rgb = arr.astype(float)
+    gray = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
+
+    # The checkered background has values around 204 and 255
+    # Consider anything >= 200 as background (transparent)
+    # Anything darker is ink
+    background_threshold = 200
+
+    # For pixels darker than threshold, calculate ink density
+    # Map grayscale 0 (black) -> 255 (full opacity), 200 (light gray) -> 0 (transparent)
+    ink = np.zeros_like(gray)
+    dark_mask = gray < background_threshold
+    # Linear mapping: 0 -> 255, background_threshold -> 0
+    ink[dark_mask] = 255 * (1 - gray[dark_mask] / background_threshold)
+    ink = np.clip(ink, 0, 255)
+
+    # Create white-on-transparent result
+    result = np.zeros((arr.shape[0], arr.shape[1], 4), dtype=np.uint8)
+    result[:, :, 0] = 255  # R
+    result[:, :, 1] = 255  # G
+    result[:, :, 2] = 255  # B
+    result[:, :, 3] = ink.astype(np.uint8)  # A = ink density
+
+    return Image.fromarray(result)
 
 
 def auto_trim_alpha(img_rgba, min_alpha=20):
@@ -75,26 +90,21 @@ def auto_trim_alpha(img_rgba, min_alpha=20):
     return img_rgba.crop((x1, y1, x2 + 1, y2 + 1))
 
 
-def main():
-    print(f"Loading image: {INPUT_IMAGE}")
+def load_original_font_chars():
+    """Load digits and special characters from the original source."""
+    from extract_gothic_font import INPUT_IMAGE, ROWS
+
+    chars = {}
     if not os.path.exists(INPUT_IMAGE):
-        print(f"ERROR: Image not found at {INPUT_IMAGE}")
-        return
+        print(f"Warning: Original source not found: {INPUT_IMAGE}")
+        return chars
 
     img = Image.open(INPUT_IMAGE).convert('RGBA')
-    width, height = img.size
-    print(f"Image size: {width}x{height}")
 
-    all_chars = []
-
-    for char_list, y1, y2, x_splits in ROWS:
-        assert len(x_splits) == len(char_list) + 1, \
-            f"Expected {len(char_list)+1} splits, got {len(x_splits)}"
-
+    # Get rows 4 and 5 (digits and special chars)
+    for char_list, y1, y2, x_splits in ROWS[3:]:  # Skip first 3 rows (letters)
         for i, char in enumerate(char_list):
             cx1, cx2 = x_splits[i], x_splits[i + 1]
-
-            # Crop from RGBA source
             crop = img.crop((cx1, y1, cx2, y2))
 
             # Convert to white-on-alpha
@@ -105,34 +115,53 @@ def main():
             result[:, :, 2] = 255
             result[:, :, 3] = crop_arr[:, :, 3]
             glyph = Image.fromarray(result)
-
-            # Auto-trim transparent borders
             glyph = auto_trim_alpha(glyph, min_alpha=20)
 
+            chars[char] = glyph
+            print(f"  Loaded original '{char}': {glyph.size[0]}x{glyph.size[1]}")
+
+    return chars
+
+
+def main():
+    print("Building Gothic font from reference letter images...")
+    print(f"Reference directory: {REFERENCE_DIR}")
+
+    all_chars = []
+
+    # Load reference letters (A-Z)
+    print("\nLoading reference letters...")
+    for filename, char in sorted(LETTER_MAPPING.items(), key=lambda x: x[1]):
+        filepath = os.path.join(REFERENCE_DIR, filename)
+        if not os.path.exists(filepath):
+            print(f"  Warning: {filepath} not found, skipping {char}")
+            continue
+
+        img = Image.open(filepath)
+        glyph = convert_to_white_on_alpha(img)
+        glyph = auto_trim_alpha(glyph, min_alpha=20)
+
+        all_chars.append({
+            'char': char,
+            'glyph': glyph,
+            'width': glyph.size[0],
+            'height': glyph.size[1],
+        })
+        print(f"  '{char}': {glyph.size[0]}x{glyph.size[1]} (from {filename})")
+
+    # Load digits and special characters from original source
+    print("\nLoading digits and special chars from original source...")
+    original_chars = load_original_font_chars()
+
+    for char in "0123456789:&?!-":
+        if char in original_chars:
+            glyph = original_chars[char]
             all_chars.append({
                 'char': char,
                 'glyph': glyph,
                 'width': glyph.size[0],
                 'height': glyph.size[1],
-                'bbox': (cx1, y1, cx2, y2),
             })
-            print(f"  '{char}': x={cx1}-{cx2} -> trimmed {glyph.size[0]}x{glyph.size[1]}")
-
-    # Debug visualization
-    debug_bg = Image.new('RGBA', (width, height), (255, 255, 255, 255))
-    debug_bg.paste(img, (0, 0), img)
-    debug_rgb = debug_bg.convert('RGB')
-    draw = ImageDraw.Draw(debug_rgb)
-    colors = ['red', 'lime', 'cyan', 'yellow', 'magenta', 'orange', 'blue', 'white', 'pink', 'gray']
-    for i, c in enumerate(all_chars):
-        x1, y1, x2, y2 = c['bbox']
-        color = colors[i % len(colors)]
-        draw.rectangle([x1, y1, x2 - 1, y2 - 1], outline=color, width=2)
-        draw.text((x1 + 2, y1 + 2), c['char'], fill=color)
-
-    debug_path = os.path.join(EXPERIMENT_DIR, "gothic_debug_v5.png")
-    debug_rgb.save(debug_path)
-    print(f"\nDebug image saved: {debug_path}")
 
     # Build sprite sheet
     max_w = max(c['width'] for c in all_chars)
@@ -225,44 +254,47 @@ def main():
     })
 
     # Lowercase 'x' (scaled-down X)
-    x_char = next(c for c in all_chars if c['char'] == 'X')
-    x_scaled = x_char['glyph'].resize(
-        (int(x_char['width'] * 0.7), int(x_char['height'] * 0.7)),
-        Image.LANCZOS
-    )
-    x_idx = plus_idx + 2
-    x_row = x_idx // cols_per_row
-    x_col = x_idx % cols_per_row
-    x_dest_x = x_col * cell_w + cell_padding
-    x_y_offset = (cell_h - cell_padding * 2) - x_scaled.height
-    x_dest_y = x_row * cell_h + cell_padding + x_y_offset
-    sheet.paste(x_scaled, (x_dest_x, x_dest_y), x_scaled)
+    x_char = next((c for c in all_chars if c['char'] == 'X'), None)
+    if x_char:
+        x_scaled = x_char['glyph'].resize(
+            (int(x_char['width'] * 0.7), int(x_char['height'] * 0.7)),
+            Image.LANCZOS
+        )
+        x_idx = plus_idx + 2
+        x_row = x_idx // cols_per_row
+        x_col = x_idx % cols_per_row
+        x_dest_x = x_col * cell_w + cell_padding
+        x_y_offset = (cell_h - cell_padding * 2) - x_scaled.height
+        x_dest_y = x_row * cell_h + cell_padding + x_y_offset
+        sheet.paste(x_scaled, (x_dest_x, x_dest_y), x_scaled)
 
-    fnt_chars.append({
-        'id': ord('x'),
-        'x': x_dest_x,
-        'y': x_dest_y,
-        'width': x_scaled.width,
-        'height': x_scaled.height,
-        'xoffset': 0,
-        'yoffset': x_y_offset,
-        'xadvance': x_scaled.width + 2,
-        'page': 0,
-        'chnl': 15
-    })
+        fnt_chars.append({
+            'id': ord('x'),
+            'x': x_dest_x,
+            'y': x_dest_y,
+            'width': x_scaled.width,
+            'height': x_scaled.height,
+            'xoffset': 0,
+            'yoffset': x_y_offset,
+            'xadvance': x_scaled.width + 2,
+            'page': 0,
+            'chnl': 15
+        })
 
-    # Save
+    # Save sprite sheet
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     sheet_path = os.path.join(OUTPUT_DIR, "gothic_bitmap.png")
     sheet.save(sheet_path)
     print(f"\nSprite sheet saved: {sheet_path}")
 
+    # Debug sheet with dark background
     debug_sheet = Image.new('RGBA', (sheet_w, sheet_h), (30, 30, 30, 255))
     debug_sheet.paste(sheet, (0, 0), sheet)
-    debug_sheet_path = os.path.join(EXPERIMENT_DIR, "gothic_sheet_debug_v5.png")
+    debug_sheet_path = os.path.join(EXPERIMENT_DIR, "gothic_sheet_from_refs.png")
     debug_sheet.save(debug_sheet_path)
     print(f"Debug sheet saved: {debug_sheet_path}")
 
+    # Save BMFont file
     fnt_path = os.path.join(OUTPUT_DIR, "gothic_bitmap.fnt")
     with open(fnt_path, 'w') as f:
         f.write(f'info face="GothicBitmap" size={cell_h} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=0 aa=1 padding=0,0,0,0 spacing=0,0 outline=0\n')
