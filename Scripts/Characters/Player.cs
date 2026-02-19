@@ -1349,9 +1349,39 @@ public partial class Player : BaseCharacter
         // When the player clicks while the fire timer is still active, the click
         // is buffered and consumed as soon as the weapon can fire again.
         // This prevents lost inputs when clicking faster than the fire rate allows.
+        //
+        // Issue #821 FIX: Only buffer clicks during fire cooldown, NOT during reload/pump.
+        // When reloading or pumping, play empty click sound instead of buffering shot.
         if (!isAutomatic && Input.IsActionJustPressed("shoot"))
         {
-            _semiAutoShootBuffered = true;
+            // Check if shotgun needs pumping (Issue #821)
+            var shotgun = CurrentWeapon as Shotgun;
+            bool shotgunNeedsPump = shotgun != null &&
+                shotgun.ActionState != ShotgunActionState.Ready;
+
+            // Check if any reload is in progress (Issue #821)
+            bool isReloading = _isReloadingSequence ||
+                (CurrentWeapon != null && CurrentWeapon.IsReloading);
+
+            // Check if revolver cylinder is open (Issue #821)
+            var revolver = CurrentWeapon as Revolver;
+            bool revolverReloading = revolver != null &&
+                revolver.ReloadState != RevolverReloadState.NotReloading;
+
+            // Check if shotgun is in reload state (Issue #821)
+            bool shotgunReloading = shotgun != null &&
+                shotgun.ReloadState != ShotgunReloadState.NotReloading;
+
+            if (isReloading || shotgunNeedsPump || revolverReloading || shotgunReloading)
+            {
+                // Issue #821: Don't buffer shots during reload/pump - play empty click instead
+                PlayEmptyClickSound();
+                GD.Print($"[Player.FIX#821] Click during reload/pump - playing empty click (isReloading={isReloading}, shotgunNeedsPump={shotgunNeedsPump}, revolverReloading={revolverReloading}, shotgunReloading={shotgunReloading})");
+            }
+            else
+            {
+                _semiAutoShootBuffered = true;
+            }
         }
 
         // Determine if shooting input is active
