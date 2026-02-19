@@ -144,6 +144,23 @@ var _debug_homing: bool = false
 ## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
 var is_breaker_bullet: bool = false
 
+## Whether this bullet penetrates through enemies (Issue #829).
+## When true, the bullet deals damage to enemies but continues flying through them.
+## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+var penetrates_enemies: bool = false
+
+## Set of enemy bodies this bullet has already dealt damage to (Issue #829).
+## Prevents the bullet from re-applying damage when _on_area_entered fires multiple times
+## for the same enemy (e.g., multiple hit areas or re-entry signals).
+## NOTE: Only populated by _on_area_entered AFTER damage is dealt.
+var _penetrated_enemy_bodies: Array = []
+
+## Set of enemy CharacterBody2D nodes the bullet has already passed through (Issue #829).
+## Used exclusively in _on_body_entered to suppress physics re-entry signals.
+## Kept separate from _penetrated_enemy_bodies so that _on_area_entered can still
+## deal damage even after _on_body_entered has already allowed the bullet through.
+var _passed_through_enemy_bodies: Array = []
+
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
 const BREAKER_DETONATION_DISTANCE: float = 60.0
 
@@ -326,6 +343,18 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("is_alive") and not body.is_alive():
 		return  # Pass through dead entities
 
+	# Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
+	# allow the bullet to pass through without being destroyed.
+	# The _on_area_entered handler takes care of dealing damage via the enemy's HitArea.
+	# We track which enemy bodies we've already passed through (body-level) to suppress
+	# physics re-entry signals, using a SEPARATE set from _penetrated_enemy_bodies so that
+	# _on_area_entered can still deal damage on first entry.
+	if penetrates_enemies and body.has_method("is_alive") and body.is_alive():
+		if body not in _passed_through_enemy_bodies:
+			_passed_through_enemy_bodies.append(body)
+			print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
+		return  # Don't destroy the bullet - it passes through the enemy body
+
 	# If we're currently penetrating the same body, ignore re-entry
 	if _is_penetrating and _penetrating_body == body:
 		return
@@ -427,6 +456,13 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
 			return  # Pass through dead entities
 
+		# Issue #829: When penetrating enemies, only deal damage to each enemy once per pass-through.
+		# The area_entered signal fires once on entry, but we guard against future re-entries
+		# (e.g., if the enemy has multiple hit areas or the bullet passes through slowly).
+		if penetrates_enemies and parent != null:
+			if parent in _penetrated_enemy_bodies:
+				return  # Already dealt damage to this enemy during this pass-through
+
 		# Calculate effective damage (base damage × multiplier from ricochets/penetration)
 		var effective_damage: float = damage * damage_multiplier
 
@@ -449,6 +485,15 @@ func _on_area_entered(area: Area2D) -> void:
 		# Trigger hit effects if this is a player bullet hitting an enemy
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
+
+		# Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
+		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+		if penetrates_enemies:
+			print("[Bullet]: Penetrating through enemy, bullet continues flying")
+			# Track the enemy so we don't re-apply damage on subsequent area_entered calls
+			if parent != null and parent not in _penetrated_enemy_bodies:
+				_penetrated_enemy_bodies.append(parent)
+			return  # Don't destroy the bullet - it passes through
 
 		queue_free()
 
