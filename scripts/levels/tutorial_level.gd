@@ -3,10 +3,16 @@ extends Node2D
 ##
 ## This script handles the tutorial flow:
 ## 1. Player switches fire mode (B key) - only if player has assault rifle
-## 2. Player reloads using R -> F -> R sequence
+## 2. Player reloads using R -> F -> R sequence (shown simultaneously with grenade hint)
 ##    - For shotgun: RMB UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
+##    - For sniper: bolt-action between shots (separate hint shown simultaneously)
+##    - For revolver: cylinder reload + cock hammer hint (shown simultaneously)
 ## 3. Player throws a grenade (G + RMB drag right, then G+RMB held → release G, then RMB drag and release)
+##    (shown simultaneously with reload hint from step 2)
 ## 4. Shows completion message with Q restart hint
+##
+## Issue #808: Reload and grenade hints are shown simultaneously. When an action is completed,
+## only its corresponding hint disappears. Weapon special features each get their own hint line.
 ##
 ## On this tutorial level, grenades are infinite so player can practice.
 ## Floating key prompts appear near the player until the action is completed.
@@ -71,8 +77,19 @@ var _sniper_bolt_cycled: bool = false
 ## Whether the scope has been used (for sniper scope training step).
 var _scope_used: bool = false
 
-## Floating prompt label that follows the player.
-var _prompt_label: Label = null
+## Hint keys used in the multi-hint system (Issue #808).
+const HINT_RELOAD := "reload"
+const HINT_GRENADE := "grenade"
+const HINT_BOLT_CYCLE := "bolt_cycle"
+const HINT_SCOPE := "scope"
+const HINT_FIRE_MODE := "fire_mode"
+
+## Dictionary of active hint labels: hint_key -> Label node.
+## Each hint is shown simultaneously and removed independently when the action completes.
+var _hint_labels: Dictionary = {}
+
+## Vertical spacing between stacked hints above the player (pixels).
+const HINT_SPACING := 35
 
 
 func _ready() -> void:
@@ -108,11 +125,8 @@ func _ready() -> void:
 	# Determine initial tutorial step based on weapon type
 	_set_initial_step()
 
-	# Create floating prompt
-	_create_floating_prompt()
-
-	# Update prompt for initial step
-	_update_prompt_text()
+	# Create initial hints based on starting step
+	_setup_initial_hints()
 
 	# Register player with GameManager
 	if GameManager:
@@ -356,11 +370,8 @@ func _setup_selected_weapon() -> void:
 
 
 func _process(_delta: float) -> void:
-	# Update floating prompt position to follow player
-	_update_prompt_position()
-
-	# Tutorial progression is tracked via signals
-	# No per-frame checks needed
+	# Update all floating hint positions to follow player
+	_update_all_hint_positions()
 
 
 ## Connect to player signals for tracking tutorial actions.
@@ -650,6 +661,8 @@ func _on_fire_mode_changed(_new_mode: int) -> void:
 	if not _has_switched_fire_mode:
 		_has_switched_fire_mode = true
 		print("Tutorial: Player switched fire mode")
+		# Remove fire mode hint and advance; reload + grenade hints will be shown together
+		_dismiss_hint(HINT_FIRE_MODE)
 		_advance_to_step(TutorialStep.RELOAD)
 
 
@@ -666,6 +679,9 @@ func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 		_sniper_bolt_cycled = true
 		_has_reloaded = true
 		print("Tutorial: Sniper bolt cycling completed")
+		# Dismiss reload and bolt cycle hints; keep scope hint active
+		_dismiss_hint(HINT_RELOAD)
+		_dismiss_hint(HINT_BOLT_CYCLE)
 		# After bolt-action reload, teach scope usage
 		_advance_to_step(TutorialStep.SCOPE_TRAINING)
 
@@ -680,6 +696,8 @@ func _on_scope_state_changed(is_active: bool) -> void:
 	if is_active and not _scope_used:
 		_scope_used = true
 		print("Tutorial: Scope used - scope training complete")
+		# Dismiss scope hint only; grenade hint remains
+		_dismiss_hint(HINT_SCOPE)
 		_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
@@ -691,6 +709,8 @@ func _on_player_reload_completed() -> void:
 	if not _has_reloaded:
 		_has_reloaded = true
 		print("Tutorial: Player reloaded")
+		# Dismiss only the reload hint; grenade hint stays visible (Issue #808)
+		_dismiss_hint(HINT_RELOAD)
 		_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
@@ -702,101 +722,165 @@ func _on_player_grenade_thrown() -> void:
 	if not _has_thrown_grenade:
 		_has_thrown_grenade = true
 		print("Tutorial: Player threw grenade")
+		# Dismiss only the grenade hint (Issue #808)
+		_dismiss_hint(HINT_GRENADE)
 		_advance_to_step(TutorialStep.COMPLETED)
 
 
 ## Advance to the next tutorial step.
 func _advance_to_step(step: TutorialStep) -> void:
 	_current_step = step
-	_update_prompt_text()
+	_show_hints_for_step(step)
 
 	if step == TutorialStep.COMPLETED:
 		_show_completion_message()
 
 
-## Create the floating prompt label.
-func _create_floating_prompt() -> void:
-	_prompt_label = Label.new()
-	_prompt_label.name = "TutorialPrompt"
-	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_prompt_label.add_theme_font_size_override("font_size", 20)
-	_prompt_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.3, 1.0))
+## ============================================================
+## Multi-hint system (Issue #808)
+## ============================================================
 
-	# Add shadow for better visibility
-	_prompt_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-	_prompt_label.add_theme_constant_override("shadow_offset_x", 2)
-	_prompt_label.add_theme_constant_override("shadow_offset_y", 2)
 
-	# Set minimum size for consistent width
-	_prompt_label.custom_minimum_size = Vector2(300, 30)
-
-	# Add to CanvasLayer so it's always visible on screen
+## Setup initial hints based on the starting tutorial step.
+func _setup_initial_hints() -> void:
 	var canvas_layer := get_node_or_null("CanvasLayer")
-	if canvas_layer:
-		canvas_layer.add_child(_prompt_label)
-		print("Tutorial: Floating prompt created and added to CanvasLayer")
-	else:
-		push_error("Tutorial: CanvasLayer not found - prompts will not be displayed!")
-
-
-## Update the prompt position to follow the player.
-func _update_prompt_position() -> void:
-	if _prompt_label == null or _player == null:
-		return
-
-	if _current_step == TutorialStep.COMPLETED:
-		_prompt_label.visible = false
-		return
-
-	_prompt_label.visible = true
-
-	# Get the canvas transform to convert world position to screen position
-	# This works correctly in both editor and exported builds
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
-	var screen_pos: Vector2 = canvas_transform * _player.global_position
-
-	# Position above the player
-	# Use custom_minimum_size to ensure we get consistent label width
-	_prompt_label.custom_minimum_size = Vector2(300, 30)
-	_prompt_label.position = screen_pos + Vector2(-150, -80)
-
-
-## Update the prompt text based on current tutorial step.
-func _update_prompt_text() -> void:
-	if _prompt_label == null:
+	if canvas_layer == null:
+		push_error("Tutorial: CanvasLayer not found - hints will not be displayed!")
 		return
 
 	match _current_step:
 		TutorialStep.SWITCH_FIRE_MODE:
-			_prompt_label.text = "[B] Переключи режим стрельбы"
+			_add_hint(HINT_FIRE_MODE, "[B] Переключи режим стрельбы", canvas_layer)
 		TutorialStep.RELOAD:
-			if _has_shotgun:
-				# Shotgun-specific reload instructions with shell loading gestures
-				# RMB drag UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
-				_prompt_label.text = "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]"
-			elif _has_sniper_rifle:
-				# Sniper rifle bolt-action reload: Left→Down→Up→Right
-				_prompt_label.text = "[←отпирание] [↓извлечение] [↑досылание] [→запирание]"
-			elif _has_revolver:
-				# Revolver cylinder reload: R (open) → RMB drag up (insert) → scroll (rotate) → R (close)
-				_prompt_label.text = "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]"
-			elif _has_makarov_pm:
-				# Makarov PM uses simplified R->R reload (2-step pistol reload)
-				_prompt_label.text = "[R] [R] Перезарядись"
-			else:
-				_prompt_label.text = "[R] [F] [R] Перезарядись"
+			_add_reload_hints(canvas_layer)
+
+
+## Show hints appropriate for the given step.
+## For RELOAD step: shows reload and grenade hints simultaneously (Issue #808).
+## For THROW_GRENADE: grenade hint may already be visible; only add if missing.
+func _show_hints_for_step(step: TutorialStep) -> void:
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		return
+
+	match step:
+		TutorialStep.RELOAD:
+			_add_reload_hints(canvas_layer)
 		TutorialStep.SCOPE_TRAINING:
-			# Sniper scope training: hold RMB to activate scope
-			_prompt_label.text = "[ПКМ] Прицелься через оптику"
+			# Scope hint added alongside still-active grenade hint
+			_add_hint(HINT_SCOPE, "[ПКМ] Прицелься через оптику", canvas_layer)
+			# Grenade hint is also shown for sniper (add if not already present)
+			if not _hint_labels.has(HINT_GRENADE):
+				_add_hint(HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
 		TutorialStep.THROW_GRENADE:
-			# 2-step grenade throwing:
-			# Step 1: G + RMB drag right = start timer (pin pulled)
-			# Step 2: G+RMB held → release G = ready to throw (only RMB held)
-			# Step 3: RMB drag and release = throw
-			_prompt_label.text = "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]"
+			# Grenade hint may already be visible from RELOAD step; add if missing
+			if not _hint_labels.has(HINT_GRENADE):
+				_add_hint(HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
 		TutorialStep.COMPLETED:
-			_prompt_label.text = ""
+			# Remove any remaining hints
+			for key in _hint_labels.keys():
+				_dismiss_hint(key)
+
+
+## Add reload-related hints for the current weapon type.
+## For weapons with special features (sniper bolt, revolver hammer), each feature gets its own line.
+## The grenade hint is always added alongside (Issue #808).
+func _add_reload_hints(canvas_layer: Node) -> void:
+	# Add reload hint based on weapon type
+	if _has_shotgun:
+		# Shotgun-specific reload instructions
+		_add_hint(HINT_RELOAD, "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]", canvas_layer)
+	elif _has_sniper_rifle:
+		# Sniper: reload hint (magazine swap) + separate bolt-cycle hint (between shots)
+		_add_hint(HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
+		_add_hint(HINT_BOLT_CYCLE, "[←↓↑→] Передёрни затвор", canvas_layer)
+	elif _has_revolver:
+		# Revolver: cylinder reload + cock hammer hint (separate lines per feature, Issue #808)
+		_add_hint(HINT_RELOAD, "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]", canvas_layer)
+	elif _has_makarov_pm:
+		# Makarov PM uses simplified R->R reload
+		_add_hint(HINT_RELOAD, "[R] [R] Перезарядись", canvas_layer)
+	else:
+		_add_hint(HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
+
+	# Always add grenade hint alongside reload hint (Issue #808 - shown simultaneously)
+	if not _hint_labels.has(HINT_GRENADE):
+		_add_hint(HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+
+
+## Create and register a hint label with the given key and text.
+func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
+	if _hint_labels.has(hint_key):
+		# Already exists - just update text
+		_hint_labels[hint_key].text = text
+		return
+
+	var label := Label.new()
+	label.name = "TutorialHint_" + hint_key
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.3, 1.0))
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.custom_minimum_size = Vector2(300, 30)
+
+	canvas_layer.add_child(label)
+	_hint_labels[hint_key] = label
+	print("Tutorial: Added hint '%s': %s" % [hint_key, text])
+
+	# Position immediately
+	_update_hint_position(hint_key, label)
+
+
+## Dismiss (remove) a single hint by key, leaving other hints visible.
+func _dismiss_hint(hint_key: String) -> void:
+	if not _hint_labels.has(hint_key):
+		return
+
+	var label: Label = _hint_labels[hint_key]
+	label.queue_free()
+	_hint_labels.erase(hint_key)
+	print("Tutorial: Dismissed hint '%s'" % hint_key)
+
+
+## Update positions of all active hints to follow the player.
+func _update_all_hint_positions() -> void:
+	if _player == null or _hint_labels.is_empty():
+		return
+
+	var index := 0
+	for hint_key in _hint_labels:
+		var label: Label = _hint_labels[hint_key]
+		if is_instance_valid(label):
+			_update_hint_position_indexed(label, index)
+			index += 1
+
+
+## Update a single hint label's position.
+func _update_hint_position(hint_key: String, label: Label) -> void:
+	# Find this hint's index among active hints
+	var index := 0
+	for key in _hint_labels:
+		if key == hint_key:
+			break
+		index += 1
+	_update_hint_position_indexed(label, index)
+
+
+## Position a hint label above the player at the given vertical index (0 = closest to player).
+func _update_hint_position_indexed(label: Label, index: int) -> void:
+	if _player == null:
+		return
+
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * _player.global_position
+
+	# Stack hints above player: index 0 is closest, higher indices are further up
+	label.custom_minimum_size = Vector2(300, 30)
+	label.position = screen_pos + Vector2(-150, -80 - index * HINT_SPACING)
 
 
 ## Show the completion message.
@@ -841,5 +925,3 @@ func _show_completion_message() -> void:
 	_ui.add_child(restart_label)
 
 	print("Tutorial completed!")
-
-
