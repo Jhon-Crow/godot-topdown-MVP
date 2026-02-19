@@ -71,24 +71,13 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var magazine_size: int = 30  ## Bullets per magazine.
 @export var total_magazines: int = 5  ## Number of magazines carried.
 
-## Ammunition system - time to reload in seconds.
-@export var reload_time: float = 3.0
-
-## Delay between spotting player and shooting (gives reaction time).
-@export var detection_delay: float = 0.2
-## Min visibility time before enabling lead prediction.
-@export var lead_prediction_delay: float = 0.3
-## Min visibility ratio (0-1) for lead prediction (prevents pre-firing at cover edges).
-@export var lead_prediction_visibility_threshold: float = 0.6
-
-## Walking animation speed multiplier - higher = faster leg cycle.
-@export var walk_anim_speed: float = 12.0
-
-## Walking animation intensity - higher = more pronounced movement.
-@export var walk_anim_intensity: float = 1.0
-
-## Scale multiplier for enemy model (1.3 matches player size).
-@export var enemy_model_scale: float = 1.3
+@export var reload_time: float = 3.0  ## Time to reload in seconds.
+@export var detection_delay: float = 0.2  ## Delay between spotting player and shooting (reaction time).
+@export var lead_prediction_delay: float = 0.3  ## Min visibility time before enabling lead prediction.
+@export var lead_prediction_visibility_threshold: float = 0.6  ## Min visibility ratio for lead prediction.
+@export var walk_anim_speed: float = 12.0  ## Walking animation speed multiplier.
+@export var walk_anim_intensity: float = 1.0  ## Walking animation intensity.
+@export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 # Grenade System Configuration (Issue #363, #375)
@@ -305,8 +294,7 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
 
-## [Memory System Issue #297] Tracks suspected player position with confidence (0=none, 1=visual).
-## High(>0.8):direct pursuit, Med(0.5-0.8):cautious approach, Low(<0.5):return to patrol/guard.
+## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 var _memory: EnemyMemory = null
 
 ## Confidence values for different detection sources.
@@ -314,10 +302,10 @@ const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
 const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
+const SOUND_CASING_KICK_CONFIDENCE: float = 0.5  ## Issue #693: Casing kick - lower than reload
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
 
-## Communication range for enemy-to-enemy information sharing.
-## 660px with direct line of sight, 300px without line of sight.
+## Communication range for intel sharing: 660px w/ LOS, 300px without.
 const INTEL_SHARE_RANGE_LOS: float = 660.0
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
 
@@ -329,8 +317,7 @@ const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
 
-## [Ally Death Observation Issue #409] Enemy enters SEARCHING when witnessing ally death.
-## Observing enemy estimates player location based on bullet travel direction.
+## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
 const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
 var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
@@ -347,6 +334,7 @@ var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
+var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -378,6 +366,8 @@ var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
+var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
+var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -402,6 +392,7 @@ func _ready() -> void:
 	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
+	_setup_aggression_component()  # Issue #675
 	_setup_machete_component()  # Issue #579
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -453,8 +444,7 @@ func _initialize_ammo() -> void:
 	_is_reloading = false
 	_reload_timer = 0.0
 
-## Configure weapon parameters based on weapon type using WeaponConfigComponent.
-## Loads player-like bullet scenes and caliber data (Issue #417 PR feedback).
+## Configure weapon type from WeaponConfigComponent (bullet scenes, caliber; #417).
 func _configure_weapon_type() -> void:
 	var c := WeaponConfigComponent.get_config(weapon_type)
 	shoot_cooldown = c["shoot_cooldown"]; bullet_speed = c["bullet_speed"]; magazine_size = c["magazine_size"]
@@ -524,9 +514,7 @@ func _setup_threat_sphere() -> void:
 	_threat_sphere.area_entered.connect(_on_threat_area_entered)
 	_threat_sphere.area_exited.connect(_on_threat_area_exited)
 
-## Register this enemy as a listener for in-game sound propagation.
-## This allows the enemy to react to sounds like gunshots even when not in direct combat.
-## Uses call_deferred to ensure SoundPropagation autoload is fully initialized.
+## Register as sound propagation listener (call_deferred for autoload init).
 func _register_sound_listener() -> void:
 	call_deferred("_deferred_register_sound_listener")
 
@@ -563,12 +551,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
 	# This sound propagates through walls and alerts enemies even behind cover.
 	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
-		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 
 		# Set player vulnerability state - reloading
 		_goap_world_state["player_reloading"] = true
@@ -595,12 +579,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
 	# This sound has shorter range than reload but still propagates through walls.
 	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
-		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 
 		# Set player vulnerability state - out of ammo
 		_goap_world_state["player_ammo_empty"] = true
@@ -635,15 +615,19 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			_log_to_file("EVADING_GRENADE (from sound): escaping from %s" % position)
 		return
 
+	# Issue #693: Casing kick sound (CASING_KICK = 8) - same range as reload (900px)
+	if sound_type == 8:
+		_log_to_file("Heard CASING_KICK at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
+		_last_known_player_position = position
+		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
+		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		return
+
 	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
 	# This sound propagates through walls and signals enemies to become cautious.
 	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
-		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, dist=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
 
 		# Clear player vulnerability state - reload finished, player is armed again
 		_goap_world_state["player_reloading"] = false
@@ -675,53 +659,34 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 				# If no cover available, stay in current state but with cleared vulnerability flags
 		return
 
-	# Handle gunshot sounds (sound_type 0 = GUNSHOT)
-	if sound_type != 0:
+	# Issue #805: Handle GUNSHOT (0) and EXPLOSION (1) sounds - both alert enemies similarly
+	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state:
-	# - IDLE: Always react to loud sounds
-	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
+	# React based on current state (same for gunshots and explosions)
 	var should_react := false
 	if _current_state == AIState.IDLE:
-		# In IDLE state, always investigate sounds above minimal threshold
 		should_react = intensity >= 0.01
 	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-		# In tactical movement states, react to loud nearby sounds
 		should_react = intensity >= 0.3
-	else:
-		# In combat-related states, only react to very loud sounds
-		# This prevents enemies from being distracted during active combat
-		should_react = false
 	if not should_react:
 		return
 
-	# React to sounds: transition to combat mode to investigate
-	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
-		intensity,
-		distance,
-		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
-		position
-	])
-	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
-		position, source_type, intensity, distance
-	])
+	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
+	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
+	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
-	# Issue #363: Track gunshots for sustained fire detection (Trigger 5)
-	_on_gunshot_heard_for_grenade(position)
+	# Issue #363: Track gunshots for sustained fire detection (only for actual gunshots)
+	if sound_type == 0:
+		_on_gunshot_heard_for_grenade(position)
 
-	# Store the position of the sound as a point of interest
-	# The enemy will investigate this location
 	_last_known_player_position = position
-
-	# Update memory system with sound-based detection (Issue #297)
 	if _memory:
 		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
-	if source_type == 0 and _prediction and source_node and is_instance_valid(source_node):  # [#298] shot dir
+	if sound_type == 0 and source_type == 0 and _prediction and source_node and is_instance_valid(source_node):
 		var sd := (position - source_node.global_position).normalized()
 		_prediction.record_player_shot(sd)
 		_memory.update_shot_direction(sd)
-	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
 
 ## Initialize GOAP world state.
@@ -757,7 +722,8 @@ func _initialize_goap_state() -> void:
 		"has_prediction": false, "prediction_confidence": 0.0,  # [#298]
 		# Flashlight detection states (Issue #574)
 		"flashlight_detected": false,
-		"passage_lit_by_flashlight": false
+		"passage_lit_by_flashlight": false,
+		"grenadier_throw_ready": false  # Issue #657: Grenadier GOAP throw
 	}
 
 ## Initialize the enemy memory, prediction, and flashlight detection systems (Issue #297, #298, #574).
@@ -937,16 +903,16 @@ func _update_goap_state() -> void:
 		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
 		# Check if the next navigation waypoint is lit by the flashlight
 		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
-## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
-## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
+## Update model rotation (#347, #386, #397): priority player > combat/pursuit > corner > velocity > idle.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
 	var has_target := false
 	var rotation_reason := ""  # Issue #397 debug: track which priority was used
-	# Priority 1: Face player if visible
-	if _player != null and _can_see_player:
+	if _is_facing_for_grenade_throw and _grenade_throw_facing_direction != Vector2.ZERO:  # P0: Issue #712
+		target_angle = _grenade_throw_facing_direction.angle(); has_target = true; rotation_reason = "P0:grenade_throw"
+	elif _player != null and _can_see_player:  # P1: Face player if visible
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P1:visible"
@@ -1008,9 +974,7 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Updates the walking animation based on enemy movement state.
-## Creates a natural bobbing motion for body parts during movement.
-## @param delta: Time since last frame.
+## Updates walking animation (bobbing motion for body parts). @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
 	if is_moving:
@@ -1181,6 +1145,9 @@ func _process_ai_state(delta: float) -> void:
 		_log_to_file("GRENADE DANGER: Entering EVADING_GRENADE state from %s" % AIState.keys()[_current_state])
 		_transition_to_evading_grenade()
 		return
+
+	if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
+		_aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
@@ -1959,6 +1926,8 @@ func _process_pursuing_state(delta: float) -> void:
 		var ss := get_world_2d().direct_space_state
 		if ss and (_grenade_component as GrenadierGrenadeComponent).try_passage_throw(global_position, wp, ss, _is_alive, _is_stunned, _is_blinded):
 			velocity = Vector2.ZERO; return  # Wait for grenade to explode
+	# Issue #657: Non-grenadier allies wait for nearby grenadier to throw before advancing
+	if not is_grenadier and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
 
 	# If can see player and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -2213,8 +2182,7 @@ func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
 	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
 
-## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
-## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
+## Process SEARCHING state - waypoint scanning (#322, #330: engaged enemies search infinitely).
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
 	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
@@ -2847,9 +2815,7 @@ func _is_player_point_visible_to_enemy(point: Vector2) -> bool:
 
 	return true
 
-## Calculate what fraction of the player's body is visible to the enemy.
-## Returns a value from 0.0 (completely hidden) to 1.0 (fully visible).
-## Checks multiple points on the player's body (center + corners).
+## Calculate player body visibility fraction (0.0=hidden, 1.0=visible) using multi-point checks.
 func _calculate_player_visibility_ratio() -> float:
 	if _player == null:
 		return 0.0
@@ -3002,9 +2968,7 @@ func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Ve
 
 ## Check if the enemy should shoot at the target (bullet spawn, friendly fire, cover).
 func _should_shoot_at_target(target_position: Vector2) -> bool:
-	# Check if the immediate path to bullet spawn is clear
-	# This prevents shooting into walls the enemy is flush against
-	# Use weapon forward direction since that's where bullets actually spawn and travel
+	# Check path to bullet spawn is clear (prevents shooting into walls; uses weapon forward)
 	var weapon_direction := _get_weapon_forward_direction()
 	if not _is_bullet_spawn_clear(weapon_direction):
 		return false
@@ -3048,9 +3012,7 @@ func _can_hit_player_from_current_position() -> bool:
 	# Check if the shot would be blocked by cover
 	return _is_shot_clear_of_cover(_player.global_position)
 
-## Count the number of enemies currently in combat-related states.
-## Includes COMBAT, PURSUING, ASSAULT, IN_COVER (if can see player).
-## Used to determine if multi-enemy assault should be triggered.
+## Count enemies in combat states (COMBAT/PURSUING/ASSAULT/IN_COVER) for assault trigger.
 func _count_enemies_in_combat() -> int:
 	var count := 0
 	var enemies := get_tree().get_nodes_in_group("enemies")
@@ -3081,11 +3043,9 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find cover closer to player for PURSUING state. Penalizes same-obstacle covers, requires min progress,
-## verifies clear path (Issue #93).
+## Find pursuit cover toward player (penalizes same-obstacle, min progress, clear path; #93).
 func _find_pursuit_cover_toward_player() -> void:
-	# Use memory-based target position instead of direct player position (Issue #297)
-	# This allows pursuing toward a suspected position even when player is not visible
+	# Use memory-based target (not direct position) to pursue suspected position (#297)
 	var target_pos := _get_target_position()
 
 	# If no valid target and no player, can't pursue
@@ -3507,9 +3467,7 @@ func _find_flank_cover_toward_target() -> void:
 	else:
 		_has_flank_cover = false
 
-## Check if there's a wall ahead in the given direction and return avoidance direction.
-## Returns Vector2.ZERO if no wall detected, otherwise returns a vector to avoid the wall.
-## Enhanced version uses 8 raycasts with distance-weighted avoidance for better navigation.
+## Check for wall ahead and return avoidance direction (Vector2.ZERO if clear). Uses 8 distance-weighted raycasts.
 func _check_wall_ahead(direction: Vector2) -> Vector2:
 	if _wall_raycasts.is_empty():
 		return Vector2.ZERO
@@ -3626,6 +3584,10 @@ func _check_player_visibility() -> void:
 		return
 
 	if _player == null or not _raycast:
+		_continuous_visibility_timer = 0.0
+		return
+	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
+	if _player.has_method("is_invisible") and _player.is_invisible():
 		_continuous_visibility_timer = 0.0
 		return
 
@@ -3849,22 +3811,12 @@ func _aim_at_player() -> void:
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
-	if bullet_scene == null or _player == null:
-		return
-
-	# Check if we can shoot (have ammo and not reloading)
-	if not _can_shoot():
-		return
-
-	var target_position := _player.global_position
-
-	# Apply lead prediction if enabled
-	if enable_lead_prediction:
-		target_position = _calculate_lead_prediction()
-
-	# Check if the shot should be taken (friendly fire and cover checks)
-	if not _should_shoot_at_target(target_position):
-		return
+	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
+	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
+	if not _can_shoot(): return
+	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
+	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
+	if not _agg and not _should_shoot_at_target(target_position): return
 
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -3921,7 +3873,6 @@ func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
 	var spread := _initial_spread if _shot_count <= _spread_threshold else minf(_initial_spread + (_shot_count - _spread_threshold) * _spread_increment, _max_spread)
 	if spread > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread), deg_to_rad(spread)))
 	_spawn_projectile(direction, spawn_pos)
-
 
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
@@ -4210,6 +4161,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
+		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4544,6 +4496,7 @@ func _update_debug_label() -> void:
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
+	if _aggression: t += _aggression.get_debug_text()
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4835,10 +4788,13 @@ func set_blinded(blinded: bool) -> void:
 
 func set_stunned(stunned: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_stunned(stunned)
-
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
-
+func _setup_aggression_component() -> void:  ## [Issue #675]
+	_aggression = AggressionComponent.new(); _aggression.name = "AggressionComponent"; add_child(_aggression)
+	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
+func set_aggressive(a: bool) -> void: if _aggression: _aggression.set_aggressive(a)
+func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggressive()
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
@@ -4857,6 +4813,8 @@ func _setup_grenade_component() -> void:
 	_grenade_component.throw_delay = grenade_throw_delay; _grenade_component.min_throw_distance = grenade_min_throw_distance
 	_grenade_component.debug_logging = grenade_debug_logging; _grenade_component.safety_margin = grenade_safety_margin
 	add_child(_grenade_component); _grenade_component.initialize()
+	_grenade_component.face_throw_direction.connect(_on_grenade_face_throw_direction)  # Issue #712: pre-throw rotation
+	_grenade_component.grenade_thrown.connect(_on_grenade_component_thrown)  # Issue #712: clear facing after throw
 	if is_grenadier:  # Connect grenadier signals + vest visual (Issue #604)
 		var gc := _grenade_component as GrenadierGrenadeComponent
 		gc.grenade_incoming.connect(_on_grenadier_grenade_incoming); gc.grenade_exploded_safe.connect(_on_grenadier_grenade_exploded)
@@ -4874,6 +4832,14 @@ func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_vulnerable_sound(position, _can_see_player)
+
+## Issue #712: Grenade throw facing - set direction before throw, clear after throw completes.
+func _on_grenade_face_throw_direction(target_direction: Vector2) -> void:
+	if target_direction == Vector2.ZERO: return
+	_grenade_throw_facing_direction = target_direction; _is_facing_for_grenade_throw = true
+
+func _on_grenade_component_thrown(_grenade: Node, _target_position: Vector2) -> void:
+	_grenade_throw_facing_direction = Vector2.ZERO; _is_facing_for_grenade_throw = false
 
 ## Called when ally dies. Handles grenade awareness (#407) and death observation (#409).
 func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction: Vector2 = Vector2.ZERO) -> void:
@@ -4908,14 +4874,14 @@ func _can_see_position(pos: Vector2) -> bool:
 	var result := not _raycast.is_colliding()
 	_raycast.target_position = orig
 	return result
-
 func _update_grenade_world_state() -> void:
 	if _grenade_component == null:
 		_goap_world_state["has_grenades"] = false; _goap_world_state["grenades_remaining"] = 0
-		_goap_world_state["ready_to_throw_grenade"] = false; return
+		_goap_world_state["ready_to_throw_grenade"] = false; _goap_world_state["grenadier_throw_ready"] = false; return
+	var rdy := _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
 	_goap_world_state["has_grenades"] = _grenade_component.grenades_remaining > 0
 	_goap_world_state["grenades_remaining"] = _grenade_component.grenades_remaining
-	_goap_world_state["ready_to_throw_grenade"] = _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
+	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = is_grenadier and rdy
 
 ## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:
@@ -4965,6 +4931,19 @@ func _start_waiting_for_grenadier(wt: float) -> void: _waiting_for_grenadier = t
 func _stop_waiting_for_grenadier() -> void: _waiting_for_grenadier = false; _grenadier_wait_timer = 0.0
 func get_is_grenadier() -> bool: return is_grenadier
 func is_waiting_for_grenade() -> bool: return _waiting_for_grenadier
+## Issue #657: Non-idle allies near a pursuing grenadier with grenades wait for it to throw.
+func _should_wait_for_nearby_grenadier() -> bool:
+	if is_grenadier or _current_state == AIState.IDLE: return false
+	var parent := get_parent(); if parent == null: return false
+	for ally in parent.get_children():
+		if ally == self or not is_instance_valid(ally): continue
+		if not (ally.has_method("get_is_grenadier") and ally.get_is_grenadier()): continue
+		if not (ally.has_method("get_grenades_remaining") and ally.get_grenades_remaining() > 0): continue
+		if global_position.distance_to(ally.global_position) >= 400.0: continue
+		if ally.has_method("is_blocking_passage_grenade") and ally.is_blocking_passage_grenade(): return true
+		if ally.get("_current_state") == AIState.PURSUING: _start_waiting_for_grenadier(3.0); return true
+	return false
+func is_blocking_passage_grenade() -> bool: return _grenade_component is GrenadierGrenadeComponent and (_grenade_component as GrenadierGrenadeComponent).is_blocking_passage()
 
 ## Setup machete melee component (Issue #579).
 func _setup_machete_component() -> void:

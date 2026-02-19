@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3 uid="uid://bk7m4n9r3p5q4"]
+
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+[ext_resource type="Resource" uid="uid://dk7m4n9r3p5q3" path="res://resources/calibers/caliber_762x39.tres" id="2_caliber"]
+
+[resource]
+script = ExtResource("1_script")
+Name = "AK + GL"
+Damage = 1.5
+FireRate = 8.0
+MagazineSize = 30
+MaxReserveAmmo = 30
+ReloadTime = 2.5
+BulletSpeed = 2800.0
+Range = 1500.0
+SpreadAngle = 2.5
+BulletsPerShot = 1
+IsAutomatic = true
+Loudness = 1600.0
+Sensitivity = 4.0
+ScreenShakeIntensity = 6.0
+ScreenShakeMinRecoveryTime = 0.3
+ScreenShakeMaxRecoveryTime = 0.05
+Caliber = ExtResource("2_caliber")

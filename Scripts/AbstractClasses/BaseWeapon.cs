@@ -1,6 +1,8 @@
 using Godot;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Data;
 using System.Linq;
+using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
 
 namespace GodotTopDownTemplate.AbstractClasses;
 
@@ -103,6 +105,12 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public bool IsInReloadSequence { get; set; }
 
+
+    /// <summary>
+    /// Whether breaker bullets are active (passive item, Issue #678).
+    /// When true, spawned bullets will have is_breaker_bullet = true.
+    /// </summary>
+    public bool IsBreakerBulletActive { get; set; } = false;
 
     protected float _fireTimer;
     private float _reloadTimer;
@@ -428,7 +436,45 @@ public abstract partial class BaseWeapon : Node2D
         bullet.Set("ShooterPosition", GlobalPosition);
         bullet.Set("shooter_position", GlobalPosition);
 
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (IsBreakerBulletActive)
+        {
+            if (bullet is CSharpBullet csBulletBreaker)
+            {
+                csBulletBreaker.IsBreakerBullet = true;
+            }
+            else if (bullet is GodotTopDownTemplate.Projectiles.ShotgunPellet pelletBreaker)
+            {
+                pelletBreaker.IsBreakerBullet = true;
+            }
+            else
+            {
+                // GDScript bullet — set via property name
+                bullet.Set("is_breaker_bullet", true);
+            }
+        }
+
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Enable homing on the bullet if the player's homing effect is active (Issue #677, #704)
+        // When firing during activation, use aim-line targeting (nearest to crosshair)
+        var weaponOwner = GetParent();
+        if (weaponOwner is Player player && player.IsHomingActive())
+        {
+            Vector2 aimDir = (GetGlobalMousePosition() - player.GlobalPosition).Normalized();
+            if (bullet is CSharpBullet csBullet)
+            {
+                csBullet.EnableHomingWithAimLine(player.GlobalPosition, aimDir);
+            }
+            else if (bullet.HasMethod("enable_homing_with_aim_line"))
+            {
+                bullet.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
+            }
+            else if (bullet.HasMethod("enable_homing"))
+            {
+                bullet.Call("enable_homing");
+            }
+        }
 
         // Spawn muzzle flash effect at the bullet spawn position
         SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);

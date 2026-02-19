@@ -1,15 +1,12 @@
 extends Node2D
-## Tutorial level script for teaching player basic controls.
+## Tutorial level script for teaching player advanced controls.
 ##
 ## This script handles the tutorial flow:
-## 1. Player approaches the targets (WASD movement)
-## 2. Player shoots at targets (LMB)
-##    - For shotgun: LMB shoot → RMB UP (eject shell) → RMB DOWN (chamber)
-## 3. Player switches fire mode (B key) - only if player has assault rifle
-## 4. Player reloads using R -> F -> R sequence
+## 1. Player switches fire mode (B key) - only if player has assault rifle
+## 2. Player reloads using R -> F -> R sequence
 ##    - For shotgun: RMB UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
-## 5. Player throws a grenade (G + RMB drag right, then G+RMB held → release G, then RMB drag and release)
-## 6. Shows completion message with Q restart hint
+## 3. Player throws a grenade (G + RMB drag right, then G+RMB held → release G, then RMB drag and release)
+## 4. Shows completion message with Q restart hint
 ##
 ## On this tutorial level, grenades are infinite so player can practice.
 ## Floating key prompts appear near the player until the action is completed.
@@ -25,8 +22,6 @@ var _ammo_label: Label = null
 
 ## Tutorial state tracking.
 enum TutorialStep {
-	MOVE_TO_TARGETS,
-	SHOOT_TARGETS,
 	SWITCH_FIRE_MODE,
 	RELOAD,
 	SCOPE_TRAINING,
@@ -35,13 +30,7 @@ enum TutorialStep {
 }
 
 ## Current tutorial step.
-var _current_step: TutorialStep = TutorialStep.MOVE_TO_TARGETS
-
-## Whether each target has been hit.
-var _targets_hit: int = 0
-
-## Total number of targets in the level.
-var _total_targets: int = 0
+var _current_step: TutorialStep = TutorialStep.SWITCH_FIRE_MODE
 
 ## Whether the player has reloaded.
 var _has_reloaded: bool = false
@@ -85,15 +74,6 @@ var _scope_used: bool = false
 ## Floating prompt label that follows the player.
 var _prompt_label: Label = null
 
-## Distance threshold for being "near" targets (in pixels).
-const TARGET_PROXIMITY_THRESHOLD: float = 300.0
-
-## Position of the target zone center (average of target positions).
-var _target_zone_center: Vector2 = Vector2.ZERO
-
-## Whether player has reached the target zone.
-var _reached_target_zone: bool = false
-
 
 func _ready() -> void:
 	print("Tutorial level loaded - Обучение")
@@ -122,8 +102,11 @@ func _ready() -> void:
 	# Setup ammo tracking
 	_setup_ammo_tracking()
 
-	# Find and setup targets
+	# Find and setup targets (for practice, but not part of tutorial progression)
 	_setup_targets()
+
+	# Determine initial tutorial step based on weapon type
+	_set_initial_step()
 
 	# Create floating prompt
 	_create_floating_prompt()
@@ -154,6 +137,23 @@ func _setup_realistic_visibility() -> void:
 	print("[TutorialLevel] Realistic visibility component added to player")
 
 
+## Determine the initial tutorial step based on weapon type.
+## Assault rifles start with fire mode switching, others skip to reload.
+func _set_initial_step() -> void:
+	# Check which weapon the player has
+	var weapon = _player.get_node_or_null("AssaultRifle")
+	var akgl = _player.get_node_or_null("AKGL")
+
+	if weapon != null or akgl != null:
+		# Assault rifles have fire mode switching
+		_current_step = TutorialStep.SWITCH_FIRE_MODE
+		print("[TutorialLevel] Starting with SWITCH_FIRE_MODE step (assault rifle detected)")
+	else:
+		# All other weapons skip fire mode and start with reload
+		_current_step = TutorialStep.RELOAD
+		print("[TutorialLevel] Starting with RELOAD step (non-assault rifle)")
+
+
 ## Setup the weapon based on GameManager's selected weapon.
 ## Removes the default MakarovPM and loads the selected weapon.
 func _setup_selected_weapon() -> void:
@@ -176,6 +176,7 @@ func _setup_selected_weapon() -> void:
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
 			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
 			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
@@ -302,6 +303,27 @@ func _setup_selected_weapon() -> void:
 			print("Tutorial: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("Tutorial: Failed to load AssaultRifle scene!")
+	# If AK + GL is selected, swap weapons
+	elif selected_weapon_id == "ak_gl":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
+
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+
+			print("Tutorial: AK + GL equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load AKGL scene!")
 	# If Revolver is selected, swap weapons
 	elif selected_weapon_id == "revolver":
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -337,25 +359,8 @@ func _process(_delta: float) -> void:
 	# Update floating prompt position to follow player
 	_update_prompt_position()
 
-	# Check tutorial progression
-	match _current_step:
-		TutorialStep.MOVE_TO_TARGETS:
-			_check_player_near_targets()
-		TutorialStep.SHOOT_TARGETS:
-			# Shooting is tracked via target hit signals
-			pass
-		TutorialStep.SWITCH_FIRE_MODE:
-			# Fire mode switching is tracked via weapon signal
-			pass
-		TutorialStep.RELOAD:
-			# Reloading is tracked via player signal
-			pass
-		TutorialStep.THROW_GRENADE:
-			# Grenade throwing is tracked via player signal
-			pass
-		TutorialStep.COMPLETED:
-			# Tutorial is complete
-			pass
+	# Tutorial progression is tracked via signals
+	# No per-frame checks needed
 
 
 ## Connect to player signals for tracking tutorial actions.
@@ -623,66 +628,18 @@ func _on_revolver_cartridge_inserted(loaded: int, _capacity: int) -> void:
 			_update_ammo_label_magazine(revolver.CurrentAmmo, reserve_ammo)
 
 
-## Setup targets and connect to their hit signals.
+## Setup targets for shooting practice (optional, not part of tutorial progression).
 func _setup_targets() -> void:
 	var targets_node := get_node_or_null("Environment/Targets")
 	if targets_node == null:
-		push_error("Tutorial: Targets node not found!")
+		print("Tutorial: No targets found (optional for practice)")
 		return
 
-	var target_positions: Array = []
+	var target_count := 0
+	for _target in targets_node.get_children():
+		target_count += 1
 
-	for target in targets_node.get_children():
-		_total_targets += 1
-		target_positions.append(target.global_position)
-
-		# Connect to target_hit signal for tracking (GDScript target)
-		if target.has_signal("target_hit"):
-			target.target_hit.connect(_on_target_hit)
-		# Connect to Hit signal for C# targets
-		elif target.has_signal("Hit"):
-			target.Hit.connect(_on_target_hit)
-
-	# Calculate target zone center
-	if target_positions.size() > 0:
-		var sum := Vector2.ZERO
-		for pos in target_positions:
-			sum += pos
-		_target_zone_center = sum / target_positions.size()
-
-	print("Tutorial: Found %d targets" % _total_targets)
-
-
-## Check if player is near the targets.
-func _check_player_near_targets() -> void:
-	if _player == null or _reached_target_zone:
-		return
-
-	var distance := _player.global_position.distance_to(_target_zone_center)
-	if distance < TARGET_PROXIMITY_THRESHOLD:
-		_reached_target_zone = true
-		_advance_to_step(TutorialStep.SHOOT_TARGETS)
-		print("Tutorial: Player reached target zone")
-
-
-## Called when a target is hit by the player's bullet.
-func _on_target_hit() -> void:
-	if _current_step != TutorialStep.SHOOT_TARGETS:
-		return
-
-	_targets_hit += 1
-	print("Tutorial: Target hit (%d/%d)" % [_targets_hit, _total_targets])
-
-	# Sniper rifle: advance after first hit (one shot, then bolt-action training)
-	if _has_sniper_rifle and _targets_hit >= 1:
-		_advance_to_step(TutorialStep.RELOAD)
-	elif _targets_hit >= _total_targets:
-		# If player has assault rifle, go to fire mode switch step
-		# Other weapons skip directly to reload
-		if _has_assault_rifle:
-			_advance_to_step(TutorialStep.SWITCH_FIRE_MODE)
-		else:
-			_advance_to_step(TutorialStep.RELOAD)
+	print("Tutorial: Found %d targets for practice" % target_count)
 
 
 ## Called when player switches fire mode.
@@ -811,18 +768,6 @@ func _update_prompt_text() -> void:
 		return
 
 	match _current_step:
-		TutorialStep.MOVE_TO_TARGETS:
-			_prompt_label.text = "[WASD] Подойди к мишеням"
-		TutorialStep.SHOOT_TARGETS:
-			if _has_shotgun:
-				# Shotgun-specific shooting instructions with pump-action gestures
-				# LMB shoot → RMB drag UP (eject shell) → RMB drag DOWN (chamber)
-				_prompt_label.text = "[ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать]"
-			elif _has_sniper_rifle:
-				# Sniper rifle shooting - just LMB to fire
-				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
-			else:
-				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
 		TutorialStep.SWITCH_FIRE_MODE:
 			_prompt_label.text = "[B] Переключи режим стрельбы"
 		TutorialStep.RELOAD:

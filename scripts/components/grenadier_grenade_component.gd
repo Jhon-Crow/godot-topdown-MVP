@@ -48,10 +48,107 @@ var _passage_detected: bool = false
 ## Position of the detected passage entrance.
 var _passage_position: Vector2 = Vector2.ZERO
 
+## Trigger 8 (Issue #657): Direct sight timer - grenadier sees player at safe distance.
+var _direct_sight_timer: float = 0.0
+## Trigger 8: Delay before throwing on direct sight (seconds).
+const DIRECT_SIGHT_DELAY := 0.5
+## Trigger 8: Whether grenadier currently has line of sight to player at throwable distance.
+var _player_in_throw_range: bool = false
+
+## Trigger 9 (Issue #657): Low suspicion timer - throw on slightest suspicion.
+var _low_suspicion_timer: float = 0.0
+## Trigger 9: Delay before throwing on low suspicion (seconds). Shorter than T7's 3.0s.
+const LOW_SUSPICION_DELAY := 1.0
+
 
 func _ready() -> void:
 	_logger = get_node_or_null("/root/FileLogger")
 	_enemy = get_parent() as CharacterBody2D
+
+
+## Override _reset_triggers to also clear grenadier-specific triggers (Issue #657).
+func _reset_triggers() -> void:
+	super._reset_triggers()
+	_direct_sight_timer = 0.0
+	_player_in_throw_range = false
+	_low_suspicion_timer = 0.0
+
+
+## Override update to track grenadier-specific triggers T8 and T9 (Issue #657).
+func update(delta: float, can_see: bool, under_fire: bool, player: Node2D, health: int, memory = null) -> void:
+	super.update(delta, can_see, under_fire, player, health, memory)
+	if not enabled or grenades_remaining <= 0:
+		return
+	# T8: Direct sight - player visible at safe throwing distance
+	if can_see and player and _enemy:
+		var dist := _enemy.global_position.distance_to(player.global_position)
+		var next_scene := _get_next_grenade_scene()
+		var blast_radius := _get_blast_radius_for_scene(next_scene) if next_scene else 225.0
+		var min_safe := blast_radius + safety_margin
+		if dist >= min_safe and dist <= max_throw_distance:
+			_player_in_throw_range = true
+			_direct_sight_timer += delta
+		else:
+			_player_in_throw_range = false
+			_direct_sight_timer = 0.0
+	else:
+		_player_in_throw_range = false
+		_direct_sight_timer = 0.0
+	# T9: Low suspicion - any confidence level while player hidden (Issue #657)
+	if memory != null and memory.has_target() and not can_see:
+		_low_suspicion_timer += delta
+	else:
+		_low_suspicion_timer = 0.0
+
+
+## Trigger 8: Grenadier sees player at safe throwing distance (Issue #657).
+func _t8() -> bool:
+	return _player_in_throw_range and _direct_sight_timer >= DIRECT_SIGHT_DELAY
+
+
+## Trigger 9: Grenadier has any suspicion about player position (Issue #657).
+func _t9() -> bool:
+	return _low_suspicion_timer >= LOW_SUSPICION_DELAY
+
+
+## Override is_ready to include grenadier-specific triggers T8 and T9 (Issue #657).
+func is_ready(can_see: bool, under_fire: bool, health: int) -> bool:
+	if not enabled or grenades_remaining <= 0 or _cooldown > 0.0 or _is_throwing:
+		return false
+	if _grenade_bag.is_empty():
+		return false
+	return _t1() or _t2(under_fire) or _t3() or _t4(can_see) or _t5() or _t6(health) or _t7() or _t8() or _t9()
+
+
+## Override get_target to handle grenadier-specific triggers T8 and T9 (Issue #657).
+func get_target(can_see: bool, under_fire: bool, health: int, player: Node2D,
+				last_known: Vector2, memory_pos: Vector2) -> Vector2:
+	# T6 desperation: highest priority
+	if _t6(health):
+		return player.global_position if player else memory_pos
+	# T8 direct sight: throw at player (Issue #657)
+	if _t8() and player:
+		return player.global_position
+	# T7 suspicion-based (original)
+	if _t7():
+		return memory_pos if memory_pos != Vector2.ZERO else last_known
+	# T9 low suspicion: throw at suspected position (Issue #657)
+	if _t9():
+		return memory_pos if memory_pos != Vector2.ZERO else last_known
+	# Fall through to base triggers
+	if _t4(can_see):
+		return _sound_pos
+	if _t2(under_fire) and player and _enemy:
+		var dir := (player.global_position - _enemy.global_position).normalized()
+		var d := minf(200.0, _enemy.global_position.distance_to(player.global_position) * 0.5)
+		return _enemy.global_position + dir * d
+	if _t3():
+		return player.global_position if player and can_see else memory_pos
+	if _t5():
+		return _fire_zone
+	if _t1():
+		return memory_pos if memory_pos != Vector2.ZERO else last_known
+	return Vector2.ZERO
 
 
 ## Initialize the grenadier's grenade bag based on difficulty.
@@ -182,6 +279,11 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 		_log("Throw path blocked for %s to %s" % [_get_next_grenade_type_name(), target])
 		return false
 
+	# Issue #712: Check if target is visible to enemy (not throwing into unseen area)
+	if require_target_visibility and not _is_target_visible(target):
+		_log("Target not visible for %s at %s - skipping throw" % [_get_next_grenade_type_name(), target])
+		return false
+
 	_execute_grenadier_throw(target, is_alive, is_stunned, is_blinded)
 	return true
 
@@ -202,6 +304,15 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 	if _grenade_bag[0] == GrenadeType.OFFENSIVE:
 		fuse = 1.0  # Frag grenades explode on impact, short effective time
 
+	# Issue #712: Signal enemy to face throw direction before throwing
+	var throw_dir := (target - _enemy.global_position).normalized()
+	face_throw_direction.emit(throw_dir)
+	_log("Grenadier facing throw direction: %s (waiting %.1fs)" % [throw_dir, face_direction_delay])
+
+	# Wait for enemy to rotate toward target
+	if face_direction_delay > 0.0:
+		await get_tree().create_timer(face_direction_delay).timeout
+
 	# Signal allies to wait
 	grenade_incoming.emit(target, blast_radius, fuse)
 	_blocking_passage = true
@@ -217,6 +328,10 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
 	var grenade: Node2D = next_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
+
+	# Issue #692: Set thrower_id on the grenade so it won't damage the throwing enemy
+	if grenade.get("thrower_id") != null:
+		grenade.thrower_id = _enemy.get_instance_id()
 
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)
@@ -245,6 +360,9 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 
 	# Mark C# timer as thrown
 	_mark_grenade_thrown(grenade as RigidBody2D)
+
+	# Issue #692: Set thrower on C# GrenadeTimer for self-damage prevention
+	_set_grenade_thrower(grenade as RigidBody2D, _enemy.get_instance_id())
 
 	# Track active grenade for explosion detection
 	_active_grenade = grenade

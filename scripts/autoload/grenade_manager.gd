@@ -7,14 +7,25 @@ extends Node
 
 ## Grenade types available in the game.
 enum GrenadeType {
-	FLASHBANG,  # Default: Stun grenade (blinds and stuns enemies)
-	FRAG,       # Offensive: Fragmentation grenade (explodes on impact, releases shrapnel)
-	DEFENSIVE   # Defensive: F-1 grenade (timer-based, 40 shrapnel pieces, 700px radius)
+	FLASHBANG,       # Default: Stun grenade (blinds and stuns enemies)
+	FRAG,            # Offensive: Fragmentation grenade (explodes on impact, releases shrapnel)
+	DEFENSIVE,       # Defensive: F-1 grenade (timer-based, 40 shrapnel pieces, 700px radius)
+	AGGRESSION_GAS   # Aggression gas: Makes enemies fight each other (Issue #675)
 }
 
 ## Currently selected grenade type.
 ## Flashbang is selected by default.
 var current_grenade_type: int = GrenadeType.FLASHBANG
+
+## Unlocked grenades tracking.
+## By default, only FLASHBANG (stun grenade) is unlocked for debugging purposes.
+## Grenades can be unlocked by holding LMB on their case in the armory menu.
+var unlocked_grenades: Dictionary = {
+	GrenadeType.FLASHBANG: true,
+	GrenadeType.FRAG: false,
+	GrenadeType.DEFENSIVE: false,
+	GrenadeType.AGGRESSION_GAS: false
+}
 
 ## Grenade type data for UI and selection.
 const GRENADE_DATA: Dictionary = {
@@ -35,11 +46,20 @@ const GRENADE_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/defensive_grenade.png",
 		"scene_path": "res://scenes/projectiles/DefensiveGrenade.tscn",
 		"description": "Defensive grenade - 4 second fuse, releases 40 shrapnel pieces. 700px damage radius."
+	},
+	GrenadeType.AGGRESSION_GAS: {
+		"name": "Aggression Gas",
+		"icon_path": "res://assets/sprites/weapons/aggression_gas_grenade.png",
+		"scene_path": "res://scenes/projectiles/AggressionGasGrenade.tscn",
+		"description": "Gas grenade - 4 second fuse, releases aggression gas cloud. Enemies attack each other for 10s. Gas lasts 20s."
 	}
 }
 
 ## Signal emitted when grenade type changes.
 signal grenade_type_changed(new_type: int)
+
+## Signal emitted when a grenade is unlocked.
+signal grenade_unlocked(grenade_type: int)
 
 ## Cached grenade scenes.
 var _grenade_scenes: Dictionary = {}
@@ -159,3 +179,26 @@ func get_grenade_icon_path(type: int) -> String:
 ## Check if a grenade type is the currently selected type.
 func is_selected(type: int) -> bool:
 	return type == current_grenade_type
+
+
+## Check if a grenade type is unlocked.
+## @param grenade_type: The grenade type to check.
+## @return: true if the grenade is unlocked, false otherwise.
+func is_grenade_unlocked(grenade_type: int) -> bool:
+	return unlocked_grenades.get(grenade_type, false)
+
+
+## Unlock a grenade type.
+## @param grenade_type: The grenade type to unlock.
+func unlock_grenade(grenade_type: int) -> void:
+	if grenade_type in unlocked_grenades:
+		if not unlocked_grenades[grenade_type]:
+			unlocked_grenades[grenade_type] = true
+			grenade_unlocked.emit(grenade_type)
+			FileLogger.info("[GrenadeManager] Grenade unlocked: %s" % get_grenade_name(grenade_type))
+
+
+## Get all unlocked grenades.
+## @return: Dictionary of grenade_type -> bool pairs.
+func get_unlocked_grenades() -> Dictionary:
+	return unlocked_grenades

@@ -27,7 +27,8 @@ enum SoundType {
 	IMPACT,          ## Bullet impacts - medium range (for future use)
 	EMPTY_CLICK,     ## Empty weapon click - audible but shorter range than reload
 	RELOAD_COMPLETE, ## Weapon reload finished - bolt cycling sound, enemies become cautious
-	GRENADE_LANDING  ## Grenade landing on ground - Issue #426: very close range (112px)
+	GRENADE_LANDING, ## Grenade landing on ground - Issue #426: very close range (112px)
+	CASING_KICK      ## Issue #693: Shell casing kicked by player walking - same range as reload
 }
 
 ## Source types for sounds - used to determine if listener should react.
@@ -55,7 +56,8 @@ const PROPAGATION_DISTANCES: Dictionary = {
 	SoundType.IMPACT: 550.0,           ## Medium range
 	SoundType.EMPTY_CLICK: 600.0,      ## Shorter than reload but still audible through walls
 	SoundType.RELOAD_COMPLETE: 900.0,  ## Bolt cycling sound - same range as reload start
-	SoundType.GRENADE_LANDING: 112.0   ## Issue #426: 1/4 of half-reload (450/4) - enemies hear grenade very close
+	SoundType.GRENADE_LANDING: 112.0,  ## Issue #426: 1/4 of half-reload (450/4) - enemies hear grenade very close
+	SoundType.CASING_KICK: 900.0       ## Issue #693: Same range as reload - enemies hear casings kicked by player
 }
 
 ## Reference distance for sound intensity calculations (in pixels).
@@ -269,6 +271,13 @@ func emit_player_reload_complete(position: Vector2, source_node: Node2D = null) 
 ## Enemies within range will hear the grenade land and can react to evade.
 func emit_grenade_landing(position: Vector2, source_node: Node2D = null) -> void:
 	emit_sound(SoundType.GRENADE_LANDING, position, SourceType.NEUTRAL, source_node)
+
+
+## Convenience method to emit a casing kick sound (Issue #693).
+## When a player walks over shell casings and kicks them, enemies hear the metallic sound.
+## This sound has the same range as reload (900px) and propagates through walls.
+func emit_casing_kick(position: Vector2, source_node: Node2D = null) -> void:
+	emit_sound(SoundType.CASING_KICK, position, SourceType.NEUTRAL, source_node)
 
 
 ## Get the propagation distance for a sound type.

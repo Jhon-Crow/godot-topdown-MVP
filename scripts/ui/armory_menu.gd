@@ -1,7 +1,7 @@
 extends CanvasLayer
-## Armory menu for selecting weapons, grenades, and active items by category.
+## Armory menu for selecting weapons, grenades, and special items by category.
 ##
-## Layout: left sidebar with stats/description, right area with weapon/grenade/active item grids.
+## Layout: left sidebar with stats/description, right area with weapon/grenade/special item grids.
 ## Items fit on screen without scrolling. An accordion toggle expands the grid
 ## if there are too many items. An "Apply" button confirms the selection
 ## and restarts the level (no immediate restart on click).
@@ -12,61 +12,62 @@ signal back_pressed
 ## Signal emitted when a weapon is selected.
 signal weapon_selected(weapon_id: String)
 
+## Path to weapon case icon used for locked/closed weapons.
+const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
+
+## Path to grenade case icon used for locked/closed grenades.
+const GRENADE_CASE_ICON_PATH: String = "res://assets/sprites/weapons/grenade_case_icon.png"
+
+## Path to item case icon used for locked/closed active items.
+const ITEM_CASE_ICON_PATH: String = "res://assets/sprites/weapons/item_case_icon.png"
+
 ## Firearms data — weapons the player can equip.
-## Keys: weapon_id, Values: dictionary with name, icon_path, unlocked, description
+## Keys: weapon_id, Values: dictionary with name, icon_path, description
+## Note: 'unlocked' field is now read from GameManager.unlocked_weapons
 const FIREARMS: Dictionary = {
 	"makarov_pm": {
 		"name": "PM",
 		"icon_path": "res://assets/sprites/weapons/makarov_pm_icon.png",
-		"unlocked": true,
 		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets"
 	},
 	"m16": {
 		"name": "M16",
 		"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
-		"unlocked": true,
 		"description": "Standard assault rifle with auto/burst modes, red laser sight"
 	},
 	"shotgun": {
 		"name": "Shotgun",
 		"icon_path": "res://assets/sprites/weapons/shotgun_icon.png",
-		"unlocked": true,
 		"description": "Pump-action shotgun — shell-by-shell loading, multi-pellet spread"
 	},
 	"mini_uzi": {
 		"name": "Mini UZI",
 		"icon_path": "res://assets/sprites/weapons/mini_uzi_icon.png",
-		"unlocked": true,
 		"description": "High fire rate SMG — progressive spread, ricochets at shallow angles"
 	},
 	"silenced_pistol": {
 		"name": "Silenced Pistol",
 		"icon_path": "res://assets/sprites/weapons/silenced_pistol_icon.png",
-		"unlocked": true,
 		"description": "Beretta M9 with suppressor — silent, stuns enemies on hit"
 	},
 	"sniper": {
 		"name": "ASVK",
 		"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
-		"unlocked": true,
 		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom)."
 	},
 	"revolver": {
 		"name": "RSh-12",
 		"icon_path": "res://assets/sprites/weapons/revolver_icon.png",
-		"unlocked": true,
 		"description": "RSh-12 heavy revolver - 12.7x55mm STs-130, 20 damage, penetrates walls (200px), weak ricochet, strong recoil. 5-round cylinder. Comfortable aiming like silenced pistol."
 	},
-	"ak47": {
-		"name": "???",
-		"icon_path": "",
-		"unlocked": false,
-		"description": "Coming soon"
+	"ak_gl": {
+		"name": "AK + GL",
+		"icon_path": "res://assets/sprites/weapons/ak_gl_icon.png",
+		"description": "AK with GP-25 underbarrel grenade launcher — 7.62x39mm, 30-round magazine, RMB fires VOG-25 grenade (1 shot)"
 	},
 	"smg": {
 		"name": "???",
 		"icon_path": "",
-		"unlocked": false,
 		"description": "Coming soon"
 	}
 }
@@ -79,7 +80,8 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 	"mini_uzi": "res://resources/weapons/MiniUziData.tres",
 	"silenced_pistol": "res://resources/weapons/SilencedPistolData.tres",
 	"sniper": "res://resources/weapons/SniperRifleData.tres",
-	"revolver": "res://resources/weapons/RevolverData.tres"
+	"revolver": "res://resources/weapons/RevolverData.tres",
+	"ak_gl": "res://resources/weapons/AKGLData.tres"
 }
 
 ## Maximum number of visible weapon rows before accordion hides the rest.
@@ -152,6 +154,29 @@ var _grenade_overflow_slots: Array = []
 ## Overflow active item slots (hidden when collapsed).
 var _active_item_overflow_slots: Array = []
 
+## LMB hold tracking for unlocking items.
+## Dictionary: slot -> {start_time: float, item_id: String, is_grenade: bool, is_active_item: bool}
+var _lmb_hold_tracking: Dictionary = {}
+
+## Duration (in seconds) to hold LMB to unlock an item.
+const UNLOCK_HOLD_DURATION: float = 1.5
+
+## Timer for processing LMB hold progress.
+var _unlock_timer: Timer = null
+
+## Audio player for unlock sound effects (generated beeps).
+var _unlock_audio_player: AudioStreamPlayer = null
+
+## Base frequency for unlock beeps (Hz).
+const BEEP_BASE_FREQUENCY: float = 440.0
+
+## Dictionary: slot -> progress_overlay (ColorRect for visual progress indicator)
+var _slot_progress_overlays: Dictionary = {}
+
+## Animation state tracking for reveal animations.
+## Dictionary: slot -> tween reference
+var _active_reveal_tweens: Dictionary = {}
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -184,6 +209,18 @@ func _ready() -> void:
 
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	# Create timer for unlock progress tracking
+	_unlock_timer = Timer.new()
+	_unlock_timer.wait_time = 0.016  # ~60 FPS for smoother progress updates
+	_unlock_timer.one_shot = false
+	_unlock_timer.timeout.connect(_on_unlock_timer_timeout)
+	add_child(_unlock_timer)
+
+	# Create audio player for unlock sound effects
+	_unlock_audio_player = AudioStreamPlayer.new()
+	_unlock_audio_player.bus = "Master"
+	add_child(_unlock_audio_player)
 
 
 ## Load weapon .tres resources for stats display.
@@ -265,12 +302,21 @@ func _build_ui() -> void:
 	var sep := HSeparator.new()
 	main_vbox.add_child(sep)
 
+	# --- SCROLLABLE CONTENT AREA ---
+	# Wrap content in a ScrollContainer so buttons stay fixed at bottom
+	var scroll_container := ScrollContainer.new()
+	scroll_container.layout_mode = 2
+	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	main_vbox.add_child(scroll_container)
+
 	# --- HORIZONTAL LAYOUT: LEFT SIDEBAR + RIGHT GRIDS ---
 	var content_hbox := HBoxContainer.new()
 	content_hbox.layout_mode = 2
-	content_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_hbox.add_theme_constant_override("separation", 12)
-	main_vbox.add_child(content_hbox)
+	scroll_container.add_child(content_hbox)
 
 	# --- LEFT SIDEBAR: Loadout stats ---
 	var sidebar := _build_sidebar()
@@ -450,7 +496,11 @@ func _build_right_area() -> VBoxContainer:
 	var max_visible_weapons: int = MAX_WEAPON_ROWS_COLLAPSED * GRID_COLUMNS
 	for weapon_id in FIREARMS:
 		var weapon_data: Dictionary = FIREARMS[weapon_id]
-		var slot := _create_item_slot(weapon_id, weapon_data, false)
+		# Check unlock state from GameManager
+		var is_unlocked: bool = false
+		if GameManager and GameManager.has_method("is_weapon_unlocked"):
+			is_unlocked = GameManager.is_weapon_unlocked(weapon_id)
+		var slot := _create_item_slot(weapon_id, weapon_data, false, is_unlocked)
 		_weapon_grid.add_child(slot)
 		_weapon_slots[weapon_id] = slot
 		if weapon_index >= max_visible_weapons:
@@ -490,14 +540,17 @@ func _build_right_area() -> VBoxContainer:
 	if _grenade_manager:
 		for grenade_type in _grenade_manager.get_all_grenade_types():
 			var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+			# Check unlock state from GrenadeManager
+			var is_unlocked: bool = false
+			if _grenade_manager.has_method("is_grenade_unlocked"):
+				is_unlocked = _grenade_manager.is_grenade_unlocked(grenade_type)
 			var grenade_info := {
 				"name": gdata.get("name", "Unknown"),
 				"icon_path": gdata.get("icon_path", ""),
-				"unlocked": true,
 				"description": gdata.get("description", ""),
 				"grenade_type": grenade_type
 			}
-			var slot := _create_item_slot(str(grenade_type), grenade_info, true)
+			var slot := _create_item_slot(str(grenade_type), grenade_info, true, is_unlocked)
 			_grenade_grid.add_child(slot)
 			_grenade_slots[grenade_type] = slot
 			if grenade_index >= max_visible_grenades:
@@ -521,8 +574,8 @@ func _build_right_area() -> VBoxContainer:
 	active_sep.add_theme_constant_override("separation", 4)
 	right_vbox.add_child(active_sep)
 
-	# --- ACTIVE ITEMS SECTION ---
-	_add_category_header(right_vbox, "ACTIVE ITEMS")
+	# --- SPECIAL SECTION ---
+	_add_category_header(right_vbox, "SPECIAL")
 	_active_item_grid = GridContainer.new()
 	_active_item_grid.columns = GRID_COLUMNS
 	_active_item_grid.layout_mode = 2
@@ -537,14 +590,17 @@ func _build_right_area() -> VBoxContainer:
 	if _active_item_manager:
 		for item_type in _active_item_manager.get_all_active_item_types():
 			var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+			# Check unlock state from ActiveItemManager
+			var is_unlocked: bool = false
+			if _active_item_manager.has_method("is_active_item_unlocked"):
+				is_unlocked = _active_item_manager.is_active_item_unlocked(item_type)
 			var item_info := {
 				"name": adata.get("name", "Unknown"),
 				"icon_path": adata.get("icon_path", ""),
-				"unlocked": true,
 				"description": adata.get("description", ""),
 				"active_item_type": item_type
 			}
-			var slot := _create_active_item_slot(str(item_type), item_info, item_type)
+			var slot := _create_active_item_slot(str(item_type), item_info, item_type, is_unlocked)
 			_active_item_grid.add_child(slot)
 			_active_item_slots[item_type] = slot
 			if active_item_index >= max_visible_active_items:
@@ -630,7 +686,8 @@ func _add_category_header(parent: VBoxContainer, text: String) -> void:
 
 
 ## Create an item slot (used for both weapons and grenades).
-func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool) -> PanelContainer:
+## Locked items show weapon case icon and hidden name for future animated opening.
+func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool, is_unlocked: bool) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = item_id + "_slot"
 	slot.custom_minimum_size = Vector2(90, 80)
@@ -644,12 +701,10 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 	vbox.add_theme_constant_override("separation", 3)
 	slot.add_child(vbox)
 
-	# Item icon or lock placeholder
+	# Item icon or weapon case for locked items
 	var icon_container := CenterContainer.new()
 	icon_container.custom_minimum_size = Vector2(48, 48)
 	vbox.add_child(icon_container)
-
-	var is_unlocked: bool = item_data.get("unlocked", false)
 
 	if is_unlocked and item_data.get("icon_path", "") != "":
 		var texture_rect := TextureRect.new()
@@ -662,32 +717,51 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 			texture_rect.texture = texture
 		icon_container.add_child(texture_rect)
 	else:
-		var lock_label := Label.new()
-		lock_label.text = "?"
-		lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_label.add_theme_font_size_override("font_size", 24)
-		lock_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
-		icon_container.add_child(lock_label)
+		# Locked item: show appropriate case icon based on type
+		var case_texture_rect := TextureRect.new()
+		case_texture_rect.custom_minimum_size = Vector2(48, 48)
+		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		case_texture_rect.name = "CaseIcon"  # Named for future animation access
 
-	# Item name
+		# Choose icon based on item type
+		var case_icon_path: String
+		if is_grenade:
+			case_icon_path = GRENADE_CASE_ICON_PATH
+		else:
+			case_icon_path = WEAPON_CASE_ICON_PATH
+
+		if ResourceLoader.exists(case_icon_path):
+			var case_texture: Texture2D = load(case_icon_path)
+			if case_texture:
+				case_texture_rect.texture = case_texture
+		icon_container.add_child(case_texture_rect)
+
+	# Item name - hidden for locked items (requirement: names of closed items should be hidden)
 	var name_label := Label.new()
-	name_label.text = item_data.get("name", "???")
+	if is_unlocked:
+		name_label.text = item_data.get("name", "???")
+	else:
+		# Hide name for locked items - empty label preserves slot layout
+		name_label.text = ""
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 11)
-	if not is_unlocked:
-		name_label.modulate = Color(0.5, 0.5, 0.5)
 	vbox.add_child(name_label)
 
-	# Tooltip
-	slot.tooltip_text = item_data.get("description", "")
-
-	# Make unlocked items clickable
+	# Tooltip - hidden for locked items
 	if is_unlocked:
-		slot.mouse_filter = Control.MOUSE_FILTER_STOP
-		slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data))
+		slot.tooltip_text = item_data.get("description", "")
+	else:
+		slot.tooltip_text = ""  # No tooltip for locked items
+
+	# Make all items clickable (unlocked for selection, locked for unlocking)
+	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data, is_unlocked))
+	if is_unlocked:
 		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	else:
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Locked items show pointing hand to indicate they can be unlocked
+		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 	# Default style
 	_apply_default_style(slot)
@@ -696,7 +770,8 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 
 
 ## Create an active item slot (separate handler for active item clicks).
-func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int) -> PanelContainer:
+## Locked items show weapon case icon and hidden name for future animated opening.
+func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int, is_unlocked: bool) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = "active_" + item_id + "_slot"
 	slot.custom_minimum_size = Vector2(90, 80)
@@ -716,7 +791,22 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	vbox.add_child(icon_container)
 
 	var icon_path: String = item_data.get("icon_path", "")
-	if icon_path != "" and ResourceLoader.exists(icon_path):
+	var item_name: String = item_data.get("name", "")
+
+	if not is_unlocked:
+		# Locked active item: show item case icon
+		var case_texture_rect := TextureRect.new()
+		case_texture_rect.custom_minimum_size = Vector2(48, 48)
+		case_texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		case_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		case_texture_rect.name = "ItemCaseIcon"
+
+		if ResourceLoader.exists(ITEM_CASE_ICON_PATH):
+			var case_texture: Texture2D = load(ITEM_CASE_ICON_PATH)
+			if case_texture:
+				case_texture_rect.texture = case_texture
+		icon_container.add_child(case_texture_rect)
+	elif icon_path != "" and ResourceLoader.exists(icon_path):
 		var texture_rect := TextureRect.new()
 		texture_rect.custom_minimum_size = Vector2(48, 48)
 		texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
@@ -729,25 +819,31 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	else:
 		# "None" item or missing icon — show dash
 		var none_label := Label.new()
-		none_label.text = "-" if item_data.get("name", "") == "None" else "?"
+		none_label.text = "-" if item_name == "None" else "?"
 		none_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		none_label.add_theme_font_size_override("font_size", 24)
 		none_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
 		icon_container.add_child(none_label)
 
-	# Item name
+	# Item name - hidden for locked items
 	var name_label := Label.new()
-	name_label.text = item_data.get("name", "???")
+	if is_unlocked:
+		name_label.text = item_name if item_name != "" else "???"
+	else:
+		name_label.text = ""  # Hide name for locked items
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(name_label)
 
-	# Tooltip
-	slot.tooltip_text = item_data.get("description", "")
+	# Tooltip - hidden for locked items
+	if is_unlocked:
+		slot.tooltip_text = item_data.get("description", "")
+	else:
+		slot.tooltip_text = ""
 
-	# Make clickable
+	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
-	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type))
+	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type, is_unlocked))
 	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 	# Default style
@@ -757,19 +853,45 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 
 
 ## Handle click on an active item slot.
-func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_pending_active_item_type = item_type
+func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: int, is_unlocked: bool) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			if is_unlocked:
+				# Unlocked item: select it immediately
+				_pending_active_item_type = item_type
 
-		# Play click sound via AudioManager
-		var audio_manager = get_node_or_null("/root/AudioManager")
-		if audio_manager and audio_manager.has_method("play_ui_click"):
-			audio_manager.play_ui_click()
+				# Play click sound via AudioManager
+				var audio_manager = get_node_or_null("/root/AudioManager")
+				if audio_manager and audio_manager.has_method("play_ui_click"):
+					audio_manager.play_ui_click()
 
-		# Update visuals to show pending selection
-		_highlight_selected_items()
-		_update_loadout_panel()
-		_update_apply_button_state()
+				# Update visuals to show pending selection
+				_highlight_selected_items()
+				_update_loadout_panel()
+				_update_apply_button_state()
+			else:
+				# Locked item: start tracking LMB hold for unlocking
+				_lmb_hold_tracking[slot] = {
+					"start_time": Time.get_ticks_msec() / 1000.0,
+					"item_id": str(item_type),
+					"is_grenade": false,
+					"is_active_item": true,
+					"active_item_type": item_type
+				}
+				# Start the unlock timer if not already running
+				if not _unlock_timer.is_stopped():
+					pass  # Already running
+				else:
+					_unlock_timer.start()
+		else:
+			# LMB released: stop tracking this slot and clean up visuals
+			if slot in _lmb_hold_tracking:
+				_lmb_hold_tracking.erase(slot)
+				# Clean up progress overlay
+				_remove_progress_overlay(slot)
+			# Stop timer if no slots are being tracked
+			if _lmb_hold_tracking.size() == 0:
+				_unlock_timer.stop()
 
 
 ## Apply default (unselected) style to a slot.
@@ -801,23 +923,50 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 
 ## Handle click on an item slot.
 ## Sets the pending selection (does NOT restart — user must press Apply).
-func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String, is_grenade: bool, item_data: Dictionary) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if is_grenade:
-			var grenade_type: int = item_data.get("grenade_type", 0)
-			_pending_grenade_type = grenade_type
+## For locked items, holding LMB unlocks the item.
+func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String, is_grenade: bool, item_data: Dictionary, is_unlocked: bool) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			if is_unlocked:
+				# Unlocked item: select it immediately
+				if is_grenade:
+					var grenade_type: int = item_data.get("grenade_type", 0)
+					_pending_grenade_type = grenade_type
+				else:
+					_pending_weapon_id = item_id
+
+				# Play click sound via AudioManager
+				var audio_manager = get_node_or_null("/root/AudioManager")
+				if audio_manager and audio_manager.has_method("play_ui_click"):
+					audio_manager.play_ui_click()
+
+				# Update visuals to show pending selection
+				_highlight_selected_items()
+				_update_loadout_panel()
+				_update_apply_button_state()
+			else:
+				# Locked item: start tracking LMB hold for unlocking
+				_lmb_hold_tracking[slot] = {
+					"start_time": Time.get_ticks_msec() / 1000.0,
+					"item_id": item_id,
+					"is_grenade": is_grenade,
+					"is_active_item": false,
+					"grenade_type": item_data.get("grenade_type", 0) if is_grenade else -1
+				}
+				# Start the unlock timer if not already running
+				if not _unlock_timer.is_stopped():
+					pass  # Already running
+				else:
+					_unlock_timer.start()
 		else:
-			_pending_weapon_id = item_id
-
-		# Play click sound via AudioManager
-		var audio_manager = get_node_or_null("/root/AudioManager")
-		if audio_manager and audio_manager.has_method("play_ui_click"):
-			audio_manager.play_ui_click()
-
-		# Update visuals to show pending selection
-		_highlight_selected_items()
-		_update_loadout_panel()
-		_update_apply_button_state()
+			# LMB released: stop tracking this slot and clean up visuals
+			if slot in _lmb_hold_tracking:
+				_lmb_hold_tracking.erase(slot)
+				# Clean up progress overlay
+				_remove_progress_overlay(slot)
+			# Stop timer if no slots are being tracked
+			if _lmb_hold_tracking.size() == 0:
+				_unlock_timer.stop()
 
 
 ## Check if the pending selection differs from the current applied selection.
@@ -1037,10 +1186,11 @@ func _update_active_item_stats() -> void:
 	var item_desc: String = item_data.get("description", "No active item equipped.")
 
 	var bbcode: String = ""
-	bbcode += "[b][color=#d4c896]ACTIVE: %s[/color][/b]\n" % item_name
+	bbcode += "[b][color=#d4c896]SPECIAL: %s[/color][/b]\n" % item_name
 	bbcode += "[color=#aab0b8]%s[/color]\n" % item_desc
-	if _pending_active_item_type != 0:  # Not "None"
-		bbcode += "\n[color=#888888]Hold Space to activate[/color]"
+	if _pending_active_item_type != 0:  # Not "None" (ActiveItemType.NONE)
+		var activation_hint: String = item_data.get("activation_hint", "Hold Space to activate")
+		bbcode += "\n[color=#888888]%s[/color]" % activation_hint
 
 	_active_item_stats_label.text = bbcode
 
@@ -1060,5 +1210,445 @@ func _populate_weapon_grid() -> void:
 	_update_apply_button_state()
 
 
+## Timer callback for checking unlock progress.
+## Updates visual progress indicators and triggers unlock when threshold reached.
+func _on_unlock_timer_timeout() -> void:
+	var current_time: float = Time.get_ticks_msec() / 1000.0
+	var slots_to_remove: Array = []
+
+	for slot in _lmb_hold_tracking:
+		var track_data: Dictionary = _lmb_hold_tracking[slot]
+		var hold_duration: float = current_time - track_data["start_time"]
+		var progress: float = minf(hold_duration / UNLOCK_HOLD_DURATION, 1.0)
+
+		# Update visual progress
+		_update_progress_overlay(slot, progress)
+
+		# Play progress beep at certain thresholds (every 20% progress)
+		var last_beep_threshold: float = track_data.get("last_beep_threshold", 0.0)
+		var current_threshold: float = floor(progress * 5.0) / 5.0  # 0.0, 0.2, 0.4, 0.6, 0.8
+		if current_threshold > last_beep_threshold:
+			_play_progress_beep(progress)
+			track_data["last_beep_threshold"] = current_threshold
+
+		if hold_duration >= UNLOCK_HOLD_DURATION:
+			# Unlock threshold reached - play reveal animation then unlock
+			var slot_ref: PanelContainer = slot  # Capture for closure
+
+			if track_data["is_active_item"]:
+				# Unlock active item
+				var item_type: int = track_data["active_item_type"]
+				_play_unlock_reveal_animation(slot_ref, func():
+					if _active_item_manager and _active_item_manager.has_method("unlock_active_item"):
+						_active_item_manager.unlock_active_item(item_type)
+						# Rebuild the slot to show unlocked state
+						_rebuild_active_item_slot_animated(item_type)
+				)
+			elif track_data["is_grenade"]:
+				# Unlock grenade
+				var grenade_type: int = track_data["grenade_type"]
+				_play_unlock_reveal_animation(slot_ref, func():
+					if _grenade_manager and _grenade_manager.has_method("unlock_grenade"):
+						_grenade_manager.unlock_grenade(grenade_type)
+						# Rebuild the slot to show unlocked state
+						_rebuild_grenade_slot_animated(grenade_type)
+				)
+			else:
+				# Unlock weapon
+				var weapon_id: String = track_data["item_id"]
+				_play_unlock_reveal_animation(slot_ref, func():
+					if GameManager and GameManager.has_method("unlock_weapon"):
+						GameManager.unlock_weapon(weapon_id)
+						# Rebuild the slot to show unlocked state
+						_rebuild_weapon_slot_animated(weapon_id)
+				)
+
+			# Mark this slot for removal from tracking
+			slots_to_remove.append(slot)
+
+	# Remove unlocked slots from tracking
+	for slot in slots_to_remove:
+		_lmb_hold_tracking.erase(slot)
+
+	# Stop timer if no slots are being tracked
+	if _lmb_hold_tracking.size() == 0:
+		_unlock_timer.stop()
+
+
+## Rebuild a weapon slot to show unlocked state (legacy, no animation).
+func _rebuild_weapon_slot(weapon_id: String) -> void:
+	if weapon_id not in _weapon_slots:
+		return
+
+	var old_slot: PanelContainer = _weapon_slots[weapon_id]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot
+	var weapon_data: Dictionary = FIREARMS[weapon_id]
+	var new_slot := _create_item_slot(weapon_id, weapon_data, false, true)
+
+	# Insert at same position
+	parent.add_child(new_slot)
+	parent.move_child(new_slot, slot_index)
+	_weapon_slots[weapon_id] = new_slot
+
+	# Update visuals
+	_highlight_selected_items()
+
+
+## Rebuild a weapon slot with animated item reveal.
+func _rebuild_weapon_slot_animated(weapon_id: String) -> void:
+	if weapon_id not in _weapon_slots:
+		return
+
+	var old_slot: PanelContainer = _weapon_slots[weapon_id]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot with initial fade-in state
+	var weapon_data: Dictionary = FIREARMS[weapon_id]
+	var new_slot := _create_item_slot(weapon_id, weapon_data, false, true)
+	new_slot.modulate.a = 0.0  # Start invisible for fade-in
+
+	# Insert at same position
+	parent.add_child(new_slot)
+	parent.move_child(new_slot, slot_index)
+	_weapon_slots[weapon_id] = new_slot
+
+	# Animate the new slot appearing
+	_animate_slot_reveal(new_slot)
+
+	# Update visuals
+	_highlight_selected_items()
+
+
+## Rebuild a grenade slot to show unlocked state (legacy, no animation).
+func _rebuild_grenade_slot(grenade_type: int) -> void:
+	if grenade_type not in _grenade_slots:
+		return
+
+	var old_slot: PanelContainer = _grenade_slots[grenade_type]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot
+	if _grenade_manager:
+		var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+		var grenade_info := {
+			"name": gdata.get("name", "Unknown"),
+			"icon_path": gdata.get("icon_path", ""),
+			"description": gdata.get("description", ""),
+			"grenade_type": grenade_type
+		}
+		var new_slot := _create_item_slot(str(grenade_type), grenade_info, true, true)
+
+		# Insert at same position
+		parent.add_child(new_slot)
+		parent.move_child(new_slot, slot_index)
+		_grenade_slots[grenade_type] = new_slot
+
+		# Update visuals
+		_highlight_selected_items()
+
+
+## Rebuild a grenade slot with animated item reveal.
+func _rebuild_grenade_slot_animated(grenade_type: int) -> void:
+	if grenade_type not in _grenade_slots:
+		return
+
+	var old_slot: PanelContainer = _grenade_slots[grenade_type]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot
+	if _grenade_manager:
+		var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
+		var grenade_info := {
+			"name": gdata.get("name", "Unknown"),
+			"icon_path": gdata.get("icon_path", ""),
+			"description": gdata.get("description", ""),
+			"grenade_type": grenade_type
+		}
+		var new_slot := _create_item_slot(str(grenade_type), grenade_info, true, true)
+		new_slot.modulate.a = 0.0  # Start invisible for fade-in
+
+		# Insert at same position
+		parent.add_child(new_slot)
+		parent.move_child(new_slot, slot_index)
+		_grenade_slots[grenade_type] = new_slot
+
+		# Animate the new slot appearing
+		_animate_slot_reveal(new_slot)
+
+		# Update visuals
+		_highlight_selected_items()
+
+
+## Rebuild an active item slot to show unlocked state (legacy, no animation).
+func _rebuild_active_item_slot(item_type: int) -> void:
+	if item_type not in _active_item_slots:
+		return
+
+	var old_slot: PanelContainer = _active_item_slots[item_type]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot
+	if _active_item_manager:
+		var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+		var item_info := {
+			"name": adata.get("name", "Unknown"),
+			"icon_path": adata.get("icon_path", ""),
+			"description": adata.get("description", ""),
+			"active_item_type": item_type
+		}
+		var new_slot := _create_active_item_slot(str(item_type), item_info, item_type, true)
+
+		# Insert at same position
+		parent.add_child(new_slot)
+		parent.move_child(new_slot, slot_index)
+		_active_item_slots[item_type] = new_slot
+
+		# Update visuals
+		_highlight_selected_items()
+
+
+## Rebuild an active item slot with animated item reveal.
+func _rebuild_active_item_slot_animated(item_type: int) -> void:
+	if item_type not in _active_item_slots:
+		return
+
+	var old_slot: PanelContainer = _active_item_slots[item_type]
+	var parent: Node = old_slot.get_parent()
+	var slot_index: int = old_slot.get_index()
+
+	# Remove old slot
+	parent.remove_child(old_slot)
+	old_slot.queue_free()
+
+	# Create new unlocked slot
+	if _active_item_manager:
+		var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+		var item_info := {
+			"name": adata.get("name", "Unknown"),
+			"icon_path": adata.get("icon_path", ""),
+			"description": adata.get("description", ""),
+			"active_item_type": item_type
+		}
+		var new_slot := _create_active_item_slot(str(item_type), item_info, item_type, true)
+		new_slot.modulate.a = 0.0  # Start invisible for fade-in
+
+		# Insert at same position
+		parent.add_child(new_slot)
+		parent.move_child(new_slot, slot_index)
+		_active_item_slots[item_type] = new_slot
+
+		# Animate the new slot appearing
+		_animate_slot_reveal(new_slot)
+
+		# Update visuals
+		_highlight_selected_items()
+
+
+## Animates a newly created slot appearing with fade-in and scale pop.
+func _animate_slot_reveal(slot: PanelContainer) -> void:
+	# Get the VBoxContainer for scale animation
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox:
+		vbox.pivot_offset = vbox.size / 2
+		vbox.scale = Vector2(0.5, 0.5)
+
+	# Create the reveal animation
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(slot, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
+	if vbox:
+		tween.tween_property(vbox, "scale", Vector2(1.0, 1.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
+
+
+## Creates a simple sine wave beep sound and plays it.
+## @param frequency: The frequency of the beep in Hz.
+## @param duration: Duration of the beep in seconds.
+## @param volume_db: Volume in decibels (default -10).
+func _play_beep(frequency: float, duration: float = 0.05, volume_db: float = -10.0) -> void:
+	if _unlock_audio_player == null:
+		return
+
+	# Create a simple AudioStreamGenerator for the beep
+	var generator := AudioStreamGenerator.new()
+	generator.mix_rate = 44100.0
+	generator.buffer_length = 0.1
+
+	_unlock_audio_player.stream = generator
+	_unlock_audio_player.volume_db = volume_db
+	_unlock_audio_player.play()
+
+	var playback: AudioStreamGeneratorPlayback = _unlock_audio_player.get_stream_playback()
+
+	# Generate sine wave samples
+	var sample_rate: float = 44100.0
+	var num_samples: int = int(duration * sample_rate)
+
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		# Sine wave with envelope (fade out)
+		var envelope: float = 1.0 - (float(i) / float(num_samples))
+		envelope = envelope * envelope  # Quadratic falloff
+		var sample: float = sin(2.0 * PI * frequency * t) * envelope * 0.3
+		playback.push_frame(Vector2(sample, sample))
+
+
+## Plays a rising anticipation beep based on progress (0.0 to 1.0).
+## The frequency increases as progress approaches completion.
+func _play_progress_beep(progress: float) -> void:
+	# Frequency rises from 220Hz to 880Hz based on progress
+	var frequency: float = BEEP_BASE_FREQUENCY * 0.5 * (1.0 + progress * 2.0)
+	_play_beep(frequency, 0.03, -15.0)
+
+
+## Plays a celebratory success sound when item is unlocked.
+func _play_unlock_success_sound() -> void:
+	# Play ascending arpeggio for celebration
+	var base: float = BEEP_BASE_FREQUENCY
+	for i in range(4):
+		var semitones: int = [0, 4, 7, 12][i]
+		var frequency: float = base * pow(2.0, float(semitones) / 12.0)
+		get_tree().create_timer(i * 0.08).timeout.connect(
+			func(): _play_beep(frequency, 0.15, -8.0)
+		)
+
+
+## Creates a progress overlay for a slot to show unlock progress.
+## Returns the created ColorRect overlay.
+func _create_progress_overlay(slot: PanelContainer) -> ColorRect:
+	# Create progress bar overlay
+	var overlay := ColorRect.new()
+	overlay.name = "UnlockProgressOverlay"
+	overlay.color = Color(0.3, 0.8, 0.3, 0.0)  # Start invisible
+	overlay.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	overlay.anchor_top = 1.0
+	overlay.anchor_bottom = 1.0
+	overlay.offset_top = -4
+	overlay.offset_bottom = 0
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(overlay)
+	return overlay
+
+
+## Creates a glow/flash overlay for the unlock animation.
+func _create_glow_overlay(slot: PanelContainer) -> ColorRect:
+	var glow := ColorRect.new()
+	glow.name = "UnlockGlowOverlay"
+	glow.color = Color(1.0, 1.0, 1.0, 0.0)  # Start invisible
+	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(glow)
+	return glow
+
+
+## Updates the progress overlay visual to show current unlock progress.
+func _update_progress_overlay(slot: PanelContainer, progress: float) -> void:
+	var overlay: ColorRect = _slot_progress_overlays.get(slot)
+	if overlay == null:
+		overlay = _create_progress_overlay(slot)
+		_slot_progress_overlays[slot] = overlay
+
+	# Update overlay height to show progress (from bottom up)
+	var slot_height: float = slot.size.y
+	overlay.anchor_top = 1.0 - progress
+	overlay.anchor_bottom = 1.0
+	overlay.offset_top = 0
+	overlay.offset_bottom = 0
+
+	# Fade in the overlay
+	overlay.color = Color(0.3, 0.8, 0.3, 0.4 + progress * 0.3)
+
+	# Apply shaking effect to inner container to avoid GridContainer layout conflicts
+	var shake_intensity: float = progress * 3.0
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox:
+		# Use offset on inner VBoxContainer instead of slot position to avoid GridContainer layout conflicts
+		vbox.position = Vector2(
+			randf_range(-shake_intensity, shake_intensity),
+			randf_range(-shake_intensity, shake_intensity)
+		)
+
+
+## Removes the progress overlay from a slot and resets position.
+func _remove_progress_overlay(slot: PanelContainer) -> void:
+	var overlay: ColorRect = _slot_progress_overlays.get(slot)
+	if overlay != null:
+		overlay.queue_free()
+		_slot_progress_overlays.erase(slot)
+	# Reset inner container position to avoid visual offset
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	if vbox:
+		vbox.position = Vector2.ZERO
+
+
+## Plays the animated unlock reveal sequence for a slot.
+func _play_unlock_reveal_animation(slot: PanelContainer, callback: Callable) -> void:
+	# Remove any progress overlay first
+	_remove_progress_overlay(slot)
+
+	# Play success sound
+	_play_unlock_success_sound()
+
+	# Create glow overlay for flash effect
+	var glow := _create_glow_overlay(slot)
+
+	# Get the icon container for scale animation
+	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer
+	var icon_container: CenterContainer = vbox.get_child(0) as CenterContainer if vbox else null
+
+	# Create the reveal animation sequence
+	var tween := create_tween()
+	_active_reveal_tweens[slot] = tween
+
+	# Phase 1: Flash white (0.15s)
+	tween.tween_property(glow, "color:a", 0.8, 0.1).set_ease(Tween.EASE_OUT)
+
+	# Phase 2: Pop scale effect (0.2s)
+	if icon_container:
+		tween.set_parallel(true)
+		tween.tween_property(icon_container, "scale", Vector2(1.3, 1.3), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tween.set_parallel(false)
+
+	# Phase 3: Settle back and fade glow (0.3s)
+	tween.tween_property(glow, "color:a", 0.0, 0.3).set_ease(Tween.EASE_IN)
+	if icon_container:
+		tween.set_parallel(true)
+		tween.tween_property(icon_container, "scale", Vector2(1.0, 1.0), 0.2).set_ease(Tween.EASE_OUT)
+		tween.set_parallel(false)
+
+	# Cleanup and trigger callback after animation
+	tween.tween_callback(func():
+		glow.queue_free()
+		_active_reveal_tweens.erase(slot)
+		callback.call()
+	)

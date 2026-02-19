@@ -182,6 +182,24 @@ const VOLUME_REVOLVER_RELOAD: float = -3.0
 ## Volume for revolver shot.
 const VOLUME_REVOLVER_SHOT: float = 0.0
 
+## AK rifle shots (5 variants) - randomly selected for variety.
+const AK_SHOTS: Array[String] = [
+	"res://assets/audio/выстрел из АК 1.mp3",
+	"res://assets/audio/выстрел из АК 2.mp3",
+	"res://assets/audio/выстрел из АК 3.mp3",
+	"res://assets/audio/выстрел из АК 4.mp3",
+	"res://assets/audio/выстрел из АК 5.mp3"
+]
+
+## Volume for AK shots.
+const VOLUME_AK_SHOT: float = -5.0
+
+## Underbarrel grenade launcher shot sound (GP-25).
+const GRENADE_LAUNCHER_SHOT: String = "res://assets/audio/выстрел из подствольного гранатомёта.mp3"
+
+## Volume for grenade launcher shot.
+const VOLUME_GRENADE_LAUNCHER: float = -3.0
+
 ## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
 const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
 
@@ -361,6 +379,9 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(ASVK_BOLT_STEP_2)
 	all_sounds.append(ASVK_BOLT_STEP_3)
 	all_sounds.append(ASVK_BOLT_STEP_4)
+	# AK rifle sounds (Issue #617)
+	all_sounds.append_array(AK_SHOTS)
+	all_sounds.append(GRENADE_LAUNCHER_SHOT)
 	# RSh-12 revolver sounds (Issue #626)
 	all_sounds.append(REVOLVER_CYLINDER_OPEN)
 	all_sounds.append(REVOLVER_CYLINDER_CLOSE)
@@ -621,6 +642,18 @@ func play_m16_double_shot(position: Vector2) -> void:
 ## Uses CRITICAL priority for reload sounds.
 func play_m16_bolt(position: Vector2) -> void:
 	play_random_sound_2d_with_priority(M16_BOLT_SOUNDS, position, VOLUME_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays a random AK rifle shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_ak_shot(position: Vector2) -> void:
+	play_random_sound_2d_with_priority(AK_SHOTS, position, VOLUME_AK_SHOT, SoundPriority.CRITICAL)
+
+
+## Plays grenade launcher shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_grenade_launch(position: Vector2) -> void:
+	play_sound_2d_with_priority(GRENADE_LAUNCHER_SHOT, position, VOLUME_GRENADE_LAUNCHER, SoundPriority.CRITICAL)
 
 
 ## Plays magazine removal sound (first phase of reload).

@@ -7,13 +7,30 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,        # No active item equipped
-	FLASHLIGHT   # Tactical flashlight - illuminates in weapon direction
+	NONE,              # No active item equipped
+	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
+	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
+	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
+	BREAKER_BULLETS    # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
 }
 
 ## Currently selected active item type.
 ## No active item is selected by default.
 var current_active_item: int = ActiveItemType.NONE
+
+## Unlocked active items tracking.
+## By default, all active items are locked for debugging purposes.
+## Active items can be unlocked by holding LMB on their case in the armory menu.
+## NONE is always unlocked (it's not a real item).
+var unlocked_active_items: Dictionary = {
+	ActiveItemType.NONE: true,
+	ActiveItemType.FLASHLIGHT: false,
+	ActiveItemType.HOMING_BULLETS: false,
+	ActiveItemType.TELEPORT_BRACERS: false,
+	ActiveItemType.INVISIBILITY_SUIT: false,
+	ActiveItemType.BREAKER_BULLETS: false
+}
 
 ## Active item data for UI and selection.
 const ACTIVE_ITEM_DATA: Dictionary = {
@@ -25,12 +42,38 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.FLASHLIGHT: {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
+		"activation_hint": "Hold Space to activate"
+	},
+	ActiveItemType.HOMING_BULLETS: {
+		"name": "Homing Bullets",
+		"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+	},
+	ActiveItemType.TELEPORT_BRACERS: {
+		"name": "Teleport Bracers",
+		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
+		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
+		"activation_hint": "Hold Space to aim, release to teleport"
+	},
+	ActiveItemType.INVISIBILITY_SUIT: {
+		"name": "Invisibility",
+		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+		"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.BREAKER_BULLETS: {
+		"name": "Breaker Bullets",
+		"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
+		"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
 	}
 }
 
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
+
+## Signal emitted when an active item is unlocked.
+signal active_item_unlocked(item_type: int)
 
 
 ## Set the current active item type.
@@ -112,3 +155,46 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if homing bullets are currently equipped.
+func has_homing_bullets() -> bool:
+	return current_active_item == ActiveItemType.HOMING_BULLETS
+
+
+## Check if teleport bracers are currently equipped.
+func has_teleport_bracers() -> bool:
+	return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+
+## Check if an invisibility suit is currently equipped (Issue #673).
+func has_invisibility_suit() -> bool:
+	return current_active_item == ActiveItemType.INVISIBILITY_SUIT
+
+
+## Check if breaker bullets are currently equipped (Issue #678).
+func has_breaker_bullets() -> bool:
+	return current_active_item == ActiveItemType.BREAKER_BULLETS
+
+
+## Check if an active item type is unlocked.
+## @param item_type: The active item type to check.
+## @return: true if the item is unlocked, false otherwise.
+func is_active_item_unlocked(item_type: int) -> bool:
+	return unlocked_active_items.get(item_type, false)
+
+
+## Unlock an active item type.
+## @param item_type: The active item type to unlock.
+func unlock_active_item(item_type: int) -> void:
+	if item_type in unlocked_active_items:
+		if not unlocked_active_items[item_type]:
+			unlocked_active_items[item_type] = true
+			active_item_unlocked.emit(item_type)
+			FileLogger.info("[ActiveItemManager] Active item unlocked: %s" % get_active_item_name(item_type))
+
+
+## Get all unlocked active items.
+## @return: Dictionary of item_type -> bool pairs.
+func get_unlocked_active_items() -> Dictionary:
+	return unlocked_active_items

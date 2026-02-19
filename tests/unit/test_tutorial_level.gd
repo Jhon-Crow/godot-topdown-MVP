@@ -12,30 +12,23 @@ extends GutTest
 class MockTutorialLevel:
 	## Tutorial states
 	enum TutorialStep {
-		MOVE_TO_TARGETS,
-		SHOOT_TARGETS,
 		SWITCH_FIRE_MODE,
 		RELOAD,
+		THROW_GRENADE,
 		COMPLETED
 	}
 
-	var _current_step: TutorialStep = TutorialStep.MOVE_TO_TARGETS
-	var _targets_hit: int = 0
-	var _total_targets: int = 0
+	var _current_step: TutorialStep = TutorialStep.SWITCH_FIRE_MODE
 	var _has_reloaded: bool = false
 	var _has_switched_fire_mode: bool = false
+	var _has_thrown_grenade: bool = false
 	var _has_assault_rifle: bool = false
-	var _reached_target_zone: bool = false
-
-	## Distance threshold for being "near" targets
-	const TARGET_PROXIMITY_THRESHOLD: float = 300.0
 
 	## Prompt text for each step (Russian)
 	const PROMPTS := {
-		TutorialStep.MOVE_TO_TARGETS: "[WASD] Подойди к мишеням",
-		TutorialStep.SHOOT_TARGETS: "[ЛКМ] Стреляй по мишеням",
 		TutorialStep.SWITCH_FIRE_MODE: "[B] Переключи режим стрельбы",
 		TutorialStep.RELOAD: "[R] [F] [R] Перезарядись",
+		TutorialStep.THROW_GRENADE: "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]",
 		TutorialStep.COMPLETED: ""
 	}
 
@@ -47,29 +40,6 @@ class MockTutorialLevel:
 
 	func advance_to_step(step: TutorialStep) -> void:
 		_current_step = step
-
-	func set_targets_total(count: int) -> void:
-		_total_targets = count
-
-	func on_target_hit() -> void:
-		if _current_step != TutorialStep.SHOOT_TARGETS:
-			return
-
-		_targets_hit += 1
-
-		if _targets_hit >= _total_targets:
-			if _has_assault_rifle:
-				advance_to_step(TutorialStep.SWITCH_FIRE_MODE)
-			else:
-				advance_to_step(TutorialStep.RELOAD)
-
-	func on_player_near_targets() -> void:
-		if _current_step != TutorialStep.MOVE_TO_TARGETS:
-			return
-
-		if not _reached_target_zone:
-			_reached_target_zone = true
-			advance_to_step(TutorialStep.SHOOT_TARGETS)
 
 	func on_fire_mode_changed() -> void:
 		if _current_step != TutorialStep.SWITCH_FIRE_MODE:
@@ -85,6 +55,14 @@ class MockTutorialLevel:
 
 		if not _has_reloaded:
 			_has_reloaded = true
+			advance_to_step(TutorialStep.THROW_GRENADE)
+
+	func on_grenade_thrown() -> void:
+		if _current_step != TutorialStep.THROW_GRENADE:
+			return
+
+		if not _has_thrown_grenade:
+			_has_thrown_grenade = true
 			advance_to_step(TutorialStep.COMPLETED)
 
 	func is_tutorial_complete() -> bool:
@@ -93,17 +71,11 @@ class MockTutorialLevel:
 	func is_prompt_visible() -> bool:
 		return _current_step != TutorialStep.COMPLETED
 
-	func calculate_target_zone_center(target_positions: Array[Vector2]) -> Vector2:
-		if target_positions.is_empty():
-			return Vector2.ZERO
-
-		var sum := Vector2.ZERO
-		for pos in target_positions:
-			sum += pos
-		return sum / target_positions.size()
-
-	func is_player_near_targets(player_pos: Vector2, target_center: Vector2) -> bool:
-		return player_pos.distance_to(target_center) < TARGET_PROXIMITY_THRESHOLD
+	func set_initial_step_based_on_weapon(has_assault_rifle: bool) -> void:
+		if has_assault_rifle:
+			_current_step = TutorialStep.SWITCH_FIRE_MODE
+		else:
+			_current_step = TutorialStep.RELOAD
 
 
 var tutorial: MockTutorialLevel
@@ -122,14 +94,20 @@ func after_each() -> void:
 # ============================================================================
 
 
-func test_initial_step_is_move_to_targets() -> void:
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.MOVE_TO_TARGETS,
-		"Tutorial should start at MOVE_TO_TARGETS step")
+func test_initial_step_is_switch_fire_mode() -> void:
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SWITCH_FIRE_MODE,
+		"Tutorial should start at SWITCH_FIRE_MODE step by default")
+
+
+func test_initial_step_is_reload_without_rifle() -> void:
+	tutorial.set_initial_step_based_on_weapon(false)
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
+		"Tutorial should start at RELOAD step for non-assault rifles")
 
 
 func test_initial_prompt_text() -> void:
 	var text := tutorial.get_prompt_text()
-	assert_true(text.contains("WASD"), "Initial prompt should mention WASD")
+	assert_true(text.contains("[B]"), "Initial prompt should mention B key for fire mode")
 
 
 func test_prompt_is_visible_initially() -> void:
@@ -143,46 +121,6 @@ func test_tutorial_not_complete_initially() -> void:
 # ============================================================================
 # Step Progression Tests
 # ============================================================================
-
-
-func test_advance_to_shoot_targets() -> void:
-	tutorial.on_player_near_targets()
-
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SHOOT_TARGETS,
-		"Should advance to SHOOT_TARGETS after reaching targets")
-
-
-func test_shoot_targets_prompt_text() -> void:
-	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.SHOOT_TARGETS)
-
-	var text := tutorial.get_prompt_text()
-	assert_true(text.contains("ЛКМ"), "Shoot prompt should mention left mouse button")
-
-
-func test_all_targets_hit_advances_to_reload_without_rifle() -> void:
-	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.SHOOT_TARGETS)
-	tutorial._has_assault_rifle = false
-	tutorial.set_targets_total(3)
-
-	tutorial.on_target_hit()
-	tutorial.on_target_hit()
-	tutorial.on_target_hit()
-
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
-		"Should advance to RELOAD after all targets hit (no assault rifle)")
-
-
-func test_all_targets_hit_advances_to_fire_mode_with_rifle() -> void:
-	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.SHOOT_TARGETS)
-	tutorial._has_assault_rifle = true
-	tutorial.set_targets_total(3)
-
-	tutorial.on_target_hit()
-	tutorial.on_target_hit()
-	tutorial.on_target_hit()
-
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SWITCH_FIRE_MODE,
-		"Should advance to SWITCH_FIRE_MODE after all targets hit (with assault rifle)")
 
 
 func test_fire_mode_change_advances_to_reload() -> void:
@@ -202,13 +140,22 @@ func test_reload_prompt_text() -> void:
 		"Reload prompt should mention R-F-R sequence")
 
 
-func test_reload_completes_tutorial() -> void:
+func test_reload_advances_to_grenade() -> void:
 	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.RELOAD)
 
 	tutorial.on_reload_completed()
 
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE,
+		"Should advance to THROW_GRENADE after reload")
+
+
+func test_grenade_throw_completes_tutorial() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.on_grenade_thrown()
+
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.COMPLETED,
-		"Should advance to COMPLETED after reload")
+		"Should advance to COMPLETED after throwing grenade")
 	assert_true(tutorial.is_tutorial_complete(), "Tutorial should be complete")
 
 
@@ -229,82 +176,31 @@ func test_prompt_not_visible_when_completed() -> void:
 # ============================================================================
 
 
-func test_target_hit_ignored_in_move_step() -> void:
-	# Still in MOVE_TO_TARGETS step
-	tutorial.set_targets_total(3)
-	tutorial.on_target_hit()
-
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.MOVE_TO_TARGETS,
-		"Target hit should be ignored in MOVE_TO_TARGETS step")
-
-
 func test_fire_mode_change_ignored_in_wrong_step() -> void:
-	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.SHOOT_TARGETS)
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.RELOAD)
 
 	tutorial.on_fire_mode_changed()
 
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SHOOT_TARGETS,
-		"Fire mode change should be ignored in SHOOT_TARGETS step")
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
+		"Fire mode change should be ignored in RELOAD step")
 
 
 func test_reload_ignored_in_wrong_step() -> void:
-	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.SHOOT_TARGETS)
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.SWITCH_FIRE_MODE)
 
 	tutorial.on_reload_completed()
 
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SHOOT_TARGETS,
-		"Reload should be ignored in SHOOT_TARGETS step")
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SWITCH_FIRE_MODE,
+		"Reload should be ignored in SWITCH_FIRE_MODE step")
 
 
-func test_player_near_targets_only_triggers_once() -> void:
-	tutorial.on_player_near_targets()  # Advances to SHOOT_TARGETS
-	tutorial._current_step = MockTutorialLevel.TutorialStep.MOVE_TO_TARGETS  # Reset for test
-	tutorial.on_player_near_targets()  # Should not advance again
+func test_grenade_throw_ignored_in_wrong_step() -> void:
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.RELOAD)
 
-	# The second call should not do anything because _reached_target_zone is true
-	assert_true(tutorial._reached_target_zone, "Target zone flag should remain true")
+	tutorial.on_grenade_thrown()
 
-
-# ============================================================================
-# Target Zone Calculation Tests
-# ============================================================================
-
-
-func test_calculate_target_zone_center() -> void:
-	var positions: Array[Vector2] = [Vector2(100, 100), Vector2(200, 100), Vector2(150, 200)]
-	var center := tutorial.calculate_target_zone_center(positions)
-
-	# Average: (100+200+150)/3 = 150, (100+100+200)/3 = 133.33
-	assert_almost_eq(center.x, 150.0, 0.01, "Center X should be average of X positions")
-	assert_almost_eq(center.y, 133.33, 0.01, "Center Y should be average of Y positions")
-
-
-func test_calculate_target_zone_center_empty() -> void:
-	var positions: Array[Vector2] = []
-	var center := tutorial.calculate_target_zone_center(positions)
-
-	assert_eq(center, Vector2.ZERO, "Empty positions should return zero vector")
-
-
-func test_is_player_near_targets() -> void:
-	var player_pos := Vector2(100, 100)
-	var target_center := Vector2(150, 100)  # 50 pixels away
-
-	assert_true(tutorial.is_player_near_targets(player_pos, target_center),
-		"Player within threshold should be 'near'")
-
-
-func test_is_player_not_near_targets() -> void:
-	var player_pos := Vector2(0, 0)
-	var target_center := Vector2(500, 500)  # ~707 pixels away
-
-	assert_false(tutorial.is_player_near_targets(player_pos, target_center),
-		"Player beyond threshold should not be 'near'")
-
-
-func test_proximity_threshold_value() -> void:
-	assert_eq(MockTutorialLevel.TARGET_PROXIMITY_THRESHOLD, 300.0,
-		"Proximity threshold should be 300 pixels")
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
+		"Grenade throw should be ignored in RELOAD step")
 
 
 # ============================================================================
@@ -314,45 +210,40 @@ func test_proximity_threshold_value() -> void:
 
 func test_complete_tutorial_flow_with_rifle() -> void:
 	tutorial._has_assault_rifle = true
-	tutorial.set_targets_total(2)
+	tutorial.set_initial_step_based_on_weapon(true)
 
-	# Step 1: Move to targets
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.MOVE_TO_TARGETS)
-
-	tutorial.on_player_near_targets()
-
-	# Step 2: Shoot targets
-	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SHOOT_TARGETS)
-
-	tutorial.on_target_hit()
-	tutorial.on_target_hit()
-
-	# Step 3: Switch fire mode
+	# Step 1: Switch fire mode
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SWITCH_FIRE_MODE)
 
 	tutorial.on_fire_mode_changed()
 
-	# Step 4: Reload
+	# Step 2: Reload
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD)
 
 	tutorial.on_reload_completed()
 
-	# Step 5: Complete
+	# Step 3: Throw grenade
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.on_grenade_thrown()
+
+	# Step 4: Complete
 	assert_true(tutorial.is_tutorial_complete(), "Tutorial should be complete")
 
 
 func test_complete_tutorial_flow_without_rifle() -> void:
 	tutorial._has_assault_rifle = false
-	tutorial.set_targets_total(2)
+	tutorial.set_initial_step_based_on_weapon(false)
 
-	tutorial.on_player_near_targets()
-	tutorial.on_target_hit()
-	tutorial.on_target_hit()
-
-	# Should skip fire mode step
+	# Should skip fire mode step and start with reload
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
-		"Should skip fire mode step without assault rifle")
+		"Should start with reload step without assault rifle")
 
 	tutorial.on_reload_completed()
+
+	# Step 2: Throw grenade
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	tutorial.on_grenade_thrown()
 
 	assert_true(tutorial.is_tutorial_complete())

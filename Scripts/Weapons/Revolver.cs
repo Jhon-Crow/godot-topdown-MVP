@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Components;
 using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
@@ -98,6 +99,18 @@ public partial class Revolver : BaseWeapon
     /// Ranges from 0 to CylinderCapacity-1. Updated by RotateCylinder() and Fire().
     /// </summary>
     private int _currentChamberIndex = 0;
+
+    /// <summary>
+    /// Override CanFire for revolver's chamber-based system (Issue #716).
+    /// Revolvers can attempt to fire even when CurrentAmmo = 0 because:
+    /// 1. Individual chambers might still have rounds
+    /// 2. Empty chambers should produce click sounds
+    /// 3. Manual hammer cocking should work with empty cylinders
+    /// 
+    /// Only block fire when cylinder is open or hammer is cocked (handled in Fire()).
+    /// The actual ammo check happens per-chamber in ExecuteShot().
+    /// </summary>
+    public override bool CanFire => !IsReloading && _fireTimer <= 0;
 
     /// <summary>
     /// Number of rounds actually fired since the last casing ejection (Issue #659).
@@ -211,6 +224,22 @@ public partial class Revolver : BaseWeapon
     private bool _isHammerCocked = false;
 
     /// <summary>
+    /// Whether the hammer was manually cocked by the player pressing RMB (Issue #649).
+    /// When true, the next LMB press fires immediately without the hammer cock delay.
+    /// Normal flow: LMB → cock hammer (0.15s delay) → shot fires.
+    /// Manual cock flow: RMB (instant cock) → LMB → shot fires immediately.
+    /// </summary>
+    private bool _isManuallyHammerCocked = false;
+
+    /// <summary>
+    /// Signal emitted when the cylinder state changes (Issue #691).
+    /// Used by the cylinder HUD to update the display.
+    /// Emitted on fire, reload, cylinder rotation, hammer state changes.
+    /// </summary>
+    [Signal]
+    public delegate void CylinderStateChangedEventHandler();
+
+    /// <summary>
     /// Timer for the delay between hammer cock and actual shot (Issue #661).
     /// The hammer cocks and cylinder rotates first, then the shot fires.
     /// </summary>
@@ -247,15 +276,78 @@ public partial class Revolver : BaseWeapon
         int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
 
         // Issue #668: Initialize per-chamber tracking array.
-        // All chambers start as occupied (full cylinder at game start).
+        // Chambers start based on CurrentAmmo (empty drum support - Issue #716).
         _chamberOccupied = new bool[cylinderCapacity];
         for (int i = 0; i < cylinderCapacity; i++)
         {
-            _chamberOccupied[i] = true;
+            _chamberOccupied[i] = i < CurrentAmmo;
         }
         _currentChamberIndex = 0;
 
         GD.Print($"[Revolver] RSh-12 initialized - heavy revolver ready, cylinder capacity={cylinderCapacity}");
+
+        // Issue #691: Setup cylinder HUD using CallDeferred so the scene tree is fully ready
+        CallDeferred(MethodName.SetupCylinderHUD);
+    }
+
+    /// <summary>
+    /// Reference to the cylinder HUD display (Issue #691).
+    /// Created by the revolver itself to ensure it works regardless of level init path.
+    /// </summary>
+    private RevolverCylinderUI? _cylinderUI;
+
+    /// <summary>
+    /// Creates and attaches the cylinder HUD display to the level UI (Issue #691).
+    /// Called via CallDeferred from _Ready() to ensure the scene tree is fully initialized.
+    /// The HUD is added to CanvasLayer/UI in the level root, positioned below the ammo label.
+    /// Traverses up the tree to find the level root (handles Player being under Entities, etc).
+    /// </summary>
+    private void SetupCylinderHUD()
+    {
+        // Find the level root by traversing up until we find a node with CanvasLayer/UI
+        // The hierarchy can be: LevelRoot → Entities → Player → Revolver
+        // or: LevelRoot → Player → Revolver (depending on level structure)
+        var current = GetParent();
+        Control? ui = null;
+
+        while (current != null)
+        {
+            ui = current.GetNodeOrNull<Control>("CanvasLayer/UI");
+            if (ui != null)
+            {
+                GD.Print($"[Revolver] Found CanvasLayer/UI in: {current.Name}");
+                break;
+            }
+            current = current.GetParent();
+        }
+
+        if (ui == null)
+        {
+            GD.Print("[Revolver] Warning: Could not find CanvasLayer/UI for cylinder HUD (Issue #691)");
+            return;
+        }
+
+        // Don't create duplicate HUD if one already exists (e.g. from LevelInitFallback)
+        if (ui.GetNodeOrNull("RevolverCylinderUI") != null)
+        {
+            GD.Print("[Revolver] Cylinder HUD already exists in UI, connecting to existing");
+            _cylinderUI = ui.GetNodeOrNull<RevolverCylinderUI>("RevolverCylinderUI");
+            _cylinderUI?.ConnectToRevolver(this);
+            return;
+        }
+
+        _cylinderUI = new RevolverCylinderUI();
+        _cylinderUI.Name = "RevolverCylinderUI";
+        _cylinderUI.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _cylinderUI.OffsetLeft = 10;
+        _cylinderUI.OffsetTop = 30;
+        _cylinderUI.OffsetRight = 200;
+        _cylinderUI.OffsetBottom = 62;
+        ui.AddChild(_cylinderUI);
+
+        _cylinderUI.ConnectToRevolver(this);
+
+        GD.Print("[Revolver] Cylinder HUD created and connected (Issue #691)");
     }
 
     public override void _Process(double delta)
@@ -281,6 +373,9 @@ public partial class Revolver : BaseWeapon
             {
                 ExecuteShot(_pendingShotDirection);
                 _isHammerCocked = false;
+                // Issue #747: Emit CylinderStateChanged signal when hammer becomes uncocked
+                // This ensures the UI updates from red (cocked) back to yellow (uncocked)
+                EmitSignal(SignalName.CylinderStateChanged);
             }
         }
 
@@ -292,25 +387,22 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Handles mouse scroll wheel input for cylinder rotation (Issue #626).
-    /// Scroll up or down rotates the cylinder by one position while it's open.
+    /// Handles mouse scroll wheel input for cylinder rotation (Issue #626, #691).
+    /// Scroll up or down rotates the cylinder by one position.
+    /// Works both during reload (Issue #626) and outside reload (Issue #691).
     /// </summary>
     public override void _Input(InputEvent @event)
     {
         base._Input(@event);
 
-        // Handle scroll wheel for cylinder rotation while cylinder is open
+        // Handle scroll wheel for cylinder rotation (Issue #691: also outside reload)
         if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed)
         {
-            if (ReloadState == RevolverReloadState.CylinderOpen
-                || ReloadState == RevolverReloadState.Loading)
+            if (mouseButton.ButtonIndex == MouseButton.WheelUp
+                || mouseButton.ButtonIndex == MouseButton.WheelDown)
             {
-                if (mouseButton.ButtonIndex == MouseButton.WheelUp
-                    || mouseButton.ButtonIndex == MouseButton.WheelDown)
-                {
-                    int direction = mouseButton.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
-                    RotateCylinder(direction);
-                }
+                int direction = mouseButton.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
+                RotateCylinder(direction);
             }
         }
     }
@@ -480,10 +572,11 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Fires the RSh-12 revolver in semi-automatic mode (Issue #661).
-    /// When the player presses LMB, the hammer cocks and the cylinder rotates first,
-    /// then after a short delay the shot fires. This gives the revolver a distinctive
-    /// mechanical feel with audible hammer cock and cylinder rotation before each shot.
+    /// Fires the RSh-12 revolver in semi-automatic mode (Issue #661, #649).
+    /// Normal fire (LMB without manual cock): hammer cocks and cylinder rotates first,
+    /// then after a short delay (0.15s) the shot fires.
+    /// Manual cock fire (RMB then LMB, Issue #649): hammer is already cocked,
+    /// so the shot fires immediately without delay.
     /// </summary>
     /// <param name="direction">Direction to fire (uses aim direction).</param>
     /// <returns>True if the fire sequence was initiated successfully.</returns>
@@ -496,27 +589,56 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Cannot fire while hammer is already cocked and waiting to fire
+        // Cannot fire while hammer is already cocked and waiting to fire (auto-cock delay)
         if (_isHammerCocked)
         {
             return false;
         }
 
-        // Check for empty cylinder - play click sound
-        if (CurrentAmmo <= 0)
-        {
-            PlayEmptyClickSound();
-            return false;
-        }
-
-        // Check if we can fire at all
+        // Check if we can fire at all (fire rate, etc)
         if (!CanFire || WeaponData == null || BulletScene == null)
         {
             return false;
         }
 
-        // Issue #661: Cock the hammer and rotate the cylinder before firing.
-        // The actual shot happens after a short delay (HammerCockDelay).
+        // Issue #649: If hammer was manually cocked (RMB), fire immediately without delay.
+        // When hammer is cocked, player fires from the CURRENT slot (no rotation).
+        // Issue #716: Current chamber is checked - either fires or clicks.
+        if (_isManuallyHammerCocked)
+        {
+            _isManuallyHammerCocked = false;
+
+            // Issue #716: Check current chamber for cocked fire - click or shoot
+            bool currentChamberHasRound = _chamberOccupied.Length > 0
+                                          && _currentChamberIndex < _chamberOccupied.Length
+                                          && _chamberOccupied[_currentChamberIndex];
+
+            if (!currentChamberHasRound)
+            {
+                // Issue #716: Play empty click sound when firing cocked hammer on empty chamber
+                PlayEmptyClickSound();
+                GD.Print($"[Revolver] Click - cocked hammer on empty chamber {_currentChamberIndex}");
+                // Issue #747: Emit CylinderStateChanged signal when hammer becomes uncocked
+                // This ensures the UI updates from red (cocked) back to yellow (uncocked)
+                EmitSignal(SignalName.CylinderStateChanged);
+                return true; // Return true - action was performed (click)
+            }
+
+            GD.Print("[Revolver] Firing with manually cocked hammer - instant shot");
+            ExecuteShot(direction);
+            return true;
+        }
+
+        // Issue #716: Normal fire (uncocked) - cylinder rotates FIRST, then fire from NEW slot.
+        // Step 1: Rotate cylinder to next position BEFORE hammer cock animation
+        int oldChamberIndex = _currentChamberIndex;
+        if (_chamberOccupied.Length > 0)
+        {
+            _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+        }
+        GD.Print($"[Revolver] Cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
+
+        // Issue #661: Now cock the hammer - shot happens after delay from NEW position
         _isHammerCocked = true;
         _hammerCockTimer = HammerCockDelay;
         _pendingShotDirection = direction;
@@ -529,8 +651,108 @@ public partial class Revolver : BaseWeapon
 
         // Emit HammerCocked signal as a separate event (Issue #661 requirement #2)
         EmitSignal(SignalName.HammerCocked);
+        EmitSignal(SignalName.CylinderStateChanged);
 
-        GD.Print("[Revolver] Hammer cocked, cylinder rotated - shot pending");
+        GD.Print($"[Revolver] Hammer cocked - shot pending from chamber {_currentChamberIndex}");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Whether the hammer is currently manually cocked and ready to fire (Issue #649).
+    /// Used by Player.cs to check if the revolver can fire instantly.
+    /// </summary>
+    public bool IsManuallyHammerCocked => _isManuallyHammerCocked;
+
+    /// <summary>
+    /// Whether the hammer is cocked (either manually or auto-cocked) (Issue #691).
+    /// Used by the cylinder HUD: red = cocked (instant shot), yellow = uncocked (will rotate).
+    /// </summary>
+    public bool IsHammerCocked => _isHammerCocked || _isManuallyHammerCocked;
+
+    /// <summary>
+    /// Current chamber index the cylinder is pointing at (Issue #691).
+    /// Used by the cylinder HUD to highlight the active slot.
+    /// </summary>
+    public int CurrentChamberIndex => _currentChamberIndex;
+
+    /// <summary>
+    /// Per-chamber occupancy state (Issue #691).
+    /// Returns a copy of the chamber array. True = live round, false = empty.
+    /// Used by the cylinder HUD to display which chambers have rounds.
+    /// </summary>
+    public bool[] GetChamberStates()
+    {
+        return (bool[])_chamberOccupied.Clone();
+    }
+
+    /// <summary>
+    /// Manually cocks the hammer by pressing RMB (Issue #649, #716 v3).
+    /// This instantly cocks the hammer and rotates the cylinder,
+    /// so the next LMB press fires immediately without the normal 0.15s delay.
+    /// Can only be done when the cylinder is closed and the hammer is not already cocked.
+    /// Unlike normal fire, manual cocking is NOT blocked by the fire timer —
+    /// the whole point is to let the player bypass the fire delay between shots.
+    /// Issue #716 v3: Cylinder rotation now happens during hammer cock (like real revolvers).
+    /// </summary>
+    /// <returns>True if the hammer was manually cocked successfully.</returns>
+    public bool ManualCockHammer()
+    {
+        // Cannot cock while cylinder is open
+        if (ReloadState != RevolverReloadState.NotReloading)
+        {
+            return false;
+        }
+
+        // Cannot cock if already cocked (either manually or via LMB fire sequence)
+        if (_isHammerCocked || _isManuallyHammerCocked)
+        {
+            return false;
+        }
+
+        // Issue #716: Allow hammer cocking even with empty current chamber.
+        // Real revolvers can cock the hammer regardless of ammo state - the hammer
+        // mechanism is independent of whether chambers are loaded. The empty click
+        // occurs when firing (trigger pull), not during cocking.
+        // This allows players to cock the hammer with an empty slot selected,
+        // or with a completely empty cylinder - the click happens on LMB.
+
+        // Check weapon data and bullet scene are available
+        if (WeaponData == null || BulletScene == null)
+        {
+            return false;
+        }
+
+        // NOTE: We intentionally do NOT check CanFire here (Issue #649 fix).
+        // CanFire includes _fireTimer <= 0 check, which would block cocking
+        // during the fire rate cooldown after a shot. The entire purpose of
+        // manual cocking is to bypass that fire delay — the player manually
+        // cocks the hammer to skip the automatic cock+rotate wait time.
+
+        // Reset fire timer — manual cocking prepares the weapon for immediate fire
+        _fireTimer = 0;
+
+        // Issue #716 v3: Rotate cylinder BEFORE cocking hammer (like real single-action revolvers)
+        // The cylinder rotates to advance to the next chamber when pulling back the hammer.
+        int oldChamberIndex = _currentChamberIndex;
+        if (_chamberOccupied.Length > 0)
+        {
+            _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+        }
+        GD.Print($"[Revolver] Manual cock - cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
+
+        // Instantly cock the hammer (no delay - that's the point of manual cocking)
+        _isManuallyHammerCocked = true;
+
+        // Play hammer cock and cylinder rotation sounds
+        PlayHammerCockSound();
+        PlayCylinderRotateSound();
+
+        // Emit HammerCocked signal
+        EmitSignal(SignalName.HammerCocked);
+        EmitSignal(SignalName.CylinderStateChanged);
+
+        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly from chamber {_currentChamberIndex}");
 
         return true;
     }
@@ -549,9 +771,29 @@ public partial class Revolver : BaseWeapon
             return;
         }
 
-        if (CurrentAmmo <= 0 || WeaponData == null || BulletScene == null)
+        // Issue #716: Check current chamber - the cylinder was already rotated in Fire()
+        // for uncocked shots, so this checks the NEW position.
+        bool currentChamberHasRound = _chamberOccupied.Length > 0
+                                      && _currentChamberIndex < _chamberOccupied.Length
+                                      && _chamberOccupied[_currentChamberIndex];
+
+        if (!currentChamberHasRound)
         {
-            GD.Print("[Revolver] Shot cancelled - conditions changed during hammer cock");
+            // Issue #716: Play empty click sound when hammer falls on empty chamber
+            PlayEmptyClickSound();
+            GD.Print($"[Revolver] Click - chamber {_currentChamberIndex} is empty");
+            // Issue #747: Emit CylinderStateChanged signal even on empty chamber
+            // The hammer state changed from cocked to uncocked, so UI must update
+            EmitSignal(SignalName.CylinderStateChanged);
+            return;
+        }
+
+        if (WeaponData == null || BulletScene == null)
+        {
+            GD.Print("[Revolver] Shot cancelled - weapon data or bullet scene missing");
+            // Issue #747: Emit CylinderStateChanged signal even on cancellation
+            // The hammer state changed from cocked to uncocked, so UI must update
+            EmitSignal(SignalName.CylinderStateChanged);
             return;
         }
 
@@ -570,15 +812,20 @@ public partial class Revolver : BaseWeapon
             // until the player opens it (casings eject in OpenCylinder → SpawnEjectedCasings)
             _roundsFiredSinceLastEject++;
             // Issue #668: Mark the current chamber as empty after firing.
+            // Issue #716: Do NOT rotate cylinder here - rotation already happened in Fire()
+            // for uncocked shots. For cocked shots, cylinder stays at current position.
             if (_chamberOccupied.Length > 0)
             {
                 _chamberOccupied[_currentChamberIndex] = false;
-                // Advance chamber index (cylinder rotates after each shot)
-                _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
             }
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
         }
+        
+        // Issue #747: Always emit CylinderStateChanged signal after shot sequence
+        // Whether successful or not, the hammer has fallen from cocked to uncocked
+        // and the chamber state may have changed, so the UI must update
+        EmitSignal(SignalName.CylinderStateChanged);
     }
 
     /// <summary>
@@ -727,6 +974,8 @@ public partial class Revolver : BaseWeapon
                 _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
             }
             TriggerScreenShake(spreadDirection);
+            // Issue #691: Notify UI of cylinder state change
+            EmitSignal(SignalName.CylinderStateChanged);
         }
 
         return result;
@@ -845,6 +1094,9 @@ public partial class Revolver : BaseWeapon
                                      && _currentChamberIndex < _chamberOccupied.Length
                                      && _chamberOccupied[_currentChamberIndex];
 
+        // Issue #649: Reset manual cock state when cylinder is opened
+        _isManuallyHammerCocked = false;
+
         // Update reload state
         ReloadState = RevolverReloadState.CylinderOpen;
 
@@ -865,6 +1117,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.ReloadStarted);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cylinder opened - ejected {_spentCasingsToEject} spent casings, {CurrentAmmo}/{cylinderCapacity} live rounds remain");
 
@@ -929,6 +1182,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cartridge inserted ({CartridgesLoadedThisReload}/{CylinderCapacity}), ammo: {CurrentAmmo}/{CylinderCapacity}, reserve: {ReserveAmmo}");
 
@@ -958,6 +1212,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.ReloadFinished);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cylinder closed - {CurrentAmmo}/{CylinderCapacity} rounds loaded, ready to fire");
 
@@ -965,17 +1220,19 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Rotate the cylinder by one position (Issue #626).
-    /// Called when player scrolls the mouse wheel while the cylinder is open.
-    /// This is a purely visual/mechanical action - it doesn't load ammo,
-    /// it just turns the cylinder to the next chamber position.
+    /// Rotate the cylinder by one position (Issue #626, #691).
+    /// Called when player scrolls the mouse wheel.
+    /// During reload: rotates to the next chamber for cartridge insertion.
+    /// Outside reload (Issue #691): rotates the cylinder freely (e.g., for Russian roulette style selection).
+    /// Cannot rotate while hammer is cocked (pending shot or manually cocked).
     /// </summary>
     /// <param name="direction">1 for clockwise, -1 for counter-clockwise.</param>
     /// <returns>True if the cylinder was rotated.</returns>
     public bool RotateCylinder(int direction)
     {
-        if (ReloadState != RevolverReloadState.CylinderOpen
-            && ReloadState != RevolverReloadState.Loading)
+        // Issue #691: Allow rotation both during reload and outside of it.
+        // Cannot rotate while hammer is cocked (shot pending or manually cocked).
+        if (_isHammerCocked || _isManuallyHammerCocked)
         {
             return false;
         }
@@ -984,14 +1241,21 @@ public partial class Revolver : BaseWeapon
         int capacity = _chamberOccupied.Length > 0 ? _chamberOccupied.Length : CylinderCapacity;
         _currentChamberIndex = ((_currentChamberIndex + direction) % capacity + capacity) % capacity;
 
-        // Issue #668: Only unblock insertion if the destination chamber is empty.
+        // Issue #668: Only unblock insertion if the destination chamber is empty (during reload).
         // Issue #659: Rotating moves to the next chamber for insertion.
-        _cartridgeInsertionBlocked = _chamberOccupied.Length > 0
-                                     && _currentChamberIndex < _chamberOccupied.Length
-                                     && _chamberOccupied[_currentChamberIndex];
+        if (ReloadState == RevolverReloadState.CylinderOpen
+            || ReloadState == RevolverReloadState.Loading)
+        {
+            _cartridgeInsertionBlocked = _chamberOccupied.Length > 0
+                                         && _currentChamberIndex < _chamberOccupied.Length
+                                         && _chamberOccupied[_currentChamberIndex];
+        }
 
         // Play cylinder rotation click sound
         PlayCylinderRotateSound();
+
+        // Issue #691: Notify UI of cylinder state change
+        EmitSignal(SignalName.CylinderStateChanged);
 
         GD.Print($"[Revolver] Cylinder rotated {(direction > 0 ? "clockwise" : "counter-clockwise")} to chamber {_currentChamberIndex} (occupied: {(_chamberOccupied.Length > 0 && _currentChamberIndex < _chamberOccupied.Length ? _chamberOccupied[_currentChamberIndex] : false)})");
 
@@ -1116,4 +1380,16 @@ public partial class Revolver : BaseWeapon
     }
 
     #endregion
+
+    public override void _ExitTree()
+    {
+        // Clean up cylinder HUD when revolver is removed (Issue #691)
+        if (_cylinderUI != null && IsInstanceValid(_cylinderUI))
+        {
+            _cylinderUI.DisconnectFromRevolver();
+            _cylinderUI.QueueFree();
+            _cylinderUI = null;
+        }
+        base._ExitTree();
+    }
 }

@@ -33,6 +33,11 @@ class_name DefensiveGrenade
 ## High damage to all enemies in the blast zone.
 @export var explosion_damage: int = 99
 
+## Issue #692: Instance ID of the enemy who threw this grenade.
+## Used to prevent self-damage from own grenade explosion and shrapnel.
+## -1 means no thrower tracked (e.g., player-thrown grenades).
+var thrower_id: int = -1
+
 
 func _ready() -> void:
 	super._ready()
@@ -100,10 +105,18 @@ func _get_effect_radius() -> float:
 
 
 ## Find all enemies within the effect radius.
+## Issue #692: When thrown by an enemy (thrower_id >= 0), excludes ALL enemies
+## from explosion damage to prevent both self-kills and friendly fire.
 func _get_enemies_in_radius() -> Array:
 	var enemies_in_range: Array = []
 
-	# Get all enemies in the scene
+	# Issue #692: If this grenade was thrown by an enemy, skip ALL enemies
+	# to prevent both self-damage and friendly fire between allies.
+	if thrower_id >= 0:
+		FileLogger.info("[DefensiveGrenade] Skipping all enemies - enemy-thrown grenade (thrower ID: %d)" % thrower_id)
+		return enemies_in_range
+
+	# Get all enemies in the scene (only for player-thrown grenades)
 	var enemies := get_tree().get_nodes_in_group("enemies")
 
 	for enemy in enemies:
@@ -213,6 +226,8 @@ func _spawn_shrapnel() -> void:
 		shrapnel.global_position = global_position + direction * 10.0  # Slight offset from center
 		shrapnel.direction = direction
 		shrapnel.source_id = get_instance_id()
+		# Issue #692: Pass thrower_id so shrapnel doesn't hit the enemy who threw it
+		shrapnel.thrower_id = thrower_id
 
 		# Add to scene
 		get_tree().current_scene.add_child(shrapnel)

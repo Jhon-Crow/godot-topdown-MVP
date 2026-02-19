@@ -159,6 +159,15 @@ signal grenade_changed(current: int, maximum: int)
 ## Signal emitted when a grenade is thrown.
 signal grenade_thrown
 
+## Signal emitted when homing bullets charges change.
+signal homing_charges_changed(current: int, maximum: int)
+
+## Signal emitted when homing bullets effect activates.
+signal homing_activated
+
+## Signal emitted when homing bullets effect deactivates.
+signal homing_deactivated
+
 ## Grenade scene to instantiate when throwing.
 @export var grenade_scene: PackedScene
 
@@ -185,6 +194,30 @@ var _debug_mode_enabled: bool = false
 
 ## Whether invincibility mode is enabled (F6 toggle, player takes no damage).
 var _invincibility_enabled: bool = false
+
+## Whether homing bullets active item is equipped.
+var _homing_equipped: bool = false
+
+## Whether homing bullets effect is currently active (bullets home toward enemies).
+var _homing_active: bool = false
+
+## Remaining homing charges (6 per battle).
+var _homing_charges: int = 6
+
+## Maximum homing charges per battle.
+const HOMING_MAX_CHARGES: int = 6
+
+## Duration of homing effect per activation in seconds.
+const HOMING_DURATION: float = 1.0
+
+## Timer tracking remaining homing effect duration.
+var _homing_timer: float = 0.0
+
+## Path to the homing bullets activation sound.
+const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
+
+## AudioStreamPlayer for homing activation sound.
+var _homing_audio_player: AudioStreamPlayer = null
 
 
 func _ready() -> void:
@@ -304,6 +337,18 @@ func _ready() -> void:
 	# Initialize flashlight if active item manager has flashlight selected
 	_init_flashlight()
 
+	# Initialize homing bullets if active item manager has homing bullets selected
+	_init_homing_bullets()
+
+	# Initialize invisibility suit if active item manager has it selected (Issue #673)
+	_init_invisibility_suit()
+
+	# Initialize breaker bullets if active item manager has breaker bullets selected (Issue #678)
+	_init_breaker_bullets()
+
+	# Initialize active item progress bar (Issue #700)
+	_init_active_item_progress_bar()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -400,6 +445,15 @@ func _physics_process(delta: float) -> void:
 
 	# Handle flashlight input (hold Space to turn on, release to turn off)
 	_handle_flashlight_input()
+
+	# Handle homing bullets input (press Space to activate, timer-based deactivation)
+	_handle_homing_input(delta)
+
+	# Update charge bar hide timer (auto-hide after 300ms for charge-based items)
+	_update_charge_bar_timer(delta)
+
+	# Handle invisibility suit input (press Space to activate) (Issue #673)
+	_handle_invisibility_suit_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -641,6 +695,14 @@ func _shoot() -> void:
 	# Set shooter position for distance-based penetration calculation
 	# Direct assignment - the bullet script defines this property
 	bullet.shooter_position = global_position
+
+	# Enable homing on the bullet if homing effect is active
+	if _homing_active:
+		bullet.enable_homing()
+
+	# Set breaker bullet flag if breaker bullets are active (Issue #678)
+	if _breaker_bullets_active:
+		bullet.is_breaker_bullet = true
 
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
@@ -2821,6 +2883,9 @@ var _flashlight_equipped: bool = false
 ## Reference to the flashlight effect node (child of PlayerModel).
 var _flashlight_node: Node2D = null
 
+## Whether breaker bullets are active (passive item, Issue #678).
+var _breaker_bullets_active: bool = false
+
 
 ## Initialize the flashlight if the ActiveItemManager has it selected.
 func _init_flashlight() -> void:
@@ -2926,3 +2991,376 @@ func is_flashlight_wall_clamped() -> bool:
 	if _flashlight_node.has_method("is_wall_clamped"):
 		return _flashlight_node.is_wall_clamped()
 	return false
+
+
+# ============================================================================
+# Homing Bullets Active Item (Issue #677)
+# ============================================================================
+
+
+## Initialize homing bullets if the ActiveItemManager has it selected.
+func _init_homing_bullets() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Homing] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_homing_bullets"):
+		FileLogger.info("[Player.Homing] ActiveItemManager missing has_homing_bullets method")
+		return
+
+	if not active_item_manager.has_homing_bullets():
+		FileLogger.info("[Player.Homing] No homing bullets selected in ActiveItemManager")
+		return
+
+	_homing_equipped = true
+	_homing_charges = HOMING_MAX_CHARGES
+	_homing_active = false
+	_homing_timer = 0.0
+	_setup_homing_audio()
+
+	FileLogger.info("[Player.Homing] Homing bullets equipped, charges: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
+
+
+## Handle homing bullets input: press Space to activate for 1 second.
+## Uses the same flashlight_toggle input action (Space key).
+## Active items are mutually exclusive, so no conflict with flashlight.
+func _handle_homing_input(delta: float) -> void:
+	if not _homing_equipped:
+		return
+
+	# Handle active timer countdown
+	if _homing_active:
+		_homing_timer -= delta
+		if _homing_timer <= 0.0:
+			_homing_active = false
+			_homing_timer = 0.0
+			homing_deactivated.emit()
+			FileLogger.info("[Player.Homing] Homing effect expired, charges remaining: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
+
+	# Activate on Space press (only if not already active and has charges)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if _homing_charges > 0 and not _homing_active:
+			_homing_active = true
+			_homing_timer = HOMING_DURATION
+			_homing_charges -= 1
+			_play_homing_sound()
+			homing_activated.emit()
+			homing_charges_changed.emit(_homing_charges, HOMING_MAX_CHARGES)
+			FileLogger.info("[Player.Homing] Homing activated! Duration: %ss, charges remaining: %d/%d" % [HOMING_DURATION, _homing_charges, HOMING_MAX_CHARGES])
+
+
+## Check if homing bullets effect is currently active.
+func is_homing_active() -> bool:
+	return _homing_active
+
+
+## Get remaining homing charges.
+func get_homing_charges() -> int:
+	return _homing_charges
+
+
+## Get maximum homing charges.
+func get_max_homing_charges() -> int:
+	return HOMING_MAX_CHARGES
+
+
+## Set up the audio player for homing activation sound.
+func _setup_homing_audio() -> void:
+	if ResourceLoader.exists(HOMING_SOUND_PATH):
+		var stream = load(HOMING_SOUND_PATH)
+		if stream:
+			_homing_audio_player = AudioStreamPlayer.new()
+			_homing_audio_player.stream = stream
+			_homing_audio_player.volume_db = -3.0
+			add_child(_homing_audio_player)
+			FileLogger.info("[Player.Homing] Homing activation sound loaded")
+	else:
+		FileLogger.info("[Player.Homing] Homing activation sound not found: %s" % HOMING_SOUND_PATH)
+
+
+## Play the homing activation sound.
+func _play_homing_sound() -> void:
+	if _homing_audio_player and is_instance_valid(_homing_audio_player):
+		_homing_audio_player.play()
+
+
+# ============================================================================
+# Invisibility Suit System (Issue #673)
+# ============================================================================
+
+## Preloaded invisibility suit effect script.
+const InvisibilitySuitEffectScript = preload("res://scripts/effects/invisibility_suit_effect.gd")
+
+## Preloaded invisibility HUD script.
+const InvisibilityHudScript = preload("res://scripts/ui/invisibility_hud.gd")
+
+## Whether the invisibility suit is equipped (active item selected in armory).
+var _invisibility_suit_equipped: bool = false
+
+## Reference to the invisibility suit effect node.
+var _invisibility_suit: Node = null
+
+## Reference to the invisibility charge bar (Node2D above player).
+var _invisibility_hud: Node2D = null
+
+## Signal emitted when invisibility state changes (for HUD).
+signal invisibility_changed(is_active: bool, charges: int, max_charges: int)
+
+## Signal emitted when invisibility charges change (for HUD).
+signal invisibility_charges_changed(current: int, maximum: int)
+
+
+## Initialize the invisibility suit if the ActiveItemManager has it selected.
+func _init_invisibility_suit() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Invisibility] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_invisibility_suit"):
+		FileLogger.info("[Player.Invisibility] ActiveItemManager missing has_invisibility_suit method")
+		return
+
+	if not active_item_manager.has_invisibility_suit():
+		FileLogger.info("[Player.Invisibility] No invisibility suit selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.Invisibility] Invisibility suit is selected, initializing...")
+
+	# Create the invisibility suit effect node
+	_invisibility_suit = InvisibilitySuitEffectScript.new()
+	_invisibility_suit.name = "InvisibilitySuitEffect"
+	add_child(_invisibility_suit)
+
+	# Initialize with player reference
+	_invisibility_suit.initialize(self)
+
+	# Connect signals for HUD updates
+	_invisibility_suit.invisibility_activated.connect(_on_invisibility_activated)
+	_invisibility_suit.invisibility_deactivated.connect(_on_invisibility_deactivated)
+	_invisibility_suit.charges_changed.connect(_on_invisibility_charges_changed)
+
+	_invisibility_suit_equipped = true
+	FileLogger.info("[Player.Invisibility] Invisibility suit equipped, charges: %d" % _invisibility_suit.charges)
+
+	# Create HUD overlay for displaying charges and timer
+	_invisibility_hud = InvisibilityHudScript.new()
+	_invisibility_hud.name = "InvisibilityHUD"
+	add_child(_invisibility_hud)
+	_invisibility_hud.initialize(_invisibility_suit)
+
+	# Emit initial charges state for HUD
+	invisibility_charges_changed.emit(_invisibility_suit.charges, _invisibility_suit.MAX_CHARGES)
+
+
+## Handle invisibility suit input: press Space to activate (toggle-on, auto-off after duration).
+func _handle_invisibility_suit_input() -> void:
+	if not _invisibility_suit_equipped or _invisibility_suit == null:
+		return
+
+	if not is_instance_valid(_invisibility_suit):
+		return
+
+	# Activate on Space press (not hold — single press activates for full duration)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if not _invisibility_suit.is_active:
+			_invisibility_suit.activate()
+
+
+## Callback when invisibility activates.
+func _on_invisibility_activated(charges_remaining: int) -> void:
+	invisibility_changed.emit(true, charges_remaining, _invisibility_suit.MAX_CHARGES)
+	if _invisibility_hud and is_instance_valid(_invisibility_hud):
+		_invisibility_hud.set_active(true)
+		_invisibility_hud.update_charges(charges_remaining, _invisibility_suit.MAX_CHARGES)
+
+	# Issue #723: Reset enemy memory when player becomes invisible - enemies lose track and enter search mode
+	_reset_all_enemy_memories("invisibility activation")
+
+
+## Callback when invisibility deactivates.
+func _on_invisibility_deactivated(charges_remaining: int) -> void:
+	invisibility_changed.emit(false, charges_remaining, _invisibility_suit.MAX_CHARGES)
+	if _invisibility_hud and is_instance_valid(_invisibility_hud):
+		_invisibility_hud.set_active(false)
+		_invisibility_hud.update_charges(charges_remaining, _invisibility_suit.MAX_CHARGES)
+
+
+## Callback when invisibility charges change.
+func _on_invisibility_charges_changed(current: int, maximum: int) -> void:
+	invisibility_charges_changed.emit(current, maximum)
+	if _invisibility_hud and is_instance_valid(_invisibility_hud):
+		_invisibility_hud.update_charges(current, maximum)
+
+
+## Check if the player is currently invisible (Issue #673).
+## Used by enemy AI to skip visual detection of the player.
+func is_invisible() -> bool:
+	if not _invisibility_suit_equipped or _invisibility_suit == null:
+		return false
+	if not is_instance_valid(_invisibility_suit):
+		return false
+	return _invisibility_suit.is_invisible()
+
+
+## Get the invisibility suit effect node (for HUD queries).
+func get_invisibility_suit() -> Node:
+	return _invisibility_suit
+
+
+## Reset memory for all enemies in the scene (Issue #723).
+## Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
+func _reset_all_enemy_memories(reason: String) -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var reset_count := 0
+
+	for enemy in enemies:
+		if enemy.has_method("reset_memory"):
+			enemy.reset_memory()
+			reset_count += 1
+
+	if reset_count > 0:
+		FileLogger.info("[Player] Reset memory for %d enemies (%s - Issue #723)" % [reset_count, reason])
+
+
+# ============================================================================
+# Breaker Bullets (Issue #678)
+# ============================================================================
+
+
+## Initialize breaker bullets if the ActiveItemManager has them selected.
+## Breaker bullets are a passive item — no special nodes needed,
+## just a flag that modifies bullet behavior on spawn.
+func _init_breaker_bullets() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	if not active_item_manager.has_method("has_breaker_bullets"):
+		return
+
+	if not active_item_manager.has_breaker_bullets():
+		FileLogger.info("[Player.BreakerBullets] Breaker bullets not selected")
+		return
+
+	_breaker_bullets_active = true
+	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+
+
+# ============================================================================
+# Active Item Progress Bar (Issue #700)
+# ============================================================================
+
+## Reference to the progress bar node displayed above the player.
+var _active_item_progress_bar: Node2D = null
+
+## Timer for auto-hiding charge bar after activation (300ms).
+var _charge_bar_hide_timer: float = 0.0
+
+## Whether the charge bar hide timer is running.
+var _charge_bar_hide_pending: bool = false
+
+## Duration to show charge bar after activation before auto-hiding (in seconds).
+const CHARGE_BAR_HIDE_DELAY: float = 0.3
+
+
+## Initialize the progress bar for the current active item.
+## Called during _ready() after active item initialization.
+## Shows a segmented charge bar for charge-limited items (e.g., teleport bracers).
+func _init_active_item_progress_bar() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	# Connect to homing bullets signals to show/hide progress bar on activation
+	if _homing_equipped:
+		homing_activated.connect(_on_homing_activated_show_bar)
+		homing_deactivated.connect(_on_homing_deactivated_hide_bar)
+		homing_charges_changed.connect(_on_homing_charges_changed)
+
+	FileLogger.info("[Player.ProgressBar] Active item progress bar initialized (Issue #700)")
+
+
+## Create and attach the progress bar node if not already present.
+func _ensure_progress_bar_node() -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		return
+
+	_active_item_progress_bar = ActiveItemProgressBar.new()
+	_active_item_progress_bar.name = "ActiveItemProgressBar"
+	add_child(_active_item_progress_bar)
+
+
+## Show a segmented charge bar above the player.
+## @param current_charges: Number of charges remaining.
+## @param max_charges: Maximum number of charges.
+func _show_active_item_charge_bar(current_charges: int, max_charges: int) -> void:
+	_ensure_progress_bar_node()
+	_active_item_progress_bar.show_bar(
+		ActiveItemProgressBar.DisplayMode.SEGMENTED,
+		float(current_charges),
+		float(max_charges)
+	)
+
+
+## Show a continuous timer bar above the player.
+## @param time_remaining: Time remaining in seconds.
+## @param max_time: Maximum time in seconds.
+func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void:
+	_ensure_progress_bar_node()
+	_active_item_progress_bar.show_bar(
+		ActiveItemProgressBar.DisplayMode.CONTINUOUS,
+		time_remaining,
+		max_time
+	)
+
+
+## Update the progress bar value.
+## @param current: New current value.
+func _update_active_item_bar(current: float) -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		_active_item_progress_bar.update_value(current)
+
+
+## Hide the progress bar.
+func _hide_active_item_bar() -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		_active_item_progress_bar.hide_bar()
+
+
+## Handle charge bar hide timer and active item timer bar updates.
+func _update_charge_bar_timer(delta: float) -> void:
+	# Update continuous timer bar while homing is active
+	if _homing_equipped and _homing_active:
+		_show_active_item_timer_bar(_homing_timer, HOMING_DURATION)
+
+	# Handle charge bar auto-hide (300ms delay for charge-based items)
+	if _charge_bar_hide_pending and not _homing_active:
+		_charge_bar_hide_timer -= delta
+		if _charge_bar_hide_timer <= 0.0:
+			_charge_bar_hide_pending = false
+			_hide_active_item_bar()
+
+
+## Called when homing bullets are activated - show the charge bar briefly,
+## then transition to continuous timer bar during active effect.
+func _on_homing_activated_show_bar() -> void:
+	# Show continuous timer bar during active effect
+	_show_active_item_timer_bar(HOMING_DURATION, HOMING_DURATION)
+	# Set up charge bar to show briefly after effect ends
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Called when homing bullets effect deactivates (timer expires).
+## Show charge bar briefly (300ms) then hide.
+func _on_homing_deactivated_hide_bar() -> void:
+	_show_active_item_charge_bar(_homing_charges, HOMING_MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Called when homing charges change.
+func _on_homing_charges_changed(_current: int, _maximum: int) -> void:
+	pass

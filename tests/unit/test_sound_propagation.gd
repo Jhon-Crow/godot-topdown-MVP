@@ -241,6 +241,10 @@ func test_get_propagation_distance_for_known_types() -> void:
 	assert_almost_eq(_sound_propagation.get_propagation_distance(5), 600.0, 0.1, "Empty click should have 600 range (through walls)")
 	# RELOAD_COMPLETE = 6 - bolt cycling sound, same range as reload start
 	assert_almost_eq(_sound_propagation.get_propagation_distance(6), 900.0, 0.1, "Reload complete should have 900 range (same as reload start)")
+	# GRENADE_LANDING = 7 - very close range
+	assert_almost_eq(_sound_propagation.get_propagation_distance(7), 112.0, 0.1, "Grenade landing should have 112 range")
+	# CASING_KICK = 8 - Issue #693: same range as reload
+	assert_almost_eq(_sound_propagation.get_propagation_distance(8), 900.0, 0.1, "Casing kick should have 900 range (same as reload)")
 
 
 func test_get_propagation_distance_for_unknown_type_returns_default() -> void:
@@ -587,5 +591,73 @@ func test_grenade_landing_shorter_range_than_reload() -> void:
 	_sound_propagation.emit_player_reload(Vector2.ZERO, null)
 	assert_eq(listener.get_sound_count(), 1,
 		"Reload should reach listener at 200 pixels")
+
+	listener.queue_free()
+
+
+# =====================================================
+# Tests for casing kick sound (Issue #693)
+# =====================================================
+
+func test_casing_kick_sound_type_exists() -> void:
+	# CASING_KICK = 8
+	var range_val: float = _sound_propagation.get_propagation_distance(8)
+	assert_almost_eq(range_val, 900.0, 0.1, "Casing kick should have 900 range (same as reload)")
+
+
+func test_casing_kick_has_same_range_as_reload() -> void:
+	# Issue #693: Casing kick should have the same propagation range as reload
+	var reload_range: float = _sound_propagation.get_propagation_distance(3)  # RELOAD
+	var casing_kick_range: float = _sound_propagation.get_propagation_distance(8)  # CASING_KICK
+
+	assert_almost_eq(casing_kick_range, reload_range, 0.1,
+		"Casing kick range should match reload range (both 900px)")
+
+
+func test_emit_casing_kick_convenience_method() -> void:
+	var listener := MockListener.new()
+	listener.global_position = Vector2(100, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_casing_kick(Vector2(50, 50), null)
+
+	assert_eq(listener.get_sound_count(), 1, "Listener should receive casing kick sound")
+	assert_eq(listener.last_sound_type, 8, "Sound type should be CASING_KICK (8)")
+	assert_eq(listener.last_sound_position, Vector2(50, 50), "Sound position should match")
+	assert_eq(listener.last_source_type, 2, "Source type should be NEUTRAL (2)")
+
+	listener.queue_free()
+
+
+func test_casing_kick_reaches_distant_listener() -> void:
+	# A listener at 700 pixels should hear casing kick (900 range)
+	var listener := MockListener.new()
+	listener.global_position = Vector2(700, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_casing_kick(Vector2.ZERO, null)
+
+	assert_eq(listener.get_sound_count(), 1,
+		"Casing kick should reach listener at 700 pixels (within 900 range)")
+
+	listener.queue_free()
+
+
+func test_casing_kick_does_not_reach_listener_beyond_range() -> void:
+	# A listener at 1000 pixels should NOT hear casing kick (900 range)
+	var listener := MockListener.new()
+	listener.global_position = Vector2(1000, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_casing_kick(Vector2.ZERO, null)
+
+	assert_eq(listener.get_sound_count(), 0,
+		"Casing kick should not reach listener at 1000 pixels (beyond 900 range)")
 
 	listener.queue_free()
