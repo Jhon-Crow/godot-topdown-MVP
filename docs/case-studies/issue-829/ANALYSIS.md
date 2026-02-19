@@ -119,9 +119,49 @@ Add equivalent logic before the `StaticBody2D`/`TileMap` block.
 
 ---
 
+## Round 2: Regression — Bullets Pass Through But Deal No Damage
+
+### Date: 2026-02-19 ~19:12–19:23
+
+After the Round 1 fix (commit `cb36eb67`), the owner confirmed that bullets now visually pass through enemies — but they deal **no damage and trigger no blood effects**. New game log: `game_log_20260219_222139.txt`.
+
+### Root Cause of Round 2 Regression
+
+A **shared tracking array** (`_penetrated_enemy_bodies`) was used for two different purposes:
+
+1. In `_on_body_entered`: to suppress physics re-entry signals (body-level collisions)
+2. In `_on_area_entered`: to prevent double-damage (area-level collisions)
+
+**The bug:** In `_on_body_entered`, when the bullet entered an alive enemy CharacterBody2D with `penetrates_enemies=true`, it **immediately added the enemy to `_penetrated_enemy_bodies`** before returning. Then when `_on_area_entered` fired for the same enemy's HitArea, it found the enemy already in `_penetrated_enemy_bodies` and returned early — **without dealing any damage**.
+
+Since in Godot's physics engine, `body_entered` typically fires before (or in the same deferred batch as) `area_entered`, the enemy was pre-marked as "already damaged" before any damage was actually applied.
+
+Evidence from game log (`game_log_20260219_222139.txt`):
+- Revolver fired many times (20+ shots confirmed by `SoundPropagation` events)
+- Only 1 enemy hit registered (`[ENEMY] [Enemy2] Hit: dmg=1` at line 1202)
+- That death at line 4486 shows `penetration: false` (hit by a non-revolver weapon)
+- Zero occurrences of `[Bullet]: Penetrating through enemy, bullet continues flying` in the log
+  (indicating `_on_area_entered` was returning at the `_penetrated_enemy_bodies` check before damage)
+
+### Round 2 Fix
+
+**Separate the two tracking sets:**
+
+- `_passed_through_enemy_bodies` (new): tracks bodies the bullet has passed through at the **CharacterBody2D level**. Used only in `_on_body_entered` to suppress re-entry signals. Populated immediately when the bullet first enters an enemy body.
+- `_penetrated_enemy_bodies` (existing): tracks enemies that have **already been dealt damage**. Used only in `_on_area_entered` to prevent double-damage. Populated AFTER damage is actually applied.
+
+This ensures the execution order is:
+1. `_on_body_entered` → adds to `_passed_through_enemy_bodies` → returns (bullet not destroyed)
+2. `_on_area_entered` → checks `_penetrated_enemy_bodies` → NOT found → **deals damage** → adds to `_penetrated_enemy_bodies` → returns (bullet continues)
+
+Files changed: `scripts/projectiles/bullet.gd`, `Scripts/Projectiles/Bullet.cs`
+
+---
+
 ## References
 
 - Godot Area2D collision signal docs: https://docs.godotengine.org/en/stable/classes/class_area2d.html
 - Godot issue #62506 (deferred collision shape disabling): https://github.com/godotengine/godot/issues/62506
-- Game log: `game_log_20260219_200947.txt`
-- Implementation commit: `a253ddac feat: revolver bullets pass through enemies (Issue #829)`
+- Game log (Round 1): `game_log_20260219_200947.txt`
+- Game log (Round 2): `game_log_20260219_222139.txt`
+- Round 1 fix commit: `cb36eb67 fix: revolver bullets now pass through enemies (Issue #829)`

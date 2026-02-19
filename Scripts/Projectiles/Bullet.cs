@@ -238,11 +238,20 @@ public partial class Bullet : Area2D
     public bool PenetratesEnemies { get; set; } = false;
 
     /// <summary>
-    /// Set of enemy bodies this bullet has already penetrated (Issue #829).
-    /// Prevents the bullet from re-triggering on the same enemy CharacterBody2D
-    /// when the physics engine re-reports the collision in subsequent frames.
+    /// Set of enemy bodies this bullet has already dealt damage to (Issue #829).
+    /// Prevents the bullet from re-applying damage when OnAreaEntered fires multiple times
+    /// for the same enemy (e.g., multiple hit areas or re-entry signals).
+    /// NOTE: Only populated by OnAreaEntered AFTER damage is dealt.
     /// </summary>
     private readonly System.Collections.Generic.HashSet<Node2D> _penetratedEnemyBodies = new();
+
+    /// <summary>
+    /// Set of enemy CharacterBody2D nodes the bullet has already passed through (Issue #829).
+    /// Used exclusively in OnBodyEntered to suppress physics re-entry signals.
+    /// Kept separate from _penetratedEnemyBodies so that OnAreaEntered can still
+    /// deal damage even after OnBodyEntered has already allowed the bullet through.
+    /// </summary>
+    private readonly System.Collections.Generic.HashSet<Node2D> _passedThroughEnemyBodies = new();
 
     /// <summary>
     /// Timer tracking remaining lifetime.
@@ -487,13 +496,15 @@ public partial class Bullet : Area2D
         // Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
         // allow the bullet to pass through without being destroyed.
         // The OnAreaEntered handler takes care of dealing damage via the enemy's HitArea.
-        // We track which enemy bodies we've already passed through to suppress re-entry signals.
+        // We track which enemy bodies we've already passed through (body-level) to suppress
+        // physics re-entry signals, using a SEPARATE set from _penetratedEnemyBodies so that
+        // OnAreaEntered can still deal damage on first entry.
         if (PenetratesEnemies && body.HasMethod("is_alive"))
         {
             var isAlive = body.Call("is_alive").AsBool();
             if (isAlive)
             {
-                if (_penetratedEnemyBodies.Add(body))
+                if (_passedThroughEnemyBodies.Add(body))
                 {
                     GD.Print($"[Bullet]: Penetrating through enemy CharacterBody2D {body.Name}, bullet continues flying");
                 }

@@ -149,10 +149,17 @@ var is_breaker_bullet: bool = false
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
 var penetrates_enemies: bool = false
 
-## Set of enemy bodies this bullet has already penetrated (Issue #829).
-## Prevents the bullet from re-triggering on the same enemy CharacterBody2D
-## when the physics engine re-reports the collision in subsequent frames.
+## Set of enemy bodies this bullet has already dealt damage to (Issue #829).
+## Prevents the bullet from re-applying damage when _on_area_entered fires multiple times
+## for the same enemy (e.g., multiple hit areas or re-entry signals).
+## NOTE: Only populated by _on_area_entered AFTER damage is dealt.
 var _penetrated_enemy_bodies: Array = []
+
+## Set of enemy CharacterBody2D nodes the bullet has already passed through (Issue #829).
+## Used exclusively in _on_body_entered to suppress physics re-entry signals.
+## Kept separate from _penetrated_enemy_bodies so that _on_area_entered can still
+## deal damage even after _on_body_entered has already allowed the bullet through.
+var _passed_through_enemy_bodies: Array = []
 
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
 const BREAKER_DETONATION_DISTANCE: float = 60.0
@@ -339,10 +346,12 @@ func _on_body_entered(body: Node2D) -> void:
 	# Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
 	# allow the bullet to pass through without being destroyed.
 	# The _on_area_entered handler takes care of dealing damage via the enemy's HitArea.
-	# We track which enemy bodies we've already passed through to suppress re-entry signals.
+	# We track which enemy bodies we've already passed through (body-level) to suppress
+	# physics re-entry signals, using a SEPARATE set from _penetrated_enemy_bodies so that
+	# _on_area_entered can still deal damage on first entry.
 	if penetrates_enemies and body.has_method("is_alive") and body.is_alive():
-		if body not in _penetrated_enemy_bodies:
-			_penetrated_enemy_bodies.append(body)
+		if body not in _passed_through_enemy_bodies:
+			_passed_through_enemy_bodies.append(body)
 			print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
 		return  # Don't destroy the bullet - it passes through the enemy body
 
