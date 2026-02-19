@@ -140,6 +140,16 @@ var _homing_original_direction: Vector2 = Vector2.ZERO
 ## Enable/disable debug logging for homing calculations.
 var _debug_homing: bool = false
 
+## Whether to use aim-line targeting (Issue #704, #781).
+## When true, bullets home toward enemy nearest to shooter's crosshair instead of nearest to bullet.
+var _use_aim_line_targeting: bool = false
+
+## Shooter's position when firing (used for aim-line targeting).
+var _homing_shooter_origin: Vector2 = Vector2.ZERO
+
+## Shooter's aim direction when firing (used for aim-line targeting).
+var _homing_aim_direction: Vector2 = Vector2.ZERO
+
 ## Whether this bullet uses breaker behavior (Issue #678).
 ## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
 var is_breaker_bullet: bool = false
@@ -1043,6 +1053,57 @@ func get_penetration_distance() -> float:
 
 
 # ============================================================================
+# C# Interop Setter Methods (Issue #781)
+# ============================================================================
+# GDScript non-@export variables cannot be set from C# via Node.Set() - it silently fails.
+# These setter methods allow C# weapons to properly configure GDScript bullets via Call().
+# Must be called BEFORE AddChild() so that _ready() uses the correct values.
+
+
+## Sets the bullet travel direction and updates rotation.
+## Called from C# weapons via Call("set_direction", dir).
+func set_direction(dir: Vector2) -> void:
+	direction = dir.normalized()
+	_update_rotation()
+
+
+## Sets the bullet speed.
+func set_speed(spd: float) -> void:
+	speed = spd
+
+
+## Sets the bullet damage.
+func set_damage(dmg: float) -> void:
+	damage = dmg
+
+
+## Sets the shooter instance ID for self-hit prevention.
+func set_shooter_id(id: int) -> void:
+	shooter_id = id
+
+
+## Sets the shooter position for distance-based penetration calculations.
+func set_shooter_position(pos: Vector2) -> void:
+	shooter_position = pos
+
+
+## Sets the stun duration applied to enemies on hit.
+func set_stun_duration(duration: float) -> void:
+	stun_duration = duration
+
+
+## Sets whether this bullet uses breaker behavior.
+## NOTE: Call this BEFORE AddChild() so _ready() loads the shrapnel scene.
+func set_is_breaker_bullet(is_breaker: bool) -> void:
+	is_breaker_bullet = is_breaker
+
+
+## Sets whether this bullet penetrates through enemies (Issue #829).
+func set_penetrates_enemies(penetrate: bool) -> void:
+	penetrates_enemies = penetrate
+
+
+# ============================================================================
 # Homing Bullet System (Issue #677)
 # ============================================================================
 
@@ -1053,6 +1114,21 @@ func enable_homing() -> void:
 	_homing_original_direction = direction.normalized()
 	if _debug_homing:
 		print("[Bullet] Homing enabled, original direction: ", _homing_original_direction)
+
+
+## Enables homing with aim-line targeting (Issue #704, #781).
+## Called when firing new bullets during homing activation.
+## Targets the enemy closest to the player's line of fire, matching C# Bullet.cs behavior.
+## @param shooter_pos: The player's position when firing.
+## @param aim_dir: The player's aim direction when firing.
+func enable_homing_with_aim_line(shooter_pos: Vector2, aim_dir: Vector2) -> void:
+	homing_enabled = true
+	_homing_original_direction = direction.normalized()
+	_use_aim_line_targeting = true
+	_homing_shooter_origin = shooter_pos
+	_homing_aim_direction = aim_dir.normalized()
+	if _debug_homing:
+		print("[Bullet] Homing enabled with aim-line targeting, aim: ", _homing_aim_direction)
 
 
 ## Applies homing steering toward the nearest alive enemy.
@@ -1096,7 +1172,9 @@ func _apply_homing_steering(delta: float) -> void:
 		print("[Bullet] Homing steer: angle_diff=", rad_to_deg(angle_diff), "° total_turn=", rad_to_deg(absf(angle_from_original)), "°")
 
 
-## Finds the position of the nearest alive enemy.
+## Finds the position of the best homing target enemy.
+## When aim-line targeting is active (Issue #704, #781), finds the enemy closest
+## to the player's line of fire. Otherwise, finds the nearest enemy to the bullet.
 ## Returns Vector2.ZERO if no enemies are found.
 func _find_nearest_enemy_position() -> Vector2:
 	var tree := get_tree()
@@ -1107,6 +1185,9 @@ func _find_nearest_enemy_position() -> Vector2:
 	if enemies.is_empty():
 		return Vector2.ZERO
 
+	if _use_aim_line_targeting:
+		return _find_enemy_nearest_to_aim_line(enemies)
+
 	var nearest_pos := Vector2.ZERO
 	var nearest_dist := INF
 
@@ -1116,12 +1197,81 @@ func _find_nearest_enemy_position() -> Vector2:
 		# Skip dead enemies
 		if enemy.has_method("is_alive") and not enemy.is_alive():
 			continue
+		# Skip enemies behind walls (Issue #709)
+		if not _has_line_of_sight_to_target(enemy.global_position):
+			if _debug_homing:
+				print("[Bullet] Skipping enemy ", enemy.name, " - wall blocks line of sight")
+			continue
 		var dist := global_position.distance_squared_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
 			nearest_pos = enemy.global_position
 
 	return nearest_pos
+
+
+## Finds the enemy closest to the player's aim line (Issue #704, #781).
+## Uses perpendicular distance from the aim ray to score enemies.
+## Only considers enemies within max turn angle of the aim direction.
+## Skips enemies blocked by walls (Issue #709).
+## Returns Vector2.ZERO if no valid target found.
+func _find_enemy_nearest_to_aim_line(enemies: Array[Node]) -> Vector2:
+	var best_target := Vector2.ZERO
+	var best_score := INF
+	var max_perp_distance := 500.0
+
+	for enemy in enemies:
+		if not enemy is Node2D:
+			continue
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+
+		var to_enemy: Vector2 = enemy.global_position - _homing_shooter_origin
+		var dist_to_enemy := to_enemy.length()
+		if dist_to_enemy < 1.0:
+			continue
+
+		# Check angle from aim direction
+		var angle := absf(_homing_aim_direction.angle_to(to_enemy.normalized()))
+		if angle > homing_max_turn_angle:
+			continue
+
+		# Perpendicular distance from aim line (cross product magnitude)
+		var perp_dist := absf(to_enemy.x * _homing_aim_direction.y - to_enemy.y * _homing_aim_direction.x)
+		if perp_dist > max_perp_distance:
+			continue
+
+		# Skip enemies behind walls (Issue #709)
+		if not _has_line_of_sight_to_target(enemy.global_position):
+			if _debug_homing:
+				print("[Bullet] Skipping enemy ", enemy.name, " - wall blocks line of sight (aim-line)")
+			continue
+
+		# Score: prioritize closeness to aim line, with distance as tiebreaker
+		var score := perp_dist + dist_to_enemy * 0.1
+		if score < best_score:
+			best_score = score
+			best_target = enemy.global_position
+
+	return best_target
+
+
+## Checks if there is clear line of sight from the bullet to a target position (Issue #709, #781).
+## Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
+## Returns false if a wall blocks the path, preventing bullets from turning into walls.
+func _has_line_of_sight_to_target(target_pos: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		return true  # Can't check, assume clear
+
+	var query := PhysicsRayQueryParameters2D.create(global_position, target_pos)
+	query.collision_mask = 4  # Layer 3 = obstacles/walls only
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.exclude = [self]
+
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()  # True if no wall in the way
 
 
 # ============================================================================
