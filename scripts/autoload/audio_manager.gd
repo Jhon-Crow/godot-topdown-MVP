@@ -687,6 +687,7 @@ func play_empty_click(position: Vector2) -> void:
 ## Plays pistol empty click sound for PM, UZI, and silenced pistol (Issue #840).
 ## Uses CRITICAL priority for player feedback sounds.
 func play_pistol_empty_click(position: Vector2) -> void:
+	print("[AudioManager] play_pistol_empty_click called (Issue #840): ", PISTOL_EMPTY_CLICK)
 	play_sound_2d_with_priority(PISTOL_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
 
 
