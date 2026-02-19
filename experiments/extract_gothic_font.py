@@ -27,30 +27,38 @@ EXPERIMENT_DIR = SCRIPT_DIR
 
 ROWS = [
     # Row 1: A B C D E F G (y=130-213)
-    # Row boundaries from horizontal density valleys (density < 40)
-    # Column splits from per-column alpha density analysis + 4x zoom visual verification
+    # Corrected splits using per-column alpha density minimum analysis:
+    # A/B: x=163 (density=5.8), B/C: x=203 (3.5), C/D: x=239 (6.9, was 248@186),
+    # D/E: x=280 (5.3), E/F: x=323 (6.7), F/G: x=359 (15.6)
     (list("ABCDEFG"), 130, 213,
-     [93, 155, 200, 248, 282, 322, 360, 398]),
+     [93, 163, 203, 239, 280, 323, 359, 398]),
 
     # Row 2: H I J K L M N O P (y=210-296)
-    # Density dips at x: 99(2), 133(1), 175(3), 216(2), 252, 293, 336, 390
+    # Corrected splits: H/I: x=100 (4.0), I/J: x=133 (1.8), J/K: x=176 (4.6),
+    # K/L: x=216 (1.5), L/M: x=257 (11.1, was 252@25), M/N: x=293 (6.2),
+    # N/O: x=340 (3.2, was 336@6.3), O/P: x=393 (14.0, was 390@75.5)
     (list("HIJKLMNOP"), 210, 296,
-     [78, 99, 133, 175, 216, 252, 293, 336, 390, 435]),
+     [78, 100, 133, 176, 216, 257, 293, 340, 393, 435]),
 
     # Row 3: Q R S T U V W X Y Z (y=295-380)
-    # Density dips at x: 82, 122, 157, 200, 228(1), 275(6), 314, 348, 418
+    # Corrected splits: Q/R: x=86 (17.9), R/S: x=122 (10.9), S/T: x=164 (13.2, was 157@88.8),
+    # T/U: x=206 (8.2), U/V: x=227 (2.3, was 240@193.9 - CRITICAL FIX),
+    # V/W: x=276 (9.3), W/X: x=312 (6.8, was 320@68.1),
+    # X/Y: x=346 (9.9, was 360@116.9 - CRITICAL FIX), Y/Z: x=415 (10.8)
     (list("QRSTUVWXYZ"), 295, 380,
-     [45, 82, 122, 157, 200, 240, 278, 320, 360, 418, 467]),
+     [45, 86, 122, 164, 206, 227, 276, 312, 346, 415, 467]),
 
     # Row 4: 0 1 2 3 4 5 6 7 8 9 (y=380-458)
-    # Density dips at x: 130, 152, 190, 224, 252, 288, 322, 358, 390
+    # Corrected splits: 6/7: x=321 (20.6), 7/8: x=350 (29.4, was 358@170.1 - CRITICAL FIX),
+    # 8/9: x=382 (14.2, was 390@168.4 - CRITICAL FIX)
     (list("0123456789"), 380, 458,
-     [93, 130, 152, 190, 224, 252, 288, 322, 358, 390, 416]),
+     [93, 130, 152, 190, 224, 252, 288, 322, 350, 382, 416]),
 
     # Row 5: : & ? ! - (y=462-527)
-    # Clear gap at x=169-172 (between : and &)
+    # Corrected splits: &/?: x=238 (17.0), ?/!: x=277 (10.0, was 268@145.4 - CRITICAL FIX),
+    # !/- : x=311 (10.3, was 306@44.5)
     (list(":&?!-"), 462, 527,
-     [156, 170, 237, 268, 306, 342]),
+     [156, 170, 238, 277, 311, 342]),
 ]
 
 
