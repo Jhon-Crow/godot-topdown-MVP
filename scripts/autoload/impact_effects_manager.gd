@@ -28,10 +28,12 @@ const MIN_EFFECT_SCALE: float = 0.2
 ## Maximum effect scale (prevents overwhelming effects).
 const MAX_EFFECT_SCALE: float = 2.0
 
-## Maximum number of blood decals before oldest ones are removed.
-## Set to 0 for unlimited decals (puddles should never disappear per issue #293, #370).
-## CRITICAL: Must remain 0 - do not change without explicit user approval.
-const MAX_BLOOD_DECALS: int = 0
+## Maximum number of blood decals before oldest ones are removed (FIFO cleanup).
+## Set to 0 for unlimited decals. Issue #862: limited to 300 to prevent
+## node count from growing unboundedly during prolonged firefights (bullet hell),
+## which was identified as a HIGH-impact bottleneck in issue #844.
+## Oldest decals fade out quickly when the limit is exceeded.
+const MAX_BLOOD_DECALS: int = 300
 
 ## Maximum distance to check for walls for blood splatters (in pixels).
 const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0
@@ -40,9 +42,10 @@ const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0
 ## Layer mapping: 1=player, 2=enemies, 3=obstacles, 4=pickups, 5=projectiles, 6=targets
 const WALL_COLLISION_LAYER: int = 4
 
-## Maximum number of bullet holes is unlimited (permanent holes as requested).
-## Set to 0 to disable cleanup limit.
-const MAX_BULLET_HOLES: int = 0
+## Maximum number of bullet holes before oldest ones are removed (FIFO cleanup).
+## Set to 0 for unlimited holes. Issue #862: limited to 200 to cap node count
+## in sustained firefights. Oldest holes are freed when the limit is exceeded.
+const MAX_BULLET_HOLES: int = 200
 
 ## Active blood decals for cleanup management.
 var _blood_decals = []
