@@ -298,9 +298,14 @@ public partial class MakarovPM : BaseWeapon
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_pistol_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            GD.Print("[MakarovPM] Playing pistol empty click sound (Issue #840)");
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        }
+        else
+        {
+            GD.Print($"[MakarovPM] play_pistol_empty_click not available: audioManager={(audioManager != null ? "found" : "null")}, hasMethod={(audioManager?.HasMethod("play_pistol_empty_click") ?? false)}");
         }
     }
 
