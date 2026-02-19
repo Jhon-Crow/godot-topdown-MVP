@@ -1376,7 +1376,13 @@ public partial class Player : BaseCharacter
             // Clicking on an empty weapon should not buffer a shot for after reload -
             // it should only play an empty click sound. Otherwise the buffered click
             // from an empty weapon fires automatically right after reload completes.
-            bool weaponEmpty = CurrentWeapon.CurrentAmmo <= 0;
+            // Issue #842: Shotgun uses ShellsInTube (CurrentAmmo is always 0 as a
+            // placeholder, since the tube magazine is tracked separately).
+            bool weaponEmpty;
+            if (shotgun != null)
+                weaponEmpty = shotgun.ShellsInTube <= 0;
+            else
+                weaponEmpty = CurrentWeapon.CurrentAmmo <= 0;
 
             if (isReloading || shotgunNeedsPump || revolverReloading || shotgunReloading || weaponEmpty)
             {
@@ -1472,14 +1478,20 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Plays the empty click sound when trying to shoot without ammo.
+    /// Uses weapon-specific sound to match each weapon's authentic dry-fire click.
+    /// Issue #842: Was always playing the M16/pistol sound for all weapons.
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
-        {
+        if (audioManager == null) return;
+
+        if (CurrentWeapon is Shotgun && audioManager.HasMethod("play_shotgun_empty_click"))
+            audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+        else if (CurrentWeapon is Revolver && audioManager.HasMethod("play_revolver_empty_click"))
+            audioManager.Call("play_revolver_empty_click", GlobalPosition);
+        else if (audioManager.HasMethod("play_empty_click"))
             audioManager.Call("play_empty_click", GlobalPosition);
-        }
     }
 
     /// <summary>
