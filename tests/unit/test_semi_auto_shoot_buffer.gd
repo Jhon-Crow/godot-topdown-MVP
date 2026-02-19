@@ -77,9 +77,14 @@ class MockShootingInput:
 	func handle_shooting_input() -> bool:
 		## Returns true if a shot was fired this frame.
 
-		# Buffer semi-auto clicks
+		# Buffer semi-auto clicks - Issue #821 FIX: Only buffer if NOT reloading
 		if not weapon.is_automatic and _just_pressed:
-			_semi_auto_shoot_buffered = true
+			# Issue #821: Don't buffer clicks during reload
+			if weapon.is_reloading:
+				# Play empty click sound (simulated - just skip buffering)
+				pass
+			else:
+				_semi_auto_shoot_buffered = true
 
 		# Determine if shooting input is active
 		var shoot_input_active: bool
@@ -287,20 +292,73 @@ func test_empty_magazine_with_buffered_click() -> void:
 	assert_eq(weapon.shots_fired, 1, "Should still be 1 shot")
 
 
-func test_buffer_works_during_reload() -> void:
+## Issue #821 FIX: Clicks during reload should NOT be buffered.
+## The old behavior (buffering during reload) caused automatic shots after reload.
+## Expected behavior: Clicking during reload plays empty click sound, does NOT buffer.
+func test_buffer_not_set_during_reload() -> void:
 	weapon.is_reloading = true
 
-	# Click during reload - should buffer
+	# Click during reload - should NOT buffer (Issue #821 fix)
 	input.simulate_click()
 	var fired := input.handle_shooting_input()
 
 	assert_false(fired, "Should not fire during reload")
-	assert_true(input._semi_auto_shoot_buffered, "Click should be buffered during reload")
+	assert_false(input._semi_auto_shoot_buffered, "Click should NOT be buffered during reload (Issue #821)")
 
 	# Finish reload and advance time
 	weapon.is_reloading = false
 	weapon._fire_timer = 0.0
 
-	# Buffered click should fire
+	# Without a new click, should not fire
 	fired = input.handle_shooting_input()
-	assert_true(fired, "Buffered click should fire after reload completes")
+	assert_false(fired, "Should not fire without a new click after reload (Issue #821)")
+
+
+## Issue #821: After reload completes, a new click should work normally.
+func test_click_after_reload_completes_fires_normally() -> void:
+	weapon.is_reloading = true
+
+	# Click during reload - should NOT buffer (Issue #821 fix)
+	input.simulate_click()
+	input.handle_shooting_input()
+	input.clear_input()
+
+	assert_false(input._semi_auto_shoot_buffered, "Click should NOT be buffered during reload")
+
+	# Finish reload
+	weapon.is_reloading = false
+	weapon._fire_timer = 0.0
+
+	# New click after reload should fire normally
+	input.simulate_click()
+	var fired := input.handle_shooting_input()
+
+	assert_true(fired, "New click after reload completes should fire")
+	assert_eq(weapon.shots_fired, 1, "One shot should be fired")
+
+
+## Issue #821: Buffer should still work for fire cooldown (not reloading).
+## This ensures the fix doesn't break normal fast-clicking behavior.
+func test_buffer_still_works_during_fire_cooldown() -> void:
+	# First shot fires normally
+	input.simulate_click()
+	var fired := input.handle_shooting_input()
+	input.clear_input()
+	assert_true(fired, "First shot should fire")
+	assert_eq(weapon.shots_fired, 1, "One shot fired")
+
+	# Click during fire cooldown (NOT reloading) - should buffer
+	weapon.is_reloading = false  # Explicitly not reloading
+	input.simulate_click()
+	fired = input.handle_shooting_input()
+	input.clear_input()
+
+	assert_false(fired, "Should not fire during cooldown")
+	assert_true(input._semi_auto_shoot_buffered, "Click should be buffered during cooldown (not reloading)")
+
+	# After cooldown expires, buffered shot should fire
+	weapon.update(1.0 / weapon.fire_rate + 0.01)
+	fired = input.handle_shooting_input()
+
+	assert_true(fired, "Buffered click should fire after cooldown")
+	assert_eq(weapon.shots_fired, 2, "Two shots total")
