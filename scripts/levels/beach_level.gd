@@ -808,24 +808,30 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
 
-	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
 
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+
+		buttons_container.add_child(replay_button)
 	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
-
-	buttons_container.add_child(replay_button)
+		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)

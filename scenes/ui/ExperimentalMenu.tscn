@@ -152,6 +152,27 @@ text = "Invincibility (F6)"
 [node name="InvincibilityCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/InvincibilityContainer"]
 layout_mode = 2
 
+[node name="HSeparator6" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ReplayContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ReplayLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ReplayContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enable Replay Viewing"
+
+[node name="ReplayCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ReplayContainer"]
+layout_mode = 2
+
+[node name="ReplayDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, watch replay button appears after
+completing levels. Press W on score screen to view."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "FOV enabled: Enemies see in 100 degree cone"

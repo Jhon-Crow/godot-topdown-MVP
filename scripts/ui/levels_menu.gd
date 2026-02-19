@@ -61,16 +61,6 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "6000x5000"
 	},
 	{
-		"name": "Tutorial",
-		"name_ru": "Обучение",
-		"path": "res://scenes/levels/csharp/TestTier.tscn",
-		"description": "Step-by-step training: movement, shooting, bolt-action, scope, grenades.",
-		"preview_color": Color(0.2, 0.25, 0.3, 1.0),
-		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
-		"enemy_count": 4,
-		"map_size": "1280x720"
-	},
-	{
 		"name": "Beach",
 		"name_ru": "Пляж",
 		"path": "res://scenes/levels/BeachLevel.tscn",

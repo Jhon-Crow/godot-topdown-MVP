@@ -203,14 +203,6 @@ class MockLevelsMenu:
 			"map_size": "6000x2560"
 		},
 		{
-			"name": "Tutorial",
-			"name_ru": "Обучение",
-			"path": "res://scenes/levels/csharp/TestTier.tscn",
-			"description": "Step-by-step training: movement, shooting, bolt-action, scope, grenades.",
-			"enemy_count": 4,
-			"map_size": "1280x720"
-		},
-		{
 			"name": "Beach",
 			"name_ru": "Пляж",
 			"path": "res://scenes/levels/BeachLevel.tscn",
