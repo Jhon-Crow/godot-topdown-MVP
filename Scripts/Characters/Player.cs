@@ -1490,6 +1490,9 @@ public partial class Player : BaseCharacter
             audioManager.Call("play_shotgun_empty_click", GlobalPosition);
         else if (CurrentWeapon is Revolver && audioManager.HasMethod("play_revolver_empty_click"))
             audioManager.Call("play_revolver_empty_click", GlobalPosition);
+        else if ((CurrentWeapon is MakarovPM || CurrentWeapon is MiniUzi || CurrentWeapon is SilencedPistol)
+            && audioManager.HasMethod("play_pistol_empty_click"))
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
         else if (audioManager.HasMethod("play_empty_click"))
             audioManager.Call("play_empty_click", GlobalPosition);
     }

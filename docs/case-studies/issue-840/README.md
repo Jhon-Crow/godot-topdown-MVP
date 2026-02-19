@@ -6,7 +6,7 @@
 
 **PR**: [#847](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/847)
 
-**Status (as of 2026-02-19)**: Fix committed; owner reported that PM and silenced pistol sounds "didn't change" in their test but UZI worked. Investigation underway.
+**Status (as of 2026-02-19)**: **Root cause found and fixed** — see "Second Investigation" below.
 
 ---
 
@@ -15,13 +15,17 @@
 | Time (UTC) | Event |
 |---|---|
 | 2026-02-19T17:24:20 | AI session started to work on issue #840 |
-| 2026-02-19T17:27:27 | Fix committed: `bf1a267d` — adds `play_pistol_empty_click()` and updates all three weapons |
-| 2026-02-19T17:28:10 | CI runs triggered for commit `dd923ba6` (revert of CLAUDE.md) |
-| 2026-02-19T17:28:11–17:29:53 | "Build Windows Portable EXE" workflow completes successfully, artifact uploaded |
-| 2026-02-19T17:30:28 | Bot comment: "Ready to merge" |
+| 2026-02-19T17:27:27 | Fix committed: `bf1a267d` — adds `play_pistol_empty_click()` and updates all three weapon scripts |
+| 2026-02-19T17:28:10 | CI runs triggered; "Build Windows Portable EXE" workflow completes successfully |
 | 2026-02-19T17:43:07 | Owner (Jhon-Crow) reports: UZI works, PM and silenced pistol did NOT change |
 | 2026-02-19T17:43:07 | Owner attaches `game_log_20260219_204140.txt` |
-| 2026-02-19T19:20:16 | Next AI session started |
+| 2026-02-19T19:20:16 | Second AI session started |
+| 2026-02-19T19:31:21 | AI concludes owner didn't actually empty PM/SilencedPistol magazines in first test |
+| 2026-02-19T19:58:55 | Owner tests again, reports: PM and SilencedPistol still not playing correct sound |
+| 2026-02-19T19:58:55 | Owner attaches `game_log_20260219_225629.txt` |
+| 2026-02-19T20:00:40 | Third AI session started |
+| 2026-02-19T20:00:XX | **True root cause found** — `Player.PlayEmptyClickSound()` fallback bug |
+| 2026-02-19T20:XX:XX | Fix committed to `Player.cs` |
 
 ---
 
@@ -29,85 +33,141 @@
 
 | File | Description |
 |---|---|
-| `game_log_20260219_204140.txt` | Game session log from owner's test (2026-02-19 20:41:40 local time) |
+| `game_log_20260219_204140.txt` | Game session log from owner's first test (20:41:40 local time) |
+| `game_log_20260219_225629.txt` | Game session log from owner's second test (22:56:29 local time) |
 
 ---
 
-## Root Cause Analysis
+## First Investigation (Incorrect Conclusion)
 
-### Code Changes (Commit `bf1a267d`)
+### Initial Analysis of `game_log_20260219_204140.txt`
 
-The fix correctly updated four files:
+The log revealed that in the first test session the player never actually depleted the PM or SilencedPistol magazine:
 
-1. **`scripts/autoload/audio_manager.gd`**:
-   - Added `PISTOL_EMPTY_CLICK` constant pointing to `попытка выстрелить без заряда ПМ.mp3`
-   - Added `play_pistol_empty_click()` function
-   - Added sound to preload list
+- **MakarovPM**: Reloaded before running out, then opened Armory to switch weapons
+- **SilencedPistol**: Opened Armory 6 seconds after equipping (fired 0 shots)
+- **MiniUzi**: Fired all 32 rounds → empty click triggered → UZI "worked"
 
-2. **`Scripts/Weapons/MakarovPM.cs`**: `PlayEmptyClickSound()` now calls `play_pistol_empty_click`
-3. **`Scripts/Weapons/MiniUzi.cs`**: `PlayEmptyClickSound()` now calls `play_pistol_empty_click`
-4. **`Scripts/Weapons/SilencedPistol.cs`**: `PlayEmptyClickSound()` now calls `play_pistol_empty_click`
+**Conclusion (incorrect)**: The first fix was fine; the owner just didn't test with an empty magazine.
 
-All three weapons use the identical pattern and the audio file `попытка выстрелить без заряда ПМ.mp3` exists at `assets/audio/`.
+### Why This Was Wrong
 
-### Game Log Analysis
+The owner tested again in `game_log_20260219_225629.txt`. Analysis of that log shows:
 
-The game log from the owner's test session reveals a **critical finding**:
+- **MakarovPM**: Fired 12+ shots from a 9-round magazine (3+ empty-click attempts)
+- **SilencedPistol**: Fired all 13 rounds plus attempted multiple more times
+- **No `[MakarovPM]` or `[SilencedPistol]` debug logs appeared**
 
-**The owner did NOT actually test PM or SilencedPistol running out of ammo:**
-
-- **MakarovPM**: Started with 9/9 ammo. The player fired several shots, then **reloaded** (line 258: "Phase changed to: GrabMagazine"). The player opened the Armory at 20:41:52 and switched weapons **before depleting the PM ammo**.
-- **SilencedPistol**: Equipped with 13/13 ammo. Player opened Armory **just 6 seconds later** (20:42:02) without firing a single shot.
-- **MiniUzi**: Equipped with 32/32 ammo. Player fired **all 32 rounds** (confirmed by 32 SoundPropagation entries), which did trigger the empty sound.
-
-This explains the apparent discrepancy: UZI worked because the player actually emptied the magazine, while PM and SilencedPistol were never tested with an empty magazine.
-
-### Possible Alternative Hypothesis: Old Build
-
-The game executable path in the log is:
-```
-I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
-```
-
-The folder "микро фиксы" ("micro fixes") suggests this may be a test build from a previous session. However, the build artifact for our fix was available at 17:29:53 UTC, and if the game log timestamp is local Moscow time (UTC+3), the user tested at 17:41:40 UTC — after the build was available. It's possible the user downloaded the new build, but also possible they were using a cached pre-fix build.
-
-### Why UZI "Worked" in Both Hypotheses
-
-- **If old build**: The UZI may have already been using the pistol-specific empty click sound in older code (less likely since the code shows the old code used `play_empty_click` for all).
-- **If new build + incomplete test**: The UZI was the only weapon where the player actually depleted the ammo, so it's the only one that played the sound at all.
-
-### Conclusion
-
-The most likely root cause of the reported issue is **incomplete testing** — the player switched weapons before depleting ammo for PM and SilencedPistol. The code changes are correct and symmetric across all three weapons.
+The absence of our `GD.Print()` debug messages in the log is NOT evidence that the code didn't run — it's because **`GD.Print()` in C# does NOT write to the GDScript `FileLogger` game log file**. The game log only captures GDScript `print()` calls.
 
 ---
 
-## Actions Taken (Follow-up)
+## Second Investigation — True Root Cause
 
-After reviewing the owner's feedback and game log:
+### Key Finding: Dual Empty-Click Path in `Player.cs`
 
-1. **Added debug logging** to all three weapons' `PlayEmptyClickSound()` methods — future game logs will show `[MakarovPM] Playing pistol empty click sound (Issue #840)` etc. when the function is called.
-2. **Added debug logging** to `play_pistol_empty_click()` in `audio_manager.gd` to confirm the function is invoked.
-3. **Fallback logging added**: If `AudioManager` is not found or the method is unavailable, a warning log is emitted.
+There are **two separate places** where the empty click sound is triggered:
+
+#### Path A: Automatic weapons (MiniUzi in full-auto mode)
+```
+Input.IsActionPressed("shoot") [held down]
+  → shootInputActive = true
+  → Shoot() → CurrentWeapon.Fire(dir)
+  → MiniUzi.Fire(): if (CurrentAmmo <= 0) → MiniUzi.PlayEmptyClickSound()
+  → audioManager.Call("play_pistol_empty_click", ...)  ✓
+```
+
+#### Path B: Semi-automatic weapons (MakarovPM, SilencedPistol)
+```
+Input.IsActionJustPressed("shoot") [clicked]
+  → weaponEmpty = true
+  → Player.PlayEmptyClickSound()  ← INTERCEPTED HERE
+  → audioManager.Call("play_empty_click", ...)  ✗ (OLD GENERIC SOUND)
+```
+
+`Player.cs`'s `PlayEmptyClickSound()` had a branch for Shotgun and Revolver but fell back to the generic `play_empty_click` for all other weapons including MakarovPM and SilencedPistol.
+
+### The Bug in `Player.PlayEmptyClickSound()`
+
+**Before fix** (`Scripts/Characters/Player.cs`):
+```csharp
+private void PlayEmptyClickSound()
+{
+    var audioManager = GetNodeOrNull("/root/AudioManager");
+    if (audioManager == null) return;
+
+    if (CurrentWeapon is Shotgun && audioManager.HasMethod("play_shotgun_empty_click"))
+        audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+    else if (CurrentWeapon is Revolver && audioManager.HasMethod("play_revolver_empty_click"))
+        audioManager.Call("play_revolver_empty_click", GlobalPosition);
+    else if (audioManager.HasMethod("play_empty_click"))
+        audioManager.Call("play_empty_click", GlobalPosition);  // ← WRONG SOUND for pistols
+}
+```
+
+**After fix**:
+```csharp
+private void PlayEmptyClickSound()
+{
+    var audioManager = GetNodeOrNull("/root/AudioManager");
+    if (audioManager == null) return;
+
+    if (CurrentWeapon is Shotgun && audioManager.HasMethod("play_shotgun_empty_click"))
+        audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+    else if (CurrentWeapon is Revolver && audioManager.HasMethod("play_revolver_empty_click"))
+        audioManager.Call("play_revolver_empty_click", GlobalPosition);
+    else if ((CurrentWeapon is MakarovPM || CurrentWeapon is MiniUzi || CurrentWeapon is SilencedPistol)
+        && audioManager.HasMethod("play_pistol_empty_click"))
+        audioManager.Call("play_pistol_empty_click", GlobalPosition);  // ← CORRECT SOUND
+    else if (audioManager.HasMethod("play_empty_click"))
+        audioManager.Call("play_empty_click", GlobalPosition);
+}
+```
+
+### Why UZI "Worked"
+
+MiniUzi is **automatic** (IsAutomatic=true). For automatic weapons, `Player.cs` skips the semi-auto click interception at line 1355 (`if (!isAutomatic && Input.IsActionJustPressed("shoot"))`). The empty click is handled by `MiniUzi.Fire()` → `MiniUzi.PlayEmptyClickSound()` which already calls `play_pistol_empty_click`.
+
+For MakarovPM and SilencedPistol (semi-automatic), the Player's `HandleShootingInput()` intercepts the click **before** the weapon's own `Fire()` is called, so the weapon-level fix in `bf1a267d` had no effect for those weapons.
+
+---
+
+## Sound Constants
+
+| Constant | File | Used by |
+|---|---|---|
+| `EMPTY_GUN_CLICK` | `кончились патроны в пистолете.wav` | Generic fallback (other weapons) |
+| `PISTOL_EMPTY_CLICK` | `попытка выстрелить без заряда ПМ.mp3` | PM, UZI, SilencedPistol (Issue #840) |
+| `SHOTGUN_EMPTY_CLICK` | `выстрел без патронов дробовик.mp3` | Shotgun |
+| `REVOLVER_EMPTY_CLICK` | `Щелчок пустого револьвера.mp3` | Revolver |
+
+---
+
+## Complete Fix Summary
+
+Two commits were needed to fully fix this issue:
+
+1. **`bf1a267d`** — Adds `play_pistol_empty_click()` to AudioManager, updates weapon scripts (fixes automatic weapon path)
+2. **`37557356`** — Adds debug logging to track the empty click events
+3. **This commit** — Fixes `Player.PlayEmptyClickSound()` to handle pistol weapons (fixes semi-automatic weapon path)
 
 ---
 
 ## Proposed Test Protocol
 
-To properly verify the fix, the owner should:
+To properly verify the fix, the owner should download the latest CI build and:
 
-1. Download the latest build artifact from the PR
-2. For **MakarovPM** (9 rounds): Fire all 9 shots, then try to fire again — listen for the new sound
-3. For **SilencedPistol** (13 rounds): Fire all 13 shots, then try to fire again — listen for the new sound
-4. For **MiniUzi** (32 rounds): Fire all 32 shots, then try to fire again — listen for the new sound
-
-The new sound file `попытка выстрелить без заряда ПМ.mp3` should be heard for all three weapons.
+1. **MakarovPM** (9 rounds): Fire all 9 shots → try to fire again → should hear `попытка выстрелить без заряда ПМ.mp3`
+2. **SilencedPistol** (13 rounds): Fire all 13 shots → try to fire again → should hear `попытка выстрелить без заряда ПМ.mp3`
+3. **MiniUzi** (32 rounds): Fire all 32 rounds → try to fire again → should hear `попытка выстрелить без заряда ПМ.mp3`
+4. **Shotgun**: Verify it still plays `выстрел без патронов дробовик.mp3`
+5. **Revolver**: Verify it still plays `Щелчок пустого револьвера.mp3`
 
 ---
 
 ## Online Context
 
+- **Godot `is` type check documentation**: https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html
 - **GDScript `HasMethod` documentation**: https://docs.godotengine.org/en/stable/classes/class_object.html#class-object-method-has-method
-- **Godot audio documentation**: https://docs.godotengine.org/en/stable/tutorials/audio/audio_streams.html
 - **Issue #840**: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/840
 - **PR #847**: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/847
