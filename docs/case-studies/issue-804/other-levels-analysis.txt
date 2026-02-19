@@ -1,0 +1,45 @@
+=== BeachLevel ===
+Map size:
+[node name="Background" type="ColorRect" parent="Environment"]
+offset_right = 2528.0
+offset_bottom = 2128.0
+color = Color(0.15, 0.55, 0.85, 1)
+--
+offset_right = 2464.0
+
+=== BuildingLevel ===
+Map size:
+[node name="Background" type="ColorRect" parent="Environment"]
+offset_right = 2528.0
+offset_bottom = 2128.0
+color = Color(0.05, 0.05, 0.08, 1)
+--
+offset_right = 2464.0
+
+=== CastleLevel ===
+Map size:
+[node name="Background" type="ColorRect" parent="Environment"]
+offset_right = 6000.0
+offset_bottom = 2560.0
+color = Color(0.15, 0.2, 0.1, 1)
+--
+offset_right = 5600.0
+
+=== CityLevel ===
+Map size:
+[node name="Background" type="ColorRect" parent="Environment"]
+offset_right = 6128.0
+offset_bottom = 5128.0
+color = Color(0.12, 0.12, 0.14, 1)
+--
+offset_right = 6064.0
+
+=== LabyrinthLevel ===
+Map size:
+[node name="Background" type="ColorRect" parent="Environment"]
+offset_right = 2016.0
+offset_bottom = 1176.0
+color = Color(0.03, 0.03, 0.05, 1)
+--
+offset_right = 1968.0
+

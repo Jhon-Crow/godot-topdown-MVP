@@ -45,6 +45,7 @@ func _ready() -> void:
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -138,6 +139,35 @@ func _setup_navigation() -> void:
 	if nav_region:
 		nav_region.navigation_polygon.agent_radius = 24.0
 		nav_region.bake_navigation_polygon(false)
+
+
+## Configures camera limits to allow free movement across the entire Docks map.
+##
+## The Docks map is 5128x4128 pixels, which is larger than the default camera limits
+## set in Player.tscn (4128x3088). Without this configuration, the player spawns
+## at position (200, 3900) which is outside the camera's view range (max Y = 3088),
+## making the player invisible at game start.
+##
+## This function removes all camera limits by setting them to very large values
+## (±10,000,000), allowing the camera to follow the player everywhere on this large map.
+## This approach is consistent with other large maps (CastleLevel, CityLevel).
+func _configure_camera() -> void:
+	if _player == null:
+		return
+
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		return
+
+	# Remove all camera limits so it follows the player everywhere
+	# This is important for large maps like the Docks where the map extends
+	# beyond the default camera limits set in Player.tscn
+	camera.limit_left = -10000000
+	camera.limit_top = -10000000
+	camera.limit_right = 10000000
+	camera.limit_bottom = 10000000
+
+	print("Camera configured: limits removed to follow player everywhere")
 
 
 func _setup_player_tracking() -> void:
