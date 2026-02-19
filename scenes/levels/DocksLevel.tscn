@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://docks_level_753"]
+[gd_scene load_steps=21 format=3 uid="uid://docks_level_753"]
 
 [ext_resource type="Script" path="res://scripts/levels/docks_level.gd" id="1_docks_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -41,6 +41,9 @@ size = Vector2(24, 840)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_warehouse_b_top_wall"]
 size = Vector2(250, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_warehouse_a_bottom_wall"]
+size = Vector2(175, 24)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_container_large"]
 polygon = PackedVector2Array(-100, -40, 100, -40, 100, 40, -100, 40)
@@ -254,7 +257,8 @@ offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseA/WallBottomL"]
-shape = SubResource("RectangleShape2D_container_medium")
+position = Vector2(-37.5, 0.0)
+shape = SubResource("RectangleShape2D_warehouse_a_bottom_wall")
 
 [node name="WallBottomR" type="StaticBody2D" parent="Environment/Structures/WarehouseA"]
 position = Vector2(125.0, 308.0)
@@ -269,7 +273,8 @@ offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseA/WallBottomR"]
-shape = SubResource("RectangleShape2D_container_medium")
+position = Vector2(37.5, 0.0)
+shape = SubResource("RectangleShape2D_warehouse_a_bottom_wall")
 
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Structures/WarehouseA"]
 position = Vector2(-258.0, 0.0)
@@ -324,6 +329,7 @@ offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseB/WallTopL"]
+position = Vector2(-50.0, 0.0)
 shape = SubResource("RectangleShape2D_warehouse_b_top_wall")
 
 [node name="WallTopR" type="StaticBody2D" parent="Environment/Structures/WarehouseB"]
@@ -339,6 +345,7 @@ offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Structures/WarehouseB/WallTopR"]
+position = Vector2(50.0, 0.0)
 shape = SubResource("RectangleShape2D_warehouse_b_top_wall")
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Structures/WarehouseB"]
