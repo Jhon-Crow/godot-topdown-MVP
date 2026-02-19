@@ -454,6 +454,21 @@ public abstract partial class BaseWeapon : Node2D
             }
         }
 
+        // Set enemy penetration flag if weapon penetrates enemies (Issue #829)
+        // This is used by the RSh-12 revolver - bullets pass through enemies
+        if (WeaponData != null && WeaponData.PenetratesEnemies)
+        {
+            if (bullet is CSharpBullet csBulletPenetrate)
+            {
+                csBulletPenetrate.PenetratesEnemies = true;
+            }
+            else
+            {
+                // GDScript bullet — set via property name
+                bullet.Set("penetrates_enemies", true);
+            }
+        }
+
         GetTree().CurrentScene.AddChild(bullet);
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #677, #704)

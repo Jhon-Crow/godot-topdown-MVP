@@ -229,6 +229,15 @@ public partial class Bullet : Area2D
     public bool IsBreakerBullet { get; set; } = false;
 
     /// <summary>
+    /// Whether this bullet penetrates through enemies (Issue #829).
+    /// When true, the bullet deals damage to enemies but continues flying through them.
+    /// Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+    /// Set via Node.Set("penetrates_enemies", true) by BaseWeapon.SpawnBullet().
+    /// </summary>
+    [Export]
+    public bool PenetratesEnemies { get; set; } = false;
+
+    /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
@@ -678,6 +687,15 @@ public partial class Bullet : Area2D
         }
 
         EmitSignal(SignalName.Hit, area);
+
+        // Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
+        // This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+        if (hitEnemy && PenetratesEnemies)
+        {
+            GD.Print($"[Bullet]: Penetrating through enemy, bullet continues flying");
+            return; // Don't destroy the bullet - it passes through
+        }
+
         QueueFree();
     }
 

@@ -144,6 +144,11 @@ var _debug_homing: bool = false
 ## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
 var is_breaker_bullet: bool = false
 
+## Whether this bullet penetrates through enemies (Issue #829).
+## When true, the bullet deals damage to enemies but continues flying through them.
+## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+var penetrates_enemies: bool = false
+
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
 const BREAKER_DETONATION_DISTANCE: float = 60.0
 
@@ -449,6 +454,12 @@ func _on_area_entered(area: Area2D) -> void:
 		# Trigger hit effects if this is a player bullet hitting an enemy
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
+
+		# Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
+		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+		if penetrates_enemies:
+			print("[Bullet]: Penetrating through enemy, bullet continues flying")
+			return  # Don't destroy the bullet - it passes through
 
 		queue_free()
 
