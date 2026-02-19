@@ -679,8 +679,14 @@ func _shoot() -> void:
 	var random_spread := randf_range(-spread_radians, spread_radians)
 	shoot_direction = shoot_direction.rotated(random_spread)
 
-	# Create bullet instance
-	var bullet := bullet_scene.instantiate()
+	# Acquire a bullet from the pool (Issue #862: avoids instantiate/free overhead).
+	# Falls back to bullet_scene.instantiate() when the pool is unavailable or exhausted.
+	var bullet_pool: Node = get_node_or_null("/root/BulletPool")
+	var bullet: Node2D
+	if bullet_pool and bullet_pool.has_method("acquire"):
+		bullet = bullet_pool.acquire()
+	if bullet == null:
+		bullet = bullet_scene.instantiate()
 
 	# Set bullet position with offset in shoot direction
 	bullet.global_position = global_position + shoot_direction * bullet_spawn_offset
@@ -704,8 +710,11 @@ func _shoot() -> void:
 	if _breaker_bullets_active:
 		bullet.is_breaker_bullet = true
 
-	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
-	get_tree().current_scene.add_child(bullet)
+	# Add bullet to the scene tree via pool (or directly if pool unavailable)
+	if bullet_pool and bullet_pool.has_method("activate"):
+		bullet_pool.activate(bullet, get_tree().current_scene)
+	else:
+		get_tree().current_scene.add_child(bullet)
 
 	# Spawn muzzle flash effect at bullet spawn position
 	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")

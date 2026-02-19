@@ -3855,18 +3855,39 @@ func _shoot() -> void:
 
 ## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
 func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
-	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
-	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
-	if p.has_method("SetDirection"): p.SetDirection(direction)
-	elif p.get("direction") != null: p.direction = direction
-	elif p.get("Direction") != null: p.Direction = direction
-	var sid := get_instance_id()
-	if p.has_method("SetShooterId"): p.SetShooterId(sid)
-	elif p.get("shooter_id") != null: p.shooter_id = sid
-	elif p.get("ShooterId") != null: p.ShooterId = sid
-	if p.has_method("SetShooterPosition"): p.SetShooterPosition(spawn_pos)
-	elif p.get("shooter_position") != null: p.shooter_position = spawn_pos
-	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
+	# Try to acquire a GDScript bullet from the pool (Issue #862 performance fix).
+	# The pool is only used for GDScript bullets (res://scenes/projectiles/Bullet.tscn).
+	# C# bullets still use instantiate() so their _Ready() fires correctly.
+	var bullet_pool: Node = get_node_or_null("/root/BulletPool")
+	var use_pool := bullet_pool != null and bullet_pool.has_method("acquire")
+	var p: Node2D = bullet_pool.acquire() if use_pool else null
+	if p == null:
+		use_pool = false
+		p = bullet_scene.instantiate()
+
+	p.global_position = spawn_pos
+	var scene_root := get_tree().current_scene
+
+	if use_pool:
+		# Pool bullet: set properties then activate (activate does add_child + enables physics).
+		if p.get("direction") != null: p.direction = direction
+		var sid := get_instance_id()
+		if p.get("shooter_id") != null: p.shooter_id = sid
+		if p.get("shooter_position") != null: p.shooter_position = spawn_pos
+		bullet_pool.activate(p, scene_root)
+	else:
+		# Non-pooled path: add_child first so C# _Ready() runs before setting props (Issue #516, #550).
+		scene_root.add_child(p)
+		if p.has_method("SetDirection"): p.SetDirection(direction)
+		elif p.get("direction") != null: p.direction = direction
+		elif p.get("Direction") != null: p.Direction = direction
+		var sid := get_instance_id()
+		if p.has_method("SetShooterId"): p.SetShooterId(sid)
+		elif p.get("shooter_id") != null: p.shooter_id = sid
+		elif p.get("ShooterId") != null: p.ShooterId = sid
+		if p.has_method("SetShooterPosition"): p.SetShooterPosition(spawn_pos)
+		elif p.get("shooter_position") != null: p.shooter_position = spawn_pos
+		elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
