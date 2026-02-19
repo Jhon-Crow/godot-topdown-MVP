@@ -100,7 +100,8 @@ var _penetrating_body: Node2D = null
 var _has_penetrated: bool = false
 
 ## Enable/disable debug logging for penetration calculations.
-var _debug_penetration: bool = true
+## Set to false by default to avoid per-shot file I/O overhead (Issue #862).
+var _debug_penetration: bool = false
 
 ## Default penetration settings (used when caliber_data is not set).
 const DEFAULT_CAN_PENETRATE: bool = true
@@ -263,7 +264,7 @@ func _physics_process(delta: float) -> void:
 		if _distance_since_ricochet >= _max_post_ricochet_distance:
 			if _debug_ricochet:
 				print("[Bullet] Post-ricochet distance exceeded: ", _distance_since_ricochet, " >= ", _max_post_ricochet_distance)
-			queue_free()
+			_return_to_pool()
 			return
 
 	# Track penetration distance while inside a wall
@@ -274,9 +275,9 @@ func _physics_process(delta: float) -> void:
 		# Check if we've exceeded max penetration distance
 		if max_pen_distance > 0 and _penetration_distance_traveled >= max_pen_distance:
 			_log_penetration("Max penetration distance exceeded: %s >= %s" % [_penetration_distance_traveled, max_pen_distance])
-			# Bullet stopped inside the wall - destroy it
+			# Bullet stopped inside the wall - return to pool
 			# Visual effects disabled as per user request
-			queue_free()
+			_return_to_pool()
 			return
 
 		# Check if we've exited the obstacle (raycast forward to see if still inside)
@@ -295,7 +296,7 @@ func _physics_process(delta: float) -> void:
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		_return_to_pool()
 
 
 ## Updates the visual trail effect by maintaining position history.
@@ -381,11 +382,11 @@ func _on_body_entered(body: Node2D) -> void:
 			else:
 				_log_penetration("Penetration failed (distance roll)")
 
-	# Play wall impact sound and destroy bullet
+	# Play wall impact sound and return bullet to pool
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		audio_manager.play_bullet_wall_hit(global_position)
-	queue_free()
+	_return_to_pool()
 
 
 ## Called when the bullet exits a body (wall).
@@ -450,7 +451,7 @@ func _on_area_entered(area: Area2D) -> void:
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
 
-		queue_free()
+		_return_to_pool()
 
 
 ## Attempts to ricochet the bullet off a surface.
@@ -950,9 +951,9 @@ func _exit_penetration() -> void:
 	_penetrating_body = null
 	_penetration_distance_traveled = 0.0
 
-	# Destroy bullet after successful penetration
+	# Return bullet to pool after successful penetration
 	# Bullets don't continue flying after penetrating a wall
-	queue_free()
+	_return_to_pool()
 
 
 ## Spawns a visual hole effect at penetration entry or exit point.
@@ -1144,8 +1145,8 @@ func _breaker_detonate(detonation_pos: Vector2) -> void:
 	# 4. Play explosion sound
 	_breaker_play_explosion_sound(detonation_pos)
 
-	# 5. Destroy the bullet
-	queue_free()
+	# 5. Return bullet to pool
+	_return_to_pool()
 
 
 ## Applies explosion damage to all enemies within BREAKER_EXPLOSION_RADIUS.
@@ -1349,3 +1350,62 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if _debug_breaker:
 		FileLogger.info("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
 			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
+
+
+# ============================================================================
+# Object Pool Support (Issue #862)
+# ============================================================================
+
+
+## Resets all mutable state so this bullet can be re-used by BulletPool.
+## Called by BulletPool.release() before the node is parked.
+func reset_for_pool() -> void:
+	# Runtime state
+	_time_alive = 0.0
+	damage_multiplier = 1.0
+
+	# Ricochet state
+	_ricochet_count = 0
+	_has_ricocheted = false
+	_distance_since_ricochet = 0.0
+	_ricochet_position = Vector2.ZERO
+	_max_post_ricochet_distance = 0.0
+
+	# Penetration state
+	_is_penetrating = false
+	_penetration_distance_traveled = 0.0
+	_penetration_entry_point = Vector2.ZERO
+	_penetrating_body = null
+	_has_penetrated = false
+
+	# Homing state
+	homing_enabled = false
+	_homing_original_direction = Vector2.ZERO
+
+	# Breaker state
+	is_breaker_bullet = false
+	_breaker_shrapnel_scene = null
+
+	# Trail
+	_position_history.clear()
+	if _trail:
+		_trail.clear_points()
+
+	# Caller-set properties (reset to safe defaults)
+	direction = Vector2.RIGHT
+	shooter_id = -1
+	shooter_position = Vector2.ZERO
+	stun_duration = 0.0
+
+	# Disconnect any lingering one-shot signals that were connected per-bullet
+	# (body_entered / area_entered are persistent and stay connected)
+
+
+## Returns this bullet to the pool instead of destroying it (Issue #862).
+## Use this in place of queue_free() throughout the bullet script.
+func _return_to_pool() -> void:
+	var pool: Node = get_node_or_null("/root/BulletPool")
+	if pool and pool.has_method("release"):
+		pool.release(self)
+	else:
+		queue_free()
