@@ -6,7 +6,7 @@ extends Node2D
 ## 2. Player reloads using R -> F -> R sequence (shown simultaneously with grenade hint)
 ##    - For shotgun: RMB UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
 ##    - For sniper: bolt-action between shots (separate hint shown simultaneously)
-##    - For revolver: cylinder reload + cock hammer hint (shown simultaneously)
+##    - For revolver: cylinder reload + cock hammer (RMB) hint (each shown as separate line)
 ## 3. Player throws a grenade (G + RMB drag right, then G+RMB held → release G, then RMB drag and release)
 ##    (shown simultaneously with reload hint from step 2)
 ## 4. Shows completion message with Q restart hint
@@ -83,6 +83,7 @@ const HINT_GRENADE := "grenade"
 const HINT_BOLT_CYCLE := "bolt_cycle"
 const HINT_SCOPE := "scope"
 const HINT_FIRE_MODE := "fire_mode"
+const HINT_HAMMER_COCK := "hammer_cock"
 
 ## Dictionary of active hint labels: hint_key -> Label node.
 ## Each hint is shown simultaneously and removed independently when the action completes.
@@ -711,12 +712,19 @@ func _on_player_reload_completed() -> void:
 		print("Tutorial: Player reloaded")
 		# Dismiss only the reload hint; grenade hint stays visible (Issue #808)
 		_dismiss_hint(HINT_RELOAD)
-		_advance_to_step(TutorialStep.THROW_GRENADE)
+		_dismiss_hint(HINT_HAMMER_COCK)
+		# If grenade was already thrown, go to COMPLETED; otherwise wait for grenade
+		if _has_thrown_grenade:
+			_advance_to_step(TutorialStep.COMPLETED)
+		else:
+			_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
 ## Called when player throws a grenade.
+## Grenade can be thrown at any step that shows the grenade hint (RELOAD or THROW_GRENADE).
 func _on_player_grenade_thrown() -> void:
-	if _current_step != TutorialStep.THROW_GRENADE:
+	# Allow grenade dismissal from RELOAD step too (thrown before reload completes)
+	if _current_step != TutorialStep.THROW_GRENADE and _current_step != TutorialStep.RELOAD:
 		return
 
 	if not _has_thrown_grenade:
@@ -724,7 +732,9 @@ func _on_player_grenade_thrown() -> void:
 		print("Tutorial: Player threw grenade")
 		# Dismiss only the grenade hint (Issue #808)
 		_dismiss_hint(HINT_GRENADE)
-		_advance_to_step(TutorialStep.COMPLETED)
+		# If grenade thrown before reload, stay in RELOAD step (reload hint still visible)
+		if _current_step == TutorialStep.THROW_GRENADE:
+			_advance_to_step(TutorialStep.COMPLETED)
 
 
 ## Advance to the next tutorial step.
@@ -797,6 +807,7 @@ func _add_reload_hints(canvas_layer: Node) -> void:
 	elif _has_revolver:
 		# Revolver: cylinder reload + cock hammer hint (separate lines per feature, Issue #808)
 		_add_hint(HINT_RELOAD, "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]", canvas_layer)
+		_add_hint(HINT_HAMMER_COCK, "[ПКМ] Взведи курок", canvas_layer)
 	elif _has_makarov_pm:
 		# Makarov PM uses simplified R->R reload
 		_add_hint(HINT_RELOAD, "[R] [R] Перезарядись", canvas_layer)

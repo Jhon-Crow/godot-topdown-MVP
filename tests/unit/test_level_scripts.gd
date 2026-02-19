@@ -388,10 +388,63 @@ class MockBeachLevel extends MockLevelBase:
 		return ""  # Not found
 
 
+class MockLabyrinthLevel extends MockLevelBase:
+	## Laboratory / starting level (Issue #808: tutorial hints).
+	var level_name: String = "LabyrinthLevel"
+
+	## Default enemy count for labyrinth (5 enemies).
+	var default_enemy_count: int = 5
+
+	## Tutorial hint tracking (Issue #808).
+	var _tutorial_hints: Dictionary = {}
+	var _tutorial_shot_fired: bool = false
+	var _tutorial_reloaded: bool = false
+
+	## Setup tutorial hints at level start.
+	func setup_tutorial_hints() -> void:
+		_tutorial_hints["move"] = "[WASD] Двигайся"
+		_tutorial_hints["shoot"] = "[ЛКМ] Стреляй"
+		_tutorial_hints["reload"] = "[R] Перезаряжайся"
+
+	## Dismiss a tutorial hint by key.
+	func dismiss_tutorial_hint(hint_key: String) -> void:
+		_tutorial_hints.erase(hint_key)
+
+	## Called when shot is fired.
+	func on_shot_fired() -> void:
+		register_shot()
+		if not _tutorial_shot_fired:
+			_tutorial_shot_fired = true
+			dismiss_tutorial_hint("shoot")
+
+	## Called when reload completes.
+	func on_reload_completed() -> void:
+		if not _tutorial_reloaded:
+			_tutorial_reloaded = true
+			dismiss_tutorial_hint("reload")
+
+	## Check if a tutorial hint is currently active.
+	func is_tutorial_hint_active(hint_key: String) -> bool:
+		return _tutorial_hints.has(hint_key)
+
+	## Check if all tutorial hints are dismissed.
+	func are_all_hints_dismissed() -> bool:
+		return _tutorial_hints.is_empty()
+
+	## Initialize with default enemy configuration.
+	func initialize() -> void:
+		var enemies: Array = []
+		for i in range(default_enemy_count):
+			enemies.append("LabyrinthEnemy%d" % (i + 1))
+		setup_enemy_tracking(enemies)
+		setup_tutorial_hints()
+
+
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
 var test_tier: MockTestTier
 var beach_level: MockBeachLevel
+var labyrinth_level: MockLabyrinthLevel
 
 
 func before_each() -> void:
@@ -399,6 +452,7 @@ func before_each() -> void:
 	castle_level = MockCastleLevel.new()
 	test_tier = MockTestTier.new()
 	beach_level = MockBeachLevel.new()
+	labyrinth_level = MockLabyrinthLevel.new()
 
 
 func after_each() -> void:
@@ -406,6 +460,7 @@ func after_each() -> void:
 	castle_level = null
 	test_tier = null
 	beach_level = null
+	labyrinth_level = null
 
 
 # ============================================================================
@@ -1618,3 +1673,76 @@ func test_beach_level_complete_with_accuracy_tracking() -> void:
 		"Beach level accuracy should be ~66.67%")
 	assert_eq(beach_level._kills, 8,
 		"Beach level kill count should be 8")
+
+
+# ============================================================================
+# LabyrinthLevel Tutorial Hints Tests (Issue #808)
+# ============================================================================
+
+
+func test_labyrinth_tutorial_hints_shown_at_start() -> void:
+	labyrinth_level.initialize()
+
+	assert_true(labyrinth_level.is_tutorial_hint_active("move"),
+		"Movement hint should be shown at start")
+	assert_true(labyrinth_level.is_tutorial_hint_active("shoot"),
+		"Shoot hint should be shown at start")
+	assert_true(labyrinth_level.is_tutorial_hint_active("reload"),
+		"Reload hint should be shown at start")
+
+
+func test_labyrinth_shoot_hint_dismissed_on_first_shot() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_shot_fired()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active("shoot"),
+		"Shoot hint should be dismissed after first shot")
+	assert_true(labyrinth_level.is_tutorial_hint_active("move"),
+		"Move hint should still be visible")
+	assert_true(labyrinth_level.is_tutorial_hint_active("reload"),
+		"Reload hint should still be visible after shooting")
+
+
+func test_labyrinth_reload_hint_dismissed_on_first_reload() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_reload_completed()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active("reload"),
+		"Reload hint should be dismissed after first reload")
+	assert_true(labyrinth_level.is_tutorial_hint_active("move"),
+		"Move hint should still be visible")
+	assert_true(labyrinth_level.is_tutorial_hint_active("shoot"),
+		"Shoot hint should still be visible after reloading")
+
+
+func test_labyrinth_shoot_not_dismissed_twice() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_shot_fired()
+	labyrinth_level.on_shot_fired()  # Second shot should be ignored for hint
+
+	assert_false(labyrinth_level.is_tutorial_hint_active("shoot"),
+		"Shoot hint should remain dismissed after second shot")
+
+
+func test_labyrinth_hints_independent_dismissal() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_shot_fired()
+	labyrinth_level.on_reload_completed()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active("shoot"),
+		"Shoot hint dismissed")
+	assert_false(labyrinth_level.is_tutorial_hint_active("reload"),
+		"Reload hint dismissed")
+	assert_true(labyrinth_level.is_tutorial_hint_active("move"),
+		"Move hint still shown (no signal for movement)")
+
+
+func test_labyrinth_five_default_enemies() -> void:
+	labyrinth_level.initialize()
+
+	assert_eq(labyrinth_level._initial_enemy_count, 5,
+		"Labyrinth should have 5 enemies by default")

@@ -26,6 +26,7 @@ class MockTutorialLevel:
 	const HINT_BOLT_CYCLE := "bolt_cycle"
 	const HINT_SCOPE := "scope"
 	const HINT_FIRE_MODE := "fire_mode"
+	const HINT_HAMMER_COCK := "hammer_cock"
 
 	var _current_step: TutorialStep = TutorialStep.SWITCH_FIRE_MODE
 	var _has_reloaded: bool = false
@@ -72,6 +73,7 @@ class MockTutorialLevel:
 			_add_hint(HINT_RELOAD, "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]")
 		elif _has_revolver:
 			_add_hint(HINT_RELOAD, "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]")
+			_add_hint(HINT_HAMMER_COCK, "[ПКМ] Взведи курок")
 		elif _has_makarov_pm:
 			_add_hint(HINT_RELOAD, "[R] [R] Перезарядись")
 		else:
@@ -128,15 +130,23 @@ class MockTutorialLevel:
 		if not _has_reloaded:
 			_has_reloaded = true
 			_dismiss_hint(HINT_RELOAD)
-			advance_to_step(TutorialStep.THROW_GRENADE)
+			_dismiss_hint(HINT_HAMMER_COCK)
+			# If grenade was already thrown, go to COMPLETED; otherwise wait for grenade
+			if _has_thrown_grenade:
+				advance_to_step(TutorialStep.COMPLETED)
+			else:
+				advance_to_step(TutorialStep.THROW_GRENADE)
 
 	func on_grenade_thrown() -> void:
-		if _current_step != TutorialStep.THROW_GRENADE:
+		# Allow grenade dismissal from RELOAD step too (thrown before reload completes)
+		if _current_step != TutorialStep.THROW_GRENADE and _current_step != TutorialStep.RELOAD:
 			return
 		if not _has_thrown_grenade:
 			_has_thrown_grenade = true
 			_dismiss_hint(HINT_GRENADE)
-			advance_to_step(TutorialStep.COMPLETED)
+			# If grenade thrown before reload, stay in RELOAD step (reload hint still visible)
+			if _current_step == TutorialStep.THROW_GRENADE:
+				advance_to_step(TutorialStep.COMPLETED)
 
 	func is_tutorial_complete() -> bool:
 		return _current_step == TutorialStep.COMPLETED
@@ -379,13 +389,112 @@ func test_reload_ignored_in_wrong_step() -> void:
 
 
 func test_grenade_throw_ignored_in_wrong_step() -> void:
-	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.RELOAD)
-	tutorial._add_reload_hints()
+	# Grenade is ignored only in SWITCH_FIRE_MODE, SCOPE_TRAINING, COMPLETED steps
+	tutorial.advance_to_step(MockTutorialLevel.TutorialStep.SCOPE_TRAINING)
+
+	tutorial.on_grenade_thrown()
+
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.SCOPE_TRAINING,
+		"Grenade throw should be ignored in SCOPE_TRAINING step")
+
+
+# ============================================================================
+# Bug Fix Tests: Grenade thrown before reload (Issue #808)
+# ============================================================================
+
+
+func test_grenade_thrown_during_reload_dismisses_grenade_hint() -> void:
+	## When grenade is thrown before reload completes, grenade hint should disappear
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	# Throw grenade while still in RELOAD step
+	tutorial.on_grenade_thrown()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint should be dismissed even when thrown before reload (bug fix)")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Reload hint should still be visible after grenade thrown early")
+
+
+func test_grenade_thrown_during_reload_keeps_reload_step() -> void:
+	## When grenade is thrown during RELOAD step, should stay in RELOAD step
+	tutorial.set_initial_step_based_on_weapon(false)
 
 	tutorial.on_grenade_thrown()
 
 	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
-		"Grenade throw should be ignored in RELOAD step")
+		"Should stay in RELOAD step when grenade thrown before reload")
+
+
+func test_reload_after_early_grenade_completes_tutorial() -> void:
+	## When grenade thrown first and then reload completes, tutorial should finish
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	tutorial.on_grenade_thrown()  # Grenade first
+	tutorial.on_reload_completed()  # Then reload
+
+	assert_true(tutorial.is_tutorial_complete(),
+		"Tutorial should complete when reload done after early grenade throw")
+	assert_false(tutorial.is_any_hint_active(),
+		"No hints should remain after both actions done")
+
+
+func test_early_grenade_not_double_dismissed() -> void:
+	## Throwing grenade twice should not cause errors (idempotent)
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	tutorial.on_grenade_thrown()
+	tutorial.on_grenade_thrown()  # Second call should be ignored
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint still gone after double throw")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Reload hint still shown after double throw attempt")
+
+
+# ============================================================================
+# Revolver Hammer Cock Hint Tests (Issue #808)
+# ============================================================================
+
+
+func test_revolver_shows_hammer_cock_hint() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Revolver should show hammer cock hint as separate line (Issue #808)")
+
+
+func test_revolver_hammer_cock_hint_dismissed_on_reload() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	tutorial.on_reload_completed()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Hammer cock hint should be dismissed when reload completes")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint should remain after revolver reload")
+
+
+func test_revolver_has_reload_and_hammer_and_grenade_hints() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Revolver reload hint shown")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Revolver hammer cock hint shown simultaneously")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint shown simultaneously (Issue #808)")
+
+
+func test_non_revolver_no_hammer_cock_hint() -> void:
+	## Other weapons should not show hammer cock hint
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Default weapon should not have hammer cock hint")
 
 
 # ============================================================================
@@ -477,3 +586,50 @@ func test_complete_sniper_flow() -> void:
 
 	assert_true(tutorial.is_tutorial_complete())
 	assert_false(tutorial.is_any_hint_active())
+
+
+func test_complete_revolver_flow() -> void:
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	# Revolver starts with reload + hammer cock + grenade hints all simultaneously
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD))
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK))
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE))
+
+	# Complete reload (dismisses reload + hammer cock hints, grenade remains)
+	tutorial.on_reload_completed()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD))
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK))
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE))
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE)
+
+	# Throw grenade to complete
+	tutorial.on_grenade_thrown()
+
+	assert_true(tutorial.is_tutorial_complete())
+	assert_false(tutorial.is_any_hint_active())
+
+
+func test_complete_flow_grenade_first_then_reload() -> void:
+	## Full flow: grenade thrown before reload — both should complete tutorial
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	# Grenade thrown first during RELOAD step
+	tutorial.on_grenade_thrown()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
+		"Grenade hint dismissed immediately even before reload")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Reload hint still active")
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.RELOAD,
+		"Still in RELOAD step")
+
+	# Now complete reload
+	tutorial.on_reload_completed()
+
+	assert_true(tutorial.is_tutorial_complete(),
+		"Tutorial completes after reload when grenade already thrown")
+	assert_false(tutorial.is_any_hint_active(),
+		"No hints remain")

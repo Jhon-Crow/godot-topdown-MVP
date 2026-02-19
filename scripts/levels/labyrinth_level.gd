@@ -68,6 +68,19 @@ var _enemies: Array = []
 ## Cached reference to the ReplayManager autoload (C# singleton).
 var _replay_manager: Node = null
 
+## Tutorial hint labels for the Laboratory level (Issue #808).
+## Keys: "move", "shoot", "reload" — each dismissed when the action is performed.
+var _tutorial_hints: Dictionary = {}
+
+## Whether the player has shot at least once (to dismiss shoot hint).
+var _tutorial_shot_fired: bool = false
+
+## Whether the player has reloaded at least once (to dismiss reload hint).
+var _tutorial_reloaded: bool = false
+
+## Vertical spacing between stacked tutorial hints (pixels).
+const TUTORIAL_HINT_SPACING: float = 35.0
+
 
 ## Gets the ReplayManager autoload node.
 func _get_or_create_replay_manager() -> Node:
@@ -124,6 +137,9 @@ func _ready() -> void:
 
 	# Setup window lights in corridors without enemies
 	_setup_window_lights()
+
+	# Show tutorial hints for basic controls (Issue #808)
+	_setup_tutorial_hints()
 
 	# Start replay recording
 	_start_replay_recording()
@@ -358,6 +374,9 @@ func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+
+	# Update tutorial hint positions to follow player (Issue #808)
+	_update_tutorial_hint_positions()
 
 
 ## Called when combo changes.
@@ -713,6 +732,10 @@ func _on_enemy_hit() -> void:
 func _on_shot_fired() -> void:
 	if GameManager:
 		GameManager.register_shot()
+	# Dismiss shoot tutorial hint on first shot (Issue #808)
+	if not _tutorial_shot_fired:
+		_tutorial_shot_fired = true
+		_dismiss_tutorial_hint("shoot")
 
 
 ## Called when player ammo changes (GDScript Player).
@@ -720,6 +743,10 @@ func _on_player_ammo_changed(current: int, maximum: int) -> void:
 	_update_ammo_label(current, maximum)
 	if GameManager:
 		GameManager.register_shot()
+	# Dismiss shoot tutorial hint on first shot (Issue #808)
+	if not _tutorial_shot_fired:
+		_tutorial_shot_fired = true
+		_dismiss_tutorial_hint("shoot")
 
 
 ## Called when weapon ammo changes (C# Player).
@@ -772,6 +799,10 @@ func _on_player_reload_started() -> void:
 func _on_player_reload_completed() -> void:
 	_broadcast_player_reloading(false)
 	_broadcast_player_ammo_empty(false)
+	# Dismiss reload tutorial hint on first reload (Issue #808)
+	if not _tutorial_reloaded:
+		_tutorial_reloaded = true
+		_dismiss_tutorial_hint("reload")
 
 
 ## Broadcast player reloading state to all enemies.
@@ -1395,6 +1426,75 @@ func _disable_player_controls() -> void:
 		_player.velocity = Vector2.ZERO
 
 	_log_to_file("Player controls disabled (level completed)")
+
+
+## ============================================================
+## Tutorial hints for the Laboratory level (Issue #808)
+## ============================================================
+
+
+## Create and show basic control tutorial hints at level start.
+## Shows: movement (WASD), shooting (LMB), reloading (R).
+## Each hint disappears independently when the player performs the action.
+func _setup_tutorial_hints() -> void:
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		return
+
+	_add_tutorial_hint("move", "[WASD] Двигайся", canvas_layer)
+	_add_tutorial_hint("shoot", "[ЛКМ] Стреляй", canvas_layer)
+	_add_tutorial_hint("reload", "[R] Перезаряжайся", canvas_layer)
+	print("[LabyrinthLevel] Tutorial hints shown for Laboratory level (Issue #808)")
+
+
+## Create and register a tutorial hint label.
+func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
+	if _tutorial_hints.has(hint_key):
+		return
+
+	var label := Label.new()
+	label.name = "TutorialHint_" + hint_key
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.3, 1.0))
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.custom_minimum_size = Vector2(300, 30)
+
+	canvas_layer.add_child(label)
+	_tutorial_hints[hint_key] = label
+
+
+## Remove a tutorial hint label by key.
+func _dismiss_tutorial_hint(hint_key: String) -> void:
+	if not _tutorial_hints.has(hint_key):
+		return
+
+	var label: Label = _tutorial_hints[hint_key]
+	if is_instance_valid(label):
+		label.queue_free()
+	_tutorial_hints.erase(hint_key)
+	print("[LabyrinthLevel] Tutorial hint dismissed: %s" % hint_key)
+
+
+## Update tutorial hint positions to float above the player.
+func _update_tutorial_hint_positions() -> void:
+	if _player == null or _tutorial_hints.is_empty():
+		return
+
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * _player.global_position
+
+	var index := 0
+	for hint_key in _tutorial_hints:
+		var label: Label = _tutorial_hints[hint_key]
+		if is_instance_valid(label):
+			label.custom_minimum_size = Vector2(300, 30)
+			label.position = screen_pos + Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)
+			index += 1
 
 
 ## Log a message to the file logger if available.
