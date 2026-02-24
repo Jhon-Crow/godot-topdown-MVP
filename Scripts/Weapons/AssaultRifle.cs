@@ -387,9 +387,10 @@ public partial class AssaultRifle : BaseWeapon
 
         if (result.Count > 0)
         {
-            // Hit an obstacle, shorten the laser
+            // Hit an obstacle or enemy, shorten the laser
+            // Extend 4px into the hit body so the laser visually penetrates the surface
             Vector2 hitPosition = (Vector2)result["position"];
-            endPoint = hitPosition - GlobalPosition;
+            endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
         }
 
         // Update the laser sight line points (in local coordinates)

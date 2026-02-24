@@ -607,8 +607,9 @@ public partial class AKGL : BaseWeapon
             var result = spaceState.IntersectRay(query);
             if (result.Count > 0)
             {
+                // Extend 4px into the hit body so the laser visually penetrates the surface
                 Vector2 hitPosition = (Vector2)result["position"];
-                endPoint = hitPosition - GlobalPosition;
+                endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
             }
         }
 
