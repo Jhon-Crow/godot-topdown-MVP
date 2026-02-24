@@ -3,7 +3,8 @@ extends Node
 ## Component for enemy flashlight behavior in night mode (Issue #824).
 ##
 ## In night mode, enemies shine their flashlight at the player's position
-## 50-100ms before shooting or throwing a grenade. If the player is caught
+## 300-500ms before shooting or throwing a grenade (Issue #825: increased from 50-100ms
+## to give the player a visible warning and reaction time). If the player is caught
 ## in the flashlight beam, they receive a stun effect similar to how the
 ## player's flashlight affects enemies.
 ##
@@ -13,9 +14,11 @@ extends Node
 ## - Respects walls (shadow_enabled = true)
 ## - 2 second blindness duration with 20 second cooldown
 
-## Duration for flashlight to be on before attack (50-100ms).
-const PRE_ATTACK_FLASH_DURATION_MIN: float = 0.05
-const PRE_ATTACK_FLASH_DURATION_MAX: float = 0.1
+## Duration for flashlight to be on before attack (300-500ms).
+## This gives the player enough time to see the flashlight warning and react.
+## Previously was 50-100ms which was imperceptible (Issue #825 fix).
+const PRE_ATTACK_FLASH_DURATION_MIN: float = 0.3
+const PRE_ATTACK_FLASH_DURATION_MAX: float = 0.5
 
 ## Flashlight beam half-angle in degrees (matches player flashlight).
 const BEAM_HALF_ANGLE_DEG: float = 9.0
@@ -146,8 +149,8 @@ func _is_night_mode_active() -> bool:
 
 
 ## Start the pre-attack flashlight sequence.
-## The flashlight will turn on for 50-100ms, check if player is in beam,
-## and then execute the callback (shoot or throw grenade).
+## The flashlight will turn on for 300-500ms (visible warning for player), check if player
+## is in beam, and then execute the callback (shoot or throw grenade).
 ## @param target_position: Position to aim the flashlight at (player's position).
 ## @param callback: Callable to execute after the flash completes.
 func start_pre_attack_flash(target_position: Vector2, callback: Callable) -> void:

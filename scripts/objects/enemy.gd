@@ -3821,8 +3821,11 @@ func _shoot() -> void:
 	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
 	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
 	if not _agg and not _should_shoot_at_target(target_position): return
-	if _enemy_flashlight and not _is_pre_attack_flashing:  # Issue #824: night mode flash
-		_is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position)); return
+	if _enemy_flashlight:  # Issue #824/#825: night mode flash
+		if not _is_pre_attack_flashing:
+			_is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))
+		# While pre-attack flash is running, do not shoot — the callback will fire when ready.
+		return
 	_execute_shoot(target_position)
 
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
@@ -4900,8 +4903,11 @@ func try_throw_grenade() -> bool:
 	var mem_pos := _memory.suspected_position if _memory and _memory.has_target() else _last_known_player_position
 	var tgt := _grenade_component.get_target(_can_see_player, _under_fire, _current_health, _player, _last_known_player_position, mem_pos)
 	if tgt == Vector2.ZERO: return false
-	if _enemy_flashlight and not _is_pre_attack_flashing:  # Issue #824: night mode flash
-		_is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(tgt, _execute_grenade_throw.bind(tgt)); return true
+	if _enemy_flashlight:  # Issue #824/#825: night mode flash
+		if not _is_pre_attack_flashing:
+			_is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(tgt, _execute_grenade_throw.bind(tgt))
+		# While pre-attack flash is running, do not throw — the callback will fire when ready.
+		return true
 	return _execute_grenade_throw(tgt)
 
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
