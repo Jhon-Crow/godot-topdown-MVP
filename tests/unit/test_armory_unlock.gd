@@ -75,7 +75,8 @@ class MockActiveItemManager:
 		HOMING_BULLETS,
 		TELEPORT_BRACERS,
 		INVISIBILITY_SUIT,
-		BREAKER_BULLETS
+		BREAKER_BULLETS,
+		FORCE_FIELD
 	}
 
 	var unlocked_active_items: Dictionary = {
@@ -84,7 +85,8 @@ class MockActiveItemManager:
 		ActiveItemType.HOMING_BULLETS: false,
 		ActiveItemType.TELEPORT_BRACERS: false,
 		ActiveItemType.INVISIBILITY_SUIT: false,
-		ActiveItemType.BREAKER_BULLETS: false
+		ActiveItemType.BREAKER_BULLETS: false,
+		ActiveItemType.FORCE_FIELD: false
 	}
 
 	var unlock_signals: Array = []
