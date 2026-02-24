@@ -11,7 +11,8 @@ var _log_file: FileAccess = null
 ## Path to the log file.
 var _log_path: String = ""
 
-## Whether logging is enabled.
+## Whether logging is enabled (controlled by ExperimentalSettings, Issue #848).
+## When false, no log file is written and console output is suppressed for performance.
 var _logging_enabled: bool = true
 
 ## Buffer for log messages before file is ready.
@@ -94,14 +95,14 @@ func _close_log_file() -> void:
 
 ## Write a message to the log file with timestamp.
 func _write_log(level: String, message: String) -> void:
+	if not _logging_enabled:
+		return
+
 	var timestamp := Time.get_time_string_from_system()
 	var log_line := "[%s] [%s] %s" % [timestamp, level, message]
 
 	# Also print to console
 	print(log_line)
-
-	if not _logging_enabled:
-		return
 
 	if _log_file != null:
 		_log_file.store_line(log_line)
@@ -152,6 +153,12 @@ func get_log_path() -> String:
 ## Check if logging is enabled and working.
 func is_logging_enabled() -> bool:
 	return _logging_enabled and _log_file != null
+
+
+## Enable or disable logging (Issue #848).
+## Called by ExperimentalSettings when the logging toggle changes.
+func set_logging_enabled(enabled: bool) -> void:
+	_logging_enabled = enabled
 
 
 ## Alias methods for compatibility with different calling conventions.

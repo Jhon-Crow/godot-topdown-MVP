@@ -388,10 +388,113 @@ class MockBeachLevel extends MockLevelBase:
 		return ""  # Not found
 
 
+class MockLabyrinthLevel extends MockLevelBase:
+	## Laboratory / starting level (Issue #808: weapon-dependent tutorial hints).
+	var level_name: String = "LabyrinthLevel"
+
+	## Default enemy count for labyrinth (5 enemies).
+	var default_enemy_count: int = 5
+
+	## Tutorial hint tracking (Issue #808): weapon-dependent, mirrors tutorial_level.gd.
+	var _tutorial_hints: Dictionary = {}
+
+	## Tutorial state machine (mirrors labyrinth_level.gd TutorialStep).
+	enum TutorialStep { RELOAD, THROW_GRENADE, COMPLETED }
+	var _tutorial_step: int = TutorialStep.RELOAD
+
+	## Weapon type flags.
+	var _tutorial_has_shotgun: bool = false
+	var _tutorial_has_sniper_rifle: bool = false
+	var _tutorial_has_revolver: bool = false
+	var _tutorial_has_makarov_pm: bool = false
+
+	## State tracking.
+	var _tutorial_has_reloaded: bool = false
+	var _tutorial_has_thrown_grenade: bool = false
+
+	## Hint keys.
+	const HINT_RELOAD := "reload"
+	const HINT_GRENADE := "grenade"
+	const HINT_HAMMER_COCK := "hammer_cock"
+	const HINT_BOLT_CYCLE := "bolt_cycle"
+
+	## Setup weapon-dependent tutorial hints at level start (Issue #808).
+	func setup_tutorial_hints() -> void:
+		_tutorial_step = TutorialStep.RELOAD
+		_add_reload_hints()
+
+	## Add weapon-dependent reload hints plus grenade hint.
+	func _add_reload_hints() -> void:
+		if _tutorial_has_shotgun:
+			_tutorial_hints[HINT_RELOAD] = "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]"
+		elif _tutorial_has_sniper_rifle:
+			_tutorial_hints[HINT_RELOAD] = "[R] [F] [R] Перезарядись"
+			_tutorial_hints[HINT_BOLT_CYCLE] = "[←↓↑→] Передёрни затвор"
+		elif _tutorial_has_revolver:
+			_tutorial_hints[HINT_RELOAD] = "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]"
+			_tutorial_hints[HINT_HAMMER_COCK] = "[ПКМ] Взведи курок"
+		elif _tutorial_has_makarov_pm:
+			_tutorial_hints[HINT_RELOAD] = "[R] [R] Перезарядись"
+		else:
+			_tutorial_hints[HINT_RELOAD] = "[R] [F] [R] Перезарядись"
+		if not _tutorial_hints.has(HINT_GRENADE):
+			_tutorial_hints[HINT_GRENADE] = "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]"
+
+	## Called when hammer is cocked — dismisses hammer hint.
+	func on_hammer_cocked() -> void:
+		_tutorial_hints.erase(HINT_HAMMER_COCK)
+
+	## Called when reload completes.
+	func on_reload_completed() -> void:
+		if _tutorial_step != TutorialStep.RELOAD:
+			return
+		if not _tutorial_has_reloaded:
+			_tutorial_has_reloaded = true
+			_tutorial_hints.erase(HINT_RELOAD)
+			_tutorial_hints.erase(HINT_HAMMER_COCK)
+			if _tutorial_has_thrown_grenade:
+				_tutorial_step = TutorialStep.COMPLETED
+				_tutorial_hints.clear()
+			else:
+				_tutorial_step = TutorialStep.THROW_GRENADE
+
+	## Called when grenade is thrown.
+	func on_grenade_thrown() -> void:
+		if _tutorial_step != TutorialStep.THROW_GRENADE and _tutorial_step != TutorialStep.RELOAD:
+			return
+		if not _tutorial_has_thrown_grenade:
+			_tutorial_has_thrown_grenade = true
+			_tutorial_hints.erase(HINT_GRENADE)
+			if _tutorial_step == TutorialStep.THROW_GRENADE:
+				_tutorial_step = TutorialStep.COMPLETED
+				_tutorial_hints.clear()
+
+	## Check if a tutorial hint is currently active.
+	func is_tutorial_hint_active(hint_key: String) -> bool:
+		return _tutorial_hints.has(hint_key)
+
+	## Check if all tutorial hints are dismissed.
+	func are_all_hints_dismissed() -> bool:
+		return _tutorial_hints.is_empty()
+
+	## Check if tutorial is complete.
+	func is_tutorial_complete() -> bool:
+		return _tutorial_step == TutorialStep.COMPLETED
+
+	## Initialize with default enemy configuration.
+	func initialize() -> void:
+		var enemies: Array = []
+		for i in range(default_enemy_count):
+			enemies.append("LabyrinthEnemy%d" % (i + 1))
+		setup_enemy_tracking(enemies)
+		setup_tutorial_hints()
+
+
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
 var test_tier: MockTestTier
 var beach_level: MockBeachLevel
+var labyrinth_level: MockLabyrinthLevel
 
 
 func before_each() -> void:
@@ -399,6 +502,7 @@ func before_each() -> void:
 	castle_level = MockCastleLevel.new()
 	test_tier = MockTestTier.new()
 	beach_level = MockBeachLevel.new()
+	labyrinth_level = MockLabyrinthLevel.new()
 
 
 func after_each() -> void:
@@ -406,6 +510,7 @@ func after_each() -> void:
 	castle_level = null
 	test_tier = null
 	beach_level = null
+	labyrinth_level = null
 
 
 # ============================================================================
@@ -1618,3 +1723,114 @@ func test_beach_level_complete_with_accuracy_tracking() -> void:
 		"Beach level accuracy should be ~66.67%")
 	assert_eq(beach_level._kills, 8,
 		"Beach level kill count should be 8")
+
+
+# ============================================================================
+# LabyrinthLevel Tutorial Hints Tests (Issue #808)
+# Weapon-dependent hints, same as Tutorial level — no walk/shoot hints.
+# ============================================================================
+
+
+func test_labyrinth_five_default_enemies() -> void:
+	labyrinth_level.initialize()
+
+	assert_eq(labyrinth_level._initial_enemy_count, 5,
+		"Labyrinth should have 5 enemies by default")
+
+
+func test_labyrinth_tutorial_shows_reload_and_grenade_at_start() -> void:
+	labyrinth_level.initialize()
+
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint should be shown at start")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Grenade hint should be shown at start alongside reload (Issue #808)")
+
+
+func test_labyrinth_tutorial_no_walk_or_shoot_hints() -> void:
+	labyrinth_level.initialize()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active("move"),
+		"No movement hint in Lab tutorial (owner request)")
+	assert_false(labyrinth_level.is_tutorial_hint_active("shoot"),
+		"No shoot hint in Lab tutorial (owner request)")
+
+
+func test_labyrinth_reload_dismisses_reload_hint_grenade_remains() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_reload_completed()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint should be dismissed after reload")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Grenade hint should remain after reload (Issue #808)")
+
+
+func test_labyrinth_grenade_thrown_completes_after_reload() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_reload_completed()
+	labyrinth_level.on_grenade_thrown()
+
+	assert_true(labyrinth_level.is_tutorial_complete(),
+		"Tutorial should complete after reload then grenade")
+	assert_true(labyrinth_level.are_all_hints_dismissed(),
+		"All hints dismissed after tutorial complete")
+
+
+func test_labyrinth_grenade_before_reload_dismisses_grenade_hint() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_grenade_thrown()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Grenade hint dismissed even when thrown before reload")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint still visible when grenade thrown early")
+
+
+func test_labyrinth_reload_after_early_grenade_completes_tutorial() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_grenade_thrown()  # Grenade first
+	labyrinth_level.on_reload_completed()  # Then reload
+
+	assert_true(labyrinth_level.is_tutorial_complete(),
+		"Tutorial completes when reload done after early grenade")
+	assert_true(labyrinth_level.are_all_hints_dismissed(),
+		"No hints remain after tutorial completes")
+
+
+func test_labyrinth_revolver_shows_hammer_cock_hint() -> void:
+	labyrinth_level._tutorial_has_revolver = true
+	labyrinth_level.initialize()
+
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_HAMMER_COCK),
+		"Revolver should show hammer cock hint (Issue #808)")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Revolver should show reload hint")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Revolver should show grenade hint simultaneously")
+
+
+func test_labyrinth_hammer_cocked_dismisses_hammer_hint() -> void:
+	labyrinth_level._tutorial_has_revolver = true
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_hammer_cocked()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_HAMMER_COCK),
+		"Hammer hint dismissed when hammer is cocked (Issue #808)")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint still visible after hammer cocked")
+
+
+func test_labyrinth_shotgun_no_hammer_hint() -> void:
+	labyrinth_level._tutorial_has_shotgun = true
+	labyrinth_level.initialize()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_HAMMER_COCK),
+		"Shotgun should not show hammer hint")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Shotgun should show reload hint")

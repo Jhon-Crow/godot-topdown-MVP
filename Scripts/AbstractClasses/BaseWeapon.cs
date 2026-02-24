@@ -149,10 +149,34 @@ public abstract partial class BaseWeapon : Node2D
 
     public override void _Ready()
     {
-        if (WeaponData != null)
+        // Diagnostic logging for Issue #765 (weapon data corruption after restart)
+        GD.Print($"[BaseWeapon] _Ready() called for weapon: {Name}");
+        GD.Print($"[BaseWeapon]   WeaponData: {(WeaponData != null ? "Present" : "NULL")}");
+
+        // Issue #765 Fix: Validate WeaponData and provide clear error if missing
+        if (WeaponData == null)
         {
-            InitializeMagazinesWithDifficulty();
+            GD.PrintErr($"[BaseWeapon] CRITICAL ERROR: WeaponData is NULL for weapon {Name}!");
+            GD.PrintErr($"[BaseWeapon] This weapon will not function correctly. Check that:");
+            GD.PrintErr($"[BaseWeapon]   1. The weapon scene (.tscn) has WeaponData resource assigned");
+            GD.PrintErr($"[BaseWeapon]   2. The .tres file exists and is not corrupted");
+            GD.PrintErr($"[BaseWeapon]   3. Scene reload hasn't cleared the resource reference");
+            // Don't initialize if WeaponData is missing - prevents using wrong defaults
+            return;
         }
+
+        // Log weapon data for diagnostics
+        GD.Print($"[BaseWeapon]   WeaponData.Name: {WeaponData.Name}");
+        GD.Print($"[BaseWeapon]   WeaponData.MagazineSize: {WeaponData.MagazineSize}");
+        GD.Print($"[BaseWeapon]   WeaponData.Caliber: {(WeaponData.Caliber != null ? "Present" : "NULL")}");
+        if (WeaponData.Caliber != null)
+        {
+            var caliberName = WeaponData.Caliber.Get("caliber_name");
+            GD.Print($"[BaseWeapon]   Caliber.caliber_name: {caliberName}");
+        }
+        GD.Print($"[BaseWeapon]   WeaponData resource path: {WeaponData.ResourcePath}");
+
+        InitializeMagazinesWithDifficulty();
 
         // Connect to difficulty_changed signal to re-initialize ammo when difficulty changes
         var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
@@ -168,7 +192,11 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     protected virtual void InitializeMagazinesWithDifficulty()
     {
-        if (WeaponData == null) return;
+        if (WeaponData == null)
+        {
+            GD.PrintErr($"[BaseWeapon] InitializeMagazinesWithDifficulty: WeaponData is NULL for {Name}! Cannot initialize.");
+            return;
+        }
 
         int magazineCount = StartingMagazineCount;
         var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
@@ -182,6 +210,11 @@ public abstract partial class BaseWeapon : Node2D
                 GD.Print($"[BaseWeapon] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} magazines)");
             }
         }
+
+        // Diagnostic logging for Issue #765
+        GD.Print($"[BaseWeapon] Initializing magazines for {Name}:");
+        GD.Print($"[BaseWeapon]   Magazine count: {magazineCount}");
+        GD.Print($"[BaseWeapon]   Magazine size: {WeaponData.MagazineSize}");
 
         // Initialize magazine inventory with the starting magazines
         MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
@@ -454,6 +487,21 @@ public abstract partial class BaseWeapon : Node2D
             }
         }
 
+        // Set enemy penetration flag if weapon penetrates enemies (Issue #829)
+        // This is used by the RSh-12 revolver - bullets pass through enemies
+        if (WeaponData != null && WeaponData.PenetratesEnemies)
+        {
+            if (bullet is CSharpBullet csBulletPenetrate)
+            {
+                csBulletPenetrate.PenetratesEnemies = true;
+            }
+            else
+            {
+                // GDScript bullet — set via property name
+                bullet.Set("penetrates_enemies", true);
+            }
+        }
+
         GetTree().CurrentScene.AddChild(bullet);
 
         // Enable homing on the bullet if the player's homing effect is active (Issue #677, #704)
@@ -509,6 +557,17 @@ public abstract partial class BaseWeapon : Node2D
         if (CasingScene == null)
         {
             return;
+        }
+
+        // Diagnostic logging for Issue #765 (verify caliber data is correct)
+        if (caliber != null)
+        {
+            var caliberName = caliber.Get("caliber_name");
+            GD.Print($"[BaseWeapon] Spawning casing for {Name} with caliber: {caliberName}");
+        }
+        else
+        {
+            GD.PrintErr($"[BaseWeapon] WARNING: Spawning casing for {Name} with NULL caliber!");
         }
 
         // Calculate casing spawn position (near the weapon, slightly offset)

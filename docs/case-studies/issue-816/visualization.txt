@@ -1,0 +1,61 @@
+# Warehouse Visual Fix Visualization
+
+## Warehouse A - Bottom Wall
+
+### BEFORE (Issue):
+```
+Position: -250        -125          0           125         250
+          |-----------|-------------|-----------|-----------|
+          [==========WallBottomL===========][==========WallBottomR===========]
+          |<------ ColorRect (250) ------->|<------ ColorRect (250) ------->|
+          
+          Visual: SOLID WALL (no visible passage)
+          Collision: Gap exists but NOT visible
+```
+
+### AFTER (Fixed):
+```
+Position: -250        -125    -75       75    125         250
+          |-----------|-------|  GAP  |-------|-----------|
+          [===WallBottomL===]         [===WallBottomR===]
+          |<-- ColorRect -->|         |<-- ColorRect -->|
+                                 ^
+                            150-unit gap
+                            VISIBLE PASSAGE
+```
+
+## Warehouse B - Top Wall
+
+### BEFORE (Issue):
+```
+Position: -350       -175          0          175        350
+          |----------|-------------|-----------|----------|
+          [========WallTopL========][========WallTopR=========]
+          |<----- ColorRect (350) -->|<---- ColorRect (350) -->|
+          
+          Visual: SOLID WALL (no visible passage)
+          Collision: Gap exists but NOT visible
+```
+
+### AFTER (Fixed):
+```
+Position: -350       -175  -100      100  175        350
+          |----------|-----|   GAP   |-----|----------|
+          [==WallTopL==]              [==WallTopR==]
+          |<-ColorRect->|              |<-ColorRect->|
+                             ^
+                        200-unit gap
+                        VISIBLE PASSAGE
+```
+
+## Key Changes
+
+Warehouse A:
+- WallBottomL ColorRect: offset_right 125.0 → 50.0
+- WallBottomR ColorRect: offset_left -125.0 → -50.0
+- Result: 150-unit visible gap (x=-75 to x=75)
+
+Warehouse B:
+- WallTopL ColorRect: offset_right 175.0 → 75.0
+- WallTopR ColorRect: offset_left -175.0 → -75.0
+- Result: 200-unit visible gap (x=-100 to x=100)
