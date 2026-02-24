@@ -138,9 +138,9 @@ public partial class ShotgunPellet : Area2D
 
     /// <summary>
     /// Maximum angle (in radians) the pellet can turn from its original direction.
-    /// 110 degrees = ~1.92 radians (same as Bullet.cs).
+    /// 170 degrees = ~2.97 radians (Issue #737).
     /// </summary>
-    private float _homingMaxTurnAngle = Mathf.DegToRad(110.0f);
+    private float _homingMaxTurnAngle = Mathf.DegToRad(170.0f);
 
     /// <summary>
     /// Steering speed for homing (radians per second of turning).
@@ -368,7 +368,7 @@ public partial class ShotgunPellet : Area2D
     /// <summary>
     /// Applies homing steering toward the nearest alive enemy.
     /// The pellet turns toward the nearest enemy but cannot exceed the max turn angle
-    /// from its original firing direction (110 degrees each side).
+    /// from its original firing direction (170 degrees each side, Issue #737).
     /// </summary>
     private void ApplyHomingSteering(float delta)
     {
@@ -485,7 +485,7 @@ public partial class ShotgunPellet : Area2D
     /// <summary>
     /// Finds the enemy closest to the player's aim line (Issue #704).
     /// Uses perpendicular distance from the aim ray to score enemies.
-    /// Only considers enemies within 110 degrees of the aim direction.
+    /// Only considers enemies within max turn angle (170 degrees, Issue #737) of the aim direction.
     /// Skips enemies blocked by walls (Issue #709).
     /// </summary>
     private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)

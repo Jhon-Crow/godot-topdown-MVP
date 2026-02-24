@@ -535,6 +535,20 @@ public partial class MyEnemy : BaseCharacter
 
 2. Create a weapon class if needed:
 
+> ⚠️ **Ammo Counter Checklist** (Issue #865): When adding a new C# weapon with its own node name,
+> you **must** add it to the weapon lookup chain in **every** level script that tracks ammo.
+> Missing this step causes the HUD ammo counter to silently stop updating for that weapon.
+> Update the following files by adding `if weapon == null: weapon = _player.get_node_or_null("YourNewWeapon")`
+> **and** a corresponding `elif selected_weapon_id == "your_weapon_id":` block:
+> - `scripts/levels/city_level.gd`
+> - `scripts/levels/labyrinth_level.gd`
+> - `scripts/levels/tutorial_level.gd` (both `_setup_ammo_tracking` and `_setup_weapon_connections`)
+> - `scripts/levels/beach_level.gd`
+> - `scripts/levels/castle_level.gd`
+> - `scripts/levels/docks_level.gd`
+> - `scripts/levels/building_level.gd`
+> - `scripts/levels/test_tier.gd` (Polygon/TestTier level)
+
 ```csharp
 using GodotTopDownTemplate.AbstractClasses;
 

@@ -555,6 +555,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AKGL")
 	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -1025,6 +1027,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
+		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
@@ -1256,27 +1260,33 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
 
-	# Check if replay data is available
-	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
 
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-		_log_to_file("Watch Replay button created (replay data available)")
+		# Check if replay data is available
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+			_log_to_file("Watch Replay button created (replay data available)")
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+			_log_to_file("Watch Replay button created (disabled - no replay data)")
+
+		buttons_container.add_child(replay_button)
 	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
-		_log_to_file("Watch Replay button created (disabled - no replay data)")
-
-	buttons_container.add_child(replay_button)
+		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1357,7 +1367,8 @@ func _setup_selected_weapon() -> void:
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
 			"m16": "AssaultRifle",
-			"ak_gl": "AKGL"
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -1531,6 +1542,27 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: AK + GL equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load AKGL scene!")
+	# If Revolver is selected, swap weapons
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			print("BuildingLevel: RSh-12 Revolver equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load Revolver scene!")
 	# For Makarov PM, it's already in the scene
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -1544,14 +1576,17 @@ func _setup_selected_weapon() -> void:
 			_configure_makarov_pm_ammo(makarov)
 
 
-## Handle W key shortcut for Watch Replay when score is shown.
+## Handle W key shortcut for Watch Replay when score is shown (Issue #807: check experimental setting).
 func _unhandled_input(event: InputEvent) -> void:
 	if not _score_shown:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
+			# Issue #807: Only trigger replay if enabled in experimental settings
+			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+			if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
+				_on_watch_replay_pressed()
 
 
 ## Called when the Watch Replay button is pressed (or W key).

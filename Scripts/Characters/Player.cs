@@ -667,6 +667,21 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void TeleportChargesChangedEventHandler(int current, int maximum);
 
+    /// <summary>
+    /// Timer for auto-hiding charge bar after teleport (300ms delay).
+    /// </summary>
+    private float _teleportChargeBarHideTimer = 0.0f;
+
+    /// <summary>
+    /// Whether the charge bar should be shown (for 300ms after teleport).
+    /// </summary>
+    private bool _teleportChargeBarVisible = false;
+
+    /// <summary>
+    /// Duration to show charge bar after teleport before auto-hiding (in seconds).
+    /// </summary>
+    private const float TeleportChargeBarHideDelay = 0.3f;
+
     #endregion
 
     #region Homing Bullets System (Issue #677)
@@ -1293,6 +1308,9 @@ public partial class Player : BaseCharacter
         // Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #672)
         HandleTeleportBracersInput();
 
+        // Update teleport charge bar hide timer (Issue #700)
+        UpdateTeleportChargeBarTimer((float)delta);
+
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
 
@@ -1331,9 +1349,52 @@ public partial class Player : BaseCharacter
         // When the player clicks while the fire timer is still active, the click
         // is buffered and consumed as soon as the weapon can fire again.
         // This prevents lost inputs when clicking faster than the fire rate allows.
+        //
+        // Issue #821 FIX: Only buffer clicks during fire cooldown, NOT during reload/pump.
+        // When reloading or pumping, play empty click sound instead of buffering shot.
         if (!isAutomatic && Input.IsActionJustPressed("shoot"))
         {
-            _semiAutoShootBuffered = true;
+            // Check if shotgun needs pumping (Issue #821)
+            var shotgun = CurrentWeapon as Shotgun;
+            bool shotgunNeedsPump = shotgun != null &&
+                shotgun.ActionState != ShotgunActionState.Ready;
+
+            // Check if any reload is in progress (Issue #821)
+            bool isReloading = _isReloadingSequence ||
+                (CurrentWeapon != null && CurrentWeapon.IsReloading);
+
+            // Check if revolver cylinder is open (Issue #821)
+            var revolver = CurrentWeapon as Revolver;
+            bool revolverReloading = revolver != null &&
+                revolver.ReloadState != RevolverReloadState.NotReloading;
+
+            // Check if shotgun is in reload state (Issue #821)
+            bool shotgunReloading = shotgun != null &&
+                shotgun.ReloadState != ShotgunReloadState.NotReloading;
+
+            // Check if weapon has no ammo (Issue #835)
+            // Clicking on an empty weapon should not buffer a shot for after reload -
+            // it should only play an empty click sound. Otherwise the buffered click
+            // from an empty weapon fires automatically right after reload completes.
+            // Issue #842: Shotgun uses ShellsInTube (CurrentAmmo is always 0 as a
+            // placeholder, since the tube magazine is tracked separately).
+            bool weaponEmpty;
+            if (shotgun != null)
+                weaponEmpty = shotgun.ShellsInTube <= 0;
+            else
+                weaponEmpty = CurrentWeapon.CurrentAmmo <= 0;
+
+            if (isReloading || shotgunNeedsPump || revolverReloading || shotgunReloading || weaponEmpty)
+            {
+                // Issue #821: Don't buffer shots during reload/pump - play empty click instead
+                // Issue #835: Don't buffer shots when weapon is empty
+                PlayEmptyClickSound();
+                GD.Print($"[Player.FIX#821/#835] Click during reload/pump/empty - playing empty click (isReloading={isReloading}, shotgunNeedsPump={shotgunNeedsPump}, revolverReloading={revolverReloading}, shotgunReloading={shotgunReloading}, weaponEmpty={weaponEmpty})");
+            }
+            else
+            {
+                _semiAutoShootBuffered = true;
+            }
         }
 
         // Determine if shooting input is active
@@ -1417,14 +1478,23 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Plays the empty click sound when trying to shoot without ammo.
+    /// Uses weapon-specific sound to match each weapon's authentic dry-fire click.
+    /// Issue #842: Was always playing the M16/pistol sound for all weapons.
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
-        {
+        if (audioManager == null) return;
+
+        if (CurrentWeapon is Shotgun && audioManager.HasMethod("play_shotgun_empty_click"))
+            audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+        else if (CurrentWeapon is Revolver && audioManager.HasMethod("play_revolver_empty_click"))
+            audioManager.Call("play_revolver_empty_click", GlobalPosition);
+        else if ((CurrentWeapon is MakarovPM || CurrentWeapon is MiniUzi || CurrentWeapon is SilencedPistol)
+            && audioManager.HasMethod("play_pistol_empty_click"))
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        else if (audioManager.HasMethod("play_empty_click"))
             audioManager.Call("play_empty_click", GlobalPosition);
-        }
     }
 
     /// <summary>
@@ -2058,6 +2128,11 @@ public partial class Player : BaseCharacter
 
         // Perform instant reload
         CurrentWeapon.InstantReload();
+
+        // Issue #835: Clear any buffered shot from before/during reload.
+        // If player clicked LMB on an empty weapon before reload started, that click
+        // should not automatically fire after reload completes.
+        _semiAutoShootBuffered = false;
 
         GD.Print("[Player] Reload sequence complete! Magazine refilled instantly.");
         EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);
@@ -4199,6 +4274,9 @@ public partial class Player : BaseCharacter
 
         // Emit initial charge count for UI
         EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+
+        // Draw initial charge progress bar (Issue #700)
+        QueueRedraw();
     }
 
     /// <summary>
@@ -4260,7 +4338,29 @@ public partial class Player : BaseCharacter
         // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
         ResetAllEnemyMemories("teleport");
 
+        // Show charge bar for 300ms after teleport (Issue #700)
+        _teleportChargeBarVisible = true;
+        _teleportChargeBarHideTimer = TeleportChargeBarHideDelay;
+
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Update the teleport charge bar hide timer (Issue #700).
+    /// Hides the charge bar 300ms after teleport activation.
+    /// </summary>
+    /// <param name="delta">Time delta in seconds.</param>
+    private void UpdateTeleportChargeBarTimer(float delta)
+    {
+        if (_teleportChargeBarVisible)
+        {
+            _teleportChargeBarHideTimer -= delta;
+            if (_teleportChargeBarHideTimer <= 0.0f)
+            {
+                _teleportChargeBarVisible = false;
+                QueueRedraw();
+            }
+        }
     }
 
     /// <summary>
@@ -4980,6 +5080,13 @@ public partial class Player : BaseCharacter
     /// </summary>
     public override void _Draw()
     {
+        // Draw teleport bracers charge bar above player (Issue #700)
+        // Only show for 300ms after teleport activation
+        if (_teleportBracersEquipped && _teleportChargeBarVisible)
+        {
+            DrawTeleportChargeBar();
+        }
+
         // Draw teleport targeting reticle if aiming (Issue #672)
         if (_teleportAiming && _teleportBracersEquipped)
         {
@@ -5175,6 +5282,61 @@ public partial class Player : BaseCharacter
         }
         // Default: Flashbang effect radius (FlashbangGrenade.tscn)
         return 400.0f;
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar above the player for teleport bracers (Issue #700).
+    /// Shows remaining charges as filled segments and used charges as empty segments.
+    /// </summary>
+    private void DrawTeleportChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxTeleportCharges;
+        int filledCount = _teleportCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f)
+            segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+
+        // Choose fill color based on charge percentage
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);  // Green
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);  // Yellow
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);  // Red
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            // Draw background
+            DrawRect(segRect, bgColor);
+
+            // Draw fill or empty
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+
+            // Draw border
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
     }
 
     /// <summary>

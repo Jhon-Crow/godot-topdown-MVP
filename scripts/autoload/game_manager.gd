@@ -32,6 +32,21 @@ var invincibility_enabled: bool = false
 ## Default: "makarov_pm" (Makarov PM starting pistol)
 var selected_weapon: String = "makarov_pm"
 
+## Unlocked weapons tracking.
+## By default, only "makarov_pm" (PM) is unlocked for debugging purposes.
+## Weapons can be unlocked by holding LMB on their case in the armory menu.
+var unlocked_weapons: Dictionary = {
+	"makarov_pm": true,
+	"m16": false,
+	"shotgun": false,
+	"mini_uzi": false,
+	"silenced_pistol": false,
+	"sniper": false,
+	"revolver": false,
+	"ak_gl": false,
+	"smg": false
+}
+
 ## Weapon scene paths mapped to weapon IDs.
 const WEAPON_SCENES: Dictionary = {
 	"makarov_pm": "res://scenes/weapons/csharp/MakarovPM.tscn",
@@ -61,6 +76,9 @@ signal invincibility_toggled(enabled: bool)
 
 ## Signal emitted when weapon selection changes.
 signal weapon_selected(weapon_id: String)
+
+## Signal emitted when a weapon is unlocked.
+signal weapon_unlocked(weapon_id: String)
 
 
 func _ready() -> void:
@@ -218,6 +236,29 @@ func get_selected_weapon_scene_path() -> String:
 	if selected_weapon in WEAPON_SCENES:
 		return WEAPON_SCENES[selected_weapon]
 	return WEAPON_SCENES["makarov_pm"]  # Default to Makarov PM starting pistol
+
+
+## Check if a weapon is unlocked.
+## @param weapon_id: The weapon identifier to check.
+## @return: true if the weapon is unlocked, false otherwise.
+func is_weapon_unlocked(weapon_id: String) -> bool:
+	return unlocked_weapons.get(weapon_id, false)
+
+
+## Unlock a weapon.
+## @param weapon_id: The weapon identifier to unlock.
+func unlock_weapon(weapon_id: String) -> void:
+	if weapon_id in unlocked_weapons:
+		if not unlocked_weapons[weapon_id]:
+			unlocked_weapons[weapon_id] = true
+			weapon_unlocked.emit(weapon_id)
+			_log_to_file("Weapon unlocked: %s" % weapon_id)
+
+
+## Get all unlocked weapons.
+## @return: Dictionary of weapon_id -> bool pairs.
+func get_unlocked_weapons() -> Dictionary:
+	return unlocked_weapons
 
 
 ## Log a message to the file logger if available.

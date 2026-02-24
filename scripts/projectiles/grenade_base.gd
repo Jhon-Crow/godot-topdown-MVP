@@ -190,7 +190,13 @@ func _physics_process(delta: float) -> void:
 	# This matches the throw speed formula: v = sqrt(2 * F * d), d = v² / (2 * F)
 
 	# Check for landing (grenade comes to near-stop after being thrown)
-	if not _has_landed and _timer_active:
+	# FIX for Issue #855: Only check for landing when grenade is actually in flight (not frozen).
+	# When the grenade is frozen and follows the player, FREEZE_MODE_KINEMATIC causes
+	# linear_velocity to reflect the position changes from player movement. This was
+	# triggering the landing sound when the player paused, even though the grenade
+	# had never been thrown. Guard with is_thrown() (which returns `not freeze`) to
+	# match the correct behavior already implemented in C# GrenadeTimer.cs (IsThrown guard).
+	if not _has_landed and _timer_active and is_thrown():
 		var current_speed := linear_velocity.length()
 		var previous_speed := _previous_velocity.length()
 		# Grenade has landed when it was moving fast and now nearly stopped

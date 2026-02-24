@@ -289,37 +289,25 @@ var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
-
-## Maximum time to spend finding a clear shot before giving up (seconds).
-const CLEAR_SHOT_MAX_TIME: float = 3.0
-## Distance to move when exiting cover to find a clear shot.
-const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
+const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Maximum time to find a clear shot (seconds).
+const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0  ## Distance to move when exiting cover for clear shot.
 ## --- Sound-Based Detection ---
-## Last known sound source position (for investigation when player not visible).
-var _last_known_player_position: Vector2 = Vector2.ZERO
-## Pursuing vulnerability sound (reload/empty click) without line of sight.
-var _pursuing_vulnerability_sound: bool = false
-
+var _last_known_player_position: Vector2 = Vector2.ZERO  ## Last known sound source position.
+var _pursuing_vulnerability_sound: bool = false  ## Pursuing reload/empty click without LOS.
 ## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 var _memory: EnemyMemory = null
-## Confidence values for different detection sources.
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
 const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const SOUND_CASING_KICK_CONFIDENCE: float = 0.5  ## Issue #693: Casing kick - lower than reload
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
-
-## Communication range for intel sharing: 660px w/ LOS, 300px without.
-const INTEL_SHARE_RANGE_LOS: float = 660.0
-const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
-## Timer for periodic intel sharing (to avoid per-frame overhead).
+const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Communication range with LOS (px).
+const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Communication range without LOS (px).
 var _intel_share_timer: float = 0.0
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
-## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
-var _memory_reset_confusion_timer: float = 0.0
+var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport.
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
-
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
 const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
@@ -333,7 +321,6 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
-
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -342,6 +329,8 @@ var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after gren
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
 var _flashlight_detection: FlashlightDetectionComponent = null  ## [Issue #574] Flashlight detection.
+var _enemy_flashlight: EnemyFlashlightComponent = null  ## [Issue #824] Enemy flashlight for night mode.
+var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phase.
 var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (death animation).
 var _death_animation: Node = null  ## Death animation component reference.
 var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (Issue #377).
@@ -377,6 +366,7 @@ func _ready() -> void:
 	_setup_grenade_avoidance()
 	_setup_aggression_component()  # Issue #675
 	_setup_machete_component()  # Issue #579
+	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
 	# Store original collision layers for HitArea (to restore on respawn)
@@ -413,9 +403,12 @@ func _ready() -> void:
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 
-## Issue #650: Clean up group search coordinator when enemy is removed from tree.
+## Issue #650: Clean up when enemy leaves scene tree (scene change or queue_free).
+## _unregister_sound_listener() must be called here because _die() is NOT called on scene change.
+## Without this, SoundPropagation._listeners grows unboundedly across scene loads, causing crashes.
 func _exit_tree() -> void:
 	_unregister_from_group_search()
+	_unregister_sound_listener()  # Issue #650 fix #9
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -646,53 +639,34 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 				# If no cover available, stay in current state but with cleared vulnerability flags
 		return
 
-	# Handle gunshot sounds (sound_type 0 = GUNSHOT)
-	if sound_type != 0:
+	# Issue #805: Handle GUNSHOT (0) and EXPLOSION (1) sounds - both alert enemies similarly
+	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state:
-	# - IDLE: Always react to loud sounds
-	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
+	# React based on current state (same for gunshots and explosions)
 	var should_react := false
 	if _current_state == AIState.IDLE:
-		# In IDLE state, always investigate sounds above minimal threshold
 		should_react = intensity >= 0.01
 	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-		# In tactical movement states, react to loud nearby sounds
 		should_react = intensity >= 0.3
-	else:
-		# In combat-related states, only react to very loud sounds
-		# This prevents enemies from being distracted during active combat
-		should_react = false
 	if not should_react:
 		return
 
-	# React to sounds: transition to combat mode to investigate
-	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
-		intensity,
-		distance,
-		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
-		position
-	])
-	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
-		position, source_type, intensity, distance
-	])
+	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
+	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
+	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
-	# Issue #363: Track gunshots for sustained fire detection (Trigger 5)
-	_on_gunshot_heard_for_grenade(position)
+	# Issue #363: Track gunshots for sustained fire detection (only for actual gunshots)
+	if sound_type == 0:
+		_on_gunshot_heard_for_grenade(position)
 
-	# Store the position of the sound as a point of interest
-	# The enemy will investigate this location
 	_last_known_player_position = position
-
-	# Update memory system with sound-based detection (Issue #297)
 	if _memory:
 		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
-	if source_type == 0 and _prediction and source_node and is_instance_valid(source_node):  # [#298] shot dir
+	if sound_type == 0 and source_type == 0 and _prediction and source_node and is_instance_valid(source_node):
 		var sd := (position - source_node.global_position).normalized()
 		_prediction.record_player_shot(sd)
 		_memory.update_shot_direction(sd)
-	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
 
 ## Initialize GOAP world state.
@@ -3829,7 +3803,7 @@ func _aim_at_player() -> void:
 	else:
 		rotation -= rotation_speed * delta
 
-## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
+## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
@@ -3838,7 +3812,13 @@ func _shoot() -> void:
 	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
 	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
 	if not _agg and not _should_shoot_at_target(target_position): return
+	if _enemy_flashlight:  # Issue #824/#825: block shooting while flashlight flash is in progress
+		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))
+		return  # Callback fires the shot after flash completes
+	_execute_shoot(target_position)
 
+func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
+	_is_pre_attack_flashing = false
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
@@ -3874,20 +3854,22 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
-func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
-	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
-	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
-	if p.has_method("SetDirection"): p.SetDirection(direction)
-	elif p.get("direction") != null: p.direction = direction
-	elif p.get("Direction") != null: p.Direction = direction
-	var sid := get_instance_id()
+## Spawn projectile. Pool first (Issue #724), fallback instantiate (Issue #516, #550).
+func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
+	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pm and pm.has_method("get_bullet"):
+		var p = pm.get_bullet()
+		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
+	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
+	if p.has_method("SetDirection"): p.SetDirection(dir)
+	elif p.get("direction") != null: p.direction = dir
+	elif p.get("Direction") != null: p.Direction = dir
 	if p.has_method("SetShooterId"): p.SetShooterId(sid)
 	elif p.get("shooter_id") != null: p.shooter_id = sid
 	elif p.get("ShooterId") != null: p.ShooterId = sid
-	if p.has_method("SetShooterPosition"): p.SetShooterPosition(spawn_pos)
-	elif p.get("shooter_position") != null: p.shooter_position = spawn_pos
-	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
+	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
+	elif p.get("shooter_position") != null: p.shooter_position = pos
+	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
@@ -4907,13 +4889,19 @@ func _update_grenade_world_state() -> void:
 	_goap_world_state["grenades_remaining"] = _grenade_component.grenades_remaining
 	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = is_grenadier and rdy
 
-## Attempt to throw a grenade. Returns true if throw was initiated.
+## Attempt to throw a grenade (Issue #824: night mode flash). Returns true if throw initiated.
 func try_throw_grenade() -> bool:
 	if _grenade_component == null: return false
 	var mem_pos := _memory.suspected_position if _memory and _memory.has_target() else _last_known_player_position
 	var tgt := _grenade_component.get_target(_can_see_player, _under_fire, _current_health, _player, _last_known_player_position, mem_pos)
 	if tgt == Vector2.ZERO: return false
-	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
+	if _enemy_flashlight:  # Issue #824/#825: block throw while flashlight flash is in progress
+		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(tgt, _execute_grenade_throw.bind(tgt))
+		return true  # Callback fires the throw after flash completes
+	return _execute_grenade_throw(tgt)
+
+func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
+	_is_pre_attack_flashing = false; var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
 	if result: grenade_thrown.emit(null, tgt)
 	return result
 
@@ -4976,6 +4964,10 @@ func _setup_machete_component() -> void:
 	_machete.configure_from_weapon_config(WeaponConfigComponent.get_config(weapon_type)); add_child(_machete)
 	_current_ammo = 0; _reserve_ammo = 0; _is_reloading = false
 	full_health_color = Color(0.7, 0.15, 0.15, 1.0); _update_health_visual()
+
+## Setup enemy flashlight for night mode (Issue #824).
+func _setup_enemy_flashlight() -> void:
+	_enemy_flashlight = EnemyFlashlightComponent.new(); _enemy_flashlight.debug_logging = debug_logging; add_child(_enemy_flashlight)
 
 ## Apply machete attack animation to weapon mount and arms (Issue #595).
 func _apply_machete_attack_animation() -> void:

@@ -122,4 +122,12 @@ public partial class WeaponData : Resource
     /// </summary>
     [Export]
     public Resource? Caliber { get; set; }
+
+    /// <summary>
+    /// Whether bullets from this weapon penetrate through enemies (Issue #829).
+    /// When true, bullets deal damage to enemies but continue flying through them.
+    /// Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+    /// </summary>
+    [Export]
+    public bool PenetratesEnemies { get; set; } = false;
 }

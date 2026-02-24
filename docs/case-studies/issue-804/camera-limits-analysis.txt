@@ -1,0 +1,46 @@
+CAMERA LIMITS ANALYSIS
+======================
+
+Issue: Player spawns at bottom of Docks map where camera cannot reach
+
+TECHNICAL FINDINGS:
+------------------
+
+1. Docks Map Dimensions (from DocksLevel.tscn):
+   - Width: ~5128 pixels (0 to 5128)
+   - Height: ~4128 pixels (0 to 4128)
+   - Navigation area: 64 to 5064 (width), 64 to 4064 (height)
+
+2. Player Spawn Position (line 892 in DocksLevel.tscn):
+   - Position: Vector2(200, 3900)
+   - This is near the bottom of the map
+
+3. Camera Limits (from scenes/characters/csharp/Player.tscn, lines 68-72):
+   - limit_left = 0
+   - limit_top = 0
+   - limit_right = 4128
+   - limit_bottom = 3088
+
+4. The Problem:
+   - Player spawns at Y = 3900
+   - Camera can only reach Y = 3088
+   - Gap: 3900 - 3088 = 812 pixels
+   - Player spawns 812 pixels BELOW the camera's maximum view range!
+   - This makes the player invisible at spawn
+
+5. Additional Issues:
+   - Camera limit_right = 4128, but map extends to 5128 (1000 pixels short)
+   - Camera limit_bottom = 3088, but map extends to 4128 (1040 pixels short)
+
+ROOT CAUSE:
+-----------
+The camera limits in Player.tscn are hardcoded for smaller maps (approximately 4128x3088).
+The Docks map is much larger (5128x4128), but the camera wasn't updated to support it.
+
+SOLUTION:
+---------
+Update camera limits in Player.tscn to accommodate the full Docks map:
+- limit_right should be at least 5128
+- limit_bottom should be at least 4128
+
+This will allow the camera to follow the player across the entire Docks map.
