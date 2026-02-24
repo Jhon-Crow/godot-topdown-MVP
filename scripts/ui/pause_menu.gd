@@ -14,6 +14,7 @@ extends CanvasLayer
 @onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
 @onready var armory_button: Button = $MenuContainer/VBoxContainer/ArmoryButton
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
+@onready var training_button: Button = $MenuContainer/VBoxContainer/TrainingButton
 @onready var experimental_button: Button = $MenuContainer/VBoxContainer/ExperimentalButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
@@ -56,6 +57,7 @@ func _ready() -> void:
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
 	armory_button.pressed.connect(_on_armory_pressed)
 	levels_button.pressed.connect(_on_levels_pressed)
+	training_button.pressed.connect(_on_training_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
@@ -278,6 +280,22 @@ func _on_experimental_back() -> void:
 		_experimental_menu.hide()
 	menu_container.show()
 	experimental_button.grab_focus()
+
+
+func _on_training_pressed() -> void:
+	# Load the tutorial level directly
+	get_tree().paused = false
+	# Restore hidden cursor for gameplay (confined and hidden)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	# Load the tutorial level
+	var tutorial_path: String = "res://scenes/levels/csharp/TestTier.tscn"
+	var error := get_tree().change_scene_to_file(tutorial_path)
+	if error != OK:
+		push_error("Failed to load tutorial level: %s" % error)
+		# Re-pause and show cursor if error occurs
+		get_tree().paused = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
 func _on_quit_pressed() -> void:

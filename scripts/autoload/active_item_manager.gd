@@ -20,6 +20,20 @@ enum ActiveItemType {
 ## No active item is selected by default.
 var current_active_item: int = ActiveItemType.NONE
 
+## Unlocked active items tracking.
+## By default, all active items are locked for debugging purposes.
+## Active items can be unlocked by holding LMB on their case in the armory menu.
+## NONE is always unlocked (it's not a real item).
+var unlocked_active_items: Dictionary = {
+	ActiveItemType.NONE: true,
+	ActiveItemType.FLASHLIGHT: false,
+	ActiveItemType.HOMING_BULLETS: false,
+	ActiveItemType.TELEPORT_BRACERS: false,
+	ActiveItemType.INVISIBILITY_SUIT: false,
+	ActiveItemType.BREAKER_BULLETS: false,
+	ActiveItemType.FORCE_FIELD: false
+}
+
 ## Active item data for UI and selection.
 const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.NONE: {
@@ -65,6 +79,9 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
+
+## Signal emitted when an active item is unlocked.
+signal active_item_unlocked(item_type: int)
 
 
 ## Set the current active item type.
@@ -171,3 +188,26 @@ func has_breaker_bullets() -> bool:
 ## Check if force field is currently equipped (Issue #676).
 func has_force_field() -> bool:
 	return current_active_item == ActiveItemType.FORCE_FIELD
+
+
+## Check if an active item type is unlocked.
+## @param item_type: The active item type to check.
+## @return: true if the item is unlocked, false otherwise.
+func is_active_item_unlocked(item_type: int) -> bool:
+	return unlocked_active_items.get(item_type, false)
+
+
+## Unlock an active item type.
+## @param item_type: The active item type to unlock.
+func unlock_active_item(item_type: int) -> void:
+	if item_type in unlocked_active_items:
+		if not unlocked_active_items[item_type]:
+			unlocked_active_items[item_type] = true
+			active_item_unlocked.emit(item_type)
+			FileLogger.info("[ActiveItemManager] Active item unlocked: %s" % get_active_item_name(item_type))
+
+
+## Get all unlocked active items.
+## @return: Dictionary of item_type -> bool pairs.
+func get_unlocked_active_items() -> Dictionary:
+	return unlocked_active_items

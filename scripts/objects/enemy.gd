@@ -659,53 +659,34 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 				# If no cover available, stay in current state but with cleared vulnerability flags
 		return
 
-	# Handle gunshot sounds (sound_type 0 = GUNSHOT)
-	if sound_type != 0:
+	# Issue #805: Handle GUNSHOT (0) and EXPLOSION (1) sounds - both alert enemies similarly
+	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state:
-	# - IDLE: Always react to loud sounds
-	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
+	# React based on current state (same for gunshots and explosions)
 	var should_react := false
 	if _current_state == AIState.IDLE:
-		# In IDLE state, always investigate sounds above minimal threshold
 		should_react = intensity >= 0.01
 	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-		# In tactical movement states, react to loud nearby sounds
 		should_react = intensity >= 0.3
-	else:
-		# In combat-related states, only react to very loud sounds
-		# This prevents enemies from being distracted during active combat
-		should_react = false
 	if not should_react:
 		return
 
-	# React to sounds: transition to combat mode to investigate
-	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
-		intensity,
-		distance,
-		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
-		position
-	])
-	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
-		position, source_type, intensity, distance
-	])
+	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
+	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
+	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
-	# Issue #363: Track gunshots for sustained fire detection (Trigger 5)
-	_on_gunshot_heard_for_grenade(position)
+	# Issue #363: Track gunshots for sustained fire detection (only for actual gunshots)
+	if sound_type == 0:
+		_on_gunshot_heard_for_grenade(position)
 
-	# Store the position of the sound as a point of interest
-	# The enemy will investigate this location
 	_last_known_player_position = position
-
-	# Update memory system with sound-based detection (Issue #297)
 	if _memory:
 		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
-	if source_type == 0 and _prediction and source_node and is_instance_valid(source_node):  # [#298] shot dir
+	if sound_type == 0 and source_type == 0 and _prediction and source_node and is_instance_valid(source_node):
 		var sd := (position - source_node.global_position).normalized()
 		_prediction.record_player_shot(sd)
 		_memory.update_shot_direction(sd)
-	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
 
 ## Initialize GOAP world state.
@@ -3872,20 +3853,22 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
-func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
-	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
-	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
-	if p.has_method("SetDirection"): p.SetDirection(direction)
-	elif p.get("direction") != null: p.direction = direction
-	elif p.get("Direction") != null: p.Direction = direction
-	var sid := get_instance_id()
+## Spawn projectile. Pool first (Issue #724), fallback instantiate (Issue #516, #550).
+func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
+	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pm and pm.has_method("get_bullet"):
+		var p = pm.get_bullet()
+		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
+	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
+	if p.has_method("SetDirection"): p.SetDirection(dir)
+	elif p.get("direction") != null: p.direction = dir
+	elif p.get("Direction") != null: p.Direction = dir
 	if p.has_method("SetShooterId"): p.SetShooterId(sid)
 	elif p.get("shooter_id") != null: p.shooter_id = sid
 	elif p.get("ShooterId") != null: p.ShooterId = sid
-	if p.has_method("SetShooterPosition"): p.SetShooterPosition(spawn_pos)
-	elif p.get("shooter_position") != null: p.shooter_position = spawn_pos
-	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
+	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
+	elif p.get("shooter_position") != null: p.shooter_position = pos
+	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:

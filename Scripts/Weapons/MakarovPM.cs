@@ -298,9 +298,14 @@ public partial class MakarovPM : BaseWeapon
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_pistol_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            GD.Print("[MakarovPM] Playing pistol empty click sound (Issue #840)");
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        }
+        else
+        {
+            GD.Print($"[MakarovPM] play_pistol_empty_click not available: audioManager={(audioManager != null ? "found" : "null")}, hasMethod={(audioManager?.HasMethod("play_pistol_empty_click") ?? false)}");
         }
     }
 
@@ -427,11 +432,13 @@ public partial class MakarovPM : BaseWeapon
         var bulletNode = BulletScene.Instantiate<Node2D>();
         bulletNode.GlobalPosition = spawnPosition;
 
-        // Try to cast to C# Bullet type for direct property access
+        // Set bullet properties BEFORE AddChild() so _ready() sees correct values.
+        // Issue #781: Node.Set() silently fails for non-@export GDScript properties.
         var bullet = bulletNode as Bullet;
 
         if (bullet != null)
         {
+            // C# Bullet: direct property assignment works before AddChild
             bullet.Direction = direction;
             if (WeaponData != null)
             {
@@ -448,48 +455,38 @@ public partial class MakarovPM : BaseWeapon
         }
         else
         {
-            // GDScript bullet fallback
-            if (bulletNode.HasMethod("SetDirection"))
-            {
-                bulletNode.Call("SetDirection", direction);
-            }
-            else
-            {
-                bulletNode.Set("Direction", direction);
-                bulletNode.Set("direction", direction);
-            }
-
+            // GDScript bullet: use Call() setter methods BEFORE AddChild() (Issue #781)
+            bulletNode.Call("set_direction", direction);
             if (WeaponData != null)
             {
-                bulletNode.Set("Speed", WeaponData.BulletSpeed);
-                bulletNode.Set("speed", WeaponData.BulletSpeed);
-                bulletNode.Set("Damage", WeaponData.Damage);
-                bulletNode.Set("damage", WeaponData.Damage);
+                bulletNode.Call("set_speed", WeaponData.BulletSpeed);
+                bulletNode.Call("set_damage", WeaponData.Damage);
             }
-
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("ShooterId", owner.GetInstanceId());
-                bulletNode.Set("shooter_id", owner.GetInstanceId());
+                bulletNode.Call("set_shooter_id", (long)owner.GetInstanceId());
             }
-
-            bulletNode.Set("ShooterPosition", GlobalPosition);
-            bulletNode.Set("shooter_position", GlobalPosition);
-            bulletNode.Set("StunDuration", StunDurationOnHit);
-            bulletNode.Set("stun_duration", StunDurationOnHit);
+            bulletNode.Call("set_shooter_position", GlobalPosition);
+            bulletNode.Call("set_stun_duration", StunDurationOnHit);
         }
 
-        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        // Set breaker bullet flag BEFORE AddChild() so _ready() loads shrapnel scene (Issue #678)
         if (IsBreakerBulletActive)
         {
-            bulletNode.Set("is_breaker_bullet", true);
+            if (bullet != null)
+            {
+                bullet.IsBreakerBullet = true;
+            }
+            else
+            {
+                bulletNode.Call("set_is_breaker_bullet", true);
+            }
         }
 
         GetTree().CurrentScene.AddChild(bulletNode);
 
-        // Enable homing on the bullet if the player's homing effect is active (Issue #704)
-        // When firing during activation, use aim-line targeting (nearest to crosshair)
+        // Enable homing AFTER AddChild() - requires scene tree for physics raycasts (Issue #704, #781)
         var weaponOwner = GetParent();
         if (weaponOwner is Player player && player.IsHomingActive())
         {

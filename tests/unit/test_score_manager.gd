@@ -49,11 +49,16 @@ class MockScoreManager:
 	var _total_combat_time: float = 0.0
 	var _in_combat: bool = false
 	var _level_active: bool = false
+	var _custom_rank_thresholds: Dictionary = {}
 
 	# Mock accuracy values (since we don't have GameManager)
 	var mock_accuracy: float = 0.0
 	var mock_shots_fired: int = 0
 	var mock_hits_landed: int = 0
+
+
+	func set_rank_thresholds(thresholds: Dictionary) -> void:
+		_custom_rank_thresholds = thresholds
 
 
 	func start_level(total_enemies: int) -> void:
@@ -72,6 +77,7 @@ class MockScoreManager:
 		_total_combat_time = 0.0
 		_in_combat = false
 		_level_active = true
+		_custom_rank_thresholds = {}
 
 
 	func register_damage_taken(amount: int = 1) -> void:
@@ -207,19 +213,20 @@ class MockScoreManager:
 		if max_score <= 0:
 			return "F"
 
+		var thresholds: Dictionary = _custom_rank_thresholds if not _custom_rank_thresholds.is_empty() else RANK_THRESHOLDS
 		var score_ratio: float = float(score) / float(max_score)
 
-		if score_ratio >= RANK_THRESHOLDS["S"]:
+		if score_ratio >= thresholds["S"]:
 			return "S"
-		elif score_ratio >= RANK_THRESHOLDS["A+"]:
+		elif score_ratio >= thresholds["A+"]:
 			return "A+"
-		elif score_ratio >= RANK_THRESHOLDS["A"]:
+		elif score_ratio >= thresholds["A"]:
 			return "A"
-		elif score_ratio >= RANK_THRESHOLDS["B"]:
+		elif score_ratio >= thresholds["B"]:
 			return "B"
-		elif score_ratio >= RANK_THRESHOLDS["C"]:
+		elif score_ratio >= thresholds["C"]:
 			return "C"
-		elif score_ratio >= RANK_THRESHOLDS["D"]:
+		elif score_ratio >= thresholds["D"]:
 			return "D"
 		else:
 			return "F"
@@ -241,6 +248,7 @@ class MockScoreManager:
 		_total_combat_time = 0.0
 		_in_combat = false
 		_level_active = false
+		_custom_rank_thresholds = {}
 		mock_accuracy = 0.0
 		mock_shots_fired = 0
 		mock_hits_landed = 0
@@ -803,3 +811,112 @@ func test_terrible_run_scenario() -> void:
 	assert_eq(score_data.rank, "F", "Terrible run should get F rank")
 	assert_eq(score_data.time_bonus, 0, "No time bonus for slow run")
 	assert_false(score_data.special_kills_eligible, "Should not be eligible with low aggressiveness")
+
+
+# ============================================================================
+# Custom Rank Thresholds Tests (Issue #823 — Laboratory map)
+# ============================================================================
+
+
+func test_set_rank_thresholds_overrides_default() -> void:
+	# With default thresholds, 70% gives A
+	var default_rank := score_manager._calculate_rank(7000, 10000)
+	assert_eq(default_rank, "A", "Default: 70% should be A rank")
+
+	# After setting custom thresholds, 70% should give S
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+	var custom_rank := score_manager._calculate_rank(7000, 10000)
+	assert_eq(custom_rank, "S", "Custom thresholds: 70% should give S (was A)")
+
+
+func test_custom_thresholds_labyrinth_s_at_70_percent() -> void:
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+
+	var rank := score_manager._calculate_rank(7000, 10000)  # 70%
+	assert_eq(rank, "S", "Laboratory: 70% should give S rank (Issue #823)")
+
+
+func test_custom_thresholds_labyrinth_a_plus_at_55_percent() -> void:
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+
+	var rank := score_manager._calculate_rank(5500, 10000)  # 55%
+	assert_eq(rank, "A+", "Laboratory: 55% should give A+ rank (Issue #823)")
+
+
+func test_custom_thresholds_labyrinth_a_at_38_percent() -> void:
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+
+	var rank := score_manager._calculate_rank(3800, 10000)  # 38%
+	assert_eq(rank, "A", "Laboratory: 38% should give A rank (Issue #823)")
+
+
+func test_custom_thresholds_labyrinth_b_at_22_percent() -> void:
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+
+	var rank := score_manager._calculate_rank(2200, 10000)  # 22%
+	assert_eq(rank, "B", "Laboratory: 22% should give B rank (Issue #823)")
+
+
+func test_custom_thresholds_labyrinth_old_a_score_gives_s() -> void:
+	# Default thresholds: A requires 70%
+	var default_rank := score_manager._calculate_rank(7000, 10000)
+	assert_eq(default_rank, "A", "Default: 70% gives A")
+
+	# Laboratory thresholds: same 70% now gives S
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+	var lab_rank := score_manager._calculate_rank(7000, 10000)
+	assert_eq(lab_rank, "S", "Laboratory: score that used to give A now gives S (Issue #823)")
+
+
+func test_start_level_resets_custom_thresholds() -> void:
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+
+	# Confirm custom thresholds are active
+	var before := score_manager._calculate_rank(7000, 10000)
+	assert_eq(before, "S", "Custom thresholds active before start_level")
+
+	# start_level should reset thresholds back to defaults
+	score_manager.start_level(5)
+	var after := score_manager._calculate_rank(7000, 10000)
+	assert_eq(after, "A", "Default thresholds restored after start_level")
+
+
+func test_reset_clears_custom_thresholds() -> void:
+	score_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+
+	score_manager.reset()
+
+	var rank := score_manager._calculate_rank(7000, 10000)
+	assert_eq(rank, "A", "Default thresholds restored after reset()")
+
+
+func test_custom_thresholds_do_not_affect_other_levels() -> void:
+	# Simulate two level managers (one with custom thresholds, one without)
+	var lab_manager := MockScoreManager.new()
+	var default_manager := MockScoreManager.new()
+
+	lab_manager.set_rank_thresholds({
+		"S": 0.70, "A+": 0.55, "A": 0.38, "B": 0.22, "C": 0.12, "D": 0.06, "F": 0.0
+	})
+
+	var lab_rank := lab_manager._calculate_rank(7000, 10000)
+	var default_rank := default_manager._calculate_rank(7000, 10000)
+
+	assert_eq(lab_rank, "S", "Lab manager: 70% gives S")
+	assert_eq(default_rank, "A", "Default manager: 70% gives A")
