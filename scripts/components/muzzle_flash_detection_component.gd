@@ -161,13 +161,21 @@ func check_muzzle_flash(
 					print("[MuzzleFlashDetection] Flash outside FOV: %.1f° > %.1f°" % [angle_deg, enemy_fov_deg / 2.0])
 				continue  # Outside FOV
 
-		# Check line-of-sight to flash position (walls only)
+		# Check line-of-sight: first try direct LOS to barrel flash position,
+		# then fall back to player body area (ambient glow visible around cover).
+		# [Issue #754] Detect visual glow even when barrel is behind wall.
 		if raycast != null:
 			var has_los := _check_los_to_position(enemy_pos, f_pos, raycast)
 			if not has_los:
+				# Barrel not directly visible — check ambient glow near player body
+				var body_pos: Vector2 = f_pos - f_dir * 30.0
+				var has_glow_los := _check_los_to_position(enemy_pos, body_pos, raycast)
+				if not has_glow_los:
+					if debug_logging:
+						print("[MuzzleFlashDetection] No LOS to flash %s or body %s (wall blocked)" % [f_pos, body_pos])
+					continue
 				if debug_logging:
-					print("[MuzzleFlashDetection] No LOS to flash at %s (wall blocked)" % f_pos)
-				continue
+					print("[MuzzleFlashDetection] Barrel hidden, ambient glow visible at %s" % body_pos)
 
 		# Detection confirmed!
 		detected = true

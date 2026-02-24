@@ -1654,9 +1654,17 @@ func _process_in_cover_state(delta: float) -> void:
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
+	# [Issue #754] Shoot suppressive fire at muzzle flash when player hidden
+	elif _muzzle_flash_detection and _muzzle_flash_detection.detected and not _under_fire:
+		_aim_at_position(_muzzle_flash_detection.estimated_player_position)
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_shoot_suppressive_at(_muzzle_flash_detection.estimated_player_position)
+			_shoot_timer = 0.0
+			_log_to_file("[#754] IN_COVER: suppressive fire at estimated pos %s" % _muzzle_flash_detection.estimated_player_position)
+		return  # Stay in cover while suppressing
 
-	# If player is no longer visible and not under fire, try pursuing
-	if not _can_see_player and not _under_fire:
+	# If player is no longer visible, no muzzle flash, and not under fire, try pursuing
+	if not _can_see_player and not _under_fire and not (_muzzle_flash_detection and _muzzle_flash_detection.detected):
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
@@ -1765,6 +1773,13 @@ func _process_suppressed_state(delta: float) -> void:
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
+	# [Issue #754] Suppress at muzzle flash position when player not visible
+	elif _muzzle_flash_detection and _muzzle_flash_detection.detected:
+		_aim_at_position(_muzzle_flash_detection.estimated_player_position)
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_shoot_suppressive_at(_muzzle_flash_detection.estimated_player_position)
+			_shoot_timer = 0.0
+			_log_to_file("[#754] SUPPRESSED: suppressive fire at estimated pos %s" % _muzzle_flash_detection.estimated_player_position)
 
 	# If no longer under fire, exit suppression
 	if not _under_fire:
@@ -2313,64 +2328,10 @@ func _return_from_grenade_evasion() -> void:
 		AIState.SEARCHING: _transition_to_searching(global_position)
 		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
 
-## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
+## Shoot with reduced accuracy for retreat mode (delegates to _shoot_suppressive_at).
 func _shoot_with_inaccuracy() -> void:
-	if bullet_scene == null or _player == null:
-		return
-
-	if not _can_shoot():
-		return
-
-	var target_position := _player.global_position
-
-	# Check if the shot should be taken
-	if not _should_shoot_at_target(target_position):
-		return
-
-	# Calculate bullet spawn position at weapon muzzle first
-	var weapon_forward := _get_weapon_forward_direction()
-	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
-	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
-	var aim_dot := weapon_forward.dot(to_target)
-	if aim_dot < AIM_TOLERANCE_DOT:
-		if debug_logging:
-			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
-			_log_debug("INACCURATE SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
-		return
-
-	# Bullet direction is the weapon's forward direction (realistic barrel direction)
-	# with added inaccuracy spread for retreat shooting
-	var direction := weapon_forward
-
-	# Add inaccuracy spread to barrel direction
-	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD)
-	direction = direction.rotated(inaccuracy_angle)
-
-	# Check if the inaccurate shot direction would hit a wall
-	if not _is_bullet_spawn_clear(direction):
-		_log_debug("Inaccurate shot blocked: wall in path after rotation")
-		return
-
-	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #516, #550)
-	_spawn_projectile(direction, bullet_spawn_pos)
-	_spawn_muzzle_flash(bullet_spawn_pos, direction)
-	# Play sounds
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_m16_shot"):
-		audio_manager.play_m16_shot(global_position)
-	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
-		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
-	_play_delayed_shell_sound()
-	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
-	ammo_changed.emit(_current_ammo, _reserve_ammo)
-	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+	if _player == null or not _should_shoot_at_target(_player.global_position): return
+	_shoot_suppressive_at(_player.global_position)
 
 ## Shoot a burst shot with arc spread for ONE_HIT retreat.
 func _shoot_burst_shot() -> void:
@@ -3791,6 +3752,16 @@ func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 
 	return has_los
 
+## Aim the enemy toward a world position using gradual rotation (Issue #754).
+func _aim_at_position(pos: Vector2) -> void:
+	var dir := (pos - global_position).normalized()
+	var target_angle := dir.angle()
+	var angle_diff := wrapf(target_angle - rotation, -PI, PI)
+	var delta := get_physics_process_delta_time()
+	if abs(angle_diff) <= rotation_speed * delta: rotation = target_angle
+	elif angle_diff > 0: rotation += rotation_speed * delta
+	else: rotation -= rotation_speed * delta
+
 ## Aim the enemy sprite/direction at the player using gradual rotation.
 func _aim_at_player() -> void:
 	if _player == null:
@@ -3861,6 +3832,25 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 	_play_delayed_shell_sound()
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+
+## Shoot suppressive fire at an estimated position (Issue #754: muzzle flash response).
+## Uses inaccuracy spread since position is an estimate, not confirmed target.
+func _shoot_suppressive_at(target_pos: Vector2) -> void:
+	if bullet_scene == null or not _can_shoot(): return
+	var weapon_forward := _get_weapon_forward_direction()
+	var to_target := (target_pos - global_position).normalized()
+	if weapon_forward.dot(to_target) < AIM_TOLERANCE_DOT: return
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+	var direction := weapon_forward.rotated(randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD))
+	if not _is_bullet_spawn_clear(direction): return
+	_spawn_projectile(direction, bullet_spawn_pos); _spawn_muzzle_flash(bullet_spawn_pos, direction); _spawn_casing(direction, weapon_forward)
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	_play_delayed_shell_sound(); _current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
