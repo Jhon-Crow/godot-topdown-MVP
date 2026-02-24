@@ -653,6 +653,80 @@ See implementation notes in commit history for 2026-02-24.
 
 3. **Stagger `_deferred_search_init()` across enemies** — use static counter to limit to 1 deferred init per idle frame, preventing 80+ `map_get_closest_point()` calls in a single frame burst
 
+## Tenth Crash Report (2026-02-24) — SoundPropagation Stale Listener Accumulation
+
+### User Report
+
+After fix #8 was committed, user reported (in Russian): "вылетело при начале поиска. видимо проблема с оптимизацией." (crashed at search start, apparently an optimization problem). Crash log: `crash-logs/game_log_20260224_193005.txt`.
+
+### Log Analysis
+
+The log (823 lines) shows gameplay across **three scene loads**:
+
+| Time | Event |
+|------|-------|
+| 19:30:05 | LabyrinthLevel started (5 enemies) |
+| 19:30:13 | BuildingLevel started (10 enemies, 1st load) |
+| 19:30:18 | BuildingLevel started AGAIN (10 enemies, 2nd load — player died and respawned) |
+| 19:30:27 | LastChance effect ends: 3 enemies enter SEARCHING state |
+| 19:30:27 | All 3 complete deferred init: "Init complete (solo, waypoints=2/4/3)" |
+| 19:30:29 | **Log ends abruptly** — hard crash, no error message |
+
+**Critical finding:** SoundPropagation listener count accumulated across scene loads:
+
+```
+[19:30:06] Registered listener: Enemy1 (total: 1)  ← LabyrinthLevel (5 enemies)
+...
+[19:30:13] Registered listener: Enemy1 (total: 6)  ← BuildingLevel 1st load (+10)
+...
+[19:30:18] Registered listener: Enemy1 (total: 16) ← BuildingLevel 2nd load (+10)
+...
+[19:30:21] Sound emitted: ... listeners=25          ← 25 TOTAL (15 are stale/freed)
+[19:30:21] Cleaned up 15 invalid listeners          ← 15 stale references cleaned
+```
+
+### Root Cause Analysis
+
+**`SoundPropagation` is an autoload singleton** — its `_listeners` array persists across ALL scene changes. Enemies call `_unregister_sound_listener()` only inside `_on_death()`. But when a scene changes, enemies are freed via the scene tree (equivalent to `queue_free()`) **without `_on_death()` being called**.
+
+The `_exit_tree()` function in `enemy.gd` only called `_unregister_from_group_search()` — it did NOT call `_unregister_sound_listener()`.
+
+**Result:** After 3 scene loads (LabyrinthLevel + BuildingLevel×2), `SoundPropagation._listeners` had 25 entries: 5 from LabyrinthLevel + 10 from BuildingLevel 1st load + 10 from BuildingLevel 2nd load. 15 of those 25 listeners were stale (freed nodes).
+
+**Crash mechanism:** During the `emit_sound()` cleanup loop on line 152 of `sound_propagation.gd`:
+```gdscript
+_listeners = _listeners.filter(func(l): return is_instance_valid(l))
+```
+This is called during the CASING_KICK burst (13 rapid sound emissions in <2 seconds) while `LastChance` is simultaneously restoring process modes for all 40+ nodes. The combination of high-frequency `is_instance_valid()` calls on 25 listeners simultaneously with the node process mode changes creates a race condition in Godot 4.3's object validity tracking.
+
+**Confirmation:** Fix #8 (NavigationServer2D raycast + GOAP throttle + staggered init) held — the crash log shows NO NavigationServer2D errors. The crash pattern is completely different: happening AFTER deferred init succeeds, during sound propagation, not during navigation.
+
+### Fix Applied (Fix #9)
+
+Added `_unregister_sound_listener()` to `_exit_tree()` in `enemy.gd`:
+
+```gdscript
+func _exit_tree() -> void:
+    _unregister_from_group_search()  # Issue #650: Group search coordinator cleanup
+    _unregister_sound_listener()     # Issue #650 fix #9: prevent stale listener accumulation
+```
+
+This ensures that when ANY enemy leaves the scene tree (for any reason — scene change, `queue_free()`, level restart), it is immediately unregistered from `SoundPropagation`. This prevents the listener count from growing unboundedly across scene loads.
+
+### Updated Fix Summary
+
+| Fix # | Root Cause | Solution |
+|-------|-----------|----------|
+| 1 | Missing coordinator cleanup on state transitions | Added `_unregister_from_group_search()` to all 10 transitions |
+| 2 | Double `move_and_slide()` + no navigation deferral | Removed inline `move_and_slide()`, added 2-frame init delay |
+| 3 | `instance_from_id()` crash during physics | Replaced with WeakRef + deferred coordinator setup |
+| 4 | `_generate_search_waypoints()` during physics | Deferred all waypoint generation to idle frames |
+| 5 | NavigationAgent2D avoidance + repeated target_position | Disabled avoidance, cached nav target, deferred regen |
+| 6 | `get_next_path_position()` called every frame during movement | Direct movement — zero NavigationServer2D calls in SEARCHING handler |
+| 7 | `_update_goap_state()` calls `is_next_waypoint_lit()` every frame for ALL states | Skip flashlight waypoint check during SEARCHING |
+| 8 | Godot 4.3 RWLock race in `map_get_closest_point()` + concurrent init bursts | Raycast-based navigability + throttled GOAP + staggered deferred inits |
+| **9** | **`SoundPropagation._listeners` grows unboundedly across scene loads** | **Added `_unregister_sound_listener()` to `_exit_tree()`** |
+
 ### References
 
 - [Godot #101318: Race condition in NavigationServer3D](https://github.com/godotengine/godot/issues/101318) — **KEY: deadlock in Godot 4.3 fixed in 4.3.1**
