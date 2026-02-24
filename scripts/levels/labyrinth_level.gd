@@ -62,6 +62,19 @@ const SATURATION_DURATION: float = 0.15
 ## Saturation effect intensity (alpha).
 const SATURATION_INTENSITY: float = 0.25
 
+## Laboratory-specific rank thresholds (Issue #823).
+## Shifted one step down from the default so that the old A score now gives S.
+## S=70% (was A), A+=55% (was B), A=38% (was C), B=22% (was D), C=12%, D=6%, F=0%.
+const LABYRINTH_RANK_THRESHOLDS: Dictionary = {
+	"S": 0.70,
+	"A+": 0.55,
+	"A": 0.38,
+	"B": 0.22,
+	"C": 0.12,
+	"D": 0.06,
+	"F": 0.0
+}
+
 ## List of enemy nodes for position tracking.
 var _enemies: Array = []
 
@@ -184,6 +197,11 @@ func _initialize_score_manager() -> void:
 		return
 
 	score_manager.start_level(_initial_enemy_count)
+
+	# Apply Laboratory-specific rank thresholds (Issue #823):
+	# the score that used to give A now gives S, all other ranks shift accordingly.
+	if score_manager.has_method("set_rank_thresholds"):
+		score_manager.set_rank_thresholds(LABYRINTH_RANK_THRESHOLDS)
 
 	if _player:
 		score_manager.set_player(_player)
