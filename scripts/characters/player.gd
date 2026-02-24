@@ -216,8 +216,16 @@ var _homing_timer: float = 0.0
 ## Path to the homing bullets activation sound.
 const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
 
+## Path to the homing bullets scanner looping ambient sound (Issue #890).
+## Plays quietly in a loop while the Homing Bullets item is equipped and active.
+const HOMING_SCANNER_LOOP_PATH: String = "res://assets/audio/homing_scanner_loop.wav"
+
 ## AudioStreamPlayer for homing activation sound.
 var _homing_audio_player: AudioStreamPlayer = null
+
+## AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+## Loops while homing bullets item is equipped (always-on ambient scanner).
+var _homing_scanner_player: AudioStreamPlayer = null
 
 
 func _ready() -> void:
@@ -3069,6 +3077,7 @@ func get_max_homing_charges() -> int:
 
 
 ## Set up the audio player for homing activation sound.
+## Also sets up the looping scanner ambient sound (Issue #890).
 func _setup_homing_audio() -> void:
 	if ResourceLoader.exists(HOMING_SOUND_PATH):
 		var stream = load(HOMING_SOUND_PATH)
@@ -3080,6 +3089,24 @@ func _setup_homing_audio() -> void:
 			FileLogger.info("[Player.Homing] Homing activation sound loaded")
 	else:
 		FileLogger.info("[Player.Homing] Homing activation sound not found: %s" % HOMING_SOUND_PATH)
+
+	# Set up the looping scanner ambient sound (Issue #890).
+	# This sound plays continuously while the Homing Bullets item is equipped.
+	if ResourceLoader.exists(HOMING_SCANNER_LOOP_PATH):
+		var scanner_stream = load(HOMING_SCANNER_LOOP_PATH)
+		if scanner_stream and scanner_stream is AudioStreamWAV:
+			# Enable seamless looping on the WAV stream.
+			scanner_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			_homing_scanner_player = AudioStreamPlayer.new()
+			_homing_scanner_player.stream = scanner_stream
+			# Very quiet: scanner is an ambient hint, not a dominant sound.
+			_homing_scanner_player.volume_db = -18.0
+			add_child(_homing_scanner_player)
+			# Start looping immediately when the item is equipped.
+			_homing_scanner_player.play()
+			FileLogger.info("[Player.Homing] Homing scanner loop started (Issue #890)")
+	else:
+		FileLogger.info("[Player.Homing] Homing scanner loop sound not found: %s" % HOMING_SCANNER_LOOP_PATH)
 
 
 ## Play the homing activation sound.
