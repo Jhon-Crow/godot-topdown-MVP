@@ -722,9 +722,20 @@ public partial class Player : BaseCharacter
     private const string HomingSoundPath = "res://assets/audio/homing_activation.wav";
 
     /// <summary>
+    /// Path to the homing bullets scanner looping ambient sound (Issue #890).
+    /// </summary>
+    private const string HomingScannerLoopPath = "res://assets/audio/homing_scanner_loop.wav";
+
+    /// <summary>
     /// AudioStreamPlayer for homing activation sound.
     /// </summary>
     private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+    /// Loops while homing bullets item is equipped (always-on ambient scanner).
+    /// </summary>
+    private AudioStreamPlayer? _homingScannerPlayer = null;
 
     /// <summary>
     /// Signal emitted when homing charges change.
@@ -4716,7 +4727,7 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Set up the audio player for homing activation sound.
+    /// Set up the audio players for homing activation sound and scanner loop (Issue #890).
     /// </summary>
     private void SetupHomingAudio()
     {
@@ -4735,6 +4746,27 @@ public partial class Player : BaseCharacter
         else
         {
             LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
+        }
+
+        // Set up the looping scanner ambient sound (Issue #890).
+        if (ResourceLoader.Exists(HomingScannerLoopPath))
+        {
+            var scannerStream = GD.Load<AudioStreamWav>(HomingScannerLoopPath);
+            if (scannerStream != null)
+            {
+                scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
+                _homingScannerPlayer = new AudioStreamPlayer();
+                _homingScannerPlayer.Stream = scannerStream;
+                // Very quiet: scanner is an ambient hint, not a dominant sound.
+                _homingScannerPlayer.VolumeDb = -18.0f;
+                AddChild(_homingScannerPlayer);
+                _homingScannerPlayer.Play();
+                LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing scanner loop sound not found: {HomingScannerLoopPath}");
         }
     }
 

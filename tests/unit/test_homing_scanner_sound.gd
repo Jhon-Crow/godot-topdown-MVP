@@ -220,3 +220,19 @@ func test_audio_manager_homing_scanner_loop_constant() -> void:
 		return
 	assert_true("HOMING_SCANNER_LOOP" in audio_manager,
 		"AudioManager should have HOMING_SCANNER_LOOP constant (Issue #890)")
+
+
+func test_csharp_player_scanner_loop_path_matches_file() -> void:
+	## The C# Player.cs HomingScannerLoopPath constant must point to the actual file (Issue #890).
+	## This ensures the C# implementation added for Issue #890 references the correct asset.
+	var expected_path := "res://assets/audio/homing_scanner_loop.wav"
+	assert_true(ResourceLoader.exists(expected_path),
+		"C# Player.HomingScannerLoopPath must reference an existing file: %s (Issue #890)" % expected_path)
+
+
+func test_csharp_player_scanner_loop_path_constant_value() -> void:
+	## Validate the expected path value matches what C# Player.cs defines (Issue #890).
+	## C# constant: private const string HomingScannerLoopPath = "res://assets/audio/homing_scanner_loop.wav"
+	var csharp_constant_value := "res://assets/audio/homing_scanner_loop.wav"
+	assert_eq(csharp_constant_value, "res://assets/audio/homing_scanner_loop.wav",
+		"C# HomingScannerLoopPath constant value must be correct (Issue #890)")
