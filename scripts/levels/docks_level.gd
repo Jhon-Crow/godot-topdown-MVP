@@ -909,9 +909,15 @@ func _on_next_level_pressed(level_path: String) -> void:
 func _on_level_select_pressed() -> void:
 	_log_to_file("Level Select button pressed")
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-	var error := get_tree().change_scene_to_file("res://scenes/ui/LevelsMenu.tscn")
-	if error != OK:
-		_log_to_file("ERROR: Failed to load level select")
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100
+		get_tree().root.add_child(levels_menu)
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load levels menu script")
 
 
 func _setup_selected_weapon() -> void:
