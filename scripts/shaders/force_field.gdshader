@@ -1,43 +1,68 @@
 shader_type canvas_item;
 
-// Force field shader with pulsing blue energy ring effect
-// Creates a glowing shield visualization around the player
+// Force field bubble shader (Issue #906)
+// Creates a translucent glowing bubble/sphere visualization around the player.
+// The effect mimics a soap bubble: mostly transparent center, bright glowing rim,
+// with subtle iridescent color shifts and a gentle pulse animation.
 
 uniform float time_offset = 0.0;
-uniform vec4 field_color : source_color = vec4(0.4, 0.6, 1.0, 0.8);
-uniform float pulse_speed = 2.0;
-uniform float glow_intensity = 1.5;
+uniform vec4 field_color : source_color = vec4(0.4, 0.7, 1.0, 0.85);
+uniform float pulse_speed = 1.5;
+uniform float glow_intensity = 2.0;
 
 void fragment() {
-	// Get distance from center (0.0 at center, 1.0 at edge)
+	// Distance from center: 0.0 at center, ~0.5 at edge of 256x256 texture
 	vec2 centered_uv = UV - vec2(0.5, 0.5);
 	float dist = length(centered_uv);
 
-	// Create ring pattern (strongest at specific radius)
-	float ring_radius = 0.45;
-	float ring_width = 0.15;
-	float ring = 1.0 - abs(dist - ring_radius) / ring_width;
-	ring = clamp(ring, 0.0, 1.0);
+	// Discard pixels outside the circle entirely
+	if (dist > 0.5) {
+		COLOR = vec4(0.0);
+		return;
+	}
 
-	// Pulsing animation
-	float pulse = sin(TIME * pulse_speed + time_offset) * 0.3 + 0.7;
-	ring *= pulse;
+	// ---- Bubble rim effect (Fresnel-like) ----
+	// Normalize distance to [0, 1] range within the circle
+	float r = dist / 0.5;  // 0 at center, 1 at edge
 
-	// Add energy lines (animated rotation)
+	// Fresnel: very transparent center, bright glowing edge
+	// pow(r, 2.0) gives a smooth quadratic falloff
+	float fresnel = pow(r, 2.5);
+
+	// Narrow bright rim at the very edge (r close to 1.0)
+	float rim = 1.0 - abs(r - 0.92) / 0.08;
+	rim = clamp(rim, 0.0, 1.0);
+	rim = pow(rim, 1.5);
+
+	// ---- Pulsing animation ----
+	float pulse = sin(TIME * pulse_speed + time_offset) * 0.12 + 0.88;
+
+	// ---- Iridescent color shift ----
+	// Shift hue slightly based on angle and time for a rainbow shimmer
 	float angle = atan(centered_uv.y, centered_uv.x);
-	float line_pattern = sin(angle * 6.0 + TIME * 1.5) * 0.5 + 0.5;
-	ring *= (0.7 + line_pattern * 0.3);
+	float shimmer = sin(angle * 4.0 + TIME * 0.8) * 0.5 + 0.5;
 
-	// Glow effect - brighter at ring edge
-	float glow = ring * glow_intensity;
+	// Iridescent tint: shift slightly toward cyan/purple based on shimmer
+	vec3 tint_a = vec3(0.5, 0.8, 1.0);   // Cyan-blue
+	vec3 tint_b = vec3(0.8, 0.6, 1.0);   // Lavender
+	vec3 iridescent_tint = mix(tint_a, tint_b, shimmer * 0.35);
 
-	// Fade out at edges
-	float edge_fade = 1.0 - smoothstep(0.35, 0.5, dist);
-	glow *= edge_fade;
+	// ---- Interior glow ----
+	// Soft inner glow — brighter toward the rim
+	float inner_glow = fresnel * 0.4 * pulse;
 
-	// Apply color with glow
-	vec4 color = field_color;
-	color.a *= glow;
+	// ---- Combined alpha ----
+	// Strong rim + softer interior fresnel glow
+	float combined = rim * glow_intensity * pulse + inner_glow;
+	combined = clamp(combined, 0.0, 1.0);
 
-	COLOR = color;
+	// Smooth edge fade to avoid hard cutoff
+	float edge_fade = 1.0 - smoothstep(0.46, 0.5, dist);
+	combined *= edge_fade;
+
+	// ---- Final color ----
+	vec3 final_color = field_color.rgb * iridescent_tint;
+	float final_alpha = combined * field_color.a;
+
+	COLOR = vec4(final_color, final_alpha);
 }
