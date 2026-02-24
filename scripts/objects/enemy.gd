@@ -106,6 +106,13 @@ signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade throw
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
 
+## Issue #910: Fan/spread angle (radians) when firing suppressive rounds at invisible player's sound source.
+const INVISIBLE_PLAYER_FAN_SPREAD: float = 0.5  ## ~28.6° half-angle spread
+## Issue #910: Maximum range (px) to fire suppressive shots toward invisible player's last known position.
+const INVISIBLE_PLAYER_SUPPRESSIVE_RANGE: float = 600.0
+## Issue #910: Aim tolerance (dot product) for suppressive fire — wider than normal (cos ~60°).
+const SUPPRESSIVE_AIM_TOLERANCE_DOT: float = 0.5
+
 @onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
 @onready var _body_sprite: Sprite2D = $EnemyModel/Body  ## Body sprite
 @onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
@@ -293,6 +300,8 @@ const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
 var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
+## Issue #910: Shooting suppressive fire toward invisible player's last known sound position.
+var _suppressing_invisible_player: bool = false
 
 ## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 var _memory: EnemyMemory = null
@@ -1664,7 +1673,20 @@ func _process_in_cover_state(delta: float) -> void:
 			_shoot_timer = 0.0
 
 	# If player is no longer visible and not under fire, try pursuing
+	# Issue #910: Unless player is invisible — in that case, fire suppressive rounds from cover
 	if not _can_see_player and not _under_fire:
+		# Issue #910: If player is invisible and we know their sound position, suppress from cover
+		var player_is_invisible := _player != null and _player.has_method("is_invisible") and _player.is_invisible()
+		if player_is_invisible and _last_known_player_position != Vector2.ZERO and not _is_melee_weapon:
+			var dist_to_sound := global_position.distance_to(_last_known_player_position)
+			if dist_to_sound <= INVISIBLE_PLAYER_SUPPRESSIVE_RANGE and not _is_reloading:
+				# Suppress from cover toward sound position (fan fire)
+				if _shoot_timer >= shoot_cooldown:
+					_shoot_suppressive_at(_last_known_player_position)
+					_shoot_timer = 0.0
+				# Do NOT pursue yet - stay in cover and suppress
+				return
+		# Player is visible, not invisible, or out of suppression range: pursue
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
@@ -1945,6 +1967,22 @@ func _process_pursuing_state(delta: float) -> void:
 			_pursuing_vulnerability_sound = false
 			_transition_to_combat()
 			return
+
+	# Issue #910: INVISIBLE PLAYER SUPPRESSIVE FIRE
+	# When the player is invisible but we heard their gunshot, fire suppressive rounds
+	# in a fan pattern toward the sound position while continuing to pursue cover-to-cover.
+	if not _can_see_player and _last_known_player_position != Vector2.ZERO and not _is_melee_weapon:
+		if _player and _player.has_method("is_invisible") and _player.is_invisible():
+			var dist_to_sound := global_position.distance_to(_last_known_player_position)
+			if dist_to_sound <= INVISIBLE_PLAYER_SUPPRESSIVE_RANGE and not _is_reloading:
+				if _shoot_timer >= shoot_cooldown:
+					_shoot_suppressive_at(_last_known_player_position)
+					_shoot_timer = 0.0
+				_suppressing_invisible_player = true
+			else:
+				_suppressing_invisible_player = false
+		else:
+			_suppressing_invisible_player = false
 
 	# VULNERABILITY SOUND PURSUIT: When we heard a reload/empty click sound,
 	# move directly toward the sound position using navigation (goes around walls).
@@ -2448,6 +2486,7 @@ func _transition_to_idle() -> void:
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
 	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
+	_suppressing_invisible_player = false  # Issue #910
 
 ## Transition to COMBAT state.
 func _transition_to_combat() -> void:
@@ -2460,6 +2499,7 @@ func _transition_to_combat() -> void:
 	# Issue #409: Clear witnessed ally death flag when engaging player
 	_witnessed_ally_death = false; _suspected_directions.clear()
 	_pursuing_vulnerability_sound = false
+	_suppressing_invisible_player = false  # Issue #910
 
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
@@ -3733,6 +3773,7 @@ func reset_memory() -> void:
 	_continuous_visibility_timer = 0.0
 	_intel_share_timer = 0.0
 	_pursuing_vulnerability_sound = false
+	_suppressing_invisible_player = false  # Issue #910
 	_memory_reset_confusion_timer = MEMORY_RESET_CONFUSION_DURATION
 	if _prediction: _prediction.reset()  # [#298]
 	_log_to_file("Memory reset: confusion=%.1fs, had_target=%s" % [MEMORY_RESET_CONFUSION_DURATION, had_target])
@@ -3811,6 +3852,61 @@ func _aim_at_player() -> void:
 		rotation += rotation_speed * delta
 	else:
 		rotation -= rotation_speed * delta
+
+## Issue #910: Aim at an arbitrary world position (not the player directly).
+## Used for suppressive fire toward the invisible player's last known sound position.
+func _aim_at_position(pos: Vector2) -> void:
+	var direction := (pos - global_position).normalized()
+	var target_angle := direction.angle()
+	var angle_diff := wrapf(target_angle - rotation, -PI, PI)
+	var delta := get_physics_process_delta_time()
+	if abs(angle_diff) <= rotation_speed * delta:
+		rotation = target_angle
+	elif angle_diff > 0:
+		rotation += rotation_speed * delta
+	else:
+		rotation -= rotation_speed * delta
+
+## Issue #910: Fire suppressive rounds in a fan pattern toward an estimated position.
+## Used when the player is invisible but we heard their gunshot from this position.
+## Fires directly toward the sound source with wide random spread, simulating
+## "shooting toward sound" uncertainty. Does NOT require the weapon model to be
+## pre-aimed — direction is calculated from enemy position to target position.
+func _shoot_suppressive_at(target_pos: Vector2) -> void:
+	if bullet_scene == null:
+		return
+	if not _can_shoot():
+		return
+	# Direction from enemy center toward the sound/target position
+	var to_target := (target_pos - global_position).normalized()
+	if to_target == Vector2.ZERO:
+		return
+	# Apply random fan spread around the target direction
+	var fan_angle := randf_range(-INVISIBLE_PLAYER_FAN_SPREAD, INVISIBLE_PLAYER_FAN_SPREAD)
+	var direction := to_target.rotated(fan_angle)
+	# Use weapon forward for spawn position (visual accuracy), but fire toward sound direction
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+	# Check bullet spawn is clear in the firing direction (no wall right in front of muzzle)
+	if not _is_bullet_spawn_clear(direction):
+		_log_debug("[#910] Suppressive shot blocked: wall in fire direction (fan=%.1f°)" % rad_to_deg(fan_angle))
+		return
+	_spawn_projectile(direction, bullet_spawn_pos)
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
+	_log_to_file("[#910] Suppressive shot toward invisible player sound at %s (fan=%.1f°)" % [target_pos, rad_to_deg(fan_angle)])
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio:
+		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"):
+			audio.play_shotgun_shot(global_position)
+		elif audio.has_method("play_m16_shot"):
+			audio.play_m16_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if sp and sp.has_method("emit_sound"):
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+	_play_delayed_shell_sound()
+	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
@@ -4382,6 +4478,7 @@ func _reset() -> void:
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
+	_suppressing_invisible_player = false  # Issue #910
 	# Reset ally death observation state (Issue #409)
 	_witnessed_ally_death = false
 	_suspected_directions.clear()
