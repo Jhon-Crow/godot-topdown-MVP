@@ -16,10 +16,13 @@ extends Node2D
 const MAX_CHARGE: float = 8.0
 
 ## Radius of the force field protection area (pixels).
-const FIELD_RADIUS: float = 80.0
+## Player collision radius is 16px; field should be slightly larger.
+const FIELD_RADIUS: float = 35.0
 
 ## Shield visual scale.
-const SHIELD_SCALE: float = 2.5
+## Texture is 256x256 (128px radius at scale 1.0).
+## At 0.28 scale the visible radius ≈ 36px, just slightly bigger than the player.
+const SHIELD_SCALE: float = 0.28
 
 ## Reflection velocity boost multiplier for grenades.
 const GRENADE_REFLECTION_BOOST: float = 1.2
@@ -81,8 +84,10 @@ func _ready() -> void:
 func _setup_area2d() -> void:
 	_area2d = Area2D.new()
 	_area2d.name = "ForceFieldArea"
-	_area2d.collision_layer = 0  # Don't register on any layer
-	_area2d.collision_mask = 0   # Will detect projectiles via custom layer
+	_area2d.collision_layer = 0   # Don't register on any layer
+	# Layer 5 (value 16) = "projectiles" — bullets and shrapnel (Area2D)
+	# Layer 6 (value 32) = "targets"    — grenades (RigidBody2D, collision_layer=32)
+	_area2d.collision_mask = 16 | 32  # = 48
 	add_child(_area2d)
 
 	# Create circular collision shape
@@ -92,8 +97,11 @@ func _setup_area2d() -> void:
 	_collision_shape.shape = shape
 	_area2d.add_child(_collision_shape)
 
-	# Connect area entered signal for projectile reflection
+	# Connect area entered signal for projectile reflection (bullets, shrapnel — Area2D)
 	_area2d.area_entered.connect(_on_projectile_entered)
+
+	# Connect body entered signal for grenade reflection (grenades are RigidBody2D)
+	_area2d.body_entered.connect(_on_body_entered)
 
 	FileLogger.info("[ForceFieldEffect] Area2D setup with radius %.0fpx" % FIELD_RADIUS)
 
@@ -208,40 +216,65 @@ func get_remaining_charge() -> float:
 
 
 ## Handle projectile entering the force field area.
+## In Godot 4 bullets and shrapnel are Area2D nodes themselves, so `area` IS the projectile.
+## Grenades are RigidBody2D and appear via body_entered instead (handled separately).
 func _on_projectile_entered(area: Area2D) -> void:
 	if not is_active:
 		return
 
-	var projectile = area.get_parent()
-	if projectile == null or not is_instance_valid(projectile):
+	if not is_instance_valid(area):
 		return
 
-	# Reflect bullets
-	if projectile.is_in_group("bullets"):
-		_reflect_bullet(projectile)
-	# Reflect shrapnel
-	elif projectile.is_in_group("shrapnel"):
-		_reflect_shrapnel(projectile)
-	# Reflect grenades
-	elif projectile.is_in_group("grenades"):
-		_reflect_grenade(projectile)
+	# Bullets and shrapnel are Area2D nodes; the area itself is the projectile.
+	# Identify by script name since groups are not set via scene files.
+	var script = area.get_script()
+	if script == null:
+		return
+
+	var script_path: String = script.resource_path
+	if "bullet" in script_path.to_lower():
+		_reflect_bullet(area)
+	elif "shrapnel" in script_path.to_lower():
+		_reflect_shrapnel(area)
+
+
+## Handle grenade (RigidBody2D) entering the force field area.
+func _on_body_entered(body: Node2D) -> void:
+	if not is_active:
+		return
+
+	if not is_instance_valid(body):
+		return
+
+	# Only handle grenades (RigidBody2D projectiles)
+	if body is RigidBody2D:
+		var script = body.get_script()
+		if script == null:
+			return
+		var script_path: String = script.resource_path
+		if "grenade" in script_path.to_lower():
+			_reflect_grenade(body)
 
 
 ## Reflect a bullet off the force field.
+## Bullets use `direction` (normalized Vector2) and `speed` (float), not a `velocity` property.
 func _reflect_bullet(bullet: Node2D) -> void:
-	if not bullet.has("velocity"):
+	if not bullet.has("direction") or not bullet.has("speed"):
 		return
 
-	# Calculate reflection using surface normal
+	# Calculate reflection using surface normal (from bullet position relative to field centre)
 	var to_bullet := bullet.global_position - global_position
 	var normal := to_bullet.normalized()
-	var velocity: Vector2 = bullet.velocity
+	var direction: Vector2 = bullet.direction
 
 	# Reflection formula: R = V - 2(V·N)N
-	var dot := velocity.dot(normal)
-	var reflected := velocity - 2.0 * dot * normal
+	var dot := direction.dot(normal)
+	var reflected := (direction - 2.0 * dot * normal).normalized()
 
-	bullet.velocity = reflected
+	bullet.direction = reflected
+	# Update bullet rotation to match new direction
+	if bullet.has_method("_update_rotation"):
+		bullet.call("_update_rotation")
 
 	# Reset shooter ID so reflected bullet can damage anyone
 	if bullet.has("shooter_id"):
@@ -251,43 +284,49 @@ func _reflect_bullet(bullet: Node2D) -> void:
 
 
 ## Reflect shrapnel off the force field.
+## Shrapnel uses `direction` (normalized Vector2) and `speed` (float), same as bullets.
 func _reflect_shrapnel(shrapnel: Node2D) -> void:
-	if not shrapnel.has("velocity"):
+	if not shrapnel.has("direction"):
 		return
 
 	# Calculate reflection using surface normal
 	var to_shrapnel := shrapnel.global_position - global_position
 	var normal := to_shrapnel.normalized()
-	var velocity: Vector2 = shrapnel.velocity
+	var direction: Vector2 = shrapnel.direction
 
 	# Reflection formula: R = V - 2(V·N)N
-	var dot := velocity.dot(normal)
-	var reflected := velocity - 2.0 * dot * normal
+	var dot := direction.dot(normal)
+	var reflected := (direction - 2.0 * dot * normal).normalized()
 
-	shrapnel.velocity = reflected
+	shrapnel.direction = reflected
 
-	# Reset shooter ID so reflected shrapnel can damage anyone
-	if shrapnel.has("shooter_id"):
-		shrapnel.shooter_id = -1
+	# Reset source_id so reflected shrapnel can damage anyone (shrapnel uses source_id, not shooter_id)
+	if shrapnel.has("source_id"):
+		shrapnel.source_id = -1
 
 	FileLogger.info("[ForceFieldEffect] Shrapnel reflected")
 
 
 ## Reflect a grenade off the force field.
+## Grenades are RigidBody2D nodes and use `linear_velocity` for movement.
 func _reflect_grenade(grenade: Node2D) -> void:
-	if not grenade.has("velocity"):
+	if not grenade is RigidBody2D:
+		return
+
+	var rb := grenade as RigidBody2D
+	var velocity: Vector2 = rb.linear_velocity
+	if velocity.length_squared() < 0.01:
 		return
 
 	# Calculate reflection using surface normal
 	var to_grenade := grenade.global_position - global_position
 	var normal := to_grenade.normalized()
-	var velocity: Vector2 = grenade.velocity
 
 	# Reflection formula: R = V - 2(V·N)N with boost
 	var dot := velocity.dot(normal)
 	var reflected := (velocity - 2.0 * dot * normal) * GRENADE_REFLECTION_BOOST
 
-	grenade.velocity = reflected
+	rb.linear_velocity = reflected
 
 	# For frag/offensive grenades: temporarily disable impact detection
 	# so they don't detonate on the force field surface
