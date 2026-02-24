@@ -4483,8 +4483,7 @@ func _log_debug(message: String) -> void:
 	if debug_logging: print("[Enemy %s] %s" % [name, message])
 
 func _log_to_file(message: String) -> void:
-	# Guard behind debug_logging to avoid synchronous disk I/O in hot paths
-	# such as ROT_CHANGE (every physics frame) and per-sound callbacks (Issue #862).
+	# Guard: skip disk I/O in hot paths (ROT_CHANGE/sound callbacks) when debug off (Issue #862).
 	if not debug_logging: return
 	if not is_inside_tree(): return
 	var fl := get_node_or_null("/root/FileLogger")
