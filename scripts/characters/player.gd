@@ -216,8 +216,16 @@ var _homing_timer: float = 0.0
 ## Path to the homing bullets activation sound.
 const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
 
+## Path to the homing bullets scanner looping ambient sound (Issue #890).
+## Plays quietly in a loop while the Homing Bullets item is equipped and active.
+const HOMING_SCANNER_LOOP_PATH: String = "res://assets/audio/homing_scanner_loop.wav"
+
 ## AudioStreamPlayer for homing activation sound.
 var _homing_audio_player: AudioStreamPlayer = null
+
+## AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+## Loops while homing bullets item is equipped (always-on ambient scanner).
+var _homing_scanner_player: AudioStreamPlayer = null
 
 
 func _ready() -> void:
@@ -3112,6 +3120,7 @@ func _handle_homing_input(delta: float) -> void:
 		if _homing_timer <= 0.0:
 			_homing_active = false
 			_homing_timer = 0.0
+			_stop_homing_scanner()
 			homing_deactivated.emit()
 			FileLogger.info("[Player.Homing] Homing effect expired, charges remaining: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
 
@@ -3122,6 +3131,7 @@ func _handle_homing_input(delta: float) -> void:
 			_homing_timer = HOMING_DURATION
 			_homing_charges -= 1
 			_play_homing_sound()
+			_start_homing_scanner()
 			homing_activated.emit()
 			homing_charges_changed.emit(_homing_charges, HOMING_MAX_CHARGES)
 			FileLogger.info("[Player.Homing] Homing activated! Duration: %ss, charges remaining: %d/%d" % [HOMING_DURATION, _homing_charges, HOMING_MAX_CHARGES])
@@ -3143,6 +3153,7 @@ func get_max_homing_charges() -> int:
 
 
 ## Set up the audio player for homing activation sound.
+## Also sets up the looping scanner ambient sound (Issue #890).
 func _setup_homing_audio() -> void:
 	if ResourceLoader.exists(HOMING_SOUND_PATH):
 		var stream = load(HOMING_SOUND_PATH)
@@ -3155,11 +3166,48 @@ func _setup_homing_audio() -> void:
 	else:
 		FileLogger.info("[Player.Homing] Homing activation sound not found: %s" % HOMING_SOUND_PATH)
 
+	# Set up the looping scanner ambient sound (Issue #890).
+	# This sound plays continuously while the Homing Bullets item is equipped.
+	if ResourceLoader.exists(HOMING_SCANNER_LOOP_PATH):
+		var scanner_stream = load(HOMING_SCANNER_LOOP_PATH)
+		if scanner_stream and scanner_stream is AudioStreamWAV:
+			# Enable seamless looping on the WAV stream.
+			# Also set loop endpoints — without loop_end, Godot defaults to 0
+			# which loops a zero-length region (silence after first play-through).
+			scanner_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			var bytes_per_sample: int = 2 if scanner_stream.format == AudioStreamWAV.FORMAT_16_BITS else 1
+			var channels: int = 2 if scanner_stream.stereo else 1
+			scanner_stream.loop_begin = 0
+			scanner_stream.loop_end = scanner_stream.data.size() / (bytes_per_sample * channels)
+			_homing_scanner_player = AudioStreamPlayer.new()
+			_homing_scanner_player.stream = scanner_stream
+			# 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+			_homing_scanner_player.volume_db = -27.5
+			add_child(_homing_scanner_player)
+			# Do NOT play here — scanner starts only when homing is activated (Issue #890).
+			FileLogger.info("[Player.Homing] Homing scanner loop ready (Issue #890)")
+	else:
+		FileLogger.info("[Player.Homing] Homing scanner loop sound not found: %s" % HOMING_SCANNER_LOOP_PATH)
+
 
 ## Play the homing activation sound.
 func _play_homing_sound() -> void:
 	if _homing_audio_player and is_instance_valid(_homing_audio_player):
 		_homing_audio_player.play()
+
+
+## Start the looping scanner sound. Called when homing is activated (Issue #890).
+func _start_homing_scanner() -> void:
+	if _homing_scanner_player and is_instance_valid(_homing_scanner_player) and not _homing_scanner_player.playing:
+		_homing_scanner_player.play()
+		FileLogger.info("[Player.Homing] Homing scanner loop started (Issue #890)")
+
+
+## Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+func _stop_homing_scanner() -> void:
+	if _homing_scanner_player and is_instance_valid(_homing_scanner_player) and _homing_scanner_player.playing:
+		_homing_scanner_player.stop()
+		FileLogger.info("[Player.Homing] Homing scanner loop stopped (Issue #890)")
 
 
 # ============================================================================

@@ -722,9 +722,20 @@ public partial class Player : BaseCharacter
     private const string HomingSoundPath = "res://assets/audio/homing_activation.wav";
 
     /// <summary>
+    /// Path to the homing bullets scanner looping ambient sound (Issue #890).
+    /// </summary>
+    private const string HomingScannerLoopPath = "res://assets/audio/homing_scanner_loop.wav";
+
+    /// <summary>
     /// AudioStreamPlayer for homing activation sound.
     /// </summary>
     private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+    /// Loops while homing bullets item is equipped (always-on ambient scanner).
+    /// </summary>
+    private AudioStreamPlayer? _homingScannerPlayer = null;
 
     /// <summary>
     /// Signal emitted when homing charges change.
@@ -4645,6 +4656,7 @@ public partial class Player : BaseCharacter
             {
                 _homingActive = false;
                 _homingTimer = 0.0f;
+                StopHomingScanner();
                 EmitSignal(SignalName.HomingDeactivated);
                 LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
             }
@@ -4659,6 +4671,7 @@ public partial class Player : BaseCharacter
                 _homingTimer = HomingDuration;
                 _homingCharges--;
                 PlayHomingSound();
+                StartHomingScanner();
                 EmitSignal(SignalName.HomingActivated);
                 EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
                 LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
@@ -4750,7 +4763,7 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Set up the audio player for homing activation sound.
+    /// Set up the audio players for homing activation sound and scanner loop (Issue #890).
     /// </summary>
     private void SetupHomingAudio()
     {
@@ -4770,6 +4783,34 @@ public partial class Player : BaseCharacter
         {
             LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
         }
+
+        // Set up the looping scanner ambient sound (Issue #890).
+        if (ResourceLoader.Exists(HomingScannerLoopPath))
+        {
+            var scannerStream = GD.Load<AudioStreamWav>(HomingScannerLoopPath);
+            if (scannerStream != null)
+            {
+                scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
+                // Set loop endpoints so the stream actually loops the full clip.
+                // Without LoopEnd, Godot defaults to 0 → loops a zero-length region (silence).
+                int bytesPerSample = (scannerStream.Format == AudioStreamWav.FormatEnum.Format16Bits) ? 2 : 1;
+                int channels = scannerStream.Stereo ? 2 : 1;
+                int totalSamples = scannerStream.Data.Length / (bytesPerSample * channels);
+                scannerStream.LoopBegin = 0;
+                scannerStream.LoopEnd = totalSamples;
+                _homingScannerPlayer = new AudioStreamPlayer();
+                _homingScannerPlayer.Stream = scannerStream;
+                // 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+                _homingScannerPlayer.VolumeDb = -27.5f;
+                AddChild(_homingScannerPlayer);
+                // Do NOT play here — scanner starts only when homing is activated (Issue #890).
+                LogToFile($"[Player.Homing] Homing scanner loop ready (Issue #890), samples={totalSamples}");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing scanner loop sound not found: {HomingScannerLoopPath}");
+        }
     }
 
     /// <summary>
@@ -4780,6 +4821,30 @@ public partial class Player : BaseCharacter
         if (_homingAudioPlayer != null && IsInstanceValid(_homingAudioPlayer))
         {
             _homingAudioPlayer.Play();
+        }
+    }
+
+    /// <summary>
+    /// Start the looping scanner sound. Called when homing is activated (Issue #890).
+    /// </summary>
+    private void StartHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && !_homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Play();
+            LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
+        }
+    }
+
+    /// <summary>
+    /// Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+    /// </summary>
+    private void StopHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && _homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Stop();
+            LogToFile("[Player.Homing] Homing scanner loop stopped (Issue #890)");
         }
     }
 
