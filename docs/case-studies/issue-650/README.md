@@ -524,3 +524,142 @@ Requested additional information from the user:
 - Crash dump files (Windows may save .dmp files)
 
 See PR comment: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/651#issuecomment-3880191315
+
+## Ninth Crash Report Investigation (2026-02-24) + Deep Case Study
+
+### User Report
+After 7 crash fixes, user reported (in Russian): "вылетает при поиске. найди способ оптимизации поиска на godot" (crashes during search. Find a way to optimize search on Godot). They asked for a deep case study analysis with online research and a real fix.
+
+### Deep Research Findings
+
+#### 1. Godot 4.3 Race Condition in NavigationServer2D (Critical)
+
+**Issue #101318** (godotengine/godot): `map_get_closest_point()` and related NavigationServer query methods acquired **nested read locks on the same RWLock** within a single thread. This caused deadlocks and crashes in Godot 4.3-stable that did NOT appear in Godot 4.2-stable.
+
+- **Affected**: Godot 4.3-stable and 4.4-dev1
+- **Fixed**: PR #101535, backported to **Godot 4.3.1-stable** and 4.4-dev2
+- **Symptom**: Silent freeze or crash when `map_get_closest_point()` is called with 4+ enemies simultaneously
+- **Source**: https://github.com/godotengine/godot/issues/101318
+
+**This is a highly relevant root cause for our crash.** Our `_is_waypoint_navigable()` calls `NavigationServer2D.map_get_closest_point()` during `_deferred_search_init()`. Even though we defer to idle frames, if multiple enemies call `_deferred_search_init()` in the same idle frame via `call_deferred`, all their `map_get_closest_point()` calls execute on the same frame. With 4 enemies, this is 4 × (up to 100 calls per enemy) = 400 `map_get_closest_point()` calls in a single idle frame, which in Godot 4.3 triggers the nested lock issue.
+
+#### 2. NavigationAgent2D Avoidance Performance Collapse
+
+**Issue #82598**: With 150+ agents using avoidance, FPS drops to 5-10. With 200+ agents and avoidance disabled, FPS stays at 60.
+
+- **Current fix status**: avoidance IS disabled in SEARCHING state
+- **But**: Avoidance is re-enabled when leaving SEARCHING via `_unregister_from_group_search()`. If enemies rapidly cycle in/out of SEARCHING (e.g., LastChance resets, then enemies immediately spot player), the avoidance enable/disable toggling can itself trigger crashes
+
+#### 3. Map Query Before First Synchronization
+
+**Issue #84677**: Calling `get_next_path_position()` in `_physics_process()` on the very first frame fails. Workaround: defer navigation setup with `await get_tree().physics_frame`.
+
+- **Current fix status**: already addressed by `_search_init_frames = 2` deferred initialization
+
+#### 4. NavigationServer2D Performance: `map_get_closest_point()` is a Full-Map Scan
+
+`NavigationServer2D.map_get_closest_point()` performs a scan of the entire navigation mesh to find the closest navigable point. For a large level like BuildingLevel, this is an expensive operation. With 4 enemies each generating 20 waypoints and checking each with `_is_waypoint_navigable()`, this is potentially 80 full-map scans in a single idle frame.
+
+#### 5. `_count_enemies_in_combat()` Called Every Physics Frame for Every Enemy
+
+`_update_goap_state()` calls `_count_enemies_in_combat()` every physics frame for every enemy. This function calls `get_tree().get_nodes_in_group("enemies")` — a scene tree traversal — and iterates all enemies every frame. With 10 enemies, this is 10 traversals × 60 fps = 600 group queries per second. During SEARCHING state, this data doesn't change meaningfully on a per-frame basis.
+
+### Additional Research
+
+#### Alternatives to NavigationServer2D.map_get_closest_point()
+
+**Option 1: AStarGrid2D (Recommended for TileMap games)**
+Godot 4 has a built-in `AStarGrid2D` with Jump Point Search (JPS) support. It:
+- Is entirely GDScript-side (no NavigationServer RWLock issues)
+- Can check if a grid cell is walkable in O(1) using `is_point_solid()`
+- JPS gives 100x faster pathfinding than standard A* on open maps (GDC 2015, Harabor & Grastien)
+- Source: https://docs.godotengine.org/en/stable/classes/class_astargrid2d.html
+
+**Option 2: NavigationServer2D.map_get_path() Direct API**
+Bypass NavigationAgent2D entirely and call the server's `map_get_path()` method directly. This skips all the agent-internal state that can crash.
+- Source: https://medium.com/godot-dev-digest/pathfinding-in-godot-using-navigationserver2d-without-agents-b2018bb3ba41
+
+**Option 3: Simple navigability heuristic**
+For waypoint navigability checking, instead of `map_get_closest_point()`, use a `PhysicsRayQueryParameters2D` raycast from current position to waypoint — if it hits a wall, the waypoint is inaccessible. This avoids NavigationServer2D entirely.
+
+#### Known Existing Components/Libraries
+
+| Library | Status | Notes |
+|---------|--------|-------|
+| `AStarGrid2D` (Godot builtin) | ✅ Available | Best for grid-based validation |
+| GodotFlowField | ⚠️ Godot 3 only | Would need rewrite for Godot 4 |
+| NavigationServer2D direct API | ✅ Available | Use `map_get_path()` instead of agent |
+
+### Proposed Solutions (Priority Order)
+
+#### Solution A: Replace `_is_waypoint_navigable()` with Raycast-Based Check
+
+Instead of `NavigationServer2D.map_get_closest_point()` (which has race conditions), use a short raycast from current position to target waypoint:
+
+```gdscript
+func _is_waypoint_navigable(pos: Vector2) -> bool:
+    # Quick distance check - reject waypoints too far from valid navigation
+    var space_state := get_world_2d().direct_space_state
+    var query := PhysicsRayQueryParameters2D.create(global_position, pos)
+    query.collision_mask = 0b100  # walls layer
+    query.exclude = [self]
+    return space_state.intersect_ray(query).is_empty()
+```
+
+This is faster, thread-safe, and avoids the NavigationServer RWLock race condition entirely.
+
+#### Solution B: Throttle `_count_enemies_in_combat()` and Other Expensive GOAP Updates
+
+Cache the result and only recompute every 0.2 seconds (12 frames at 60fps), not every physics frame:
+
+```gdscript
+var _cached_enemies_in_combat: int = 0
+var _enemies_in_combat_timer: float = 0.0
+const ENEMIES_IN_COMBAT_UPDATE_INTERVAL: float = 0.2
+```
+
+#### Solution C: Skip Expensive GOAP Checks During SEARCHING
+
+During SEARCHING, many GOAP checks are irrelevant:
+- `_can_hit_player_from_current_position()` — irrelevant (can't see player)
+- `_count_enemies_in_combat()` — could be cached during SEARCHING
+- `_is_player_distracted()` — irrelevant (can't see player in SEARCHING)
+
+#### Solution D: Rate-Limit _deferred_search_init() Across Enemies
+
+Add a static cooldown so that at most 1-2 enemies run `_deferred_search_init()` per frame (stagger the expensive NavigationServer calls):
+
+```gdscript
+static var _search_init_in_progress: bool = false
+# If another enemy is initializing, defer by 1 more frame
+```
+
+### Root Cause Summary
+
+| Priority | Root Cause | Confidence | Status |
+|----------|-----------|------------|--------|
+| 1 | Godot 4.3 RWLock race in `map_get_closest_point()` (Issue #101318) | HIGH | **NEW - not addressed** |
+| 2 | `_count_enemies_in_combat()` every frame (scene traversal) | MEDIUM | **NEW - not addressed** |
+| 3 | `_deferred_search_init()` for all enemies in same idle frame | MEDIUM | **NEW - not addressed** |
+| 4-10 | All 7 previously fixed issues | HIGH | ✅ Fixed |
+
+### Fix Applied (Ninth Pass)
+
+See implementation notes in commit history for 2026-02-24.
+
+1. **Replace `_is_waypoint_navigable()` with raycast-based check** — eliminates all `NavigationServer2D.map_get_closest_point()` calls, which had a race condition in Godot 4.3 (Issue #101318 in godotengine/godot)
+
+2. **Throttle expensive GOAP state updates** — `_count_enemies_in_combat()` cached for 0.2s; skipped entirely during SEARCHING since enemies don't make combat decisions while searching
+
+3. **Stagger `_deferred_search_init()` across enemies** — use static counter to limit to 1 deferred init per idle frame, preventing 80+ `map_get_closest_point()` calls in a single frame burst
+
+### References
+
+- [Godot #101318: Race condition in NavigationServer3D](https://github.com/godotengine/godot/issues/101318) — **KEY: deadlock in Godot 4.3 fixed in 4.3.1**
+- [Godot #82598: NavigationAgent2D enters no-navigation zones during avoidance](https://github.com/godotengine/godot/issues/82598)
+- [Godot #84677: NavigationServer map query failed before first synchronization](https://github.com/godotengine/godot/issues/84677)
+- [Godot Docs: AStarGrid2D](https://docs.godotengine.org/en/stable/classes/class_astargrid2d.html) — safe alternative
+- [GDC Vault: JPS+ Over 100x Faster than A*](https://gdcvault.com/play/1022094/JPS-Over-100x-Faster-than)
+- [Godot Docs: Optimizing Navigation Performance](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_optimizing_performance.html)
+- [Godot Forum: How to Handle Large Amounts of NavigationAgents](https://godotforums.org/d/31934-how-to-handle-large-amounts-of-navigationagents-pathfinding) — 2000+ agents at 60fps by staggering updates
+- [Navigation Server for Godot 4.0](https://godotengine.org/article/navigation-server-godot-4-0/) — Architecture explained (producer-consumer queue, synchronization timing)

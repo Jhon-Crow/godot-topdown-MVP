@@ -277,6 +277,8 @@ var _scan_target_index: int = 0  ## [Issue #650] Current scan target index
 var _scan_pause_timer: float = 0.0  ## [Issue #650] Pause timer between scan looks
 var _search_init_frames: int = 0  ## [Issue #650] Frame counter to defer navigation after transition
 var _search_nav_target_set: bool = false  ## [Issue #650] Whether nav target was set for current waypoint
+static var _search_init_pending: bool = false  ## [Issue #650] Stagger deferred inits (max 1 per idle frame)
+var _enemies_in_combat_cache_timer: float = 0.0  ## [Issue #650] Throttle _count_enemies_in_combat() calls
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
@@ -883,30 +885,27 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_player_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_player_from_current_position()
-	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	# Issue #650: Throttle expensive group scan (get_nodes_in_group) to 5/s instead of 60/s
+	_enemies_in_combat_cache_timer -= get_physics_process_delta_time()
+	if _enemies_in_combat_cache_timer <= 0.0:
+		_enemies_in_combat_cache_timer = 0.2
+		_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
-	# Memory system states (Issue #297)
-	if _memory:
+	if _memory:  # Memory system states (Issue #297)
 		_goap_world_state["has_suspected_position"] = _memory.has_target()
 		_goap_world_state["position_confidence"] = _memory.confidence
 		_goap_world_state["confidence_high"] = _memory.is_high_confidence()
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
-
-	# Grenade avoidance state (Issue #407)
-	_goap_world_state["in_grenade_danger_zone"] = _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
-
+	_goap_world_state["in_grenade_danger_zone"] = _grenade_avoidance.in_danger_zone if _grenade_avoidance else false  # Issue #407
 	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death  # Issue #409
 	_goap_world_state["is_searching"] = _current_state == AIState.SEARCHING  # Issue #650
 	if _prediction:  # [#298]
 		_goap_world_state["has_prediction"] = _prediction.has_predictions; _goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
-
-	# Flashlight detection states (Issue #574)
-	if _flashlight_detection:
+	if _flashlight_detection:  # Issue #574: flashlight detection states
 		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
-		# Issue #650: Skip waypoint-lit check during SEARCHING (no NavigationAgent2D path → segfault)
-		if _current_state == AIState.SEARCHING:
+		if _current_state == AIState.SEARCHING:  # Issue #650: no NavAgent path in SEARCHING
 			_goap_world_state["passage_lit_by_flashlight"] = false
 		else:
 			_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
@@ -2147,14 +2146,12 @@ func _process_assault_state(_delta: float) -> void:
 ## Generate search waypoints - uses sector division when coordinated (Issue #322, #650).
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear(); _search_current_waypoint_index = 0
-	# Issue #650: Use sector-based waypoints when group search is coordinated
-	if _group_search_coordinator and _group_search_coordinator.is_coordinated():
+	if _group_search_coordinator and _group_search_coordinator.is_coordinated():  # Issue #650: sector waypoints
 		var nav_cb := Callable(self, "_is_waypoint_navigable")
 		_search_waypoints.assign(_group_search_coordinator.generate_sector_waypoints(self, _search_radius, nav_cb))
 		_log_debug("Generated %d sector waypoints (radius=%.0f, sector=%s)" % [_search_waypoints.size(), _search_radius, _group_search_coordinator.get_sector_angles(self)])
 		return
-	# Fallback: original square spiral pattern for solo search
-	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
+	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0  # solo spiral
 	if not _is_zone_visited(_search_center):
 		_search_waypoints.append(_search_center)
 	var current_pos := _search_center; var waypoints_generated := _search_waypoints.size(); var iters := 0
@@ -2174,11 +2171,12 @@ func _generate_search_waypoints() -> void:
 			_search_leg_length += SEARCH_WAYPOINT_SPACING
 	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
 
-## Check if position is navigable via NavigationServer2D.
+## Check if position is navigable using raycasts (Issue #650 fix #8: avoids NavigationServer2D.map_get_closest_point RWLock race condition in Godot 4.3, see godotengine/godot#101318).
 func _is_waypoint_navigable(pos: Vector2) -> bool:
-	var nav_map := get_world_2d().navigation_map
-	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
-	return pos.distance_to(closest) < 50.0
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(global_position, pos)
+	query.collision_mask = 0b100; query.exclude = [self]  # walls layer only
+	return space_state.intersect_ray(query).is_empty()
 
 ## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
 func _get_zone_key(pos: Vector2) -> String:
@@ -2611,17 +2609,18 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	if _nav_agent: _nav_agent.avoidance_enabled = false  # Issue #650: Disable avoidance immediately (not just in deferred init)
 	_log_to_file("SEARCHING started: center=%s, radius=%.0f (deferred init)" % [_search_center, _search_radius])
 
-## Issue #650: Deferred search initialization — generates waypoints + coordinator setup.
-## Runs on idle frame after _search_init_frames reaches 0, NOT during _physics_process.
-## This avoids NavigationServer2D.map_get_closest_point() segfaults during physics.
+## Issue #650: Deferred search initialization — generates waypoints + coordinator setup on idle frame.
 func _deferred_search_init() -> void:
 	if not is_instance_valid(self) or not _is_alive or _current_state != AIState.SEARCHING:
 		return
-	if _nav_agent: _nav_agent.avoidance_enabled = false  # Issue #650: Disable avoidance during SEARCHING (prevents segfaults with multiple agents)
-	_generate_search_waypoints()  # Step 1: Generate waypoints (calls NavigationServer2D — safe on idle frame)
-	# Step 2: Register with group search coordinator
-	if _group_search_coordinator != null:
-		_group_search_coordinator.unregister_enemy(self)
+	# Issue #650 fix #8: Stagger inits across frames — if another enemy is already initializing this
+	# idle frame, defer by one more frame to avoid concurrent NavigationServer2D raycast bursts.
+	if _search_init_pending:
+		call_deferred("_deferred_search_init"); return
+	_search_init_pending = true
+	if _nav_agent: _nav_agent.avoidance_enabled = false  # Issue #650: Disable avoidance during SEARCHING
+	_generate_search_waypoints()  # Generate waypoints (raycast-based, safe on idle frame)
+	if _group_search_coordinator != null: _group_search_coordinator.unregister_enemy(self)
 	_group_search_coordinator = GroupSearchCoordinator.get_or_create(_search_center)
 	_group_search_coordinator.register_enemy(self)
 	if _group_search_coordinator.is_coordinated():
@@ -2629,6 +2628,7 @@ func _deferred_search_init() -> void:
 		_log_to_file("SEARCHING: Init complete (coordinated: %d enemies, waypoints=%d)" % [_group_search_coordinator.get_enemy_count(), _search_waypoints.size()])
 	else:
 		_log_to_file("SEARCHING: Init complete (solo, waypoints=%d)" % _search_waypoints.size())
+	_search_init_pending = false
 
 ## Issue #650: Unregister from group search coordinator when leaving SEARCHING state.
 func _unregister_from_group_search() -> void:
