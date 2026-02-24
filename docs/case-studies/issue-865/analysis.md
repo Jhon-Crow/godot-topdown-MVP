@@ -4,16 +4,20 @@
 
 The ammo counter (HUD display) fails to update when the player uses AK (AKGL), Makarov PM, or Revolver weapons on specific maps.
 
-**Reported issues:**
+**Reported issues (initial, 2026-02-19):**
 1. AK ammo counter not working on: Training (Обучение), City (Город), Laboratory (Лаборатория)
 2. PM ammo counter not working on: City (Город)
 3. Revolver counter only works on: Laboratory (Лаборатория)
+
+**Additional finding (2026-02-24, PR comment by Jhon-Crow):**
+4. Revolver counter shows 30/30 and does not update on: Building (Здание), Beach (Пляж), Docks (Доки), Castle (Замок), Polygon (Полигон)
 
 ---
 
 ## Attached Data
 
 - `game_log_20260219_233205.txt` — Game log from 2026-02-19 (user-provided). Note: The log does not contain ammo-related errors because no AmmoChanged signal is connected — the counter simply doesn't update silently.
+- `game_log_20260224_190842.txt` — Game log from 2026-02-24 (user-provided). Confirms Revolver is equipped and fired (`RSh-12 Revolver`) on BuildingLevel and BeachLevel and DocksLevel, but the counter shows the previous weapon's value (30/30 from AKGL).
 
 ---
 
@@ -60,23 +64,35 @@ The `labyrinth_level.gd` weapon lookup chain (lines 503-516) explicitly includes
 
 The `city_level.gd` weapon lookup chain (lines 265-273) doesn't include Revolver, MakarovPM, or AKGL — so none of them work on City.
 
-### Working vs. Broken Levels
+### Working vs. Broken Levels (After First Fix — Before Second Fix)
 
 | Level | Includes AKGL | Includes Revolver | Includes MakarovPM |
 |-------|--------------|-------------------|-------------------|
-| Beach (`beach_level.gd`) | ✅ Line 179 | N/A (uses single lookup) | ✅ Line 181 |
-| Castle (`castle_level.gd`) | ✅ Line 346 | N/A | ✅ Line 348 |
-| Docks (`docks_level.gd`) | ✅ Line 202 | N/A | ✅ Line 204 |
-| Building (`building_level.gd`) | ✅ Line 556 | N/A | ✅ Line 558 |
-| **City (`city_level.gd`)** | ❌ Missing | ❌ Missing | ❌ Missing |
-| **Laboratory (`labyrinth_level.gd`)** | ❌ Missing | ✅ Line 514 | ✅ Line 516 |
-| **Tutorial (`tutorial_level.gd`)** | ❌ Missing (in `_setup_ammo_tracking`) | ✅ Line 514 | ✅ Line 513 |
+| Beach (`beach_level.gd`) | ✅ | ❌ Missing | ✅ |
+| Castle (`castle_level.gd`) | ✅ | ❌ Missing | ✅ |
+| Docks (`docks_level.gd`) | ✅ | ❌ Missing | ✅ |
+| Building (`building_level.gd`) | ✅ | ❌ Missing | ✅ |
+| Polygon/TestTier (`test_tier.gd`) | ✅ | ❌ Missing | ✅ |
+| City (`city_level.gd`) | ✅ (fixed) | ✅ (fixed) | ✅ (fixed) |
+| Laboratory (`labyrinth_level.gd`) | ✅ (fixed) | ✅ | ✅ |
+| Tutorial (`tutorial_level.gd`) | ✅ (fixed) | ✅ | ✅ |
+
+**Root cause of 30/30 display:** When Revolver is selected but not found in the weapon lookup chain, no `AmmoChanged` signal is connected. The HUD retains whatever value it showed previously (e.g., 30/30 from a previously used AKGL). The Revolver itself has 5 rounds per cylinder, but the HUD never receives the initial display update either.
 
 ---
 
 ## Fix
 
-### city_level.gd
+### Second Fix: beach_level.gd, castle_level.gd, docks_level.gd, building_level.gd, test_tier.gd
+
+All five level scripts were missing `Revolver` from:
+1. The weapon lookup chain in `_setup_player_tracking()` / `_setup_ammo_tracking()`
+2. The `weapon_names` dictionary in `_setup_selected_weapon()`
+3. The `elif selected_weapon_id == "revolver":` block in `_setup_selected_weapon()`
+
+**Fix**: Add `Revolver` to all three locations in each affected level script, following the same pattern used in `tutorial_level.gd`.
+
+### First Fix: city_level.gd
 
 Add AKGL, Revolver, and MakarovPM to the weapon lookup chain after AssaultRifle (lines ~273):
 
