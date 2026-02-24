@@ -48,7 +48,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.HOMING_BULLETS: {
 		"name": "Homing Bullets",
 		"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
-		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+		"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 1 charge per battle, lasts 1 second."
 	},
 	ActiveItemType.TELEPORT_BRACERS: {
 		"name": "Teleport Bracers",
