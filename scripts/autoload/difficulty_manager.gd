@@ -117,24 +117,42 @@ func is_distraction_attack_enabled() -> bool:
 	return current_difficulty == Difficulty.HARD
 
 
+## Multiplier applied to detection delay in night mode (Issue #825).
+## In night mode enemies need extra time to turn on flashlight and orient before shooting.
+const NIGHT_MODE_REACTION_DELAY_MULTIPLIER: float = 1.3  # 30% longer reaction time
+
 ## Get the detection delay based on difficulty.
 ## This is the delay before enemies start shooting after spotting the player.
 ## Easy: 0.5s - gives player more time to react after peeking from cover
 ## Normal: 0.6s - slower reaction than easy, gives player even more time
 ## Hard: 0.2s - quick reaction (hard mode uses other mechanics too)
 ## Power Fantasy: 0.8s - enemies react slower
+## In night mode, all delays are multiplied by 1.3 (30% longer) (Issue #825).
 func get_detection_delay() -> float:
+	var base_delay: float
 	match current_difficulty:
 		Difficulty.EASY:
-			return 0.5
+			base_delay = 0.5
 		Difficulty.NORMAL:
-			return 0.6
+			base_delay = 0.6
 		Difficulty.HARD:
-			return 0.2
+			base_delay = 0.2
 		Difficulty.POWER_FANTASY:
-			return 0.8  # Enemies react slower in power fantasy
+			base_delay = 0.8  # Enemies react slower in power fantasy
 		_:
-			return 0.6
+			base_delay = 0.6
+	# Issue #825: In night mode, enemies react 30% slower (flashlight orientation delay)
+	if _is_night_mode_active():
+		return base_delay * NIGHT_MODE_REACTION_DELAY_MULTIPLIER
+	return base_delay
+
+
+## Check if night mode (realistic visibility) is currently active (Issue #825).
+func _is_night_mode_active() -> bool:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_realistic_visibility_enabled"):
+		return experimental_settings.is_realistic_visibility_enabled()
+	return false
 
 
 # ============================================================================
