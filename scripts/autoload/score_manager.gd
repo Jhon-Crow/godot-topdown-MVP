@@ -49,6 +49,10 @@ const RANK_THRESHOLDS: Dictionary = {
 	"F": 0.0     ## Below D threshold
 }
 
+## Custom rank thresholds for the current level (overrides RANK_THRESHOLDS when non-empty).
+## Set via set_rank_thresholds() before or after start_level(). Reset to empty on start_level().
+var _custom_rank_thresholds: Dictionary = {}
+
 ## Level start time (for time bonus calculation).
 var _level_start_time: float = 0.0
 
@@ -124,6 +128,22 @@ func _process(delta: float) -> void:
 	_update_aggressiveness(delta)
 
 
+## Sets custom rank thresholds for the current level.
+## Call after start_level() to override the default RANK_THRESHOLDS.
+## The dictionary must contain keys: "S", "A+", "A", "B", "C", "D", "F".
+## @param thresholds: Dictionary mapping rank string to score ratio (0.0–1.0).
+func set_rank_thresholds(thresholds: Dictionary) -> void:
+	_custom_rank_thresholds = thresholds
+	_log_to_file("Custom rank thresholds set: S=%.2f A+=%.2f A=%.2f B=%.2f C=%.2f D=%.2f" % [
+		thresholds.get("S", RANK_THRESHOLDS["S"]),
+		thresholds.get("A+", RANK_THRESHOLDS["A+"]),
+		thresholds.get("A", RANK_THRESHOLDS["A"]),
+		thresholds.get("B", RANK_THRESHOLDS["B"]),
+		thresholds.get("C", RANK_THRESHOLDS["C"]),
+		thresholds.get("D", RANK_THRESHOLDS["D"])
+	])
+
+
 ## Starts tracking for a new level.
 ## @param total_enemies: Number of enemies in the level.
 func start_level(total_enemies: int) -> void:
@@ -145,6 +165,7 @@ func start_level(total_enemies: int) -> void:
 	_player = null
 	_last_player_position = Vector2.ZERO
 	_average_enemy_position = Vector2.ZERO
+	_custom_rank_thresholds = {}
 
 	_log_to_file("Level started with %d enemies" % total_enemies)
 
@@ -379,6 +400,7 @@ func _calculate_max_possible_score() -> int:
 
 
 ## Calculates the rank based on score percentage.
+## Uses custom thresholds if set via set_rank_thresholds(), otherwise uses RANK_THRESHOLDS.
 ## @param score: The player's total score.
 ## @param max_score: The maximum possible score.
 ## @return: The rank string.
@@ -386,20 +408,21 @@ func _calculate_rank(score: int, max_score: int) -> String:
 	if max_score <= 0:
 		return "F"
 
+	var thresholds: Dictionary = _custom_rank_thresholds if not _custom_rank_thresholds.is_empty() else RANK_THRESHOLDS
 	var score_ratio: float = float(score) / float(max_score)
 
 	# Check ranks from highest to lowest
-	if score_ratio >= RANK_THRESHOLDS["S"]:
+	if score_ratio >= thresholds["S"]:
 		return "S"
-	elif score_ratio >= RANK_THRESHOLDS["A+"]:
+	elif score_ratio >= thresholds["A+"]:
 		return "A+"
-	elif score_ratio >= RANK_THRESHOLDS["A"]:
+	elif score_ratio >= thresholds["A"]:
 		return "A"
-	elif score_ratio >= RANK_THRESHOLDS["B"]:
+	elif score_ratio >= thresholds["B"]:
 		return "B"
-	elif score_ratio >= RANK_THRESHOLDS["C"]:
+	elif score_ratio >= thresholds["C"]:
 		return "C"
-	elif score_ratio >= RANK_THRESHOLDS["D"]:
+	elif score_ratio >= thresholds["D"]:
 		return "D"
 	else:
 		return "F"
@@ -452,6 +475,7 @@ func reset() -> void:
 	_player = null
 	_last_player_position = Vector2.ZERO
 	_average_enemy_position = Vector2.ZERO
+	_custom_rank_thresholds = {}
 
 
 ## Log a message to the file logger if available.

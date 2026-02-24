@@ -1349,9 +1349,52 @@ public partial class Player : BaseCharacter
         // When the player clicks while the fire timer is still active, the click
         // is buffered and consumed as soon as the weapon can fire again.
         // This prevents lost inputs when clicking faster than the fire rate allows.
+        //
+        // Issue #821 FIX: Only buffer clicks during fire cooldown, NOT during reload/pump.
+        // When reloading or pumping, play empty click sound instead of buffering shot.
         if (!isAutomatic && Input.IsActionJustPressed("shoot"))
         {
-            _semiAutoShootBuffered = true;
+            // Check if shotgun needs pumping (Issue #821)
+            var shotgun = CurrentWeapon as Shotgun;
+            bool shotgunNeedsPump = shotgun != null &&
+                shotgun.ActionState != ShotgunActionState.Ready;
+
+            // Check if any reload is in progress (Issue #821)
+            bool isReloading = _isReloadingSequence ||
+                (CurrentWeapon != null && CurrentWeapon.IsReloading);
+
+            // Check if revolver cylinder is open (Issue #821)
+            var revolver = CurrentWeapon as Revolver;
+            bool revolverReloading = revolver != null &&
+                revolver.ReloadState != RevolverReloadState.NotReloading;
+
+            // Check if shotgun is in reload state (Issue #821)
+            bool shotgunReloading = shotgun != null &&
+                shotgun.ReloadState != ShotgunReloadState.NotReloading;
+
+            // Check if weapon has no ammo (Issue #835)
+            // Clicking on an empty weapon should not buffer a shot for after reload -
+            // it should only play an empty click sound. Otherwise the buffered click
+            // from an empty weapon fires automatically right after reload completes.
+            // Issue #842: Shotgun uses ShellsInTube (CurrentAmmo is always 0 as a
+            // placeholder, since the tube magazine is tracked separately).
+            bool weaponEmpty;
+            if (shotgun != null)
+                weaponEmpty = shotgun.ShellsInTube <= 0;
+            else
+                weaponEmpty = CurrentWeapon.CurrentAmmo <= 0;
+
+            if (isReloading || shotgunNeedsPump || revolverReloading || shotgunReloading || weaponEmpty)
+            {
+                // Issue #821: Don't buffer shots during reload/pump - play empty click instead
+                // Issue #835: Don't buffer shots when weapon is empty
+                PlayEmptyClickSound();
+                GD.Print($"[Player.FIX#821/#835] Click during reload/pump/empty - playing empty click (isReloading={isReloading}, shotgunNeedsPump={shotgunNeedsPump}, revolverReloading={revolverReloading}, shotgunReloading={shotgunReloading}, weaponEmpty={weaponEmpty})");
+            }
+            else
+            {
+                _semiAutoShootBuffered = true;
+            }
         }
 
         // Determine if shooting input is active
@@ -1435,14 +1478,23 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Plays the empty click sound when trying to shoot without ammo.
+    /// Uses weapon-specific sound to match each weapon's authentic dry-fire click.
+    /// Issue #842: Was always playing the M16/pistol sound for all weapons.
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
-        {
+        if (audioManager == null) return;
+
+        if (CurrentWeapon is Shotgun && audioManager.HasMethod("play_shotgun_empty_click"))
+            audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+        else if (CurrentWeapon is Revolver && audioManager.HasMethod("play_revolver_empty_click"))
+            audioManager.Call("play_revolver_empty_click", GlobalPosition);
+        else if ((CurrentWeapon is MakarovPM || CurrentWeapon is MiniUzi || CurrentWeapon is SilencedPistol)
+            && audioManager.HasMethod("play_pistol_empty_click"))
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        else if (audioManager.HasMethod("play_empty_click"))
             audioManager.Call("play_empty_click", GlobalPosition);
-        }
     }
 
     /// <summary>
@@ -2076,6 +2128,11 @@ public partial class Player : BaseCharacter
 
         // Perform instant reload
         CurrentWeapon.InstantReload();
+
+        // Issue #835: Clear any buffered shot from before/during reload.
+        // If player clicked LMB on an empty weapon before reload started, that click
+        // should not automatically fire after reload completes.
+        _semiAutoShootBuffered = false;
 
         GD.Print("[Player] Reload sequence complete! Magazine refilled instantly.");
         EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);

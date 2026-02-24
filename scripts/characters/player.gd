@@ -679,33 +679,36 @@ func _shoot() -> void:
 	var random_spread := randf_range(-spread_radians, spread_radians)
 	shoot_direction = shoot_direction.rotated(random_spread)
 
-	# Create bullet instance
-	var bullet := bullet_scene.instantiate()
+	# Create bullet instance - try pool first for performance (Issue #724)
+	var bullet: Node = null
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	var spawn_pos := global_position + shoot_direction * bullet_spawn_offset
 
-	# Set bullet position with offset in shoot direction
-	bullet.global_position = global_position + shoot_direction * bullet_spawn_offset
+	if pool_manager and pool_manager.has_method("get_bullet"):
+		bullet = pool_manager.get_bullet()
+		if bullet and bullet.has_method("pool_activate"):
+			# Use pooled activation which handles position, direction, shooter_id
+			bullet.pool_activate(spawn_pos, shoot_direction, get_instance_id(), null)
+			# Set additional properties after activation
+			bullet.shooter_position = global_position
+			if _homing_active and bullet.has_method("enable_homing"):
+				bullet.enable_homing()
+			if _breaker_bullets_active:
+				bullet.is_breaker_bullet = true
 
-	# Set bullet direction
-	bullet.direction = shoot_direction
-
-	# Set shooter ID to identify this player as the source
-	# This prevents the player from being hit by their own bullets
-	bullet.shooter_id = get_instance_id()
-
-	# Set shooter position for distance-based penetration calculation
-	# Direct assignment - the bullet script defines this property
-	bullet.shooter_position = global_position
-
-	# Enable homing on the bullet if homing effect is active
-	if _homing_active:
-		bullet.enable_homing()
-
-	# Set breaker bullet flag if breaker bullets are active (Issue #678)
-	if _breaker_bullets_active:
-		bullet.is_breaker_bullet = true
-
-	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
-	get_tree().current_scene.add_child(bullet)
+	# Fallback to instantiation if pool not available or failed
+	if bullet == null:
+		bullet = bullet_scene.instantiate()
+		bullet.global_position = spawn_pos
+		bullet.direction = shoot_direction
+		bullet.shooter_id = get_instance_id()
+		bullet.shooter_position = global_position
+		if _homing_active and bullet.has_method("enable_homing"):
+			bullet.enable_homing()
+		if _breaker_bullets_active:
+			bullet.is_breaker_bullet = true
+		# Add bullet to scene tree (only needed for non-pooled bullets)
+		get_tree().current_scene.add_child(bullet)
 
 	# Spawn muzzle flash effect at bullet spawn position
 	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
