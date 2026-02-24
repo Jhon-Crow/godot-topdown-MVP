@@ -29,6 +29,15 @@ class_name BloodyFeetComponent
 ## Enable debug logging.
 @export var debug_logging: bool = false
 
+## Maximum number of footprint nodes across the whole scene (Issue #862).
+## 0 = unlimited. 150 covers ~12 enemies × 12 footprints, well above any
+## visible play area, and prevents scene-tree bloat in long sessions.
+const MAX_FOOTPRINTS: int = 150
+
+## Tracked footprint nodes for FIFO cleanup (Issue #862).
+## Shared across all BloodyFeetComponent instances via a class-level variable.
+static var _all_footprints: Array = []
+
 ## Preloaded footprint scene.
 var _footprint_scene: PackedScene = null
 
@@ -455,6 +464,14 @@ func _spawn_footprint() -> void:
 		scene.add_child(footprint)
 	else:
 		_parent_body.get_parent().add_child(footprint)
+
+	# Track for FIFO cleanup (Issue #862: cap total footprints to prevent node bloat)
+	_all_footprints.append(footprint)
+	if MAX_FOOTPRINTS > 0:
+		while _all_footprints.size() > MAX_FOOTPRINTS:
+			var oldest := _all_footprints.pop_front() as Node2D
+			if oldest and is_instance_valid(oldest):
+				oldest.queue_free()
 
 	# Decrease blood level
 	_blood_level -= 1
