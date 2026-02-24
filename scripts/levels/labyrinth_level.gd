@@ -511,6 +511,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
 		weapon = _player.get_node_or_null("Revolver")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
