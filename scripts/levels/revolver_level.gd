@@ -1,16 +1,16 @@
 extends Node2D
-## Revolver Level - Map designed specifically for revolver gameplay.
+## Double Corridor Level - Map designed for revolver and penetration gameplay.
 ##
-## This level is optimized for RSh-12 revolver mechanics:
-## - Narrow corridors for penetration kills (shoot through multiple enemies)
-## - Safe zones with cover for partial reloading
-## - Enemy groups limited to max 4-5 per combat area (never >5 in close combat)
+## Map features:
+## - Two parallel horizontal corridors for penetration kills (shoot through multiple enemies)
+## - Reload zones with cover between corridors
+## - Zone dividers block line-of-sight between spawn and corridor sections
+## - Enemy groups limited to max 4-5 per zone (never >5 in close combat simultaneously)
 ## - Strategic cover placement for reload opportunities
-## - Total enemies distributed to match 5-round cylinder + penetration capability
 ##
-## Map layout: Linear progression with branching corridors
+## Map layout: H-shaped double corridor with blocked sight lines between zones
 ## Size: ~2000x1600 pixels
-## Enemies: 12 total, strategically placed
+## Enemies: 12 total, 3 per corridor + 4 reload guards + 2 final patrol
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -88,9 +88,9 @@ func _get_or_create_replay_manager() -> Node:
 
 
 func _ready() -> void:
-	print("RevolverLevel loaded - Designed for RSh-12 Revolver")
+	print("RevolverLevel loaded - Double Corridor map")
 	print("Map size: ~2000x1600 pixels")
-	print("Features: Corridors for penetration kills, safe reload zones")
+	print("Features: Two parallel corridors for penetration kills, reload zones between corridors")
 	print("Press Q for quick restart")
 
 	# Setup navigation mesh for enemy pathfinding
@@ -103,7 +103,7 @@ func _ready() -> void:
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 
-	# Find and setup player tracking
+	# Find and connect to the player
 	_setup_player_tracking()
 
 	# Setup debug UI
@@ -303,7 +303,6 @@ func _setup_player_tracking() -> void:
 		return
 
 	_setup_realistic_visibility()
-	_setup_selected_weapon()
 
 	if GameManager:
 		GameManager.set_player(_player)
@@ -315,7 +314,7 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Try to get the player's weapon - prioritize Revolver for this level
+	# Try to get the player's currently equipped weapon
 	var weapon = _player.get_node_or_null("Revolver")
 	if weapon == null:
 		weapon = _player.get_node_or_null("Shotgun")
@@ -654,7 +653,6 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 
 	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
 
-	# Revolver has 5 rounds - adjust thresholds accordingly
 	if current_mag <= 2:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current_mag <= 3:
@@ -667,17 +665,6 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-
-	# Hide for revolver (cylinder based, not magazine based)
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Revolver")
-
-	if weapon != null:
-		_magazines_label.visible = false
-		return
-	else:
-		_magazines_label.visible = true
 
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
@@ -948,46 +935,6 @@ func _show_game_over_message() -> void:
 	game_over_label.offset_bottom = 75
 
 	ui.add_child(game_over_label)
-
-
-## Setup the weapon - force Revolver for this level.
-func _setup_selected_weapon() -> void:
-	if _player == null:
-		return
-
-	# This level is designed for revolver - always equip it
-	var existing_revolver = _player.get_node_or_null("Revolver")
-	if existing_revolver != null:
-		# Revolver already equipped
-		if _player.has_method("EquipWeapon"):
-			_player.EquipWeapon(existing_revolver)
-		elif _player.get("CurrentWeapon") != null:
-			_player.CurrentWeapon = existing_revolver
-		print("[RevolverLevel] Revolver already equipped")
-		return
-
-	# Remove any existing weapon
-	for weapon_name in ["MakarovPM", "Shotgun", "MiniUzi", "SilencedPistol", "SniperRifle", "AssaultRifle", "AKGL"]:
-		var weapon = _player.get_node_or_null(weapon_name)
-		if weapon:
-			weapon.queue_free()
-			print("[RevolverLevel] Removed %s" % weapon_name)
-
-	# Load and add the Revolver
-	var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
-	if revolver_scene:
-		var revolver = revolver_scene.instantiate()
-		revolver.name = "Revolver"
-		_player.add_child(revolver)
-
-		if _player.has_method("EquipWeapon"):
-			_player.EquipWeapon(revolver)
-		elif _player.get("CurrentWeapon") != null:
-			_player.CurrentWeapon = revolver
-
-		print("[RevolverLevel] RSh-12 Revolver equipped successfully")
-	else:
-		push_error("[RevolverLevel] Failed to load Revolver scene!")
 
 
 ## Handle W key shortcut for Watch Replay when score is shown.

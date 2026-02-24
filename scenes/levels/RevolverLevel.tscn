@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://revolver_level_scene"]
+[gd_scene load_steps=30 format=3 uid="uid://revolver_level_scene"]
 
 [ext_resource type="Script" path="res://scripts/levels/revolver_level.gd" id="1_revolver_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -12,11 +12,17 @@ size = Vector2(2064, 32)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_vertical"]
 size = Vector2(32, 1664)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_divider_v_tall"]
+size = Vector2(32, 880)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_divider_v_short"]
+size = Vector2(32, 200)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_corridor_wall_h"]
 size = Vector2(400, 32)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_corridor_wall_v"]
-size = Vector2(32, 300)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_zone_wall_h"]
+size = Vector2(600, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_wide"]
 size = Vector2(96, 32)
@@ -27,20 +33,23 @@ size = Vector2(32, 96)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_square"]
 size = Vector2(64, 64)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_pillar"]
-size = Vector2(48, 48)
-
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_horizontal"]
 polygon = PackedVector2Array(-1032, -16, 1032, -16, 1032, 16, -1032, 16)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_vertical"]
 polygon = PackedVector2Array(-16, -832, 16, -832, 16, 832, -16, 832)
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_divider_v_tall"]
+polygon = PackedVector2Array(-16, -440, 16, -440, 16, 440, -16, 440)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_divider_v_short"]
+polygon = PackedVector2Array(-16, -100, 16, -100, 16, 100, -16, 100)
+
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_corridor_wall_h"]
 polygon = PackedVector2Array(-200, -16, 200, -16, 200, 16, -200, 16)
 
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_corridor_wall_v"]
-polygon = PackedVector2Array(-16, -150, 16, -150, 16, 150, -16, 150)
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_zone_wall_h"]
+polygon = PackedVector2Array(-300, -16, 300, -16, 300, 16, -300, 16)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_wide"]
 polygon = PackedVector2Array(-48, -16, 48, -16, 48, 16, -48, 16)
@@ -152,380 +161,418 @@ shape = SubResource("RectangleShape2D_wall_vertical")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Walls/WallRight"]
 occluder = SubResource("OccluderPolygon2D_wall_vertical")
 
+[node name="ZoneDividers" type="Node2D" parent="Environment"]
+
+[node name="Divider1Top" type="StaticBody2D" parent="Environment/ZoneDividers"]
+position = Vector2(480, 328)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/ZoneDividers/Divider1Top"]
+offset_left = -16.0
+offset_top = -264.0
+offset_right = 16.0
+offset_bottom = 264.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider1Top"]
+shape = SubResource("RectangleShape2D_divider_v_short")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider1Top"]
+occluder = SubResource("OccluderPolygon2D_divider_v_short")
+
+[node name="Divider1Bottom" type="StaticBody2D" parent="Environment/ZoneDividers"]
+position = Vector2(480, 1400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/ZoneDividers/Divider1Bottom"]
+offset_left = -16.0
+offset_top = -264.0
+offset_right = 16.0
+offset_bottom = 264.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider1Bottom"]
+shape = SubResource("RectangleShape2D_divider_v_short")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider1Bottom"]
+occluder = SubResource("OccluderPolygon2D_divider_v_short")
+
+[node name="Divider2Top" type="StaticBody2D" parent="Environment/ZoneDividers"]
+position = Vector2(1000, 328)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/ZoneDividers/Divider2Top"]
+offset_left = -16.0
+offset_top = -264.0
+offset_right = 16.0
+offset_bottom = 264.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider2Top"]
+shape = SubResource("RectangleShape2D_divider_v_short")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider2Top"]
+occluder = SubResource("OccluderPolygon2D_divider_v_short")
+
+[node name="Divider2Bottom" type="StaticBody2D" parent="Environment/ZoneDividers"]
+position = Vector2(1000, 1400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/ZoneDividers/Divider2Bottom"]
+offset_left = -16.0
+offset_top = -264.0
+offset_right = 16.0
+offset_bottom = 264.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider2Bottom"]
+shape = SubResource("RectangleShape2D_divider_v_short")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider2Bottom"]
+occluder = SubResource("OccluderPolygon2D_divider_v_short")
+
 [node name="CorridorWalls" type="Node2D" parent="Environment"]
 
-[node name="Corridor1Top" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(700, 400)
+[node name="TopCorridorTop" type="StaticBody2D" parent="Environment/CorridorWalls"]
+position = Vector2(740, 400)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor1Top"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/TopCorridorTop"]
+offset_left = -300.0
 offset_top = -16.0
-offset_right = 200.0
+offset_right = 300.0
 offset_bottom = 16.0
 color = Color(0.35, 0.28, 0.22, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor1Top"]
-shape = SubResource("RectangleShape2D_corridor_wall_h")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/TopCorridorTop"]
+shape = SubResource("RectangleShape2D_zone_wall_h")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor1Top"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/TopCorridorTop"]
+occluder = SubResource("OccluderPolygon2D_zone_wall_h")
 
-[node name="Corridor1Bottom" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(700, 700)
+[node name="TopCorridorBottom" type="StaticBody2D" parent="Environment/CorridorWalls"]
+position = Vector2(740, 700)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor1Bottom"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/TopCorridorBottom"]
+offset_left = -300.0
 offset_top = -16.0
-offset_right = 200.0
+offset_right = 300.0
 offset_bottom = 16.0
 color = Color(0.35, 0.28, 0.22, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor1Bottom"]
-shape = SubResource("RectangleShape2D_corridor_wall_h")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/TopCorridorBottom"]
+shape = SubResource("RectangleShape2D_zone_wall_h")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor1Bottom"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/TopCorridorBottom"]
+occluder = SubResource("OccluderPolygon2D_zone_wall_h")
 
-[node name="Corridor2Top" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(700, 1000)
+[node name="BottomCorridorTop" type="StaticBody2D" parent="Environment/CorridorWalls"]
+position = Vector2(740, 1000)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor2Top"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/BottomCorridorTop"]
+offset_left = -300.0
 offset_top = -16.0
-offset_right = 200.0
+offset_right = 300.0
 offset_bottom = 16.0
 color = Color(0.35, 0.28, 0.22, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor2Top"]
-shape = SubResource("RectangleShape2D_corridor_wall_h")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/BottomCorridorTop"]
+shape = SubResource("RectangleShape2D_zone_wall_h")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor2Top"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/BottomCorridorTop"]
+occluder = SubResource("OccluderPolygon2D_zone_wall_h")
 
-[node name="Corridor2Bottom" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(700, 1300)
+[node name="BottomCorridorBottom" type="StaticBody2D" parent="Environment/CorridorWalls"]
+position = Vector2(740, 1300)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor2Bottom"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/BottomCorridorBottom"]
+offset_left = -300.0
 offset_top = -16.0
-offset_right = 200.0
+offset_right = 300.0
 offset_bottom = 16.0
 color = Color(0.35, 0.28, 0.22, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor2Bottom"]
-shape = SubResource("RectangleShape2D_corridor_wall_h")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/BottomCorridorBottom"]
+shape = SubResource("RectangleShape2D_zone_wall_h")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor2Bottom"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/BottomCorridorBottom"]
+occluder = SubResource("OccluderPolygon2D_zone_wall_h")
 
-[node name="Corridor3Left" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(1200, 550)
+[node name="FinalZoneWallTop" type="StaticBody2D" parent="Environment/CorridorWalls"]
+position = Vector2(1340, 550)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor3Left"]
+[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/FinalZoneWallTop"]
 offset_left = -16.0
 offset_top = -150.0
 offset_right = 16.0
 offset_bottom = 150.0
 color = Color(0.35, 0.28, 0.22, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor3Left"]
-shape = SubResource("RectangleShape2D_corridor_wall_v")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/FinalZoneWallTop"]
+shape = SubResource("RectangleShape2D_corridor_wall_h")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor3Left"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_v")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/FinalZoneWallTop"]
+occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
 
-[node name="Corridor3Right" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(1400, 550)
+[node name="FinalZoneWallBottom" type="StaticBody2D" parent="Environment/CorridorWalls"]
+position = Vector2(1340, 1150)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor3Right"]
+[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/FinalZoneWallBottom"]
 offset_left = -16.0
 offset_top = -150.0
 offset_right = 16.0
 offset_bottom = 150.0
 color = Color(0.35, 0.28, 0.22, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor3Right"]
-shape = SubResource("RectangleShape2D_corridor_wall_v")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/FinalZoneWallBottom"]
+shape = SubResource("RectangleShape2D_corridor_wall_h")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor3Right"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_v")
-
-[node name="Corridor4Left" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(1200, 1150)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor4Left"]
-offset_left = -16.0
-offset_top = -150.0
-offset_right = 16.0
-offset_bottom = 150.0
-color = Color(0.35, 0.28, 0.22, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor4Left"]
-shape = SubResource("RectangleShape2D_corridor_wall_v")
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor4Left"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_v")
-
-[node name="Corridor4Right" type="StaticBody2D" parent="Environment/CorridorWalls"]
-position = Vector2(1400, 1150)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/CorridorWalls/Corridor4Right"]
-offset_left = -16.0
-offset_top = -150.0
-offset_right = 16.0
-offset_bottom = 150.0
-color = Color(0.35, 0.28, 0.22, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/Corridor4Right"]
-shape = SubResource("RectangleShape2D_corridor_wall_v")
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/Corridor4Right"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_v")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/FinalZoneWallBottom"]
+occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
 
 [node name="ZoneMarkers" type="Node2D" parent="Environment"]
 
 [node name="SpawnZone" type="ColorRect" parent="Environment/ZoneMarkers"]
 offset_left = 64.0
-offset_top = 600.0
-offset_right = 400.0
-offset_bottom = 1100.0
+offset_top = 700.0
+offset_right = 480.0
+offset_bottom = 1000.0
 color = Color(0.15, 0.25, 0.15, 0.3)
 
 [node name="SpawnLabel" type="Label" parent="Environment/ZoneMarkers/SpawnZone"]
-offset_left = 80.0
-offset_top = 220.0
-offset_right = 260.0
-offset_bottom = 250.0
+offset_left = 70.0
+offset_top = 120.0
+offset_right = 340.0
+offset_bottom = 150.0
 text = "SPAWN"
 horizontal_alignment = 1
 
-[node name="SafeZone1" type="ColorRect" parent="Environment/ZoneMarkers"]
-offset_left = 960.0
-offset_top = 400.0
-offset_right = 1180.0
-offset_bottom = 700.0
-color = Color(0.15, 0.3, 0.2, 0.25)
-
-[node name="SafeLabel1" type="Label" parent="Environment/ZoneMarkers/SafeZone1"]
-offset_left = 30.0
-offset_top = 130.0
-offset_right = 190.0
-offset_bottom = 160.0
-text = "SAFE ZONE"
-horizontal_alignment = 1
-
-[node name="SafeZone2" type="ColorRect" parent="Environment/ZoneMarkers"]
-offset_left = 960.0
-offset_top = 1000.0
-offset_right = 1180.0
-offset_bottom = 1300.0
-color = Color(0.15, 0.3, 0.2, 0.25)
-
-[node name="SafeLabel2" type="Label" parent="Environment/ZoneMarkers/SafeZone2"]
-offset_left = 30.0
-offset_top = 130.0
-offset_right = 190.0
-offset_bottom = 160.0
-text = "SAFE ZONE"
-horizontal_alignment = 1
-
-[node name="CorridorZone1" type="ColorRect" parent="Environment/ZoneMarkers"]
-offset_left = 500.0
+[node name="TopCorridorZone" type="ColorRect" parent="Environment/ZoneMarkers"]
+offset_left = 480.0
 offset_top = 416.0
-offset_right = 900.0
+offset_right = 1000.0
 offset_bottom = 684.0
 color = Color(0.4, 0.2, 0.1, 0.2)
 
-[node name="CorridorLabel1" type="Label" parent="Environment/ZoneMarkers/CorridorZone1"]
-offset_left = 100.0
+[node name="TopCorridorLabel" type="Label" parent="Environment/ZoneMarkers/TopCorridorZone"]
+offset_left = 80.0
 offset_top = 116.0
-offset_right = 300.0
+offset_right = 440.0
 offset_bottom = 146.0
 text = "PENETRATION"
 horizontal_alignment = 1
 
-[node name="CorridorZone2" type="ColorRect" parent="Environment/ZoneMarkers"]
-offset_left = 500.0
+[node name="BottomCorridorZone" type="ColorRect" parent="Environment/ZoneMarkers"]
+offset_left = 480.0
 offset_top = 1016.0
-offset_right = 900.0
+offset_right = 1000.0
 offset_bottom = 1284.0
 color = Color(0.4, 0.2, 0.1, 0.2)
 
-[node name="CorridorLabel2" type="Label" parent="Environment/ZoneMarkers/CorridorZone2"]
-offset_left = 100.0
+[node name="BottomCorridorLabel" type="Label" parent="Environment/ZoneMarkers/BottomCorridorZone"]
+offset_left = 80.0
 offset_top = 116.0
-offset_right = 300.0
+offset_right = 440.0
 offset_bottom = 146.0
 text = "PENETRATION"
+horizontal_alignment = 1
+
+[node name="ReloadZone1" type="ColorRect" parent="Environment/ZoneMarkers"]
+offset_left = 1000.0
+offset_top = 400.0
+offset_right = 1340.0
+offset_bottom = 700.0
+color = Color(0.15, 0.3, 0.2, 0.25)
+
+[node name="ReloadLabel1" type="Label" parent="Environment/ZoneMarkers/ReloadZone1"]
+offset_left = 40.0
+offset_top = 130.0
+offset_right = 300.0
+offset_bottom = 160.0
+text = "RELOAD"
+horizontal_alignment = 1
+
+[node name="ReloadZone2" type="ColorRect" parent="Environment/ZoneMarkers"]
+offset_left = 1000.0
+offset_top = 1000.0
+offset_right = 1340.0
+offset_bottom = 1300.0
+color = Color(0.15, 0.3, 0.2, 0.25)
+
+[node name="ReloadLabel2" type="Label" parent="Environment/ZoneMarkers/ReloadZone2"]
+offset_left = 40.0
+offset_top = 130.0
+offset_right = 300.0
+offset_bottom = 160.0
+text = "RELOAD"
 horizontal_alignment = 1
 
 [node name="Cover" type="Node2D" parent="Environment"]
 
 [node name="SpawnCover1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(350, 700)
+position = Vector2(280, 780)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/SpawnCover1"]
-offset_left = -16.0
-offset_top = -48.0
-offset_right = 16.0
-offset_bottom = 48.0
+offset_left = -48.0
+offset_top = -16.0
+offset_right = 48.0
+offset_bottom = 16.0
 color = Color(0.25, 0.4, 0.3, 1)
 
 [node name="Indicator" type="ColorRect" parent="Environment/Cover/SpawnCover1"]
-offset_left = -20.0
-offset_top = -52.0
-offset_right = 20.0
-offset_bottom = 52.0
+offset_left = -52.0
+offset_top = -20.0
+offset_right = 52.0
+offset_bottom = 20.0
 color = Color(0.4, 0.6, 0.45, 0.3)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/SpawnCover1"]
-shape = SubResource("RectangleShape2D_cover_tall")
+shape = SubResource("RectangleShape2D_cover_wide")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/SpawnCover1"]
-occluder = SubResource("OccluderPolygon2D_cover_tall")
+occluder = SubResource("OccluderPolygon2D_cover_wide")
 
 [node name="SpawnCover2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(350, 1000)
+position = Vector2(280, 950)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/SpawnCover2"]
-offset_left = -16.0
-offset_top = -48.0
-offset_right = 16.0
-offset_bottom = 48.0
+offset_left = -48.0
+offset_top = -16.0
+offset_right = 48.0
+offset_bottom = 16.0
 color = Color(0.25, 0.4, 0.3, 1)
 
 [node name="Indicator" type="ColorRect" parent="Environment/Cover/SpawnCover2"]
-offset_left = -20.0
-offset_top = -52.0
-offset_right = 20.0
-offset_bottom = 52.0
+offset_left = -52.0
+offset_top = -20.0
+offset_right = 52.0
+offset_bottom = 20.0
 color = Color(0.4, 0.6, 0.45, 0.3)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/SpawnCover2"]
-shape = SubResource("RectangleShape2D_cover_tall")
+shape = SubResource("RectangleShape2D_cover_wide")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/SpawnCover2"]
-occluder = SubResource("OccluderPolygon2D_cover_tall")
+occluder = SubResource("OccluderPolygon2D_cover_wide")
 
-[node name="SafeCover1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1070, 550)
+[node name="TopCorridorCover1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(600, 550)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/SafeCover1"]
-offset_left = -32.0
-offset_top = -32.0
-offset_right = 32.0
-offset_bottom = 32.0
-color = Color(0.3, 0.45, 0.35, 1)
-
-[node name="Indicator" type="ColorRect" parent="Environment/Cover/SafeCover1"]
-offset_left = -36.0
-offset_top = -36.0
-offset_right = 36.0
-offset_bottom = 36.0
-color = Color(0.45, 0.6, 0.5, 0.3)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/SafeCover1"]
-shape = SubResource("RectangleShape2D_cover_square")
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/SafeCover1"]
-occluder = SubResource("OccluderPolygon2D_cover_square")
-
-[node name="SafeCover2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1070, 1150)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/SafeCover2"]
-offset_left = -32.0
-offset_top = -32.0
-offset_right = 32.0
-offset_bottom = 32.0
-color = Color(0.3, 0.45, 0.35, 1)
-
-[node name="Indicator" type="ColorRect" parent="Environment/Cover/SafeCover2"]
-offset_left = -36.0
-offset_top = -36.0
-offset_right = 36.0
-offset_bottom = 36.0
-color = Color(0.45, 0.6, 0.5, 0.3)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/SafeCover2"]
-shape = SubResource("RectangleShape2D_cover_square")
-
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/SafeCover2"]
-occluder = SubResource("OccluderPolygon2D_cover_square")
-
-[node name="CorridorCover1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(500, 550)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CorridorCover1"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/TopCorridorCover1"]
 offset_left = -48.0
 offset_top = -16.0
 offset_right = 48.0
 offset_bottom = 16.0
 color = Color(0.25, 0.4, 0.3, 1)
 
-[node name="Indicator" type="ColorRect" parent="Environment/Cover/CorridorCover1"]
+[node name="Indicator" type="ColorRect" parent="Environment/Cover/TopCorridorCover1"]
 offset_left = -52.0
 offset_top = -20.0
 offset_right = 52.0
 offset_bottom = 20.0
 color = Color(0.4, 0.6, 0.45, 0.3)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CorridorCover1"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/TopCorridorCover1"]
 shape = SubResource("RectangleShape2D_cover_wide")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CorridorCover1"]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/TopCorridorCover1"]
 occluder = SubResource("OccluderPolygon2D_cover_wide")
 
-[node name="CorridorCover2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(500, 1150)
+[node name="BottomCorridorCover1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(600, 1150)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CorridorCover2"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/BottomCorridorCover1"]
 offset_left = -48.0
 offset_top = -16.0
 offset_right = 48.0
 offset_bottom = 16.0
 color = Color(0.25, 0.4, 0.3, 1)
 
-[node name="Indicator" type="ColorRect" parent="Environment/Cover/CorridorCover2"]
+[node name="Indicator" type="ColorRect" parent="Environment/Cover/BottomCorridorCover1"]
 offset_left = -52.0
 offset_top = -20.0
 offset_right = 52.0
 offset_bottom = 20.0
 color = Color(0.4, 0.6, 0.45, 0.3)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CorridorCover2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/BottomCorridorCover1"]
 shape = SubResource("RectangleShape2D_cover_wide")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/CorridorCover2"]
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/BottomCorridorCover1"]
 occluder = SubResource("OccluderPolygon2D_cover_wide")
+
+[node name="ReloadCover1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1150, 550)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/ReloadCover1"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="Indicator" type="ColorRect" parent="Environment/Cover/ReloadCover1"]
+offset_left = -36.0
+offset_top = -36.0
+offset_right = 36.0
+offset_bottom = 36.0
+color = Color(0.45, 0.6, 0.5, 0.3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/ReloadCover1"]
+shape = SubResource("RectangleShape2D_cover_square")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/ReloadCover1"]
+occluder = SubResource("OccluderPolygon2D_cover_square")
+
+[node name="ReloadCover2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1150, 1150)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/ReloadCover2"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="Indicator" type="ColorRect" parent="Environment/Cover/ReloadCover2"]
+offset_left = -36.0
+offset_top = -36.0
+offset_right = 36.0
+offset_bottom = 36.0
+color = Color(0.45, 0.6, 0.5, 0.3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/ReloadCover2"]
+shape = SubResource("RectangleShape2D_cover_square")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/ReloadCover2"]
+occluder = SubResource("OccluderPolygon2D_cover_square")
 
 [node name="FinalCover1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1700, 500)
@@ -579,72 +626,82 @@ occluder = SubResource("OccluderPolygon2D_cover_square")
 
 [node name="Enemies" type="Node2D" parent="Environment"]
 
-[node name="CorridorEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(650, 550)
+[node name="TopEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(620, 550)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = false
 enable_cover = false
 
-[node name="CorridorEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(750, 550)
+[node name="TopEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(740, 550)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = false
 enable_cover = false
 
-[node name="CorridorEnemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(850, 550)
+[node name="TopEnemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(860, 550)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = false
 enable_cover = false
 
-[node name="CorridorEnemy4" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(650, 1150)
+[node name="BottomEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(620, 1150)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = false
 enable_cover = false
 
-[node name="CorridorEnemy5" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(750, 1150)
+[node name="BottomEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(740, 1150)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = false
 enable_cover = false
 
-[node name="CorridorEnemy6" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(850, 1150)
+[node name="BottomEnemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(860, 1150)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = false
 enable_cover = false
 
-[node name="SafeZoneGuard1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1300, 500)
+[node name="ReloadGuard1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1180, 500)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="SafeZoneGuard2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1300, 600)
+[node name="ReloadGuard2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1180, 600)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="SafeZoneGuard3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1300, 1100)
+[node name="ReloadGuard3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1180, 1100)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="SafeZoneGuard4" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1300, 1200)
+[node name="ReloadGuard4" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1180, 1200)
 behavior_mode = 1
+detection_range = 350.0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -653,6 +710,7 @@ enable_cover = true
 position = Vector2(1850, 700)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, 200), Vector2(0, -200)])
+detection_range = 400.0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -661,6 +719,7 @@ enable_cover = true
 position = Vector2(1850, 1000)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, -200), Vector2(0, 200)])
+detection_range = 400.0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -693,7 +752,7 @@ offset_top = 10.0
 offset_right = -10.0
 offset_bottom = 40.0
 grow_horizontal = 0
-text = "РШ-12 ПОЛИГОН"
+text = "DOUBLE CORRIDOR"
 horizontal_alignment = 2
 
 [node name="EnemyCountLabel" type="Label" parent="CanvasLayer/UI"]
@@ -716,7 +775,7 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
 offset_bottom = 45.0
-text = "CYLINDER: 5/5"
+text = "AMMO: -"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]
 
