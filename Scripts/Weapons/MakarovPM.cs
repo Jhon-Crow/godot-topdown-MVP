@@ -465,7 +465,7 @@ public partial class MakarovPM : BaseWeapon
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Call("set_shooter_id", (int)owner.GetInstanceId());
+                bulletNode.Call("set_shooter_id", (long)owner.GetInstanceId());
             }
             bulletNode.Call("set_shooter_position", GlobalPosition);
             bulletNode.Call("set_stun_duration", StunDurationOnHit);

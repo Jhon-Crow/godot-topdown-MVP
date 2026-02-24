@@ -444,7 +444,7 @@ public abstract partial class BaseWeapon : Node2D
             var owner = GetParent();
             if (owner != null)
             {
-                bullet.Call("set_shooter_id", (int)owner.GetInstanceId());
+                bullet.Call("set_shooter_id", (long)owner.GetInstanceId());
             }
             bullet.Call("set_shooter_position", GlobalPosition);
         }

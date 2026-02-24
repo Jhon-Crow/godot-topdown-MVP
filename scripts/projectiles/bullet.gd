@@ -119,7 +119,7 @@ const MAX_PENETRATION_CHANCE_AT_DISTANCE: float = 0.3  # 30% max at viewport dis
 var shooter_position: Vector2 = Vector2.ZERO
 
 ## Duration in seconds to stun enemies on hit (0 = no stun effect).
-## Set by weapons like MakarovPM and SilencedPistol via Node.Set().
+## Set by weapons like MakarovPM and SilencedPistol via Call("set_stun_duration", value).
 var stun_duration: float = 0.0
 
 ## Whether this bullet has homing enabled (steers toward nearest enemy).
@@ -741,9 +741,10 @@ func _is_player_bullet() -> bool:
 	if shooter == null:
 		return false
 
-	# Check if the shooter is a player by script path
-	var script: Script = shooter.get_script()
-	if script and script.resource_path.contains("player"):
+	# Use group membership for reliable player detection (works for both C# and GDScript players).
+	# The "player" group is set on the Player node in the scene, consistently used across the codebase.
+	# Note: script.resource_path.contains("player") would fail for C# Player (capital P).
+	if shooter is Node and (shooter as Node).is_in_group("player"):
 		return true
 
 	return false
