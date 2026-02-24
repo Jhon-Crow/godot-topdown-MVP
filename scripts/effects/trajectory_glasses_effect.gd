@@ -24,8 +24,9 @@ const EFFECT_DURATION: float = 10.0
 ## Maximum charges per battle.
 const MAX_CHARGES: int = 2
 
-## Maximum number of ricochet bounces to visualize.
-const MAX_RICOCHET_BOUNCES: int = 50
+## Maximum number of ricochet bounces to visualize for weapons with unlimited ricochets.
+## Keeps the visualization readable without cluttering the screen.
+const MAX_RICOCHET_BOUNCES: int = 5
 
 ## Laser width for trajectory visualization.
 const LASER_WIDTH: float = 2.0
@@ -275,6 +276,7 @@ func _get_aim_direction() -> Vector2:
 ## Falls back to MAX_RICOCHET_ANGLE (90 degrees) if no caliber data is found.
 func _get_weapon_max_ricochet_angle() -> float:
 	if _weapon == null or not is_instance_valid(_weapon):
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: no weapon, using default %.1f" % MAX_RICOCHET_ANGLE)
 		return MAX_RICOCHET_ANGLE
 
 	# Try to read WeaponData.Caliber.max_ricochet_angle from C# BaseWeapon
@@ -285,6 +287,7 @@ func _get_weapon_max_ricochet_angle() -> float:
 		weapon_data = _weapon.get("weapon_data")
 
 	if weapon_data == null:
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: no weapon_data on %s, using default %.1f" % [_weapon.name, MAX_RICOCHET_ANGLE])
 		return MAX_RICOCHET_ANGLE
 
 	var caliber = null
@@ -294,6 +297,7 @@ func _get_weapon_max_ricochet_angle() -> float:
 		caliber = weapon_data.get("caliber")
 
 	if caliber == null:
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: no caliber in weapon_data for %s, using default %.1f" % [_weapon.name, MAX_RICOCHET_ANGLE])
 		return MAX_RICOCHET_ANGLE
 
 	# Check if ricochet is possible at all for this caliber
@@ -301,18 +305,55 @@ func _get_weapon_max_ricochet_angle() -> float:
 	if "can_ricochet" in caliber:
 		can_ricochet_val = caliber.get("can_ricochet")
 	if not can_ricochet_val:
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s cannot ricochet (can_ricochet=false)" % _weapon.name)
 		return 0.0  # Weapon cannot ricochet (e.g. sniper rifle)
 
 	# Read the per-caliber max ricochet angle
+	var angle := MAX_RICOCHET_ANGLE
 	if "max_ricochet_angle" in caliber:
-		return float(caliber.get("max_ricochet_angle"))
+		angle = float(caliber.get("max_ricochet_angle"))
 
-	return MAX_RICOCHET_ANGLE
+	FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s -> max_ricochet_angle=%.1f" % [_weapon.name, angle])
+	return angle
+
+
+## Get the maximum number of ricochets for the current weapon.
+## Reads from the weapon's CaliberData resource when available.
+## Returns -1 for unlimited, or a non-negative integer to cap bounces.
+func _get_weapon_max_ricochets() -> int:
+	if _weapon == null or not is_instance_valid(_weapon):
+		return -1
+
+	# Try to read WeaponData.Caliber.max_ricochets from C# BaseWeapon
+	var weapon_data = null
+	if "WeaponData" in _weapon:
+		weapon_data = _weapon.get("WeaponData")
+	elif "weapon_data" in _weapon:
+		weapon_data = _weapon.get("weapon_data")
+
+	if weapon_data == null:
+		return -1
+
+	var caliber = null
+	if "Caliber" in weapon_data:
+		caliber = weapon_data.get("Caliber")
+	elif "caliber" in weapon_data:
+		caliber = weapon_data.get("caliber")
+
+	if caliber == null:
+		return -1
+
+	var max_r := -1
+	if "max_ricochets" in caliber:
+		max_r = int(caliber.get("max_ricochets"))
+
+	FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochets: %s -> max_ricochets=%d" % [_weapon.name, max_r])
+	return max_r
 
 
 ## Calculate the ricochet trajectory as an array of world-coordinate points.
 ## Uses the same logic as bullet.gd for realistic behavior.
-## Respects the weapon's caliber data for ricochet angle limits.
+## Respects the weapon's caliber data for ricochet angle limits and max bounce count.
 ## Sets trajectory_invalid_start_index to the index of the first non-ricochetable
 ## hit point; the segment ending there is drawn red, and tracing stops.
 func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array[Vector2]:
@@ -323,8 +364,21 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 	var current_dir := direction
 	var max_distance := _viewport_diagonal
 
-	# Get weapon-specific ricochet angle limit
+	# Get weapon-specific ricochet limits
 	var weapon_max_angle := _get_weapon_max_ricochet_angle()
+	var weapon_max_ricochets := _get_weapon_max_ricochets()
+
+	# Clamp bounce limit: use caliber's max_ricochets if set (>=0), else MAX_RICOCHET_BOUNCES.
+	# bounce_limit is the maximum number of WALL HITS allowed.
+	# After each valid wall hit we continue to show the next segment.
+	# After the last allowed valid wall hit, we add one final segment going forward.
+	var bounce_limit := MAX_RICOCHET_BOUNCES
+	if weapon_max_ricochets >= 0:
+		bounce_limit = weapon_max_ricochets
+
+	FileLogger.info("[TrajectoryGlasses] _calculate_ricochet_trajectory: weapon_max_angle=%.1f, weapon_max_ricochets=%d, bounce_limit=%d" % [
+		weapon_max_angle, weapon_max_ricochets, bounce_limit
+	])
 
 	var space_state := _player.get_world_2d().direct_space_state
 	if space_state == null:
@@ -332,8 +386,10 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 		points.append(start + direction * max_distance)
 		return points
 
-	for _bounce in range(MAX_RICOCHET_BOUNCES):
-		# Raycast forward
+	var bounces_done := 0
+	var final_segment_only := false  # True when we should draw one more open segment then stop
+	for _seg in range(bounce_limit + 1):
+		# Raycast forward from current position
 		var ray_end := current_pos + current_dir * max_distance
 		var query := PhysicsRayQueryParameters2D.create(current_pos, ray_end)
 		query.collision_mask = 4  # Layer 3 = obstacles/walls
@@ -341,7 +397,7 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 		var result := space_state.intersect_ray(query)
 
 		if result.is_empty():
-			# No hit - line extends to max distance (all valid, green)
+			# No hit — line extends to max distance (all valid, green)
 			points.append(ray_end)
 			break
 
@@ -353,22 +409,34 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 		var impact_angle := _calculate_impact_angle(current_dir, hit_normal)
 		var is_valid_ricochet := weapon_max_angle > 0.0 and impact_angle < weapon_max_angle
 
+		FileLogger.info("[TrajectoryGlasses] seg %d (bounce %d/%d): impact_angle=%.1f, weapon_max_angle=%.1f, is_valid=%s, final_seg=%s" % [
+			_seg, bounces_done, bounce_limit, impact_angle, weapon_max_angle, str(is_valid_ricochet), str(final_segment_only)
+		])
+
 		# Add the hit point
 		points.append(hit_pos)
 
-		if not is_valid_ricochet:
-			# Invalid ricochet angle — mark this as the terminal (red) segment and stop.
-			# trajectory_invalid_start_index is the index of the wall hit point.
+		if not is_valid_ricochet or final_segment_only:
+			# Either invalid ricochet angle, or we've exhausted the weapon's bounce limit.
+			# Mark as terminal red segment and stop.
 			trajectory_invalid_start_index = points.size() - 1
 			trajectory_color = INVALID_RICOCHET_COLOR
 			break
 
-		# Calculate reflection for next bounce
+		bounces_done += 1
+
+		# Calculate reflection for next segment
 		current_dir = current_dir - 2.0 * current_dir.dot(hit_normal) * hit_normal
 		current_dir = current_dir.normalized()
 
 		# Move slightly away from surface to avoid re-hitting same spot
 		current_pos = hit_pos + current_dir * 2.0
+
+		if bounces_done >= bounce_limit:
+			# Reached the weapon's max bounce limit.
+			# Allow one more segment to show the final direction, but if it hits
+			# another wall that wall hit becomes the red terminal.
+			final_segment_only = true
 
 	return points
 

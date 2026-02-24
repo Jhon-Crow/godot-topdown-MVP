@@ -770,6 +770,20 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Force Field System (Issue #676)
+
+    /// <summary>
+    /// Whether the force field is equipped (active item selected in armory).
+    /// </summary>
+    private bool _forceFieldEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript force field effect node.
+    /// </summary>
+    private Node? _forceFieldEffect = null;
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -1027,6 +1041,9 @@ public partial class Player : BaseCharacter
 
         // Initialize breaker bullets if active item manager has them selected (Issue #678)
         InitBreakerBullets();
+
+        // Initialize force field if active item manager has it selected (Issue #676)
+        InitForceField();
 
         // Initialize trajectory glasses if active item manager has them selected (Issue #744)
         InitTrajectoryGlasses();
@@ -1319,6 +1336,9 @@ public partial class Player : BaseCharacter
 
         // Handle invisibility suit input (press Space to activate) (Issue #673)
         HandleInvisibilitySuitInput();
+
+        // Handle force field input (hold Space to activate) (Issue #676)
+        HandleForceFieldInput((float)delta);
 
         // Handle trajectory glasses input (press Space to activate) (Issue #744)
         HandleTrajectoryGlassesInput();
@@ -2307,6 +2327,14 @@ public partial class Player : BaseCharacter
     {
         if (HealthComponent == null || !IsAlive)
         {
+            return;
+        }
+
+        // Check force field protection (Issue #676)
+        // Force field makes player invulnerable while active
+        if (is_force_field_active())
+        {
+            LogToFile("[Player] Hit blocked by force field (C#)");
             return;
         }
 
@@ -5098,6 +5126,102 @@ public partial class Player : BaseCharacter
             CurrentWeapon.IsBreakerBulletActive = true;
             LogToFile($"[Player.BreakerBullets] Set IsBreakerBulletActive on weapon: {CurrentWeapon.Name}");
         }
+    }
+
+    #endregion
+
+    #region Force Field System (Issue #676)
+
+    /// <summary>
+    /// Initialize the force field if the ActiveItemManager has it selected.
+    /// Loads the GDScript effect node and attaches it as a child.
+    /// </summary>
+    private void InitForceField()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ForceField] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_force_field"))
+        {
+            LogToFile("[Player.ForceField] ActiveItemManager missing has_force_field method");
+            return;
+        }
+
+        bool hasForceField = (bool)activeItemManager.Call("has_force_field");
+        if (!hasForceField)
+        {
+            LogToFile("[Player.ForceField] Force field not selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.ForceField] Force field is selected, initializing...");
+
+        // Load the GDScript effect scene
+        const string ForceFieldScenePath = "res://scenes/effects/ForceFieldEffect.tscn";
+        var forceFieldScene = GD.Load<PackedScene>(ForceFieldScenePath);
+        if (forceFieldScene == null)
+        {
+            LogToFile($"[Player.ForceField] WARNING: Failed to load ForceFieldEffect scene: {ForceFieldScenePath}");
+            return;
+        }
+
+        _forceFieldEffect = forceFieldScene.Instantiate();
+        _forceFieldEffect.Name = "ForceFieldEffect";
+        AddChild(_forceFieldEffect);
+        _forceFieldEquipped = true;
+
+        LogToFile("[Player.ForceField] Force field initialized successfully");
+    }
+
+    /// <summary>
+    /// Handle force field input: hold Space to activate, release to deactivate.
+    /// </summary>
+    /// <param name="delta">Physics frame delta time.</param>
+    private void HandleForceFieldInput(float delta)
+    {
+        if (!_forceFieldEquipped || _forceFieldEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_forceFieldEffect))
+        {
+            return;
+        }
+
+        if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            bool isActive = (bool)_forceFieldEffect.Get("is_active");
+            if (!isActive)
+            {
+                _forceFieldEffect.Call("activate");
+            }
+        }
+        else
+        {
+            bool isActive = (bool)_forceFieldEffect.Get("is_active");
+            if (isActive)
+            {
+                _forceFieldEffect.Call("deactivate");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Check if force field is currently protecting the player (Issue #676).
+    /// Called by bullet/projectile code via duck typing.
+    /// </summary>
+    public bool is_force_field_active()
+    {
+        if (!_forceFieldEquipped || _forceFieldEffect == null)
+            return false;
+        if (!IsInstanceValid(_forceFieldEffect))
+            return false;
+        return (bool)_forceFieldEffect.Call("is_protecting");
     }
 
     #endregion

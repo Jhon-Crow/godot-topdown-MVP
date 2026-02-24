@@ -33,6 +33,9 @@ const ACTIVATION_SOUND_PATH: String = "res://assets/audio/invisibility_activatio
 ## Path to the invisibility deactivation sound file.
 const DEACTIVATION_SOUND_PATH: String = "res://assets/audio/invisibility_deactivation.wav"
 
+## Volume in dB for invisibility sounds (2.5x quieter than default: 20*log10(1/2.5) ≈ -7.96 dB).
+const SOUND_VOLUME_DB: float = -7.96
+
 ## Current number of charges remaining.
 var charges: int = MAX_CHARGES
 
@@ -304,7 +307,7 @@ func _setup_audio() -> void:
 		if activation_stream:
 			_activation_audio_player = AudioStreamPlayer.new()
 			_activation_audio_player.stream = activation_stream
-			_activation_audio_player.volume_db = 0.0
+			_activation_audio_player.volume_db = SOUND_VOLUME_DB
 			add_child(_activation_audio_player)
 			FileLogger.info("[InvisibilitySuit] Activation sound loaded")
 		else:
@@ -318,7 +321,7 @@ func _setup_audio() -> void:
 		if deactivation_stream:
 			_deactivation_audio_player = AudioStreamPlayer.new()
 			_deactivation_audio_player.stream = deactivation_stream
-			_deactivation_audio_player.volume_db = 0.0
+			_deactivation_audio_player.volume_db = SOUND_VOLUME_DB
 			add_child(_deactivation_audio_player)
 			FileLogger.info("[InvisibilitySuit] Deactivation sound loaded")
 		else:

@@ -530,14 +530,15 @@ public partial class MiniUzi : BaseWeapon
             var query = PhysicsRayQueryParameters2D.Create(
                 GlobalPosition,
                 GlobalPosition + endPoint,
-                4 // Collision mask for obstacles
+                6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
             );
 
             var result = spaceState.IntersectRay(query);
             if (result.Count > 0)
             {
+                // Extend 4px into the hit body so the laser visually penetrates the surface
                 Vector2 hitPosition = (Vector2)result["position"];
-                endPoint = hitPosition - GlobalPosition;
+                endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
             }
         }
 

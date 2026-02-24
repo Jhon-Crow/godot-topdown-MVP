@@ -346,6 +346,9 @@ func _ready() -> void:
 	# Initialize breaker bullets if active item manager has breaker bullets selected (Issue #678)
 	_init_breaker_bullets()
 
+	# Initialize force field if active item manager has it selected (Issue #676)
+	_init_force_field()
+
 	# Initialize trajectory glasses if active item manager has trajectory glasses selected (Issue #744)
 	_init_trajectory_glasses()
 
@@ -457,6 +460,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle invisibility suit input (press Space to activate) (Issue #673)
 	_handle_invisibility_suit_input()
+
+	# Handle force field input (hold Space to activate) (Issue #676)
+	_handle_force_field_input(delta)
 
 	# Handle trajectory glasses input (press Space to activate) (Issue #744)
 	_handle_trajectory_glasses_input()
@@ -685,33 +691,36 @@ func _shoot() -> void:
 	var random_spread := randf_range(-spread_radians, spread_radians)
 	shoot_direction = shoot_direction.rotated(random_spread)
 
-	# Create bullet instance
-	var bullet := bullet_scene.instantiate()
+	# Create bullet instance - try pool first for performance (Issue #724)
+	var bullet: Node = null
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	var spawn_pos := global_position + shoot_direction * bullet_spawn_offset
 
-	# Set bullet position with offset in shoot direction
-	bullet.global_position = global_position + shoot_direction * bullet_spawn_offset
+	if pool_manager and pool_manager.has_method("get_bullet"):
+		bullet = pool_manager.get_bullet()
+		if bullet and bullet.has_method("pool_activate"):
+			# Use pooled activation which handles position, direction, shooter_id
+			bullet.pool_activate(spawn_pos, shoot_direction, get_instance_id(), null)
+			# Set additional properties after activation
+			bullet.shooter_position = global_position
+			if _homing_active and bullet.has_method("enable_homing"):
+				bullet.enable_homing()
+			if _breaker_bullets_active:
+				bullet.is_breaker_bullet = true
 
-	# Set bullet direction
-	bullet.direction = shoot_direction
-
-	# Set shooter ID to identify this player as the source
-	# This prevents the player from being hit by their own bullets
-	bullet.shooter_id = get_instance_id()
-
-	# Set shooter position for distance-based penetration calculation
-	# Direct assignment - the bullet script defines this property
-	bullet.shooter_position = global_position
-
-	# Enable homing on the bullet if homing effect is active
-	if _homing_active:
-		bullet.enable_homing()
-
-	# Set breaker bullet flag if breaker bullets are active (Issue #678)
-	if _breaker_bullets_active:
-		bullet.is_breaker_bullet = true
-
-	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
-	get_tree().current_scene.add_child(bullet)
+	# Fallback to instantiation if pool not available or failed
+	if bullet == null:
+		bullet = bullet_scene.instantiate()
+		bullet.global_position = spawn_pos
+		bullet.direction = shoot_direction
+		bullet.shooter_id = get_instance_id()
+		bullet.shooter_position = global_position
+		if _homing_active and bullet.has_method("enable_homing"):
+			bullet.enable_homing()
+		if _breaker_bullets_active:
+			bullet.is_breaker_bullet = true
+		# Add bullet to scene tree (only needed for non-pooled bullets)
+		get_tree().current_scene.add_child(bullet)
 
 	# Spawn muzzle flash effect at bullet spawn position
 	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
@@ -1013,6 +1022,11 @@ func on_hit() -> void:
 ## @param caliber_data: Caliber resource for effect scaling.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
+		return
+
+	# Check force field protection (Issue #676)
+	if is_force_field_active():
+		FileLogger.info("[Player] Hit blocked by force field")
 		return
 
 	# Check invincibility mode (F6 toggle)
@@ -3309,6 +3323,70 @@ func _init_breaker_bullets() -> void:
 
 	_breaker_bullets_active = true
 	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+
+
+# ============================================================================
+# Force Field (Issue #676)
+# ============================================================================
+
+## Whether force field is equipped.
+var _force_field_equipped: bool = false
+
+## Reference to the force field effect node.
+var _force_field: Node2D = null
+
+
+## Initialize the force field if the ActiveItemManager has it selected.
+func _init_force_field() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.ForceField] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_force_field"):
+		FileLogger.info("[Player.ForceField] ActiveItemManager does not have has_force_field method")
+		return
+
+	if not active_item_manager.has_force_field():
+		FileLogger.info("[Player.ForceField] Force field not selected")
+		return
+
+	# Load the force field scene
+	var force_field_scene_path: String = "res://scenes/effects/ForceFieldEffect.tscn"
+	if not ResourceLoader.exists(force_field_scene_path):
+		FileLogger.info("[Player.ForceField] WARNING: ForceFieldEffect scene not found: %s" % force_field_scene_path)
+		return
+
+	var force_field_scene = load(force_field_scene_path)
+	if force_field_scene == null:
+		FileLogger.info("[Player.ForceField] WARNING: Failed to load ForceFieldEffect scene")
+		return
+
+	# Instantiate the force field effect
+	_force_field = force_field_scene.instantiate()
+	add_child(_force_field)
+	_force_field_equipped = true
+
+	FileLogger.info("[Player.ForceField] Force field initialized successfully")
+
+
+## Handle force field input: hold Space to activate, release to deactivate.
+func _handle_force_field_input(delta: float) -> void:
+	if not _force_field_equipped or _force_field == null:
+		return
+
+	# Hold Space to activate, release to deactivate
+	if Input.is_action_pressed("flashlight_toggle"):
+		if not _force_field.is_active:
+			_force_field.activate()
+	else:
+		if _force_field.is_active:
+			_force_field.deactivate()
+
+
+## Check if force field is currently protecting the player.
+func is_force_field_active() -> bool:
+	return _force_field_equipped and _force_field != null and _force_field.is_protecting()
 
 
 # ============================================================================

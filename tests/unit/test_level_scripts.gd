@@ -395,6 +395,18 @@ class MockLabyrinthLevel extends MockLevelBase:
 	## Default enemy count for labyrinth (5 enemies).
 	var default_enemy_count: int = 5
 
+	## Laboratory-specific rank thresholds (Issue #823).
+	## Shifted one step down so that the old A score gives S.
+	const LABYRINTH_RANK_THRESHOLDS: Dictionary = {
+		"S": 0.70,
+		"A+": 0.55,
+		"A": 0.38,
+		"B": 0.22,
+		"C": 0.12,
+		"D": 0.06,
+		"F": 0.0
+	}
+
 	## Tutorial hint tracking (Issue #808): weapon-dependent, mirrors tutorial_level.gd.
 	var _tutorial_hints: Dictionary = {}
 
@@ -1834,3 +1846,69 @@ func test_labyrinth_shotgun_no_hammer_hint() -> void:
 		"Shotgun should not show hammer hint")
 	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
 		"Shotgun should show reload hint")
+
+
+# ============================================================================
+# LabyrinthLevel Rank Threshold Tests (Issue #823)
+# Shifted thresholds: score that previously gave A now gives S.
+# ============================================================================
+
+
+func test_labyrinth_rank_thresholds_exist() -> void:
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("S"),
+		"Labyrinth thresholds should have S")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("A+"),
+		"Labyrinth thresholds should have A+")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("A"),
+		"Labyrinth thresholds should have A")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("B"),
+		"Labyrinth thresholds should have B")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("C"),
+		"Labyrinth thresholds should have C")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("D"),
+		"Labyrinth thresholds should have D")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("F"),
+		"Labyrinth thresholds should have F")
+
+
+func test_labyrinth_s_threshold_equals_old_a_threshold() -> void:
+	## Key requirement of Issue #823: S threshold is 0.70 (the old default A threshold).
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["S"], 0.70, 0.001,
+		"Laboratory S threshold should be 0.70 (same as default A threshold)")
+
+
+func test_labyrinth_a_plus_threshold_equals_old_b_threshold() -> void:
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A+"], 0.55, 0.001,
+		"Laboratory A+ threshold should be 0.55 (same as default B threshold)")
+
+
+func test_labyrinth_a_threshold_equals_old_c_threshold() -> void:
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A"], 0.38, 0.001,
+		"Laboratory A threshold should be 0.38 (same as default C threshold)")
+
+
+func test_labyrinth_b_threshold_equals_old_d_threshold() -> void:
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["B"], 0.22, 0.001,
+		"Laboratory B threshold should be 0.22 (same as default D threshold)")
+
+
+func test_labyrinth_thresholds_are_lower_than_defaults() -> void:
+	## All non-F thresholds should be lower than or equal to their default equivalents.
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["S"] < 1.0,
+		"Laboratory S threshold should be lower than default (1.0)")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A+"] < 0.85,
+		"Laboratory A+ threshold should be lower than default (0.85)")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A"] < 0.70,
+		"Laboratory A threshold should be lower than default (0.70)")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["B"] < 0.55,
+		"Laboratory B threshold should be lower than default (0.55)")
+
+
+func test_labyrinth_thresholds_descending_order() -> void:
+	var t := MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS
+	assert_true(t["S"] > t["A+"], "S threshold must be greater than A+")
+	assert_true(t["A+"] > t["A"], "A+ threshold must be greater than A")
+	assert_true(t["A"] > t["B"], "A threshold must be greater than B")
+	assert_true(t["B"] > t["C"], "B threshold must be greater than C")
+	assert_true(t["C"] > t["D"], "C threshold must be greater than D")
+	assert_true(t["D"] > t["F"], "D threshold must be greater than F")

@@ -117,7 +117,8 @@ class MockActiveItemManager:
 		TELEPORT_BRACERS = 3,
 		INVISIBILITY_SUIT = 4,
 		BREAKER_BULLETS = 5,
-		TRAJECTORY_GLASSES = 6
+		FORCE_FIELD = 6,
+		TRAJECTORY_GLASSES = 7
 	}
 
 	## Currently selected active item type
@@ -156,6 +157,11 @@ class MockActiveItemManager:
 			"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
 		},
 		6: {
+			"name": "Force Field",
+			"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
+			"description": "Force field — hold Space to activate glowing shield. 100% projectile reflection, grenades bounce without detonating. 8 second depletable charge."
+		},
+		7: {
 			"name": "Trajectory Glasses",
 			"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
 			"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle."
@@ -231,6 +237,10 @@ class MockActiveItemManager:
 	## Check if breaker bullets are currently equipped
 	func has_breaker_bullets() -> bool:
 		return current_active_item == ActiveItemType.BREAKER_BULLETS
+
+	## Check if force field is currently equipped
+	func has_force_field() -> bool:
+		return current_active_item == ActiveItemType.FORCE_FIELD
 
 	## Check if trajectory glasses are currently equipped
 	func has_trajectory_glasses() -> bool:
@@ -386,8 +396,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 7,
-		"Should return 7 active item types")
+	assert_eq(types.size(), 8,
+		"Should return 8 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -589,7 +599,8 @@ class MockArmoryWithActiveItems:
 		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
 		4: {"name": "Invisibility", "description": "Invisibility suit"},
 		5: {"name": "Breaker Bullets", "description": "Breaker bullets — passive"},
-		6: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"}
+		6: {"name": "Force Field", "description": "Force field — hold Space to activate"},
+		7: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"}
 	}
 
 	## Applied active item type
@@ -748,30 +759,108 @@ func test_armory_select_breaker_bullets() -> void:
 
 
 # ============================================================================
+# Force Field Tests (Issue #676)
+# ============================================================================
+
+
+func test_active_item_type_force_field_value() -> void:
+	# ActiveItemType.FORCE_FIELD should be 6
+	var expected := 6
+	assert_eq(expected, 6, "FORCE_FIELD should be the seventh active item type (6)")
+
+
+func test_active_item_data_has_force_field() -> void:
+	var data := manager.get_active_item_data(6)
+	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain FORCE_FIELD type")
+	assert_eq(data["name"], "Force Field", "Force Field should have correct name")
+
+
+func test_force_field_data_has_icon_path() -> void:
+	var data := manager.get_active_item_data(6)
+	assert_true(data["icon_path"].contains("force_field"),
+		"Force Field icon path should contain 'force_field'")
+
+
+func test_force_field_data_has_description() -> void:
+	var data := manager.get_active_item_data(6)
+	assert_true(data["description"].contains("Space"),
+		"Force Field description should mention Space key")
+	assert_true(data["description"].contains("100%"),
+		"Force Field description should mention 100% reflection")
+
+
+func test_no_force_field_by_default() -> void:
+	assert_false(manager.has_force_field(),
+		"Force field should not be equipped by default")
+
+
+func test_has_force_field_after_selection() -> void:
+	manager.set_active_item(6)
+	assert_true(manager.has_force_field(),
+		"has_force_field should return true after selecting force field")
+
+
+func test_no_force_field_after_deselection() -> void:
+	manager.set_active_item(6)
+	manager.set_active_item(0)
+	assert_false(manager.has_force_field(),
+		"has_force_field should return false after switching back to none")
+
+
+func test_force_field_does_not_conflict_with_flashlight() -> void:
+	manager.set_active_item(6)
+	assert_false(manager.has_flashlight(),
+		"Flashlight should not be active when force field is selected")
+	assert_true(manager.has_force_field(),
+		"Force field should be active")
+
+
+func test_flashlight_does_not_conflict_with_force_field() -> void:
+	manager.set_active_item(1)
+	assert_true(manager.has_flashlight(),
+		"Flashlight should be active")
+	assert_false(manager.has_force_field(),
+		"Force field should not be active when flashlight is selected")
+
+
+func test_set_active_item_to_force_field() -> void:
+	manager.set_active_item(6)
+	assert_eq(manager.current_active_item, 6,
+		"Active item type should change to FORCE_FIELD")
+
+
+func test_armory_select_force_field() -> void:
+	var armory := MockArmoryWithActiveItems.new()
+	var result := armory.select_active_item(6)
+	assert_true(result, "Should select force field")
+	assert_eq(armory.pending_active_item, 6, "Pending should be force field")
+
+
+# ============================================================================
 # Trajectory Glasses Tests (Issue #744)
 # ============================================================================
 
 
 func test_active_item_type_trajectory_glasses_value() -> void:
-	# ActiveItemType.TRAJECTORY_GLASSES should be 6
-	var expected := 6
-	assert_eq(expected, 6, "TRAJECTORY_GLASSES should be the seventh active item type (6)")
+	# ActiveItemType.TRAJECTORY_GLASSES should be 7
+	var expected := 7
+	assert_eq(expected, 7, "TRAJECTORY_GLASSES should be the eighth active item type (7)")
 
 
 func test_active_item_data_has_trajectory_glasses() -> void:
-	var data := manager.get_active_item_data(6)
+	var data := manager.get_active_item_data(7)
 	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain TRAJECTORY_GLASSES type")
 	assert_eq(data["name"], "Trajectory Glasses", "Trajectory Glasses should have correct name")
 
 
 func test_trajectory_glasses_data_has_icon_path() -> void:
-	var data := manager.get_active_item_data(6)
+	var data := manager.get_active_item_data(7)
 	assert_true(data["icon_path"].contains("trajectory_glasses"),
 		"Trajectory Glasses icon path should contain 'trajectory_glasses'")
 
 
 func test_trajectory_glasses_data_has_description() -> void:
-	var data := manager.get_active_item_data(6)
+	var data := manager.get_active_item_data(7)
 	assert_true(data["description"].contains("ricochet"),
 		"Trajectory Glasses description should mention ricochet")
 	assert_true(data["description"].contains("10 seconds"),
@@ -786,20 +875,20 @@ func test_no_trajectory_glasses_by_default() -> void:
 
 
 func test_has_trajectory_glasses_after_selection() -> void:
-	manager.set_active_item(6)
+	manager.set_active_item(7)
 	assert_true(manager.has_trajectory_glasses(),
 		"has_trajectory_glasses should return true after selecting trajectory glasses")
 
 
 func test_no_trajectory_glasses_after_deselection() -> void:
-	manager.set_active_item(6)
+	manager.set_active_item(7)
 	manager.set_active_item(0)
 	assert_false(manager.has_trajectory_glasses(),
 		"has_trajectory_glasses should return false after switching back to none")
 
 
 func test_trajectory_glasses_does_not_conflict_with_flashlight() -> void:
-	manager.set_active_item(6)
+	manager.set_active_item(7)
 	assert_false(manager.has_flashlight(),
 		"Flashlight should not be active when trajectory glasses are selected")
 	assert_true(manager.has_trajectory_glasses(),
@@ -807,7 +896,7 @@ func test_trajectory_glasses_does_not_conflict_with_flashlight() -> void:
 
 
 func test_trajectory_glasses_does_not_conflict_with_breaker_bullets() -> void:
-	manager.set_active_item(6)
+	manager.set_active_item(7)
 	assert_false(manager.has_breaker_bullets(),
 		"Breaker bullets should not be active when trajectory glasses are selected")
 	assert_true(manager.has_trajectory_glasses(),
@@ -815,13 +904,13 @@ func test_trajectory_glasses_does_not_conflict_with_breaker_bullets() -> void:
 
 
 func test_set_active_item_to_trajectory_glasses() -> void:
-	manager.set_active_item(6)
-	assert_eq(manager.current_active_item, 6,
+	manager.set_active_item(7)
+	assert_eq(manager.current_active_item, 7,
 		"Active item type should change to TRAJECTORY_GLASSES")
 
 
 func test_armory_select_trajectory_glasses() -> void:
 	var armory := MockArmoryWithActiveItems.new()
-	var result := armory.select_active_item(6)
+	var result := armory.select_active_item(7)
 	assert_true(result, "Should select trajectory glasses")
-	assert_eq(armory.pending_active_item, 6, "Pending should be trajectory glasses")
+	assert_eq(armory.pending_active_item, 7, "Pending should be trajectory glasses")
