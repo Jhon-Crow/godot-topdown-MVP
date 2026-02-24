@@ -35,6 +35,10 @@ class MockHomingScannerAudio:
 	var scanner_player_created: bool = false
 	var activation_play_called: bool = false
 
+	## Actual loop_end value set during setup (for verification).
+	var scanner_loop_end: int = 0
+	var scanner_loop_begin: int = -1
+
 	## Simulates _setup_homing_audio() from player.gd.
 	func setup_homing_audio() -> void:
 		if not ResourceLoader.exists(HOMING_SCANNER_LOOP_PATH):
@@ -48,9 +52,15 @@ class MockHomingScannerAudio:
 		if not scanner_stream is AudioStreamWAV:
 			return
 
-		# Enable looping
+		# Enable looping and set loop endpoints (Issue #890 fix)
 		scanner_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		var bytes_per_sample: int = 2 if scanner_stream.format == AudioStreamWAV.FORMAT_16_BITS else 1
+		var channels: int = 2 if scanner_stream.stereo else 1
+		scanner_stream.loop_begin = 0
+		scanner_stream.loop_end = scanner_stream.data.size() / (bytes_per_sample * channels)
 		scanner_loop_enabled = (scanner_stream.loop_mode == AudioStreamWAV.LOOP_FORWARD)
+		scanner_loop_begin = scanner_stream.loop_begin
+		scanner_loop_end = scanner_stream.loop_end
 
 		# Record player creation and volume setting
 		scanner_player_created = true
@@ -169,6 +179,47 @@ func test_scanner_loop_mode_value() -> void:
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	assert_eq(stream.loop_mode, AudioStreamWAV.LOOP_FORWARD,
 		"Loop mode should be LOOP_FORWARD after setting (Issue #890)")
+
+
+func test_scanner_loop_end_is_nonzero() -> void:
+	## Regression test: loop_end must be > 0 so the loop region is not empty (Issue #890 fix).
+	## When loop_end = 0 (Godot default), the loop plays silence after first play-through.
+	var mock := MockHomingScannerAudio.new()
+	mock.setup_homing_audio()
+	assert_true(mock.scanner_loop_end > 0,
+		"scanner loop_end must be > 0 to prevent silent looping (Issue #890 root cause fix)")
+
+
+func test_scanner_loop_begin_is_zero() -> void:
+	## loop_begin should be 0 so the loop starts from the beginning.
+	var mock := MockHomingScannerAudio.new()
+	mock.setup_homing_audio()
+	assert_eq(mock.scanner_loop_begin, 0,
+		"scanner loop_begin should be 0 (loop from start) (Issue #890)")
+
+
+func test_scanner_loop_end_equals_total_samples() -> void:
+	## loop_end should equal the total number of samples in the WAV file.
+	var path := "res://assets/audio/homing_scanner_loop.wav"
+	if not ResourceLoader.exists(path):
+		pending("Scanner sound file not found, skipping")
+		return
+
+	var stream = load(path)
+	if not stream is AudioStreamWAV:
+		pending("Stream is not AudioStreamWAV, skipping")
+		return
+
+	var bytes_per_sample: int = 2 if stream.format == AudioStreamWAV.FORMAT_16_BITS else 1
+	var channels: int = 2 if stream.stereo else 1
+	var expected_samples: int = stream.data.size() / (bytes_per_sample * channels)
+
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = expected_samples
+
+	assert_eq(stream.loop_end, expected_samples,
+		"loop_end should equal total sample count for full-clip looping (Issue #890)")
 
 
 func test_scanner_does_not_interfere_with_activation_chirp() -> void:

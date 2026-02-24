@@ -4755,13 +4755,20 @@ public partial class Player : BaseCharacter
             if (scannerStream != null)
             {
                 scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
+                // Set loop endpoints so the stream actually loops the full clip.
+                // Without LoopEnd, Godot defaults to 0 → loops a zero-length region (silence).
+                int bytesPerSample = (scannerStream.Format == AudioStreamWav.FormatEnum.Format16Bits) ? 2 : 1;
+                int channels = scannerStream.Stereo ? 2 : 1;
+                int totalSamples = scannerStream.Data.Length / (bytesPerSample * channels);
+                scannerStream.LoopBegin = 0;
+                scannerStream.LoopEnd = totalSamples;
                 _homingScannerPlayer = new AudioStreamPlayer();
                 _homingScannerPlayer.Stream = scannerStream;
                 // Very quiet: scanner is an ambient hint, not a dominant sound.
                 _homingScannerPlayer.VolumeDb = -18.0f;
                 AddChild(_homingScannerPlayer);
                 _homingScannerPlayer.Play();
-                LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
+                LogToFile($"[Player.Homing] Homing scanner loop started (Issue #890), samples={totalSamples}");
             }
         }
         else

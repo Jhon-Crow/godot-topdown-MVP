@@ -3096,7 +3096,13 @@ func _setup_homing_audio() -> void:
 		var scanner_stream = load(HOMING_SCANNER_LOOP_PATH)
 		if scanner_stream and scanner_stream is AudioStreamWAV:
 			# Enable seamless looping on the WAV stream.
+			# Also set loop endpoints — without loop_end, Godot defaults to 0
+			# which loops a zero-length region (silence after first play-through).
 			scanner_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			var bytes_per_sample: int = 2 if scanner_stream.format == AudioStreamWAV.FORMAT_16_BITS else 1
+			var channels: int = 2 if scanner_stream.stereo else 1
+			scanner_stream.loop_begin = 0
+			scanner_stream.loop_end = scanner_stream.data.size() / (bytes_per_sample * channels)
 			_homing_scanner_player = AudioStreamPlayer.new()
 			_homing_scanner_player.stream = scanner_stream
 			# Very quiet: scanner is an ambient hint, not a dominant sound.
