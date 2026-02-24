@@ -1,13 +1,14 @@
 extends Node2D
-## Force field effect controller (Issue #676).
+## Force field effect controller (Issue #676, #906).
 ##
-## Creates a glowing energy shield around the player that reflects all projectiles.
+## Creates a glowing energy bubble shield around the player that traps projectiles.
 ## Activated by holding Space key with a depletable 8-second charge.
 ##
 ## Gameplay rules:
 ## - Hold Space to activate, release to deactivate
 ## - 8 second total charge (usable in portions: 8×1s, 2×4s, etc.)
-## - 100% projectile reflection (bullets, shrapnel, grenades)
+## - 100% projectile trapping (bullets, shrapnel stop on contact)
+## - Trapped bullets scatter outward when field deactivates
 ## - Frag grenades bounce WITHOUT detonating on contact
 ## - Full damage protection while active
 ## - Visual warning when charge is low (last 2 seconds)
@@ -36,6 +37,12 @@ const LOW_CHARGE_WARNING: float = 2.0
 ## Flash frequency when charge is low (Hz).
 const WARNING_FLASH_FREQUENCY: float = 3.0
 
+## Speed at which trapped bullets are released when field deactivates (pixels/sec).
+const BULLET_RELEASE_SPEED: float = 800.0
+
+## Speed at which trapped shrapnel is released when field deactivates (pixels/sec).
+const SHRAPNEL_RELEASE_SPEED: float = 600.0
+
 ## Path to the force field shader.
 const SHADER_PATH: String = "res://scripts/shaders/force_field.gdshader"
 
@@ -59,6 +66,12 @@ var _shader_material: ShaderMaterial = null
 
 ## Warning flash timer.
 var _warning_flash_timer: float = 0.0
+
+## Array of trapped bullets (Area2D nodes with physics process disabled).
+var _trapped_bullets: Array = []
+
+## Array of trapped shrapnel (Area2D nodes with physics process disabled).
+var _trapped_shrapnel: Array = []
 
 ## Signal emitted when force field is activated.
 signal force_field_activated()
@@ -97,7 +110,7 @@ func _setup_area2d() -> void:
 	_collision_shape.shape = shape
 	_area2d.add_child(_collision_shape)
 
-	# Connect area entered signal for projectile reflection (bullets, shrapnel — Area2D)
+	# Connect area entered signal for projectile trapping (bullets, shrapnel — Area2D)
 	_area2d.area_entered.connect(_on_projectile_entered)
 
 	# Connect body entered signal for grenade reflection (grenades are RigidBody2D)
@@ -106,7 +119,7 @@ func _setup_area2d() -> void:
 	FileLogger.info("[ForceFieldEffect] Area2D setup with radius %.0fpx" % FIELD_RADIUS)
 
 
-## Set up the shield visual (glowing sprite with shader).
+## Set up the shield visual (bubble sprite with shader).
 func _setup_shield_visual() -> void:
 	_shield_sprite = Sprite2D.new()
 	_shield_sprite.name = "ShieldVisual"
@@ -134,8 +147,13 @@ func _setup_shield_visual() -> void:
 ## Create a circular gradient texture for the shield visual.
 func _create_shield_texture() -> GradientTexture2D:
 	var gradient := Gradient.new()
-	gradient.set_color(0, Color(0.4, 0.6, 1.0, 1.0))  # Blue center
-	gradient.set_color(1, Color(0.4, 0.6, 1.0, 0.0))  # Fade to transparent
+	# Transparent center, strong blue edge — creates a bubble/sphere look
+	gradient.set_color(0, Color(0.3, 0.6, 1.0, 0.0))   # Transparent blue center
+	gradient.set_color(1, Color(0.5, 0.8, 1.0, 0.9))   # Bright blue edge
+
+	# Offset the gradient stop so the bright edge is narrow
+	gradient.set_offset(0, 0.0)
+	gradient.set_offset(1, 1.0)
 
 	var texture := GradientTexture2D.new()
 	texture.gradient = gradient
@@ -163,13 +181,17 @@ func activate() -> bool:
 	return true
 
 
-## Deactivate the force field.
+## Deactivate the force field and release any trapped bullets.
 func deactivate() -> void:
 	if not is_active:
 		return
 
 	is_active = false
 	_set_field_active(false)
+
+	# Release all trapped projectiles outward
+	_release_trapped_projectiles()
+
 	FileLogger.info("[ForceFieldEffect] Deactivated. Charge remaining: %.1fs" % remaining_charge)
 	force_field_deactivated.emit()
 
@@ -235,9 +257,9 @@ func _on_projectile_entered(area: Area2D) -> void:
 	var script_path: String = script.resource_path
 	FileLogger.info("[ForceFieldEffect] Area entered: %s (script: %s)" % [area.name, script_path])
 	if "bullet" in script_path.to_lower():
-		_reflect_bullet(area)
+		_trap_bullet(area)
 	elif "shrapnel" in script_path.to_lower():
-		_reflect_shrapnel(area)
+		_trap_shrapnel(area)
 	else:
 		FileLogger.info("[ForceFieldEffect] Unknown projectile type: %s" % script_path)
 
@@ -260,55 +282,119 @@ func _on_body_entered(body: Node2D) -> void:
 			_reflect_grenade(body)
 
 
-## Reflect a bullet off the force field.
-## Bullets use `direction` (normalized Vector2) and `speed` (float), not a `velocity` property.
-func _reflect_bullet(bullet: Node2D) -> void:
+## Trap a bullet in the force field — stop its movement and hold it in place.
+## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
+func _trap_bullet(bullet: Node2D) -> void:
 	if not bullet.has("direction") or not bullet.has("speed"):
 		return
 
-	# Calculate reflection using surface normal (from bullet position relative to field centre)
-	var to_bullet := bullet.global_position - global_position
-	var normal := to_bullet.normalized()
-	var direction: Vector2 = bullet.direction
+	# Already trapped? Skip.
+	if bullet in _trapped_bullets:
+		return
 
-	# Reflection formula: R = V - 2(V·N)N
-	var dot := direction.dot(normal)
-	var reflected := (direction - 2.0 * dot * normal).normalized()
+	# Freeze bullet movement by disabling its physics process
+	bullet.set_physics_process(false)
+	bullet.set_process(false)
 
-	bullet.direction = reflected
-	# Update bullet rotation to match new direction
-	if bullet.has_method("_update_rotation"):
-		bullet.call("_update_rotation")
+	# Make bullet dimly visible to show it's trapped
+	if bullet.has_method("set") and bullet is CanvasItem:
+		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
-	# Reset shooter ID so reflected bullet can damage anyone
+	# Reset shooter ID so released bullet can damage anyone
 	if bullet.has("shooter_id"):
 		bullet.shooter_id = -1
 
-	FileLogger.info("[ForceFieldEffect] Bullet reflected: %.1f°" % rad_to_deg(reflected.angle()))
+	_trapped_bullets.append(bullet)
+
+	FileLogger.info("[ForceFieldEffect] Bullet trapped. Total trapped: %d" % _trapped_bullets.size())
 
 
-## Reflect shrapnel off the force field.
-## Shrapnel uses `direction` (normalized Vector2) and `speed` (float), same as bullets.
-func _reflect_shrapnel(shrapnel: Node2D) -> void:
+## Trap shrapnel in the force field — stop its movement and hold it in place.
+func _trap_shrapnel(shrapnel: Node2D) -> void:
 	if not shrapnel.has("direction"):
 		return
 
-	# Calculate reflection using surface normal
-	var to_shrapnel := shrapnel.global_position - global_position
-	var normal := to_shrapnel.normalized()
-	var direction: Vector2 = shrapnel.direction
+	# Already trapped? Skip.
+	if shrapnel in _trapped_shrapnel:
+		return
 
-	# Reflection formula: R = V - 2(V·N)N
-	var dot := direction.dot(normal)
-	var reflected := (direction - 2.0 * dot * normal).normalized()
+	# Freeze shrapnel movement
+	shrapnel.set_physics_process(false)
+	shrapnel.set_process(false)
 
-	shrapnel.direction = reflected
+	# Make shrapnel dimly visible to show it's trapped
+	if shrapnel is CanvasItem:
+		(shrapnel as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
-	# Reset source_id so reflected shrapnel can damage anyone (shrapnel uses source_id, not shooter_id)
+	# Reset source ID so released shrapnel can damage anyone
 	if shrapnel.has("source_id"):
 		shrapnel.source_id = -1
 
-	FileLogger.info("[ForceFieldEffect] Shrapnel reflected")
+	_trapped_shrapnel.append(shrapnel)
+
+	FileLogger.info("[ForceFieldEffect] Shrapnel trapped. Total trapped: %d" % _trapped_shrapnel.size())
+
+
+## Release all trapped projectiles outward when the force field deactivates.
+## Each bullet/shrapnel flies away from the player's position.
+func _release_trapped_projectiles() -> void:
+	var total_released := 0
+
+	# Release trapped bullets
+	for bullet in _trapped_bullets:
+		if not is_instance_valid(bullet):
+			continue
+		_release_projectile(bullet, BULLET_RELEASE_SPEED)
+		total_released += 1
+
+	# Release trapped shrapnel
+	for shrapnel in _trapped_shrapnel:
+		if not is_instance_valid(shrapnel):
+			continue
+		_release_projectile(shrapnel, SHRAPNEL_RELEASE_SPEED)
+		total_released += 1
+
+	_trapped_bullets.clear()
+	_trapped_shrapnel.clear()
+
+	FileLogger.info("[ForceFieldEffect] Released %d trapped projectiles" % total_released)
+
+
+## Release a single trapped projectile outward from the force field center.
+## @param projectile: The trapped bullet or shrapnel node.
+## @param release_speed: Speed to give the projectile when released.
+func _release_projectile(projectile: Node2D, release_speed: float) -> void:
+	# Calculate outward direction from the force field center
+	var from_center := projectile.global_position - global_position
+	var outward_dir := from_center.normalized()
+
+	# If projectile is at center (unlikely), pick a random direction
+	if from_center.length_squared() < 1.0:
+		var random_angle := randf_range(0.0, TAU)
+		outward_dir = Vector2(cos(random_angle), sin(random_angle))
+
+	# Set new direction and speed
+	if projectile.has("direction"):
+		projectile.direction = outward_dir
+	if projectile.has("speed"):
+		projectile.speed = release_speed
+
+	# Restore normal color
+	if projectile is CanvasItem:
+		(projectile as CanvasItem).modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	# Re-enable physics and processing
+	projectile.set_physics_process(true)
+	projectile.set_process(true)
+
+	# Update rotation to match new direction
+	if projectile.has_method("_update_rotation"):
+		projectile.call("_update_rotation")
+	elif projectile.has("direction"):
+		# Fallback: set rotation to match direction angle
+		projectile.rotation = outward_dir.angle()
+
+	FileLogger.info("[ForceFieldEffect] Released projectile at angle %.1f°" % rad_to_deg(outward_dir.angle()))
 
 
 ## Reflect a grenade off the force field.
