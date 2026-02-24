@@ -352,6 +352,9 @@ var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transit
 ## [Issue #574] Flashlight detection component — detects player flashlight beam.
 var _flashlight_detection: FlashlightDetectionComponent = null
 
+var _enemy_flashlight: EnemyFlashlightComponent = null  ## [Issue #824] Enemy flashlight for night mode.
+var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phase.
+
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
 
@@ -394,6 +397,7 @@ func _ready() -> void:
 	_setup_grenade_avoidance()
 	_setup_aggression_component()  # Issue #675
 	_setup_machete_component()  # Issue #579
+	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
 	# Store original collision layers for HitArea (to restore on respawn)
@@ -3808,7 +3812,7 @@ func _aim_at_player() -> void:
 	else:
 		rotation -= rotation_speed * delta
 
-## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
+## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
@@ -3817,7 +3821,12 @@ func _shoot() -> void:
 	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
 	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
 	if not _agg and not _should_shoot_at_target(target_position): return
+	if _enemy_flashlight and not _is_pre_attack_flashing:  # Issue #824: night mode flash
+		_is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position)); return
+	_execute_shoot(target_position)
 
+func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
+	_is_pre_attack_flashing = false
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
@@ -4883,13 +4892,18 @@ func _update_grenade_world_state() -> void:
 	_goap_world_state["grenades_remaining"] = _grenade_component.grenades_remaining
 	_goap_world_state["ready_to_throw_grenade"] = rdy; _goap_world_state["grenadier_throw_ready"] = is_grenadier and rdy
 
-## Attempt to throw a grenade. Returns true if throw was initiated.
+## Attempt to throw a grenade (Issue #824: night mode flash). Returns true if throw initiated.
 func try_throw_grenade() -> bool:
 	if _grenade_component == null: return false
 	var mem_pos := _memory.suspected_position if _memory and _memory.has_target() else _last_known_player_position
 	var tgt := _grenade_component.get_target(_can_see_player, _under_fire, _current_health, _player, _last_known_player_position, mem_pos)
 	if tgt == Vector2.ZERO: return false
-	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
+	if _enemy_flashlight and not _is_pre_attack_flashing:  # Issue #824: night mode flash
+		_is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(tgt, _execute_grenade_throw.bind(tgt)); return true
+	return _execute_grenade_throw(tgt)
+
+func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
+	_is_pre_attack_flashing = false; var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
 	if result: grenade_thrown.emit(null, tgt)
 	return result
 
@@ -4952,6 +4966,10 @@ func _setup_machete_component() -> void:
 	_machete.configure_from_weapon_config(WeaponConfigComponent.get_config(weapon_type)); add_child(_machete)
 	_current_ammo = 0; _reserve_ammo = 0; _is_reloading = false
 	full_health_color = Color(0.7, 0.15, 0.15, 1.0); _update_health_visual()
+
+## Setup enemy flashlight for night mode (Issue #824).
+func _setup_enemy_flashlight() -> void:
+	_enemy_flashlight = EnemyFlashlightComponent.new(); _enemy_flashlight.debug_logging = debug_logging; add_child(_enemy_flashlight)
 
 ## Apply machete attack animation to weapon mount and arms (Issue #595).
 func _apply_machete_attack_animation() -> void:
