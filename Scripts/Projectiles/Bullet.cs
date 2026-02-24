@@ -177,8 +177,9 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Enable debug logging for penetration calculations.
+    /// Set to false in release builds to avoid per-shot file I/O overhead (Issue #862).
     /// </summary>
-    private const bool DebugPenetration = true;
+    private const bool DebugPenetration = false;
 
     /// <summary>
     /// Whether the bullet is currently penetrating through a wall.

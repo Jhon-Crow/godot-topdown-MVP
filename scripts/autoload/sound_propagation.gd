@@ -75,6 +75,11 @@ var _listeners: Array = []
 ## Whether debug logging is enabled.
 var _debug_logging: bool = false
 
+## Whether file logging is enabled (separate from console debug logging).
+## Disabled by default to avoid synchronous disk I/O on every sound event in hot paths.
+## Enable manually for debugging or profiling sessions.
+var _file_logging_enabled: bool = false
+
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
@@ -298,6 +303,8 @@ func _log_debug(message: String) -> void:
 
 
 ## Log a message to the file logger for persistent debugging.
+## Gated behind _file_logging_enabled to avoid synchronous disk I/O on every
+## sound event during normal gameplay (Issue #862 performance fix).
 func _log_to_file(message: String) -> void:
-	if _file_logger and _file_logger.has_method("log_info"):
+	if _file_logging_enabled and _file_logger and _file_logger.has_method("log_info"):
 		_file_logger.log_info("[SoundPropagation] " + message)
