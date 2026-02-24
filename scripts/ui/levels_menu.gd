@@ -448,6 +448,11 @@ func _on_level_selected(level_path: String) -> void:
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 
+	# Save the selected level for next session (Issue #896)
+	var persist_manager: Node = get_node_or_null("/root/PersistManager")
+	if persist_manager and persist_manager.has_method("save_last_level"):
+		persist_manager.save_last_level(level_path)
+
 	# Change to the selected level
 	var error := get_tree().change_scene_to_file(level_path)
 	if error != OK:
