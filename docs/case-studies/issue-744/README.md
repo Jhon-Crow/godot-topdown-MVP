@@ -288,8 +288,47 @@ No new log was attached. Based on the history, two scenarios were possible:
 [Player.TrajectoryGlasses] Activation result: true
 ```
 
+## Fix Round 5 — February 24, 2026 (Final Root Cause Found)
+
+User feedback: "при нажатии пробела ничего не происходит" (pressing Space nothing happens)
+Log file: `game_log_20260224_193202.txt`
+
+### Root Cause Analysis (Round 5)
+
+**Critical discovery**: The game uses **C# Player** (`Scripts/Characters/Player.cs`), NOT the GDScript player (`scripts/characters/player.gd`).
+
+**Evidence from the log**:
+- Log shows `[Player.TeleportBracers]` and `[Player.InvisibilitySuit]` — these exist ONLY in `Scripts/Characters/Player.cs`
+- `[Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager` — matches C# Player.cs line 4933 exactly
+- Log shows `[ActiveItemManager] Active item changed from None to Trajectory Glasses` — so the item IS selected
+- But NO `[Player.TrajectoryGlasses]` messages — because C# Player.cs had no `InitTrajectoryGlasses()` method
+
+**Why all previous fixes failed**: All trajectory glasses code was added to `scripts/characters/player.gd` (GDScript). The game at runtime uses the C# Player node, which completely ignores GDScript player code.
+
+### Fix Applied
+
+Added trajectory glasses support to `Scripts/Characters/Player.cs`:
+1. `InitTrajectoryGlasses()` — loads `trajectory_glasses_effect.gd` and initializes it (mirrors GDScript pattern)
+2. `HandleTrajectoryGlassesInput()` — handles Space press to activate
+3. `DrawTrajectoryGlasses()` — draws the laser trajectory in `_Draw()` using local player coordinates
+4. Called from `_Ready()` (after InitBreakerBullets) and from the input update method
+
+The GDScript `trajectory_glasses_effect.gd` is still used as the actual effect controller (loaded via `GD.Load<Script>()`), exactly like invisibility suit and homing bullets do.
+
+**Expected log after fix**:
+```
+[Player.TrajectoryGlasses] Checking trajectory glasses...
+[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...
+[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
+... (when Space pressed) ...
+[Player.TrajectoryGlasses] Space pressed - activating (charges: 2)
+[TrajectoryGlasses] Activated! Duration: 10.0s, Charges remaining: 1/2, Player: Player
+[Player.TrajectoryGlasses] Activation result: True
+```
+
 ## Related Files
 
 - `logs/game_log_20260210_231250.txt` - Original game log showing the bug
 - `logs/game_log_20260210_235359.txt` - Follow-up test log showing version mismatch
 - `logs/game_log_20260215_215418.txt` - Third test showing different build with teleport bracers code
+- `game_log_20260224_193202.txt` - Fifth test confirming C# Player is used, not GDScript
