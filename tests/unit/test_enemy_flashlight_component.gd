@@ -1,11 +1,12 @@
 extends GutTest
-## Unit tests for EnemyFlashlightComponent (Issue #824).
+## Unit tests for EnemyFlashlightComponent (Issue #824, #825).
 ##
 ## Tests the enemy flashlight behavior in night mode, including:
-## - Pre-attack flash timing (50-100ms before shooting/grenade)
+## - Pre-attack flash timing (300-500ms before shooting/grenade, Issue #825 fix)
 ## - Player detection in beam
 ## - Stun effect application via FlashbangPlayerEffectsManager
 ## - Night mode activation check
+## - No shooting while flashlight is already running (Issue #825 bug fix)
 
 
 # ============================================================================
@@ -14,9 +15,9 @@ extends GutTest
 
 
 class MockEnemyFlashlightComponent:
-	## Pre-attack flash duration range (50-100ms).
-	const PRE_ATTACK_FLASH_DURATION_MIN: float = 0.05
-	const PRE_ATTACK_FLASH_DURATION_MAX: float = 0.1
+	## Pre-attack flash duration range (300-500ms, Issue #825 fix: was 50-100ms).
+	const PRE_ATTACK_FLASH_DURATION_MIN: float = 0.3
+	const PRE_ATTACK_FLASH_DURATION_MAX: float = 0.5
 
 	## Flashlight beam half-angle in degrees (matches player flashlight).
 	const BEAM_HALF_ANGLE_DEG: float = 9.0
@@ -207,14 +208,14 @@ func after_each() -> void:
 # ============================================================================
 
 
-func test_pre_attack_duration_min_is_50ms() -> void:
-	assert_eq(component.PRE_ATTACK_FLASH_DURATION_MIN, 0.05,
-		"Pre-attack flash minimum duration should be 50ms (0.05s)")
+func test_pre_attack_duration_min_is_300ms() -> void:
+	assert_eq(component.PRE_ATTACK_FLASH_DURATION_MIN, 0.3,
+		"Pre-attack flash minimum duration should be 300ms (0.3s) — visible to player (Issue #825 fix)")
 
 
-func test_pre_attack_duration_max_is_100ms() -> void:
-	assert_eq(component.PRE_ATTACK_FLASH_DURATION_MAX, 0.1,
-		"Pre-attack flash maximum duration should be 100ms (0.1s)")
+func test_pre_attack_duration_max_is_500ms() -> void:
+	assert_eq(component.PRE_ATTACK_FLASH_DURATION_MAX, 0.5,
+		"Pre-attack flash maximum duration should be 500ms (0.5s) — fair warning time (Issue #825 fix)")
 
 
 func test_beam_half_angle_matches_player() -> void:
@@ -278,17 +279,17 @@ func test_night_mode_on_starts_flash_sequence() -> void:
 
 func test_flash_completes_after_duration() -> void:
 	component.set_mock_night_mode(true)
-	component._flash_target_duration = 0.05  # Force specific duration for test
+	component._flash_target_duration = 0.3  # Force specific duration for test
 
 	component.start_pre_attack_flash(Vector2(300, 0), func(): pass)
 	assert_true(component.is_flashing_for_attack())
 
 	# Simulate time passing
-	component.process(0.03)  # 30ms
+	component.process(0.2)  # 200ms
 	assert_true(component.is_flashing_for_attack(),
 		"Should still be flashing before duration completes")
 
-	component.process(0.03)  # 60ms total (> 50ms)
+	component.process(0.15)  # 350ms total (> 300ms)
 	assert_false(component.is_flashing_for_attack(),
 		"Should not be flashing after duration completes")
 	assert_false(component.is_on(),
@@ -297,12 +298,12 @@ func test_flash_completes_after_duration() -> void:
 
 func test_callback_executed_after_flash() -> void:
 	component.set_mock_night_mode(true)
-	component._flash_target_duration = 0.05
+	component._flash_target_duration = 0.3
 
 	component.start_pre_attack_flash(Vector2(300, 0), func(): pass)
 
 	# Complete the flash
-	component.process(0.06)
+	component.process(0.35)
 
 	assert_eq(component.callbacks_executed, 1,
 		"Callback should be executed after flash completes")
@@ -471,7 +472,7 @@ func test_full_pre_attack_flash_sequence() -> void:
 	component.set_mock_night_mode(true)
 	component.global_position = Vector2(0, 0)
 	component.global_rotation = 0.0
-	component._flash_target_duration = 0.05
+	component._flash_target_duration = 0.3
 	component.set_mock_time_msec(0)
 
 	var attack_executed := false
@@ -487,9 +488,34 @@ func test_full_pre_attack_flash_sequence() -> void:
 		"Player should be blinded during pre-attack flash")
 
 	# Complete flash
-	component.process(0.06)
+	component.process(0.35)
 	assert_true(attack_executed, "Attack callback should be executed after flash")
 	assert_false(component.is_on(), "Flashlight should be off after flash")
+
+
+## Regression test: when flashlight is already running, a second shoot should not
+## fire without the flashlight. The existing flash will fire the attack when done.
+## (Issue #825 Bug Fix)
+func test_second_shoot_while_flashing_does_not_fire_immediately() -> void:
+	component.set_mock_night_mode(true)
+	component._flash_target_duration = 0.3
+
+	var shoot_count := 0
+	var shoot_callback := func(): shoot_count += 1
+
+	# First shoot starts the flash
+	component.start_pre_attack_flash(Vector2(300, 0), shoot_callback)
+	assert_true(component.is_flashing_for_attack(), "Should be flashing after first request")
+	assert_eq(shoot_count, 0, "Should not have fired yet")
+
+	# Second shoot during flash — should be ignored (not fire immediately)
+	component.start_pre_attack_flash(Vector2(300, 0), shoot_callback)
+	assert_eq(shoot_count, 0, "Second shoot during flash should not fire immediately")
+
+	# Flash completes — first shoot fires
+	component.process(0.35)
+	assert_eq(shoot_count, 1, "First shoot fires when flash completes")
+	assert_false(component.is_flashing_for_attack(), "Flash should be done")
 
 
 func test_no_flash_when_night_mode_off_but_attack_still_happens() -> void:

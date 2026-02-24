@@ -16,8 +16,14 @@ class MockDifficultyManager:
 		POWER_FANTASY
 	}
 
+	## Night mode reaction delay multiplier (Issue #825)
+	const NIGHT_MODE_REACTION_DELAY_MULTIPLIER: float = 1.3
+
 	## Current difficulty level
 	var current_difficulty: Difficulty = Difficulty.NORMAL
+
+	## Night mode state for testing (Issue #825)
+	var _night_mode_active: bool = false
 
 	## Signal for difficulty changes
 	signal difficulty_changed(new_difficulty: Difficulty)
@@ -84,18 +90,31 @@ class MockDifficultyManager:
 	func is_distraction_attack_enabled() -> bool:
 		return current_difficulty == Difficulty.HARD
 
+	## Set night mode active state for testing (Issue #825).
+	func set_night_mode_active(active: bool) -> void:
+		_night_mode_active = active
+
+	## Check if night mode is active (Issue #825).
+	func _is_night_mode_active() -> bool:
+		return _night_mode_active
+
 	func get_detection_delay() -> float:
+		var base_delay: float
 		match current_difficulty:
 			Difficulty.EASY:
-				return 0.5
+				base_delay = 0.5
 			Difficulty.NORMAL:
-				return 0.6
+				base_delay = 0.6
 			Difficulty.HARD:
-				return 0.2
+				base_delay = 0.2
 			Difficulty.POWER_FANTASY:
-				return 0.8
+				base_delay = 0.8
 			_:
-				return 0.6
+				base_delay = 0.6
+		# Issue #825: In night mode, enemies react 30% slower
+		if _is_night_mode_active():
+			return base_delay * NIGHT_MODE_REACTION_DELAY_MULTIPLIER
+		return base_delay
 
 
 var manager: MockDifficultyManager
@@ -359,3 +378,66 @@ func test_detection_delay_power_fantasy_mode() -> void:
 
 	assert_eq(manager.get_detection_delay(), 0.8,
 		"Power Fantasy mode should have 0.8s detection delay (slowest reaction)")
+
+
+# ============================================================================
+# Night Mode Detection Delay Tests (Issue #825)
+# ============================================================================
+
+
+func test_detection_delay_night_mode_easy() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.EASY)
+	manager.set_night_mode_active(true)
+
+	var expected := 0.5 * MockDifficultyManager.NIGHT_MODE_REACTION_DELAY_MULTIPLIER
+	assert_almost_eq(manager.get_detection_delay(), expected, 0.001,
+		"Night mode easy should have 30%% longer detection delay")
+
+
+func test_detection_delay_night_mode_normal() -> void:
+	# Default is NORMAL
+	manager.set_night_mode_active(true)
+
+	var expected := 0.6 * MockDifficultyManager.NIGHT_MODE_REACTION_DELAY_MULTIPLIER
+	assert_almost_eq(manager.get_detection_delay(), expected, 0.001,
+		"Night mode normal should have 30%% longer detection delay")
+
+
+func test_detection_delay_night_mode_hard() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.HARD)
+	manager.set_night_mode_active(true)
+
+	var expected := 0.2 * MockDifficultyManager.NIGHT_MODE_REACTION_DELAY_MULTIPLIER
+	assert_almost_eq(manager.get_detection_delay(), expected, 0.001,
+		"Night mode hard should have 30%% longer detection delay")
+
+
+func test_detection_delay_night_mode_power_fantasy() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+	manager.set_night_mode_active(true)
+
+	var expected := 0.8 * MockDifficultyManager.NIGHT_MODE_REACTION_DELAY_MULTIPLIER
+	assert_almost_eq(manager.get_detection_delay(), expected, 0.001,
+		"Night mode power fantasy should have 30%% longer detection delay")
+
+
+func test_detection_delay_night_mode_disabled_returns_base_delay() -> void:
+	# Default is NORMAL, night mode off
+	assert_eq(manager.get_detection_delay(), 0.6,
+		"Without night mode, normal detection delay should be unchanged")
+
+
+func test_detection_delay_night_mode_multiplier_is_1_point_3() -> void:
+	assert_almost_eq(MockDifficultyManager.NIGHT_MODE_REACTION_DELAY_MULTIPLIER, 1.3, 0.001,
+		"Night mode multiplier should be 1.3 (30%% increase)")
+
+
+func test_night_mode_normal_delay_is_30_percent_longer() -> void:
+	manager.set_night_mode_active(false)
+	var base_delay := manager.get_detection_delay()
+
+	manager.set_night_mode_active(true)
+	var night_delay := manager.get_detection_delay()
+
+	assert_almost_eq(night_delay / base_delay, 1.3, 0.001,
+		"Night mode delay should be exactly 30%% longer than base delay")
