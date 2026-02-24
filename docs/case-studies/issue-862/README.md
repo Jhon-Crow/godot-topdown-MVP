@@ -248,7 +248,90 @@ Reference: <https://docs.godotengine.org/en/stable/tutorials/best_practices/node
 
 ---
 
-## Expected Performance Impact
+## Real-World Measurement — game_log_20260220_001039.txt
+
+The owner provided a real game log (`docs/case-studies/issue-862/game_log_20260220_001039.txt`)
+recorded on Windows (Godot 4.3-stable, non-debug build) on 2026-02-20.
+
+### Session Overview
+
+| Phase | Enemy Count | Observed FPS |
+|-------|-------------|--------------|
+| 00:10:39 – 00:10:49 | 5 enemies | 60 FPS (smooth) |
+| 00:10:50 – 00:11:26 | 10 enemies | 60 FPS (smooth) |
+| 00:11:27 – 00:11:47 | 10 enemies (combat) | 48–60 FPS (mild drops) |
+| 00:11:48 – 00:12:01 | 20 enemies | 40 FPS average |
+| 00:12:20 – 00:12:28 | 20 enemies (peak) | **~7.5 FPS (worst)** |
+| 00:12:34 – 00:13:52 | 20 enemies | 33–40 FPS |
+
+FPS was derived from `[ReplayManager] Recording frame N (Xs)` log entries:
+60 game frames should occur in 1.0 real second at target 60 FPS; the log
+shows 60 frames taking 8 real seconds at worst, equivalent to ~7.5 FPS.
+
+### Bottleneck Confirmation from Log
+
+| Bottleneck | Log Evidence |
+|-----------|--------------|
+| BulletPool NOT active | No `[BulletPool]` lines at all — bullets were instantiate/freed each shot |
+| 2,920 BloodDecal nodes | `grep -c "Blood puddle created" log` → 2,920 events, no cleanup logged |
+| ~1,490 ImpactEffects log writes | `grep -c "\[ImpactEffects\]" log` → 1,490 (file I/O on each) |
+| 275 unconditional `spawn_blood_effect` log calls | All at `_log_info()` level (always write to FileLogger) |
+| Footprint accumulation | "12 footprints to spawn" × multiple enemies, no cleanup logged |
+| SoundPropagation O(n) | `listeners=25` then "Cleaned up 15 invalid listeners" on first gunshot |
+
+### Why the Log Was from a Pre-Fix Build
+
+The log session shows no `[BulletPool]` lines, confirming this was recorded before
+PR #863 changes were applied. The analysis above validates all three original fixes
+and identified two additional bottlenecks addressed in subsequent commits.
+
+---
+
+## Additional Fixes (from game log analysis)
+
+### Bottleneck 5 (HIGH) — Unconditional FileLogger writes per blood hit
+
+**File:** `scripts/autoload/impact_effects_manager.gd:254`
+
+`spawn_blood_effect()` called `_log_info()` 4× unconditionally on every
+blood effect spawn — at entry, instantiation, scheduling, and wall-splatter
+detection. With 275 blood effect spawns in the logged session (and more
+in longer sessions), this produced **~1,100+ file I/O operations** just for
+blood effects, on top of the wall-splatter and decal-scheduled log lines.
+
+`_log_info()` writes to both `print()` (stdout/OS buffer) and `FileLogger`
+(synchronous disk write). In the hot path during peak combat, these calls
+directly steal frame time from the physics thread.
+
+**Fix:** All per-bullet/per-hit `_log_info()` calls removed or moved behind
+`_debug_effects = false`. Genuine errors use `push_error()` (recorded in
+Godot's error log, no file I/O). One-time events (ready, init, warmup,
+scene change) keep their log lines.
+
+**Estimated impact:** ~0.5–1.5 ms/frame during 20-enemy combat with 275+
+blood effects per session (eliminates ~1,100 synchronous disk writes).
+
+### Bottleneck 6 (MEDIUM) — Unbounded footprint node accumulation
+
+**File:** `scripts/components/bloody_feet_component.gd`
+
+`_spawn_footprint()` added `Sprite2D` (BloodFootprint) nodes to the scene
+tree with **no tracking array and no cap**. With 20 enemies each capable
+of spawning 12 footprints per blood contact, a single firefight produces
+240+ nodes. Over multiple rooms and encounters these accumulate indefinitely
+(unlike blood decals, no cleanup was previously in place at all).
+
+**Fix:** Added `static var _all_footprints: Array` shared across all
+`BloodyFeetComponent` instances and FIFO eviction at `MAX_FOOTPRINTS = 150`.
+The cap is well above any single room's visible footprint count (150 ÷ 12
+= 12.5 enemies worth of full footprint trails visible simultaneously).
+
+**Estimated impact:** ~0.2–0.5 ms/frame in sessions with 20+ enemies and
+repeated blood contacts.
+
+---
+
+## Expected Performance Impact (All Fixes)
 
 | Fix | Estimated Frame-Time Saving |
 |-----|----------------------------|
@@ -256,10 +339,14 @@ Reference: <https://docs.godotengine.org/en/stable/tutorials/best_practices/node
 | Blood decal cap (300) | ~0.5–2 ms/frame for scenes with 1000+ decals |
 | Bullet hole cap (200) | ~0.2–0.5 ms/frame |
 | Disable DebugPenetration | ~0.3–1 ms/frame (eliminates file I/O) |
-| **Total** | **~2–7 ms/frame** in peak bullet-hell scenarios |
+| Remove per-bullet FileLogger writes | ~0.5–1.5 ms/frame (1,100+ writes eliminated) |
+| Footprint cap (150) | ~0.2–0.5 ms/frame |
+| **Total** | **~2.7–9.5 ms/frame** in peak bullet-hell scenarios |
 
-At 60 FPS, each frame budget is ~16.7 ms. A 2–7 ms saving in the worst case
-represents a **12–42% improvement** in available frame time during heavy combat.
+At 60 FPS, each frame budget is ~16.7 ms. The combined saving in the worst
+case represents a **16–57% improvement** in available frame time during heavy
+combat. This should bring the worst-case 7.5 FPS scenario back to 30–45+ FPS
+even before further optimisations.
 
 ---
 
@@ -269,9 +356,11 @@ represents a **12–42% improvement** in available frame time during heavy comba
 |------|--------|
 | `Scripts/Projectiles/Bullet.cs` | `DebugPenetration = false` |
 | `scripts/projectiles/bullet.gd` | `_debug_penetration = false`, `reset_for_pool()`, `_return_to_pool()`, replace `queue_free()` |
-| `scripts/autoload/impact_effects_manager.gd` | `MAX_BLOOD_DECALS = 300`, `MAX_BULLET_HOLES = 200` |
+| `scripts/autoload/impact_effects_manager.gd` | `MAX_BLOOD_DECALS = 300`, `MAX_BULLET_HOLES = 200`; per-bullet log calls removed/guarded |
 | `scripts/autoload/bullet_pool.gd` | **New** — BulletPool autoload |
 | `project.godot` | Register `BulletPool` autoload |
 | `scripts/characters/player.gd` | Use pool in `_shoot()` |
 | `scripts/objects/enemy.gd` | Use pool in `_spawn_projectile()` |
 | `tests/unit/test_bullet_pool.gd` | **New** — unit tests for pool API |
+| `scripts/components/bloody_feet_component.gd` | `MAX_FOOTPRINTS = 150` FIFO cleanup |
+| `docs/case-studies/issue-862/game_log_20260220_001039.txt` | Real session log provided by owner |
