@@ -973,3 +973,120 @@ func test_los_wall_parallel_to_aim_does_not_block() -> void:
 	var target := bullet.find_nearest_visible_enemy(enemies)
 	assert_eq(target, Vector2(300, 0),
 		"Wall parallel to aim should not block enemy")
+
+
+# ============================================================================
+# Pistol Bullet Aim-Line Homing Tests (Issue #781)
+# ============================================================================
+# These tests verify that the MockHomingPellet.enable_homing_with_aim_line()
+# logic matches what bullet.gd's enable_homing_with_aim_line() should do.
+# They validate the aim-line targeting algorithm used for pistol bullets.
+
+
+func test_aim_line_enable_homing_with_aim_line_sets_homing_enabled() -> void:
+	var pellet := MockHomingPellet.new()
+	assert_false(pellet.homing_enabled,
+		"Homing should be disabled initially")
+	pellet.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+	assert_true(pellet.homing_enabled,
+		"enable_homing_with_aim_line should enable homing (Issue #781)")
+
+
+func test_aim_line_enable_homing_stores_original_direction() -> void:
+	var pellet := MockHomingPellet.new()
+	pellet.direction = Vector2(0.707, 0.707)  # 45 degrees
+	pellet.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+	var expected_dir := Vector2(0.707, 0.707).normalized()
+	assert_almost_eq(pellet._homing_original_direction.x, expected_dir.x, 0.001,
+		"Original direction X should be stored when enabling aim-line homing")
+	assert_almost_eq(pellet._homing_original_direction.y, expected_dir.y, 0.001,
+		"Original direction Y should be stored when enabling aim-line homing")
+
+
+func test_aim_line_enable_homing_activates_aim_line_targeting() -> void:
+	var pellet := MockHomingPellet.new()
+	assert_false(pellet._use_aim_line_targeting,
+		"Aim-line targeting should be disabled initially")
+	pellet.enable_homing_with_aim_line(Vector2(100, 50), Vector2.RIGHT)
+	assert_true(pellet._use_aim_line_targeting,
+		"enable_homing_with_aim_line should activate aim-line targeting (Issue #781)")
+
+
+func test_aim_line_enable_homing_stores_shooter_origin() -> void:
+	var pellet := MockHomingPellet.new()
+	var shooter_pos := Vector2(100, 200)
+	pellet.enable_homing_with_aim_line(shooter_pos, Vector2.RIGHT)
+	assert_eq(pellet._shooter_origin, shooter_pos,
+		"Shooter origin should be stored for aim-line targeting (Issue #781)")
+
+
+func test_aim_line_enable_homing_stores_aim_direction() -> void:
+	var pellet := MockHomingPellet.new()
+	var aim_dir := Vector2(1.0, 0.5).normalized()
+	pellet.enable_homing_with_aim_line(Vector2.ZERO, aim_dir)
+	assert_almost_eq(pellet._shooter_aim_direction.x, aim_dir.x, 0.001,
+		"Aim direction X should be stored for aim-line targeting (Issue #781)")
+	assert_almost_eq(pellet._shooter_aim_direction.y, aim_dir.y, 0.001,
+		"Aim direction Y should be stored for aim-line targeting (Issue #781)")
+
+
+func test_aim_line_targeting_selects_nearest_to_crosshair() -> void:
+	var pellet := MockHomingPellet.new()
+	pellet.global_position = Vector2(50, 0)
+	pellet.direction = Vector2.RIGHT
+	# Shooter at origin, aiming RIGHT
+	pellet.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+
+	# Enemy A is directly on the aim line (perpendicular distance = 0)
+	# Enemy B is off to the side (perpendicular distance = 100)
+	var enemies: Array[Vector2] = [Vector2(200, 100), Vector2(300, 0)]
+	var target := pellet.find_best_target(enemies)
+	assert_eq(target, Vector2(300, 0),
+		"Aim-line targeting should prefer enemy on the aim line (Issue #781)")
+
+
+func test_aim_line_targeting_ignores_enemies_outside_max_angle() -> void:
+	var pellet := MockHomingPellet.new()
+	pellet.global_position = Vector2.ZERO
+	pellet.direction = Vector2.RIGHT
+	pellet.homing_max_turn_angle = deg_to_rad(110.0)
+	# Shooter at origin, aiming RIGHT
+	pellet.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+
+	# Enemy directly behind (180 degrees from aim) - outside max turn angle
+	var enemies: Array[Vector2] = [Vector2(-200, 0)]
+	var target := pellet.find_best_target(enemies)
+	assert_eq(target, Vector2.ZERO,
+		"Aim-line targeting should ignore enemies outside max turn angle (Issue #781)")
+
+
+func test_aim_line_vs_basic_homing_different_behavior() -> void:
+	# Aim-line targeting should pick a different enemy than basic homing
+	# Setup: bullet is far right, two enemies - one near bullet, one near aim line
+	var bullet_basic := MockHomingPellet.new()
+	bullet_basic.global_position = Vector2(400, 0)
+	bullet_basic.direction = Vector2.RIGHT
+	bullet_basic.enable_homing()  # Basic: picks nearest to bullet
+
+	var bullet_aimline := MockHomingPellet.new()
+	bullet_aimline.global_position = Vector2(400, 0)
+	bullet_aimline.direction = Vector2.RIGHT
+	# Shooter at origin aiming right - aim line goes along Y=0
+	bullet_aimline.enable_homing_with_aim_line(Vector2.ZERO, Vector2.RIGHT)
+
+	# Enemy A: near the bullet but far from aim line
+	# Enemy B: far from bullet but on the aim line
+	var enemy_near_bullet := Vector2(500, 100)  # Perpendicular dist from aim = 100
+	var enemy_on_aimline := Vector2(600, 0)    # Perpendicular dist from aim = 0
+
+	var enemies: Array[Vector2] = [enemy_near_bullet, enemy_on_aimline]
+	var basic_target := bullet_basic.find_best_target(enemies)
+	var aimline_target := bullet_aimline.find_best_target(enemies)
+
+	# Basic homing picks nearest to bullet (enemy_near_bullet at dist ~141)
+	assert_eq(basic_target, enemy_near_bullet,
+		"Basic homing should pick nearest enemy to bullet")
+
+	# Aim-line homing picks nearest to aim line (enemy_on_aimline, perp_dist=0)
+	assert_eq(aimline_target, enemy_on_aimline,
+		"Aim-line homing should pick enemy closest to crosshair (Issue #781)")
