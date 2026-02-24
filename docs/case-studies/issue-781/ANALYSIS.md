@@ -20,7 +20,23 @@ activated and these weapons are fired, bullets either fly in the wrong direction
 | 2026-02-15 | PR #783 attempted fix: added setter methods + `enable_homing_with_aim_line` to `bullet.gd`. **CLOSED without merge** due to pistol bullet display/movement breaking. |
 | 2026-02-16 | PR #812 attempted fix: only added `enable_homing_with_aim_line` to `bullet.gd`, skipped direction setter fix. **CLOSED without merge**. |
 | 2026-02-19 | Issue owner requests new attempt taking past failures into account. |
-| 2026-02-19 | PR #867 — this PR — implements the correct fix. |
+| 2026-02-19 | PR #867 first commit — adds `Call()` setter methods, fixes direction. Verified homing still not working. |
+| 2026-02-20 | Owner tests build from commit `0de505b6`. Reports homing STILL not working. Attaches game logs. Hints "check language conflicts and imports". |
+| 2026-02-24 | Deep analysis of game logs reveals two additional bugs: `_is_player_bullet()` case sensitivity and `shooter_id` 64-bit truncation. PR #867 updated with complete fix. |
+
+## Game Logs
+
+Two game logs were attached by the owner after testing the initial fix:
+
+- [`game-logs/game_log_20260220_004007.txt`](game-logs/game_log_20260220_004007.txt) — 14,137 lines, MakarovPM → MiniUzi → SilencedPistol → Revolver test
+- [`game-logs/game_log_20260220_004330.txt`](game-logs/game_log_20260220_004330.txt) — 1,791 lines, focused homing bullet test (directory named "Самонаводящиеся пули" = "Homing bullets")
+
+**Key observations from logs:**
+- No script errors (zero `[ERROR]` level lines)
+- `Player.Homing` lifecycle works correctly (activation/expiry)
+- Bullets fired correctly (gunshot sounds logged)
+- No `[Bullet]` homing debug output — because `_debug_homing = false` by default AND because `_apply_homing_steering` was returning early due to `_is_player_bullet()` returning false
+- `shooter_id` values observed: `268437662` (first log) — within 32-bit range, `118497479586` (second log) — beyond 32-bit range, confirming the truncation bug
 
 ---
 
@@ -60,6 +76,53 @@ var stun_duration: float = 0.0
 
 The C# `BaseWeapon.SpawnBullet()` checks for `enable_homing_with_aim_line` first, then falls back to `enable_homing`. Since `bullet.gd` only had `enable_homing()`, the fallback worked. However, without the direction being set correctly (Root Cause 1), homing had no effect since the bullet was flying RIGHT already.
 
+### Root Cause 3: `_is_player_bullet()` case sensitivity (NEWLY DISCOVERED)
+
+Even after the `Call()` setter fix (Root Causes 1 & 2), homing still didn't work because `_apply_homing_steering()` has this guard:
+
+```gdscript
+func _apply_homing_steering(delta: float) -> void:
+    if not _is_player_bullet():
+        return  # Always returned here for C# pistol bullets!
+```
+
+The OLD `_is_player_bullet()` implementation used a **case-sensitive** script path check:
+
+```gdscript
+# BROKEN: case-sensitive check
+var script: Script = shooter.get_script()
+if script and script.resource_path.contains("player"):  # LOWERCASE
+    return true
+```
+
+The C# Player's script path is `res://Scripts/Characters/Player.cs` — which contains `"Player"` (capital P) but NOT `"player"` (lowercase p). Therefore `_is_player_bullet()` **always returned false** for C# pistols, and homing steering never ran.
+
+**Fix**: Use `is_in_group("player")` instead — same pattern used everywhere else in the codebase (grenades, enemies, ricochet code):
+
+```gdscript
+# FIXED: group membership
+if shooter is Node and (shooter as Node).is_in_group("player"):
+    return true
+```
+
+The C# Player node has `groups=["player"]` in `scenes/characters/csharp/Player.tscn`, so this check always succeeds.
+
+### Root Cause 4: `shooter_id` 64-bit truncation
+
+`GetInstanceId()` returns a `ulong` (64-bit unsigned), but C# code cast it to `(int)` (32-bit signed):
+
+```csharp
+bullet.Call("set_shooter_id", (int)owner.GetInstanceId());  // Truncates high bits!
+```
+
+The second game log shows `shooter_id=118497479586` — a value that exceeds `int.MaxValue` (2,147,483,647). When cast to `int`, this becomes a different (negative) number. Then `instance_from_id(shooter_id)` returns null (no node with that truncated ID), and `_is_player_bullet()` returns false even before the group check.
+
+**Fix**: Cast to `(long)` to preserve all 64 bits:
+
+```csharp
+bullet.Call("set_shooter_id", (long)owner.GetInstanceId());  // Preserves full ID
+```
+
 ### Why Previous Attempts Failed
 
 **PR #783** (correct diagnosis, wrong timing):
@@ -73,6 +136,13 @@ The mistake: when `AddChild()` is called, Godot runs `_ready()`. At that point `
 - Added `enable_homing_with_aim_line` to `bullet.gd` ✅
 - Did NOT add setter methods ❌
 - Bullets still flew RIGHT because `Set("direction", ...)` still failed silently
+
+**PR #867 first commit (0de505b6)** (good fix, but incomplete):
+- Added setter methods BEFORE `AddChild()` ✅
+- Added `enable_homing_with_aim_line()` to `bullet.gd` ✅
+- Fixed `Node.Set()` → `Call()` for GDScript bullets ✅
+- `_is_player_bullet()` case sensitivity bug remained ❌ (homing steering still always skipped)
+- `shooter_id` cast used `(int)` truncation ❌ (ID lookup failed for large IDs)
 
 ---
 
@@ -125,14 +195,14 @@ func enable_homing_with_aim_line(shooter_pos: Vector2, aim_dir: Vector2) -> void
 
 ### Fix 3: Update C# weapons to call setters BEFORE `AddChild()`
 
-In `BaseWeapon.cs`, `MakarovPM.cs`, and `SilencedPistol.cs`, replace `Set()` calls with `Call()` setter methods, ensuring they are called BEFORE `AddChild()`:
+In `BaseWeapon.cs`, `MakarovPM.cs`, and `SilencedPistol.cs`, replace `Set()` calls with `Call()` setter methods, ensuring they are called BEFORE `AddChild()`. Also cast `GetInstanceId()` to `(long)` not `(int)`:
 
 ```csharp
 // BEFORE AddChild() — so _ready() sees correct values
 bulletNode.Call("set_direction", direction);
 bulletNode.Call("set_speed", WeaponData.BulletSpeed);
 bulletNode.Call("set_damage", WeaponData.Damage);
-bulletNode.Call("set_shooter_id", (int)owner.GetInstanceId());
+bulletNode.Call("set_shooter_id", (long)owner.GetInstanceId());  // (long) not (int)!
 bulletNode.Call("set_shooter_position", GlobalPosition);
 bulletNode.Call("set_stun_duration", StunDurationOnHit);
 
@@ -155,11 +225,12 @@ bulletNode.Call("enable_homing_with_aim_line", player.GlobalPosition, aimDir);
 
 | File | Change |
 |------|--------|
-| `scripts/projectiles/bullet.gd` | Added C# interop setter methods, `enable_homing_with_aim_line()`, `_find_enemy_nearest_to_aim_line()`, `_has_line_of_sight_to_target()`, wall-awareness in `_find_nearest_enemy_position()` |
-| `Scripts/AbstractClasses/BaseWeapon.cs` | Updated `SpawnBullet()` to use `Call()` setters before `AddChild()` for GDScript bullets |
-| `Scripts/Weapons/MakarovPM.cs` | Updated `SpawnBullet()` to use `Call()` setters before `AddChild()` |
-| `Scripts/Weapons/SilencedPistol.cs` | Updated `SpawnBullet()` to use `Call()` setters before `AddChild()` |
+| `scripts/projectiles/bullet.gd` | **Fix `_is_player_bullet()`** to use `is_in_group("player")` instead of broken case-sensitive script path check; added C# interop setter methods, `enable_homing_with_aim_line()`, `_find_enemy_nearest_to_aim_line()`, `_has_line_of_sight_to_target()`, wall-awareness in `_find_nearest_enemy_position()` |
+| `Scripts/AbstractClasses/BaseWeapon.cs` | Cast `GetInstanceId()` to `(long)` not `(int)`; updated `SpawnBullet()` to use `Call()` setters before `AddChild()` for GDScript bullets |
+| `Scripts/Weapons/MakarovPM.cs` | Cast `GetInstanceId()` to `(long)`; updated `SpawnBullet()` to use `Call()` setters before `AddChild()` |
+| `Scripts/Weapons/SilencedPistol.cs` | Cast `GetInstanceId()` to `(long)`; updated `SpawnBullet()` to use `Call()` setters before `AddChild()` |
 | `tests/unit/test_homing_bullets.gd` | Added tests for aim-line homing behavior (Issue #781) |
+| `docs/case-studies/issue-781/game-logs/` | Added owner-attached game logs from test sessions on 2026-02-20 |
 
 ---
 
