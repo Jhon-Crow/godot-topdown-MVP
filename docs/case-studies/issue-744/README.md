@@ -245,6 +245,49 @@ The correct build will show these log messages after selecting Trajectory Glasse
 [Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
 ```
 
+### Fourth Fix (2026-02-24)
+
+After the third analysis, user reported: "очки всё ещё не работают. я выбрал эти очки, нажал пробел но ничего не произошло."
+(Translation: "glasses still don't work, I selected them, pressed space but nothing happened")
+
+No new log was attached. Based on the history, two scenarios were possible:
+1. User still ran the wrong build (same as before)
+2. User ran our build but visualization didn't appear
+
+**Actions taken**:
+
+1. **Merged upstream/main into the branch**:
+   - Main branch moved ahead significantly with new features
+   - Key change: Active item unlock system (hold LMB to unlock items in armory)
+   - `TRAJECTORY_GLASSES` added to `unlocked_active_items` dictionary
+   - Unlock methods (`is_active_item_unlocked`, `unlock_active_item`, etc.) added
+
+2. **Rewrote trajectory visualization (root cause fix)**:
+   - Previous approach: Line2D node with `top_level = true` (unreliable coordinate handling)
+   - New approach: `queue_redraw()` + `_draw()` method in player (proven, used by grenade trajectory)
+   - Trajectory points stored as LOCAL player coordinates in `trajectory_local_points`
+   - Player's `_draw()` renders the trajectory directly using `draw_line()`
+   - Same pattern as `_draw_trajectory_with_bounces()` which is confirmed working
+
+3. **Added activation logging**:
+   - Log when Space is pressed with current charge count
+   - Log activation result (success/failure)
+
+4. **Fixed coordinate conversion**:
+   - `_get_aim_direction()` now uses `_player.get_global_mouse_position()` (simpler, correct)
+   - Trajectory calculation returns world coords, converts to local before storing
+
+**Expected log for next test**:
+```
+[Player.TrajectoryGlasses] Checking trajectory glasses...
+[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...
+[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
+... (when Space is pressed) ...
+[Player.TrajectoryGlasses] Space pressed - activating (charges: 2)
+[TrajectoryGlasses] Activated! Duration: 10.0s, Charges remaining: 1/2, Player: Player
+[Player.TrajectoryGlasses] Activation result: true
+```
+
 ## Related Files
 
 - `logs/game_log_20260210_231250.txt` - Original game log showing the bug
