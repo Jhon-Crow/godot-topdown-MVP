@@ -4968,6 +4968,13 @@ public partial class Player : BaseCharacter
         // Initialize with player reference
         _trajectoryGlassesEffect.Call("initialize", this);
 
+        // Pass current weapon so ricochet angle is weapon-specific (Issue #744)
+        if (CurrentWeapon != null)
+        {
+            _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+            LogToFile($"[Player.TrajectoryGlasses] Weapon set: {CurrentWeapon.Name}");
+        }
+
         // Connect signals
         _trajectoryGlassesEffect.Connect("trajectory_activated", Callable.From<int>(OnTrajectoryActivated));
         _trajectoryGlassesEffect.Connect("trajectory_deactivated", Callable.From<int>(OnTrajectoryDeactivated));
@@ -5014,6 +5021,12 @@ public partial class Player : BaseCharacter
             bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
             if (!isActive)
             {
+                // Update weapon reference in case player switched weapons (Issue #744)
+                if (CurrentWeapon != null)
+                {
+                    _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+                }
+
                 int charges = (int)_trajectoryGlassesEffect.Get("charges");
                 LogToFile($"[Player.TrajectoryGlasses] Space pressed - activating (charges: {charges})");
                 bool activated = (bool)_trajectoryGlassesEffect.Call("activate");
@@ -5657,8 +5670,6 @@ public partial class Player : BaseCharacter
 
         // Read trajectory points (in local player coordinates) from the GDScript effect
         var pointsVariant = _trajectoryGlassesEffect.Get("trajectory_local_points");
-        var colorVariant = _trajectoryGlassesEffect.Get("trajectory_color");
-
         if (pointsVariant.VariantType == Variant.Type.Nil)
         {
             return;
@@ -5670,36 +5681,61 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        Color laserColor = colorVariant.VariantType != Variant.Type.Nil
-            ? colorVariant.As<Color>()
-            : new Color(0.0f, 1.0f, 0.0f, 0.8f);  // Default green
+        // Read the index where the invalid (red) terminal segment starts.
+        // -1 means all segments are valid (green).
+        var invalidIdxVariant = _trajectoryGlassesEffect.Get("trajectory_invalid_start_index");
+        int invalidStartIndex = invalidIdxVariant.VariantType != Variant.Type.Nil
+            ? invalidIdxVariant.AsInt32()
+            : -1;
 
-        Color glowColor = new Color(laserColor.R, laserColor.G, laserColor.B, 0.3f);
+        Color validColor = new Color(0.0f, 1.0f, 0.0f, 0.8f);   // Green
+        Color invalidColor = new Color(1.0f, 0.0f, 0.0f, 0.8f); // Red
 
-        // Draw glow (wider, transparent)
-        for (int i = 0; i < pointsArray.Count - 1; i++)
+        // Determine up to which index valid (green) segments run.
+        // If invalidStartIndex == -1: all segments are green (0..Count-2).
+        // If invalidStartIndex >= 1: green segments are 0..invalidStartIndex-2,
+        //   and segment (invalidStartIndex-1) -> (invalidStartIndex) is red.
+        int lastValidSegmentEnd = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+
+        // Draw glow for valid segments
+        for (int i = 0; i < lastValidSegmentEnd; i++)
         {
-            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), glowColor, 6.0f);
+            Color glowValid = new Color(0.0f, 1.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), glowValid, 6.0f);
         }
 
-        // Draw main laser line
-        for (int i = 0; i < pointsArray.Count - 1; i++)
+        // Draw glow for terminal invalid segment (if any)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
         {
-            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), laserColor, 2.0f);
+            Color glowInvalid = new Color(1.0f, 0.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), glowInvalid, 6.0f);
+        }
+
+        // Draw main laser for valid segments (green)
+        for (int i = 0; i < lastValidSegmentEnd; i++)
+        {
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), validColor, 2.0f);
+        }
+
+        // Draw main laser for terminal invalid segment (red)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
+        {
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), invalidColor, 2.0f);
         }
 
         // Draw dot at start (bullet spawn point)
-        DrawCircle(pointsArray[0].As<Vector2>(), 3.0f, laserColor);
+        DrawCircle(pointsArray[0].As<Vector2>(), 3.0f, validColor);
 
-        // Draw small diamonds at bounce points
-        for (int i = 1; i < pointsArray.Count - 1; i++)
+        // Draw small diamonds at valid bounce points (not at the terminal red point)
+        int lastDiamond = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+        for (int i = 1; i < lastDiamond; i++)
         {
             float s = 4.0f;
             Vector2 p = pointsArray[i].As<Vector2>();
-            DrawLine(p + new Vector2(0, -s), p + new Vector2(s, 0), laserColor, 2.0f);
-            DrawLine(p + new Vector2(s, 0), p + new Vector2(0, s), laserColor, 2.0f);
-            DrawLine(p + new Vector2(0, s), p + new Vector2(-s, 0), laserColor, 2.0f);
-            DrawLine(p + new Vector2(-s, 0), p + new Vector2(0, -s), laserColor, 2.0f);
+            DrawLine(p + new Vector2(0, -s), p + new Vector2(s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(s, 0), p + new Vector2(0, s), validColor, 2.0f);
+            DrawLine(p + new Vector2(0, s), p + new Vector2(-s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(-s, 0), p + new Vector2(0, -s), validColor, 2.0f);
         }
     }
 

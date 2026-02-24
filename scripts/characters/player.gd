@@ -2805,28 +2805,43 @@ func _draw_trajectory_glasses() -> void:
 	if points.size() < 2:
 		return
 
-	var color: Color = _trajectory_glasses.trajectory_color
-	var glow_color := Color(color.r, color.g, color.b, 0.3)
+	# trajectory_invalid_start_index: -1 = all valid, >= 1 = index of terminal red point
+	var invalid_start: int = _trajectory_glasses.trajectory_invalid_start_index
 
-	# Draw glow (wider, transparent)
-	for i in range(points.size() - 1):
-		draw_line(points[i], points[i + 1], glow_color, 6.0)
+	var valid_color := Color(0.0, 1.0, 0.0, 0.8)   # Green
+	var invalid_color := Color(1.0, 0.0, 0.0, 0.8) # Red
 
-	# Draw main laser line
-	for i in range(points.size() - 1):
-		draw_line(points[i], points[i + 1], color, 2.0)
+	# Last index of valid segments (green). If invalid_start >= 1, green runs to invalid_start-1.
+	var last_valid_end: int = (invalid_start - 1) if invalid_start >= 1 else (points.size() - 1)
+
+	# Draw glow for valid segments
+	for i in range(last_valid_end):
+		draw_line(points[i], points[i + 1], Color(0.0, 1.0, 0.0, 0.3), 6.0)
+
+	# Draw glow for terminal invalid segment
+	if invalid_start >= 1 and invalid_start < points.size():
+		draw_line(points[invalid_start - 1], points[invalid_start], Color(1.0, 0.0, 0.0, 0.3), 6.0)
+
+	# Draw main laser for valid segments (green)
+	for i in range(last_valid_end):
+		draw_line(points[i], points[i + 1], valid_color, 2.0)
+
+	# Draw main laser for terminal invalid segment (red)
+	if invalid_start >= 1 and invalid_start < points.size():
+		draw_line(points[invalid_start - 1], points[invalid_start], invalid_color, 2.0)
 
 	# Draw dot at start (bullet spawn point)
-	draw_circle(points[0], 3.0, color)
+	draw_circle(points[0], 3.0, valid_color)
 
-	# Draw small diamonds at bounce points
-	for i in range(1, points.size() - 1):
+	# Draw small diamonds at valid bounce points (not at terminal red point)
+	var last_diamond: int = (invalid_start - 1) if invalid_start >= 1 else (points.size() - 1)
+	for i in range(1, last_diamond):
 		var s := 4.0
 		var p := points[i]
-		draw_line(p + Vector2(-s, 0), p + Vector2(0, -s), color, 2.0)
-		draw_line(p + Vector2(0, -s), p + Vector2(s, 0), color, 2.0)
-		draw_line(p + Vector2(s, 0), p + Vector2(0, s), color, 2.0)
-		draw_line(p + Vector2(0, s), p + Vector2(-s, 0), color, 2.0)
+		draw_line(p + Vector2(-s, 0), p + Vector2(0, -s), valid_color, 2.0)
+		draw_line(p + Vector2(0, -s), p + Vector2(s, 0), valid_color, 2.0)
+		draw_line(p + Vector2(s, 0), p + Vector2(0, s), valid_color, 2.0)
+		draw_line(p + Vector2(0, s), p + Vector2(-s, 0), valid_color, 2.0)
 
 
 ## Enable debug logging for casing pushing (Issue #392 debugging).

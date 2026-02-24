@@ -70,8 +70,15 @@ var _audio_player: AudioStreamPlayer = null
 ## Updated every frame when active.
 var trajectory_local_points: Array[Vector2] = []
 
-## Color for the entire current trajectory (green if valid, red if impossible).
+## Color for the valid (green) part of the trajectory.
+## Kept for backward compatibility; the drawing code uses trajectory_invalid_start_index.
 var trajectory_color: Color = VALID_RICOCHET_COLOR
+
+## Index of the first point that belongs to the invalid (red) terminal segment.
+## -1 means all segments are valid (green).
+## When set, points[trajectory_invalid_start_index - 1] → points[trajectory_invalid_start_index]
+## is drawn red, and no further segments exist.
+var trajectory_invalid_start_index: int = -1
 
 ## Signal emitted when trajectory glasses is activated.
 signal trajectory_activated(charges_remaining: int)
@@ -211,6 +218,7 @@ func _update_trajectory() -> void:
 	# Clear previous trajectory
 	trajectory_local_points.clear()
 	trajectory_color = VALID_RICOCHET_COLOR
+	trajectory_invalid_start_index = -1
 
 	# Get weapon/aim direction
 	var player_pos: Vector2 = _player.global_position
@@ -262,8 +270,51 @@ func _get_aim_direction() -> Vector2:
 	return to_mouse.normalized()
 
 
+## Get the maximum ricochet angle for the current weapon in degrees.
+## Reads from the weapon's CaliberData resource when available.
+## Falls back to MAX_RICOCHET_ANGLE (90 degrees) if no caliber data is found.
+func _get_weapon_max_ricochet_angle() -> float:
+	if _weapon == null or not is_instance_valid(_weapon):
+		return MAX_RICOCHET_ANGLE
+
+	# Try to read WeaponData.Caliber.max_ricochet_angle from C# BaseWeapon
+	var weapon_data = null
+	if "WeaponData" in _weapon:
+		weapon_data = _weapon.get("WeaponData")
+	elif "weapon_data" in _weapon:
+		weapon_data = _weapon.get("weapon_data")
+
+	if weapon_data == null:
+		return MAX_RICOCHET_ANGLE
+
+	var caliber = null
+	if "Caliber" in weapon_data:
+		caliber = weapon_data.get("Caliber")
+	elif "caliber" in weapon_data:
+		caliber = weapon_data.get("caliber")
+
+	if caliber == null:
+		return MAX_RICOCHET_ANGLE
+
+	# Check if ricochet is possible at all for this caliber
+	var can_ricochet_val := true
+	if "can_ricochet" in caliber:
+		can_ricochet_val = caliber.get("can_ricochet")
+	if not can_ricochet_val:
+		return 0.0  # Weapon cannot ricochet (e.g. sniper rifle)
+
+	# Read the per-caliber max ricochet angle
+	if "max_ricochet_angle" in caliber:
+		return float(caliber.get("max_ricochet_angle"))
+
+	return MAX_RICOCHET_ANGLE
+
+
 ## Calculate the ricochet trajectory as an array of world-coordinate points.
 ## Uses the same logic as bullet.gd for realistic behavior.
+## Respects the weapon's caliber data for ricochet angle limits.
+## Sets trajectory_invalid_start_index to the index of the first non-ricochetable
+## hit point; the segment ending there is drawn red, and tracing stops.
 func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array[Vector2]:
 	var points: Array[Vector2] = []
 	points.append(start)
@@ -271,6 +322,9 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 	var current_pos := start
 	var current_dir := direction
 	var max_distance := _viewport_diagonal
+
+	# Get weapon-specific ricochet angle limit
+	var weapon_max_angle := _get_weapon_max_ricochet_angle()
 
 	var space_state := _player.get_world_2d().direct_space_state
 	if space_state == null:
@@ -287,7 +341,7 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 		var result := space_state.intersect_ray(query)
 
 		if result.is_empty():
-			# No hit - line extends to max distance
+			# No hit - line extends to max distance (all valid, green)
 			points.append(ray_end)
 			break
 
@@ -295,15 +349,17 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 		var hit_pos: Vector2 = result.position
 		var hit_normal: Vector2 = result.normal
 
-		# Add hit point
+		# Check if ricochet is valid at this angle before adding the point
+		var impact_angle := _calculate_impact_angle(current_dir, hit_normal)
+		var is_valid_ricochet := weapon_max_angle > 0.0 and impact_angle < weapon_max_angle
+
+		# Add the hit point
 		points.append(hit_pos)
 
-		# Check if ricochet is valid at this angle
-		var impact_angle := _calculate_impact_angle(current_dir, hit_normal)
-		var is_valid_ricochet := impact_angle < MAX_RICOCHET_ANGLE
-
 		if not is_valid_ricochet:
-			# Invalid ricochet angle - mark whole line red
+			# Invalid ricochet angle — mark this as the terminal (red) segment and stop.
+			# trajectory_invalid_start_index is the index of the wall hit point.
+			trajectory_invalid_start_index = points.size() - 1
 			trajectory_color = INVALID_RICOCHET_COLOR
 			break
 
