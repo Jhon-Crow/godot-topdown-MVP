@@ -81,10 +81,10 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "5000x4000"
 	},
 	{
-		"name": "RSh-12 Range",
-		"name_ru": "РШ-12 Полигон",
+		"name": "Double Corridor",
+		"name_ru": "Двойной Коридор",
 		"path": "res://scenes/levels/RevolverLevel.tscn",
-		"description": "Map designed for RSh-12 revolver: corridors for penetration kills and safe zones for reloading.",
+		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
 		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
 		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
 		"enemy_count": 12,

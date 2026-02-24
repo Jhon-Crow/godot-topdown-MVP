@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3 uid="uid://revolver_level_scene"]
+[gd_scene load_steps=34 format=3 uid="uid://revolver_level_scene"]
 
 [ext_resource type="Script" path="res://scripts/levels/revolver_level.gd" id="1_revolver_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -17,6 +17,12 @@ size = Vector2(32, 880)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_divider_v_short"]
 size = Vector2(32, 200)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_divider_v_528"]
+size = Vector2(32, 528)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_divider_v_300"]
+size = Vector2(32, 300)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_corridor_wall_h"]
 size = Vector2(400, 32)
@@ -44,6 +50,12 @@ polygon = PackedVector2Array(-16, -440, 16, -440, 16, 440, -16, 440)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_divider_v_short"]
 polygon = PackedVector2Array(-16, -100, 16, -100, 16, 100, -16, 100)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_divider_v_528"]
+polygon = PackedVector2Array(-16, -264, 16, -264, 16, 264, -16, 264)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_divider_v_300"]
+polygon = PackedVector2Array(-16, -150, 16, -150, 16, 150, -16, 150)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_corridor_wall_h"]
 polygon = PackedVector2Array(-200, -16, 200, -16, 200, 16, -200, 16)
@@ -176,10 +188,10 @@ offset_bottom = 264.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider1Top"]
-shape = SubResource("RectangleShape2D_divider_v_short")
+shape = SubResource("RectangleShape2D_divider_v_528")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider1Top"]
-occluder = SubResource("OccluderPolygon2D_divider_v_short")
+occluder = SubResource("OccluderPolygon2D_divider_v_528")
 
 [node name="Divider1Bottom" type="StaticBody2D" parent="Environment/ZoneDividers"]
 position = Vector2(480, 1400)
@@ -194,10 +206,10 @@ offset_bottom = 264.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider1Bottom"]
-shape = SubResource("RectangleShape2D_divider_v_short")
+shape = SubResource("RectangleShape2D_divider_v_528")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider1Bottom"]
-occluder = SubResource("OccluderPolygon2D_divider_v_short")
+occluder = SubResource("OccluderPolygon2D_divider_v_528")
 
 [node name="Divider2Top" type="StaticBody2D" parent="Environment/ZoneDividers"]
 position = Vector2(1000, 328)
@@ -212,10 +224,10 @@ offset_bottom = 264.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider2Top"]
-shape = SubResource("RectangleShape2D_divider_v_short")
+shape = SubResource("RectangleShape2D_divider_v_528")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider2Top"]
-occluder = SubResource("OccluderPolygon2D_divider_v_short")
+occluder = SubResource("OccluderPolygon2D_divider_v_528")
 
 [node name="Divider2Bottom" type="StaticBody2D" parent="Environment/ZoneDividers"]
 position = Vector2(1000, 1400)
@@ -230,10 +242,10 @@ offset_bottom = 264.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/ZoneDividers/Divider2Bottom"]
-shape = SubResource("RectangleShape2D_divider_v_short")
+shape = SubResource("RectangleShape2D_divider_v_528")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/ZoneDividers/Divider2Bottom"]
-occluder = SubResource("OccluderPolygon2D_divider_v_short")
+occluder = SubResource("OccluderPolygon2D_divider_v_528")
 
 [node name="CorridorWalls" type="Node2D" parent="Environment"]
 
@@ -322,10 +334,10 @@ offset_bottom = 150.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/FinalZoneWallTop"]
-shape = SubResource("RectangleShape2D_corridor_wall_h")
+shape = SubResource("RectangleShape2D_divider_v_300")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/FinalZoneWallTop"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
+occluder = SubResource("OccluderPolygon2D_divider_v_300")
 
 [node name="FinalZoneWallBottom" type="StaticBody2D" parent="Environment/CorridorWalls"]
 position = Vector2(1340, 1150)
@@ -340,10 +352,10 @@ offset_bottom = 150.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CorridorWalls/FinalZoneWallBottom"]
-shape = SubResource("RectangleShape2D_corridor_wall_h")
+shape = SubResource("RectangleShape2D_divider_v_300")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/CorridorWalls/FinalZoneWallBottom"]
-occluder = SubResource("OccluderPolygon2D_corridor_wall_h")
+occluder = SubResource("OccluderPolygon2D_divider_v_300")
 
 [node name="ZoneMarkers" type="Node2D" parent="Environment"]
 

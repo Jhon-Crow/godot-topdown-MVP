@@ -4,7 +4,7 @@
 
 **Issue:** [#830](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/830) — Create a level map designed for revolver gameplay
 **Pull Request:** [#870](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/870)
-**Status:** Fixed (second iteration after owner feedback)
+**Status:** Fixed (third iteration after second owner feedback)
 
 ---
 
@@ -33,6 +33,9 @@ Additionally (from owner feedback on PR #870):
 | 2026-02-24 15:53 | Owner attached `game_log_20260224_184659.txt` as evidence |
 | 2026-02-24 20:33 | Second work session started, PR converted to draft |
 | 2026-02-24 ~21:00 | Second iteration with redesigned map and weapon fix |
+| 2026-02-24 21:12 | Owner (Jhon-Crow) found two more bugs: level name unchanged (levels menu not updated), and visual-only walls (collision shapes don't match visual size) |
+| 2026-02-24 21:13 | Third work session started, PR converted to draft |
+| 2026-02-24 ~21:30 | Third iteration: fixed collision shape mismatches and levels menu name |
 
 ---
 
@@ -195,3 +198,66 @@ References:
 3. **"Designed for weapon X" ≠ "forces weapon X".** Level design should reward a specific playstyle without removing player agency.
 
 4. **Level naming should reflect appearance, not context.** Players browsing the level select will not understand "RSh-12 POLYGON" but will understand "DOUBLE CORRIDOR."
+
+5. **CollisionShape2D must exactly match the visual representation.** If `ColorRect` shows a 32×528px vertical shape, the `RectangleShape2D` must also be `Vector2(32, 528)`. Using a mismatched shape (wrong dimensions or wrong orientation) produces "ghost walls" — visually present but physically passable. (Third-iteration bug)
+
+6. **Level name must be updated in ALL relevant locations.** The scene file (`LevelLabel` node text) and the `levels_menu.gd` `LEVELS` array are separate — updating only the scene label leaves the levels menu showing the old name. (Third-iteration bug)
+
+---
+
+## Third Iteration Bugs (2026-02-24)
+
+### Bug 4: Visual-only walls — collision shapes don't match visual size/orientation
+
+**Symptom:** Owner reported enemies and player can walk through walls and see through them.
+
+**Screenshot evidence:** https://github.com/user-attachments/assets/78271b7d-f304-44fb-862f-8f3929f19a85
+(Red circles highlight zone dividers at x≈480 and final zone walls at x≈1340 that appear solid but are passable)
+
+**Root cause — two types of mismatch found:**
+
+**Type A — Wrong dimensions:** `Divider1Top/Bottom` and `Divider2Top/Bottom` (x=480, x=1000):
+- `ColorRect` dimensions: 32×528px (offset ±16 horizontal, ±264 vertical)
+- `CollisionShape2D` used: `RectangleShape2D_divider_v_short` = `Vector2(32, 200)` — only 200px tall!
+- Result: Only 200/528 = 38% of the visual wall had actual collision. Enemies could walk through the top and bottom 164px of each divider.
+
+**Type B — Wrong orientation:** `FinalZoneWallTop/Bottom` (x=1340):
+- `ColorRect` dimensions: 32×300px (vertical, offset ±16 horizontal, ±150 vertical)
+- `CollisionShape2D` used: `RectangleShape2D_corridor_wall_h` = `Vector2(400, 32)` — HORIZONTAL, 400px wide!
+- `LightOccluder2D` used: `OccluderPolygon2D_corridor_wall_h` — also horizontal
+- Result: A 400×32px horizontal collision box sat at the wall position, completely misaligned with the visual. Enemies could see and walk through what appeared to be solid vertical walls.
+
+**Fix applied (third iteration):**
+1. Added new sub-resources: `RectangleShape2D_divider_v_528` (32×528) and `RectangleShape2D_divider_v_300` (32×300)
+2. Added matching occluders: `OccluderPolygon2D_divider_v_528` and `OccluderPolygon2D_divider_v_300`
+3. Updated all 4 Divider nodes to use `RectangleShape2D_divider_v_528`
+4. Updated `FinalZoneWallTop` and `FinalZoneWallBottom` to use `RectangleShape2D_divider_v_300`
+5. Updated `load_steps` count from 30 to 34
+
+### Bug 5: Level name visible as "RSh-12 Range" in levels menu
+
+**Symptom:** Owner reported "имя не изменилось" (name did not change). The second iteration updated the `LevelLabel` node in the scene file to "DOUBLE CORRIDOR" but the levels menu was not updated.
+
+**Root cause:** The `scripts/ui/levels_menu.gd` file contains a `LEVELS` array with a separate entry for each level including its display name. This entry still had:
+```gdscript
+"name": "RSh-12 Range",
+"name_ru": "РШ-12 Полигон",
+"description": "Map designed for RSh-12 revolver: ..."
+```
+
+**Fix applied:**
+```gdscript
+"name": "Double Corridor",
+"name_ru": "Двойной Коридор",
+"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading."
+```
+
+---
+
+## Files Modified (all iterations)
+
+| File | Change |
+|------|--------|
+| `scenes/levels/RevolverLevel.tscn` | Complete redesign (iter 2): ZoneDividers, corridor walls, detection ranges, "DOUBLE CORRIDOR" label. Third iteration: fixed collision shape mismatches for dividers and final zone walls; updated load_steps |
+| `scripts/levels/revolver_level.gd` | Removed `_setup_selected_weapon()` (iter 2); updated level name in print statements |
+| `scripts/ui/levels_menu.gd` | Updated level entry name from "RSh-12 Range" to "Double Corridor" (iter 3) |
