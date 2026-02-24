@@ -9,6 +9,7 @@
 **First report**: 2026-02-15
 **Second report**: 2026-02-24 (after PR #791 attempted fix 1 — activation now works, but two new bugs found)
 **Third report**: 2026-02-24 (same session, confirming size and reflection issues)
+**Fourth report**: 2026-02-24 (visual size now correct, but projectile blocking still fails)
 
 **Log files**:
 - `game_log_20260215_231653.txt` — original report (no force field log at all)
@@ -17,6 +18,7 @@
 - `game_log_20260224_231739.txt` — owner test confirming size + reflection bugs (radius 80px)
 - `game_log_20260224_231923.txt` — owner test confirming player dies while force field active
 - `game_log_20260224_232102.txt` — owner test third session, same issues
+- `game_log_20260224_235855.txt` — post-fix 2 (visual size correct, damage still goes through)
 
 ---
 
@@ -114,6 +116,37 @@ elif "shrapnel" in script_path.to_lower():
 - Grenade reflection: use `rb.linear_velocity`
 - Shrapnel reflection: reset `shrapnel.source_id = -1`
 
+### Root Cause #4 (Resolved)
+**Player still takes damage while force field is active — C#/GDScript interop silent failure**
+
+**Evidence** (from `game_log_20260224_235855.txt`):
+- Force field activates: `[ForceFieldEffect] Activated! Charge: 8.0s/8.0s` (lines 1713, 1058, etc.)
+- Player still takes damage immediately after: `[Player] Spawning blood effect` → `[PenultimateHit] Player damaged`
+- Zero `[ForceFieldEffect] Bullet reflected` / `Area entered` entries across entire log — Area2D detection never fires
+
+**Root cause**: Two interception mechanisms exist but BOTH fail silently:
+
+1. **Area2D approach** (`force_field_effect.gd`): The force field's Area2D has `collision_mask = 48` and should detect bullets (layer 16) via `area_entered`. However, the game log shows zero `Area entered` events — this signal never fires for enemy bullets.
+
+2. **GDScript `has_method` check** (`bullet.gd`, `shrapnel.gd`): Both include:
+   ```gdscript
+   if parent and parent.has_method("is_force_field_active"):
+       if parent.is_force_field_active():
+           return
+   ```
+   Where `parent` is the C# Player. GDScript `has_method()` silently returns `false` for the C# `is_force_field_active()` method in this context, so the force field check is never evaluated and damage proceeds.
+
+**Fix**: Add the force field check inside `Player.cs`'s `TakeDamage()` — the single authoritative damage point:
+```csharp
+// Check force field protection (Issue #676)
+if (is_force_field_active())
+{
+    LogToFile("[Player] Hit blocked by force field (C#)");
+    return;
+}
+```
+This is pure C# calling a C# method — no cross-language duck-typing needed. It intercepts ALL damage sources (bullets, shrapnel, explosion damage) regardless of the code path.
+
 ---
 
 ## Evidence Summary
@@ -124,7 +157,8 @@ elif "shrapnel" in script_path.to_lower():
 | Wrong player script | `[Player.InvisibilitySuit]` appears but `[Player.ForceField]` never does | Session 2 |
 | Force field radius 80px | `[ForceFieldEffect] Area2D setup with radius 80px` logged on every init (22 times) | Sessions 3-5 |
 | Player damaged while active | Blood effect and death while `Activated! Charge: 8.0s/8.0s` was in log | Sessions 3-5 |
-| No reflection events | Zero "reflected" log entries across 6,585 lines | Sessions 3-5 |
+| No reflection events | Zero "reflected" / "Area entered" log entries across 6,585 lines | Sessions 3-5 |
+| Damage still goes through after fix attempt | `[ForceFieldEffect] Activated!` at line 1713, then `[Player] Spawning blood effect` at line 1791, `[PenultimateHit] Player damaged` at line 1796 | Session 6 (game_log_20260224_235855.txt) |
 
 ---
 
@@ -134,12 +168,12 @@ elif "shrapnel" in script_path.to_lower():
 
 | File | Change |
 |------|--------|
-| `Scripts/Characters/Player.cs` | Added `InitForceField()`, `HandleForceFieldInput()`, `is_force_field_active()`, fields, call sites |
-| `scripts/effects/force_field_effect.gd` | Fixed radius (80→35px), scale (2.5→0.28), collision_mask (0→48), projectile ID by path, grenade body_entered signal, correct velocity properties |
+| `Scripts/Characters/Player.cs` | Added `InitForceField()`, `HandleForceFieldInput()`, `is_force_field_active()`, fields, call sites; added force field check in `TakeDamage()` |
+| `scripts/effects/force_field_effect.gd` | Fixed radius (80→35px), scale (2.5→0.28), collision_mask (0→48), projectile ID by path, grenade body_entered signal, correct velocity properties; added diagnostic logging |
 | `scripts/projectiles/bullet.gd` | Added force field protection check before dealing damage |
 | `scripts/projectiles/shrapnel.gd` | Added force field protection check before dealing damage |
 | `docs/case-studies/issue-676/README.md` | This file |
-| `docs/case-studies/issue-676/game_log_*.txt` | All 6 test sessions preserved |
+| `docs/case-studies/issue-676/game_log_*.txt` | All 7 test sessions preserved |
 
 ### Architecture
 
@@ -182,7 +216,7 @@ bullet.gd / shrapnel.gd:
 - [x] Visual size is slightly larger than player (≈36px radius vs 16px player)
 - [x] Shield disappears when Space is released
 - [x] 8-second charge depletes while active
-- [ ] Enemy bullets are reflected (not verified by owner yet — fix in progress)
+- [ ] Enemy bullets are blocked (force field protection implemented in TakeDamage — awaiting owner verification)
 - [ ] Shield blinks when charge is below 2 seconds
 - [ ] Force field can be re-activated after partial use (charge preserved)
 - [ ] No regression for other active items

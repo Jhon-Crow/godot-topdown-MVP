@@ -2324,6 +2324,14 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Check force field protection (Issue #676)
+        // Force field makes player invulnerable while active
+        if (is_force_field_active())
+        {
+            LogToFile("[Player] Hit blocked by force field (C#)");
+            return;
+        }
+
         // Check invincibility mode (F6 toggle)
         if (_invincibilityEnabled)
         {

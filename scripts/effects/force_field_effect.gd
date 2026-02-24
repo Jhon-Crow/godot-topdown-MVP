@@ -229,13 +229,17 @@ func _on_projectile_entered(area: Area2D) -> void:
 	# Identify by script name since groups are not set via scene files.
 	var script = area.get_script()
 	if script == null:
+		FileLogger.info("[ForceFieldEffect] Area entered but has no script: %s" % area.name)
 		return
 
 	var script_path: String = script.resource_path
+	FileLogger.info("[ForceFieldEffect] Area entered: %s (script: %s)" % [area.name, script_path])
 	if "bullet" in script_path.to_lower():
 		_reflect_bullet(area)
 	elif "shrapnel" in script_path.to_lower():
 		_reflect_shrapnel(area)
+	else:
+		FileLogger.info("[ForceFieldEffect] Unknown projectile type: %s" % script_path)
 
 
 ## Handle grenade (RigidBody2D) entering the force field area.
