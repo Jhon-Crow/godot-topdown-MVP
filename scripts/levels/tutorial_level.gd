@@ -382,6 +382,7 @@ func _connect_player_signals() -> void:
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
+	var akgl = _player.get_node_or_null("AKGL")
 	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
@@ -452,6 +453,22 @@ func _connect_player_signals() -> void:
 			weapon.FireModeChanged.connect(_on_fire_mode_changed)
 			print("Tutorial: Connected to FireModeChanged signal")
 
+	elif akgl != null:
+		_assault_rifle = akgl
+		_has_assault_rifle = true
+		print("Tutorial: Player has AKGL - fire mode tutorial enabled")
+
+		# Connect to reload signals from player (C# Player)
+		if _player.has_signal("ReloadCompleted"):
+			_player.ReloadCompleted.connect(_on_player_reload_completed)
+		elif _player.has_signal("reload_completed"):
+			_player.reload_completed.connect(_on_player_reload_completed)
+
+		# Connect to fire mode changed signal from AKGL
+		if akgl.has_signal("FireModeChanged"):
+			akgl.FireModeChanged.connect(_on_fire_mode_changed)
+			print("Tutorial: Connected to FireModeChanged signal (AKGL)")
+
 	elif revolver != null:
 		_has_revolver = true
 		print("Tutorial: Player has RSh-12 Revolver - cylinder reload tutorial enabled")
@@ -510,6 +527,7 @@ func _setup_ammo_tracking() -> void:
 	var silenced_pistol = _player.get_node_or_null("SilencedPistol")
 	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var weapon = _player.get_node_or_null("AssaultRifle")
+	var akgl = _player.get_node_or_null("AKGL")
 	var makarov_pm = _player.get_node_or_null("MakarovPM")
 	var revolver = _player.get_node_or_null("Revolver")
 
@@ -551,6 +569,13 @@ func _setup_ammo_tracking() -> void:
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	elif akgl != null:
+		# C# Player with AKGL - connect to weapon signals
+		if akgl.has_signal("AmmoChanged"):
+			akgl.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Initial ammo display from AKGL
+		if akgl.get("CurrentAmmo") != null and akgl.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(akgl.CurrentAmmo, akgl.ReserveAmmo)
 	elif revolver != null:
 		# C# Player with Revolver - connect to weapon signals
 		if revolver.has_signal("AmmoChanged"):
