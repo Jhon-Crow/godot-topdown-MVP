@@ -4622,6 +4622,7 @@ public partial class Player : BaseCharacter
             {
                 _homingActive = false;
                 _homingTimer = 0.0f;
+                StopHomingScanner();
                 EmitSignal(SignalName.HomingDeactivated);
                 LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
             }
@@ -4636,6 +4637,7 @@ public partial class Player : BaseCharacter
                 _homingTimer = HomingDuration;
                 _homingCharges--;
                 PlayHomingSound();
+                StartHomingScanner();
                 EmitSignal(SignalName.HomingActivated);
                 EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
                 LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
@@ -4764,11 +4766,11 @@ public partial class Player : BaseCharacter
                 scannerStream.LoopEnd = totalSamples;
                 _homingScannerPlayer = new AudioStreamPlayer();
                 _homingScannerPlayer.Stream = scannerStream;
-                // Very quiet: scanner is an ambient hint, not a dominant sound.
-                _homingScannerPlayer.VolumeDb = -18.0f;
+                // 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+                _homingScannerPlayer.VolumeDb = -27.5f;
                 AddChild(_homingScannerPlayer);
-                _homingScannerPlayer.Play();
-                LogToFile($"[Player.Homing] Homing scanner loop started (Issue #890), samples={totalSamples}");
+                // Do NOT play here — scanner starts only when homing is activated (Issue #890).
+                LogToFile($"[Player.Homing] Homing scanner loop ready (Issue #890), samples={totalSamples}");
             }
         }
         else
@@ -4785,6 +4787,30 @@ public partial class Player : BaseCharacter
         if (_homingAudioPlayer != null && IsInstanceValid(_homingAudioPlayer))
         {
             _homingAudioPlayer.Play();
+        }
+    }
+
+    /// <summary>
+    /// Start the looping scanner sound. Called when homing is activated (Issue #890).
+    /// </summary>
+    private void StartHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && !_homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Play();
+            LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
+        }
+    }
+
+    /// <summary>
+    /// Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+    /// </summary>
+    private void StopHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && _homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Stop();
+            LogToFile("[Player.Homing] Homing scanner loop stopped (Issue #890)");
         }
     }
 

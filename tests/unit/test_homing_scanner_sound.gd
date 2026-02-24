@@ -3,10 +3,12 @@ extends GutTest
 ##
 ## Verifies that:
 ## 1. The scanner sound file exists at the expected path.
-## 2. The scanner AudioStreamPlayer is created and playing when homing is equipped.
-## 3. The scanner sound has looping enabled (AudioStreamWAV.LOOP_FORWARD).
-## 4. The scanner sound volume is quiet (ambient level, not dominant).
-## 5. Scanner audio state is consistent with equipment state.
+## 2. The scanner AudioStreamPlayer is created but NOT playing after setup (Issue #890 fix).
+## 3. The scanner sound starts playing when homing is ACTIVATED (Space pressed).
+## 4. The scanner sound STOPS when homing effect expires.
+## 5. The scanner sound has looping enabled (AudioStreamWAV.LOOP_FORWARD).
+## 6. The scanner sound volume is 3x quieter than original (-27.5 dB, Issue #890 fix).
+## 7. scanner loop_end > 0 to prevent silent looping (WAV loop fix).
 
 
 # ============================================================================
@@ -22,14 +24,16 @@ class MockHomingScannerAudio:
 	## Path to the homing activation sound (mirrors player.gd constant).
 	const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
 
-	## Volume setting for the scanner (should be quiet/ambient).
-	const SCANNER_VOLUME_DB: float = -18.0
+	## Volume setting for the scanner (3x quieter: -18 - 9.54 ≈ -27.5 dB).
+	const SCANNER_VOLUME_DB: float = -27.5
 
 	## Whether homing is equipped.
 	var homing_equipped: bool = false
 
 	## Simulated state of the scanner player.
 	var scanner_play_called: bool = false
+	var scanner_stop_called: bool = false
+	var scanner_playing: bool = false
 	var scanner_volume_db: float = 0.0
 	var scanner_loop_enabled: bool = false
 	var scanner_player_created: bool = false
@@ -40,6 +44,7 @@ class MockHomingScannerAudio:
 	var scanner_loop_begin: int = -1
 
 	## Simulates _setup_homing_audio() from player.gd.
+	## Note: Does NOT call play() — scanner only starts on activation (Issue #890 fix).
 	func setup_homing_audio() -> void:
 		if not ResourceLoader.exists(HOMING_SCANNER_LOOP_PATH):
 			return
@@ -66,8 +71,21 @@ class MockHomingScannerAudio:
 		scanner_player_created = true
 		scanner_volume_db = SCANNER_VOLUME_DB
 
-		# Mark that play() was called
-		scanner_play_called = true
+		# play() is NOT called here — scanner starts on activation only (Issue #890 fix)
+		scanner_play_called = false
+		scanner_playing = false
+
+	## Simulates _start_homing_scanner() — called on homing activation (Issue #890 fix).
+	func start_homing_scanner() -> void:
+		if scanner_player_created and not scanner_playing:
+			scanner_play_called = true
+			scanner_playing = true
+
+	## Simulates _stop_homing_scanner() — called when homing effect expires (Issue #890 fix).
+	func stop_homing_scanner() -> void:
+		if scanner_player_created and scanner_playing:
+			scanner_stop_called = true
+			scanner_playing = false
 
 	## Simulates _play_homing_sound() from player.gd (activation chirp).
 	func play_activation_sound() -> void:
@@ -115,12 +133,40 @@ func test_scanner_player_created_on_setup() -> void:
 		"Scanner AudioStreamPlayer should be created during _setup_homing_audio() (Issue #890)")
 
 
-func test_scanner_starts_playing_on_setup() -> void:
-	## When homing audio is set up, the scanner loop should immediately start.
+func test_scanner_not_playing_on_setup() -> void:
+	## When homing audio is set up, the scanner should NOT start playing yet.
+	## It only starts when homing is activated (Space pressed), not on item equip (Issue #890 fix).
 	var mock := MockHomingScannerAudio.new()
 	mock.setup_homing_audio()
+	assert_false(mock.scanner_playing,
+		"Scanner loop must NOT start playing at item selection — only on activation (Issue #890 fix)")
+
+
+func test_scanner_starts_on_homing_activation() -> void:
+	## After setup, calling start_homing_scanner() should start playback.
+	var mock := MockHomingScannerAudio.new()
+	mock.setup_homing_audio()
+	assert_false(mock.scanner_playing,
+		"Scanner should not be playing before activation")
+	mock.start_homing_scanner()
+	assert_true(mock.scanner_playing,
+		"Scanner should start playing when homing is activated (Issue #890)")
 	assert_true(mock.scanner_play_called,
-		"Scanner loop should start playing immediately when item is equipped (Issue #890)")
+		"scanner_play_called must be true after _start_homing_scanner() (Issue #890)")
+
+
+func test_scanner_stops_when_homing_expires() -> void:
+	## After activation, calling stop_homing_scanner() should stop playback.
+	var mock := MockHomingScannerAudio.new()
+	mock.setup_homing_audio()
+	mock.start_homing_scanner()
+	assert_true(mock.scanner_playing,
+		"Scanner should be playing after activation")
+	mock.stop_homing_scanner()
+	assert_false(mock.scanner_playing,
+		"Scanner must stop playing when homing effect expires (Issue #890 fix)")
+	assert_true(mock.scanner_stop_called,
+		"scanner_stop_called must be true after _stop_homing_scanner() (Issue #890)")
 
 
 func test_scanner_loop_is_enabled() -> void:
@@ -133,18 +179,19 @@ func test_scanner_loop_is_enabled() -> void:
 
 func test_scanner_volume_is_quiet() -> void:
 	## The scanner should be very quiet (ambient hint, not intrusive).
+	## 3x quieter than -18 dB means -27.5 dB (Issue #890 fix).
 	var mock := MockHomingScannerAudio.new()
 	mock.setup_homing_audio()
-	# Volume must be at most -12 dB (quiet), expected -18 dB.
-	assert_true(mock.scanner_volume_db <= -12.0,
-		"Scanner must be quiet (volume_db <= -12.0, got %s) so it doesn't dominate the mix (Issue #890)" % mock.scanner_volume_db)
+	# Volume must be at most -20 dB (very quiet), expected -27.5 dB.
+	assert_true(mock.scanner_volume_db <= -20.0,
+		"Scanner must be very quiet (volume_db <= -20.0, got %s) — 3x quieter than original (Issue #890 fix)" % mock.scanner_volume_db)
 
 
 func test_scanner_volume_expected_value() -> void:
-	## The expected scanner volume is -18 dB.
+	## The expected scanner volume is -27.5 dB (3x quieter than original -18 dB).
 	var mock := MockHomingScannerAudio.new()
-	assert_almost_eq(mock.SCANNER_VOLUME_DB, -18.0, 0.01,
-		"Scanner volume constant should be -18.0 dB")
+	assert_almost_eq(mock.SCANNER_VOLUME_DB, -27.5, 0.01,
+		"Scanner volume constant should be -27.5 dB (3x quieter: 20*log10(1/3) ≈ -9.54 dB offset)")
 
 
 func test_scanner_sound_path_constant() -> void:
@@ -227,11 +274,12 @@ func test_scanner_does_not_interfere_with_activation_chirp() -> void:
 	var mock := MockHomingScannerAudio.new()
 	mock.setup_homing_audio()
 
-	# Simulate pressing Space to activate
+	# Simulate pressing Space to activate (starts scanner + plays chirp)
+	mock.start_homing_scanner()
 	mock.play_activation_sound()
 
-	assert_true(mock.scanner_play_called,
-		"Scanner loop should continue playing after activation chirp (Issue #890)")
+	assert_true(mock.scanner_playing,
+		"Scanner loop should be playing after activation (Issue #890)")
 	assert_true(mock.activation_play_called,
 		"Activation chirp should also play when Space is pressed")
 

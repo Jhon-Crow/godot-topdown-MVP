@@ -2,10 +2,9 @@
 
 ## Summary
 
-**Issue**: Add a quiet scanner looping sound that plays while the Homing Bullets item is equipped.
-**Status**: Resolved (third attempt)
-**Affected file**: `Scripts/Characters/Player.cs`
-**Root cause**: WAV `LoopEnd` was left at default value 0, causing the loop to restart at sample 0 to 0 (silent loop after first play-through)
+**Issue**: Add a quiet scanner looping sound that plays while the Homing Bullets item is **active** (Space pressed during active window).
+**Status**: Resolved (fourth attempt)
+**Affected files**: `Scripts/Characters/Player.cs`, `scripts/characters/player.gd`
 
 ---
 
@@ -21,92 +20,86 @@
 - Game log (game_log_20260225_001249.txt) confirms code executed: `[Player.Homing] Homing scanner loop started (Issue #890)`
 - Owner feedback: "fix звук пока активен предмет не появился" (sound still not appearing)
 
-### 2026-02-24 — Third attempt (this session)
+### 2026-02-24 — Third attempt (commit 99e27810)
 - Deep analysis of WAV file structure and Godot 4 AudioStreamWav behavior
-- **Root cause identified**: Missing `LoopEnd` and `LoopBegin` settings
+- Fixed missing `LoopEnd` and `LoopBegin` settings (Godot defaults `LoopEnd = 0` → silent loop after first play-through)
+- Game log (game_log_20260225_013747.txt) confirms sound IS now looping (samples=88200 confirmed)
+- **But**: Sound started at item **selection** time, not during homing **activation**
+- Owner feedback (2026-02-24T22:39):
+  1. "звук начинает работать как только выбран предмет, а не после активации" (sound starts when item selected, not after activation)
+  2. "должен прекращаться, когда пули перестают наводиться" (should stop when bullets stop homing)
+  3. "звук слишком громкий (сделай тише в 3 раза)" (sound too loud, make it 3x quieter)
+
+### 2026-02-24 — Fourth attempt (this session)
+- Fixed timing: scanner only plays during `_homingActive == true`, stops when `_homingActive` becomes false
+- Fixed volume: from -18.0 dB to -27.5 dB (3x quieter in linear amplitude)
 
 ---
 
 ## Root Cause Analysis
 
-### Symptom
-The game log shows `Play()` was called successfully, but the owner could not hear the scanner sound.
+### Bug 1: Wrong Timing — Sound Plays at Selection, Not Activation
 
-### Investigation Steps
+**Symptom**: Scanner sound starts immediately when Homing Bullets item is picked up / equipped, not when the player activates the effect by pressing Space.
 
-1. **WAV file analysis**: File is valid PCM 16-bit mono 44100 Hz, 2 seconds, max amplitude 9830 (~30% of max). Audio data is present and non-silent.
-
-2. **Code flow verification**: Log confirms `SetupHomingAudio()` runs, stream loads successfully, `Play()` is called.
-
-3. **Godot WAV loop behavior**: In Godot 4, `AudioStreamWav` has three loop-related properties:
-   - `LoopMode` — set to `Forward` in our code ✓
-   - `LoopBegin` — default 0 (beginning) — not set in our code
-   - `LoopEnd` — **default 0** — **NOT SET in our code** ✗
-
-4. **The bug**: When `LoopEnd = 0` and `LoopMode = LOOP_FORWARD`, Godot loops from position 0 to position 0 — an empty loop. The audio plays through once (2 seconds), then the loop region is 0 samples long (silence).
-   - Reference: [Godot issue #33141](https://github.com/godotengine/godot/issues/33141) — "Imported WAV AudioStreamSample has Loop End = 0"
-   - This is a known Godot WAV import issue
-
-5. **Both implementations had the bug**:
-   - GDScript `player.gd:3099`: Sets `loop_mode` but not `loop_end`
-   - C# `Player.cs:4757`: Sets `LoopMode` but not `LoopEnd`
-
-### Evidence from Game Log
-
+**Evidence from game_log_20260225_013747.txt**:
 ```
-[00:13:11] [INFO] [Player.Homing] Homing activation sound loaded
-[00:13:11] [INFO] [Player.Homing] Homing scanner loop started (Issue #890)
-[00:13:11] [INFO] [Player.Homing] Homing bullets equipped, charges: 6/6
+[01:37:59] [INFO] [ActiveItemManager] Active item changed from None to Homing Bullets
+[01:37:59] [INFO] [Player.Homing] Homing activation sound loaded
+[01:37:59] [INFO] [Player.Homing] Homing scanner loop started (Issue #890), samples=88200
+[01:37:59] [INFO] [Player.Homing] Homing bullets equipped, charges: 6/6
+...
+[01:38:07] [INFO] [Player.Homing] Homing activated! Duration: 1s, charges remaining: 5/6
+[01:38:08] [INFO] [Player.Homing] Homing effect expired, charges remaining: 5/6
 ```
 
-The sound was "started" but due to `LoopEnd = 0`, it:
-- Played 2 seconds of audio (may have been heard very quietly at -18 dB)
-- Then looped back to the empty loop region (0 samples), producing silence
+"Homing scanner loop started" fires 8 seconds before "Homing activated!" — at the moment of item selection, not activation.
+
+**Root cause**: In `SetupHomingAudio()`, `_homingScannerPlayer.Play()` was called immediately after adding the player as a child. The scanner was designed to be "always-on while equipped" rather than "on only during active homing".
+
+**Fix**: Remove `Play()` from `SetupHomingAudio()`. Instead, start the scanner when `_homingActive` becomes `true` (in `HandleHomingBulletsInput`) and stop it when `_homingActive` becomes `false` (when timer expires).
+
+### Bug 2: Volume Too Loud
+
+**Symptom**: Owner reports sound is too loud; needs to be 3x quieter.
+
+**Root cause**: Volume was set at `-18.0 dB`. Converting 3x amplitude reduction to dB: 20 × log10(1/3) ≈ -9.54 dB. So new volume = -18.0 - 9.54 = **-27.5 dB**.
+
+### Resolved Bug from Third Attempt: WAV LoopEnd = 0 (silent loop)
+
+**Root cause**: Godot 4 defaults `AudioStreamWav.LoopEnd = 0`. With `LoopMode = LOOP_FORWARD` and `LoopEnd = 0`, the loop region is zero samples — audio plays once then loops silence.
+- Reference: [Godot issue #33141](https://github.com/godotengine/godot/issues/33141)
+- **Fix**: Set `LoopEnd = totalSamples` (88200 for 2s 44100Hz mono WAV)
 
 ---
 
-## Fix
+## Fix (Fourth Attempt)
 
 ### C# (`Scripts/Characters/Player.cs`)
 
-```csharp
-var scannerStream = GD.Load<AudioStreamWav>(HomingScannerLoopPath);
-if (scannerStream != null)
-{
-    scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
-    // Calculate sample count for correct loop endpoint
-    int bytesPerSample = (scannerStream.Format == AudioStreamWav.FormatEnum.Format16Bits) ? 2 : 1;
-    int channels = scannerStream.Stereo ? 2 : 1;
-    int totalSamples = scannerStream.Data.Length / (bytesPerSample * channels);
-    scannerStream.LoopBegin = 0;
-    scannerStream.LoopEnd = totalSamples;
-    // ...
-}
-```
+In `SetupHomingAudio()`: Remove `_homingScannerPlayer.Play()`. Change volume from `-18.0f` to `-27.5f`.
+
+In `HandleHomingBulletsInput()`: Start scanner on activation, stop scanner when timer expires.
+
+In `PlayHomingSound()` → renamed: added `StartHomingScanner()` and `StopHomingScanner()` helpers.
 
 ### GDScript (`scripts/characters/player.gd`)
 
-```gdscript
-if scanner_stream is AudioStreamWAV:
-    scanner_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-    var bytes_per_sample: int = 2 if scanner_stream.format == AudioStreamWAV.FORMAT_16_BITS else 1
-    var channels: int = 2 if scanner_stream.stereo else 1
-    scanner_stream.loop_begin = 0
-    scanner_stream.loop_end = scanner_stream.data.size() / (bytes_per_sample * channels)
-```
+Same changes applied to the GDScript counterpart.
 
 ---
 
 ## Additional Notes
 
-- Volume at -18 dB is very quiet (about 12.6% of full volume). This is intentional per the design (ambient scanner hint, not dominant sound).
-- The scanner plays continuously from level start while Homing Bullets are equipped — not just during activation.
-- The activation sound (homing_activation.wav) correctly plays once per activation and does not need looping.
+- Volume formula: 3x quieter = 20×log10(1/3) ≈ -9.54 dB → -18.0 - 9.54 = -27.5 dB
+- The activation sound (`homing_activation.wav`) correctly plays once per activation and does not need looping changes.
+- Previous WAV loop fix (LoopEnd = totalSamples) is still required and remains in place.
 
 ---
 
 ## Files Changed
-- `Scripts/Characters/Player.cs` — Fixed `LoopEnd` and `LoopBegin`
-- `scripts/characters/player.gd` — Fixed `loop_end` and `loop_begin` (for completeness)
+- `Scripts/Characters/Player.cs` — Fixed timing and volume of scanner sound
+- `scripts/characters/player.gd` — Same fixes in GDScript counterpart
 - `docs/case-studies/issue-890/case-study.md` — This document
-- `docs/case-studies/issue-890/game_log_20260225_001249.txt` — Game log from owner
+- `docs/case-studies/issue-890/game_log_20260225_001249.txt` — Game log from second owner test
+- `docs/case-studies/issue-890/game_log_20260225_013747.txt` — Game log from third owner test
