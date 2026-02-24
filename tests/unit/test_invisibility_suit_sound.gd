@@ -27,10 +27,11 @@ class MockAudioStreamPlayer:
 
 class MockInvisibilitySuitEffect:
 	## Mock InvisibilitySuitEffect for testing audio integration.
-	
+
 	# Constants from the real implementation
 	const ACTIVATION_SOUND_PATH: String = "res://assets/audio/invisibility_activation.wav"
 	const DEACTIVATION_SOUND_PATH: String = "res://assets/audio/invisibility_deactivation.wav"
+	const SOUND_VOLUME_DB: float = -7.96
 	
 	# Mock state
 	var charges: int = 2
@@ -88,11 +89,15 @@ class MockInvisibilitySuitEffect:
 		# Mock audio setup - simulate creating audio players
 		_activation_audio_player = MockAudioStreamPlayer.new()
 		_deactivation_audio_player = MockAudioStreamPlayer.new()
-		
+
+		# Apply volume (2.5x quieter than default)
+		_activation_audio_player.volume_db = SOUND_VOLUME_DB
+		_deactivation_audio_player.volume_db = SOUND_VOLUME_DB
+
 		# Mock loading streams
 		if ResourceLoader.exists(ACTIVATION_SOUND_PATH):
 			_activation_audio_player.stream = load(ACTIVATION_SOUND_PATH)
-		
+
 		if ResourceLoader.exists(DEACTIVATION_SOUND_PATH):
 			_deactivation_audio_player.stream = load(DEACTIVATION_SOUND_PATH)
 
@@ -233,7 +238,21 @@ func test_sound_paths_are_constants():
 	# Test that the paths are defined as constants with correct values
 	var activation_path = "res://assets/audio/invisibility_activation.wav"
 	var deactivation_path = "res://assets/audio/invisibility_deactivation.wav"
-	
+
 	# These should match the constants in the actual implementation
 	assert_eq(MockInvisibilitySuitEffect.ACTIVATION_SOUND_PATH, activation_path, "Activation sound path constant should be correct")
 	assert_eq(MockInvisibilitySuitEffect.DEACTIVATION_SOUND_PATH, deactivation_path, "Deactivation sound path constant should be correct")
+
+
+func test_sound_volume_is_2_5x_quieter():
+	# Test that the sound volume is set to 2.5x quieter than default (Issue #899).
+	# 2.5x quieter in linear scale = 20*log10(1/2.5) ≈ -7.96 dB
+	var invisibility_suit = MockInvisibilitySuitEffect.new()
+	invisibility_suit._ready()
+
+	assert_almost_eq(invisibility_suit._activation_audio_player.volume_db, -7.96, 0.01, \
+		"Activation sound volume should be ~-7.96 dB (2.5x quieter)")
+	assert_almost_eq(invisibility_suit._deactivation_audio_player.volume_db, -7.96, 0.01, \
+		"Deactivation sound volume should be ~-7.96 dB (2.5x quieter)")
+	assert_almost_eq(MockInvisibilitySuitEffect.SOUND_VOLUME_DB, -7.96, 0.01, \
+		"SOUND_VOLUME_DB constant should be ~-7.96 dB")
