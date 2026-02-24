@@ -653,9 +653,35 @@ public partial class ShotgunPellet : Area2D
     /// <summary>
     /// Called when the pellet hits another area (like a target or enemy).
     /// </summary>
+    /// <summary>
+    /// Checks if the given area belongs to an active force field (Issue #912).
+    /// See Bullet.cs for full explanation.
+    /// </summary>
+    private static bool IsForceFieldArea(Area2D area)
+    {
+        if (area.Name.ToString().Contains("ForceField", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        var parent = area.GetParent();
+        if (parent != null && parent.HasMethod("is_protecting"))
+        {
+            return true;
+        }
+        return false;
+    }
+
     private void OnAreaEntered(Area2D area)
     {
         GD.Print($"[ShotgunPellet]: Hit {area.Name} (damage: {Damage * _damageMultiplier})");
+
+        // Issue #912: If this area belongs to the force field, let the force field
+        // GDScript handle trapping the pellet. Do NOT destroy this pellet here.
+        if (IsForceFieldArea(area))
+        {
+            GD.Print($"[ShotgunPellet]: Entering force field area — letting force field handle this pellet");
+            return;
+        }
 
         // Check if this is the shooter's HitArea
         var parent = area.GetParent();

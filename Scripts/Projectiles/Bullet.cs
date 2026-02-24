@@ -629,11 +629,46 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
+    /// Checks if the given area belongs to an active force field (Issue #912).
+    /// When the force field Area2D overlaps this bullet, the force field GDScript
+    /// handles trapping the bullet. The bullet must NOT call QueueFree() in this case —
+    /// doing so would immediately destroy the bullet before the force field can hold it.
+    /// Detection strategy: check area name "ForceFieldArea" or parent's is_protecting() method.
+    /// </summary>
+    private static bool IsForceFieldArea(Area2D area)
+    {
+        // Primary check: area node name set in force_field_effect.gd _setup_area2d()
+        if (area.Name.ToString().Contains("ForceField", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Secondary check: parent node is the ForceFieldEffect which has is_protecting()
+        var parent = area.GetParent();
+        if (parent != null && parent.HasMethod("is_protecting"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Called when the bullet hits another area (like a target or enemy).
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
         GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
+
+        // Issue #912: If this area belongs to the force field, let the force field
+        // GDScript handle trapping the bullet. Do NOT destroy this bullet here —
+        // the force field's _on_projectile_entered will call set_physics_process(false)
+        // and store a reference to this bullet for later release.
+        if (IsForceFieldArea(area))
+        {
+            GD.Print($"[Bullet]: Entering force field area — letting force field handle this bullet");
+            return;
+        }
 
         // Check if this is a HitArea - if so, check against parent's instance ID
         // This prevents the shooter from damaging themselves with direct shots
