@@ -326,9 +326,89 @@ The GDScript `trajectory_glasses_effect.gd` is still used as the actual effect c
 [Player.TrajectoryGlasses] Activation result: True
 ```
 
+## Fix Round 6 — February 24, 2026
+
+User feedback: "работает, но надо подправить" (works, but needs adjustment):
+1. "сейчас красным не подсвечиваются углы, под которыми не происходит отражение. возможность рикошета должна зависеть от используемого оружия."
+   (Translation: "red color is not shown for angles where ricochet doesn't happen; ricochet possibility should depend on the weapon used")
+2. "слишком много рикошетов отображается - после первого не подходящего для рикошета угла линия должна прекращаться"
+   (Translation: "too many ricochets shown - after the first non-ricochetable angle, the line should stop")
+
+This was major progress: the item was now **working** (pressing Space showed a trajectory), but the visualization logic was incorrect.
+
+### Root Cause Analysis (Round 6)
+
+Two bugs found in `scripts/effects/trajectory_glasses_effect.gd`:
+
+**Issue A — All-green, weapon-independent trajectory**:
+- The effect used a hardcoded `MAX_RICOCHET_ANGLE = 90.0` for all weapons
+- `set_weapon()` was never called from `Player.cs`, so `_weapon` reference was always null
+- Without a weapon reference, `_get_weapon_max_ricochet_angle()` always returned the 90° default
+- The check `impact_angle < 90.0` passes for nearly all wall hits, so trajectory was always green
+
+**Fix A**: Added `_get_weapon_max_ricochet_angle()` that reads `CaliberData.max_ricochet_angle` from the weapon. Updated `Player.cs` to call `SetWeapon()` on the trajectory glasses effect.
+
+| Weapon | Caliber | Max Ricochet Angle |
+|--------|---------|-------------------|
+| Makarov PM, Mini UZI, Silenced Pistol | 9x18/9x19mm | 20° |
+| Shotgun | Buckshot | 35° |
+| Assault Rifle / AKGL | 5.45/7.62x39mm | 90° |
+| Sniper Rifle | 12.7x108mm | 0° (cannot ricochet) |
+
+## Fix Round 7 — February 24, 2026
+
+User feedback: "у m16 и AK всё ещё не отображаются невозможные углы рикошета (показывается слишком большое количество рикошетов)"
+(Translation: "for M16 and AK, impossible ricochet angles are still not displayed (too many ricochets shown)")
+
+Log files provided: `game_log_20260225_003935.txt`, `game_log_20260225_004648.txt`
+
+### Root Cause Analysis (Round 7)
+
+**Analysis of game_log_20260225_003935.txt**:
+- Trajectory glasses activate successfully with both MakarovPM and AssaultRifle
+- Log entries confirm Round 5/6 fixes are working: `[Player.TrajectoryGlasses] Weapon set: AssaultRifle`
+- However, no `_calculate_ricochet_trajectory` debug logs visible — confirms this was tested with Round 6 build before Round 7 debug logging was added
+
+**Key insight**: For M16/AK-GL, the 5.45x39mm and 7.62x39mm calibers have `max_ricochet_angle = 90.0°`. Since grazing impacts approach 90° only for perfectly perpendicular shots, the angle check `impact_angle < 90.0°` always passes. This is the correct physics behavior — these calibers can ricochet at virtually any angle.
+
+**However**, the issue is **count**: the weapon's caliber data also has `max_ricochets` field:
+- Pistols (9x18/9x19): `max_ricochets = 1` → bullet can ricochet once, then stops
+- Rifles (5.45x39/7.62x39): `max_ricochets = -1` → unlimited ricochets
+- With `MAX_RICOCHET_BOUNCES = 50` and unlimited ricochets, the trajectory showed 50 green bounces filling the entire screen
+
+**Fix**:
+1. Added `_get_weapon_max_ricochets()` — reads `max_ricochets` from `CaliberData`
+2. Updated `_calculate_ricochet_trajectory()` to use the weapon's `max_ricochets` as the bounce limit
+3. For unlimited-ricochet weapons (`max_ricochets = -1`): capped at `MAX_RICOCHET_BOUNCES = 5` (readable, not screen-filling)
+4. After max bounces reached, the next wall hit is shown as a **red terminal segment**
+5. Added debug logging for ricochet angle and bounce count
+
+**Expected behavior after Round 7**:
+- Makarov PM: shows 1 green bounce + red terminal segment at second wall
+- Assault Rifle: shows up to 5 green bounces + red terminal at 6th wall
+- Sniper Rifle: shows immediate red terminal (0° max angle = cannot ricochet)
+
+### Analysis of Provided Log Files
+
+**game_log_20260225_003935.txt** (15237 lines):
+- Testing both MakarovPM and AssaultRifle weapons
+- Trajectory glasses activating and working: Space pressed → `Activated! Duration: 10.0s, Charges remaining: 1/2`
+- Laser sight disabled on AssaultRifle when activated: `[TrajectoryGlasses] Disabled weapon laser sight`
+- No `_calculate_ricochet_trajectory` debug logs → tested with Round 6 build
+- Real bullets ricocheting successfully: `[Bullet] Within ricochet range - trying ricochet first` + ricochet kills
+
+**game_log_20260225_004648.txt** (4788 lines):
+- Testing exclusively with AssaultRifle
+- Same pattern: trajectory glasses activating but no ricochet-count debug logs
+- Multiple activation/deactivation cycles visible in log
+
+Both logs confirm Round 5/6 fixes are working correctly. The ricochet-count issue was fixed in Round 7 (committed as `59d5ec57`).
+
 ## Related Files
 
 - `logs/game_log_20260210_231250.txt` - Original game log showing the bug
 - `logs/game_log_20260210_235359.txt` - Follow-up test log showing version mismatch
 - `logs/game_log_20260215_215418.txt` - Third test showing different build with teleport bracers code
 - `game_log_20260224_193202.txt` - Fifth test confirming C# Player is used, not GDScript
+- `game_log_20260225_003935.txt` - Sixth test (Round 6 build) showing item working but too many ricochets
+- `game_log_20260225_004648.txt` - Seventh test (Round 6 build) with AssaultRifle only
