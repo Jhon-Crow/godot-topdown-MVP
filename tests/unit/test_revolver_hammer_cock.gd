@@ -37,6 +37,9 @@ class MockRevolverFire:
 	var empty_click_played: bool = false
 	var fire_count: int = 0
 
+	## Issue #716: Per-chamber tracking (mirrors Revolver._chamberOccupied)
+	var chamber_occupied: Array[bool] = [true, true, true, true, true]  # 5 chambers
+	var current_chamber_index: int = 0
 
 	## Fire timer tracking (mirrors BaseWeapon._fireTimer)
 	var fire_timer: float = 0.0
@@ -45,6 +48,7 @@ class MockRevolverFire:
 	## Instantly cocks the hammer so the next fire() call fires without delay.
 	## NOTE: Does NOT check can_fire / fire timer — the whole point of manual cocking
 	## is to bypass the fire delay between shots (Issue #649 fix).
+	## Issue #716 v3: Cylinder rotation now happens during hammer cock.
 	func manual_cock_hammer() -> bool:
 		# Cannot cock while cylinder is open
 		if reload_state != NOT_RELOADING:
@@ -54,14 +58,16 @@ class MockRevolverFire:
 		if is_hammer_cocked or is_manually_hammer_cocked:
 			return false
 
-		# Cannot cock with empty cylinder
-		if current_ammo <= 0:
-			empty_click_played = true
-			return false
+		# Issue #716: Allow hammer cocking even with empty cylinder.
+		# Real revolvers can cock the hammer regardless of ammo state.
+		# The empty click occurs when firing (trigger pull), not during cocking.
 
 		# Reset fire timer — manual cocking prepares the weapon for immediate fire
 		fire_timer = 0
 		can_fire = true
+
+		# Issue #716 v3: Rotate cylinder BEFORE cocking hammer (like real single-action revolvers)
+		current_chamber_index = (current_chamber_index + 1) % chamber_occupied.size()
 
 		# Instantly cock the hammer
 		is_manually_hammer_cocked = true
@@ -85,22 +91,31 @@ class MockRevolverFire:
 		if is_hammer_cocked:
 			return false
 
-		# Check for empty cylinder
-		if current_ammo <= 0:
-			empty_click_played = true
-			return false
-
 		# Check if we can fire at all
 		if not can_fire:
 			return false
 
 		# Issue #649: If hammer was manually cocked, fire immediately without delay
+		# Issue #716: Cocked fire is from CURRENT slot (no rotation before fire)
 		if is_manually_hammer_cocked:
 			is_manually_hammer_cocked = false
+
+			# Issue #716: Check current chamber for cocked fire - click or shoot
+			var current_chamber_has_round = current_chamber_index < chamber_occupied.size() and chamber_occupied[current_chamber_index]
+
+			if not current_chamber_has_round:
+				# Issue #716: Play empty click sound on cocked fire with empty chamber
+				empty_click_played = true
+				return true  # Action was performed (click)
+
 			_execute_shot(direction)
 			return true
 
-		# Issue #661: Cock the hammer and rotate the cylinder before firing
+		# Issue #716: Uncocked fire - cylinder rotates FIRST, then fire from NEW slot
+		# Step 1: Rotate cylinder to next position BEFORE hammer cock animation
+		current_chamber_index = (current_chamber_index + 1) % chamber_occupied.size()
+
+		# Issue #661: Now cock the hammer - shot happens after delay from NEW position
 		is_hammer_cocked = true
 		hammer_cock_timer = HAMMER_COCK_DELAY
 		pending_shot_direction = direction
@@ -130,11 +145,19 @@ class MockRevolverFire:
 		# Re-check conditions
 		if reload_state != NOT_RELOADING:
 			return
-		if current_ammo <= 0:
+
+		# Issue #716: Check current chamber (cylinder already rotated for uncocked shots)
+		var current_chamber_has_round = current_chamber_index < chamber_occupied.size() and chamber_occupied[current_chamber_index]
+
+		if not current_chamber_has_round:
+			# Issue #716: Play empty click sound when hammer falls on empty chamber
+			empty_click_played = true
 			return
 
 		# Fire the shot
 		current_ammo -= 1
+		# Issue #716: Mark current chamber as empty, do NOT rotate (already done in fire())
+		chamber_occupied[current_chamber_index] = false
 		shot_fired = true
 		shot_sound_played = true
 		fire_count += 1
@@ -151,6 +174,19 @@ class MockRevolverFire:
 		shot_sound_played = false
 		shot_fired = false
 		empty_click_played = false
+
+	## Reset all state including ammo and chambers
+	func full_reset() -> void:
+		reset_tracking()
+		current_ammo = 5
+		chamber_occupied = [true, true, true, true, true]
+		current_chamber_index = 0
+		is_hammer_cocked = false
+		is_manually_hammer_cocked = false
+		hammer_cock_timer = 0.0
+		fire_timer = 0.0
+		can_fire = true
+		fire_count = 0
 
 
 var revolver: MockRevolverFire
@@ -243,16 +279,24 @@ func test_cannot_fire_while_hammer_cocked() -> void:
 	assert_false(revolver.hammer_cock_sound_played, "Should not play hammer cock sound again")
 
 
-func test_cannot_fire_with_empty_cylinder() -> void:
-	## Empty cylinder should play click sound, not cock hammer
-	revolver.current_ammo = 0
+func test_uncocked_fire_rotates_then_fires() -> void:
+	## Issue #716: Uncocked fire rotates cylinder FIRST, then fires from NEW slot
+	revolver.current_ammo = 5
+	revolver.current_chamber_index = 0
 
-	var result := revolver.fire(Vector2.RIGHT)
+	# LMB fire (uncocked) - should rotate cylinder first
+	revolver.fire(Vector2.RIGHT)
 
-	assert_false(result, "Should not fire with empty cylinder")
-	assert_true(revolver.empty_click_played, "Should play empty click sound")
-	assert_false(revolver.is_hammer_cocked, "Hammer should not be cocked")
-	assert_false(revolver.hammer_cock_sound_played, "Should not play hammer cock sound")
+	# Cylinder should have rotated to slot 1 BEFORE hammer cock delay starts
+	assert_eq(revolver.current_chamber_index, 1, "Cylinder should rotate to slot 1")
+	assert_true(revolver.is_hammer_cocked, "Hammer should be cocked")
+	assert_false(revolver.shot_fired, "Shot should NOT fire immediately")
+
+	# After delay, fires from slot 1
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_true(revolver.shot_fired, "Shot should fire after delay")
+	assert_false(revolver.chamber_occupied[1], "Slot 1 should be empty after firing")
+	assert_true(revolver.chamber_occupied[0], "Slot 0 should still have round (not fired)")
 
 
 func test_cannot_fire_while_reloading() -> void:
@@ -315,31 +359,40 @@ func test_can_fire_again_after_shot_completes() -> void:
 
 
 func test_multiple_shots_sequence() -> void:
-	## Test firing multiple shots in sequence
-	revolver.current_ammo = 3
+	## Test firing multiple shots in sequence (uncocked - rotates before each)
+	revolver.full_reset()
 
-	# Shot 1
+	# Shot 1 (rotates to slot 1, fires from slot 1)
 	revolver.fire(Vector2.RIGHT)
 	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
 	assert_eq(revolver.fire_count, 1, "Should have fired 1 shot")
-	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds left")
+	assert_eq(revolver.current_ammo, 4, "Should have 4 rounds left")
 
-	# Shot 2
+	# Shot 2 (rotates to slot 2, fires from slot 2)
 	revolver.fire(Vector2.RIGHT)
 	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
 	assert_eq(revolver.fire_count, 2, "Should have fired 2 shots")
-	assert_eq(revolver.current_ammo, 1, "Should have 1 round left")
+	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds left")
 
-	# Shot 3
+	# Shot 3 (rotates to slot 3, fires from slot 3)
 	revolver.fire(Vector2.RIGHT)
 	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
 	assert_eq(revolver.fire_count, 3, "Should have fired 3 shots")
-	assert_eq(revolver.current_ammo, 0, "Should have 0 rounds left")
+	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds left")
 
-	# Shot 4 - should fail (empty)
-	var result := revolver.fire(Vector2.RIGHT)
-	assert_false(result, "Should not fire with empty cylinder")
-	assert_true(revolver.empty_click_played, "Should play empty click")
+	# Shot 4 (rotates to slot 4, fires from slot 4)
+	revolver.fire(Vector2.RIGHT)
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_eq(revolver.fire_count, 4, "Should have fired 4 shots")
+	assert_eq(revolver.current_ammo, 1, "Should have 1 round left")
+
+	# Shot 5 (rotates to slot 0 - already empty from skip, fires from slot 0)
+	# Note: Slot 0 was never fired! Only slots 1-4 were fired.
+	# Now slot 0 gets fired
+	revolver.fire(Vector2.RIGHT)
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_eq(revolver.fire_count, 5, "Should have fired 5 shots")
+	assert_eq(revolver.current_ammo, 0, "Should have 0 rounds left")
 
 
 func test_hammer_cock_delay_value() -> void:
@@ -469,15 +522,15 @@ func test_cannot_manual_cock_while_auto_cocked() -> void:
 	assert_false(result, "Should not manually cock while auto-cock in progress")
 
 
-func test_cannot_manual_cock_with_empty_cylinder() -> void:
-	## Cannot manually cock with empty cylinder
+func test_can_manual_cock_with_empty_cylinder() -> void:
+	## Issue #716: CAN manually cock with empty cylinder (real revolver behavior)
 	revolver.current_ammo = 0
 
 	var result := revolver.manual_cock_hammer()
 
-	assert_false(result, "Should not cock with empty cylinder")
-	assert_true(revolver.empty_click_played, "Should play empty click sound")
-	assert_false(revolver.is_manually_hammer_cocked, "Should not be cocked")
+	assert_true(result, "Should be able to cock with empty cylinder (Issue #716)")
+	assert_false(revolver.empty_click_played, "Should NOT play empty click on cock (only on fire)")
+	assert_true(revolver.is_manually_hammer_cocked, "Hammer should be cocked even when empty")
 
 
 func test_manual_cock_works_during_fire_timer() -> void:
@@ -534,61 +587,73 @@ func test_normal_vs_manual_cock_comparison() -> void:
 
 func test_multiple_manual_cock_shots() -> void:
 	## Test firing multiple shots using manual cocking
-	revolver.current_ammo = 3
+	## Issue #716 v3: Manual cock rotates, then fire fires from that slot
+	revolver.full_reset()
+	revolver.current_chamber_index = 0  # Start at slot 0
 
-	# Shot 1: manual cock + fire
+	# Shot 1: manual cock (rotates to slot 1) + fire from slot 1
 	revolver.manual_cock_hammer()
+	assert_eq(revolver.current_chamber_index, 1, "Manual cock rotated to slot 1")
 	revolver.fire(Vector2.RIGHT)
 	assert_eq(revolver.fire_count, 1, "Should have fired 1 shot")
-	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds left")
+	assert_eq(revolver.current_ammo, 4, "Should have 4 rounds left")
+	assert_eq(revolver.current_chamber_index, 1, "Cocked fire: stayed at slot 1")
+	assert_false(revolver.chamber_occupied[1], "Slot 1 should be empty")
 
-	# Shot 2: manual cock + fire
+	# Shot 2: manual cock (rotates to slot 2) + fire from slot 2
+	revolver.reset_tracking()
 	revolver.manual_cock_hammer()
+	assert_eq(revolver.current_chamber_index, 2, "Manual cock rotated to slot 2")
 	revolver.fire(Vector2.RIGHT)
 	assert_eq(revolver.fire_count, 2, "Should have fired 2 shots")
-	assert_eq(revolver.current_ammo, 1, "Should have 1 round left")
+	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds left")
+	assert_false(revolver.chamber_occupied[2], "Slot 2 should be empty")
 
-	# Shot 3: manual cock + fire
-	revolver.manual_cock_hammer()
-	revolver.fire(Vector2.RIGHT)
-	assert_eq(revolver.fire_count, 3, "Should have fired 3 shots")
-	assert_eq(revolver.current_ammo, 0, "Should have 0 rounds left")
-
-	# Shot 4: manual cock should fail (empty)
-	var result := revolver.manual_cock_hammer()
-	assert_false(result, "Should not cock with empty cylinder")
-	assert_true(revolver.empty_click_played, "Should play empty click")
+	# Shot 3: uncocked fire (rotates to slot 3, fires after delay)
+	revolver.reset_tracking()
+	revolver.fire(Vector2.RIGHT)  # Rotates to slot 3, fires
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_eq(revolver.current_chamber_index, 3, "Uncocked fire rotated to slot 3")
+	assert_true(revolver.shot_fired, "Shot fired from slot 3")
+	assert_eq(revolver.fire_count, 3, "Should have fired 3 shots total")
+	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds left")
 
 
 func test_fire_then_immediate_manual_cock_then_fire() -> void:
 	## Issue #649 key scenario: fire a shot, immediately manual cock, fire again.
 	## This is the rapid fire sequence the player wants to use.
-	revolver.current_ammo = 3
+	## Issue #716 v3: Manual cock now rotates, so we track rotation at slot 2.
+	revolver.full_reset()
+	revolver.current_ammo = 5
+	revolver.current_chamber_index = 0
 
-	# Normal fire (LMB) — shot fires after delay
+	# Normal fire (LMB) — rotates to slot 1, shot fires after delay
 	revolver.fire(Vector2.RIGHT)
 	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
 	assert_true(revolver.shot_fired, "First shot should have fired")
-	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds after first shot")
+	assert_eq(revolver.current_ammo, 4, "Should have 4 rounds after first shot")
+	assert_eq(revolver.current_chamber_index, 1, "Should be at slot 1 after uncocked fire")
 	assert_true(revolver.fire_timer > 0, "Fire timer should be active after shot")
 	assert_false(revolver.can_fire, "Can_fire should be false during fire timer")
 
 	revolver.reset_tracking()
 
-	# Immediately manual cock (RMB) — should work despite fire timer
+	# Immediately manual cock (RMB) — should work despite fire timer, rotates to slot 2
 	var cock_result := revolver.manual_cock_hammer()
 	assert_true(cock_result, "Manual cock should succeed during fire timer cooldown")
 	assert_true(revolver.is_manually_hammer_cocked, "Should be manually cocked")
 	assert_eq(revolver.fire_timer, 0.0, "Fire timer should be reset")
+	assert_eq(revolver.current_chamber_index, 2, "Should rotate to slot 2 on manual cock")
 
 	revolver.reset_tracking()
 
-	# Fire again (LMB) — instant shot (no delay)
+	# Fire again (LMB) — instant shot from slot 2 (no additional rotation for cocked fire)
 	var fire_result := revolver.fire(Vector2.RIGHT)
 	assert_true(fire_result, "Fire should succeed after manual cock")
 	assert_true(revolver.shot_fired, "Shot should fire instantly")
-	assert_eq(revolver.current_ammo, 1, "Should have 1 round left")
+	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds left")
 	assert_eq(revolver.fire_count, 2, "Should have fired 2 shots total")
+	assert_eq(revolver.current_chamber_index, 2, "Should stay at slot 2 (cocked fire, no rotation)")
 
 
 func test_manual_cock_cylinder_open_cancels() -> void:
@@ -602,3 +667,131 @@ func test_manual_cock_cylinder_open_cancels() -> void:
 
 	var result := revolver.fire(Vector2.RIGHT)
 	assert_false(result, "Should not fire - cylinder is open")
+
+
+func test_empty_cylinder_cock_then_fire_plays_click() -> void:
+	## Issue #716: Can cock empty cylinder, but firing should play empty click sound
+	revolver.current_ammo = 0
+	revolver.chamber_occupied = [false, false, false, false, false]  # All empty
+
+	# Manual cock should succeed
+	var cock_result := revolver.manual_cock_hammer()
+	assert_true(cock_result, "Should cock with empty cylinder (Issue #716)")
+	assert_true(revolver.is_manually_hammer_cocked, "Hammer should be cocked")
+	assert_false(revolver.empty_click_played, "No click on cock")
+
+	revolver.reset_tracking()
+
+	# Fire should play empty click (not shoot)
+	var fire_result := revolver.fire(Vector2.RIGHT)
+	assert_true(fire_result, "Fire call returns true")
+	assert_true(revolver.empty_click_played, "Should play empty click on fire")
+	assert_false(revolver.shot_fired, "Should NOT fire bullet")
+	assert_eq(revolver.current_ammo, 0, "Ammo should remain 0")
+
+
+# ============================================================================
+# Cylinder Rotation Timing Tests (Issue #716)
+# ============================================================================
+
+
+func test_cocked_fire_no_rotation() -> void:
+	## Issue #716 v3: Manual cock (RMB) rotates to next slot, fire (LMB) fires from that slot
+	revolver.current_chamber_index = 2  # Start at slot 2
+	revolver.chamber_occupied[2] = true  # Slot 2 has round
+	revolver.chamber_occupied[3] = true  # Slot 3 has round
+
+	# Manual cock (RMB) - rotates to slot 3
+	revolver.manual_cock_hammer()
+	assert_eq(revolver.current_chamber_index, 3, "Cylinder should rotate to slot 3 on manual cock")
+
+	revolver.reset_tracking()
+
+	# Fire (LMB) - fires from slot 3, no additional rotation
+	revolver.fire(Vector2.RIGHT)
+	assert_eq(revolver.current_chamber_index, 3, "Cylinder should stay at slot 3 for cocked fire")
+	assert_true(revolver.shot_fired, "Should fire from slot 3")
+	assert_false(revolver.chamber_occupied[3], "Slot 3 should be empty after firing")
+	assert_true(revolver.chamber_occupied[2], "Slot 2 should still have round")
+
+
+func test_uncocked_fire_to_empty_slot_clicks() -> void:
+	## Issue #716: If uncocked fire rotates to empty slot, should click (not fire)
+	revolver.current_chamber_index = 0  # Start at slot 0
+	revolver.chamber_occupied = [true, false, true, true, true]  # Slot 1 is empty
+
+	# LMB fire (uncocked) - rotates to slot 1 (empty)
+	revolver.fire(Vector2.RIGHT)
+	assert_eq(revolver.current_chamber_index, 1, "Should rotate to slot 1")
+
+	# After delay, should click (slot 1 is empty)
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_true(revolver.empty_click_played, "Should click - slot 1 is empty")
+	assert_false(revolver.shot_fired, "Should NOT fire from empty slot")
+	assert_eq(revolver.current_ammo, 5, "Ammo should not be consumed")
+
+
+func test_cocked_fire_on_empty_current_slot() -> void:
+	## Issue #716 v3: Manual cock rotates to next slot, even if starting slot is empty
+	revolver.current_chamber_index = 2
+	revolver.chamber_occupied[2] = false  # Current slot is empty
+	revolver.chamber_occupied[3] = false  # Next slot is also empty
+
+	# Manual cock should succeed (Issue #716: can cock on empty slot)
+	# It will rotate to slot 3 (also empty)
+	var cock_result := revolver.manual_cock_hammer()
+	assert_true(cock_result, "Should cock even with empty current slot")
+	assert_eq(revolver.current_chamber_index, 3, "Should rotate to slot 3")
+
+	revolver.reset_tracking()
+
+	# Fire should click (not shoot) because slot 3 is empty
+	revolver.fire(Vector2.RIGHT)
+	assert_true(revolver.empty_click_played, "Should click - slot 3 is empty")
+	assert_false(revolver.shot_fired, "Should NOT fire from empty slot")
+	assert_eq(revolver.current_chamber_index, 3, "Cylinder should stay at slot 3 (no rotation on cocked fire)")
+
+
+func test_rotation_sequence_uncocked_fire() -> void:
+	## Issue #716: Verify full uncocked fire sequence - rotate first, fire from new slot
+	revolver.full_reset()
+	revolver.current_chamber_index = 3  # Start at slot 3
+
+	# Fire 1 (uncocked) - rotates to slot 4, fires from slot 4
+	revolver.fire(Vector2.RIGHT)
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_eq(revolver.current_chamber_index, 4, "First fire should rotate to slot 4")
+	assert_false(revolver.chamber_occupied[4], "Slot 4 should be empty after firing")
+	assert_true(revolver.chamber_occupied[3], "Slot 3 should still have round")
+
+	revolver.reset_tracking()
+
+	# Fire 2 (uncocked) - rotates to slot 0 (wrap), fires from slot 0
+	revolver.fire(Vector2.RIGHT)
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_eq(revolver.current_chamber_index, 0, "Second fire should wrap to slot 0")
+	assert_false(revolver.chamber_occupied[0], "Slot 0 should be empty after firing")
+
+
+func test_cocked_vs_uncocked_rotation_difference() -> void:
+	## Issue #716 v3: Both cock and fire rotate, but timing is different
+	## Manual cock: rotate on RMB press, fire on LMB (instant)
+	## Uncocked fire: rotate on LMB press, fire after delay
+	revolver.full_reset()
+	revolver.current_chamber_index = 0
+
+	# Scenario A: Manual cock (rotates to slot 1), then fire from slot 1 (instant)
+	revolver.manual_cock_hammer()
+	assert_eq(revolver.current_chamber_index, 1, "Manual cock: rotated to slot 1")
+	revolver.fire(Vector2.RIGHT)
+	assert_eq(revolver.current_chamber_index, 1, "Cocked fire: stays at slot 1")
+	assert_false(revolver.chamber_occupied[1], "Cocked fire: slot 1 fired")
+	assert_true(revolver.chamber_occupied[0], "Cocked fire: slot 0 still loaded")
+
+	revolver.reset_tracking()
+
+	# Scenario B: Uncocked fire rotates to slot 2, then fires after delay
+	revolver.fire(Vector2.RIGHT)  # Rotates to slot 2, then fires
+	assert_eq(revolver.current_chamber_index, 2, "Uncocked fire: rotated to slot 2")
+	revolver.process(revolver.HAMMER_COCK_DELAY + 0.01)
+	assert_false(revolver.chamber_occupied[2], "Uncocked fire: slot 2 fired")

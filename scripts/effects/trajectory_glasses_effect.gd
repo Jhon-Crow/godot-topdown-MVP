@@ -11,6 +11,12 @@ extends Node
 ## - Shows unlimited ricochet bounces (until laser exits viewport)
 ## - Replaces built-in laser sights when active (silenced pistol, M16, power fantasy)
 ## - Uses existing ricochet calculation code from bullet.gd
+##
+## Rendering approach:
+## - Trajectory points are stored in local player coordinates
+## - Player's _draw() reads these points and draws them directly
+## - This is the same approach used by grenade trajectory visualization
+## - Guarantees correct coordinate space and rendering order
 
 ## Duration of trajectory glasses effect in seconds.
 const EFFECT_DURATION: float = 10.0
@@ -25,12 +31,12 @@ const MAX_RICOCHET_BOUNCES: int = 50
 const LASER_WIDTH: float = 2.0
 
 ## Color for valid ricochet (can ricochet at this angle).
-const VALID_RICOCHET_COLOR: Color = Color(0.0, 1.0, 0.0, 0.6)  # Green
+const VALID_RICOCHET_COLOR: Color = Color(0.0, 1.0, 0.0, 0.8)  # Bright green
 
-## Color for invalid ricochet (angle too steep).
-const INVALID_RICOCHET_COLOR: Color = Color(1.0, 0.0, 0.0, 0.6)  # Red
+## Color for invalid ricochet (angle too steep or weapon cannot ricochet).
+const INVALID_RICOCHET_COLOR: Color = Color(1.0, 0.0, 0.0, 0.8)  # Bright red
 
-## Maximum ricochet angle in degrees (same as bullet.gd default).
+## Maximum ricochet angle in degrees (same as bullet.gd DEFAULT_MAX_RICOCHET_ANGLE).
 const MAX_RICOCHET_ANGLE: float = 90.0
 
 ## Activation sound path.
@@ -54,20 +60,18 @@ var _player: Node2D = null
 ## Reference to the weapon (for aim direction).
 var _weapon: Node2D = null
 
-## Line2D node for trajectory visualization.
-var _trajectory_line: Line2D = null
-
-## Glow Line2D for wider aura effect.
-var _trajectory_glow: Line2D = null
-
 ## Cached viewport diagonal for max laser length.
 var _viewport_diagonal: float = 2203.0
 
-## Cached caliber data from player's weapon (for ricochet settings).
-var _caliber_data: Resource = null
-
 ## Audio player for activation sounds.
 var _audio_player: AudioStreamPlayer = null
+
+## Trajectory points in LOCAL player coordinates (for player._draw()).
+## Updated every frame when active.
+var trajectory_local_points: Array[Vector2] = []
+
+## Color for the entire current trajectory (green if valid, red if impossible).
+var trajectory_color: Color = VALID_RICOCHET_COLOR
 
 ## Signal emitted when trajectory glasses is activated.
 signal trajectory_activated(charges_remaining: int)
@@ -80,41 +84,10 @@ signal charges_changed(current: int, maximum: int)
 
 
 func _ready() -> void:
-	# Create the trajectory line visualizer
-	_create_trajectory_line()
-
 	# Setup audio player
 	_setup_audio()
 
 	FileLogger.info("[TrajectoryGlasses] Effect ready, charges: %d/%d" % [charges, MAX_CHARGES])
-
-
-func _create_trajectory_line() -> void:
-	# Main trajectory line
-	_trajectory_line = Line2D.new()
-	_trajectory_line.name = "TrajectoryLine"
-	_trajectory_line.width = LASER_WIDTH
-	_trajectory_line.default_color = VALID_RICOCHET_COLOR
-	_trajectory_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_trajectory_line.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_trajectory_line.joint_mode = Line2D.LINE_JOINT_ROUND
-	_trajectory_line.visible = false
-	_trajectory_line.z_index = 100  # On top of everything
-	_trajectory_line.top_level = true  # Use global coordinates
-	add_child(_trajectory_line)
-
-	# Glow effect (wider, more transparent)
-	_trajectory_glow = Line2D.new()
-	_trajectory_glow.name = "TrajectoryGlow"
-	_trajectory_glow.width = LASER_WIDTH * 4
-	_trajectory_glow.default_color = Color(VALID_RICOCHET_COLOR.r, VALID_RICOCHET_COLOR.g, VALID_RICOCHET_COLOR.b, 0.2)
-	_trajectory_glow.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_trajectory_glow.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_trajectory_glow.joint_mode = Line2D.LINE_JOINT_ROUND
-	_trajectory_glow.visible = false
-	_trajectory_glow.z_index = 99
-	_trajectory_glow.top_level = true
-	add_child(_trajectory_glow)
 
 
 func _setup_audio() -> void:
@@ -144,15 +117,8 @@ func initialize(player: Node2D) -> void:
 func set_weapon(weapon: Node2D) -> void:
 	_weapon = weapon
 
-	# Try to get caliber data from weapon
-	if weapon and weapon.has_method("get") and "caliber_data" in weapon:
-		_caliber_data = weapon.get("caliber_data")
-	elif weapon and weapon.has_method("get") and "CaliberData" in weapon:
-		_caliber_data = weapon.get("CaliberData")
-
-	FileLogger.info("[TrajectoryGlasses] Weapon set: %s, caliber: %s" % [
-		weapon.name if weapon else "null",
-		_caliber_data.resource_path if _caliber_data else "default"
+	FileLogger.info("[TrajectoryGlasses] Weapon set: %s" % [
+		weapon.name if weapon else "null"
 	])
 
 
@@ -160,6 +126,7 @@ func set_weapon(weapon: Node2D) -> void:
 ## Returns true if activation was successful.
 func activate() -> bool:
 	if is_active:
+		FileLogger.info("[TrajectoryGlasses] Already active, ignoring activation")
 		return false  # Already active
 
 	if charges <= 0:
@@ -171,9 +138,8 @@ func activate() -> bool:
 	is_active = true
 	_effect_timer = EFFECT_DURATION
 
-	# Show trajectory visualization
-	_trajectory_line.visible = true
-	_trajectory_glow.visible = true
+	# Reset trajectory color to valid (green)
+	trajectory_color = VALID_RICOCHET_COLOR
 
 	# Play activation sound
 	_play_activation_sound()
@@ -181,8 +147,9 @@ func activate() -> bool:
 	# Hide built-in weapon lasers
 	_hide_weapon_lasers()
 
-	FileLogger.info("[TrajectoryGlasses] Activated! Duration: %.1fs, Charges remaining: %d/%d" % [
-		EFFECT_DURATION, charges, MAX_CHARGES
+	FileLogger.info("[TrajectoryGlasses] Activated! Duration: %.1fs, Charges remaining: %d/%d, Player: %s" % [
+		EFFECT_DURATION, charges, MAX_CHARGES,
+		_player.name if _player else "null"
 	])
 
 	trajectory_activated.emit(charges)
@@ -198,11 +165,12 @@ func deactivate() -> void:
 	is_active = false
 	_effect_timer = 0.0
 
-	# Hide trajectory visualization
-	_trajectory_line.visible = false
-	_trajectory_glow.visible = false
-	_trajectory_line.clear_points()
-	_trajectory_glow.clear_points()
+	# Clear trajectory points so player._draw() stops rendering
+	trajectory_local_points.clear()
+
+	# Request player redraw to clear visualization
+	if _player and is_instance_valid(_player):
+		_player.queue_redraw()
 
 	# Play deactivation sound
 	_play_deactivation_sound()
@@ -230,17 +198,22 @@ func _process(delta: float) -> void:
 	# Update trajectory visualization every frame
 	_update_trajectory()
 
+	# Request player redraw so _draw() picks up new trajectory points
+	if _player and is_instance_valid(_player):
+		_player.queue_redraw()
 
-## Update the trajectory visualization based on current aim direction.
+
+## Update the trajectory data based on current aim direction.
 func _update_trajectory() -> void:
 	if _player == null:
 		return
 
-	_trajectory_line.clear_points()
-	_trajectory_glow.clear_points()
+	# Clear previous trajectory
+	trajectory_local_points.clear()
+	trajectory_color = VALID_RICOCHET_COLOR
 
 	# Get weapon/aim direction
-	var start_pos: Vector2 = _player.global_position
+	var player_pos: Vector2 = _player.global_position
 	var aim_direction: Vector2 = _get_aim_direction()
 
 	if aim_direction == Vector2.ZERO:
@@ -251,15 +224,15 @@ func _update_trajectory() -> void:
 	if _player.has_method("get") and "bullet_spawn_offset" in _player:
 		bullet_offset = _player.get("bullet_spawn_offset")
 
-	start_pos += aim_direction * bullet_offset
+	# Start position in world space (from bullet barrel)
+	var start_world := player_pos + aim_direction * bullet_offset
 
-	# Calculate ricochet trajectory
-	var trajectory_points := _calculate_ricochet_trajectory(start_pos, aim_direction)
+	# Calculate ricochet trajectory (returns world coordinates)
+	var world_points := _calculate_ricochet_trajectory(start_world, aim_direction)
 
-	# Add points to line
-	for point in trajectory_points:
-		_trajectory_line.add_point(point)
-		_trajectory_glow.add_point(point)
+	# Convert world coordinates to LOCAL player coordinates (for _draw())
+	for wp in world_points:
+		trajectory_local_points.append(wp - player_pos)
 
 
 ## Get the aim direction from weapon or mouse.
@@ -268,29 +241,20 @@ func _get_aim_direction() -> Vector2:
 		return Vector2.ZERO
 
 	# Try to get aim direction from weapon
-	if _weapon:
+	if _weapon and is_instance_valid(_weapon):
 		# C# weapons have AimDirection property
-		if _weapon.has_method("get") and "AimDirection" in _weapon:
+		if "AimDirection" in _weapon:
 			var aim: Vector2 = _weapon.get("AimDirection")
 			if aim != Vector2.ZERO:
 				return aim.normalized()
 		# GDScript weapons might have aim_direction
-		if _weapon.has_method("get") and "aim_direction" in _weapon:
+		if "aim_direction" in _weapon:
 			var aim: Vector2 = _weapon.get("aim_direction")
 			if aim != Vector2.ZERO:
 				return aim.normalized()
 
-	# Fallback: direction from player to mouse
-	var viewport := _player.get_viewport()
-	if viewport == null:
-		return Vector2.RIGHT
-
-	var mouse_pos := viewport.get_mouse_position()
-	var camera := viewport.get_camera_2d()
-	if camera:
-		# Convert screen position to world position
-		mouse_pos = camera.get_global_mouse_position()
-
+	# Fallback: direction from player to mouse (world coordinates)
+	var mouse_pos := _player.get_global_mouse_position()
 	var to_mouse := mouse_pos - _player.global_position
 	if to_mouse.length_squared() < 0.001:
 		return Vector2.RIGHT
@@ -298,7 +262,7 @@ func _get_aim_direction() -> Vector2:
 	return to_mouse.normalized()
 
 
-## Calculate the ricochet trajectory as an array of points.
+## Calculate the ricochet trajectory as an array of world-coordinate points.
 ## Uses the same logic as bullet.gd for realistic behavior.
 func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array[Vector2]:
 	var points: Array[Vector2] = []
@@ -310,11 +274,11 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 
 	var space_state := _player.get_world_2d().direct_space_state
 	if space_state == null:
-		# No physics - just draw straight line
+		# No physics world - just draw straight line
 		points.append(start + direction * max_distance)
 		return points
 
-	for bounce in range(MAX_RICOCHET_BOUNCES):
+	for _bounce in range(MAX_RICOCHET_BOUNCES):
 		# Raycast forward
 		var ray_end := current_pos + current_dir * max_distance
 		var query := PhysicsRayQueryParameters2D.create(current_pos, ray_end)
@@ -336,12 +300,11 @@ func _calculate_ricochet_trajectory(start: Vector2, direction: Vector2) -> Array
 
 		# Check if ricochet is valid at this angle
 		var impact_angle := _calculate_impact_angle(current_dir, hit_normal)
-		var is_valid_ricochet := impact_angle <= MAX_RICOCHET_ANGLE
+		var is_valid_ricochet := impact_angle < MAX_RICOCHET_ANGLE
 
-		# Update laser color based on ricochet validity
 		if not is_valid_ricochet:
-			# Invalid ricochet angle - show red from this point
-			_set_trajectory_colors(INVALID_RICOCHET_COLOR)
+			# Invalid ricochet angle - mark whole line red
+			trajectory_color = INVALID_RICOCHET_COLOR
 			break
 
 		# Calculate reflection for next bounce
@@ -360,12 +323,6 @@ func _calculate_impact_angle(direction: Vector2, surface_normal: Vector2) -> flo
 	var dot := absf(direction.normalized().dot(surface_normal.normalized()))
 	dot = clampf(dot, 0.0, 1.0)
 	return rad_to_deg(asin(dot))
-
-
-## Set the trajectory line colors.
-func _set_trajectory_colors(color: Color) -> void:
-	_trajectory_line.default_color = color
-	_trajectory_glow.default_color = Color(color.r, color.g, color.b, 0.2)
 
 
 ## Play the activation sound.
@@ -424,12 +381,7 @@ func _restore_weapon_lasers() -> void:
 
 	# Re-enable laser sight on C# weapons
 	if _weapon.has_method("SetLaserSightEnabled"):
-		# Check if weapon should have laser enabled by default
-		var has_laser: bool = true
-		if _weapon.has_method("get") and "LaserSightEnabled" in _weapon:
-			# We disabled it, so we should restore it to true
-			has_laser = true
-		_weapon.call("SetLaserSightEnabled", has_laser)
+		_weapon.call("SetLaserSightEnabled", true)
 		FileLogger.info("[TrajectoryGlasses] Restored weapon laser sight")
 	elif _weapon.has_method("set_laser_sight_enabled"):
 		_weapon.call("set_laser_sight_enabled", true)

@@ -144,6 +144,23 @@ var _debug_homing: bool = false
 ## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
 var is_breaker_bullet: bool = false
 
+## Whether this bullet penetrates through enemies (Issue #829).
+## When true, the bullet deals damage to enemies but continues flying through them.
+## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+var penetrates_enemies: bool = false
+
+## Set of enemy bodies this bullet has already dealt damage to (Issue #829).
+## Prevents the bullet from re-applying damage when _on_area_entered fires multiple times
+## for the same enemy (e.g., multiple hit areas or re-entry signals).
+## NOTE: Only populated by _on_area_entered AFTER damage is dealt.
+var _penetrated_enemy_bodies: Array = []
+
+## Set of enemy CharacterBody2D nodes the bullet has already passed through (Issue #829).
+## Used exclusively in _on_body_entered to suppress physics re-entry signals.
+## Kept separate from _penetrated_enemy_bodies so that _on_area_entered can still
+## deal damage even after _on_body_entered has already allowed the bullet through.
+var _passed_through_enemy_bodies: Array = []
+
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
 const BREAKER_DETONATION_DISTANCE: float = 60.0
 
@@ -204,7 +221,7 @@ func _ready() -> void:
 		if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
 			_breaker_shrapnel_scene = load(BREAKER_SHRAPNEL_SCENE_PATH)
 		if _debug_breaker:
-			print("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
+			FileLogger.info("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
 				"loaded" if _breaker_shrapnel_scene else "MISSING"))
 
 
@@ -326,6 +343,18 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("is_alive") and not body.is_alive():
 		return  # Pass through dead entities
 
+	# Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
+	# allow the bullet to pass through without being destroyed.
+	# The _on_area_entered handler takes care of dealing damage via the enemy's HitArea.
+	# We track which enemy bodies we've already passed through (body-level) to suppress
+	# physics re-entry signals, using a SEPARATE set from _penetrated_enemy_bodies so that
+	# _on_area_entered can still deal damage on first entry.
+	if penetrates_enemies and body.has_method("is_alive") and body.is_alive():
+		if body not in _passed_through_enemy_bodies:
+			_passed_through_enemy_bodies.append(body)
+			print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
+		return  # Don't destroy the bullet - it passes through the enemy body
+
 	# If we're currently penetrating the same body, ignore re-entry
 	if _is_penetrating and _penetrating_body == body:
 		return
@@ -427,6 +456,13 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
 			return  # Pass through dead entities
 
+		# Issue #829: When penetrating enemies, only deal damage to each enemy once per pass-through.
+		# The area_entered signal fires once on entry, but we guard against future re-entries
+		# (e.g., if the enemy has multiple hit areas or the bullet passes through slowly).
+		if penetrates_enemies and parent != null:
+			if parent in _penetrated_enemy_bodies:
+				return  # Already dealt damage to this enemy during this pass-through
+
 		# Calculate effective damage (base damage × multiplier from ricochets/penetration)
 		var effective_damage: float = damage * damage_multiplier
 
@@ -449,6 +485,15 @@ func _on_area_entered(area: Area2D) -> void:
 		# Trigger hit effects if this is a player bullet hitting an enemy
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
+
+		# Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
+		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+		if penetrates_enemies:
+			print("[Bullet]: Penetrating through enemy, bullet continues flying")
+			# Track the enemy so we don't re-apply damage on subsequent area_entered calls
+			if parent != null and parent not in _penetrated_enemy_bodies:
+				_penetrated_enemy_bodies.append(parent)
+			return  # Don't destroy the bullet - it passes through
 
 		queue_free()
 
@@ -1112,7 +1157,7 @@ func _check_breaker_detonation() -> bool:
 		# Wall detected within range — trigger detonation!
 		var detonation_pos := global_position
 		if _debug_breaker:
-			print("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
+			FileLogger.info("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
 				global_position.distance_to(result.position), detonation_pos])
 		_breaker_detonate(detonation_pos)
 		return true
@@ -1121,7 +1166,7 @@ func _check_breaker_detonation() -> bool:
 		if collider.has_method("is_alive") and collider.is_alive():
 			var detonation_pos := global_position
 			if _debug_breaker:
-				print("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
+				FileLogger.info("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
 					collider.name, global_position.distance_to(result.position), detonation_pos])
 			_breaker_detonate(detonation_pos)
 			return true
@@ -1188,7 +1233,7 @@ func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
 		target.on_hit()
 
 	if _debug_breaker:
-		print("[Bullet.Breaker] Explosion damage %.1f applied to %s" % [amount, target.name])
+		FileLogger.info("[Bullet.Breaker] Explosion damage %.1f applied to %s" % [amount, target.name])
 
 
 ## Checks line of sight from a position to a target position.
@@ -1284,14 +1329,14 @@ func _is_position_inside_wall(pos: Vector2) -> bool:
 func _breaker_spawn_shrapnel(center: Vector2) -> void:
 	if _breaker_shrapnel_scene == null:
 		if _debug_breaker:
-			print("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
+			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
 		return
 
 	# Check global concurrent shrapnel limit
 	var existing_shrapnel := get_tree().get_nodes_in_group("breaker_shrapnel")
 	if existing_shrapnel.size() >= BREAKER_MAX_CONCURRENT_SHRAPNEL:
 		if _debug_breaker:
-			print("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
+			FileLogger.info("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
 		return
 
 	# Calculate shrapnel count based on bullet damage, capped for performance
@@ -1324,7 +1369,7 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		# Check if spawn position is inside a wall (Issue #740 fix)
 		if _is_position_inside_wall(spawn_pos):
 			if _debug_breaker:
-				print("[Bullet.Breaker] Skipping shrapnel #%d: spawn position inside wall at %s" % [i, spawn_pos])
+				FileLogger.info("[Bullet.Breaker] Skipping shrapnel #%d: spawn position inside wall at %s" % [i, spawn_pos])
 			skipped_count += 1
 			continue
 
@@ -1347,5 +1392,5 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		spawned_count += 1
 
 	if _debug_breaker:
-		print("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
+		FileLogger.info("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
 			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])

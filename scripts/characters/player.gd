@@ -2469,7 +2469,10 @@ func _on_debug_mode_toggled(enabled: bool) -> void:
 ## In complex mode: Only shows when debug mode is enabled (F7).
 ## For non-contact grenades (flashbang), shows wall bounces.
 func _draw() -> void:
-	# Determine if we should draw trajectory
+	# Draw trajectory glasses laser visualization (Issue #744)
+	_draw_trajectory_glasses()
+
+	# Determine if we should draw grenade trajectory
 	var is_simple_aiming := _grenade_state == GrenadeState.SIMPLE_AIMING
 	var is_complex_aiming := _grenade_state == GrenadeState.AIMING
 
@@ -2785,6 +2788,45 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: f
 		var next_point := center + Vector2(cos(angle), sin(angle)) * radius
 		draw_line(prev_point, next_point, color, width)
 		prev_point = next_point
+
+
+## Draw trajectory glasses laser visualization (Issue #744).
+## Called from _draw() - uses local player coordinates for reliable rendering.
+## Trajectory points are updated by TrajectoryGlassesEffect._process() via queue_redraw().
+func _draw_trajectory_glasses() -> void:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return
+	if not is_instance_valid(_trajectory_glasses):
+		return
+	if not _trajectory_glasses.is_active:
+		return
+
+	var points: Array[Vector2] = _trajectory_glasses.trajectory_local_points
+	if points.size() < 2:
+		return
+
+	var color: Color = _trajectory_glasses.trajectory_color
+	var glow_color := Color(color.r, color.g, color.b, 0.3)
+
+	# Draw glow (wider, transparent)
+	for i in range(points.size() - 1):
+		draw_line(points[i], points[i + 1], glow_color, 6.0)
+
+	# Draw main laser line
+	for i in range(points.size() - 1):
+		draw_line(points[i], points[i + 1], color, 2.0)
+
+	# Draw dot at start (bullet spawn point)
+	draw_circle(points[0], 3.0, color)
+
+	# Draw small diamonds at bounce points
+	for i in range(1, points.size() - 1):
+		var s := 4.0
+		var p := points[i]
+		draw_line(p + Vector2(-s, 0), p + Vector2(0, -s), color, 2.0)
+		draw_line(p + Vector2(0, -s), p + Vector2(s, 0), color, 2.0)
+		draw_line(p + Vector2(s, 0), p + Vector2(0, s), color, 2.0)
+		draw_line(p + Vector2(0, s), p + Vector2(-s, 0), color, 2.0)
 
 
 ## Enable debug logging for casing pushing (Issue #392 debugging).
@@ -3360,7 +3402,9 @@ func _handle_trajectory_glasses_input() -> void:
 		if not _trajectory_glasses.is_active:
 			# Update weapon reference before activation (in case player switched weapons)
 			_update_trajectory_glasses_weapon()
-			_trajectory_glasses.activate()
+			FileLogger.info("[Player.TrajectoryGlasses] Space pressed - activating (charges: %d)" % _trajectory_glasses.charges)
+			var activated := _trajectory_glasses.activate()
+			FileLogger.info("[Player.TrajectoryGlasses] Activation result: %s" % str(activated))
 
 
 ## Callback when trajectory glasses activates.
