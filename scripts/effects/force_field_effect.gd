@@ -285,7 +285,11 @@ func _on_body_entered(body: Node2D) -> void:
 ## Trap a bullet in the force field — stop its movement and hold it in place.
 ## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
 func _trap_bullet(bullet: Node2D) -> void:
-	if not bullet.has("direction") or not bullet.has("speed"):
+	# Use "prop" in node to check property existence (GDScript 4 standard).
+	# Object.has() does not exist — Dictionary.has() does, but calling it on a Node
+	# returns null (nonexistent function error), causing an always-true condition (Issue #912).
+	if not "direction" in bullet or not "speed" in bullet:
+		FileLogger.info("[ForceFieldEffect] Bullet missing direction/speed property — skipping trap")
 		return
 
 	# Already trapped? Skip.
@@ -301,7 +305,7 @@ func _trap_bullet(bullet: Node2D) -> void:
 		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
 	# Reset shooter ID so released bullet can damage anyone
-	if bullet.has("shooter_id"):
+	if "shooter_id" in bullet:
 		bullet.shooter_id = -1
 
 	_trapped_bullets.append(bullet)
@@ -311,7 +315,8 @@ func _trap_bullet(bullet: Node2D) -> void:
 
 ## Trap shrapnel in the force field — stop its movement and hold it in place.
 func _trap_shrapnel(shrapnel: Node2D) -> void:
-	if not shrapnel.has("direction"):
+	# Use "prop" in node to check property existence (GDScript 4 standard, Issue #912).
+	if not "direction" in shrapnel:
 		return
 
 	# Already trapped? Skip.
@@ -327,7 +332,7 @@ func _trap_shrapnel(shrapnel: Node2D) -> void:
 		(shrapnel as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
 	# Reset source ID so released shrapnel can damage anyone
-	if shrapnel.has("source_id"):
+	if "source_id" in shrapnel:
 		shrapnel.source_id = -1
 
 	_trapped_shrapnel.append(shrapnel)
@@ -374,9 +379,9 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 		outward_dir = Vector2(cos(random_angle), sin(random_angle))
 
 	# Set new direction and speed
-	if projectile.has("direction"):
+	if "direction" in projectile:
 		projectile.direction = outward_dir
-	if projectile.has("speed"):
+	if "speed" in projectile:
 		projectile.speed = release_speed
 
 	# Restore normal color
@@ -390,7 +395,7 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 	# Update rotation to match new direction
 	if projectile.has_method("_update_rotation"):
 		projectile.call("_update_rotation")
-	elif projectile.has("direction"):
+	elif "direction" in projectile:
 		# Fallback: set rotation to match direction angle
 		projectile.rotation = outward_dir.angle()
 

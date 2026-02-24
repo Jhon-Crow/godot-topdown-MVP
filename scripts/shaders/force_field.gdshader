@@ -48,14 +48,13 @@ void fragment() {
 	vec3 tint_b = vec3(0.8, 0.6, 1.0);   // Lavender
 	vec3 iridescent_tint = mix(tint_a, tint_b, shimmer * 0.35);
 
-	// ---- Interior glow ----
-	// Very subtle inner glow — nearly transparent center for a true bubble look
-	// Reduced from 0.4 to 0.06 to make the center mostly see-through (Issue #912)
-	float inner_glow = fresnel * 0.06 * pulse;
+	// ---- No interior glow — pure bubble look ----
+	// Interior is fully transparent (Issue #912): only the rim is visible.
+	// Removing inner_glow entirely ensures no dark/blue fill inside the circle.
 
 	// ---- Combined alpha ----
-	// Rim-dominant effect: mostly transparent center with bright glowing edge
-	float combined = rim * glow_intensity * pulse + inner_glow;
+	// Rim-only effect: completely transparent center with bright glowing edge
+	float combined = rim * glow_intensity * pulse;
 	combined = clamp(combined, 0.0, 1.0);
 
 	// Smooth edge fade to avoid hard cutoff
