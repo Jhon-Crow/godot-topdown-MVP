@@ -194,6 +194,27 @@ a log file for debugging. Disable to improve FPS."
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="HSeparator8" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyFlashlightBlindingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyFlashlightBlindingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EnemyFlashlightBlindingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enemy Flashlight Blinding"
+
+[node name="EnemyFlashlightBlindingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EnemyFlashlightBlindingContainer"]
+layout_mode = 2
+
+[node name="EnemyFlashlightBlindingDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, enemy flashlights blind the player
+in night mode. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "FOV enabled: Enemies see in 100 degree cone"

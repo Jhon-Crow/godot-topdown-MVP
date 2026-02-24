@@ -51,6 +51,12 @@ var replay_enabled: bool = false
 ## When disabled, no log file is created, which can improve performance (FPS).
 var logging_enabled: bool = true
 
+## Whether enemy flashlight blinding is enabled (Issue #903).
+## When enabled, enemy flashlights can blind the player in night mode.
+## When disabled (default), enemy flashlights only serve as a visual warning
+## without applying any blinding effect to the player.
+var enemy_flashlight_blinding_enabled: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -62,7 +68,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -181,6 +187,20 @@ func is_logging_enabled() -> bool:
 	return logging_enabled
 
 
+## Set enemy flashlight blinding enabled/disabled (Issue #903).
+func set_enemy_flashlight_blinding_enabled(enabled: bool) -> void:
+	if enemy_flashlight_blinding_enabled != enabled:
+		enemy_flashlight_blinding_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Enemy flashlight blinding %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if enemy flashlight blinding is enabled (Issue #903).
+func is_enemy_flashlight_blinding_enabled() -> bool:
+	return enemy_flashlight_blinding_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -192,6 +212,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "realistic_visibility_enabled", realistic_visibility_enabled)
 	config.set_value("experimental", "replay_enabled", replay_enabled)
 	config.set_value("experimental", "logging_enabled", logging_enabled)
+	config.set_value("experimental", "enemy_flashlight_blinding_enabled", enemy_flashlight_blinding_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -210,6 +231,7 @@ func _load_settings() -> void:
 		realistic_visibility_enabled = config.get_value("experimental", "realistic_visibility_enabled", false)
 		replay_enabled = config.get_value("experimental", "replay_enabled", false)
 		logging_enabled = config.get_value("experimental", "logging_enabled", true)
+		enemy_flashlight_blinding_enabled = config.get_value("experimental", "enemy_flashlight_blinding_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -220,6 +242,7 @@ func _load_settings() -> void:
 		realistic_visibility_enabled = false
 		replay_enabled = false
 		logging_enabled = true
+		enemy_flashlight_blinding_enabled = false
 
 
 ## Log a message to the file logger if available.

@@ -61,6 +61,9 @@ class MockEnemyFlashlightComponent:
 	## Mock: whether line of sight is clear.
 	var _mock_line_of_sight: bool = true
 
+	## Mock: whether enemy flashlight blinding is enabled (Issue #903).
+	var _mock_enemy_flashlight_blinding_enabled: bool = true
+
 	## Global position of the flashlight.
 	var global_position: Vector2 = Vector2.ZERO
 
@@ -80,6 +83,10 @@ class MockEnemyFlashlightComponent:
 
 	func set_mock_line_of_sight(enabled: bool) -> void:
 		_mock_line_of_sight = enabled
+
+
+	func set_mock_enemy_flashlight_blinding_enabled(enabled: bool) -> void:
+		_mock_enemy_flashlight_blinding_enabled = enabled
 
 
 	func set_mock_time_msec(time_msec: int) -> void:
@@ -185,6 +192,10 @@ class MockEnemyFlashlightComponent:
 
 	## Check and apply blindness to player in beam.
 	func check_player_in_beam(player_position: Vector2) -> void:
+		# Do not blind player if the experimental setting is disabled (Issue #903).
+		if not _mock_enemy_flashlight_blinding_enabled:
+			return
+
 		if not _is_on:
 			return
 
@@ -537,3 +548,72 @@ func test_no_flash_when_night_mode_off_but_attack_still_happens() -> void:
 	component.check_player_in_beam(Vector2(300, 0))
 	assert_eq(component.blindness_applied.size(), 0,
 		"Player should not be blinded when night mode is off")
+
+
+# ============================================================================
+# Enemy Flashlight Blinding Setting Tests (Issue #903)
+# ============================================================================
+
+
+func test_player_not_blinded_when_setting_disabled() -> void:
+	## When enemy_flashlight_blinding_enabled is false (default), player should
+	## never be blinded by enemy flashlight even if in beam and flashlight is on.
+	component.global_position = Vector2(0, 0)
+	component.global_rotation = 0.0
+	component._turn_on()
+	component.set_mock_time_msec(0)
+	component.set_mock_enemy_flashlight_blinding_enabled(false)
+
+	component.check_player_in_beam(Vector2(300, 0))
+
+	assert_eq(component.blindness_applied.size(), 0,
+		"Player should not be blinded when enemy flashlight blinding setting is disabled")
+
+
+func test_player_blinded_when_setting_enabled() -> void:
+	## When enemy_flashlight_blinding_enabled is true, player in beam should be blinded.
+	component.global_position = Vector2(0, 0)
+	component.global_rotation = 0.0
+	component._turn_on()
+	component.set_mock_time_msec(0)
+	component.set_mock_enemy_flashlight_blinding_enabled(true)
+
+	component.check_player_in_beam(Vector2(300, 0))
+
+	assert_eq(component.blindness_applied.size(), 1,
+		"Player should be blinded when enemy flashlight blinding setting is enabled")
+
+
+func test_blinding_setting_disabled_by_default() -> void:
+	## The mock default is true for backwards compatibility in existing tests,
+	## but verify we can disable it.
+	component.set_mock_enemy_flashlight_blinding_enabled(false)
+	assert_false(component._mock_enemy_flashlight_blinding_enabled,
+		"Enemy flashlight blinding should be disableable")
+
+
+func test_full_pre_attack_flash_no_blind_when_setting_disabled() -> void:
+	## In night mode with blinding disabled, the pre-attack flash shows the
+	## flashlight beam but does NOT blind the player. (Issue #903)
+	component.set_mock_night_mode(true)
+	component.global_position = Vector2(0, 0)
+	component.global_rotation = 0.0
+	component._flash_target_duration = 0.3
+	component.set_mock_time_msec(0)
+	component.set_mock_enemy_flashlight_blinding_enabled(false)
+
+	var attack_executed := false
+	var attack_callback := func(): attack_executed = true
+
+	# Start flash
+	component.start_pre_attack_flash(Vector2(300, 0), attack_callback)
+	assert_true(component.is_on(), "Flashlight should still be on (visual warning)")
+
+	# Check player during flash - should NOT be blinded
+	component.check_player_in_beam(Vector2(300, 0))
+	assert_eq(component.blindness_applied.size(), 0,
+		"Player should NOT be blinded during pre-attack flash when setting is disabled")
+
+	# Complete flash - attack still happens
+	component.process(0.35)
+	assert_true(attack_executed, "Attack callback should still be executed after flash")
