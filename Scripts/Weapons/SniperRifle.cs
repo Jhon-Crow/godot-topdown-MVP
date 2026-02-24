@@ -565,7 +565,7 @@ public partial class SniperRifle : BaseWeapon
             var query = PhysicsRayQueryParameters2D.Create(
                 GlobalPosition,
                 GlobalPosition + endPoint,
-                4 // Collision mask for obstacles
+                6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
             );
 
             var result = spaceState.IntersectRay(query);
