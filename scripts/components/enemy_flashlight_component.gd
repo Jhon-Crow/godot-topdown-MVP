@@ -224,8 +224,20 @@ func is_on() -> bool:
 	return _is_on
 
 
+## Check if enemy flashlight blinding is enabled in experimental settings (Issue #903).
+func _is_enemy_flashlight_blinding_enabled() -> bool:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_enemy_flashlight_blinding_enabled"):
+		return experimental_settings.is_enemy_flashlight_blinding_enabled()
+	return false
+
+
 ## Check if the player is in the flashlight beam and apply stun if so.
 func _check_player_in_beam() -> void:
+	# Do not blind player if the experimental setting is disabled (Issue #903).
+	if not _is_enemy_flashlight_blinding_enabled():
+		return
+
 	var player := _find_player()
 	if player == null:
 		return
