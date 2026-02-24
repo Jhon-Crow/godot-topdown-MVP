@@ -440,8 +440,10 @@ func add_grenades(count: int) -> void:
 func _log(msg: String) -> void:
 	if debug_logging:
 		print("[EnemyGrenadeComponent] %s" % msg)
-	if _logger and _logger.has_method("log_info"):
-		_logger.log_info("[EnemyGrenade] %s" % msg)
+		# File logging is only enabled when debug_logging is on to avoid
+		# synchronous disk I/O on every per-frame throw-check (Issue #862).
+		if _logger and _logger.has_method("log_info"):
+			_logger.log_info("[EnemyGrenade] %s" % msg)
 
 
 ## FIX for Issue #432: Attach C# GrenadeTimer component via autoload helper.
