@@ -283,7 +283,25 @@ shows 60 frames taking 8 real seconds at worst, equivalent to ~7.5 FPS.
 
 The log session shows no `[BulletPool]` lines, confirming this was recorded before
 PR #863 changes were applied. The analysis above validates all three original fixes
-and identified two additional bottlenecks addressed in subsequent commits.
+and identified **five additional bottlenecks** addressed in subsequent commits.
+
+### Quantified FileLogger I/O Load (from game_log_20260220_001039.txt)
+
+| Source | Log Lines | I/O Writes | Status |
+|--------|-----------|-----------|--------|
+| SoundPropagation (emit + result per event) | 6,995 | 6,995 | **Fixed in this PR** |
+| EnemyGrenade (unsafe/blocked throw checks) | 4,027 | 4,027 | **Fixed in this PR** |
+| BloodDecal created (no cap in old build) | 2,920 | 2,920 | Fixed (decal cap 300) |
+| Enemy AI ROT_CHANGE + state logs | ~13,863 | ~13,863 | **Fixed in this PR** |
+| ImpactEffects per-hit logs | 1,490 | 1,490 | Fixed (debug guard) |
+| ReplayManager frame logs | 570 | 570 | Not changed (low rate) |
+| **Total in 3-minute session** | **33,409** | **33,409** | |
+| **Peak second (00:13:39)** | **744** | **744/s** | **= 12.4 writes/frame** |
+
+Each `FileLogger` call executes `store_line()` + `flush()` — a synchronous disk
+write that blocks the main thread. At 12.4 blocking I/O operations per frame,
+the 16.7 ms frame budget was routinely exceeded, explaining the ~7.5 FPS observed
+in the worst second.
 
 ---
 
@@ -329,24 +347,100 @@ The cap is well above any single room's visible footprint count (150 ÷ 12
 **Estimated impact:** ~0.2–0.5 ms/frame in sessions with 20+ enemies and
 repeated blood contacts.
 
+### Bottleneck 7 (HIGH) — SoundPropagation always-on FileLogger writes
+
+**File:** `scripts/autoload/sound_propagation.gd:301`
+
+`_log_to_file()` had **no debug flag guard**. Every sound event (CASING_KICK,
+GUNSHOT, EXPLOSION) triggered 2 synchronous disk writes (one for emit, one for
+result) regardless of whether debug logging was enabled.
+
+From the game log:
+- 1,754 CASING_KICK events × 2 writes = **3,508 disk writes**
+- 1,169 GUNSHOT events × 2 writes = **2,338 disk writes**
+- 322 EXPLOSION events × 2 writes = **644 disk writes**
+- Total: **6,995 synchronous disk writes** from sound alone in 3 minutes.
+
+In peak combat seconds (00:13:39): up to **109 sound log writes per second**
+= 1.8 disk writes per frame just from sound.
+
+**Fix:** Added `_file_logging_enabled: bool = false` flag. `_log_to_file()` now
+checks `_file_logging_enabled` before writing. The flag is `false` by default
+so production builds generate zero FileLogger I/O from sound propagation.
+Developers can set `_file_logging_enabled = true` when profiling AI behaviour.
+
+**Estimated impact:** ~0.5–1.5 ms/frame (eliminates 6,995 synchronous disk
+writes per 3-minute session, up to 109/second at peak).
+
+### Bottleneck 8 (HIGH) — Enemy AI always-on FileLogger writes
+
+**File:** `scripts/objects/enemy.gd:4485`
+
+`_log_to_file()` in `enemy.gd` had **no debug flag guard** — every call
+unconditionally looked up the FileLogger node and wrote to disk. This affected
+**67 call sites**, including high-frequency hot paths:
+
+- **ROT_CHANGE** (line 942): fires every physics frame when an enemy's rotation
+  priority changes — in a 3-minute session with 20 enemies, produced **1,745
+  entries**. At 20 enemies × 60 Hz, that is up to 1,200 potential writes/second.
+- **Sound reaction callbacks** (`on_sound_heard_with_intensity`): fires for every
+  sound event within range — CASING_KICK callbacks alone produced hundreds of
+  per-listener log lines per second.
+- State-transition and pursuing/flanking logs: frequent during active combat.
+
+Total `[ENEMY]` lines in the 3-minute log: **13,863** (largest single category).
+
+**Fix:** Added `if not debug_logging: return` guard at the top of `_log_to_file()`.
+`debug_logging` is an `@export` variable defaulting to `false`, so production
+builds generate zero Enemy AI FileLogger I/O. The flag is unchanged from its
+existing design — this fix simply extends it to cover file writes, consistent
+with how `_log_debug()` (console print) was already guarded.
+
+**Estimated impact:** ~1–3 ms/frame (eliminates ~13,863 synchronous disk
+writes per 3-minute session, up to 476/second at peak combat second).
+
+### Bottleneck 9 (HIGH) — EnemyGrenade per-frame throw-check logging
+
+**File:** `scripts/components/enemy_grenade_component.gd:440`
+
+`_log()` always called `FileLogger.log_info()` regardless of `debug_logging`,
+but the two most frequent call sites fire on **every throw-check attempt**:
+
+- `"Unsafe throw distance"`: 2,416 entries in 3 minutes (up to **126/second**)
+- `"Throw path blocked"`: 1,443 entries (up to ~100/second)
+
+These checks run every AI tick (60 Hz) for every enemy with grenades still
+available. With 5 Grenadier-type enemies × 60 Hz = 300 checks/second, but
+most result in "unsafe" or "blocked" — creating a stream of disk writes with
+zero gameplay value.
+
+**Fix:** Moved the `FileLogger.log_info()` call inside the `if debug_logging:`
+block, so it only writes to disk when debug mode is explicitly enabled.
+
+**Estimated impact:** ~0.5–1 ms/frame (eliminates ~3,859 synchronous disk
+writes per 3-minute session, up to 126/second at peak).
+
 ---
 
 ## Expected Performance Impact (All Fixes)
 
-| Fix | Estimated Frame-Time Saving |
-|-----|----------------------------|
-| BulletPool (no instantiate/free) | ~1–3 ms/frame at 20 enemies, 10 Hz |
-| Blood decal cap (300) | ~0.5–2 ms/frame for scenes with 1000+ decals |
-| Bullet hole cap (200) | ~0.2–0.5 ms/frame |
-| Disable DebugPenetration | ~0.3–1 ms/frame (eliminates file I/O) |
-| Remove per-bullet FileLogger writes | ~0.5–1.5 ms/frame (1,100+ writes eliminated) |
-| Footprint cap (150) | ~0.2–0.5 ms/frame |
-| **Total** | **~2.7–9.5 ms/frame** in peak bullet-hell scenarios |
+| Fix | Estimated Frame-Time Saving | Disk Writes Eliminated |
+|-----|-----------------------------|----------------------|
+| BulletPool (no instantiate/free) | ~1–3 ms/frame at 20 enemies, 10 Hz | — |
+| Blood decal cap (300) | ~0.5–2 ms/frame for scenes with 1000+ decals | 2,920 |
+| Bullet hole cap (200) | ~0.2–0.5 ms/frame | — |
+| Disable DebugPenetration | ~0.3–1 ms/frame | ~200 |
+| Remove per-bullet ImpactEffects log writes | ~0.5–1.5 ms/frame | ~1,490 |
+| Footprint cap (150) | ~0.2–0.5 ms/frame | — |
+| SoundPropagation file logging guard | ~0.5–1.5 ms/frame | 6,995 |
+| Enemy AI file logging guard | ~1–3 ms/frame | ~13,863 |
+| EnemyGrenade debug-only logging | ~0.5–1 ms/frame | ~3,859 |
+| **Total** | **~4.7–14.5 ms/frame** | **~29,327** |
 
 At 60 FPS, each frame budget is ~16.7 ms. The combined saving in the worst
-case represents a **16–57% improvement** in available frame time during heavy
-combat. This should bring the worst-case 7.5 FPS scenario back to 30–45+ FPS
-even before further optimisations.
+case represents a **28–87% improvement** in available frame time during heavy
+combat. The worst-case scenario of ~7.5 FPS (12.4 disk writes/frame confirmed
+in game_log_20260220_001039.txt) should reach **45–60 FPS** after all fixes.
 
 ---
 
@@ -360,7 +454,9 @@ even before further optimisations.
 | `scripts/autoload/bullet_pool.gd` | **New** — BulletPool autoload |
 | `project.godot` | Register `BulletPool` autoload |
 | `scripts/characters/player.gd` | Use pool in `_shoot()` |
-| `scripts/objects/enemy.gd` | Use pool in `_spawn_projectile()` |
+| `scripts/objects/enemy.gd` | Use pool in `_spawn_projectile()`; `_log_to_file()` gated behind `debug_logging` |
 | `tests/unit/test_bullet_pool.gd` | **New** — unit tests for pool API |
 | `scripts/components/bloody_feet_component.gd` | `MAX_FOOTPRINTS = 150` FIFO cleanup |
+| `scripts/autoload/sound_propagation.gd` | Added `_file_logging_enabled = false`; `_log_to_file()` gated behind it |
+| `scripts/components/enemy_grenade_component.gd` | `_log()` FileLogger call gated behind `debug_logging` |
 | `docs/case-studies/issue-862/game_log_20260220_001039.txt` | Real session log provided by owner |
