@@ -131,7 +131,12 @@ func _physics_process(delta: float) -> void:
 			_impact_armed = true
 
 	# Check for landing (grenade comes to near-stop after being thrown)
-	if not _has_landed and _timer_active:
+	# FIX for Issue #878: Add is_thrown() guard (same as grenade_base.gd Issue #855 fix).
+	# FragGrenade overrides _physics_process() so the base class fix is never reached here.
+	# While frozen and following the player, FREEZE_MODE_KINEMATIC causes linear_velocity
+	# to reflect player movement, which was falsely triggering landing detection and
+	# playing the landing sound while the grenade was still held.
+	if not _has_landed and _timer_active and is_thrown():
 		var current_speed := linear_velocity.length()
 		var previous_speed := _previous_velocity.length()
 		# Grenade has landed when it was moving fast and now nearly stopped

@@ -109,7 +109,11 @@ func _physics_process(delta: float) -> void:
 			linear_velocity -= friction_force
 
 	# Check for landing
-	if not _has_landed and _timer_active:
+	# FIX for Issue #878: Add is_thrown() guard (same as grenade_base.gd Issue #855 fix).
+	# VOGGrenade overrides _physics_process() so the base class fix is never reached here.
+	# While frozen and following the player, FREEZE_MODE_KINEMATIC causes linear_velocity
+	# to reflect player movement, which was falsely triggering landing detection.
+	if not _has_landed and _timer_active and is_thrown():
 		var current_speed := linear_velocity.length()
 		var previous_speed := _previous_velocity.length()
 		if previous_speed > landing_velocity_threshold and current_speed < landing_velocity_threshold:
