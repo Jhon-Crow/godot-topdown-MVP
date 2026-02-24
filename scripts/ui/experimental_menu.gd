@@ -14,6 +14,8 @@ signal back_pressed
 @onready var ai_prediction_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AIPredictionContainer/AIPredictionCheckbox
 @onready var debug_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DebugModeContainer/DebugModeCheckbox
 @onready var invincibility_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/InvincibilityContainer/InvincibilityCheckbox
+@onready var replay_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ReplayContainer/ReplayCheckbox
+@onready var logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/LoggingContainer/LoggingCheckbox
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
 
@@ -25,6 +27,8 @@ func _ready() -> void:
 	ai_prediction_checkbox.toggled.connect(_on_ai_prediction_toggled)
 	debug_mode_checkbox.toggled.connect(_on_debug_mode_toggled)
 	invincibility_checkbox.toggled.connect(_on_invincibility_toggled)
+	replay_checkbox.toggled.connect(_on_replay_toggled)
+	logging_checkbox.toggled.connect(_on_logging_toggled)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -51,6 +55,8 @@ func _update_ui() -> void:
 	ai_prediction_checkbox.button_pressed = experimental_settings.is_ai_prediction_enabled()
 	debug_mode_checkbox.button_pressed = experimental_settings.is_debug_mode_enabled()
 	invincibility_checkbox.button_pressed = experimental_settings.is_invincibility_enabled()
+	replay_checkbox.button_pressed = experimental_settings.is_replay_enabled()
+	logging_checkbox.button_pressed = experimental_settings.is_logging_enabled()
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -64,6 +70,10 @@ func _update_ui() -> void:
 		status_parts.append("Debug mode")
 	if experimental_settings.is_invincibility_enabled():
 		status_parts.append("Invincibility")
+	if experimental_settings.is_replay_enabled():
+		status_parts.append("Replay viewing")
+	if experimental_settings.is_logging_enabled():
+		status_parts.append("Log recording")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -116,6 +126,20 @@ func _on_invincibility_toggled(enabled: bool) -> void:
 		if game_manager.invincibility_enabled != enabled:
 			game_manager.invincibility_enabled = enabled
 			game_manager.invincibility_toggled.emit(enabled)
+	_update_ui()
+
+
+func _on_replay_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_replay_enabled(enabled)
+	_update_ui()
+
+
+func _on_logging_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_logging_enabled(enabled)
 	_update_ui()
 
 
