@@ -253,6 +253,38 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 
 
+## Configure weapon ammo for Docks level - 2x ammo for all weapons except SilencedPistol (Issue #866).
+func _configure_docks_weapon_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	# SilencedPistol uses enemy-count-based ammo instead (handled by _configure_silenced_pistol_ammo)
+	if weapon.name == "SilencedPistol":
+		return
+
+	# Get the default starting magazine count (usually 4)
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	# Double the magazine count for Docks level
+	var docks_magazines: int = starting_magazines * 2
+
+	# Use ReinitializeMagazines to set the new magazine count
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(docks_magazines, true)
+		_log_to_file("Doubled ammo for %s: %d magazines (was %d)" % [weapon.name, docks_magazines, starting_magazines])
+
+		# Update UI to reflect new ammo counts
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+	else:
+		push_warning("[DocksLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
+
+
 func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon == null:
 		return
@@ -906,6 +938,8 @@ func _setup_selected_weapon() -> void:
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
 				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				# Still apply Docks-specific ammo configuration (Issue #866)
+				_configure_docks_weapon_ammo(existing_weapon)
 				return
 
 	if selected_weapon_id == "shotgun":
@@ -923,6 +957,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(shotgun)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = shotgun
+
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(shotgun)
 
 			_log_to_file("Shotgun equipped successfully")
 		else:
@@ -942,6 +979,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(mini_uzi)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
+
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(mini_uzi)
 
 			_log_to_file("Mini UZI equipped successfully")
 		else:
@@ -981,6 +1021,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = sniper
 
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(sniper)
+
 			_log_to_file("ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("[DocksLevel] Failed to load SniperRifle scene!")
@@ -1000,6 +1043,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = m16
 
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(m16)
+
 			_log_to_file("M16 Assault Rifle equipped successfully")
 		else:
 			push_error("[DocksLevel] Failed to load AssaultRifle scene!")
@@ -1018,6 +1064,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(akgl)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
+
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(akgl)
 
 			_log_to_file("AK + GL equipped successfully")
 		else:
