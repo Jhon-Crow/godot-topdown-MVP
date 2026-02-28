@@ -116,10 +116,13 @@ public class LaserGlowEffect
     private const int DustParticleAmount = 80;
 
     /// <summary>
-    /// Lifetime of each dust particle in seconds. Shorter lifetime keeps
-    /// particles flickering and refreshing, simulating brief dust glints.
+    /// Lifetime of each dust particle in seconds. Very short lifetime ensures
+    /// particles stay close to the current beam position and don't trail behind
+    /// when the player moves. At 0.05s lifetime (with max 0.06s including randomness),
+    /// the maximum visible lag at max walking speed (~330px/s) is only ~20 pixels —
+    /// effectively imperceptible compared to the previous 800ms trail (Issue #748).
     /// </summary>
-    private const float DustParticleLifetime = 0.8f;
+    private const float DustParticleLifetime = 0.05f;
 
     /// <summary>
     /// Size of the dust mote texture in pixels. Small size (6px) ensures
@@ -369,7 +372,7 @@ public class LaserGlowEffect
             ScaleMin = 0.3f,
             ScaleMax = 0.8f,
             ColorRamp = new GradientTexture1D { Gradient = colorRamp },
-            LifetimeRandomness = 0.5f,
+            LifetimeRandomness = 0.2f,
         };
 
         // Additive blending material for particles
