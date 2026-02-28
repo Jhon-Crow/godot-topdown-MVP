@@ -1347,8 +1347,7 @@ func _process_combat_state(delta: float) -> void:
 			_log_debug("Lost sight of player in COMBAT (%.2fs), transitioning to PURSUING" % _combat_state_timer)
 			_transition_to_pursuing()
 			return
-		# If minimum time hasn't elapsed, stay in COMBAT and wait
-		# This prevents rapid COMBAT<->PURSUING thrashing
+		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
