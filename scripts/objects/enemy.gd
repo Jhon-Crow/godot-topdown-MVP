@@ -352,6 +352,8 @@ var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transit
 ## [Issue #574] Flashlight detection component — detects player flashlight beam.
 var _flashlight_detection: FlashlightDetectionComponent = null
 
+## [Issue #754] Muzzle flash detection component — detects player weapon muzzle flashes.
+var _muzzle_flash_detection: MuzzleFlashDetectionComponent = null
 var _enemy_flashlight: EnemyFlashlightComponent = null  ## [Issue #824] Enemy flashlight for night mode.
 var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phase.
 
@@ -727,58 +729,43 @@ func _initialize_goap_state() -> void:
 		# Flashlight detection states (Issue #574)
 		"flashlight_detected": false,
 		"passage_lit_by_flashlight": false,
-		"grenadier_throw_ready": false  # Issue #657: Grenadier GOAP throw
+		"grenadier_throw_ready": false,  # Issue #657: Grenadier GOAP throw
+		# Muzzle flash detection states (Issue #754)
+		"muzzle_flash_detected": false,
+		"player_preparing_grenade": false
 	}
 
-## Initialize the enemy memory, prediction, and flashlight detection systems (Issue #297, #298, #574).
+## Initialize memory, prediction, flashlight and muzzle flash detection (Issue #297, #298, #574, #754).
 func _initialize_memory() -> void:
 	_memory = EnemyMemory.new()
 	var es: Node = get_node_or_null("/root/ExperimentalSettings")
 	if es and es.has_method("is_ai_prediction_enabled") and es.is_ai_prediction_enabled():
-		_prediction = PlayerPredictionComponent.new()
-		_prediction.debug_logging = debug_logging
-	# [Issue #574] Initialize flashlight detection component
-	_flashlight_detection = FlashlightDetectionComponent.new()
-	_flashlight_detection.debug_logging = debug_logging
+		_prediction = PlayerPredictionComponent.new(); _prediction.debug_logging = debug_logging
+	_flashlight_detection = FlashlightDetectionComponent.new(); _flashlight_detection.debug_logging = debug_logging
+	_muzzle_flash_detection = MuzzleFlashDetectionComponent.new(); _muzzle_flash_detection.debug_logging = debug_logging
 
-## Connect to GameManager's debug mode signal for F7 toggle.
+## Connect to GameManager's debug mode signal (F7 toggle).
 func _connect_debug_mode_signal() -> void:
-	var game_manager: Node = get_node_or_null("/root/GameManager")
-	if game_manager:
-		# Connect to debug mode toggle signal
-		if game_manager.has_signal("debug_mode_toggled"):
-			game_manager.debug_mode_toggled.connect(_on_debug_mode_toggled)
-		# Sync with current debug mode state
-		if game_manager.has_method("is_debug_mode_enabled"):
-			debug_label_enabled = game_manager.is_debug_mode_enabled()
+	var gm: Node = get_node_or_null("/root/GameManager")
+	if gm:
+		if gm.has_signal("debug_mode_toggled"): gm.debug_mode_toggled.connect(_on_debug_mode_toggled)
+		if gm.has_method("is_debug_mode_enabled"): debug_label_enabled = gm.is_debug_mode_enabled()
 
-## Called when debug mode is toggled via F7 key.
 func _on_debug_mode_toggled(enabled: bool) -> void:
-	debug_label_enabled = enabled
-	_update_debug_label()
-	queue_redraw()  # Redraw to show/hide FOV cone
+	debug_label_enabled = enabled; _update_debug_label(); queue_redraw()
 
 ## Find the player node in the scene tree.
 func _find_player() -> void:
-	# Try to find the player by group first
 	var players := get_tree().get_nodes_in_group("player")
-	if players.size() > 0:
-		_player = players[0]
-		return
-
-	# Fallback: search for player by node name or type
+	if players.size() > 0: _player = players[0]; return
 	var root := get_tree().current_scene
-	if root:
-		_player = _find_player_recursive(root)
+	if root: _player = _find_player_recursive(root)
 
-## Recursively search for a player node.
 func _find_player_recursive(node: Node) -> Node2D:
-	if node.name == "Player" and node is Node2D:
-		return node
+	if node.name == "Player" and node is Node2D: return node
 	for child in node.get_children():
 		var result := _find_player_recursive(child)
-		if result:
-			return result
+		if result: return result
 	return null
 
 func _physics_process(delta: float) -> void:
@@ -907,6 +894,11 @@ func _update_goap_state() -> void:
 		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
 		# Check if the next navigation waypoint is lit by the flashlight
 		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
+
+	# Muzzle flash detection states (Issue #754)
+	if _muzzle_flash_detection:
+		_goap_world_state["muzzle_flash_detected"] = _muzzle_flash_detection.detected
+
 ## Update model rotation (#347, #386, #397): priority player > combat/pursuit > corner > velocity > idle.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
@@ -1662,9 +1654,17 @@ func _process_in_cover_state(delta: float) -> void:
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
+	# [Issue #754] Shoot suppressive fire at muzzle flash when player hidden
+	elif _muzzle_flash_detection and _muzzle_flash_detection.detected and not _under_fire:
+		_aim_at_position(_muzzle_flash_detection.estimated_player_position)
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_shoot_suppressive_at(_muzzle_flash_detection.estimated_player_position)
+			_shoot_timer = 0.0
+			_log_to_file("[#754] IN_COVER: suppressive fire at estimated pos %s" % _muzzle_flash_detection.estimated_player_position)
+		return  # Stay in cover while suppressing
 
-	# If player is no longer visible and not under fire, try pursuing
-	if not _can_see_player and not _under_fire:
+	# If player is no longer visible, no muzzle flash, and not under fire, try pursuing
+	if not _can_see_player and not _under_fire and not (_muzzle_flash_detection and _muzzle_flash_detection.detected):
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
@@ -1773,6 +1773,13 @@ func _process_suppressed_state(delta: float) -> void:
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
+	# [Issue #754] Suppress at muzzle flash position when player not visible
+	elif _muzzle_flash_detection and _muzzle_flash_detection.detected:
+		_aim_at_position(_muzzle_flash_detection.estimated_player_position)
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			_shoot_suppressive_at(_muzzle_flash_detection.estimated_player_position)
+			_shoot_timer = 0.0
+			_log_to_file("[#754] SUPPRESSED: suppressive fire at estimated pos %s" % _muzzle_flash_detection.estimated_player_position)
 
 	# If no longer under fire, exit suppression
 	if not _under_fire:
@@ -2321,64 +2328,10 @@ func _return_from_grenade_evasion() -> void:
 		AIState.SEARCHING: _transition_to_searching(global_position)
 		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
 
-## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
+## Shoot with reduced accuracy for retreat mode (delegates to _shoot_suppressive_at).
 func _shoot_with_inaccuracy() -> void:
-	if bullet_scene == null or _player == null:
-		return
-
-	if not _can_shoot():
-		return
-
-	var target_position := _player.global_position
-
-	# Check if the shot should be taken
-	if not _should_shoot_at_target(target_position):
-		return
-
-	# Calculate bullet spawn position at weapon muzzle first
-	var weapon_forward := _get_weapon_forward_direction()
-	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
-	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
-	var aim_dot := weapon_forward.dot(to_target)
-	if aim_dot < AIM_TOLERANCE_DOT:
-		if debug_logging:
-			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
-			_log_debug("INACCURATE SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
-		return
-
-	# Bullet direction is the weapon's forward direction (realistic barrel direction)
-	# with added inaccuracy spread for retreat shooting
-	var direction := weapon_forward
-
-	# Add inaccuracy spread to barrel direction
-	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD)
-	direction = direction.rotated(inaccuracy_angle)
-
-	# Check if the inaccurate shot direction would hit a wall
-	if not _is_bullet_spawn_clear(direction):
-		_log_debug("Inaccurate shot blocked: wall in path after rotation")
-		return
-
-	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #516, #550)
-	_spawn_projectile(direction, bullet_spawn_pos)
-	_spawn_muzzle_flash(bullet_spawn_pos, direction)
-	# Play sounds
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_m16_shot"):
-		audio_manager.play_m16_shot(global_position)
-	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
-		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
-	_play_delayed_shell_sound()
-	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
-	ammo_changed.emit(_current_ammo, _reserve_ammo)
-	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+	if _player == null or not _should_shoot_at_target(_player.global_position): return
+	_shoot_suppressive_at(_player.global_position)
 
 ## Shoot a burst shot with arc spread for ONE_HIT retreat.
 func _shoot_burst_shot() -> void:
@@ -3647,25 +3600,34 @@ func _update_memory(delta: float) -> void:
 		_prediction.process_frame(_can_see_player, _was_player_visible, _player.global_position if _player else Vector2.ZERO, global_position, f, delta, _memory)
 	_was_player_visible = _can_see_player
 
-	# [Issue #574] Flashlight beam detection: enemy detects beam when any part of it falls within their FOV
+	# [Issue #574] Flashlight beam detection
 	if _flashlight_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
 		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
 		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
-		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta)
-		if flashlight_detected:
-			# Update memory with flashlight-based detection
+		if _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta):
 			_memory.update_position(_flashlight_detection.estimated_player_position, FlashlightDetectionComponent.FLASHLIGHT_DETECTION_CONFIDENCE)
 			_last_known_player_position = _flashlight_detection.estimated_player_position
-			_log_to_file("[#574] Flashlight detected: estimated_pos=%s, beam_dir=%s" % [
-				_flashlight_detection.estimated_player_position, _flashlight_detection.beam_direction
-			])
-			# If in IDLE state, react to flashlight detection by investigating
+			_log_to_file("[#574] Flashlight detected: estimated_pos=%s, beam_dir=%s" % [_flashlight_detection.estimated_player_position, _flashlight_detection.beam_direction])
 			if _current_state == AIState.IDLE:
-				_log_to_file("[#574] Flashlight triggered pursuit from IDLE")
-				_transition_to_pursuing()
+				_log_to_file("[#574] Flashlight triggered pursuit from IDLE"); _transition_to_pursuing()
 	elif _flashlight_detection and (_can_see_player or _is_blinded or _memory_reset_confusion_timer > 0.0):
-		# Reset flashlight detection when player is directly visible or enemy is blinded/confused
 		_flashlight_detection.reset()
+
+	# [Issue #754] Muzzle flash detection
+	_goap_world_state["player_preparing_grenade"] = _player != null and _player.has_method("is_preparing_grenade") and _player.is_preparing_grenade()
+	if _muzzle_flash_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
+		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
+		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
+		var muzzle_flash_detected := _muzzle_flash_detection.check_muzzle_flash(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, _can_see_player, delta)
+		_goap_world_state["muzzle_flash_detected"] = muzzle_flash_detected
+		if muzzle_flash_detected:
+			_memory.update_position(_muzzle_flash_detection.estimated_player_position, MuzzleFlashDetectionComponent.MUZZLE_FLASH_DETECTION_CONFIDENCE)
+			_last_known_player_position = _muzzle_flash_detection.estimated_player_position
+			_log_to_file("[#754] Muzzle flash detected: estimated_pos=%s, flash_dir=%s" % [_muzzle_flash_detection.estimated_player_position, _muzzle_flash_detection.flash_direction])
+			if _current_state == AIState.IDLE:
+				_log_to_file("[#754] Muzzle flash triggered pursuit from IDLE"); _transition_to_pursuing()
+	elif _muzzle_flash_detection and (_can_see_player or _is_blinded or _memory_reset_confusion_timer > 0.0):
+		_muzzle_flash_detection.reset(); _goap_world_state["muzzle_flash_detected"] = false
 
 	# Apply confidence decay over time
 	_memory.decay(delta)
@@ -3790,6 +3752,16 @@ func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 
 	return has_los
 
+## Aim the enemy toward a world position using gradual rotation (Issue #754).
+func _aim_at_position(pos: Vector2) -> void:
+	var dir := (pos - global_position).normalized()
+	var target_angle := dir.angle()
+	var angle_diff := wrapf(target_angle - rotation, -PI, PI)
+	var delta := get_physics_process_delta_time()
+	if abs(angle_diff) <= rotation_speed * delta: rotation = target_angle
+	elif angle_diff > 0: rotation += rotation_speed * delta
+	else: rotation -= rotation_speed * delta
+
 ## Aim the enemy sprite/direction at the player using gradual rotation.
 func _aim_at_player() -> void:
 	if _player == null:
@@ -3860,6 +3832,25 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 	_play_delayed_shell_sound()
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+
+## Shoot suppressive fire at an estimated position (Issue #754: muzzle flash response).
+## Uses inaccuracy spread since position is an estimate, not confirmed target.
+func _shoot_suppressive_at(target_pos: Vector2) -> void:
+	if bullet_scene == null or not _can_shoot(): return
+	var weapon_forward := _get_weapon_forward_direction()
+	var to_target := (target_pos - global_position).normalized()
+	if weapon_forward.dot(to_target) < AIM_TOLERANCE_DOT: return
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+	var direction := weapon_forward.rotated(randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD))
+	if not _is_bullet_spawn_clear(direction): return
+	_spawn_projectile(direction, bullet_spawn_pos); _spawn_muzzle_flash(bullet_spawn_pos, direction); _spawn_casing(direction, weapon_forward)
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	_play_delayed_shell_sound(); _current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
