@@ -41,12 +41,16 @@ public partial class ShotgunPellet : Area2D
 
     /// <summary>
     /// Direction the pellet travels (set by the shooter).
+    /// Exported so GDScript force field can check "direction" in pellet (Issue #912).
     /// </summary>
+    [Export]
     public Vector2 Direction { get; set; } = Vector2.Right;
 
     /// <summary>
     /// Instance ID of the node that shot this pellet.
+    /// Exported so GDScript force field can check "shooter_id" in pellet (Issue #912).
     /// </summary>
+    [Export]
     public ulong ShooterId { get; set; } = 0;
 
     /// <summary>

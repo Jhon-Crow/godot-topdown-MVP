@@ -127,8 +127,11 @@ func _setup_shield_visual() -> void:
 	_shield_sprite.z_index = 10  # Draw above player
 	add_child(_shield_sprite)
 
-	# Create a circular texture for the shield
-	_shield_sprite.texture = _create_shield_texture()
+	# Use a plain white texture so the shader has full control over color and alpha.
+	# A GradientTexture2D with fill creates a blue tinted overlay that bleeds through
+	# even after the shader runs — so we use a flat white square and let the shader
+	# do all shaping (ring, glow, pulse, iridescence).
+	_shield_sprite.texture = _create_white_texture()
 
 	# Load and apply shader
 	if ResourceLoader.exists(SHADER_PATH):
@@ -139,30 +142,44 @@ func _setup_shield_visual() -> void:
 			_shield_sprite.material = _shader_material
 			FileLogger.info("[ForceFieldEffect] Shader loaded successfully")
 		else:
-			FileLogger.info("[ForceFieldEffect] WARNING: Failed to load shader")
+			FileLogger.info("[ForceFieldEffect] WARNING: Failed to load shader — using fallback ring texture")
+			_shield_sprite.texture = _create_ring_texture()
 	else:
-		FileLogger.info("[ForceFieldEffect] WARNING: Shader not found: %s" % SHADER_PATH)
+		FileLogger.info("[ForceFieldEffect] WARNING: Shader not found: %s — using fallback ring texture" % SHADER_PATH)
+		_shield_sprite.texture = _create_ring_texture()
 
 
-## Create a circular gradient texture for the shield visual.
-func _create_shield_texture() -> GradientTexture2D:
-	var gradient := Gradient.new()
-	# Transparent center, strong blue edge — creates a bubble/sphere look
-	gradient.set_color(0, Color(0.3, 0.6, 1.0, 0.0))   # Transparent blue center
-	gradient.set_color(1, Color(0.5, 0.8, 1.0, 0.9))   # Bright blue edge
+## Create a plain white 256x256 texture.
+## The shader controls all colors/alpha — the texture just provides UV coordinates.
+func _create_white_texture() -> ImageTexture:
+	var image := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	image.fill(Color(1.0, 1.0, 1.0, 1.0))
+	return ImageTexture.create_from_image(image)
 
-	# Offset the gradient stop so the bright edge is narrow
-	gradient.set_offset(0, 0.0)
-	gradient.set_offset(1, 1.0)
 
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 256
-	texture.height = 256
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(0.5, 0.0)
-	return texture
+## Fallback: create a ring (donut) texture for when the shader is unavailable.
+## The ring is fully transparent in the center and at the outside, with a bright
+## blue rim at ~84–100% radius — giving the same bubble look without shader support.
+func _create_ring_texture() -> ImageTexture:
+	var size := 256
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5       # 128px
+	var rim_start := outer_r * 0.84  # inner edge of visible ring
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist > outer_r or dist < rim_start:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				# Alpha strongest at the mid-rim, fading to edges
+				var t := (dist - rim_start) / (outer_r - rim_start)  # 0 at rim_start, 1 at edge
+				var alpha := sin(t * PI) * 0.9  # bell curve, peak alpha 0.9
+				image.set_pixel(x, y, Color(0.4, 0.7, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Activate the force field.
@@ -256,12 +273,18 @@ func _on_projectile_entered(area: Area2D) -> void:
 
 	var script_path: String = script.resource_path
 	FileLogger.info("[ForceFieldEffect] Area entered: %s (script: %s)" % [area.name, script_path])
-	if "bullet" in script_path.to_lower():
+
+	# Identify projectile type by script path.
+	# Bullets: bullet.gd  or Bullet.cs
+	# Shotgun pellets: ShotgunPellet.cs — trapped same as bullets (have direction/speed)
+	# Shrapnel: shrapnel.gd, BreakerShrapnel.gd
+	var lower_path := script_path.to_lower()
+	if "bullet" in lower_path or "shotgunpellet" in lower_path or "pellet" in lower_path:
 		_trap_bullet(area)
-	elif "shrapnel" in script_path.to_lower():
+	elif "shrapnel" in lower_path:
 		_trap_shrapnel(area)
 	else:
-		FileLogger.info("[ForceFieldEffect] Unknown projectile type: %s" % script_path)
+		FileLogger.info("[ForceFieldEffect] Unknown projectile type, script path: %s" % script_path)
 
 
 ## Handle grenade (RigidBody2D) entering the force field area.
@@ -285,32 +308,39 @@ func _on_body_entered(body: Node2D) -> void:
 ## Trap a bullet in the force field — stop its movement and hold it in place.
 ## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
 func _trap_bullet(bullet: Node2D) -> void:
-	# Use "prop" in node to check property existence (GDScript 4 standard).
-	# Object.has() does not exist — Dictionary.has() does, but calling it on a Node
-	# returns null (nonexistent function error), causing an always-true condition (Issue #912).
-	if not "direction" in bullet or not "speed" in bullet:
-		FileLogger.info("[ForceFieldEffect] Bullet missing direction/speed property — skipping trap")
+	# Use "prop" in node to check property existence (Godot 4 GDScript standard).
+	# This works for both GDScript vars and C# [Export] properties (registered as snake_case).
+	var has_direction := "direction" in bullet
+	var has_speed := "speed" in bullet
+	if not has_direction or not has_speed:
+		FileLogger.info("[ForceFieldEffect] Bullet missing properties — has_direction=%s has_speed=%s class=%s — skipping trap" % [
+			has_direction, has_speed, bullet.get_class()])
 		return
 
 	# Already trapped? Skip.
 	if bullet in _trapped_bullets:
 		return
 
-	# Freeze bullet movement by disabling its physics process
+	# Freeze bullet movement by disabling its physics process.
+	# For GDScript bullets: stops _physics_process (direction*speed*delta movement).
+	# For C# bullets: stops _PhysicsProcess (Direction*Speed*(float)delta movement).
 	bullet.set_physics_process(false)
 	bullet.set_process(false)
 
 	# Make bullet dimly visible to show it's trapped
-	if bullet.has_method("set") and bullet is CanvasItem:
+	if bullet is CanvasItem:
 		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
-	# Reset shooter ID so released bullet can damage anyone
+	# Reset shooter ID so released bullet can damage anyone (not just enemies)
 	if "shooter_id" in bullet:
 		bullet.shooter_id = -1
+	elif "ShooterId" in bullet:
+		bullet.set("ShooterId", 0)
 
 	_trapped_bullets.append(bullet)
 
-	FileLogger.info("[ForceFieldEffect] Bullet trapped. Total trapped: %d" % _trapped_bullets.size())
+	FileLogger.info("[ForceFieldEffect] Bullet trapped (class=%s). Total trapped: %d" % [
+		bullet.get_class(), _trapped_bullets.size()])
 
 
 ## Trap shrapnel in the force field — stop its movement and hold it in place.
