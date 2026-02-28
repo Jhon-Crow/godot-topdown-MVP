@@ -96,12 +96,36 @@ The first fix session reduced then removed `inner_glow` from the shader — corr
 6. **First fix session (PR #913)**: Fixed `bullet.has()` → `"direction" in bullet`, removed `inner_glow`, added `IsForceFieldArea()` in Bullet.cs
 7. **User reports same issues persist** — user was testing with old compiled game export, not rebuilt code
 8. **Second fix session (PR #913 continued)**: Fixed GradientTexture2D → white texture, added ring fallback, added [Export] to ShotgunPellet Direction/ShooterId, improved projectile type detection
+9. **User reports Round 3 issues (2026-02-28)**: Force field now shows as WHITE SQUARE (not bubble). Bullets still not trapped.
+   - Root cause of white square: The plain white `ImageTexture` with no shader effect shows as solid white when the shader doesn't apply visually in the exported game (despite loading successfully). This confirms the shader output is not being composited correctly with the white base texture in the exported build.
+   - Root cause of bullet trapping: User is still using the pre-compiled `.exe` without the C# rebuild. The diagnostic `_check_trapped_bullet_validity.call_deferred()` approach added in this session will confirm this in the next game log.
+10. **Third fix session (PR #913 continued)**: Changed `_setup_shield_visual()` to use `_create_ring_texture()` as the PRIMARY visual (not `_create_white_texture()`). The shader is still loaded as an optional enhancement but the ring texture ensures correct appearance even when the shader doesn't produce visible output. Added `_check_trapped_bullet_validity.call_deferred()` diagnostic to log whether bullets survive the trap attempt or are freed by C# in the same frame.
+
+### Bug 4: Force Field Shows as White Square (Round 3)
+
+#### Evidence
+
+User screenshot (2026-02-28): Force field renders as a solid white rectangle in the exported game.
+
+#### Root Cause
+
+The second fix session changed the base texture from `GradientTexture2D` (which produced a blue fill even without the shader) to a plain white `ImageTexture`. The shader is loaded successfully (`[ForceFieldEffect] Shader loaded successfully` in logs), but when applied to a runtime-created `Sprite2D` in an exported build, the rendered output is the white texture without the shader's transparency/rim effect.
+
+This is likely caused by one of:
+1. The `ShaderMaterial` applied dynamically to a `Sprite2D.new()` doesn't precompile the shader in the export, so the white texture fallback shows.
+2. The alpha compositing from the shader's `COLOR = vec4(0.0)` (transparent) pixels is showing the white background of the white texture instead of being fully transparent.
+
+In both cases, the white texture without visible shader effect = solid white square.
+
+#### Fix
+
+Use `_create_ring_texture()` as the primary visual instead of `_create_white_texture()`. The ring texture programmatically creates a donut/bubble with transparent center and transparent outside — the correct visual without ANY shader needed. The shader is then optionally applied on top as a visual enhancement (pulse animation, iridescence) without being required for the basic bubble appearance.
 
 ## Files Modified
 
 1. `Scripts/Projectiles/Bullet.cs` — Add `IsForceFieldArea()` check to prevent `QueueFree()` when entering force field
 2. `Scripts/Projectiles/ShotgunPellet.cs` — Add `[Export]` to `Direction` and `ShooterId`; add `IsForceFieldArea()` check
-3. `scripts/effects/force_field_effect.gd` — Fix `has()` → `in` operator; white texture; ring fallback; ShotgunPellet path detection
+3. `scripts/effects/force_field_effect.gd` — Fix `has()` → `in` operator; ring texture as primary visual; ShotgunPellet path detection; diagnostic deferred validity check
 4. `scripts/shaders/force_field.gdshader` — Remove `inner_glow` entirely
 
 ## Key Lessons
@@ -109,4 +133,5 @@ The first fix session reduced then removed `inner_glow` from the shader — corr
 - **GDScript `in` operator vs `has()`**: Use `"property" in node` for property existence checks on Node objects. `Object.has()` does not exist in Godot 4 — it's a Dictionary method that silently returns null when called on a Node, making conditions always-true or always-false.
 - **C# [Export] for GDScript interop**: C# properties need `[Export]` for GDScript's `in` operator and `property = value` assignment to work.
 - **Compiled export vs editor source**: C# code changes require a full rebuild. GDScript changes take effect at runtime. Testing must account for this.
-- **Shader texture independence**: When a canvas_item shader fully replaces `COLOR`, use a neutral (white, fully opaque) base texture to avoid interference from the texture's built-in color.
+- **Shader texture in exported games**: When a `canvas_item` shader is applied dynamically (via code) to a runtime-created `Sprite2D` in an exported Godot 4 game, the shader may not visually apply even though it loads successfully. Always use a correctly-shaped base texture (e.g. a programmatic ring) so the visual is correct without the shader.
+- **Diagnostic logging with `call_deferred`**: To diagnose whether a node survives a physics frame (i.e., wasn't freed by C# `QueueFree()` in the same frame), schedule a deferred validity check with `_check_validity.call_deferred(node)`. The deferred callback runs AFTER all same-frame physics signals have processed.

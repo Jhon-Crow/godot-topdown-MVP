@@ -119,7 +119,10 @@ func _setup_area2d() -> void:
 	FileLogger.info("[ForceFieldEffect] Area2D setup with radius %.0fpx" % FIELD_RADIUS)
 
 
-## Set up the shield visual (bubble sprite with shader).
+## Set up the shield visual (bubble sprite with ring texture).
+## Uses a programmatic ring texture as the primary visual so it works in exported
+## games without relying on runtime shader compilation.
+## The shader is applied as an optional enhancement when available.
 func _setup_shield_visual() -> void:
 	_shield_sprite = Sprite2D.new()
 	_shield_sprite.name = "ShieldVisual"
@@ -127,26 +130,25 @@ func _setup_shield_visual() -> void:
 	_shield_sprite.z_index = 10  # Draw above player
 	add_child(_shield_sprite)
 
-	# Use a plain white texture so the shader has full control over color and alpha.
-	# A GradientTexture2D with fill creates a blue tinted overlay that bleeds through
-	# even after the shader runs — so we use a flat white square and let the shader
-	# do all shaping (ring, glow, pulse, iridescence).
-	_shield_sprite.texture = _create_white_texture()
+	# Always use the ring texture as the primary visual.
+	# This works reliably in both editor and exported games (no shader compilation needed).
+	# The ring texture already looks like a translucent blue bubble — transparent center,
+	# blue glowing rim — matching the "soap bubble" aesthetic required by Issue #906.
+	_shield_sprite.texture = _create_ring_texture()
 
-	# Load and apply shader
+	# Optionally load and apply shader as enhancement (e.g. pulse animation, iridescence).
+	# If the shader fails to load, the ring texture still provides correct bubble look.
 	if ResourceLoader.exists(SHADER_PATH):
 		var shader = load(SHADER_PATH)
 		if shader:
 			_shader_material = ShaderMaterial.new()
 			_shader_material.shader = shader
 			_shield_sprite.material = _shader_material
-			FileLogger.info("[ForceFieldEffect] Shader loaded successfully")
+			FileLogger.info("[ForceFieldEffect] Shader loaded successfully (ring texture used as base)")
 		else:
-			FileLogger.info("[ForceFieldEffect] WARNING: Failed to load shader — using fallback ring texture")
-			_shield_sprite.texture = _create_ring_texture()
+			FileLogger.info("[ForceFieldEffect] WARNING: Failed to load shader — ring texture only")
 	else:
-		FileLogger.info("[ForceFieldEffect] WARNING: Shader not found: %s — using fallback ring texture" % SHADER_PATH)
-		_shield_sprite.texture = _create_ring_texture()
+		FileLogger.info("[ForceFieldEffect] WARNING: Shader not found: %s — ring texture only" % SHADER_PATH)
 
 
 ## Create a plain white 256x256 texture.
@@ -257,6 +259,12 @@ func get_remaining_charge() -> float:
 ## Handle projectile entering the force field area.
 ## In Godot 4 bullets and shrapnel are Area2D nodes themselves, so `area` IS the projectile.
 ## Grenades are RigidBody2D and appear via body_entered instead (handled separately).
+##
+## IMPORTANT (Issue #912): C# bullets call QueueFree() in their own OnAreaEntered handler.
+## The IsForceFieldArea() check in Bullet.cs and ShotgunPellet.cs prevents this when the
+## force field area is detected — but only when the project is built from source (not a
+## pre-compiled .exe). Without that C# fix, the bullet gets queued-for-free in the same
+## physics frame and is removed at frame end even if we successfully disable its processing.
 func _on_projectile_entered(area: Area2D) -> void:
 	if not is_active:
 		return
@@ -281,10 +289,25 @@ func _on_projectile_entered(area: Area2D) -> void:
 	var lower_path := script_path.to_lower()
 	if "bullet" in lower_path or "shotgunpellet" in lower_path or "pellet" in lower_path:
 		_trap_bullet(area)
+		# Deferred validity check: if the bullet was freed by C# OnAreaEntered in the same
+		# frame (pre-compiled .exe without IsForceFieldArea fix), log a diagnostic message.
+		# This confirms whether C# rebuild is needed.
+		_check_trapped_bullet_validity.call_deferred(area)
 	elif "shrapnel" in lower_path:
 		_trap_shrapnel(area)
 	else:
 		FileLogger.info("[ForceFieldEffect] Unknown projectile type, script path: %s" % script_path)
+
+
+## Deferred validity check after trapping a bullet.
+## Logs whether the bullet survived the trap attempt (i.e., C# did not call QueueFree).
+## DIAGNOSTIC: If this logs "freed by C#", rebuild the project from source to apply the
+## IsForceFieldArea() fix in Bullet.cs / ShotgunPellet.cs (Issue #912).
+func _check_trapped_bullet_validity(bullet: Area2D) -> void:
+	if not is_instance_valid(bullet):
+		FileLogger.info("[ForceFieldEffect] DIAGNOSTIC: Bullet was freed by C# after trap attempt — rebuild from source to apply Issue #912 fix (Bullet.cs IsForceFieldArea check)")
+	else:
+		FileLogger.info("[ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active")
 
 
 ## Handle grenade (RigidBody2D) entering the force field area.
@@ -331,11 +354,11 @@ func _trap_bullet(bullet: Node2D) -> void:
 	if bullet is CanvasItem:
 		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
-	# Reset shooter ID so released bullet can damage anyone (not just enemies)
+	# Reset shooter ID so released bullet can damage anyone (not just enemies).
+	# C# [Export] properties are registered as snake_case in GDScript,
+	# so "ShooterId" [Export] in C# is accessible as "shooter_id" in GDScript.
 	if "shooter_id" in bullet:
 		bullet.shooter_id = -1
-	elif "ShooterId" in bullet:
-		bullet.set("ShooterId", 0)
 
 	_trapped_bullets.append(bullet)
 
