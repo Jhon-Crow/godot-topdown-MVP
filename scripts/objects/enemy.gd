@@ -572,9 +572,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 
 		# React to vulnerable player sound - pursue (high-risk for reload actions)
-		# Issue #921: Added SEARCHING state so searching enemies pursue on player vulnerability
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
-			# Leave cover/defensive/searching state to attack vulnerable player
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
 		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
@@ -603,8 +601,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# React to vulnerable player sound - transition to combat/pursuing
 		# All enemies in hearing range should pursue the vulnerable player!
 		# This makes empty click sounds a high-risk action when enemies are nearby.
-		# Issue #921: Added SEARCHING state so searching enemies pursue on player vulnerability
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
 			# Leave cover/defensive/searching state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
@@ -2608,12 +2605,8 @@ func _transition_to_assault() -> void:
 ## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
 func _transition_to_searching(center_position: Vector2) -> void:
 	_current_state = AIState.SEARCHING
-	# Issue #921: Do NOT set _has_left_idle = true here.
-	# Enemies that reached SEARCHING via combat (PURSUING/FLANKING/etc.) already have
-	# _has_left_idle = true from those earlier transitions, so they will search indefinitely.
-	# Enemies entering SEARCHING directly from IDLE (e.g. ally death observation) will have
-	# _has_left_idle = false, allowing the SEARCH_MAX_DURATION timeout to work correctly
-	# so they return to their patrol route after 30 seconds.
+	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
+	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
@@ -4391,8 +4384,7 @@ func _reset() -> void:
 	# Reset ally death observation state (Issue #409)
 	_witnessed_ally_death = false
 	_suspected_directions.clear()
-	# Reset engagement tracking state (Issue #921: ensure timeout works on respawn)
-	_has_left_idle = false
+	_has_left_idle = false  # Issue #921: reset so respawned patrol enemies can timeout from SEARCHING
 	# Reset score tracking state
 	_killed_by_ricochet = false
 	_killed_by_penetration = false
