@@ -276,6 +276,18 @@ func test_null_listener_is_not_registered() -> void:
 	assert_eq(_sound_propagation.get_listener_count(), 0, "Null listener should not be registered")
 
 
+func test_emit_sound_with_no_listeners_does_not_crash() -> void:
+	# Issue #884: emit_sound() should exit early when listener array is empty,
+	# avoiding no-op iteration over the empty array (22% of all sound events).
+	assert_eq(_sound_propagation.get_listener_count(), 0, "Should start with no listeners")
+
+	# Emitting sound with no listeners should complete without errors
+	_sound_propagation.emit_sound(0, Vector2.ZERO, 0, null)
+
+	# No assertions about notifications needed — we just verify no crash and no state change
+	assert_eq(_sound_propagation.get_listener_count(), 0, "Listener count should remain 0 after no-op emit")
+
+
 # =====================================================
 # Tests for physically-based sound intensity calculation
 # =====================================================
