@@ -1,5 +1,5 @@
 extends Node2D
-## Force field effect controller (Issue #676, #906).
+## Force field effect controller (Issue #676, #906, #912, #932).
 ##
 ## Creates a glowing energy bubble shield around the player that traps projectiles.
 ## Activated by holding Space key with a depletable 8-second charge.
@@ -8,7 +8,8 @@ extends Node2D
 ## - Hold Space to activate, release to deactivate
 ## - 8 second total charge (usable in portions: 8×1s, 2×4s, etc.)
 ## - 100% projectile trapping (bullets, shrapnel stop on contact)
-## - Trapped bullets scatter outward when field deactivates
+## - Trapped bullets snap to and stay on the field boundary ring (Issue #932)
+## - Trapped bullets scatter outward when field deactivates (Issue #932)
 ## - Frag grenades bounce WITHOUT detonating on contact
 ## - Full damage protection while active
 ## - Visual warning when charge is low (last 2 seconds)
@@ -72,6 +73,10 @@ var _trapped_bullets: Array = []
 
 ## Array of trapped shrapnel (Area2D nodes with physics process disabled).
 var _trapped_shrapnel: Array = []
+
+## Maps trapped projectile → boundary angle (radians) from field center.
+## Used to keep trapped projectiles glued to the field boundary ring as the player moves.
+var _trapped_boundary_angles: Dictionary = {}
 
 ## Signal emitted when force field is activated.
 signal force_field_activated()
@@ -245,6 +250,24 @@ func _process(delta: float) -> void:
 		if _shield_sprite:
 			_shield_sprite.modulate.a = 1.0 if flash_on else 0.5
 
+	# Keep trapped projectiles glued to the field boundary as the player moves (Issue #932).
+	# The force field node moves with the player, so we update each trapped projectile's
+	# global_position every frame to stay on the boundary ring.
+	_update_trapped_positions()
+
+
+## Update global positions of all trapped projectiles to keep them on the boundary ring.
+## Called every frame while the field is active so projectiles follow the player (Issue #932).
+func _update_trapped_positions() -> void:
+	for projectile in _trapped_bullets:
+		if is_instance_valid(projectile) and projectile in _trapped_boundary_angles:
+			var angle: float = _trapped_boundary_angles[projectile]
+			projectile.global_position = global_position + Vector2(cos(angle), sin(angle)) * FIELD_RADIUS
+	for projectile in _trapped_shrapnel:
+		if is_instance_valid(projectile) and projectile in _trapped_boundary_angles:
+			var angle: float = _trapped_boundary_angles[projectile]
+			projectile.global_position = global_position + Vector2(cos(angle), sin(angle)) * FIELD_RADIUS
+
 
 ## Check if the player is currently protected by the force field.
 func is_protecting() -> bool:
@@ -328,7 +351,24 @@ func _on_body_entered(body: Node2D) -> void:
 			_reflect_grenade(body)
 
 
-## Trap a bullet in the force field — stop its movement and hold it in place.
+## Snap a projectile to the force field boundary ring and record its boundary angle.
+## Moves the projectile to the surface of the field (at FIELD_RADIUS distance from center)
+## so that all trapped projectiles visually hover at the field edge — like time stopped.
+## The boundary angle is stored in _trapped_boundary_angles so _process() can keep the
+## projectile glued to the boundary ring even as the player (and field) moves.
+func _snap_to_boundary(projectile: Node2D) -> void:
+	var from_center := projectile.global_position - global_position
+	var direction_to_proj := from_center.normalized()
+	# If projectile is at or very near center, use its travel direction as placement direction
+	if from_center.length_squared() < 1.0 and "direction" in projectile:
+		direction_to_proj = (projectile.direction as Vector2).normalized()
+	# Place at boundary ring
+	projectile.global_position = global_position + direction_to_proj * FIELD_RADIUS
+	# Store boundary angle for continuous tracking in _process()
+	_trapped_boundary_angles[projectile] = direction_to_proj.angle()
+
+
+## Trap a bullet in the force field — stop its movement and snap it to the field boundary.
 ## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
 func _trap_bullet(bullet: Node2D) -> void:
 	# Use "prop" in node to check property existence (Godot 4 GDScript standard).
@@ -350,6 +390,10 @@ func _trap_bullet(bullet: Node2D) -> void:
 	bullet.set_physics_process(false)
 	bullet.set_process(false)
 
+	# Snap to field boundary so bullets visually stick to the edge of the shield
+	# (like time stopped — bullets frozen at the field boundary ring, Issue #932).
+	_snap_to_boundary(bullet)
+
 	# Make bullet dimly visible to show it's trapped
 	if bullet is CanvasItem:
 		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
@@ -362,11 +406,11 @@ func _trap_bullet(bullet: Node2D) -> void:
 
 	_trapped_bullets.append(bullet)
 
-	FileLogger.info("[ForceFieldEffect] Bullet trapped (class=%s). Total trapped: %d" % [
+	FileLogger.info("[ForceFieldEffect] Bullet trapped at boundary (class=%s). Total trapped: %d" % [
 		bullet.get_class(), _trapped_bullets.size()])
 
 
-## Trap shrapnel in the force field — stop its movement and hold it in place.
+## Trap shrapnel in the force field — stop its movement and snap it to the field boundary.
 func _trap_shrapnel(shrapnel: Node2D) -> void:
 	# Use "prop" in node to check property existence (GDScript 4 standard, Issue #912).
 	if not "direction" in shrapnel:
@@ -380,6 +424,10 @@ func _trap_shrapnel(shrapnel: Node2D) -> void:
 	shrapnel.set_physics_process(false)
 	shrapnel.set_process(false)
 
+	# Snap to field boundary so shrapnel visually sticks to the edge of the shield
+	# (like time stopped — shrapnel frozen at the field boundary ring, Issue #932).
+	_snap_to_boundary(shrapnel)
+
 	# Make shrapnel dimly visible to show it's trapped
 	if shrapnel is CanvasItem:
 		(shrapnel as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
@@ -390,7 +438,7 @@ func _trap_shrapnel(shrapnel: Node2D) -> void:
 
 	_trapped_shrapnel.append(shrapnel)
 
-	FileLogger.info("[ForceFieldEffect] Shrapnel trapped. Total trapped: %d" % _trapped_shrapnel.size())
+	FileLogger.info("[ForceFieldEffect] Shrapnel trapped at boundary. Total trapped: %d" % _trapped_shrapnel.size())
 
 
 ## Release all trapped projectiles outward when the force field deactivates.
@@ -414,6 +462,7 @@ func _release_trapped_projectiles() -> void:
 
 	_trapped_bullets.clear()
 	_trapped_shrapnel.clear()
+	_trapped_boundary_angles.clear()
 
 	FileLogger.info("[ForceFieldEffect] Released %d trapped projectiles" % total_released)
 
@@ -422,14 +471,21 @@ func _release_trapped_projectiles() -> void:
 ## @param projectile: The trapped bullet or shrapnel node.
 ## @param release_speed: Speed to give the projectile when released.
 func _release_projectile(projectile: Node2D, release_speed: float) -> void:
-	# Calculate outward direction from the force field center
-	var from_center := projectile.global_position - global_position
-	var outward_dir := from_center.normalized()
-
-	# If projectile is at center (unlikely), pick a random direction
-	if from_center.length_squared() < 1.0:
-		var random_angle := randf_range(0.0, TAU)
-		outward_dir = Vector2(cos(random_angle), sin(random_angle))
+	# Use stored boundary angle for reliable outward direction (Issue #932).
+	# Since bullets are kept at the boundary ring, from_center is also reliable,
+	# but the stored angle avoids floating-point drift from _update_trapped_positions.
+	var outward_dir: Vector2
+	if projectile in _trapped_boundary_angles:
+		var angle: float = _trapped_boundary_angles[projectile]
+		outward_dir = Vector2(cos(angle), sin(angle))
+	else:
+		# Fallback: compute from current position
+		var from_center := projectile.global_position - global_position
+		outward_dir = from_center.normalized()
+		# If projectile is at center (unlikely), pick a random direction
+		if from_center.length_squared() < 1.0:
+			var random_angle := randf_range(0.0, TAU)
+			outward_dir = Vector2(cos(random_angle), sin(random_angle))
 
 	# Set new direction and speed
 	if "direction" in projectile:
