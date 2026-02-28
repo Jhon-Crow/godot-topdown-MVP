@@ -206,6 +206,17 @@ const VOLUME_GRENADE_LAUNCHER: float = -3.0
 ## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
 const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
 
+## Homing Bullets active item sounds (Issue #890).
+## Activation chirp played once when the player activates homing bullets.
+const HOMING_ACTIVATION: String = "res://assets/audio/homing_activation.wav"
+## Scanner loop played continuously while the Homing Bullets item is equipped.
+const HOMING_SCANNER_LOOP: String = "res://assets/audio/homing_scanner_loop.wav"
+
+## Volume for homing bullets activation chirp.
+const VOLUME_HOMING_ACTIVATION: float = -3.0
+## Volume for homing bullets scanner loop (very quiet ambient).
+const VOLUME_HOMING_SCANNER: float = -18.0
+
 ## Volume settings (in dB).
 const VOLUME_FIRE_MODE_TOGGLE: float = -3.0
 const VOLUME_SHOT: float = -5.0
@@ -400,6 +411,9 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(REVOLVER_SHOT_2)
 	all_sounds.append(REVOLVER_SHOT_3)
 	all_sounds.append(REVOLVER_SHOT_4)
+	# Homing Bullets sounds (Issue #890)
+	all_sounds.append(HOMING_ACTIVATION)
+	all_sounds.append(HOMING_SCANNER_LOOP)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):

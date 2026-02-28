@@ -79,6 +79,16 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 		"enemy_count": 20,
 		"map_size": "5000x4000"
+	},
+	{
+		"name": "Double Corridor",
+		"name_ru": "Двойной Коридор",
+		"path": "res://scenes/levels/RevolverLevel.tscn",
+		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
+		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
+		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
+		"enemy_count": 12,
+		"map_size": "2000x1600"
 	}
 ]
 
@@ -437,6 +447,11 @@ func _on_level_selected(level_path: String) -> void:
 
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	# Save the selected level for next session (Issue #896)
+	var persist_manager: Node = get_node_or_null("/root/PersistManager")
+	if persist_manager and persist_manager.has_method("save_last_level"):
+		persist_manager.save_last_level(level_path)
 
 	# Change to the selected level
 	var error := get_tree().change_scene_to_file(level_path)
