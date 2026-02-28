@@ -1,0 +1,1808 @@
+[00:18:41] [INFO] ============================================================
+[00:18:41] [INFO] GAME LOG STARTED
+[00:18:41] [INFO] ============================================================
+[00:18:41] [INFO] Timestamp: 2026-02-16T00:18:41
+[00:18:41] [INFO] Log file: I:/Загрузки/godot exe/BFF/game_log_20260216_001841.txt
+[00:18:41] [INFO] Executable: I:/Загрузки/godot exe/BFF/Godot-Top-Down-Template.exe
+[00:18:41] [INFO] OS: Windows
+[00:18:41] [INFO] Debug build: false
+[00:18:41] [INFO] Engine version: 4.3-stable (official)
+[00:18:41] [INFO] Project: Godot Top-Down Template
+[00:18:41] [INFO] ------------------------------------------------------------
+[00:18:41] [INFO] [GameManager] GameManager ready
+[00:18:41] [INFO] [ScoreManager] ScoreManager ready
+[00:18:41] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[00:18:41] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[00:18:41] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[00:18:41] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[00:18:41] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:18:41] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[00:18:41] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[00:18:41] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[00:18:41] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[00:18:41] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[00:18:41] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[00:18:41] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[00:18:41] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:18:41] [INFO] [LastChance] Last chance shader loaded successfully
+[00:18:41] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[00:18:41] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[00:18:41] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[00:18:41] [INFO] [LastChance]   Sepia intensity: 0.70
+[00:18:41] [INFO] [LastChance]   Brightness: 0.60
+[00:18:41] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[00:18:41] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[00:18:41] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[00:18:41] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[00:18:41] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: false, Invincibility: true, Realistic visibility: false
+[00:18:41] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[00:18:41] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[00:18:41] [INFO] [CinemaEffects] Created effects layer at layer 99
+[00:18:41] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[00:18:41] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[00:18:41] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[00:18:41] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[00:18:41] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[00:18:41] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[00:18:41] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[00:18:41] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[00:18:41] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[00:18:41] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[00:18:41] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[00:18:41] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[00:18:41] [INFO] [GrenadeTimerHelper] Autoload ready
+[00:18:41] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:18:41] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[00:18:41] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[00:18:41] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[00:18:41] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[00:18:41] [INFO] [ProgressManager] ProgressManager ready, loaded 14 entries
+[00:18:41] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[00:18:41] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:18:41] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[00:18:41] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[00:18:41] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[00:18:41] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[00:18:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:41] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:18:41] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:18:41] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:18:41] [ENEMY] [Enemy1] Death animation component initialized
+[00:18:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:41] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:18:41] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:18:41] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:18:41] [ENEMY] [Enemy2] Death animation component initialized
+[00:18:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:41] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:18:41] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:18:41] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:18:41] [ENEMY] [Enemy3] Death animation component initialized
+[00:18:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:41] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:18:41] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:18:41] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:18:41] [ENEMY] [Enemy4] Death animation component initialized
+[00:18:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:41] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[00:18:41] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[00:18:41] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[00:18:41] [ENEMY] [Enemy5] Death animation component initialized
+[00:18:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:41] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:18:41] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:18:41] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:18:41] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:18:41] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:18:41] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:18:41] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:18:41] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:18:41] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:18:41] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:18:41] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:18:41] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:18:41] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:18:41] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[00:18:41] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:18:41] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:18:41] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:18:41] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 3/4
+[00:18:41] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:18:41] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[00:18:41] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[00:18:41] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:18:41] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:18:41] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:18:41] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:18:41] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[00:18:41] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[00:18:41] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
+[00:18:41] [INFO] [ScoreManager] Level started with 5 enemies
+[00:18:41] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[00:18:41] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[00:18:41] [INFO] [ReplayManager] Replay data cleared
+[00:18:41] [INFO] [LabyrinthLevel] Previous replay data cleared
+[00:18:41] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[00:18:41] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:18:41] [INFO] [ReplayManager] Level: LabyrinthLevel
+[00:18:41] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:18:41] [INFO] [ReplayManager] Enemies count: 5
+[00:18:41] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[00:18:41] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:18:41] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:18:41] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:18:41] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:18:41] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[00:18:41] [INFO] [LabyrinthLevel] Replay recording started successfully
+[00:18:41] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[00:18:41] [INFO] [CinemaEffects] Found player node: Player
+[00:18:41] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:18:41] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:18:41] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[00:18:41] [ENEMY] [Enemy1] Registered as sound listener
+[00:18:41] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[00:18:41] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:18:41] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[00:18:41] [ENEMY] [Enemy2] Registered as sound listener
+[00:18:41] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[00:18:41] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:18:41] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[00:18:41] [ENEMY] [Enemy3] Registered as sound listener
+[00:18:41] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[00:18:41] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:18:41] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[00:18:41] [ENEMY] [Enemy4] Registered as sound listener
+[00:18:41] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[00:18:41] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[00:18:41] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[00:18:41] [ENEMY] [Enemy5] Registered as sound listener
+[00:18:41] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 4, behavior: GUARD
+[00:18:41] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:18:42] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:42] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:42] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:42] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=67.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:42] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:18:42] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[00:18:42] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[00:18:42] [INFO] [PenultimateHit] Shader warmup complete in 541 ms
+[00:18:42] [INFO] [LastChance] Shader warmup complete in 540 ms
+[00:18:42] [INFO] [CinemaEffects] Cinema shader warmup complete in 454 ms
+[00:18:42] [INFO] [FlashbangPlayer] Shader warmup complete in 443 ms
+[00:18:42] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:18:42] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:18:42] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:18:42] [INFO] [LastChance] Found player: Player
+[00:18:42] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:18:42] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:18:42] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:18:42] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:18:42] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 815 ms
+[00:18:43] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[00:18:43] [INFO] [PauseMenu] Armory button pressed
+[00:18:43] [INFO] [PauseMenu] Creating new armory menu instance
+[00:18:43] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[00:18:43] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[00:18:43] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[00:18:43] [INFO] [PauseMenu] back_pressed signal exists on instance
+[00:18:43] [INFO] [PauseMenu] back_pressed signal connected
+[00:18:43] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[00:18:43] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[00:18:44] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[00:18:45] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[00:18:46] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[00:18:46] [INFO] [ActiveItemManager] Active item changed from None to BFF Pendant
+[00:18:46] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:18:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:46] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:18:46] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:18:46] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:18:46] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:18:46] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:18:46] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:18:46] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[00:18:46] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:18:46] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:18:46] [ENEMY] [Enemy1] Death animation component initialized
+[00:18:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:46] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:18:46] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:18:46] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:18:46] [ENEMY] [Enemy2] Death animation component initialized
+[00:18:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:46] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:18:46] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:18:46] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:18:46] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[00:18:46] [ENEMY] [Enemy3] Death animation component initialized
+[00:18:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:46] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:18:46] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:18:46] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:18:46] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[00:18:46] [ENEMY] [Enemy4] Death animation component initialized
+[00:18:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:46] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[00:18:46] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[00:18:46] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[00:18:46] [ENEMY] [Enemy5] Death animation component initialized
+[00:18:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:46] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:18:46] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:18:46] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:18:46] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:18:46] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:18:46] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:18:46] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:18:46] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:18:46] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:18:46] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:18:46] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:18:46] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:18:46] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:18:46] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[00:18:46] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
+[00:18:46] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
+[00:18:46] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:18:46] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:18:46] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 2/4
+[00:18:46] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:18:46] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[00:18:46] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:18:46] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:18:46] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:18:46] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:18:46] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[00:18:46] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[00:18:46] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
+[00:18:46] [INFO] [ScoreManager] Level started with 5 enemies
+[00:18:46] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[00:18:46] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[00:18:46] [INFO] [ReplayManager] Replay data cleared
+[00:18:46] [INFO] [LabyrinthLevel] Previous replay data cleared
+[00:18:46] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[00:18:46] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:18:46] [INFO] [ReplayManager] Level: LabyrinthLevel
+[00:18:46] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:18:46] [INFO] [ReplayManager] Enemies count: 5
+[00:18:46] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[00:18:46] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:18:46] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:18:46] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:18:46] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:18:46] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[00:18:46] [INFO] [LabyrinthLevel] Replay recording started successfully
+[00:18:46] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:18:46] [INFO] [CinemaEffects] Found player node: Player
+[00:18:46] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:18:46] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 6)
+[00:18:46] [ENEMY] [Enemy1] Registered as sound listener
+[00:18:46] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[00:18:46] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:18:46] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 7)
+[00:18:46] [ENEMY] [Enemy2] Registered as sound listener
+[00:18:46] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[00:18:46] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:18:46] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 8)
+[00:18:46] [ENEMY] [Enemy3] Registered as sound listener
+[00:18:46] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 1, behavior: PATROL
+[00:18:46] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:18:46] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 9)
+[00:18:46] [ENEMY] [Enemy4] Registered as sound listener
+[00:18:46] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[00:18:46] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[00:18:46] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 10)
+[00:18:46] [ENEMY] [Enemy5] Registered as sound listener
+[00:18:46] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[00:18:46] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:18:46] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:46] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:18:46] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[00:18:46] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:18:46] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:18:46] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:18:46] [INFO] [LastChance] Found player: Player
+[00:18:46] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:18:46] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:18:46] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:18:46] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:46] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:46] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [Player.BffPendant] Companion summoned at position (97.01061, 1024.3336)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:47] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:47] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+[00:18:48] [INFO] [EnemyGrenade] Target (600, 1000.19) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000.19) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.724, 786.4609)
+[00:18:48] [INFO] [EnemyGrenade] Target (600.0003, 1000.571) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0003, 1000.571) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.781, 786.7071)
+[00:18:48] [INFO] [EnemyGrenade] Target (600.0011, 1001.143) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0011, 1001.143) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.868, 787.0763)
+[00:18:48] [INFO] [EnemyGrenade] Target (600.003, 1001.905) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.003, 1001.905) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1065.984, 787.5682)
+[00:18:48] [INFO] [EnemyGrenade] Target (600.0068, 1002.857) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0068, 1002.857) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1066.129, 788.1829)
+[00:18:48] [INFO] [EnemyGrenade] Target (600.0134, 1004) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0134, 1004) - skipping throw
+[00:18:48] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1066.304, 788.9197)
+[00:18:48] [ENEMY] [Enemy3] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(150,1009), corner_timer=0.30
+[00:18:48] [INFO] [EnemyGrenade] Target (603.6892, 1005.209) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.6892, 1005.209) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1066.499, 789.7359)
+[00:18:48] [INFO] [EnemyGrenade] Target (607.3684, 1006.495) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.3684, 1006.495) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1066.714, 790.6317)
+[00:18:48] [INFO] [EnemyGrenade] Target (611.0513, 1007.858) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (611.0513, 1007.858) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1066.95, 791.6076)
+[00:18:48] [INFO] [EnemyGrenade] Target (614.7386, 1009.299) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (614.7386, 1009.299) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1067.208, 792.6639)
+[00:18:48] [INFO] [EnemyGrenade] Target (618.4307, 1010.818) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (618.4307, 1010.818) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1067.487, 793.801)
+[00:18:48] [INFO] [EnemyGrenade] Target (622.1282, 1012.416) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (622.1282, 1012.416) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1067.789, 795.0197)
+[00:18:48] [INFO] [EnemyGrenade] Target (625.8319, 1014.094) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (625.8319, 1014.094) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1068.115, 796.3205)
+[00:18:48] [INFO] [EnemyGrenade] Target (629.5425, 1015.853) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (629.5425, 1015.853) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1068.465, 797.7041)
+[00:18:48] [INFO] [EnemyGrenade] Target (633.2606, 1017.694) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (633.2606, 1017.694) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1068.839, 799.1713)
+[00:18:48] [INFO] [EnemyGrenade] Target (636.9871, 1019.618) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (636.9871, 1019.618) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1069.24, 800.7229)
+[00:18:48] [INFO] [EnemyGrenade] Target (640.7228, 1021.627) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (640.7228, 1021.627) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1069.667, 802.3598)
+[00:18:48] [INFO] [EnemyGrenade] Target (644.4686, 1023.721) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (644.4686, 1023.721) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1070.122, 804.083)
+[00:18:48] [INFO] [EnemyGrenade] Target (648.2254, 1025.901) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (648.2254, 1025.901) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1070.605, 805.8911)
+[00:18:48] [INFO] [EnemyGrenade] Target (651.9902, 1028.08) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (651.9902, 1028.08) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1071.096, 807.7042)
+[00:18:48] [INFO] [EnemyGrenade] Target (655.7629, 1030.259) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (655.7629, 1030.259) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1071.595, 809.5222)
+[00:18:48] [INFO] [EnemyGrenade] Target (659.5435, 1032.437) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (659.5435, 1032.437) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1072.101, 811.3452)
+[00:18:48] [INFO] [EnemyGrenade] Target (663.332, 1034.616) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (663.332, 1034.616) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1072.614, 813.1731)
+[00:18:48] [INFO] [EnemyGrenade] Target (667.1285, 1036.793) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (667.1285, 1036.793) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1073.135, 815.0059)
+[00:18:48] [INFO] [EnemyGrenade] Target (670.9329, 1038.971) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (670.9329, 1038.971) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1073.664, 816.8434)
+[00:18:48] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=-54.4°, player=(204,1073), corner_timer=-0.02
+[00:18:48] [INFO] [EnemyGrenade] Target (674.7451, 1041.147) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (674.7451, 1041.147) - skipping throw
+[00:18:48] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1074.2, 818.6857)
+[00:18:48] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=-51.6°, player=(208,1077), corner_timer=0.30
+[00:18:48] [INFO] [EnemyGrenade] Target (678.5653, 1043.323) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (678.5653, 1043.323) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1074.745, 820.5327)
+[00:18:48] [INFO] [EnemyGrenade] Target (682.3933, 1045.498) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (682.3933, 1045.498) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1075.297, 822.3845)
+[00:18:48] [INFO] [EnemyGrenade] Target (686.2293, 1047.673) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (686.2293, 1047.673) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1075.857, 824.2408)
+[00:18:48] [INFO] [EnemyGrenade] Target (690.0731, 1049.846) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (690.0731, 1049.846) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1076.425, 826.1019)
+[00:18:48] [INFO] [EnemyGrenade] Target (693.9248, 1052.018) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (693.9248, 1052.018) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1077.001, 827.9674)
+[00:18:48] [INFO] [EnemyGrenade] Target (697.7843, 1054.189) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.7843, 1054.189) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1077.585, 829.8374)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.0032, 1056.551) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.0032, 1056.551) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1078.178, 831.712)
+[00:18:48] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[00:18:48] [INFO] [EnemyGrenade] Target (698.2331, 1058.928) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.2331, 1058.928) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1078.778, 833.5909)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.4739, 1061.32) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.4739, 1061.32) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1079.387, 835.4742)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.7004, 1063.486) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.7004, 1063.486) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1079.952, 837.2048)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.7274, 1063.739) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.7274, 1063.739) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1080.12, 837.7134)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.7568, 1064.014) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.7568, 1064.014) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1080.302, 838.2651)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.7844, 1064.27) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.7844, 1064.27) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1080.473, 838.7828)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.8109, 1064.515) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8109, 1064.515) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1080.635, 839.2722)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.8358, 1064.745) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8358, 1064.745) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1080.788, 839.7299)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.8592, 1064.96) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8592, 1064.96) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1080.93, 840.1552)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.8807, 1065.158) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8807, 1065.158) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.061, 840.5479)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.9007, 1065.34) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9007, 1065.34) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.182, 840.9074)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.9188, 1065.506) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9188, 1065.506) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.291, 841.2335)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.9352, 1065.654) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9352, 1065.654) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.39, 841.5257)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.9493, 1065.782) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9493, 1065.782) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.474, 841.7769)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.9611, 1065.889) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9611, 1065.889) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.545, 841.9867)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.9705, 1065.975) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9705, 1065.975) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.602, 842.1548)
+[00:18:48] [INFO] [EnemyGrenade] Target (698.9777, 1066.039) not in enemy FOV - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9777, 1066.039) - skipping throw
+[00:18:48] [INFO] [EnemyGrenade] Throw path blocked to (1081.645, 842.2811)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9824, 1066.083) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9824, 1066.083) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.673, 842.3655)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9849, 1066.104) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9849, 1066.104) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.687, 842.4077)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9849, 1066.104) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9849, 1066.104) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.687, 842.4077)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9824, 1066.083) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9824, 1066.083) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.673, 842.3655)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9777, 1066.039) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9777, 1066.039) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.645, 842.2813)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9705, 1065.975) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9705, 1065.975) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.602, 842.155)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9611, 1065.889) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9611, 1065.889) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.545, 841.9869)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9493, 1065.782) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9493, 1065.782) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.474, 841.7772)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9352, 1065.655) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9352, 1065.655) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.39, 841.526)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9188, 1065.506) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9188, 1065.506) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.291, 841.2338)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.9003, 1065.337) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.9003, 1065.337) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.179, 840.9009)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.8796, 1065.148) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8796, 1065.148) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1081.054, 840.5276)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.8569, 1064.939) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8569, 1064.939) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1080.916, 840.1145)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.8321, 1064.711) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8321, 1064.711) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1080.765, 839.662)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.8054, 1064.464) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.8054, 1064.464) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1080.602, 839.1707)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.7767, 1064.199) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.7767, 1064.199) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1080.426, 838.6411)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.7286, 1063.751) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.7286, 1063.751) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1080.213, 837.9974)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.6618, 1063.122) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.6618, 1063.122) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1079.964, 837.2399)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.5829, 1062.371) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.5829, 1062.371) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1079.695, 836.4208)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.4922, 1061.498) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.4922, 1061.498) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1079.408, 835.54)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.3907, 1060.504) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.3907, 1060.504) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1079.103, 834.5972)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.2787, 1059.389) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.2787, 1059.389) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.779, 833.5922)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.166, 1058.244) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.166, 1058.244) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.458, 832.5918)
+[00:18:49] [INFO] [EnemyGrenade] Target (698.0524, 1057.068) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (698.0524, 1057.068) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.141, 831.5953)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.9381, 1055.859) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.9381, 1055.859) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.826, 830.6021)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.8323, 1054.716) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.8323, 1054.716) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.535, 829.6768)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.7345, 1053.637) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.7345, 1053.637) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.266, 828.8188)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.6442, 1052.62) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.6442, 1052.62) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.02, 828.0276)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.5608, 1051.665) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.5608, 1051.665) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.795, 827.3028)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.4842, 1050.771) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.4842, 1050.771) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.592, 826.6439)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.4139, 1049.936) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.4139, 1049.936) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.409, 826.0504)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.3497, 1049.161) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.3497, 1049.161) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.248, 825.5223)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.2911, 1048.444) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.2911, 1048.444) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.106, 825.0592)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.2381, 1047.784) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.2381, 1047.784) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.985, 824.6611)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.1903, 1047.182) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.1903, 1047.182) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.883, 824.3277)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.1476, 1046.637) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.1476, 1046.637) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.802, 824.0592)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.1097, 1046.149) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.1097, 1046.149) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.74, 823.8556)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0765, 1045.717) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0765, 1045.717) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.698, 823.717)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.048, 1045.342) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.048, 1045.342) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.676, 823.6436)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0239, 1045.023) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0239, 1045.023) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.674, 823.6356)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0043, 1044.761) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0043, 1044.761) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.691, 823.6935)
+[00:18:49] [INFO] [EnemyGrenade] Target (696.989, 1044.556) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (696.989, 1044.556) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.729, 823.8175)
+[00:18:49] [INFO] [EnemyGrenade] Target (696.9779, 1044.408) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (696.9779, 1044.408) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.786, 824.0082)
+[00:18:49] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[00:18:49] [INFO] [EnemyGrenade] Target (696.9711, 1044.317) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (696.9711, 1044.317) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.865, 824.2662)
+[00:18:49] [INFO] [EnemyGrenade] Target (696.9688, 1044.284) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (696.9688, 1044.284) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1075.964, 824.592)
+[00:18:49] [INFO] [EnemyGrenade] Target (696.9707, 1044.311) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (696.9707, 1044.311) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.084, 824.9864)
+[00:18:49] [INFO] [EnemyGrenade] Target (696.9771, 1044.396) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (696.9771, 1044.396) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.225, 825.4501)
+[00:18:49] [INFO] [EnemyGrenade] Target (696.9879, 1044.542) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (696.9879, 1044.542) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.389, 825.9841)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0034, 1044.75) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0034, 1044.75) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.575, 826.5893)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0212, 1044.988) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0212, 1044.988) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.773, 827.231)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0394, 1045.229) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0394, 1045.229) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1076.973, 827.8771)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0579, 1045.472) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0579, 1045.472) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.176, 828.5276)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0766, 1045.718) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0766, 1045.718) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.38, 829.1829)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.0956, 1045.967) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.0956, 1045.967) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.587, 829.8426)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.115, 1046.218) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.115, 1046.218) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1077.796, 830.507)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.1348, 1046.472) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.1348, 1046.472) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.008, 831.176)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.1547, 1046.729) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.1547, 1046.729) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.221, 831.8497)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.1751, 1046.989) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.1751, 1046.989) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.438, 832.5283)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.1958, 1047.252) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.1958, 1047.252) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.656, 833.2117)
+[00:18:49] [INFO] [EnemyGrenade] Target (697.2169, 1047.518) not in enemy FOV - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.2169, 1047.518) - skipping throw
+[00:18:49] [INFO] [EnemyGrenade] Throw path blocked to (1078.878, 833.9)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.2382, 1047.786) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.2382, 1047.786) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1079.101, 834.5931)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.26, 1048.058) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.26, 1048.058) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1079.327, 835.2913)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.2821, 1048.333) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.2821, 1048.333) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1079.556, 835.9944)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.3047, 1048.611) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.3047, 1048.611) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1079.788, 836.7026)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.3276, 1048.892) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.3276, 1048.892) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1080.022, 837.416)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.351, 1049.176) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.351, 1049.176) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1080.259, 838.1345)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.3747, 1049.464) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.3747, 1049.464) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1080.498, 838.8582)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.3988, 1049.755) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.3988, 1049.755) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1080.74, 839.5873)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.4234, 1050.05) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.4234, 1050.05) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1080.985, 840.3216)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.4484, 1050.348) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.4484, 1050.348) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1081.233, 841.0614)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.4739, 1050.649) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.4739, 1050.649) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1081.484, 841.8065)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.4999, 1050.954) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.4999, 1050.954) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1081.738, 842.5573)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.5262, 1051.263) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.5262, 1051.263) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1081.995, 843.3135)
+[00:18:50] [INFO] [EnemyGrenade] Target (697.5531, 1051.576) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.5531, 1051.576) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1082.255, 844.0754)
+[00:18:50] [INFO] [EnemyGrenade] Target (693.9324, 1052.106) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (693.9324, 1052.106) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1082.518, 844.8429)
+[00:18:50] [INFO] [EnemyGrenade] Target (690.3132, 1052.646) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (690.3132, 1052.646) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1082.784, 845.6162)
+[00:18:50] [INFO] [EnemyGrenade] Target (686.6954, 1053.198) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (686.6954, 1053.198) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1083.053, 846.3953)
+[00:18:50] [INFO] [EnemyGrenade] Target (683.0792, 1053.761) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (683.0792, 1053.761) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1083.325, 847.1802)
+[00:18:50] [INFO] [EnemyGrenade] Target (679.4647, 1054.337) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (679.4647, 1054.337) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1083.601, 847.9711)
+[00:18:50] [INFO] [EnemyGrenade] Target (675.8517, 1054.925) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (675.8517, 1054.925) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1083.88, 848.7678)
+[00:18:50] [INFO] [EnemyGrenade] Target (672.2407, 1055.526) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (672.2407, 1055.526) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1084.163, 849.5707)
+[00:18:50] [INFO] [EnemyGrenade] Target (668.6314, 1056.14) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (668.6314, 1056.14) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1084.449, 850.3797)
+[00:18:50] [INFO] [EnemyGrenade] Target (665.0242, 1056.767) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (665.0242, 1056.767) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1084.738, 851.1948)
+[00:18:50] [INFO] [EnemyGrenade] Target (661.4188, 1057.409) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (661.4188, 1057.409) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1085.031, 852.0162)
+[00:18:50] [INFO] [EnemyGrenade] Target (657.8157, 1058.065) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (657.8157, 1058.065) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1085.328, 852.8439)
+[00:18:50] [INFO] [EnemyGrenade] Target (654.2147, 1058.737) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (654.2147, 1058.737) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1085.628, 853.6779)
+[00:18:50] [INFO] [EnemyGrenade] Target (650.6161, 1059.424) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (650.6161, 1059.424) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1085.932, 854.5183)
+[00:18:50] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=52.8°, player=(477,1077), corner_timer=-0.02
+[00:18:50] [INFO] [EnemyGrenade] Target (647.0198, 1060.127) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (647.0198, 1060.127) - skipping throw
+[00:18:50] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1086.24, 855.3653)
+[00:18:50] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=55.6°, player=(482,1077), corner_timer=0.30
+[00:18:50] [INFO] [EnemyGrenade] Target (643.4262, 1060.847) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (643.4262, 1060.847) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1086.552, 856.2189)
+[00:18:50] [INFO] [EnemyGrenade] Target (639.8351, 1061.584) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (639.8351, 1061.584) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1086.867, 857.079)
+[00:18:50] [INFO] [EnemyGrenade] Target (636.2469, 1062.34) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (636.2469, 1062.34) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1087.187, 857.9459)
+[00:18:50] [INFO] [EnemyGrenade] Target (632.6617, 1063.114) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (632.6617, 1063.114) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1087.51, 858.8196)
+[00:18:50] [INFO] [EnemyGrenade] Target (629.0795, 1063.907) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (629.0795, 1063.907) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1087.838, 859.7002)
+[00:18:50] [INFO] [EnemyGrenade] Target (625.5006, 1064.721) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (625.5006, 1064.721) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1088.17, 860.5876)
+[00:18:50] [INFO] [EnemyGrenade] Target (621.925, 1065.555) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (621.925, 1065.555) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1088.506, 861.4821)
+[00:18:50] [INFO] [EnemyGrenade] Target (618.3532, 1066.411) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (618.3532, 1066.411) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1088.847, 862.3837)
+[00:18:50] [INFO] [EnemyGrenade] Target (614.785, 1067.289) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (614.785, 1067.289) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1089.191, 863.2925)
+[00:18:50] [INFO] [EnemyGrenade] Target (611.2209, 1068.191) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (611.2209, 1068.191) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1089.541, 864.2084)
+[00:18:50] [INFO] [EnemyGrenade] Target (607.6609, 1069.118) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.6609, 1069.118) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1089.894, 865.1317)
+[00:18:50] [INFO] [EnemyGrenade] Target (604.1055, 1070.069) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.1055, 1070.069) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1090.253, 866.0624)
+[00:18:50] [INFO] [EnemyGrenade] Target (600.5546, 1071.047) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.5546, 1071.047) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1090.616, 867.0006)
+[00:18:50] [INFO] [EnemyGrenade] Target (597.0087, 1072.052) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (597.0087, 1072.052) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1090.984, 867.9464)
+[00:18:50] [INFO] [EnemyGrenade] Target (593.4681, 1073.086) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (593.4681, 1073.086) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1091.356, 868.8998)
+[00:18:50] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[00:18:50] [INFO] [EnemyGrenade] Target (589.933, 1074.15) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (589.933, 1074.15) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1091.734, 869.8609)
+[00:18:50] [INFO] [EnemyGrenade] Target (586.4038, 1075.245) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (586.4038, 1075.245) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1092.116, 870.8298)
+[00:18:50] [INFO] [EnemyGrenade] Target (582.8807, 1076.373) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (582.8807, 1076.373) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1092.504, 871.8066)
+[00:18:50] [INFO] [EnemyGrenade] Target (581.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (581.678, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1092.897, 872.7915)
+[00:18:50] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.2°, player=(587,1077), corner_timer=-0.02
+[00:18:50] [INFO] [EnemyGrenade] Target (587.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (587.178, 1077.233) - skipping throw
+[00:18:50] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1093.295, 873.7844)
+[00:18:50] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=4.1°, player=(592,1077), corner_timer=0.30
+[00:18:50] [INFO] [EnemyGrenade] Target (592.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (592.678, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1093.698, 874.7854)
+[00:18:50] [INFO] [EnemyGrenade] Target (598.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (598.178, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1094.107, 875.7947)
+[00:18:50] [INFO] [EnemyGrenade] Target (603.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.678, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1094.522, 876.8124)
+[00:18:50] [INFO] [EnemyGrenade] Target (609.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.178, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1094.942, 877.8385)
+[00:18:50] [INFO] [EnemyGrenade] Target (614.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (614.678, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1095.368, 878.8732)
+[00:18:50] [INFO] [EnemyGrenade] Target (620.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (620.178, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1095.799, 879.9164)
+[00:18:50] [INFO] [EnemyGrenade] Target (625.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (625.678, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1096.237, 880.9684)
+[00:18:50] [INFO] [EnemyGrenade] Target (631.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (631.178, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1096.681, 882.0292)
+[00:18:50] [INFO] [EnemyGrenade] Target (636.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (636.678, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1097.13, 883.099)
+[00:18:50] [INFO] [EnemyGrenade] Target (642.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (642.178, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1097.586, 884.1777)
+[00:18:50] [INFO] [EnemyGrenade] Target (647.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (647.678, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1098.049, 885.2656)
+[00:18:50] [INFO] [EnemyGrenade] Target (653.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (653.178, 1077.233) - skipping throw
+[00:18:50] [INFO] [EnemyGrenade] Throw path blocked to (1098.518, 886.3627)
+[00:18:51] [INFO] [EnemyGrenade] Target (658.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (658.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1098.993, 887.4692)
+[00:18:51] [INFO] [EnemyGrenade] Target (664.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (664.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1099.476, 888.585)
+[00:18:51] [INFO] [EnemyGrenade] Target (669.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (669.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1099.965, 889.7104)
+[00:18:51] [INFO] [EnemyGrenade] Target (675.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (675.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1100.461, 890.8455)
+[00:18:51] [INFO] [EnemyGrenade] Target (680.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (680.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1100.964, 891.9903)
+[00:18:51] [INFO] [EnemyGrenade] Target (686.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (686.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1101.474, 893.145)
+[00:18:51] [INFO] [EnemyGrenade] Target (691.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (691.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1101.992, 894.3096)
+[00:18:51] [INFO] [EnemyGrenade] Target (697.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (697.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1102.517, 895.4843)
+[00:18:51] [INFO] [EnemyGrenade] Target (702.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (702.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1103.05, 896.6693)
+[00:18:51] [INFO] [EnemyGrenade] Target (708.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (708.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1103.591, 897.8645)
+[00:18:51] [INFO] [EnemyGrenade] Target (713.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (713.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1104.139, 899.0702)
+[00:18:51] [INFO] [EnemyGrenade] Target (719.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (719.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1104.696, 900.2864)
+[00:18:51] [INFO] [EnemyGrenade] Target (724.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (724.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1105.26, 901.5133)
+[00:18:51] [INFO] [EnemyGrenade] Target (730.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (730.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1105.834, 902.751)
+[00:18:51] [INFO] [EnemyGrenade] Target (735.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (735.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1106.415, 903.9996)
+[00:18:51] [INFO] [EnemyGrenade] Target (741.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (741.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1107.006, 905.2592)
+[00:18:51] [INFO] [EnemyGrenade] Target (746.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (746.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1107.605, 906.53)
+[00:18:51] [INFO] [EnemyGrenade] Target (752.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (752.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1108.213, 907.8121)
+[00:18:51] [INFO] [EnemyGrenade] Target (757.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (757.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1108.831, 909.1056)
+[00:18:51] [INFO] [EnemyGrenade] Target (763.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (763.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1109.457, 910.4105)
+[00:18:51] [INFO] [EnemyGrenade] Target (768.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (768.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1110.094, 911.7272)
+[00:18:51] [INFO] [EnemyGrenade] Target (774.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (774.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1110.74, 913.0557)
+[00:18:51] [INFO] [EnemyGrenade] Target (779.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (779.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1111.396, 914.3961)
+[00:18:51] [INFO] [EnemyGrenade] Target (785.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (785.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1112.062, 915.7485)
+[00:18:51] [INFO] [EnemyGrenade] Target (790.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (790.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1112.738, 917.1132)
+[00:18:51] [INFO] [EnemyGrenade] Target (796.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (796.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1113.425, 918.4902)
+[00:18:51] [INFO] [EnemyGrenade] Target (801.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (801.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1114.122, 919.8796)
+[00:18:51] [INFO] [EnemyGrenade] Target (807.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (807.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1114.831, 921.2816)
+[00:18:51] [INFO] [EnemyGrenade] Target (812.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (812.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1115.55, 922.6964)
+[00:18:51] [INFO] [EnemyGrenade] Target (818.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (818.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1116.281, 924.1241)
+[00:18:51] [INFO] [EnemyGrenade] Target (823.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (823.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1117.023, 925.5649)
+[00:18:51] [INFO] [EnemyGrenade] Target (829.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (829.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1117.778, 927.0187)
+[00:18:51] [INFO] [EnemyGrenade] Target (834.678, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (834.678, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1118.544, 928.486)
+[00:18:51] [INFO] [EnemyGrenade] Target (840.178, 1077.233) not in enemy FOV - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (840.178, 1077.233) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1119.322, 929.9666)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (270 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1120.114, 931.4608)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (265 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1120.917, 932.9689)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (260 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1121.734, 934.4908)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (254 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1122.564, 936.0267)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (249 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1123.408, 937.5769)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (244 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1124.265, 939.1415)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (239 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1125.137, 940.7205)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (234 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1126.022, 942.3142)
+[00:18:51] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=94.6°, current=45.0°, player=(889,1077), corner_timer=0.00
+[00:18:51] [ENEMY] [Enemy2] State: IDLE -> COMBAT
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (228 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1126.923, 943.9227)
+[00:18:51] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (223 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1127.839, 945.5461)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (218 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1128.722, 947.1016)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (214 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1129.572, 948.5869)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (209 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1130.385, 950.0004)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (205 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1131.161, 951.3398)
+[00:18:51] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=81.7°, current=134.3°, player=(918,1077), corner_timer=0.00
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (202 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1131.897, 952.6035)
+[00:18:51] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=80.0°, current=129.6°, player=(922,1077), corner_timer=0.00
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (198 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1132.591, 953.7897)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (195 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1133.243, 954.8969)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (192 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1133.85, 955.9236)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (189 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [ENEMY] [Enemy3] Memory: high confidence (0.90) - transitioning to PURSUING
+[00:18:51] [ENEMY] [Enemy3] State: IDLE -> PURSUING
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1134.411, 956.8682)
+[00:18:51] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=155.5°, current=-90.0°, player=(934,1077), corner_timer=0.02
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (187 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1134.925, 957.7295)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (184 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1135.39, 958.5063)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (177 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1135.805, 959.1976)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (170 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [ENEMY] [Enemy3] PURSUING corner check: angle 54.0°
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1136.169, 959.8022)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (163 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1136.481, 960.3196)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (157 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1136.74, 960.7488)
+[00:18:51] [INFO] [EnemyGrenade] Unsafe throw distance (151 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:51] [INFO] [EnemyGrenade] Throw path blocked to (1136.947, 961.0892)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (145 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.099, 961.3405)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (139 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.198, 961.5021)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (134 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [ENEMY] [Enemy3] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=157.6°, current=-154.6°, player=(946,1077), corner_timer=0.20
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (129 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (123 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (118 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (113 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (108 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (103 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (98 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (93 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (88 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(900, 950), source=ENEMY (Enemy2), range=1469, listeners=10
+[00:18:52] [INFO] [SoundPropagation] Cleaned up 5 invalid listeners
+[00:18:52] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=3
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [LastChance] Threat detected: Bullet
+[00:18:52] [INFO] [LastChance] Not in hard mode - effect disabled
+[00:18:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [Player] Spawning blood effect at (946.9002, 1077.2333), dir=(1, 0), lethal=False (C#)
+[00:18:52] [INFO] [ImpactEffects] spawn_blood_effect called at (946.9002, 1077.233), dir=(1, 0), lethal=false
+[00:18:52] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[00:18:52] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[00:18:52] [INFO] [ImpactEffects] Blood effect spawned at (946.9002, 1077.233) (scale=1)
+[00:18:52] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[00:18:52] [INFO] [PenultimateHit] Triggering penultimate hit effect (HP: 1.0)
+[00:18:52] [INFO] [PenultimateHit] Starting penultimate hit effect:
+[00:18:52] [INFO] [PenultimateHit]   - Time scale: 0.10
+[00:18:52] [INFO] [PenultimateHit]   - Saturation boost: 2.00 (3.0x)
+[00:18:52] [INFO] [PenultimateHit]   - Contrast boost: 1.00 (2.0x)
+[00:18:52] [INFO] [PenultimateHit]   - Duration: 3.0 real seconds
+[00:18:52] [INFO] [PenultimateHit] Applied shader parameters: saturation=2.00, contrast=1.00
+[00:18:52] [INFO] [PenultimateHit] Applying saturation to 5 enemies
+[00:18:52] [INFO] [PenultimateHit] Applied 4.0x saturation to 6 player sprites
+[00:18:52] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [EnemyGrenade] Unsafe throw distance (83 < 275 safe distance, blast=225, margin=50) - skipping throw
+[00:18:52] [INFO] [EnemyGrenade] Throw path blocked to (1137.241, 961.574)
+[00:18:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:18:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:52] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:18:52] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:18:52] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:18:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:18:52] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:18:52] [INFO] [PenultimateHit] Restored original colors to 5 player sprites
+[00:18:52] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:18:52] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[00:18:52] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:18:52] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:18:52] [ENEMY] [Enemy1] Death animation component initialized
+[00:18:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:52] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:18:52] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:18:52] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:18:52] [ENEMY] [Enemy2] Death animation component initialized
+[00:18:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:52] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:18:52] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:18:52] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:18:52] [ENEMY] [Enemy3] Death animation component initialized
+[00:18:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:52] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:18:52] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:18:52] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:18:52] [ENEMY] [Enemy4] Death animation component initialized
+[00:18:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:52] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[00:18:52] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[00:18:52] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[00:18:52] [ENEMY] [Enemy5] Death animation component initialized
+[00:18:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:52] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:18:52] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:18:52] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:18:52] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:18:52] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:18:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:18:52] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:18:52] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:18:52] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:18:52] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:18:52] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:18:52] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:18:52] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:18:52] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[00:18:52] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
+[00:18:52] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
+[00:18:52] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:18:52] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:18:52] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 2/4
+[00:18:52] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:18:52] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[00:18:52] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:18:52] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:18:52] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:18:52] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:18:52] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[00:18:52] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[00:18:52] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
+[00:18:52] [INFO] [ScoreManager] Level started with 5 enemies
+[00:18:52] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[00:18:52] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[00:18:52] [INFO] [ReplayManager] Replay data cleared
+[00:18:52] [INFO] [LabyrinthLevel] Previous replay data cleared
+[00:18:52] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[00:18:52] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:18:52] [INFO] [ReplayManager] Level: LabyrinthLevel
+[00:18:52] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:18:52] [INFO] [ReplayManager] Enemies count: 5
+[00:18:52] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[00:18:52] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:18:52] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:18:52] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:18:52] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:18:52] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[00:18:52] [INFO] [LabyrinthLevel] Replay recording started successfully
+[00:18:52] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:18:52] [INFO] [CinemaEffects] Found player node: Player
+[00:18:52] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:18:52] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 6)
+[00:18:52] [ENEMY] [Enemy1] Registered as sound listener
+[00:18:52] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[00:18:52] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:18:52] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 7)
+[00:18:52] [ENEMY] [Enemy2] Registered as sound listener
+[00:18:52] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 2, behavior: GUARD
+[00:18:52] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:18:52] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 8)
+[00:18:52] [ENEMY] [Enemy3] Registered as sound listener
+[00:18:52] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[00:18:52] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:18:52] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 9)
+[00:18:52] [ENEMY] [Enemy4] Registered as sound listener
+[00:18:52] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[00:18:52] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[00:18:52] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 10)
+[00:18:52] [ENEMY] [Enemy5] Registered as sound listener
+[00:18:52] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[00:18:52] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:18:52] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[00:18:52] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:52] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:52] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:52] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=67.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[00:18:52] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:18:52] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[00:18:52] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[00:18:52] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:18:52] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:18:52] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:18:52] [INFO] [LastChance] Found player: Player
+[00:18:52] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:18:52] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:18:52] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:18:52] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:18:52] [INFO] [BloodDecal] Blood puddle created at (1021.997, 1099.127) (added to group)
+[00:18:52] [INFO] [BloodDecal] Blood puddle created at (1029.468, 1076.047) (added to group)
+[00:18:52] [INFO] [BloodDecal] Blood puddle created at (1035.905, 1123.061) (added to group)
+[00:18:53] [INFO] [BloodDecal] Blood puddle created at (1136.719, 1112.793) (added to group)
+[00:18:53] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[00:18:54] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:18:54] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:18:54] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:18:54] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:18:54] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[00:18:54] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:18:54] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:18:54] [ENEMY] [Enemy1] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:18:54] [ENEMY] [Enemy2] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:18:54] [ENEMY] [Enemy3] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:18:54] [ENEMY] [Enemy4] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[00:18:54] [INFO] [EnemyGrenade] Grenade bag built (normal): [Flashbang, Flashbang, Flashbang, Offensive, Offensive, Offensive, Offensive, Offensive]
+[00:18:54] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
+[00:18:54] [ENEMY] [Grenadier] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[00:18:54] [ENEMY] [Enemy6] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[00:18:54] [ENEMY] [Enemy7] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[00:18:54] [ENEMY] [Enemy8] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[00:18:54] [ENEMY] [Enemy9] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[00:18:54] [ENEMY] [Enemy10] Death animation component initialized
+[00:18:54] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:18:54] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:18:54] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:18:54] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:18:54] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:18:54] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:18:54] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:18:54] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:18:54] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:18:54] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:18:54] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:18:54] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:18:54] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:18:54] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:18:54] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[00:18:54] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
+[00:18:54] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
+[00:18:54] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:18:54] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:18:54] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 3/4
+[00:18:54] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:18:54] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[00:18:54] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[00:18:54] [INFO] [BuildingLevel] Setting up weapon: makarov_pm
+[00:18:54] [INFO] [ScoreManager] Level started with 10 enemies
+[00:18:54] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[00:18:54] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[00:18:54] [INFO] [ReplayManager] Replay data cleared
+[00:18:54] [INFO] [BuildingLevel] Previous replay data cleared
+[00:18:54] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[00:18:54] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:18:54] [INFO] [ReplayManager] Level: BuildingLevel
+[00:18:54] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:18:54] [INFO] [ReplayManager] Enemies count: 10
+[00:18:54] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[00:18:54] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:18:54] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:18:54] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:18:54] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:18:54] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[00:18:54] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[00:18:54] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[00:18:54] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[00:18:54] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[00:18:54] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[00:18:54] [INFO] [BuildingLevel] Replay recording started successfully
+[00:18:54] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:18:54] [INFO] [CinemaEffects] Found player node: Player
+[00:18:54] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[00:18:54] [ENEMY] [Enemy1] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[00:18:54] [ENEMY] [Enemy2] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 3, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[00:18:54] [ENEMY] [Enemy3] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[00:18:54] [ENEMY] [Enemy4] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 15)
+[00:18:54] [ENEMY] [Grenadier] Registered as sound listener
+[00:18:54] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[00:18:54] [ENEMY] [Enemy6] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[00:18:54] [ENEMY] [Enemy7] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 4, behavior: PATROL
+[00:18:54] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[00:18:54] [ENEMY] [Enemy8] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 4, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[00:18:54] [ENEMY] [Enemy9] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[00:18:54] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[00:18:54] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[00:18:54] [ENEMY] [Enemy10] Registered as sound listener
+[00:18:54] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[00:18:54] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:18:54] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[00:18:54] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=123.7°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:18:54] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:18:54] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[00:18:54] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[00:18:54] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:18:54] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:18:54] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:18:54] [INFO] [LastChance] Found player: Player
+[00:18:54] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:18:54] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:18:54] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:18:54] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:18:55] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[00:18:55] [INFO] [PauseMenu] Armory button pressed
+[00:18:55] [INFO] [PauseMenu] Creating new armory menu instance
+[00:18:55] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[00:18:55] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[00:18:55] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[00:18:55] [INFO] [PauseMenu] back_pressed signal exists on instance
+[00:18:55] [INFO] [PauseMenu] back_pressed signal connected
+[00:18:55] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[00:18:55] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[00:18:56] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[00:18:57] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[00:18:58] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[00:18:59] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=10
+[00:19:00] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[00:19:00] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[00:19:00] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(450,1001), corner_timer=0.30
+[00:19:00] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(450,1001), corner_timer=0.30
+[00:19:00] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(450,896), corner_timer=-0.02
+[00:19:00] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[00:19:00] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(450,896), corner_timer=-0.02
+[00:19:00] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[00:19:00] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(450,891), corner_timer=0.30
+[00:19:00] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(450,891), corner_timer=0.30
+[00:19:00] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=10
+[00:19:00] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=164.4°, current=123.7°, player=(450,819), corner_timer=0.00
+[00:19:00] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[00:19:00] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=166.8°, current=-64.9°, player=(450,808), corner_timer=0.00
+[00:19:00] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(446,787), corner_timer=-0.02
+[00:19:00] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[00:19:00] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(445,783), corner_timer=0.30
+[00:19:00] [INFO] [Player.BffPendant] Companion summoned at position (378.35263, 780.8534)
+[00:19:01] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(374,732), corner_timer=-0.02
+[00:19:01] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[00:19:01] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(370,732), corner_timer=0.30
+[00:19:01] [ENEMY] [Enemy4] Memory: high confidence (0.86) - transitioning to PURSUING
+[00:19:01] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[00:19:01] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=-159.3°, current=168.8°, player=(361,734), corner_timer=0.00
+[00:19:01] [ENEMY] [Enemy3] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-176.8°, current=-127.3°, player=(357,735), corner_timer=0.00
+[00:19:01] [ENEMY] [Enemy4] PURSUING corner check: angle -113.2°
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=20
+[00:19:01] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[00:19:01] [ENEMY] [Enemy2] Heard gunshot at (684.4485, 753.7583), source_type=1, intensity=0.02, distance=350
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[00:19:01] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=105.2°, current=-101.3°, player=(348,739), corner_timer=0.00
+[00:19:01] [INFO] [LastChance] Threat detected: Bullet
+[00:19:01] [INFO] [LastChance] Not in hard mode - effect disabled
+[00:19:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[00:19:01] [INFO] [LastChance] Threat detected: @Area2D@1058
+[00:19:01] [INFO] [LastChance] Not in hard mode - effect disabled
+[00:19:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[00:19:01] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(673.7609, 730.2772), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (673.7609, 730.2772), intensity=0.02, dist=328
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (673.7609, 730.2772), intensity=1.00, dist=27
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (673.7609, 730.2772), intensity=0.06, dist=202
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(673.7618, 728.5319), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (673.7618, 728.5319), intensity=0.02, dist=327
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (673.7618, 728.5319), intensity=1.00, dist=29
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (673.7618, 728.5319), intensity=0.06, dist=204
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(669.5163, 735.5457), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (669.5163, 735.5457), intensity=0.02, dist=327
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (669.5163, 735.5457), intensity=1.00, dist=24
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (669.5163, 735.5457), intensity=0.06, dist=200
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(316,789), corner_timer=-0.02
+[00:19:01] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(673.6584, 726.1765), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (673.6584, 726.1765), intensity=0.02, dist=325
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (673.6584, 726.1765), intensity=1.00, dist=33
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (673.6584, 726.1765), intensity=0.06, dist=206
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(669.267, 733.0988), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (669.267, 733.0988), intensity=0.02, dist=326
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (669.267, 733.0988), intensity=1.00, dist=27
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (669.267, 733.0988), intensity=0.06, dist=202
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(316,794), corner_timer=0.30
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(673.5337, 723.2351), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (673.5337, 723.2351), intensity=0.02, dist=324
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (673.5337, 723.2351), intensity=1.00, dist=38
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (673.5337, 723.2351), intensity=0.06, dist=208
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(668.883, 730.0858), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (668.883, 730.0858), intensity=0.02, dist=324
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (668.883, 730.0858), intensity=1.00, dist=32
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (668.883, 730.0858), intensity=0.06, dist=205
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(668.4548, 726.5233), source=NEUTRAL (null), range=900, listeners=10
+[00:19:01] [ENEMY] [Enemy2] Heard CASING_KICK at (668.4548, 726.5233), intensity=0.02, dist=321
+[00:19:01] [ENEMY] [Enemy3] Heard CASING_KICK at (668.4548, 726.5233), intensity=1.00, dist=37
+[00:19:01] [ENEMY] [Enemy4] Heard CASING_KICK at (668.4548, 726.5233), intensity=0.06, dist=208
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=6, self=0, below_threshold=1
+[00:19:01] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:01] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=10
+[00:19:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(662.2219, 767.5032), source=ENEMY (Enemy3), range=1469, listeners=10
+[00:19:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[00:19:01] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=148.3°, current=168.5°, player=(317,843), corner_timer=0.00
+[00:19:01] [ENEMY] [Enemy3] State: RETREATING -> IN_COVER
+[00:19:01] [ENEMY] [Enemy3] State: IN_COVER -> SUPPRESSED
+[00:19:01] [ENEMY] [Enemy1] Memory: medium confidence (0.59) - transitioning to PURSUING
+[00:19:01] [ENEMY] [Enemy1] State: IDLE -> PURSUING
+[00:19:01] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=87.3°, current=-157.5°, player=(324,867), corner_timer=0.00
+[00:19:01] [ENEMY] [Enemy1] PURSUING corner check: angle -39.5°
+[00:19:01] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[00:19:01] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(340,888), corner_timer=-0.02
+[00:19:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[00:19:01] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(344,892), corner_timer=0.30
+[00:19:01] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:02] [ENEMY] [Enemy1] PURSUING corner check: angle -1.6°
+[00:19:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:19:02] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(464,973), corner_timer=-0.02
+[00:19:02] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:19:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(466,973), corner_timer=0.30
+[00:19:02] [ENEMY] [Enemy1] PURSUING corner check: angle -1.4°
+[00:19:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:19:02] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:02] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=True, enemies=10
+[00:19:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(473,975), corner_timer=-0.02
+[00:19:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[00:19:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(473,975), corner_timer=0.30
+[00:19:02] [ENEMY] [Enemy1] PURSUING corner check: angle -1.2°
+[00:19:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:19:02] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:03] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.4°, current=120.7°, player=(473,975), corner_timer=-0.02
+[00:19:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[00:19:03] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.7°, current=123.6°, player=(473,975), corner_timer=0.30
+[00:19:03] [ENEMY] [Enemy1] PURSUING corner check: angle -1.0°
+[00:19:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:19:03] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:03] [ENEMY] [Enemy2] PURSUING corner check: angle 140.4°
+[00:19:03] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.9°, current=89.7°, player=(473,975), corner_timer=-0.02
+[00:19:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[00:19:03] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=92.5°, player=(473,975), corner_timer=0.30
+[00:19:03] [ENEMY] [Enemy1] PURSUING corner check: angle -0.9°
+[00:19:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:19:03] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:03] [INFO] [ReplayManager] Recording frame 540 (9,0s): player_valid=True, enemies=10
+[00:19:03] [ENEMY] [Enemy2] PURSUING corner check: angle -14.2°
+[00:19:03] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.7°, current=89.6°, player=(473,975), corner_timer=-0.02
+[00:19:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[00:19:03] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(473,975), corner_timer=0.30
+[00:19:03] [ENEMY] [Enemy1] PURSUING corner check: angle -0.8°
+[00:19:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:19:03] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.5°, player=(473,975), corner_timer=-0.02
+[00:19:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[00:19:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(473,975), corner_timer=0.30
+[00:19:04] [ENEMY] [Enemy1] PURSUING corner check: angle -0.7°
+[00:19:04] [ENEMY] [Enemy3] State: SUPPRESSED -> IN_COVER
+[00:19:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:19:04] [ENEMY] [Enemy3] State: IN_COVER -> PURSUING
+[00:19:04] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P2:combat_state, state=PURSUING, target=130.7°, current=155.7°, player=(473,975), corner_timer=0.00
+[00:19:04] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[00:19:04] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.4°, current=89.5°, player=(473,975), corner_timer=-0.02
+[00:19:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[00:19:04] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.3°, player=(473,975), corner_timer=0.30
+[00:19:04] [ENEMY] [Enemy1] PURSUING corner check: angle -0.6°
+[00:19:04] [INFO] ------------------------------------------------------------
+[00:19:04] [INFO] GAME LOG ENDED: 2026-02-16T00:19:04
+[00:19:04] [INFO] ============================================================

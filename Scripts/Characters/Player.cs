@@ -757,6 +757,31 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region BFF Pendant System (Issue #674)
+
+    /// <summary>
+    /// Path to the enemy scene used for the BFF companion (spawn actual enemy with aggressive AI).
+    /// Issue #674: Instead of a custom companion scene, we reuse the Enemy scene in aggressive state.
+    /// </summary>
+    private const string BffEnemyScenePath = "res://scenes/objects/Enemy.tscn";
+
+    /// <summary>
+    /// Whether the BFF pendant is equipped (active item selected in armory).
+    /// </summary>
+    private bool _bffPendantEquipped = false;
+
+    /// <summary>
+    /// Whether the companion has already been summoned this battle (one charge per battle).
+    /// </summary>
+    private bool _bffCompanionSummoned = false;
+
+    /// <summary>
+    /// Reference to the summoned companion node.
+    /// </summary>
+    private Node2D? _bffCompanionNode = null;
+
+    #endregion
+
     #region Invisibility Suit System (Issue #673)
 
     /// <summary>
@@ -1046,6 +1071,9 @@ public partial class Player : BaseCharacter
 
         // Initialize homing bullets if active item manager has them selected (Issue #677)
         InitHomingBullets();
+
+        // Initialize BFF pendant if active item manager has it selected (Issue #674)
+        InitBffPendant();
 
         // Initialize invisibility suit if active item manager has it selected (Issue #673)
         InitInvisibilitySuit();
@@ -1344,6 +1372,9 @@ public partial class Player : BaseCharacter
 
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
+
+        // Handle BFF pendant input (press Space to summon companion) (Issue #674)
+        HandleBffPendantInput();
 
         // Handle invisibility suit input (press Space to activate) (Issue #673)
         HandleInvisibilitySuitInput();
@@ -4854,6 +4885,255 @@ public partial class Player : BaseCharacter
     public bool IsHomingActive()
     {
         return _homingActive;
+    }
+
+    #endregion
+
+    #region BFF Pendant Methods (Issue #674)
+
+    /// <summary>
+    /// Initialize the BFF pendant if the ActiveItemManager has it selected.
+    /// </summary>
+    private void InitBffPendant()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_bff_pendant"))
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method");
+            return;
+        }
+
+        bool hasBffPendant = (bool)activeItemManager.Call("has_bff_pendant");
+        if (!hasBffPendant)
+        {
+            LogToFile("[Player.BffPendant] No BFF pendant selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.BffPendant] BFF pendant is selected, ready to summon companion");
+
+        // Verify enemy scene exists (we spawn an actual enemy as companion)
+        if (!ResourceLoader.Exists(BffEnemyScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
+            return;
+        }
+
+        _bffPendantEquipped = true;
+        _bffCompanionSummoned = false;
+        LogToFile("[Player.BffPendant] BFF pendant equipped — press Space to summon companion");
+    }
+
+    /// <summary>
+    /// Handle BFF pendant input: press Space to summon a companion (one charge per battle).
+    /// </summary>
+    private void HandleBffPendantInput()
+    {
+        if (!_bffPendantEquipped)
+        {
+            return;
+        }
+
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            SummonBffCompanion();
+        }
+    }
+
+    /// <summary>
+    /// Summon the BFF companion near the player.
+    /// Issue #674: Spawns an actual Enemy in permanent aggressive state.
+    /// User feedback: "copy enemy AI but make it aggressive and not treat player as enemy"
+    /// </summary>
+    private void SummonBffCompanion()
+    {
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (!ResourceLoader.Exists(BffEnemyScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
+            return;
+        }
+
+        var enemyScene = GD.Load<PackedScene>(BffEnemyScenePath);
+        if (enemyScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: Failed to load enemy scene");
+            return;
+        }
+
+        var companion = enemyScene.Instantiate<Node2D>();
+
+        // Configure health range to 2-4 HP as per issue requirements (before adding to scene)
+        if (companion.HasMethod("set") && companion.Get("min_health").VariantType != Variant.Type.Nil)
+        {
+            companion.Set("min_health", 2);
+            companion.Set("max_health", 4);
+        }
+
+        // Add to the current scene (not as child of player, so it moves independently)
+        var tree = GetTree();
+        if (tree?.CurrentScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: No current scene to add companion to");
+            companion.QueueFree();
+            return;
+        }
+
+        tree.CurrentScene.AddChild(companion);
+
+        // CRITICAL: Remove from "enemies" group so other enemies don't target it
+        // and so it doesn't count toward level enemy counter
+        companion.RemoveFromGroup("enemies");
+
+        // Add to "bff_companions" group for identification
+        companion.AddToGroup("bff_companions");
+
+        // Set companion name for logging
+        companion.Name = "BffCompanion";
+
+        // Make companion permanently aggressive (uses AggressionComponent AI to attack enemies)
+        if (companion.HasMethod("set_aggressive"))
+        {
+            companion.Call("set_aggressive", true);
+            LogToFile("[Player.BffPendant] Companion set to aggressive state");
+        }
+
+        // Apply green-cyan tint to distinguish from regular enemies
+        ApplyBffCompanionVisualTint(companion);
+
+        // Find a valid spawn position that is not inside a wall
+        var spawnPos = FindValidBffCompanionSpawnPosition();
+        companion.GlobalPosition = spawnPos;
+
+        _bffCompanionNode = companion;
+        _bffCompanionSummoned = true;
+
+        // Connect companion death signal if it exists
+        if (companion.HasSignal("died"))
+        {
+            companion.Connect("died", Callable.From(OnBffCompanionDied));
+        }
+
+        LogToFile($"[Player.BffPendant] Companion spawned at {companion.GlobalPosition} (aggressive enemy)");
+    }
+
+    /// <summary>
+    /// Apply a green-cyan tint to the companion to distinguish it from regular enemies.
+    /// </summary>
+    private static void ApplyBffCompanionVisualTint(Node2D companion)
+    {
+        var model = companion.GetNodeOrNull("EnemyModel");
+        if (model == null)
+        {
+            return;
+        }
+
+        var tint = new Color(0.3f, 1.0f, 0.7f, 1.0f);
+        foreach (var spriteName in new[] { "Body", "Head", "LeftArm", "RightArm" })
+        {
+            var sprite = model.GetNodeOrNull(spriteName);
+            if (sprite is Sprite2D sprite2D)
+            {
+                sprite2D.Modulate = tint;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Find a valid spawn position for the companion that is not inside a wall.
+    /// Tries multiple offsets around the player until a valid position is found.
+    /// Issue #674: Prevents companion from spawning inside/behind walls.
+    /// </summary>
+    private Vector2 FindValidBffCompanionSpawnPosition()
+    {
+        var spaceState = GetWorld2D().DirectSpaceState;
+        if (spaceState == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: Physics state unavailable, using default spawn");
+            return GlobalPosition + new Vector2(-50, 30);
+        }
+
+        const float CompanionRadius = 24.0f;
+
+        float baseRotation = _playerModel?.Rotation ?? 0.0f;
+        var offsets = new Vector2[]
+        {
+            new Vector2(-50, 30).Rotated(baseRotation),
+            new Vector2(-60, 0).Rotated(baseRotation),
+            new Vector2(-50, -30).Rotated(baseRotation),
+            new Vector2(0, 50).Rotated(baseRotation),
+            new Vector2(0, -50).Rotated(baseRotation),
+            new Vector2(50, 30).Rotated(baseRotation),
+            new Vector2(50, -30).Rotated(baseRotation),
+            new Vector2(-30, 0).Rotated(baseRotation),
+        };
+
+        foreach (var offset in offsets)
+        {
+            var testPos = GlobalPosition + offset;
+            if (IsBffSpawnPositionValid(spaceState, testPos, CompanionRadius))
+            {
+                LogToFile($"[Player.BffPendant] Found valid spawn at offset {offset}");
+                return testPos;
+            }
+        }
+
+        LogToFile("[Player.BffPendant] WARNING: No valid spawn position found, spawning at player");
+        return GlobalPosition;
+    }
+
+    /// <summary>
+    /// Check if a position is valid for spawning the companion.
+    /// Returns true if the position is not inside a wall and has line of sight from player.
+    /// </summary>
+    private bool IsBffSpawnPositionValid(PhysicsDirectSpaceState2D spaceState, Vector2 pos, float radius)
+    {
+        // First check: line of sight from player to spawn position
+        var losQuery = new PhysicsRayQueryParameters2D
+        {
+            From = GlobalPosition,
+            To = pos,
+            CollisionMask = 1  // Walls only (layer 1)
+        };
+        var losResult = spaceState.IntersectRay(losQuery);
+        if (losResult.Count > 0)
+        {
+            return false; // Wall blocks line of sight
+        }
+
+        // Second check: position itself is not inside a wall
+        var shapeQuery = new PhysicsShapeQueryParameters2D
+        {
+            Shape = new CircleShape2D { Radius = radius },
+            Transform = new Transform2D(0, pos),
+            CollisionMask = 1  // Walls only (layer 1)
+        };
+        var overlapResult = spaceState.IntersectShape(shapeQuery);
+        return overlapResult.Count == 0;
+    }
+
+    /// <summary>
+    /// Called when the BFF companion dies.
+    /// </summary>
+    private void OnBffCompanionDied()
+    {
+        LogToFile("[Player.BffPendant] Companion has been killed");
+        _bffCompanionNode = null;
     }
 
     #endregion
