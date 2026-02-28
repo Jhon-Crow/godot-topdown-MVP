@@ -4985,6 +4985,13 @@ public partial class Player : BaseCharacter
             companion.Set("max_health", 4);
         }
 
+        // Issue #926: BFF companion has 50% slower reaction speed than enemies.
+        // Multiply all reaction/detection delays by 1.5 (150% of normal = 50% slower).
+        const float BffReactionMultiplier = 1.5f;
+        companion.Set("detection_delay", 0.2f * BffReactionMultiplier);       // 0.2s * 1.5 = 0.3s
+        companion.Set("threat_reaction_delay", 0.2f * BffReactionMultiplier); // 0.2s * 1.5 = 0.3s
+        companion.Set("lead_prediction_delay", 0.3f * BffReactionMultiplier); // 0.3s * 1.5 = 0.45s
+
         // Add to the current scene (not as child of player, so it moves independently)
         var tree = GetTree();
         if (tree?.CurrentScene == null)

@@ -3297,6 +3297,13 @@ func _summon_bff_companion() -> void:
 	companion.min_health = 2
 	companion.max_health = 4
 
+	# Issue #926: BFF companion has 50% slower reaction speed than enemies.
+	# Multiply all reaction/detection delays by 1.5 (150% of normal = 50% slower).
+	const BFF_REACTION_MULTIPLIER: float = 1.5
+	companion.detection_delay = 0.2 * BFF_REACTION_MULTIPLIER       # 0.2s * 1.5 = 0.3s
+	companion.threat_reaction_delay = 0.2 * BFF_REACTION_MULTIPLIER  # 0.2s * 1.5 = 0.3s
+	companion.lead_prediction_delay = 0.3 * BFF_REACTION_MULTIPLIER  # 0.3s * 1.5 = 0.45s
+
 	# Add to the current scene
 	get_tree().current_scene.add_child(companion)
 
