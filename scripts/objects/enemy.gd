@@ -577,8 +577,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			# Leave cover/defensive state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "RELOAD")  # Issue #910
 		return
 
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
@@ -607,8 +607,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			# Leave cover/defensive state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "EMPTY_CLICK")  # Issue #910
 		return
 
 	# Issue #426: Handle grenade landing sound (GRENADE_LANDING) - evade if heard nearby
@@ -626,6 +626,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_last_known_player_position = position
 		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
 		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
 	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
@@ -693,7 +694,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_prediction.record_player_shot(sd)
 		_memory.update_shot_direction(sd)
 	_transition_to_combat()
-
+	if sound_type == 0 and source_type == 0 and _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "GUNSHOT")  # Issue #910
 ## Initialize GOAP world state.
 func _initialize_goap_state() -> void:
 	_goap_world_state = {

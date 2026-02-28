@@ -20,7 +20,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _enemy == null or _muzzle_flash_detection == null or _enemy._player == null:
 		return
-	if _enemy._can_see_player or _enemy._is_blinded or _enemy._memory_reset_confusion_timer > 0.0:
+	# Note: muzzle flash is a fresh visual stimulus — do NOT block it with confusion timer.
+	# Issue #910: blinded enemies cannot see flashes; visible players use normal targeting.
+	if _enemy._can_see_player or _enemy._is_blinded:
 		_muzzle_flash_detection.reset(); return
 	var es: Node = _enemy.get_node_or_null("/root/ExperimentalSettings")
 	var fov_on: bool = _enemy.fov_enabled and es != null and es.has_method("is_fov_enabled") and es.is_fov_enabled()
@@ -29,14 +31,20 @@ func _physics_process(delta: float) -> void:
 		if _enemy._memory: _enemy._memory.update_position(_muzzle_flash_detection.estimated_player_position, MuzzleFlashDetectionComponent.MUZZLE_FLASH_DETECTION_CONFIDENCE)
 		_enemy._last_known_player_position = _muzzle_flash_detection.estimated_player_position
 		_enemy._log_to_file("[#910] Muzzle flash detected (invisible player): est_pos=%s" % _muzzle_flash_detection.estimated_player_position)
-		if _enemy._current_state == 0:  # AIState.IDLE = 0
-			_enemy._log_to_file("[#910] Muzzle flash triggered pursuit from IDLE")
-			_enemy._transition_to_pursuing()
+		# Issue #910: muzzle flash is a visual hostile event — transition to COMBAT (not PURSUING).
+		# Owner requirement: "когда на врага попадает вспышка — он должен переходить в боевое состояние"
+		if _enemy._current_state in [0, 8, 9]:  # AIState.IDLE=0, SEARCHING=8, EVADING_GRENADE=9
+			_enemy._log_to_file("[#910] Muzzle flash triggered COMBAT from %s" % _enemy._current_state)
+			_enemy._transition_to_combat()
+		# Also fire immediately at flash position regardless of current state (if not already shooting)
+		if not _enemy._can_see_player and not _enemy._is_reloading:
+			shoot(_muzzle_flash_detection.estimated_player_position)
 
 ## Fire suppressive fan-shot toward invisible player's last known sound/flash position (Issue #910).
-## Called from _process_pursuing_state and _process_in_cover_state when player is invisible.
+## Called from _process_pursuing_state, _process_in_cover_state, and sound handlers when player is invisible.
 func shoot(target_pos: Vector2) -> void:
 	if _enemy.bullet_scene == null or not _enemy._can_shoot(): return
+	if _enemy._shoot_timer < _enemy.shoot_cooldown: return  # Respect shoot cooldown
 	var to_target := (target_pos - _enemy.global_position).normalized()
 	if to_target == Vector2.ZERO: return
 	var direction := to_target.rotated(randf_range(-FAN_SPREAD, FAN_SPREAD))
@@ -51,9 +59,19 @@ func shoot(target_pos: Vector2) -> void:
 	var sp: Node = _enemy.get_node_or_null("/root/SoundPropagation")
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, _enemy.global_position, 1, _enemy, _enemy.weapon_loudness)
 	_enemy._play_delayed_shell_sound()
+	_enemy._shoot_timer = 0.0  # Reset cooldown after each suppressive shot
 	_enemy._current_ammo -= 1; _enemy._shot_count += 1; _enemy._spread_timer = 0.0
 	_enemy.ammo_changed.emit(_enemy._current_ammo, _enemy._reserve_ammo)
 	if _enemy._current_ammo <= 0 and _enemy._reserve_ammo > 0: _enemy._start_reload()
+
+## Issue #910: Fire suppressive shot at a player sound position if player is invisible.
+## Called directly from on_sound_heard_with_intensity for all player sound types.
+## Returns true if a shot was fired or attempted.
+func try_shoot_on_sound(player: Node, position: Vector2, sound_name: String) -> bool:
+	if player == null or not player.has_method("is_invisible") or not player.is_invisible(): return false
+	_enemy._log_to_file("[#910] Invisible player %s sound — firing suppressive at %s" % [sound_name, position])
+	shoot(position)
+	return true
 
 ## Check and fire suppressive rounds during PURSUING state. Updates enemy shoot_timer if a shot is fired.
 ## Returns true if suppressive fire was attempted (regardless of shot success), false if conditions not met.

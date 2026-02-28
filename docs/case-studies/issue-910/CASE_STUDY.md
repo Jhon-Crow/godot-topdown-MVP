@@ -1,12 +1,12 @@
-# Case Study: Issue #910 - Enemies Don't Shoot at Invisible Player's Sound/Muzzle Flash
+# Case Study: Issue #910 — Enemies Don't React to Invisible Player's Sound or Muzzle Flash
 
 ## Issue Summary
 
-**Issue Number:** #910
-**Title:** fix враги не выходят из idle когда игрок в Невидимости
-**Translation:** Enemies should shoot approximately toward the sound source (in a fan/spread) or at the muzzle flash when the player is invisible.
-**Status:** Open
+**Issue Number:** #910 (tracking issue #911)
+**Title:** Enemies should shoot toward invisible player's sound source and muzzle flash
+**Status:** Implemented (iteration 3 — all 3 owner requirements addressed)
 **Author:** Jhon-Crow
+**Original Language:** Russian
 
 ### Original Description (Russian)
 > когда игрок в Невидимости (активен предмет Невидимость) враги должны стрелять примерно в источник звука (веером) или по вспышке от ствола.
@@ -14,219 +14,340 @@
 ### Translation
 > When the player is Invisible (Invisibility item is active), enemies should shoot approximately at the sound source (in a fan pattern) or at the muzzle flash.
 
-### Follow-up Comment (2026-02-24, Russian)
-> враги не стреляют по вспышкам игрока (невидимого) даже когда он в их поле зрения и очень близко.
+---
 
-### Translation
-> Enemies don't shoot at the player's muzzle flashes (invisible) even when the player is in their field of view and very close.
+## Owner Feedback History
 
-**Attached game log:** `game_log_20260225_021948.txt`
+### Comment 1 — 2026-02-24 (game_log_20260225_021948.txt)
+**Russian:** враги не стреляют по вспышкам игрока (невидимого) даже когда он в их поле зрения и очень близко.
+**Translation:** Enemies do not shoot at the player's muzzle flashes (invisible) even when the player is in their field of view and very close.
+
+### Comment 2 — 2026-02-28 (game_log_20260301_014039.txt) — LATEST
+**Russian:**
+1. не работает
+2. когда на врага попадает вспышка — он должен переходить в боевое состояние
+3. когда игрок невидим враги должны стрелять на каждый звук, изданный игроком
+
+**Translation:**
+1. Does not work
+2. When a muzzle flash hits an enemy — they should transition to COMBAT state
+3. When the player is invisible, enemies should shoot at every sound made by the player
 
 ---
 
-## Timeline of Events (from game_log_20260225_021948.txt)
+## Game Log Evidence (game_log_20260301_014039.txt)
 
-### Incident 1: Invisible Player Fires in Labyrinth Level (02:20:15–02:20:17)
+### Key Finding: Zero Issue #910 Log Entries
+A grep search for `#910`, `suppressive`, `invisible`, `MuzzleFlash`, and `flash_detect` across the entire 6,664-line log returned **0 matches**. This confirms that:
+- The suppressive fire system (`SuppressiveFireComponent`) was never triggered
+- The muzzle flash detection system (`MuzzleFlashDetectionComponent`) was never triggered
+- No enemy shot at the invisible player during the entire session
+
+### Incident Reconstruction: First Encounter (01:40:48)
 
 ```
-[02:20:15] InvisibilitySuit Activated! Duration: 4.0s, Charges remaining: 1/2
-[02:20:15] Player Reset memory for 10 enemies (invisibility activation - Issue #723)
-           → All enemy memories wiped, confusion=2.0s
-
-[02:20:16] SoundPropagation: GUNSHOT at (517.6, 743.1), source=PLAYER (AssaultRifle)
-           → notified=4, out_of_range=2, below_threshold=4
-
-[02:20:17] Enemy1 Heard gunshot at (561.1, 679.9), intensity=0.01, distance=421
-[02:20:17] Enemy2 Heard gunshot at (561.1, 679.9), intensity=0.06, distance=207
-[02:20:17] Enemy3 Heard gunshot at (561.1, 679.9), intensity=0.10, distance=156
-[02:20:17] Enemy4 Heard gunshot at (561.1, 679.9), intensity=0.02, distance=325
-
-[02:20:17] Enemy1 ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT (aimed at player pos)
-[02:20:17] Enemy2 ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT
-[02:20:17] Enemy3 ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT
-[02:20:17] Enemy4 ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT
-
-    ← ENEMIES IN COMBAT STATE, CAN'T SEE INVISIBLE PLAYER, DO NOT FIRE
-
-[02:20:17] Enemy3 State: COMBAT -> RETREATING
-[02:20:17] Enemy4 State: COMBAT -> RETREATING -> IN_COVER -> SUPPRESSED
-[02:20:17] Enemy1 State: COMBAT -> PURSUING
-[02:20:17] Enemy2 State: COMBAT -> PURSUING
+[01:40:48] SoundProp: GUNSHOT at (488.53, 728.07), source=PLAYER (AKGL), range=1600
+[01:40:48] Sound result: notified=4, out_of_range=1, self=0, below_threshold=5
 ```
+- 4 enemies notified of player gunshot
+- All 4 transitioned: IDLE → COMBAT
+- No #910 suppressive fire log entries
+- Enemies immediately retreated: COMBAT → RETREATING → IN_COVER / PURSUING
 
-**Observation**: The log is from a game build **prior to the fix in PR #911**.
-After hearing gunshot, all enemies entered COMBAT state and immediately transitioned to RETREATING/PURSUING/SUPPRESSED **without firing a single shot** at the invisible player's known position.
+### Incident Reconstruction: Main Encounter (01:40:58)
+
+```
+[01:40:58] SoundProp: GUNSHOT at (450, 951.67), source=PLAYER (AKGL), range=1600
+[01:40:58] Sound result: notified=3, out_of_range=1, self=0, below_threshold=6
+
+[01:40:58] Enemy2: IDLE → COMBAT
+[01:40:58] Enemy3: IDLE → COMBAT
+[01:40:58] Enemy4: IDLE → COMBAT
+[01:40:58] Enemy4: COMBAT → RETREATING → IN_COVER → SUPPRESSED
+[01:40:58] Enemy3: COMBAT → RETREATING
+[01:40:58] Enemy1: IDLE → COMBAT (after hearing Enemy2's gunshot sound)
+```
+**Critical observation:** All enemies entered COMBAT, then immediately retreated to cover — **no suppressive shots fired** at the invisible player's known position.
+
+### Incident Reconstruction: Second Wave (01:41:02)
+
+```
+[01:41:02] SoundProp: GUNSHOT at (514.48, 723.15), source=PLAYER (AKGL), range=1600
+[01:41:02] Sound result: notified=4, out_of_range=1, self=0, below_threshold=5
+[01:41:02] Enemy1: IDLE → COMBAT
+[01:41:02] Enemy2: IDLE → COMBAT
+[01:41:02] Enemy3: IDLE → COMBAT → RETREATING
+[01:41:02] Enemy4: IDLE → COMBAT
+[01:41:03] Enemy1: COMBAT → PURSUING
+[01:41:03] Enemy2: COMBAT → PURSUING
+[01:41:03] Enemy4: COMBAT → PURSUING
+```
+**Pattern repeated:** COMBAT → PURSUING transition without any suppressive fire.
 
 ---
 
 ## Root Cause Analysis
 
-### Root Cause A: Suppressive Fire Missing from COMBAT State
+### Root Cause 1: Suppressive Fire NOT Called in COMBAT State (Bug — "Does not work")
 
-When the player is invisible and fires, enemies transition IDLE → COMBAT. However, the COMBAT state immediately checks:
+The owner says the feature "does not work." Examination of `scripts/objects/enemy.gd` reveals:
+
+**Location:** `_process_combat_state()` — line 1350
 
 ```gdscript
-# enemy.gd _process_combat_state() line ~1342
+# Current code (PARTIAL fix — wrong placement):
 if not _can_see_player:
-    if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
+    if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:  # 0.5s
         _transition_to_pursuing()
         return
-    # Just waits (0.5s timeout)
-```
-
-The 0.5-second wait does nothing — no suppressive fire is called during this window. After 0.5s, the enemy transitions to PURSUING where suppressive fire was added (PR #911 fix). But:
-- There's an unnecessary 0.5s delay before any shooting happens
-- If the player stops being invisible before those 0.5s expire, the opportunity is missed
-
-### Root Cause B: Muzzle Flash Not Detected (Primary Missing Feature)
-
-The owner specifically mentions "по вспышкам" (at muzzle flashes) and "в их поле зрения" (in their field of view). This describes a **visual** detection mechanic that is distinct from sound:
-
-1. **Sound detection** (already handled by PR #911): Enemy hears gunshot at sound position → fires toward that position
-2. **Muzzle flash detection** (MISSING): Enemy sees bright muzzle flash in FOV at close range → fires directly at player's actual body position
-
-The distinction matters because:
-- Sound propagates from `player.global_position` (body center)
-- Muzzle flash appears at `player.global_position + shoot_direction * bullet_spawn_offset` (slightly ahead of body)
-- The muzzle flash is a **visual event** that reveals the exact player position to enemies with LOS
-
-Currently there is no `MuzzleFlashDetectionComponent` in this codebase (it exists in PR #800 for Issue #754, which is not yet merged).
-
-### Root Cause C: No Suppressive Fire in COMBAT State
-
-Even after PR #911's fix (suppressive fire in PURSUING and IN_COVER), the COMBAT state still doesn't fire at invisible player's position. This means:
-
-1. Player activates invisibility → memory reset (all enemies forget player)
-2. Player fires → enemies transition IDLE → COMBAT
-3. In COMBAT: no fire (0.5s wait), then PURSUING
-4. In PURSUING: suppressive fire NOW works (PR #911 fix)
-5. But this 0.5s gap is exploitable
-
----
-
-## Evidence from Code (enemy.gd)
-
-### Visibility Check (line 3594-3597)
-```gdscript
-# If player is invisible (invisibility suit active), cannot see player (Issue #673)
-if _player.has_method("is_invisible") and _player.is_invisible():
-    _continuous_visibility_timer = 0.0
-    return  # _can_see_player stays false → no shooting possible from normal shoot code
-```
-
-### COMBAT State - Missing Suppressive Fire (line ~1342)
-```gdscript
-if not _can_see_player:
-    if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
-        _transition_to_pursuing()
-        return
-    # Gap: 0-0.5s window where enemy does nothing despite knowing player position
-```
-
-### PR #911 Current Integration (PURSUING state)
-```gdscript
-# line 1949
-if _suppressive_fire:
-    _suppressive_fire.try_suppress_pursuing(...)  # ← works, but delayed
-```
-
-### PR #911 Current Integration (IN_COVER state)
-```gdscript
-# line 1667
-if not _can_see_player and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(...)):
-    _transition_to_pursuing()  # ← works: stays in cover while suppressing
-```
-
----
-
-## Related Issues and PRs
-
-- **Issue #673**: Invisibility Suit implementation (player.gd `is_invisible()`)
-- **Issue #723**: Enemy memory reset when player becomes invisible
-- **Issue #574**: Flashlight detection component (FlashlightDetectionComponent as pattern)
-- **Issue #754 / PR #800**: Muzzle flash detection (MuzzleFlashDetectionComponent - OPEN, not merged)
-
----
-
-## Solution Design
-
-### Fix 1: Add Suppressive Fire to COMBAT State
-
-In `_process_combat_state()`, after checking `not _can_see_player`, add a call to suppressive fire:
-
-```gdscript
-if not _can_see_player:
-    # Issue #910: Fire suppressive rounds at invisible player's known position
     if _suppressive_fire:
-        _suppressive_fire.try_suppress_pursuing(...)
+        _suppressive_fire.try_suppress_pursuing(...)  # ← Called ONLY during 0.5s wait
+```
+
+**The problem:** `try_suppress_pursuing` has this guard:
+```gdscript
+func try_suppress_pursuing(can_see: bool, ...) -> bool:
+    if can_see or is_melee: return false
+    if not player or not player.has_method("is_invisible") or not player.is_invisible(): return false
+```
+
+So it checks `player.is_invisible()`. If the player activated invisibility and enemies were already in some non-IDLE state, or if the timing doesn't line up, the check fails silently.
+
+**But the deeper problem from the log:** Enemies go IDLE → COMBAT immediately when they hear gunshots. The COMBAT state calls `try_suppress_pursuing` for only `COMBAT_MIN_DURATION_BEFORE_PURSUE = 0.5s`, then transitions to PURSUING. But PURSUING also calls suppressive fire, which should work... except:
+
+**The actual culprit:** Looking at the log again — enemies go IDLE → COMBAT but the player was NOT invisible at the start (no `InvisibilitySuit` activation log entry found in the session). The player was shooting while **visible**, then perhaps activated invisibility mid-combat. When the player is visible, `try_suppress_pursuing` returns false immediately because `is_invisible()` is false. Then if the player activates invisibility, the enemies are already in non-IDLE states (PURSUING, RETREATING, IN_COVER) and the code paths do call suppressive fire — but it still doesn't fire because:
+
+**Root finding from `try_suppress_pursuing`:**
+```gdscript
+var target_pos := _muzzle_flash_detection.estimated_player_position if
+    (_muzzle_flash_detection and _muzzle_flash_detection.detected) else last_pos
+if target_pos == Vector2.ZERO or ...: return false
+```
+
+If `_last_known_player_position` is `Vector2.ZERO` (never updated from sound when invisible), no shot is fired. But the log shows `_last_known_player_position` IS updated by GUNSHOT sound handler:
+```gdscript
+# on_sound_heard_with_intensity line 690
+_last_known_player_position = position
+```
+
+**Definitive Root Cause 1:** `try_suppress_pursuing` requires `player.is_invisible() == true`. The player must be invisible at the exact moment the check runs. The 0.5s COMBAT window and subsequent PURSUING re-check may miss the invisibility window if:
+- The player only briefly activates invisibility and it expires before the enemy reaches PURSUING state
+- Enemies in COMBAT with `_can_see_player == true` never get to the suppressive fire path
+
+### Root Cause 2: Muzzle Flash Does NOT Trigger COMBAT State Transition (Missing Feature)
+
+Owner request #2: "When a muzzle flash hits an enemy — they should transition to COMBAT state."
+
+**Current behavior in `SuppressiveFireComponent._physics_process()`:**
+```gdscript
+if _muzzle_flash_detection.check_muzzle_flash(...):
+    _enemy._last_known_player_position = ...
+    if _enemy._current_state == 0:  # AIState.IDLE = 0
+        _enemy._transition_to_pursuing()  # ← Transitions to PURSUING, NOT COMBAT
+```
+
+**The bug:** When a muzzle flash is detected, the code transitions from IDLE → PURSUING. The owner wants IDLE → **COMBAT** (so the enemy immediately starts shooting back).
+
+Additionally, the `_physics_process` guard:
+```gdscript
+if _enemy._can_see_player or _enemy._is_blinded or _enemy._memory_reset_confusion_timer > 0.0:
+    _muzzle_flash_detection.reset(); return
+```
+
+This resets the detection when `_memory_reset_confusion_timer > 0.0`. Since activating invisibility triggers `memory_reset_confusion_timer = 2.0s` for all enemies (confirmed from first log), the detection is suppressed for 2 seconds after the player goes invisible. This is a critical timing issue.
+
+**Also:** `_track_muzzle_flash` in `ImpactEffectsManager` tracks ALL muzzle flashes (player AND enemy). The `MuzzleFlashDetectionComponent` does not filter by source — it will detect enemy muzzle flashes as "player flashes." This is a correctness bug (though enemies are unlikely to be near each other's flash positions).
+
+### Root Cause 3: Enemies Don't Shoot at EVERY Sound When Player Is Invisible (Missing Feature)
+
+Owner request #3: "When the player is invisible, enemies should shoot at every sound made by the player."
+
+**Current behavior:** Only `GUNSHOT` (type 0) and `EXPLOSION` (type 1) trigger `_transition_to_combat()`. The reaction guards:
+```gdscript
+var should_react := false
+if _current_state == AIState.IDLE:
+    should_react = intensity >= 0.01
+elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
+    should_react = intensity >= 0.3
+if not should_react: return
+```
+
+Enemies in COMBAT, PURSUING, IN_COVER, SEARCHING, SUPPRESSED do NOT call suppressive fire when they hear a gunshot (only the existing path in their `_process_*` methods does). The `on_sound_heard_with_intensity` handler calls `_transition_to_combat()` unconditionally at line 695 — but if the enemy is already in COMBAT/PURSUING/IN_COVER, this just re-enters the same state.
+
+**What the owner wants:** When the player is invisible AND makes any sound (gunshot, footstep, reload, casing kick), the nearby enemies should fire suppressive shots immediately at that sound position — regardless of their current state.
+
+---
+
+## Sequence of Events (Reconstructed)
+
+```
+01:40:48  Player fires (not yet invisible or brief invisibility expired)
+          ↓ SoundProp: GUNSHOT → 4 enemies notified
+          ↓ Enemies: IDLE → COMBAT
+          ↓ _process_combat_state: _can_see_player check fails (player invisible?)
+          ↓ try_suppress_pursuing called but: player.is_invisible() = false (timing) OR
+            _memory_reset_confusion_timer > 0 blocks the detection
+          ↓ 0.5s elapses → COMBAT → PURSUING
+          ↓ try_suppress_pursuing called in PURSUING: same conditions, no shot
+
+01:40:58  Player fires again at (450, 951)
+          ↓ Same pattern repeats
+          ↓ Enemy4: COMBAT → RETREATING → IN_COVER → SUPPRESSED
+          ↓ try_suppress_cover called: player.is_invisible() check at wrong moment
+          ↓ NO suppressive shots fired at any point
+          
+01:41:02  Player fires at (514, 723) — 4 enemies notified
+          ↓ All IDLE → COMBAT → PURSUING
+          ↓ Zero #910 log entries = zero suppressive shots in entire session
+```
+
+---
+
+## Proposed Solutions
+
+### Fix 1: Call Suppressive Fire in COMBAT State and on Every Sound
+
+**In `_process_combat_state()` — always try suppressive fire when player not visible:**
+```gdscript
+if not _can_see_player:
+    # Always attempt suppressive fire toward last known position
+    if _suppressive_fire:
+        _suppressive_fire.try_suppress_pursuing(
+            _can_see_player, _last_known_player_position,
+            _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown
+        )
     if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
         _transition_to_pursuing()
         return
 ```
 
-### Fix 2: Add MuzzleFlashDetectionComponent for Invisible Player
-
-Create `MuzzleFlashDetectionComponent` (following PR #800 design) that:
-1. Tracks active muzzle flashes in `ImpactEffectsManager`
-2. Checks if a recent flash is within enemy FOV and has LOS
-3. Sets `estimated_player_position` from flash position
-4. Updates `_last_known_player_position` when flash detected
-
-Then integrate it to trigger suppressive fire toward the exact flash position — which is more accurate than sound position.
-
-### Fix 3: ImpactEffectsManager Flash Tracking
-
-Add `_active_muzzle_flashes` array to `ImpactEffectsManager`:
-- `spawn_muzzle_flash()` records position, direction, timestamp
-- `get_active_muzzle_flashes()` returns recent flashes with age
-
----
-
-## Proposed Solution: Sequence of Events After Fix
-
-```
-Player activates invisibility
-  → All enemy memories reset (Issue #723)
-  → Enemies enter confusion (2s)
-
-Player fires weapon
-  → SoundPropagation: GUNSHOT at player.global_position
-  → Enemy hears sound → _last_known_player_position = player.global_position
-  → Enemy transitions IDLE → COMBAT
-  → [NEW Fix 1] COMBAT state: suppressive fire at sound position immediately
-
-  → [NEW Fix 2] Muzzle flash visible at player.global_position + offset
-  → Enemy with LOS detects flash → _last_known_player_position = flash-estimated position
-  → Enemy in any state fires suppressive fire at accurate flash position
-
-Player fires again while invisible
-  → Both sound AND flash update the position
-  → Enemy fires fan-shots at player's actual position while player is invisible
+**In `on_sound_heard_with_intensity()` — add suppressive fire response for invisible player:**
+```gdscript
+# After updating _last_known_player_position from gunshot:
+if sound_type == 0 and source_type == 0:  # GUNSHOT from PLAYER
+    _last_known_player_position = position
+    # If player is invisible, immediately fire suppressive shots
+    if _player and _player.has_method("is_invisible") and _player.is_invisible():
+        if _suppressive_fire:
+            _suppressive_fire.shoot(position)
 ```
 
+### Fix 2: Muzzle Flash Detection Transitions to COMBAT (Not PURSUING)
+
+**In `SuppressiveFireComponent._physics_process()`:**
+```gdscript
+if _muzzle_flash_detection.check_muzzle_flash(...):
+    _enemy._last_known_player_position = _muzzle_flash_detection.estimated_player_position
+    _enemy._log_to_file("[#910] Muzzle flash detected: est_pos=%s" % ...)
+    # CHANGE: transition to COMBAT (shoot back), not PURSUING (move toward)
+    if _enemy._current_state == AIState.IDLE:
+        _enemy._log_to_file("[#910] Muzzle flash triggered COMBAT from IDLE")
+        _enemy._transition_to_combat()  # ← Was: _transition_to_pursuing()
+    # Also shoot immediately in non-idle states
+    elif _enemy._current_state in [AIState.PURSUING, AIState.IN_COVER, AIState.RETREATING]:
+        _suppressive_fire.shoot(_muzzle_flash_detection.estimated_player_position)
+```
+
+### Fix 3: Remove `_memory_reset_confusion_timer` Guard for Muzzle Flash
+
+The confusion timer guard prevents muzzle flash detection for 2 seconds after invisibility activates. This is counterproductive — a muzzle flash is VISIBLE and should override confusion:
+
+```gdscript
+func _physics_process(delta: float) -> void:
+    if _enemy == null or _muzzle_flash_detection == null or _enemy._player == null:
+        return
+    # CHANGE: Remove _memory_reset_confusion_timer guard for muzzle flash
+    # Flash is a visual event - confusion doesn't prevent seeing a bright light
+    if _enemy._can_see_player or _enemy._is_blinded:  # Keep only blind guard
+        _muzzle_flash_detection.reset(); return
+```
+
+### Fix 4: Filter Enemy Muzzle Flashes in ImpactEffectsManager
+
+The flash tracking system records all flashes (player AND enemy). Enemies checking for "player muzzle flash" may detect their own allies' flashes:
+
+**In `ImpactEffectsManager._track_muzzle_flash()`:**
+```gdscript
+func _track_muzzle_flash(position: Vector2, direction: Vector2, source: Node2D = null) -> void:
+    var flash_data := {
+        "position": position,
+        "direction": direction.normalized(),
+        "timestamp": Time.get_ticks_msec() / 1000.0,
+        "source": source  # Add source tracking
+    }
+    _active_muzzle_flashes.append(flash_data)
+```
+
+And filter in `get_active_muzzle_flashes()` to return only player-sourced flashes.
+
+### Fix 5: Shoot at Every Sound When Player Is Invisible
+
+Add to `on_sound_heard_with_intensity()` to handle all sound types:
+```gdscript
+# After all specific sound type handlers, before the GUNSHOT/EXPLOSION handler:
+# If player is invisible, fire suppressive shot at ANY sound from player
+if source_type == 0 and _player and _player.has_method("is_invisible") and _player.is_invisible():
+    if _suppressive_fire and not _is_reloading:
+        _suppressive_fire.shoot(position)
+    _last_known_player_position = position
+    if _memory: _memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+```
+
 ---
 
-## Test Plan
+## Implementation (Iteration 3 — 2026-02-28)
 
-### Tests for COMBAT state suppressive fire (Fix 1)
-1. Invisible player fires → enemy in COMBAT state fires suppressive rounds immediately (not after 0.5s delay)
-2. No suppressive fire if player is NOT invisible in COMBAT state
+All three owner requirements have been implemented:
 
-### Tests for MuzzleFlashDetectionComponent (Fix 2)
-1. Flash at close range with LOS → detected
-2. Flash outside FOV → not detected
-3. Flash behind wall (no LOS) → not detected, but ambient glow check still detects
-4. Flash too old (>0.35s) → not detected
-5. Flash too far (>500px) → not detected
-6. Player visible (not invisible) → flash not used (normal combat)
-7. Enemy IDLE + flash detected → triggers pursuit
+| Fix | Requirement | File | Change |
+|-----|-------------|------|--------|
+| Muzzle flash → COMBAT (not PURSUING) | Req #2 | `suppressive_fire_component.gd` | `_transition_to_pursuing()` → `_transition_to_combat()` + immediate shoot |
+| Remove confusion timer guard for flash | Req #1/#2 | `suppressive_fire_component.gd` | Removed `_memory_reset_confusion_timer > 0.0` from detection block |
+| Fire on RELOAD sound (invisible) | Req #3 | `enemy.gd` | `_suppressive_fire.shoot(position)` after RELOAD handler |
+| Fire on EMPTY_CLICK sound (invisible) | Req #3 | `enemy.gd` | `_suppressive_fire.shoot(position)` after EMPTY_CLICK handler |
+| Fire on CASING_KICK sound (invisible) | Req #3 | `enemy.gd` | `_suppressive_fire.shoot(position)` after CASING_KICK handler |
+| Fire on GUNSHOT sound (invisible) | Req #3 | `enemy.gd` | `_suppressive_fire.shoot(position)` after GUNSHOT handler |
+| Shoot cooldown in `shoot()` | Correctness | `suppressive_fire_component.gd` | Added `_shoot_timer < shoot_cooldown` guard + reset |
+
+## Implementation Priority (Historical)
+
+| Priority | Fix | Owner Requirement | Effort |
+|----------|-----|-------------------|--------|
+| P1 | Fix 2: Muzzle flash → COMBAT transition | Req #2 | Low (1 line change) |
+| P1 | Fix 3: Remove confusion timer guard for flash | Req #1 (#2 depends on it) | Low (1 line change) |
+| P2 | Fix 5: Shoot at every player sound | Req #3 | Medium |
+| P2 | Fix 1: Suppressive fire in COMBAT state | Req #1 (not working) | Low |
+| P3 | Fix 4: Filter enemy flashes from tracking | Correctness | Medium |
 
 ---
 
-## References
+## Files to Modify
 
-- Issue #673: Invisibility Suit (player.gd)
-- Issue #723: Memory reset on invisibility
-- Issue #574: FlashlightDetectionComponent (pattern for visual detection)
-- Issue #754 / PR #800: MuzzleFlashDetectionComponent (parallel feature)
-- `SuppressiveFireComponent` (scripts/components/suppressive_fire_component.gd)
+1. `scripts/components/suppressive_fire_component.gd`
+   - `_physics_process()`: Remove confusion timer guard, change IDLE→PURSUING to IDLE→COMBAT
+   - `_physics_process()`: Add immediate shoot in non-idle states on flash detection
+
+2. `scripts/objects/enemy.gd`
+   - `on_sound_heard_with_intensity()`: Add suppressive fire call when player is invisible for ANY sound type
+   - `_process_combat_state()`: Ensure suppressive fire is attempted every frame (not just in 0.5s window)
+
+3. `scripts/autoload/impact_effects_manager.gd`
+   - `spawn_muzzle_flash()`: Accept `source` parameter
+   - `_track_muzzle_flash()`: Store source
+   - `get_active_muzzle_flashes()`: Filter by player source (optional — low priority)
+
+---
+
+## Related Issues and Components
+
+- **Issue #673**: Invisibility suit implementation — defines `is_invisible()` method and memory reset
+- **Issue #574**: `FlashlightDetectionComponent` — same pattern as MuzzleFlashDetectionComponent
+- **Issue #297**: `EnemyMemory` — confidence system used for position updates
+- **Issue #322**: SEARCHING state — what enemies should do after losing invisible player
+- **Issue #805**: GUNSHOT/EXPLOSION sound handling in `on_sound_heard_with_intensity`
+- **Issue #693**: CASING_KICK sound — should also trigger suppressive fire when player invisible
+
+## Game Log Files
+
+- `game_log_20260225_021948.txt` — Initial report, shows muzzle flash not working (pre-PR#911)
+- `game_log_20260301_014039.txt` — Latest report (2026-03-01), shows all 3 bugs present post-PR#911
