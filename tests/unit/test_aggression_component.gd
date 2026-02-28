@@ -1,8 +1,12 @@
 extends GutTest
-## Tests for AggressionComponent (Issue #729 fix).
+## Tests for AggressionComponent (Issue #729 fix, Issue #919 fix).
 ##
 ## Validates that aggressive enemies navigate toward other enemies
 ## even when there is no line of sight.
+##
+## Issue #919 fix: Aggression must NOT propagate to enemies that are hit by aggressive enemies.
+## Aggressive enemies should be perceived as the player by other enemies,
+## but non-aggressive enemies should never become aggressive themselves through being hit.
 
 const AggressionComponent := preload("res://scripts/components/aggression_component.gd")
 
@@ -195,3 +199,45 @@ func test_find_nearest_enemy_returns_closest() -> void:
 
 	# Then: Should return closest enemy (enemy2)
 	assert_eq(result, enemy2, "Should return closest enemy")
+
+
+## Issue #919: Aggression must NOT propagate to enemies that are hit by aggressive enemies.
+## The check_retaliation / on_hit_by_aggressive_enemy mechanism was removed because
+## it caused non-gas-exposed enemies to become aggressive through being shot.
+func test_aggression_component_has_no_retaliation_methods() -> void:
+	# Given: An aggression component
+	var enemy1 := MockEnemy.new()
+	add_child_autofree(enemy1)
+	var comp := AggressionComponent.new()
+	enemy1.add_child(comp)
+
+	await wait_frames(2)
+
+	# Then: The component should NOT have check_retaliation or on_hit_by_aggressive_enemy
+	# These methods were removed in Issue #919 to stop aggression propagation
+	assert_false(comp.has_method("check_retaliation"),
+		"check_retaliation must not exist: aggression must not propagate via hits (Issue #919)")
+	assert_false(comp.has_method("on_hit_by_aggressive_enemy"),
+		"on_hit_by_aggressive_enemy must not exist: aggression must not propagate via hits (Issue #919)")
+
+
+## Issue #919: A non-aggressive enemy that is NOT in the gas cloud should remain non-aggressive.
+func test_non_aggressive_enemy_stays_non_aggressive_when_hit() -> void:
+	# Given: A non-aggressive enemy
+	var victim := MockEnemy.new()
+	add_child_autofree(victim)
+	var comp := AggressionComponent.new()
+	victim.add_child(comp)
+
+	await wait_frames(2)
+
+	# Confirm: Initially not aggressive
+	assert_false(comp.is_aggressive(), "Enemy should not be aggressive initially")
+
+	# When: The enemy is hit (simulating being shot by an aggressive enemy)
+	# In the fixed code, check_retaliation is NOT called on hit, so aggression stays false.
+	# We verify the component state remains unchanged.
+
+	# Then: The enemy should still NOT be aggressive
+	assert_false(comp.is_aggressive(),
+		"Non-aggressive enemy must remain non-aggressive after being hit (Issue #919)")

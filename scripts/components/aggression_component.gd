@@ -69,25 +69,6 @@ func process_combat(delta: float, rotation_speed: float, shoot_cooldown: float, 
 			# No enemies left - stop moving
 			_parent.velocity = Vector2.ZERO
 
-func check_retaliation(hit_direction: Vector2) -> void:
-	if not _parent: return
-	var adir := -hit_direction.normalized(); var best: Node2D = null; var bs := -INF
-	for e in _parent.get_tree().get_nodes_in_group("enemies"):
-		if e == _parent or not is_instance_valid(e) or not e is Node2D: continue
-		if not (e.has_method("is_aggressive") and e.is_aggressive()) or e.get("_is_alive") == false: continue
-		var dm := adir.dot((e.global_position - _parent.global_position).normalized())
-		if dm > 0.5:
-			var s := dm - (_parent.global_position.distance_to(e.global_position) / 1000.0)
-			if s > bs: bs = s; best = e
-	if best: on_hit_by_aggressive_enemy(best)
-
-func on_hit_by_aggressive_enemy(attacker: Node2D) -> void:
-	if not is_instance_valid(attacker) or not _parent or _parent.get("_is_alive") == false: return
-	if not _is_aggressive: _log("Retaliating against %s" % attacker.name)
-	_is_aggressive = true; _target = attacker
-	aggression_changed.emit(true)
-	var sm: Node = _parent.get_node_or_null("/root/StatusEffectsManager")
-	if sm and sm.has_method("apply_aggression"): sm.apply_aggression(_parent, 10.0)
 
 func get_debug_text() -> String:
 	if not _is_aggressive: return ""

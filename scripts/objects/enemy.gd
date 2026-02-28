@@ -4172,8 +4172,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		# Spawn blood effect for non-lethal hit (smaller, no decal)
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
-		_update_health_visual()
-		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
+		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
