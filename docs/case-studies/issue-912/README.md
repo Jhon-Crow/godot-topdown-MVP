@@ -4,151 +4,109 @@
 
 Fix two problems with the force field item introduced/merged in PR #907:
 
-1. **Visual fix**: The force field visual looks like a large, dark circular vignette rather than a translucent bubble around the player. The user attached a screenshot showing the dark appearance.
-
-2. **Functionality fix**: The force field does NOT trap bullets or scatter them when deactivated. Despite PR #907 implementing bullet trapping logic, the field always reports "Released 0 trapped projectiles" in the game log.
+1. **Visual fix**: The force field visual looks like a large, dark circular vignette (then later a large blue-filled circle) rather than a translucent bubble around the player.
+2. **Functionality fix**: The force field does NOT trap bullets or scatter them when deactivated. Despite PR #907 implementing bullet trapping logic, the field always reports "Released 0 trapped projectiles".
 
 Reference issue for requirements: [#906](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/906)
 
 ## Data Collected
 
-- **Screenshot** (`force_field_visual_screenshot.png`): Shows the dark force field visual bug.
-- **Game log** (`game_log_20260225_011732.txt`): Contains logs proving bullets enter the force field area but are never trapped.
+- **Screenshot** (`screenshot_original.png`): Original dark force field visual from Issue #912 description.
+- **Screenshot** (`screenshot_after_first_fix.png`): After the first fix session — still a large blue filled circle instead of bubble.
+- **Screenshot** (`force_field_visual_screenshot.png`): Additional evidence of the visual bug.
+- **Game log** (`game_log_20260225_011732.txt`): Game log from initial issue report.
+- **Game logs** (`logs/game_log_20260225_013410.txt`, `logs/game_log_20260225_013424.txt`): Logs from 2nd test showing persistent bullet trapping failure ("Released 0 trapped projectiles" despite many "Area entered: Bullet" events).
 
 ## Root Cause Analysis
 
 ### Bug 1: Bullets Not Being Trapped
 
-#### Evidence from game log
+#### Evidence from game logs
 
 ```
 [ForceFieldEffect] Activated! Charge: 8.0s/8.0s
 [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
 [ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
-...  (many bullets entered)
+...  (dozens of bullets detected)
 [ForceFieldEffect] Released 0 trapped projectiles   ← NEVER traps any!
 [ForceFieldEffect] Deactivated. Charge remaining: 5.4s
 ```
 
-Bullets enter the force field area (the `area_entered` signal fires on the force field side), but they are NEVER added to `_trapped_bullets`.
+The game logs (`013424.txt`) showed 40+ "Area entered: Bullet" events across 7 force field activations, but always "Released 0 trapped projectiles".
 
 #### Root Cause
-
-**The bullets are in C# (`Scripts/Projectiles/Bullet.cs`) while the force field logic is in GDScript (`scripts/effects/force_field_effect.gd`).**
 
 When a C# `Bullet` Area2D overlaps with the force field `Area2D`, **two signals fire simultaneously**:
 1. `ForceFieldArea.area_entered(bullet)` → fires `_on_projectile_entered(bullet)` in force field GDScript
 2. `Bullet.AreaEntered(forceFieldArea)` → fires `OnAreaEntered(forceFieldArea)` in C# bullet
 
-The GDScript `_trap_bullet()` correctly:
-- Checks `bullet.has("direction")` and `bullet.has("speed")` ✓
-- Calls `bullet.set_physics_process(false)` ✓
-- Appends to `_trapped_bullets` ✓
+**Pre-fix:** The old `Bullet.cs` `OnAreaEntered` called `QueueFree()` unconditionally at the end (no force field area check). The force field area doesn't implement `IDamageable`, `take_damage`, `on_hit`, or `OnHit`, so `hitEnemy` = false, but `QueueFree()` is always called. The bullet freed itself immediately.
 
-However, **simultaneously**, the C# `Bullet.OnAreaEntered()` runs and **unconditionally calls `QueueFree()`**:
+**Fix applied in previous session:** Added `IsForceFieldArea()` check in `Bullet.cs` (and `ShotgunPellet.cs`) that returns early without `QueueFree()`.
 
-```csharp
-private void OnAreaEntered(Area2D area)
-{
-    // ... checks for IDamageable, take_damage, on_hit ...
-    EmitSignal(SignalName.Hit, area);
-    QueueFree();  // ← ALWAYS called! No force field check!
-}
-```
+Also identified a secondary bug: the OLD `force_field_effect.gd` used `bullet.has("direction")` — but `Object.has()` doesn't exist in Godot 4 (it's a Dictionary method). Calling it on a Node returns null, and `not null` evaluates to `true`, causing an early return that skipped every bullet. **Fix:** Replace with `"direction" in bullet` (Godot 4 GDScript standard for Node property existence checks).
 
-The force field `Area2D` doesn't implement `IDamageable`, `take_damage`, `on_hit`, or `OnHit`, so `hitEnemy` stays false. But `QueueFree()` is called unconditionally at the end regardless.
+#### Why "Released 0" persisted in user testing
 
-**The bullet frees itself immediately upon entering the force field area**, before the force field's trap logic can actually hold it in place.
+The user was running a pre-compiled game export (`.exe`). The GDScript changes take effect at runtime (GDScript is interpreted), but **C# is compiled** — the `.dll` inside the `.pck` export file is the OLD version without `IsForceFieldArea()`. The user needed to rebuild the game from source to see C# fixes.
 
-#### Comparison with GDScript bullet
+### Bug 2: Force Field Visual — Large Blue Fill (Not a Bubble)
 
-The GDScript `bullet.gd` has a correct check:
+#### Screenshots comparison
 
-```gdscript
-func _on_area_entered(area: Area2D) -> void:
-    # Only destroy bullet if the area has on_hit method
-    if area.has_method("on_hit"):
-        # Force field protection check
-        if parent and parent.has_method("is_force_field_active"):
-            if parent.is_force_field_active():
-                return  # Bullet blocked, don't destroy
-        # ... deal damage ...
-        _destroy()
-    # If area has no on_hit → bullet passes through harmlessly
-```
+- **Before**: Dark vignette filling entire frame + glowing edge
+- **After first fix session**: Large BLUE filled circle + glowing edge
 
-The GDScript bullet **only destroys itself if the area has `on_hit`**. Since the force field area doesn't have `on_hit`, the GDScript bullet wouldn't self-destruct.
+Both show the same underlying problem: the Sprite2D texture is dominating the visual, not the shader.
 
-The **C# bullet always calls `QueueFree()` regardless**, which is the bug.
+#### Root Cause
 
-### Bug 2: Force Field Visual Too Dark
+`_setup_shield_visual()` created a `GradientTexture2D` with `FILL_RADIAL`:
+- Center: `Color(0.3, 0.6, 1.0, 0.0)` (transparent blue)
+- Edge: `Color(0.5, 0.8, 1.0, 0.9)` (bright blue)
 
-The shader creates a dark interior (`fresnel = pow(r, 2.5)` gives dark center-fill) with a bright rim. This creates a "dark vignette with glowing edge" rather than a transparent bubble.
+This creates a filled radial gradient. Even though the shader sets `COLOR = vec4(final_color, final_alpha)` to override it, there were two problems:
+1. The OLD shader had `inner_glow = fresnel * 0.4 * pulse` contributing to interior opacity.
+2. Even after removing `inner_glow`, the GradientTexture2D base color can bleed through if the export/build doesn't include the shader properly.
 
-The shader uses:
-- `inner_glow = fresnel * 0.4 * pulse` → moderate interior opacity
-- `combined = rim * glow_intensity * pulse + inner_glow` → glow_intensity=2.0 makes rim very bright
+The first fix session reduced then removed `inner_glow` from the shader — correct. But the screenshot after the fix still shows a large blue fill, meaning either:
+- The shader wasn't loaded in the user's build (old compiled export), OR
+- The GradientTexture2D was producing the fill visually
 
-Result: The interior appears as a semi-opaque blue filled circle rather than mostly transparent, making the visual look like a large dark overlay rather than a translucent bubble.
+#### Fix
+
+1. Replace `GradientTexture2D` with a plain white `ImageTexture` — gives the shader full, unambiguous control over color/alpha.
+2. Add a fallback `_create_ring_texture()` that programmatically creates a donut/ring image (transparent center + transparent outside + blue rim) for when the shader cannot be loaded.
+
+### Bug 3: ShotgunPellet.cs — Direction Not Exported
+
+`ShotgunPellet.cs` had `Direction` and `ShooterId` as non-exported C# properties. In Godot 4, the GDScript `in` operator only works for `[Export]` C# properties (they're registered as snake_case names). Without `[Export]`, `"direction" in pellet` returns `false`, causing force field to skip trapping shotgun pellets entirely.
+
+**Fix:** Add `[Export]` attribute to `Direction` and `ShooterId` in `ShotgunPellet.cs`.
 
 ## Timeline of Events
 
-1. Issue #676: Force field initially implemented with bullet reflection
-2. Issue #906: User requests bullet trapping + bubble visual
-3. PR #907: AI implements trapping logic in GDScript `force_field_effect.gd` - tested against GDScript bullets
-4. PR #907 merged by accident
-5. Issue #912: User notices:
-   - The force field doesn't trap bullets (because game uses C# `Bullet.cs`)
-   - The visual doesn't look right (dark interior issue)
+1. **Issue #676**: Force field initially implemented with bullet reflection
+2. **Issue #906**: User requests bullet trapping + bubble visual
+3. **PR #907**: AI implements trapping logic in GDScript `force_field_effect.gd` — tested against GDScript bullets only
+4. **PR #907 merged by accident** (user mistake)
+5. **Issue #912**: User notices two bugs:
+   - The force field doesn't trap bullets (C# Bullet.cs QueueFree race condition)
+   - The visual is wrong (dark/blue fill instead of bubble)
+6. **First fix session (PR #913)**: Fixed `bullet.has()` → `"direction" in bullet`, removed `inner_glow`, added `IsForceFieldArea()` in Bullet.cs
+7. **User reports same issues persist** — user was testing with old compiled game export, not rebuilt code
+8. **Second fix session (PR #913 continued)**: Fixed GradientTexture2D → white texture, added ring fallback, added [Export] to ShotgunPellet Direction/ShooterId, improved projectile type detection
 
-## Proposed Solution
+## Files Modified
 
-### Fix 1: C# Bullet.cs - Force Field Detection
+1. `Scripts/Projectiles/Bullet.cs` — Add `IsForceFieldArea()` check to prevent `QueueFree()` when entering force field
+2. `Scripts/Projectiles/ShotgunPellet.cs` — Add `[Export]` to `Direction` and `ShooterId`; add `IsForceFieldArea()` check
+3. `scripts/effects/force_field_effect.gd` — Fix `has()` → `in` operator; white texture; ring fallback; ShotgunPellet path detection
+4. `scripts/shaders/force_field.gdshader` — Remove `inner_glow` entirely
 
-Add a check in `OnAreaEntered` to detect the force field area and skip `QueueFree()`:
+## Key Lessons
 
-```csharp
-private void OnAreaEntered(Area2D area)
-{
-    // Check if this is the force field — it will handle the bullet itself
-    // The force field's GDScript traps and freezes bullets directly
-    if (IsForceFieldArea(area))
-    {
-        return;  // Don't destroy — the force field handles this bullet
-    }
-
-    // ... rest of logic ...
-    QueueFree();
-}
-
-private bool IsForceFieldArea(Area2D area)
-{
-    // Detect by parent having is_force_field_active method
-    var parent = area.GetParent();
-    if (parent != null && parent.HasMethod("is_force_field_active"))
-        return true;
-    // Also check by area name
-    if (area.Name.ToString().Contains("ForceField", StringComparison.OrdinalIgnoreCase))
-        return true;
-    return false;
-}
-```
-
-### Fix 2: Force Field Shader - Bubble Appearance
-
-Reduce the interior opacity to make the center mostly transparent:
-
-```glsl
-// Reduce inner glow to near-zero for transparent center
-float inner_glow = fresnel * 0.08 * pulse;  // Was 0.4, now 0.08
-
-// Also soften the glow intensity
-float combined = rim * 1.2 * pulse + inner_glow;  // Was glow_intensity=2.0
-```
-
-This makes the center mostly transparent while keeping the bright rim, matching a soap bubble appearance.
-
-## Files to Modify
-
-1. `Scripts/Projectiles/Bullet.cs` - Add force field detection to `OnAreaEntered`
-2. `scripts/shaders/force_field.gdshader` - Reduce interior opacity
+- **GDScript `in` operator vs `has()`**: Use `"property" in node` for property existence checks on Node objects. `Object.has()` does not exist in Godot 4 — it's a Dictionary method that silently returns null when called on a Node, making conditions always-true or always-false.
+- **C# [Export] for GDScript interop**: C# properties need `[Export]` for GDScript's `in` operator and `property = value` assignment to work.
+- **Compiled export vs editor source**: C# code changes require a full rebuild. GDScript changes take effect at runtime. Testing must account for this.
+- **Shader texture independence**: When a canvas_item shader fully replaces `COLOR`, use a neutral (white, fully opaque) base texture to avoid interference from the texture's built-in color.
