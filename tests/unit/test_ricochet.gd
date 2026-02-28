@@ -121,46 +121,51 @@ func test_545x39_caliber_resource_properties() -> void:
 func test_545x39_caliber_max_ricochet_angle_is_realistic() -> void:
 	## Regression test for Issue #915.
 	## 5.45x39mm (M16/AssaultRifle) must have a realistic max_ricochet_angle.
-	## At 90 degrees, the trajectory glasses incorrectly showed green (valid ricochet).
-	## High-velocity rifle rounds should only ricochet at very shallow angles (<= 10 degrees).
+	## The original bug: max_ricochet_angle=90.0 meant near-perpendicular shots (82.5°) showed green.
+	## Fix: max_ricochet_angle=70.0 aligns with actual Bullet.cs behavior (ricochet likely up to 70°).
 	var caliber := load("res://resources/calibers/caliber_545x39.tres")
 	if caliber == null:
 		pending("5.45x39mm caliber resource not found")
 		return
 
-	assert_true(caliber.max_ricochet_angle <= 15.0,
-		"5.45x39mm max_ricochet_angle should be <= 15 degrees for realistic rifle ricochet behavior (Issue #915)")
+	# Must be < 90 to fix the original bug (near-right-angle shots should NOT all be green)
+	assert_true(caliber.max_ricochet_angle < 90.0,
+		"5.45x39mm max_ricochet_angle should be < 90 degrees (original bug: 90 showed all angles as valid)")
+	# Must be > 45 to allow typical ricochet angles (M16 does ricochet at many angles)
+	assert_true(caliber.max_ricochet_angle > 45.0,
+		"5.45x39mm max_ricochet_angle should be > 45 degrees (M16 ricochets at many angles per Bullet.cs behavior)")
 
 
-func test_545x39_rejects_steep_angle_ricochet() -> void:
+func test_545x39_allows_moderate_angle_ricochet() -> void:
 	## Regression test for Issue #915.
-	## At 29.6+ degrees (as seen in game log), M16 should NOT show ricochet as valid.
-	## The trajectory glasses use: is_valid = impact_angle < weapon_max_angle
+	## At 29.6 degrees (as seen in game log), M16 SHOULD show ricochet as valid.
+	## With max_ricochet_angle=70, angles below 70 are shown as valid.
 	var caliber := load("res://resources/calibers/caliber_545x39.tres")
 	if caliber == null:
 		pending("5.45x39mm caliber resource not found")
 		return
 
-	# 29.6 degrees was shown as "is_valid=true" for AssaultRifle in the bug report
-	var impact_angle_from_bug_report := 29.6
-	var is_valid := caliber.max_ricochet_angle > 0.0 and impact_angle_from_bug_report < caliber.max_ricochet_angle
-	assert_false(is_valid,
-		"5.45x39mm should NOT show ricochet as valid at 29.6 degrees (seen in Issue #915 bug report)")
+	# 29.6 degrees should be valid (green) — below threshold of 70 degrees
+	var impact_angle := 29.6
+	var is_valid := caliber.max_ricochet_angle > 0.0 and impact_angle < caliber.max_ricochet_angle
+	assert_true(is_valid,
+		"5.45x39mm should show ricochet as VALID at 29.6 degrees (below threshold, M16 can ricochet at this angle)")
 
 
 func test_545x39_rejects_near_perpendicular_angle() -> void:
 	## Regression test for Issue #915.
-	## At 82.5 degrees (near-right angle), M16 was incorrectly showing ricochet as valid.
+	## At 82.5 degrees (near-right angle), M16 should NOT show ricochet as valid.
+	## With max_ricochet_angle=70, angles above 70 are shown as red/invalid.
 	var caliber := load("res://resources/calibers/caliber_545x39.tres")
 	if caliber == null:
 		pending("5.45x39mm caliber resource not found")
 		return
 
-	# 82.5 degrees was shown as "is_valid=true" in the second trajectory glasses activation
+	# 82.5 degrees was shown as "is_valid=true" in the original bug report — this was wrong
 	var near_perpendicular_angle := 82.5
 	var is_valid := caliber.max_ricochet_angle > 0.0 and near_perpendicular_angle < caliber.max_ricochet_angle
 	assert_false(is_valid,
-		"5.45x39mm should NOT show ricochet as valid at 82.5 degrees (seen in Issue #915 bug report)")
+		"5.45x39mm should NOT show ricochet as valid at 82.5 degrees (near-perpendicular, Issue #915 original bug)")
 
 
 func test_762x39_caliber_resource_exists() -> void:
@@ -171,29 +176,35 @@ func test_762x39_caliber_resource_exists() -> void:
 func test_762x39_caliber_max_ricochet_angle_is_realistic() -> void:
 	## Regression test for Issue #915.
 	## 7.62x39mm (AK/AKGL) must have a realistic max_ricochet_angle.
-	## Same issue as M16: trajectory glasses incorrectly showed green at steep angles.
+	## The original bug: max_ricochet_angle=90.0 meant near-perpendicular shots (67°+) showed green.
+	## Fix: max_ricochet_angle=70.0 aligns with actual Bullet.cs behavior.
 	var caliber := load("res://resources/calibers/caliber_762x39.tres")
 	if caliber == null:
 		pending("7.62x39mm caliber resource not found")
 		return
 
-	assert_true(caliber.max_ricochet_angle <= 15.0,
-		"7.62x39mm max_ricochet_angle should be <= 15 degrees for realistic rifle ricochet behavior (Issue #915)")
+	# Must be < 90 to fix the original bug
+	assert_true(caliber.max_ricochet_angle < 90.0,
+		"7.62x39mm max_ricochet_angle should be < 90 degrees (original bug: 90 showed all angles as valid)")
+	# Must be > 45 to allow typical ricochet angles (AK does ricochet at many angles)
+	assert_true(caliber.max_ricochet_angle > 45.0,
+		"7.62x39mm max_ricochet_angle should be > 45 degrees (AK ricochets at many angles per Bullet.cs behavior)")
 
 
-func test_762x39_rejects_steep_angle_ricochet() -> void:
+func test_762x39_allows_moderate_angle_ricochet() -> void:
 	## Regression test for Issue #915.
-	## At 61.7 degrees, AK+GL was incorrectly showing ricochet as valid.
+	## At 61.7 degrees, AK+GL SHOULD show ricochet as valid.
+	## With max_ricochet_angle=70, angles below 70 are shown as valid.
 	var caliber := load("res://resources/calibers/caliber_762x39.tres")
 	if caliber == null:
 		pending("7.62x39mm caliber resource not found")
 		return
 
-	# 61.7 degrees was shown as "is_valid=true" for AKGL in the bug report
-	var impact_angle_from_bug_report := 61.7
-	var is_valid := caliber.max_ricochet_angle > 0.0 and impact_angle_from_bug_report < caliber.max_ricochet_angle
-	assert_false(is_valid,
-		"7.62x39mm should NOT show ricochet as valid at 61.7 degrees (seen in Issue #915 bug report)")
+	# 61.7 degrees should be valid (green) — below threshold of 70 degrees
+	var impact_angle := 61.7
+	var is_valid := caliber.max_ricochet_angle > 0.0 and impact_angle < caliber.max_ricochet_angle
+	assert_true(is_valid,
+		"7.62x39mm should show ricochet as VALID at 61.7 degrees (below threshold, AK can ricochet at this angle)")
 
 
 func test_rifle_calibers_allow_shallow_angle_ricochet() -> void:
