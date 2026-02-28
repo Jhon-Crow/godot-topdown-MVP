@@ -8,7 +8,8 @@ shader_type canvas_item;
 uniform float time_offset = 0.0;
 uniform vec4 field_color : source_color = vec4(0.4, 0.7, 1.0, 0.85);
 uniform float pulse_speed = 1.5;
-uniform float glow_intensity = 2.0;
+// Reduced from 2.0 to 1.4 for softer bubble rim (Issue #912)
+uniform float glow_intensity = 1.4;
 
 void fragment() {
 	// Distance from center: 0.0 at center, ~0.5 at edge of 256x256 texture
@@ -47,13 +48,13 @@ void fragment() {
 	vec3 tint_b = vec3(0.8, 0.6, 1.0);   // Lavender
 	vec3 iridescent_tint = mix(tint_a, tint_b, shimmer * 0.35);
 
-	// ---- Interior glow ----
-	// Soft inner glow — brighter toward the rim
-	float inner_glow = fresnel * 0.4 * pulse;
+	// ---- No interior glow — pure bubble look ----
+	// Interior is fully transparent (Issue #912): only the rim is visible.
+	// Removing inner_glow entirely ensures no dark/blue fill inside the circle.
 
 	// ---- Combined alpha ----
-	// Strong rim + softer interior fresnel glow
-	float combined = rim * glow_intensity * pulse + inner_glow;
+	// Rim-only effect: completely transparent center with bright glowing edge
+	float combined = rim * glow_intensity * pulse;
 	combined = clamp(combined, 0.0, 1.0);
 
 	// Smooth edge fade to avoid hard cutoff
