@@ -11,13 +11,32 @@ enum ActiveItemType {
 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
 	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
+	BFF_PENDANT,       # BFF pendant - press Space to summon a friendly companion with M16
 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
-	BREAKER_BULLETS    # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
+	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
+	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
+	TRAJECTORY_GLASSES # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 }
 
 ## Currently selected active item type.
 ## No active item is selected by default.
 var current_active_item: int = ActiveItemType.NONE
+
+## Unlocked active items tracking.
+## By default, all active items are locked for debugging purposes.
+## Active items can be unlocked by holding LMB on their case in the armory menu.
+## NONE is always unlocked (it's not a real item).
+var unlocked_active_items: Dictionary = {
+	ActiveItemType.NONE: true,
+	ActiveItemType.FLASHLIGHT: false,
+	ActiveItemType.HOMING_BULLETS: false,
+	ActiveItemType.TELEPORT_BRACERS: false,
+	ActiveItemType.BFF_PENDANT: false,       # Issue #674
+	ActiveItemType.INVISIBILITY_SUIT: false,
+	ActiveItemType.BREAKER_BULLETS: false,
+	ActiveItemType.FORCE_FIELD: false,
+	ActiveItemType.TRAJECTORY_GLASSES: false  # Issue #744
+}
 
 ## Active item data for UI and selection.
 const ACTIVE_ITEM_DATA: Dictionary = {
@@ -43,6 +62,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
 		"activation_hint": "Hold Space to aim, release to teleport"
 	},
+	ActiveItemType.BFF_PENDANT: {
+		"name": "BFF Pendant",
+		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
+		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle.",
+		"activation_hint": "Press Space to summon"
+	},
 	ActiveItemType.INVISIBILITY_SUIT: {
 		"name": "Invisibility",
 		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
@@ -53,11 +78,26 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Breaker Bullets",
 		"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
 		"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
+	},
+	ActiveItemType.FORCE_FIELD: {
+		"name": "Force Field",
+		"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
+		"description": "Force field — hold Space to activate glowing shield. 100% projectile reflection, grenades bounce without detonating. 8 second depletable charge.",
+		"activation_hint": "Hold Space to activate"
+	},
+	ActiveItemType.TRAJECTORY_GLASSES: {
+		"name": "Trajectory Glasses",
+		"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
+		"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
 	}
 }
 
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
+
+## Signal emitted when an active item is unlocked.
+signal active_item_unlocked(item_type: int)
 
 
 ## Set the current active item type.
@@ -151,6 +191,11 @@ func has_teleport_bracers() -> bool:
 	return current_active_item == ActiveItemType.TELEPORT_BRACERS
 
 
+## Check if BFF pendant is currently equipped.
+func has_bff_pendant() -> bool:
+	return current_active_item == ActiveItemType.BFF_PENDANT
+
+
 ## Check if an invisibility suit is currently equipped (Issue #673).
 func has_invisibility_suit() -> bool:
 	return current_active_item == ActiveItemType.INVISIBILITY_SUIT
@@ -159,3 +204,36 @@ func has_invisibility_suit() -> bool:
 ## Check if breaker bullets are currently equipped (Issue #678).
 func has_breaker_bullets() -> bool:
 	return current_active_item == ActiveItemType.BREAKER_BULLETS
+
+
+## Check if force field is currently equipped (Issue #676).
+func has_force_field() -> bool:
+	return current_active_item == ActiveItemType.FORCE_FIELD
+
+
+## Check if trajectory glasses are currently equipped (Issue #744).
+func has_trajectory_glasses() -> bool:
+	return current_active_item == ActiveItemType.TRAJECTORY_GLASSES
+
+
+## Check if an active item type is unlocked.
+## @param item_type: The active item type to check.
+## @return: true if the item is unlocked, false otherwise.
+func is_active_item_unlocked(item_type: int) -> bool:
+	return unlocked_active_items.get(item_type, false)
+
+
+## Unlock an active item type.
+## @param item_type: The active item type to unlock.
+func unlock_active_item(item_type: int) -> void:
+	if item_type in unlocked_active_items:
+		if not unlocked_active_items[item_type]:
+			unlocked_active_items[item_type] = true
+			active_item_unlocked.emit(item_type)
+			FileLogger.info("[ActiveItemManager] Active item unlocked: %s" % get_active_item_name(item_type))
+
+
+## Get all unlocked active items.
+## @return: Dictionary of item_type -> bool pairs.
+func get_unlocked_active_items() -> Dictionary:
+	return unlocked_active_items

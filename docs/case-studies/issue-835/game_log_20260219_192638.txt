@@ -1,0 +1,845 @@
+[19:26:38] [INFO] ============================================================
+[19:26:38] [INFO] GAME LOG STARTED
+[19:26:38] [INFO] ============================================================
+[19:26:38] [INFO] Timestamp: 2026-02-19T19:26:38
+[19:26:38] [INFO] Log file: I:/Загрузки/godot exe/микро фиксы/game_log_20260219_192638.txt
+[19:26:38] [INFO] Executable: I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
+[19:26:38] [INFO] OS: Windows
+[19:26:38] [INFO] Debug build: false
+[19:26:38] [INFO] Engine version: 4.3-stable (official)
+[19:26:38] [INFO] Project: Godot Top-Down Template
+[19:26:38] [INFO] ------------------------------------------------------------
+[19:26:38] [INFO] [GameManager] GameManager ready
+[19:26:38] [INFO] [ScoreManager] ScoreManager ready
+[19:26:38] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[19:26:38] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[19:26:38] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[19:26:38] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[19:26:38] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[19:26:38] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[19:26:38] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[19:26:38] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[19:26:38] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[19:26:38] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[19:26:38] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[19:26:38] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[19:26:38] [INFO] [LastChance] Resetting all effects (scene change detected)
+[19:26:38] [INFO] [LastChance] Last chance shader loaded successfully
+[19:26:38] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[19:26:38] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[19:26:38] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[19:26:38] [INFO] [LastChance]   Sepia intensity: 0.70
+[19:26:38] [INFO] [LastChance]   Brightness: 0.60
+[19:26:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[19:26:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[19:26:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[19:26:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[19:26:38] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false, Replay: false
+[19:26:38] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[19:26:38] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[19:26:38] [INFO] [CinemaEffects] Created effects layer at layer 99
+[19:26:38] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[19:26:38] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[19:26:38] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[19:26:38] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[19:26:38] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[19:26:38] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[19:26:38] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[19:26:38] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[19:26:38] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[19:26:38] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[19:26:38] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[19:26:38] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[19:26:38] [INFO] [GrenadeTimerHelper] Autoload ready
+[19:26:38] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[19:26:38] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[19:26:38] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[19:26:38] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[19:26:38] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[19:26:38] [INFO] [ProgressManager] ProgressManager ready, loaded 16 entries
+[19:26:38] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[19:26:38] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[19:26:38] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[19:26:38] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[19:26:38] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[19:26:38] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[19:26:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:38] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[19:26:38] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[19:26:38] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[19:26:38] [ENEMY] [Enemy1] Death animation component initialized
+[19:26:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:38] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[19:26:38] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[19:26:38] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[19:26:38] [ENEMY] [Enemy2] Death animation component initialized
+[19:26:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:38] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[19:26:38] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[19:26:38] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[19:26:38] [ENEMY] [Enemy3] Death animation component initialized
+[19:26:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:38] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[19:26:38] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[19:26:38] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[19:26:38] [ENEMY] [Enemy4] Death animation component initialized
+[19:26:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:38] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[19:26:38] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[19:26:38] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[19:26:38] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[19:26:38] [ENEMY] [Enemy5] Death animation component initialized
+[19:26:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:38] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[19:26:38] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[19:26:38] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[19:26:38] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[19:26:38] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[19:26:38] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[19:26:38] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[19:26:38] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[19:26:38] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[19:26:38] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[19:26:38] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[19:26:38] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[19:26:38] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[19:26:38] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[19:26:38] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[19:26:38] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[19:26:38] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 4/4
+[19:26:38] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[19:26:38] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[19:26:38] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[19:26:38] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[19:26:38] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[19:26:38] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[19:26:38] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[19:26:38] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[19:26:38] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[19:26:38] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
+[19:26:38] [INFO] [ScoreManager] Level started with 5 enemies
+[19:26:38] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[19:26:38] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[19:26:38] [INFO] [ReplayManager] Replay data cleared
+[19:26:38] [INFO] [LabyrinthLevel] Previous replay data cleared
+[19:26:38] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[19:26:38] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[19:26:38] [INFO] [ReplayManager] Level: LabyrinthLevel
+[19:26:38] [INFO] [ReplayManager] Player: Player (valid: True)
+[19:26:38] [INFO] [ReplayManager] Enemies count: 5
+[19:26:38] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[19:26:38] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[19:26:38] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[19:26:38] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[19:26:38] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[19:26:38] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[19:26:38] [INFO] [LabyrinthLevel] Replay recording started successfully
+[19:26:38] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[19:26:39] [INFO] [CinemaEffects] Found player node: Player
+[19:26:39] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[19:26:39] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[19:26:39] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[19:26:39] [ENEMY] [Enemy1] Registered as sound listener
+[19:26:39] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[19:26:39] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[19:26:39] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[19:26:39] [ENEMY] [Enemy2] Registered as sound listener
+[19:26:39] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[19:26:39] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[19:26:39] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[19:26:39] [ENEMY] [Enemy3] Registered as sound listener
+[19:26:39] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[19:26:39] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[19:26:39] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[19:26:39] [ENEMY] [Enemy4] Registered as sound listener
+[19:26:39] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[19:26:39] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[19:26:39] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[19:26:39] [ENEMY] [Enemy5] Registered as sound listener
+[19:26:39] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 3, behavior: GUARD
+[19:26:39] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[19:26:39] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:26:39] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:26:39] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:26:39] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=67.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[19:26:39] [INFO] [Player] Detecting weapon pose (frame 3)...
+[19:26:39] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[19:26:39] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[19:26:39] [INFO] [PenultimateHit] Shader warmup complete in 530 ms
+[19:26:39] [INFO] [LastChance] Shader warmup complete in 528 ms
+[19:26:39] [INFO] [CinemaEffects] Cinema shader warmup complete in 449 ms
+[19:26:39] [INFO] [FlashbangPlayer] Shader warmup complete in 438 ms
+[19:26:39] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[19:26:39] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[19:26:39] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[19:26:39] [INFO] [LastChance] Found player: Player
+[19:26:39] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[19:26:39] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[19:26:39] [INFO] [LastChance] Connected to player Died signal (C#)
+[19:26:39] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[19:26:39] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 852 ms
+[19:26:40] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[19:26:40] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[19:26:40] [ENEMY] [Enemy3] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(150,1000), corner_timer=0.30
+[19:26:41] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=-54.4°, player=(150,1000), corner_timer=-0.02
+[19:26:41] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[19:26:41] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=-51.6°, player=(150,1000), corner_timer=0.30
+[19:26:41] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[19:26:42] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[19:26:43] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[19:26:44] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
+[19:26:45] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=5
+[19:26:46] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=5
+[19:26:47] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=True, enemies=5
+[19:26:48] [INFO] [ReplayManager] Recording frame 540 (9,0s): player_valid=True, enemies=5
+[19:26:49] [INFO] [ReplayManager] Recording frame 600 (10,0s): player_valid=True, enemies=5
+[19:26:49] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:26:49] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:26:49] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[19:26:49] [INFO] [LastChance] Resetting all effects (scene change detected)
+[19:26:49] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[19:26:49] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[19:26:49] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[19:26:49] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:49] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[19:26:49] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[19:26:49] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[19:26:49] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[19:26:49] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[19:26:49] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[19:26:49] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[19:26:49] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[19:26:49] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[19:26:49] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[19:26:49] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[19:26:49] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[19:26:49] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[19:26:49] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[19:26:49] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[19:26:49] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[19:26:49] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 2/4
+[19:26:49] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[19:26:49] [INFO] [CinemaEffects] Found player node: Player
+[19:26:49] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[19:26:49] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[19:26:49] [INFO] [Player] Detecting weapon pose (frame 3)...
+[19:26:49] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[19:26:49] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[19:26:49] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[19:26:49] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[19:26:49] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[19:26:49] [INFO] [LastChance] Found player: Player
+[19:26:49] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[19:26:49] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[19:26:49] [INFO] [LastChance] Connected to player Died signal (C#)
+[19:26:49] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[19:26:50] [INFO] [ReplayManager] Recording frame 660 (11,1s): player_valid=False, enemies=5
+[19:26:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=5
+[19:26:50] [INFO] [SoundPropagation] Cleaned up 5 invalid listeners
+[19:26:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:51] [INFO] [ReplayManager] Recording frame 720 (12,1s): player_valid=False, enemies=5
+[19:26:52] [INFO] [ReplayManager] Recording frame 780 (13,1s): player_valid=False, enemies=5
+[19:26:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1705.27, 65.6705)
+[19:26:52] [INFO] [Bullet] Using shooter_position, distance=1584.001953125
+[19:26:52] [INFO] [Bullet] Distance to wall: 1584.001953125 (107.857605711036% of viewport)
+[19:26:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1803.601, 66.44045)
+[19:26:52] [INFO] [Bullet] Using shooter_position, distance=1680.51538085938
+[19:26:52] [INFO] [Bullet] Distance to wall: 1680.51538085938 (114.429382478014% of viewport)
+[19:26:52] [INFO] [Bullet] Distance-based penetration chance: 27.1141235043972%
+[19:26:52] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:53] [INFO] [ReplayManager] Recording frame 840 (14,1s): player_valid=False, enemies=5
+[19:26:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:54] [INFO] [ReplayManager] Recording frame 900 (15,1s): player_valid=False, enemies=5
+[19:26:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1721.952, 64.17489)
+[19:26:54] [INFO] [Bullet] Using shooter_position, distance=1600.66564941406
+[19:26:54] [INFO] [Bullet] Distance to wall: 1600.66564941406 (108.992267433194% of viewport)
+[19:26:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1800.175, 68.32798)
+[19:26:54] [INFO] [Bullet] Using shooter_position, distance=1676.80883789063
+[19:26:54] [INFO] [Bullet] Distance to wall: 1676.80883789063 (114.17699715154% of viewport)
+[19:26:54] [INFO] [Bullet] Distance-based penetration chance: 27.164600569692%
+[19:26:54] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1807.701, 69.5611)
+[19:26:54] [INFO] [Bullet] Using shooter_position, distance=1683.99743652344
+[19:26:54] [INFO] [Bullet] Distance to wall: 1683.99743652344 (114.666482051116% of viewport)
+[19:26:54] [INFO] [Bullet] Distance-based penetration chance: 27.0667035897769%
+[19:26:54] [INFO] [Bullet] Caliber cannot penetrate walls
+[19:26:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1654.461, 66.41966)
+[19:26:54] [INFO] [Bullet] Using shooter_position, distance=1533.99865722656
+[19:26:54] [INFO] [Bullet] Distance to wall: 1533.99865722656 (104.452789345358% of viewport)
+[19:26:54] [INFO] [Bullet] Distance-based penetration chance: 29.1094421309285%
+[19:26:54] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1808.146, 72.05872)
+[19:26:55] [INFO] [Bullet] Using shooter_position, distance=1683.99853515625
+[19:26:55] [INFO] [Bullet] Distance to wall: 1683.99853515625 (114.666556859044% of viewport)
+[19:26:55] [INFO] [Bullet] Distance-based penetration chance: 27.0666886281912%
+[19:26:55] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:55] [INFO] [ReplayManager] Recording frame 960 (16,1s): player_valid=False, enemies=5
+[19:26:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1807.229, 66.91321)
+[19:26:55] [INFO] [Bullet] Using shooter_position, distance=1684.0009765625
+[19:26:55] [INFO] [Bullet] Distance to wall: 1684.0009765625 (114.666723098885% of viewport)
+[19:26:55] [INFO] [Bullet] Distance-based penetration chance: 27.066655380223%
+[19:26:55] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1807.229, 66.91321)
+[19:26:55] [INFO] [Bullet] Using shooter_position, distance=1684.0009765625
+[19:26:55] [INFO] [Bullet] Distance to wall: 1684.0009765625 (114.666723098885% of viewport)
+[19:26:55] [INFO] [Bullet] Distance-based penetration chance: 27.066655380223%
+[19:26:55] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1466.581, 64.47504)
+[19:26:55] [INFO] [Bullet] Using shooter_position, distance=1350.66735839844
+[19:26:55] [INFO] [Bullet] Distance to wall: 1350.66735839844 (91.9694240916183% of viewport)
+[19:26:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1364.354, 66.8186)
+[19:26:55] [INFO] [Bullet] Using shooter_position, distance=1250.66540527344
+[19:26:55] [INFO] [Bullet] Distance to wall: 1250.66540527344 (85.16010721596% of viewport)
+[19:26:55] [INFO] [Bullet] Distance-based penetration chance: 47.3132082480466%
+[19:26:55] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1806.959, 65.41978)
+[19:26:55] [INFO] [Bullet] Using shooter_position, distance=1684.00183105469
+[19:26:55] [INFO] [Bullet] Distance to wall: 1684.00183105469 (114.666781282829% of viewport)
+[19:26:55] [INFO] [Bullet] Distance-based penetration chance: 27.0666437434342%
+[19:26:55] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1806.959, 65.41978)
+[19:26:55] [INFO] [Bullet] Using shooter_position, distance=1684.00183105469
+[19:26:55] [INFO] [Bullet] Distance to wall: 1684.00183105469 (114.666781282829% of viewport)
+[19:26:55] [INFO] [Bullet] Distance-based penetration chance: 27.0666437434342%
+[19:26:55] [INFO] [Bullet] Caliber cannot penetrate walls
+[19:26:55] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[19:26:55] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9467752, 2.010645), target=(-4, 2), base=(16, 6)
+[19:26:55] [INFO] [Player.Reload.Anim] RightArm: pos=(4, 6), target=(4, 6), base=(4, 6)
+[19:26:55] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[19:26:55] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[19:26:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (MakarovPM), range=1469, listeners=0
+[19:26:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:26:56] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[19:26:56] [INFO] [ReplayManager] Recording frame 1020 (17,1s): player_valid=False, enemies=5
+[19:26:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=141046057887, bullet_pos=(1802.76, 206.6332)
+[19:26:56] [INFO] [Bullet] Using shooter_position, distance=1660.42565917969
+[19:26:56] [INFO] [Bullet] Distance to wall: 1660.42565917969 (113.061436387103% of viewport)
+[19:26:56] [INFO] [Bullet] Distance-based penetration chance: 27.3877127225794%
+[19:26:56] [INFO] [Bullet] Penetration failed (distance roll)
+[19:26:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:26:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:26:56] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[19:26:56] [INFO] [LastChance] Resetting all effects (scene change detected)
+[19:26:56] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[19:26:56] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[19:26:56] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[19:26:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:26:56] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[19:26:56] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[19:26:56] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[19:26:56] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[19:26:56] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[19:26:56] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[19:26:56] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[19:26:56] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[19:26:56] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[19:26:56] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[19:26:56] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[19:26:56] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[19:26:56] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[19:26:56] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[19:26:56] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[19:26:56] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[19:26:56] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 2/4
+[19:26:56] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[19:26:56] [INFO] [CinemaEffects] Found player node: Player
+[19:26:56] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[19:26:56] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[19:26:56] [INFO] [Player] Detecting weapon pose (frame 3)...
+[19:26:56] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[19:26:56] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[19:26:56] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[19:26:56] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[19:26:56] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[19:26:56] [INFO] [LastChance] Found player: Player
+[19:26:56] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[19:26:56] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[19:26:56] [INFO] [LastChance] Connected to player Died signal (C#)
+[19:26:56] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[19:26:57] [INFO] [ReplayManager] Recording frame 1080 (18,1s): player_valid=False, enemies=5
+[19:26:58] [INFO] [ReplayManager] Recording frame 1140 (19,1s): player_valid=False, enemies=5
+[19:26:58] [INFO] [PauseMenu] Armory button pressed
+[19:26:58] [INFO] [PauseMenu] Creating new armory menu instance
+[19:26:58] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[19:26:58] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[19:26:58] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[19:26:58] [INFO] [PauseMenu] back_pressed signal exists on instance
+[19:26:58] [INFO] [PauseMenu] back_pressed signal connected
+[19:26:58] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[19:26:58] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[19:26:59] [INFO] [ReplayManager] Recording frame 1200 (20,1s): player_valid=False, enemies=5
+[19:27:00] [INFO] [ReplayManager] Recording frame 1260 (21,1s): player_valid=False, enemies=5
+[19:27:01] [INFO] [ReplayManager] Recording frame 1320 (22,1s): player_valid=False, enemies=5
+[19:27:01] [INFO] [GameManager] Weapon unlocked: shotgun
+[19:27:02] [INFO] [ReplayManager] Recording frame 1380 (23,1s): player_valid=False, enemies=5
+[19:27:02] [INFO] [GameManager] Weapon selected: shotgun
+[19:27:02] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:27:02] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:27:02] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[19:27:02] [INFO] [LastChance] Resetting all effects (scene change detected)
+[19:27:02] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[19:27:02] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[19:27:02] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[19:27:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:27:02] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[19:27:02] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[19:27:02] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[19:27:02] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[19:27:02] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[19:27:02] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+[19:27:02] [INFO] [Player.Weapon] Removed default MakarovPM
+[19:27:02] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 0/8)
+[19:27:02] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[19:27:02] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[19:27:02] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[19:27:02] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[19:27:02] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[19:27:02] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[19:27:02] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[19:27:02] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[19:27:02] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[19:27:02] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[19:27:02] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[19:27:02] [INFO] [Player] Ready! Ammo: 0/8, Grenades: 3/3, Health: 2/4
+[19:27:02] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[19:27:02] [INFO] [CinemaEffects] Found player node: Player
+[19:27:02] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[19:27:02] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[19:27:02] [INFO] [Player] Detecting weapon pose (frame 3)...
+[19:27:02] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[19:27:02] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[19:27:02] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[19:27:02] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[19:27:02] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[19:27:02] [INFO] [LastChance] Found player: Player
+[19:27:02] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[19:27:02] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[19:27:02] [INFO] [LastChance] Connected to player Died signal (C#)
+[19:27:02] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[19:27:03] [INFO] [ReplayManager] Recording frame 1440 (24,1s): player_valid=False, enemies=5
+[19:27:04] [INFO] [ReplayManager] Recording frame 1500 (25,1s): player_valid=False, enemies=5
+[19:27:04] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=6,4, distance=58,4px, pos=(393.91418, 142.78557)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=8,4, distance=60,4px, pos=(396.1965, 144.4927)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=0,7, distance=52,7px, pos=(388.86182, 148.46779)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=6,8, distance=58,8px, pos=(394.99866, 149.68655)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=-12,3, distance=39,7px, pos=(375.90216, 150.9915)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=-13,5, distance=38,5px, pos=(374.76163, 151.07101)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=9,1, distance=61,1px, pos=(397.28787, 152.56001)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=-0,1, distance=51,9px, pos=(388.02777, 155.02467)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=-3,9, distance=48,1px, pos=(384.1408, 156.18814)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=1,1, distance=53,1px, pos=(388.9938, 157.22786)
+[19:27:04] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=-3,4, distance=48,6px, pos=(384.344, 158.82956)
+[19:27:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:04] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:04] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:04] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:04] [INFO] [Shotgun.FIX#445] dragStartPos=(967, 147), aimDir=(1,00, -0,01)
+[19:27:04] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:04] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:04] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:04] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:05] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:05] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:05] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:05] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[19:27:05] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:05] [INFO] [ReplayManager] Recording frame 1560 (26,0s): player_valid=False, enemies=5
+[19:27:05] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:05] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:05] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-30,1, 469,5), length=470,5, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:05] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-28,7, 472,9), length=473,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:05] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-28,7, 472,9), length=473,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:05] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-28,7, 472,9), length=473,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:06] [INFO] [Shotgun.FIX#243] RMB released after 47 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:06] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-28,7, 472,9), length=473,7, ActionState=Ready
+[19:27:06] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:06] [INFO] [Shotgun.FIX#212] Firing 15 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 1/15: extraOffset=1,9, distance=53,9px, pos=(382.7296, 179.02396)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 2/15: extraOffset=-6,2, distance=45,8px, pos=(374.7814, 176.55518)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 3/15: extraOffset=7,1, distance=59,1px, pos=(384.92984, 185.2013)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 4/15: extraOffset=-1,9, distance=50,1px, pos=(376.85898, 181.107)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 5/15: extraOffset=14,2, distance=66,2px, pos=(389.362, 191.26875)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 6/15: extraOffset=13,5, distance=65,5px, pos=(387.92117, 191.99081)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 7/15: extraOffset=-10,5, distance=41,5px, pos=(369.7079, 176.24245)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 8/15: extraOffset=-5,2, distance=46,8px, pos=(372.11465, 181.85172)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 9/15: extraOffset=-11,1, distance=40,9px, pos=(367.95587, 177.58061)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 10/15: extraOffset=0,3, distance=52,3px, pos=(375.7735, 185.963)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 11/15: extraOffset=9,1, distance=61,1px, pos=(382.67316, 191.46431)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 12/15: extraOffset=-10,0, distance=42,0px, pos=(366.88712, 180.52307)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 13/15: extraOffset=-3,0, distance=49,0px, pos=(371.47574, 185.8674)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 14/15: extraOffset=13,0, distance=65,0px, pos=(383.0245, 196.87439)
+[19:27:06] [INFO] [Shotgun.FIX#212] Normal pellet 15/15: extraOffset=8,2, distance=60,2px, pos=(377.50516, 195.52232)
+[19:27:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:06] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:06] [INFO] [ReplayManager] Recording frame 1620 (26,8s): player_valid=False, enemies=5
+[19:27:07] [INFO] [ReplayManager] Recording frame 1680 (27,6s): player_valid=False, enemies=5
+[19:27:08] [INFO] [ReplayManager] Recording frame 1740 (28,4s): player_valid=False, enemies=5
+[19:27:08] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:08] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:08] [INFO] [Shotgun.FIX#445] dragStartPos=(1094, 155), aimDir=(1,00, 0,00)
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(58,1, -122,2), length=135,3, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[19:27:08] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-34,7, 331,9), length=333,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-34,7, 331,9), length=333,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:09] [INFO] [ReplayManager] Recording frame 1800 (29,2s): player_valid=False, enemies=5
+[19:27:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-34,7, 331,9), length=333,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-34,7, 331,9), length=333,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:09] [INFO] [Shotgun.FIX#243] RMB released after 47 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:09] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-34,7, 331,9), length=333,8, ActionState=Ready
+[19:27:09] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:10] [INFO] [ReplayManager] Recording frame 1860 (30,1s): player_valid=False, enemies=5
+[19:27:10] [INFO] [Shotgun.FIX#212] Firing 13 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 1/13: extraOffset=2,7, distance=54,7px, pos=(390.091, 142.52039)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 2/13: extraOffset=-3,1, distance=48,9px, pos=(384.601, 144.98993)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 3/13: extraOffset=0,8, distance=52,8px, pos=(388.58112, 144.84274)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 4/13: extraOffset=7,1, distance=59,1px, pos=(395.17282, 147.41087)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 5/13: extraOffset=0,2, distance=52,2px, pos=(388.2678, 148.21428)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 6/13: extraOffset=12,0, distance=64,0px, pos=(400.09848, 147.59367)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 7/13: extraOffset=13,2, distance=65,2px, pos=(401.45776, 151.40022)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 8/13: extraOffset=7,4, distance=59,4px, pos=(395.56888, 152.62498)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 9/13: extraOffset=0,3, distance=52,3px, pos=(388.5506, 152.65855)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 10/13: extraOffset=-5,6, distance=46,4px, pos=(382.57123, 153.28725)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 11/13: extraOffset=-8,3, distance=43,7px, pos=(379.79633, 155.33777)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 12/13: extraOffset=-13,2, distance=38,8px, pos=(374.88025, 154.45706)
+[19:27:10] [INFO] [Shotgun.FIX#212] Normal pellet 13/13: extraOffset=-6,8, distance=45,2px, pos=(381.10583, 156.91495)
+[19:27:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:11] [INFO] [ReplayManager] Recording frame 1920 (31,1s): player_valid=False, enemies=5
+[19:27:12] [INFO] [ReplayManager] Recording frame 1980 (31,9s): player_valid=False, enemies=5
+[19:27:13] [INFO] [ReplayManager] Recording frame 2040 (32,7s): player_valid=False, enemies=5
+[19:27:14] [INFO] [ReplayManager] Recording frame 2100 (33,5s): player_valid=False, enemies=5
+[19:27:15] [INFO] [ReplayManager] Recording frame 2160 (34,5s): player_valid=False, enemies=5
+[19:27:16] [INFO] [ReplayManager] Recording frame 2220 (35,5s): player_valid=False, enemies=5
+[19:27:16] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:16] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:16] [INFO] [Shotgun.FIX#445] dragStartPos=(1247, 131), aimDir=(1,00, -0,02)
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(18,0, -66,1), length=68,5, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[19:27:16] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:16] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-57,5, 243,1), length=249,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:17] [INFO] [ReplayManager] Recording frame 2280 (36,5s): player_valid=False, enemies=5
+[19:27:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-57,5, 256,5), length=262,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-57,5, 256,5), length=262,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-57,5, 256,5), length=262,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-54,1, 240,4), length=246,5, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-52,8, 217,7), length=224,0, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-52,8, 214,4), length=220,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:18] [INFO] [ReplayManager] Recording frame 2340 (37,5s): player_valid=False, enemies=5
+[19:27:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-49,4, 196,4), length=202,5, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:18] [INFO] [Shotgun.FIX#243] RMB released after 82 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:18] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-45,4, 187,7), length=193,1, ActionState=Ready
+[19:27:18] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:18] [INFO] [Shotgun.FIX#212] Firing 16 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 1/16: extraOffset=3,7, distance=55,7px, pos=(391.35986, 143.64183)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 2/16: extraOffset=-0,5, distance=51,5px, pos=(387.12653, 143.89223)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 3/16: extraOffset=-2,1, distance=49,9px, pos=(385.8109, 145.7963)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 4/16: extraOffset=0,9, distance=52,9px, pos=(388.8659, 146.31528)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 5/16: extraOffset=14,0, distance=66,0px, pos=(402.09137, 147.43526)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 6/16: extraOffset=-10,1, distance=41,9px, pos=(378.01794, 149.54416)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 7/16: extraOffset=11,4, distance=63,4px, pos=(399.51468, 148.73123)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 8/16: extraOffset=3,5, distance=55,5px, pos=(391.67776, 149.0269)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 9/16: extraOffset=1,5, distance=53,5px, pos=(389.68915, 151.56311)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 10/16: extraOffset=-0,3, distance=51,7px, pos=(387.94122, 150.59958)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 11/16: extraOffset=-5,2, distance=46,8px, pos=(383.04947, 151.76562)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 12/16: extraOffset=14,9, distance=66,9px, pos=(403.1314, 153.72064)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 13/16: extraOffset=10,7, distance=62,7px, pos=(398.8133, 154.66199)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 14/16: extraOffset=12,5, distance=64,5px, pos=(400.6459, 155.15378)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 15/16: extraOffset=4,1, distance=56,1px, pos=(392.23575, 155.61461)
+[19:27:18] [INFO] [Shotgun.FIX#212] Normal pellet 16/16: extraOffset=-15,0, distance=37,0px, pos=(373.10513, 154.71455)
+[19:27:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:19] [INFO] [ReplayManager] Recording frame 2400 (38,5s): player_valid=False, enemies=5
+[19:27:20] [INFO] [ReplayManager] Recording frame 2460 (39,3s): player_valid=False, enemies=5
+[19:27:20] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:20] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:20] [INFO] [Shotgun.FIX#445] dragStartPos=(1272, 142), aimDir=(1,00, -0,01)
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(0,0, -68,1), length=68,1, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[19:27:20] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:20] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-25,4, 62,1), length=67,1, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:21] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-37,4, 96,8), length=103,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:21] [INFO] [ReplayManager] Recording frame 2520 (40,1s): player_valid=False, enemies=5
+[19:27:21] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-37,4, 96,8), length=103,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:21] [INFO] [Shotgun.FIX#243] RMB released after 32 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:21] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-37,4, 96,8), length=103,8, ActionState=Ready
+[19:27:21] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:21] [INFO] [Shotgun.FIX#212] Firing 14 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 1/14: extraOffset=-13,1, distance=38,9px, pos=(374.66562, 145.92776)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 2/14: extraOffset=-1,1, distance=50,9px, pos=(386.73865, 145.60455)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 3/14: extraOffset=-4,2, distance=47,8px, pos=(383.52368, 145.13757)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 4/14: extraOffset=5,9, distance=57,9px, pos=(393.7294, 145.44063)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 5/14: extraOffset=13,0, distance=65,0px, pos=(400.99057, 146.46384)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 6/14: extraOffset=9,8, distance=61,8px, pos=(397.90735, 147.85002)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 7/14: extraOffset=12,2, distance=64,2px, pos=(400.39044, 149.49318)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 8/14: extraOffset=5,3, distance=57,3px, pos=(393.4681, 150.12224)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 9/14: extraOffset=-2,3, distance=49,7px, pos=(385.93417, 150.79576)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 10/14: extraOffset=-0,0, distance=52,0px, pos=(388.19604, 152.76881)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 11/14: extraOffset=-1,6, distance=50,4px, pos=(386.56995, 152.8161)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 12/14: extraOffset=-11,6, distance=40,4px, pos=(376.44778, 155.14635)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 13/14: extraOffset=0,7, distance=52,7px, pos=(388.83752, 154.88855)
+[19:27:21] [INFO] [Shotgun.FIX#212] Normal pellet 14/14: extraOffset=-11,7, distance=40,3px, pos=(376.35767, 155.80087)
+[19:27:21] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:22] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:22] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:22] [INFO] [Shotgun.FIX#445] dragStartPos=(1210, 176), aimDir=(1,00, 0,03)
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [ReplayManager] Recording frame 2580 (40,9s): player_valid=False, enemies=5
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(49,0, -111,7), length=122,0, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[19:27:22] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:22] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-83,5, 137,6), length=160,9, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:22] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-94,9, 169,0), length=193,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:23] [INFO] [Shotgun.FIX#243] RMB released after 28 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:23] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-93,5, 165,6), length=190,2, ActionState=Ready
+[19:27:23] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:23] [INFO] [ReplayManager] Recording frame 2640 (41,7s): player_valid=False, enemies=5
+[19:27:24] [INFO] [ReplayManager] Recording frame 2700 (42,5s): player_valid=False, enemies=5
+[19:27:24] [INFO] [Shotgun.FIX#212] Firing 14 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 1/14: extraOffset=-11,6, distance=40,4px, pos=(376.10294, 145.54489)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 2/14: extraOffset=7,8, distance=59,8px, pos=(395.37738, 143.30003)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 3/14: extraOffset=-3,4, distance=48,6px, pos=(384.46335, 146.10147)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 4/14: extraOffset=3,6, distance=55,6px, pos=(391.6739, 148.2608)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 5/14: extraOffset=-10,4, distance=41,6px, pos=(377.72528, 148.7405)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 6/14: extraOffset=10,7, distance=62,7px, pos=(398.91354, 149.14685)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 7/14: extraOffset=-10,9, distance=41,1px, pos=(377.33618, 150.16193)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 8/14: extraOffset=0,4, distance=52,4px, pos=(388.58646, 151.08057)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 9/14: extraOffset=0,3, distance=52,3px, pos=(388.49927, 152.6213)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 10/14: extraOffset=-1,1, distance=50,9px, pos=(386.99872, 154.67508)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 11/14: extraOffset=3,2, distance=55,2px, pos=(391.31882, 154.5541)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 12/14: extraOffset=-14,0, distance=38,0px, pos=(374.06555, 154.78217)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 13/14: extraOffset=-12,7, distance=39,3px, pos=(375.32812, 155.55814)
+[19:27:24] [INFO] [Shotgun.FIX#212] Normal pellet 14/14: extraOffset=6,2, distance=58,2px, pos=(393.92032, 159.25128)
+[19:27:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:25] [INFO] [ReplayManager] Recording frame 2760 (43,3s): player_valid=False, enemies=5
+[19:27:26] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:26] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:26] [INFO] [Shotgun.FIX#445] dragStartPos=(1203, 146), aimDir=(1,00, -0,01)
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [ReplayManager] Recording frame 2820 (44,1s): player_valid=False, enemies=5
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(10,7, -101,5), length=102,1, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[19:27:26] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-86,2, 90,8), length=125,2, isDragUp=False, isDragDown=True, ActionState=NeedsPumpDown
+[19:27:26] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:26] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-43,4, 134,2), length=141,1, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:26] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-45,4, 150,3), length=157,0, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:27] [INFO] [Shotgun.FIX#243] RMB released after 27 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:27] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-45,4, 150,3), length=157,0, ActionState=Ready
+[19:27:27] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:27] [INFO] [ReplayManager] Recording frame 2880 (44,9s): player_valid=False, enemies=5
+[19:27:27] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=4,1, distance=56,1px, pos=(392.16086, 147.03441)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=0,6, distance=52,6px, pos=(388.67645, 147.67679)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=-4,5, distance=47,5px, pos=(383.66406, 149.82571)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=-0,6, distance=51,4px, pos=(387.59335, 149.90295)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=2,7, distance=54,7px, pos=(390.8789, 153.0706)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=14,7, distance=66,7px, pos=(402.80466, 155.09686)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=-1,1, distance=50,9px, pos=(387.1204, 153.1974)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=-3,7, distance=48,3px, pos=(384.45154, 154.04929)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=2,9, distance=54,9px, pos=(390.89026, 157.29504)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=13,3, distance=65,3px, pos=(401.05283, 159.67793)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=6,1, distance=58,1px, pos=(393.90692, 158.7702)
+[19:27:27] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=5,1, distance=57,1px, pos=(392.75363, 159.84787)
+[19:27:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:28] [INFO] [ReplayManager] Recording frame 2940 (45,7s): player_valid=False, enemies=5
+[19:27:28] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:28] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:28] [INFO] [Shotgun.FIX#445] dragStartPos=(1128, 180), aimDir=(1,00, 0,04)
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-0,7, -107,5), length=107,5, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[19:27:28] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:28] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-39,4, 163,0), length=167,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:29] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-46,8, 211,7), length=216,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:29] [INFO] [ReplayManager] Recording frame 3000 (46,5s): player_valid=False, enemies=5
+[19:27:29] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-46,8, 211,7), length=216,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:29] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-46,8, 211,7), length=216,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:29] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-46,8, 211,7), length=216,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:29] [INFO] [Shotgun.FIX#243] RMB released after 50 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:29] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-46,8, 211,7), length=216,8, ActionState=Ready
+[19:27:29] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:30] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(336.2197, 151.76718)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=5,3, distance=57,3px, pos=(393.4275, 148.16344)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=3,5, distance=55,5px, pos=(391.75378, 151.22365)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=-14,0, distance=38,0px, pos=(374.21765, 151.92769)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=-2,4, distance=49,6px, pos=(385.82294, 152.03273)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=9,9, distance=61,9px, pos=(398.0953, 154.43579)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=4,5, distance=56,5px, pos=(392.50693, 156.80217)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=4,8, distance=56,8px, pos=(392.85257, 155.74489)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=0,7, distance=52,7px, pos=(388.49286, 158.2953)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=6,1, distance=58,1px, pos=(393.76575, 160.08334)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-5,4, distance=46,6px, pos=(382.26505, 159.08083)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=7,9, distance=59,9px, pos=(394.9204, 163.55833)
+[19:27:30] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-7,8, distance=44,2px, pos=(379.4862, 160.90485)
+[19:27:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.2197, 151.7672), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:30] [INFO] [ReplayManager] Recording frame 3060 (47,3s): player_valid=False, enemies=5
+[19:27:31] [INFO] [ReplayManager] Recording frame 3120 (48,1s): player_valid=False, enemies=5
+[19:27:31] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:31] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:31] [INFO] [Shotgun.FIX#445] dragStartPos=(1083, 176), aimDir=(1,00, 0,03)
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-7,3, -122,9), length=123,1, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[19:27:31] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-92,9, 110,2), length=144,1, isDragUp=False, isDragDown=True, ActionState=NeedsPumpDown
+[19:27:31] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - tube empty, need to reload
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:31] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:32] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-15,4, 61,4), length=63,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:32] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-15,4, 61,4), length=63,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[19:27:32] [INFO] [ReplayManager] Recording frame 3180 (48,9s): player_valid=False, enemies=5
+[19:27:32] [INFO] [Shotgun.FIX#243] RMB released after 25 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:32] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-15,4, 61,4), length=63,3, ActionState=Ready
+[19:27:32] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[19:27:33] [INFO] [ReplayManager] Recording frame 3240 (49,7s): player_valid=False, enemies=5
+[19:27:34] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:27:34] [INFO] [ReplayManager] Recording frame 3300 (50,7s): player_valid=False, enemies=5
+[19:27:34] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[19:27:34] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[19:27:34] [INFO] [LastChance] Resetting all effects (scene change detected)
+[19:27:34] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[19:27:34] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[19:27:34] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[19:27:34] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[19:27:34] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[19:27:34] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[19:27:34] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[19:27:34] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[19:27:34] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[19:27:34] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+[19:27:34] [INFO] [Player.Weapon] Removed default MakarovPM
+[19:27:34] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 0/8)
+[19:27:34] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[19:27:34] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[19:27:34] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[19:27:34] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[19:27:34] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[19:27:34] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[19:27:34] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[19:27:34] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[19:27:34] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[19:27:34] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[19:27:34] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[19:27:34] [INFO] [Player] Ready! Ammo: 0/8, Grenades: 3/3, Health: 2/4
+[19:27:34] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[19:27:34] [INFO] [CinemaEffects] Found player node: Player
+[19:27:34] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[19:27:34] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[19:27:34] [INFO] [Player] Detecting weapon pose (frame 3)...
+[19:27:34] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[19:27:34] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[19:27:34] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[19:27:34] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[19:27:34] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[19:27:34] [INFO] [LastChance] Found player: Player
+[19:27:34] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[19:27:34] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[19:27:34] [INFO] [LastChance] Connected to player Died signal (C#)
+[19:27:34] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[19:27:34] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(150, 360)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=11,4, distance=63,4px, pos=(209.68297, 338.67715)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=11,6, distance=63,6px, pos=(209.96492, 338.67465)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=-8,7, distance=43,3px, pos=(191.13293, 346.3828)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=-13,8, distance=38,2px, pos=(186.59506, 349.14777)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=-0,5, distance=51,5px, pos=(200.14038, 348.23676)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=1,8, distance=53,8px, pos=(202.179, 346.82104)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=3,6, distance=55,6px, pos=(204.58835, 349.24442)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=-11,6, distance=40,4px, pos=(189.68123, 352.20715)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=-12,7, distance=39,3px, pos=(188.731, 353.45782)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=1,1, distance=53,1px, pos=(202.75423, 354.3924)
+[19:27:34] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=-11,9, distance=40,1px, pos=(189.93927, 356.8558)
+[19:27:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=1469, listeners=0
+[19:27:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[19:27:35] [INFO] [ReplayManager] Recording frame 3360 (51,7s): player_valid=False, enemies=5
+[19:27:35] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[19:27:35] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[19:27:35] [INFO] [Shotgun.FIX#445] dragStartPos=(1043, 240), aimDir=(0,99, -0,13)
+[19:27:35] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:35] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:35] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[19:27:35] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[19:27:35] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(5,4, -19,1), length=19,9, ActionState=NeedsPumpUp
+[19:27:35] [INFO] [Shotgun.FIX#445v7] Drag too short: 19,9 < 30
+[19:27:36] [INFO] [ReplayManager] Recording frame 3420 (52,7s): player_valid=False, enemies=5
+[19:27:37] [INFO] [ReplayManager] Recording frame 3480 (53,7s): player_valid=False, enemies=5
+[19:27:38] [INFO] [ReplayManager] Recording frame 3540 (54,7s): player_valid=False, enemies=5
+[19:27:39] [INFO] [ReplayManager] Recording frame 3600 (55,7s): player_valid=False, enemies=5
+[19:27:39] [INFO] ------------------------------------------------------------
+[19:27:39] [INFO] GAME LOG ENDED: 2026-02-19T19:27:39
+[19:27:39] [INFO] ============================================================

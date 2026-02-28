@@ -29,6 +29,12 @@ class MockExperimentalSettings:
 	## Whether realistic visibility mode is enabled (Issue #540).
 	var realistic_visibility_enabled: bool = false
 
+	## Whether log recording is enabled (Issue #848).
+	var logging_enabled: bool = true
+
+	## Whether enemy flashlight blinding is enabled (Issue #903).
+	var enemy_flashlight_blinding_enabled: bool = false
+
 	## Signal tracking
 	var settings_changed_emitted: int = 0
 
@@ -101,6 +107,28 @@ class MockExperimentalSettings:
 	func is_realistic_visibility_enabled() -> bool:
 		return realistic_visibility_enabled
 
+	## Set log recording enabled/disabled (Issue #848).
+	func set_logging_enabled(enabled: bool) -> void:
+		if logging_enabled != enabled:
+			logging_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if log recording is enabled (Issue #848).
+	func is_logging_enabled() -> bool:
+		return logging_enabled
+
+	## Set enemy flashlight blinding enabled/disabled (Issue #903).
+	func set_enemy_flashlight_blinding_enabled(enabled: bool) -> void:
+		if enemy_flashlight_blinding_enabled != enabled:
+			enemy_flashlight_blinding_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if enemy flashlight blinding is enabled (Issue #903).
+	func is_enemy_flashlight_blinding_enabled() -> bool:
+		return enemy_flashlight_blinding_enabled
+
 	## Save settings (simulated).
 	func _save_settings() -> void:
 		_saved_settings["fov_enabled"] = fov_enabled
@@ -109,6 +137,8 @@ class MockExperimentalSettings:
 		_saved_settings["debug_mode_enabled"] = debug_mode_enabled
 		_saved_settings["invincibility_enabled"] = invincibility_enabled
 		_saved_settings["realistic_visibility_enabled"] = realistic_visibility_enabled
+		_saved_settings["logging_enabled"] = logging_enabled
+		_saved_settings["enemy_flashlight_blinding_enabled"] = enemy_flashlight_blinding_enabled
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
@@ -136,6 +166,14 @@ class MockExperimentalSettings:
 			realistic_visibility_enabled = _saved_settings["realistic_visibility_enabled"]
 		else:
 			realistic_visibility_enabled = false
+		if _saved_settings.has("logging_enabled"):
+			logging_enabled = _saved_settings["logging_enabled"]
+		else:
+			logging_enabled = true
+		if _saved_settings.has("enemy_flashlight_blinding_enabled"):
+			enemy_flashlight_blinding_enabled = _saved_settings["enemy_flashlight_blinding_enabled"]
+		else:
+			enemy_flashlight_blinding_enabled = false
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
@@ -145,6 +183,8 @@ class MockExperimentalSettings:
 		debug_mode_enabled = false
 		invincibility_enabled = false
 		realistic_visibility_enabled = false
+		logging_enabled = true
+		enemy_flashlight_blinding_enabled = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
 
@@ -754,6 +794,8 @@ func test_save_and_load_all_settings() -> void:
 	settings.set_debug_mode_enabled(true)
 	settings.set_invincibility_enabled(true)
 	settings.set_realistic_visibility_enabled(true)
+	settings.set_logging_enabled(false)
+	settings.set_enemy_flashlight_blinding_enabled(true)
 
 	# Reset in-memory state
 	settings.fov_enabled = false
@@ -762,6 +804,8 @@ func test_save_and_load_all_settings() -> void:
 	settings.debug_mode_enabled = false
 	settings.invincibility_enabled = false
 	settings.realistic_visibility_enabled = false
+	settings.logging_enabled = true
+	settings.enemy_flashlight_blinding_enabled = false
 
 	# Load from saved
 	settings._load_settings()
@@ -772,6 +816,8 @@ func test_save_and_load_all_settings() -> void:
 	assert_true(settings.is_debug_mode_enabled(), "Debug mode should be restored")
 	assert_true(settings.is_invincibility_enabled(), "Invincibility should be restored")
 	assert_true(settings.is_realistic_visibility_enabled(), "Realistic visibility should be restored")
+	assert_false(settings.is_logging_enabled(), "Logging should be restored as disabled")
+	assert_true(settings.is_enemy_flashlight_blinding_enabled(), "Enemy flashlight blinding should be restored")
 
 
 func test_reset_clears_realistic_visibility() -> void:
@@ -779,3 +825,229 @@ func test_reset_clears_realistic_visibility() -> void:
 	settings.reset_to_defaults()
 	assert_false(settings.realistic_visibility_enabled,
 		"Reset should disable realistic visibility")
+
+
+# ============================================================================
+# Log Recording Setting Tests (Issue #848)
+# ============================================================================
+
+
+func test_default_logging_enabled() -> void:
+	assert_true(settings.logging_enabled,
+		"Log recording should be enabled by default")
+
+
+func test_is_logging_enabled_returns_true_by_default() -> void:
+	assert_true(settings.is_logging_enabled(),
+		"is_logging_enabled should return true by default")
+
+
+func test_set_logging_enabled_false() -> void:
+	settings.set_logging_enabled(false)
+
+	assert_false(settings.logging_enabled,
+		"Log recording should be disabled after set_logging_enabled(false)")
+
+
+func test_set_logging_enabled_true() -> void:
+	settings.logging_enabled = false
+	settings.set_logging_enabled(true)
+
+	assert_true(settings.logging_enabled,
+		"Log recording should be enabled after set_logging_enabled(true)")
+
+
+func test_set_logging_enabled_emits_signal() -> void:
+	settings.set_logging_enabled(false)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when disabling log recording")
+
+
+func test_set_logging_enabled_no_signal_if_same_value() -> void:
+	settings.settings_changed_emitted = 0
+
+	settings.set_logging_enabled(true)  # Same value (default is true)
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if logging_enabled value unchanged")
+
+
+func test_set_logging_enabled_saves_settings() -> void:
+	settings.set_logging_enabled(false)
+
+	assert_true(settings._saved_settings.has("logging_enabled"),
+		"Settings should contain logging_enabled")
+	assert_false(settings._saved_settings["logging_enabled"],
+		"Saved value should match disabled state")
+
+
+func test_load_settings_restores_logging_disabled() -> void:
+	settings._saved_settings["logging_enabled"] = false
+	settings._load_settings()
+
+	assert_false(settings.logging_enabled,
+		"Load should restore saved logging disabled setting")
+
+
+func test_load_settings_restores_logging_enabled() -> void:
+	settings._saved_settings["logging_enabled"] = true
+	settings._load_settings()
+
+	assert_true(settings.logging_enabled,
+		"Load should restore saved logging enabled setting")
+
+
+func test_load_settings_logging_defaults_to_true_when_empty() -> void:
+	settings.logging_enabled = false
+	settings._saved_settings.clear()
+	settings._load_settings()
+
+	assert_true(settings.logging_enabled,
+		"Load should default logging to true when no saved settings")
+
+
+func test_reset_restores_logging_enabled() -> void:
+	settings.set_logging_enabled(false)
+	settings.reset_to_defaults()
+
+	assert_true(settings.logging_enabled,
+		"Reset should re-enable log recording")
+
+
+func test_logging_independent_of_other_settings() -> void:
+	settings.set_logging_enabled(false)
+	assert_false(settings.is_logging_enabled(), "Logging should be disabled")
+	assert_true(settings.is_fov_enabled(), "FOV should still be enabled (default)")
+	assert_false(settings.is_complex_grenade_throwing(), "Grenades should still be disabled")
+	assert_false(settings.is_ai_prediction_enabled(), "AI prediction should still be disabled")
+	assert_false(settings.is_debug_mode_enabled(), "Debug mode should still be disabled")
+	assert_false(settings.is_invincibility_enabled(), "Invincibility should still be disabled")
+	assert_false(settings.is_realistic_visibility_enabled(), "Realistic visibility should still be disabled")
+
+
+func test_save_and_load_logging_disabled() -> void:
+	settings.set_logging_enabled(false)
+
+	# Reset in-memory state
+	settings.logging_enabled = true
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_false(settings.is_logging_enabled(), "Logging disabled state should survive reload")
+
+
+func test_logging_toggle_on_off() -> void:
+	settings.set_logging_enabled(false)
+	settings.set_logging_enabled(true)
+
+	assert_true(settings.logging_enabled,
+		"Toggle back on should re-enable logging")
+	assert_eq(settings.settings_changed_emitted, 2,
+		"Two signals should be emitted for on->off->on")
+
+
+# ============================================================================
+# Enemy Flashlight Blinding Setting Tests (Issue #903)
+# ============================================================================
+
+
+func test_default_enemy_flashlight_blinding_disabled() -> void:
+	assert_false(settings.enemy_flashlight_blinding_enabled,
+		"Enemy flashlight blinding should be disabled by default")
+
+
+func test_is_enemy_flashlight_blinding_enabled_returns_false_by_default() -> void:
+	assert_false(settings.is_enemy_flashlight_blinding_enabled(),
+		"is_enemy_flashlight_blinding_enabled should return false by default")
+
+
+func test_set_enemy_flashlight_blinding_enabled_true() -> void:
+	settings.set_enemy_flashlight_blinding_enabled(true)
+
+	assert_true(settings.enemy_flashlight_blinding_enabled,
+		"Enemy flashlight blinding should be enabled after set_enemy_flashlight_blinding_enabled(true)")
+
+
+func test_set_enemy_flashlight_blinding_enabled_false() -> void:
+	settings.enemy_flashlight_blinding_enabled = true
+	settings.set_enemy_flashlight_blinding_enabled(false)
+
+	assert_false(settings.enemy_flashlight_blinding_enabled,
+		"Enemy flashlight blinding should be disabled after set_enemy_flashlight_blinding_enabled(false)")
+
+
+func test_set_enemy_flashlight_blinding_emits_signal() -> void:
+	settings.set_enemy_flashlight_blinding_enabled(true)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when enabling enemy flashlight blinding")
+
+
+func test_set_enemy_flashlight_blinding_no_signal_if_same_value() -> void:
+	settings.enemy_flashlight_blinding_enabled = false
+	settings.settings_changed_emitted = 0
+
+	settings.set_enemy_flashlight_blinding_enabled(false)  # Same value
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if enemy flashlight blinding value unchanged")
+
+
+func test_set_enemy_flashlight_blinding_saves_settings() -> void:
+	settings.set_enemy_flashlight_blinding_enabled(true)
+
+	assert_true(settings._saved_settings.has("enemy_flashlight_blinding_enabled"),
+		"Settings should contain enemy_flashlight_blinding_enabled")
+	assert_true(settings._saved_settings["enemy_flashlight_blinding_enabled"],
+		"Saved value should match enabled state")
+
+
+func test_load_settings_restores_enemy_flashlight_blinding() -> void:
+	settings._saved_settings["enemy_flashlight_blinding_enabled"] = true
+	settings._load_settings()
+
+	assert_true(settings.enemy_flashlight_blinding_enabled,
+		"Load should restore saved enemy flashlight blinding setting")
+
+
+func test_load_settings_enemy_flashlight_blinding_defaults_to_false() -> void:
+	settings.enemy_flashlight_blinding_enabled = true
+	settings._saved_settings.clear()
+	settings._load_settings()
+
+	assert_false(settings.enemy_flashlight_blinding_enabled,
+		"Load should default enemy flashlight blinding to false when no saved settings")
+
+
+func test_reset_clears_enemy_flashlight_blinding() -> void:
+	settings.set_enemy_flashlight_blinding_enabled(true)
+	settings.reset_to_defaults()
+
+	assert_false(settings.enemy_flashlight_blinding_enabled,
+		"Reset should disable enemy flashlight blinding")
+
+
+func test_enemy_flashlight_blinding_independent_of_other_settings() -> void:
+	settings.set_enemy_flashlight_blinding_enabled(true)
+	assert_true(settings.is_enemy_flashlight_blinding_enabled(), "Enemy flashlight blinding should be enabled")
+	assert_false(settings.is_fov_enabled(), "FOV should still be disabled (default)")
+	assert_false(settings.is_complex_grenade_throwing(), "Grenades should still be disabled")
+	assert_false(settings.is_ai_prediction_enabled(), "AI prediction should still be disabled")
+	assert_false(settings.is_debug_mode_enabled(), "Debug mode should still be disabled")
+	assert_false(settings.is_invincibility_enabled(), "Invincibility should still be disabled")
+	assert_false(settings.is_realistic_visibility_enabled(), "Realistic visibility should still be disabled")
+
+
+func test_save_and_load_enemy_flashlight_blinding_enabled() -> void:
+	settings.set_enemy_flashlight_blinding_enabled(true)
+
+	# Reset in-memory state
+	settings.enemy_flashlight_blinding_enabled = false
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_true(settings.is_enemy_flashlight_blinding_enabled(),
+		"Enemy flashlight blinding enabled state should survive reload")

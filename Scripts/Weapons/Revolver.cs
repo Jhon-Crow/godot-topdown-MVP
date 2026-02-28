@@ -65,6 +65,26 @@ public partial class Revolver : BaseWeapon
     private Sprite2D? _weaponSprite;
 
     /// <summary>
+    /// Reference to the Line2D node for the laser sight (Power Fantasy mode only).
+    /// </summary>
+    private Line2D? _laserSight;
+
+    /// <summary>
+    /// Glow effect for the laser sight (aura + endpoint glow).
+    /// </summary>
+    private LaserGlowEffect? _laserGlow;
+
+    /// <summary>
+    /// Whether the laser sight is enabled (true only in Power Fantasy mode).
+    /// </summary>
+    private bool _laserSightEnabled = false;
+
+    /// <summary>
+    /// Color of the laser sight (blue in Power Fantasy mode).
+    /// </summary>
+    private Color _laserSightColor = new Color(0.0f, 0.5f, 1.0f, 0.6f);
+
+    /// <summary>
     /// Current aim direction based on mouse position.
     /// </summary>
     private Vector2 _aimDirection = Vector2.Right;
@@ -99,6 +119,18 @@ public partial class Revolver : BaseWeapon
     /// Ranges from 0 to CylinderCapacity-1. Updated by RotateCylinder() and Fire().
     /// </summary>
     private int _currentChamberIndex = 0;
+
+    /// <summary>
+    /// Override CanFire for revolver's chamber-based system (Issue #716).
+    /// Revolvers can attempt to fire even when CurrentAmmo = 0 because:
+    /// 1. Individual chambers might still have rounds
+    /// 2. Empty chambers should produce click sounds
+    /// 3. Manual hammer cocking should work with empty cylinders
+    /// 
+    /// Only block fire when cylinder is open or hammer is cocked (handled in Fire()).
+    /// The actual ammo check happens per-chamber in ExecuteShot().
+    /// </summary>
+    public override bool CanFire => !IsReloading && _fireTimer <= 0;
 
     /// <summary>
     /// Number of rounds actually fired since the last casing ejection (Issue #659).
@@ -264,15 +296,30 @@ public partial class Revolver : BaseWeapon
         int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
 
         // Issue #668: Initialize per-chamber tracking array.
-        // All chambers start as occupied (full cylinder at game start).
+        // Chambers start based on CurrentAmmo (empty drum support - Issue #716).
         _chamberOccupied = new bool[cylinderCapacity];
         for (int i = 0; i < cylinderCapacity; i++)
         {
-            _chamberOccupied[i] = true;
+            _chamberOccupied[i] = i < CurrentAmmo;
         }
         _currentChamberIndex = 0;
 
         GD.Print($"[Revolver] RSh-12 initialized - heavy revolver ready, cylinder capacity={cylinderCapacity}");
+
+        // Check for Power Fantasy mode - enable blue laser sight (Issue #864)
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
+            if (shouldForceBlueLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
+                _laserSightColor = blueColorVariant.AsColor();
+                CreateLaserSight();
+                GD.Print($"[Revolver] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
 
         // Issue #691: Setup cylinder HUD using CallDeferred so the scene tree is fully ready
         CallDeferred(MethodName.SetupCylinderHUD);
@@ -361,11 +408,20 @@ public partial class Revolver : BaseWeapon
             {
                 ExecuteShot(_pendingShotDirection);
                 _isHammerCocked = false;
+                // Issue #747: Emit CylinderStateChanged signal when hammer becomes uncocked
+                // This ensures the UI updates from red (cocked) back to yellow (uncocked)
+                EmitSignal(SignalName.CylinderStateChanged);
             }
         }
 
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
+
+        // Update laser sight (Power Fantasy mode, Issue #864)
+        if (_laserSightEnabled && _laserSight != null)
+        {
+            UpdateLaserSight();
+        }
 
         // Handle RMB drag gestures for cartridge insertion (Issue #626)
         HandleDragGestures();
@@ -580,20 +636,6 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Issue #691: Check if the CURRENT chamber has a round, not just total ammo.
-        // This allows cylinder rotation to actually matter - rotating to an empty chamber
-        // will cause a click even if other chambers have rounds.
-        bool currentChamberHasRound = _chamberOccupied.Length > 0
-                                      && _currentChamberIndex < _chamberOccupied.Length
-                                      && _chamberOccupied[_currentChamberIndex];
-
-        if (!currentChamberHasRound)
-        {
-            PlayEmptyClickSound();
-            GD.Print($"[Revolver] Click - chamber {_currentChamberIndex} is empty (total ammo: {CurrentAmmo})");
-            return false;
-        }
-
         // Check if we can fire at all (fire rate, etc)
         if (!CanFire || WeaponData == null || BulletScene == null)
         {
@@ -601,17 +643,43 @@ public partial class Revolver : BaseWeapon
         }
 
         // Issue #649: If hammer was manually cocked (RMB), fire immediately without delay.
-        // The hammer cock + cylinder rotation already happened during ManualCockHammer().
+        // When hammer is cocked, player fires from the CURRENT slot (no rotation).
+        // Issue #716: Current chamber is checked - either fires or clicks.
         if (_isManuallyHammerCocked)
         {
             _isManuallyHammerCocked = false;
+
+            // Issue #716: Check current chamber for cocked fire - click or shoot
+            bool currentChamberHasRound = _chamberOccupied.Length > 0
+                                          && _currentChamberIndex < _chamberOccupied.Length
+                                          && _chamberOccupied[_currentChamberIndex];
+
+            if (!currentChamberHasRound)
+            {
+                // Issue #716: Play empty click sound when firing cocked hammer on empty chamber
+                PlayEmptyClickSound();
+                GD.Print($"[Revolver] Click - cocked hammer on empty chamber {_currentChamberIndex}");
+                // Issue #747: Emit CylinderStateChanged signal when hammer becomes uncocked
+                // This ensures the UI updates from red (cocked) back to yellow (uncocked)
+                EmitSignal(SignalName.CylinderStateChanged);
+                return true; // Return true - action was performed (click)
+            }
+
             GD.Print("[Revolver] Firing with manually cocked hammer - instant shot");
             ExecuteShot(direction);
             return true;
         }
 
-        // Issue #661: Normal fire - cock the hammer and rotate the cylinder before firing.
-        // The actual shot happens after a short delay (HammerCockDelay).
+        // Issue #716: Normal fire (uncocked) - cylinder rotates FIRST, then fire from NEW slot.
+        // Step 1: Rotate cylinder to next position BEFORE hammer cock animation
+        int oldChamberIndex = _currentChamberIndex;
+        if (_chamberOccupied.Length > 0)
+        {
+            _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+        }
+        GD.Print($"[Revolver] Cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
+
+        // Issue #661: Now cock the hammer - shot happens after delay from NEW position
         _isHammerCocked = true;
         _hammerCockTimer = HammerCockDelay;
         _pendingShotDirection = direction;
@@ -626,7 +694,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.HammerCocked);
         EmitSignal(SignalName.CylinderStateChanged);
 
-        GD.Print("[Revolver] Hammer cocked, cylinder rotated - shot pending");
+        GD.Print($"[Revolver] Hammer cocked - shot pending from chamber {_currentChamberIndex}");
 
         return true;
     }
@@ -660,13 +728,13 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Manually cocks the hammer by pressing RMB (Issue #649).
+    /// Manually cocks the hammer by pressing RMB (Issue #649, #716 v3).
     /// This instantly cocks the hammer and rotates the cylinder,
     /// so the next LMB press fires immediately without the normal 0.15s delay.
-    /// Can only be done when the cylinder is closed, there is ammo,
-    /// and the hammer is not already cocked.
+    /// Can only be done when the cylinder is closed and the hammer is not already cocked.
     /// Unlike normal fire, manual cocking is NOT blocked by the fire timer —
     /// the whole point is to let the player bypass the fire delay between shots.
+    /// Issue #716 v3: Cylinder rotation now happens during hammer cock (like real revolvers).
     /// </summary>
     /// <returns>True if the hammer was manually cocked successfully.</returns>
     public bool ManualCockHammer()
@@ -683,18 +751,12 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Issue #691: Check if the CURRENT chamber has a round, not just total ammo.
-        // Cannot cock if the current chamber is empty (would just click anyway).
-        bool currentChamberHasRound = _chamberOccupied.Length > 0
-                                      && _currentChamberIndex < _chamberOccupied.Length
-                                      && _chamberOccupied[_currentChamberIndex];
-
-        if (!currentChamberHasRound)
-        {
-            PlayEmptyClickSound();
-            GD.Print($"[Revolver] Cannot cock - chamber {_currentChamberIndex} is empty");
-            return false;
-        }
+        // Issue #716: Allow hammer cocking even with empty current chamber.
+        // Real revolvers can cock the hammer regardless of ammo state - the hammer
+        // mechanism is independent of whether chambers are loaded. The empty click
+        // occurs when firing (trigger pull), not during cocking.
+        // This allows players to cock the hammer with an empty slot selected,
+        // or with a completely empty cylinder - the click happens on LMB.
 
         // Check weapon data and bullet scene are available
         if (WeaponData == null || BulletScene == null)
@@ -711,6 +773,15 @@ public partial class Revolver : BaseWeapon
         // Reset fire timer — manual cocking prepares the weapon for immediate fire
         _fireTimer = 0;
 
+        // Issue #716 v3: Rotate cylinder BEFORE cocking hammer (like real single-action revolvers)
+        // The cylinder rotates to advance to the next chamber when pulling back the hammer.
+        int oldChamberIndex = _currentChamberIndex;
+        if (_chamberOccupied.Length > 0)
+        {
+            _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+        }
+        GD.Print($"[Revolver] Manual cock - cylinder rotated from {oldChamberIndex} to {_currentChamberIndex}");
+
         // Instantly cock the hammer (no delay - that's the point of manual cocking)
         _isManuallyHammerCocked = true;
 
@@ -722,7 +793,7 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.HammerCocked);
         EmitSignal(SignalName.CylinderStateChanged);
 
-        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly");
+        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly from chamber {_currentChamberIndex}");
 
         return true;
     }
@@ -741,14 +812,29 @@ public partial class Revolver : BaseWeapon
             return;
         }
 
-        // Issue #691: Check current chamber, not just total ammo
+        // Issue #716: Check current chamber - the cylinder was already rotated in Fire()
+        // for uncocked shots, so this checks the NEW position.
         bool currentChamberHasRound = _chamberOccupied.Length > 0
                                       && _currentChamberIndex < _chamberOccupied.Length
                                       && _chamberOccupied[_currentChamberIndex];
 
-        if (!currentChamberHasRound || WeaponData == null || BulletScene == null)
+        if (!currentChamberHasRound)
         {
-            GD.Print("[Revolver] Shot cancelled - conditions changed during hammer cock");
+            // Issue #716: Play empty click sound when hammer falls on empty chamber
+            PlayEmptyClickSound();
+            GD.Print($"[Revolver] Click - chamber {_currentChamberIndex} is empty");
+            // Issue #747: Emit CylinderStateChanged signal even on empty chamber
+            // The hammer state changed from cocked to uncocked, so UI must update
+            EmitSignal(SignalName.CylinderStateChanged);
+            return;
+        }
+
+        if (WeaponData == null || BulletScene == null)
+        {
+            GD.Print("[Revolver] Shot cancelled - weapon data or bullet scene missing");
+            // Issue #747: Emit CylinderStateChanged signal even on cancellation
+            // The hammer state changed from cocked to uncocked, so UI must update
+            EmitSignal(SignalName.CylinderStateChanged);
             return;
         }
 
@@ -767,17 +853,20 @@ public partial class Revolver : BaseWeapon
             // until the player opens it (casings eject in OpenCylinder → SpawnEjectedCasings)
             _roundsFiredSinceLastEject++;
             // Issue #668: Mark the current chamber as empty after firing.
+            // Issue #716: Do NOT rotate cylinder here - rotation already happened in Fire()
+            // for uncocked shots. For cocked shots, cylinder stays at current position.
             if (_chamberOccupied.Length > 0)
             {
                 _chamberOccupied[_currentChamberIndex] = false;
-                // Advance chamber index (cylinder rotates after each shot)
-                _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
             }
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
-            // Issue #691: Notify UI of cylinder state change
-            EmitSignal(SignalName.CylinderStateChanged);
         }
+        
+        // Issue #747: Always emit CylinderStateChanged signal after shot sequence
+        // Whether successful or not, the hammer has fallen from cocked to uncocked
+        // and the chamber state may have changed, so the UI must update
+        EmitSignal(SignalName.CylinderStateChanged);
     }
 
     /// <summary>
@@ -962,6 +1051,81 @@ public partial class Revolver : BaseWeapon
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    #region Power Fantasy Laser Sight (Issue #864)
+
+    /// <summary>
+    /// Creates the laser sight Line2D programmatically (Power Fantasy mode only).
+    /// </summary>
+    private void CreateLaserSight()
+    {
+        _laserSight = new Line2D
+        {
+            Name = "LaserSight",
+            Width = 2.0f,
+            DefaultColor = _laserSightColor,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round
+        };
+
+        _laserSight.AddPoint(Vector2.Zero);
+        _laserSight.AddPoint(Vector2.Right * 500.0f);
+
+        AddChild(_laserSight);
+
+        // Create glow effect (aura + endpoint glow)
+        _laserGlow = new LaserGlowEffect();
+        _laserGlow.Create(this, _laserSightColor);
+    }
+
+    /// <summary>
+    /// Updates the laser sight visualization (Power Fantasy mode only).
+    /// The laser shows where bullets will go, accounting for current recoil.
+    /// </summary>
+    private void UpdateLaserSight()
+    {
+        if (_laserSight == null)
+        {
+            return;
+        }
+
+        // Apply recoil offset to aim direction for laser visualization
+        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+
+        // Calculate maximum laser length based on viewport size
+        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser
+        Vector2 endPoint = laserDirection * maxLaserLength;
+
+        // Raycast to find obstacles
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState != null)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(
+                GlobalPosition,
+                GlobalPosition + endPoint,
+                4 // Collision mask for obstacles
+            );
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                Vector2 hitPosition = (Vector2)result["position"];
+                endPoint = hitPosition - GlobalPosition;
+            }
+        }
+
+        // Update the laser sight line points (in local coordinates)
+        _laserSight.SetPointPosition(0, Vector2.Zero);
+        _laserSight.SetPointPosition(1, endPoint);
+
+        // Sync glow effect with laser
+        _laserGlow?.Update(Vector2.Zero, endPoint);
+    }
+
+    #endregion
 
     #region Multi-Step Cylinder Reload (Issue #626)
 
@@ -1342,6 +1506,11 @@ public partial class Revolver : BaseWeapon
             _cylinderUI.QueueFree();
             _cylinderUI = null;
         }
+
+        // Clean up laser glow effect when revolver is removed (Issue #864)
+        _laserGlow?.Cleanup();
+        _laserGlow = null;
+
         base._ExitTree();
     }
 }

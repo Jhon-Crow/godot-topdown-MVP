@@ -23,11 +23,17 @@ class MockFileLogger:
 	## Maximum buffer size
 	const MAX_BUFFER_SIZE: int = 100
 
-	## Captured log messages for testing
+	## Write buffer: accumulates log lines between timed flushes (Issue #885).
+	var _write_buffer: Array[String] = []
+
+	## Captured log messages for testing (simulates written-to-disk content)
 	var logged_messages: Array[String] = []
 
 	## Whether this is a debug build (can be set for testing)
 	var _is_debug_build: bool = true
+
+	## How often (in seconds) to flush buffered writes to disk (Issue #885).
+	const FLUSH_INTERVAL: float = 1.0
 
 
 	func setup_log(path: String) -> void:
@@ -40,6 +46,7 @@ class MockFileLogger:
 
 
 	func close_log() -> void:
+		_flush_write_buffer()
 		_file_open = false
 
 
@@ -51,11 +58,23 @@ class MockFileLogger:
 			return
 
 		if _file_open:
-			logged_messages.append(log_line)
+			_write_buffer.append(log_line)
+			# Flush errors immediately so they are not lost on crash (Issue #885).
+			if level == "ERROR":
+				_flush_write_buffer()
 		else:
 			_log_buffer.append(log_line)
 			if _log_buffer.size() > MAX_BUFFER_SIZE:
 				_log_buffer.pop_front()
+
+
+	## Flush all buffered log lines to disk (Issue #885).
+	func _flush_write_buffer() -> void:
+		if not _file_open or _write_buffer.is_empty():
+			return
+		for line in _write_buffer:
+			logged_messages.append(line)
+		_write_buffer.clear()
 
 
 	func log_info(message: String) -> void:
@@ -114,6 +133,7 @@ func after_each() -> void:
 
 func test_log_info_creates_message() -> void:
 	logger.log_info("Test info message")
+	logger._flush_write_buffer()
 
 	assert_eq(logger.logged_messages.size(), 1, "Should have 1 logged message")
 	assert_true(logger.logged_messages[0].contains("[INFO]"),
@@ -124,6 +144,7 @@ func test_log_info_creates_message() -> void:
 
 func test_log_warning_creates_message() -> void:
 	logger.log_warning("Test warning message")
+	logger._flush_write_buffer()
 
 	assert_eq(logger.logged_messages.size(), 1, "Should have 1 logged message")
 	assert_true(logger.logged_messages[0].contains("[WARN]"),
@@ -145,6 +166,7 @@ func test_log_error_creates_message() -> void:
 func test_log_debug_in_debug_build() -> void:
 	logger._is_debug_build = true
 	logger.log_debug("Test debug message")
+	logger._flush_write_buffer()
 
 	assert_eq(logger.logged_messages.size(), 1, "Should have 1 logged message in debug build")
 	assert_true(logger.logged_messages[0].contains("[DEBUG]"),
@@ -165,6 +187,7 @@ func test_log_debug_in_release_build() -> void:
 
 func test_log_enemy_formats_correctly() -> void:
 	logger.log_enemy("Enemy1", "Spotted player")
+	logger._flush_write_buffer()
 
 	assert_eq(logger.logged_messages.size(), 1)
 	assert_true(logger.logged_messages[0].contains("[ENEMY]"),
@@ -177,6 +200,7 @@ func test_log_enemy_formats_correctly() -> void:
 
 func test_log_ai_state_formats_correctly() -> void:
 	logger.log_ai_state("Guard1", "IDLE", "PURSUING")
+	logger._flush_write_buffer()
 
 	assert_eq(logger.logged_messages.size(), 1)
 	assert_true(logger.logged_messages[0].contains("[AI]"),
@@ -282,6 +306,7 @@ func test_buffer_max_size_limit() -> void:
 
 func test_message_contains_timestamp() -> void:
 	logger.log_info("Test message")
+	logger._flush_write_buffer()
 
 	assert_true(logger.logged_messages[0].contains("[12:00:00]"),
 		"Message should contain timestamp in brackets")
@@ -289,6 +314,7 @@ func test_message_contains_timestamp() -> void:
 
 func test_message_format_structure() -> void:
 	logger.log_info("Test message")
+	logger._flush_write_buffer()
 
 	# Expected format: [timestamp] [LEVEL] message
 	var msg := logger.logged_messages[0]
@@ -305,6 +331,8 @@ func test_multiple_messages_logged_in_order() -> void:
 	logger.log_info("First")
 	logger.log_warning("Second")
 	logger.log_error("Third")
+	# log_error flushes immediately; flush the rest explicitly
+	logger._flush_write_buffer()
 
 	assert_eq(logger.logged_messages.size(), 3)
 	assert_true(logger.logged_messages[0].contains("First"))
@@ -319,5 +347,66 @@ func test_mixed_log_levels() -> void:
 	logger.log_debug("Debug message")
 	logger.log_enemy("Enemy", "Action")
 	logger.log_ai_state("Enemy", "A", "B")
+	logger._flush_write_buffer()
 
 	assert_eq(logger.logged_messages.size(), 6, "All 6 messages should be logged")
+
+
+# ============================================================================
+# Batch Flush Tests (Issue #885)
+# ============================================================================
+
+
+func test_non_error_messages_buffered_before_flush() -> void:
+	logger.log_info("Buffered info")
+	logger.log_warning("Buffered warning")
+
+	assert_eq(logger.logged_messages.size(), 0,
+		"Non-error messages should NOT be written to disk before flush")
+	assert_eq(logger._write_buffer.size(), 2,
+		"Non-error messages should be in write buffer")
+
+
+func test_error_message_flushes_immediately() -> void:
+	logger.log_info("Before error")
+	logger.log_error("Critical error")
+
+	assert_eq(logger.logged_messages.size(), 2,
+		"Error should trigger immediate flush of all buffered messages")
+	assert_eq(logger._write_buffer.size(), 0,
+		"Write buffer should be empty after error flush")
+	assert_true(logger.logged_messages[0].contains("[INFO]"),
+		"Info message flushed together with error should appear first")
+	assert_true(logger.logged_messages[1].contains("[ERROR]"),
+		"Error message should be present after flush")
+
+
+func test_flush_write_buffer_commits_pending_writes() -> void:
+	logger.log_info("Message 1")
+	logger.log_warning("Message 2")
+
+	assert_eq(logger.logged_messages.size(), 0, "Nothing committed yet")
+
+	logger._flush_write_buffer()
+
+	assert_eq(logger.logged_messages.size(), 2,
+		"Both messages should be committed after explicit flush")
+	assert_eq(logger._write_buffer.size(), 0,
+		"Write buffer should be cleared after flush")
+
+
+func test_flush_write_buffer_noop_when_empty() -> void:
+	logger._flush_write_buffer()
+
+	assert_eq(logger.logged_messages.size(), 0,
+		"Flush of empty buffer should not crash or add messages")
+
+
+func test_messages_preserved_on_close() -> void:
+	logger.log_info("Last message before close")
+	logger.close_log()
+
+	assert_true(logger.logged_messages.size() > 0,
+		"Pending buffered messages should be flushed when log is closed")
+	assert_true(logger.logged_messages[0].contains("Last message before close"),
+		"Buffered message content should be preserved on close")

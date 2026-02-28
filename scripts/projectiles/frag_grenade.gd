@@ -131,7 +131,12 @@ func _physics_process(delta: float) -> void:
 			_impact_armed = true
 
 	# Check for landing (grenade comes to near-stop after being thrown)
-	if not _has_landed and _timer_active:
+	# FIX for Issue #878: Add is_thrown() guard (same as grenade_base.gd Issue #855 fix).
+	# FragGrenade overrides _physics_process() so the base class fix is never reached here.
+	# While frozen and following the player, FREEZE_MODE_KINEMATIC causes linear_velocity
+	# to reflect player movement, which was falsely triggering landing detection and
+	# playing the landing sound while the grenade was still held.
+	if not _has_landed and _timer_active and is_thrown():
 		var current_speed := linear_velocity.length()
 		var previous_speed := _previous_velocity.length()
 		# Grenade has landed when it was moving fast and now nearly stopped
@@ -405,14 +410,25 @@ func _spawn_shrapnel() -> void:
 
 		# Calculate direction vector
 		var direction := Vector2(cos(final_angle), sin(final_angle))
+		var spawn_pos := global_position + direction * 10.0  # Slight offset from center
 
-		# Create shrapnel instance
-		var shrapnel := shrapnel_scene.instantiate()
+		# Try pooled shrapnel first for performance (Issue #724)
+		var shrapnel: Node = null
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+
+		if pool_manager and pool_manager.has_method("get_shrapnel"):
+			shrapnel = pool_manager.get_shrapnel()
+			if shrapnel and shrapnel.has_method("pool_activate"):
+				shrapnel.pool_activate(spawn_pos, direction, get_instance_id(), thrower_id)
+				continue  # Shrapnel is ready, skip to next
+
+		# Fallback to instantiation
+		shrapnel = shrapnel_scene.instantiate()
 		if shrapnel == null:
 			continue
 
 		# Set shrapnel properties
-		shrapnel.global_position = global_position + direction * 10.0  # Slight offset from center
+		shrapnel.global_position = spawn_pos
 		shrapnel.direction = direction
 		shrapnel.source_id = get_instance_id()
 		# Issue #692: Pass thrower_id so shrapnel doesn't hit the enemy who threw it

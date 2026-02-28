@@ -229,6 +229,31 @@ public partial class Bullet : Area2D
     public bool IsBreakerBullet { get; set; } = false;
 
     /// <summary>
+    /// Whether this bullet penetrates through enemies (Issue #829).
+    /// When true, the bullet deals damage to enemies but continues flying through them.
+    /// Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+    /// Set via Node.Set("penetrates_enemies", true) by BaseWeapon.SpawnBullet().
+    /// </summary>
+    [Export]
+    public bool PenetratesEnemies { get; set; } = false;
+
+    /// <summary>
+    /// Set of enemy bodies this bullet has already dealt damage to (Issue #829).
+    /// Prevents the bullet from re-applying damage when OnAreaEntered fires multiple times
+    /// for the same enemy (e.g., multiple hit areas or re-entry signals).
+    /// NOTE: Only populated by OnAreaEntered AFTER damage is dealt.
+    /// </summary>
+    private readonly System.Collections.Generic.HashSet<Node2D> _penetratedEnemyBodies = new();
+
+    /// <summary>
+    /// Set of enemy CharacterBody2D nodes the bullet has already passed through (Issue #829).
+    /// Used exclusively in OnBodyEntered to suppress physics re-entry signals.
+    /// Kept separate from _penetratedEnemyBodies so that OnAreaEntered can still
+    /// deal damage even after OnBodyEntered has already allowed the bullet through.
+    /// </summary>
+    private readonly System.Collections.Generic.HashSet<Node2D> _passedThroughEnemyBodies = new();
+
+    /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
@@ -468,6 +493,25 @@ public partial class Bullet : Area2D
             }
         }
 
+        // Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
+        // allow the bullet to pass through without being destroyed.
+        // The OnAreaEntered handler takes care of dealing damage via the enemy's HitArea.
+        // We track which enemy bodies we've already passed through (body-level) to suppress
+        // physics re-entry signals, using a SEPARATE set from _penetratedEnemyBodies so that
+        // OnAreaEntered can still deal damage on first entry.
+        if (PenetratesEnemies && body.HasMethod("is_alive"))
+        {
+            var isAlive = body.Call("is_alive").AsBool();
+            if (isAlive)
+            {
+                if (_passedThroughEnemyBodies.Add(body))
+                {
+                    GD.Print($"[Bullet]: Penetrating through enemy CharacterBody2D {body.Name}, bullet continues flying");
+                }
+                return; // Don't destroy the bullet - it passes through the enemy body
+            }
+        }
+
         // If we're currently penetrating the same body, ignore re-entry
         if (_isPenetrating && _penetratingBody == body)
         {
@@ -585,11 +629,46 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
+    /// Checks if the given area belongs to an active force field (Issue #912).
+    /// When the force field Area2D overlaps this bullet, the force field GDScript
+    /// handles trapping the bullet. The bullet must NOT call QueueFree() in this case —
+    /// doing so would immediately destroy the bullet before the force field can hold it.
+    /// Detection strategy: check area name "ForceFieldArea" or parent's is_protecting() method.
+    /// </summary>
+    private static bool IsForceFieldArea(Area2D area)
+    {
+        // Primary check: area node name set in force_field_effect.gd _setup_area2d()
+        if (area.Name.ToString().Contains("ForceField", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Secondary check: parent node is the ForceFieldEffect which has is_protecting()
+        var parent = area.GetParent();
+        if (parent != null && parent.HasMethod("is_protecting"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Called when the bullet hits another area (like a target or enemy).
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
         GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
+
+        // Issue #912: If this area belongs to the force field, let the force field
+        // GDScript handle trapping the bullet. Do NOT destroy this bullet here —
+        // the force field's _on_projectile_entered will call set_physics_process(false)
+        // and store a reference to this bullet for later release.
+        if (IsForceFieldArea(area))
+        {
+            GD.Print($"[Bullet]: Entering force field area — letting force field handle this bullet");
+            return;
+        }
 
         // Check if this is a HitArea - if so, check against parent's instance ID
         // This prevents the shooter from damaging themselves with direct shots
@@ -628,6 +707,16 @@ public partial class Bullet : Area2D
             {
                 GD.Print($"[Bullet]: Passing through dead entity {parent.Name}");
                 return; // Pass through dead entities
+            }
+        }
+
+        // Issue #829: When penetrating enemies, only deal damage to each enemy once per pass-through.
+        // Guard against future re-entries (e.g., multiple hit areas on the same enemy).
+        if (PenetratesEnemies && parent is Node2D parentNode2D)
+        {
+            if (_penetratedEnemyBodies.Contains(parentNode2D))
+            {
+                return; // Already dealt damage to this enemy during this pass-through
             }
         }
 
@@ -678,6 +767,20 @@ public partial class Bullet : Area2D
         }
 
         EmitSignal(SignalName.Hit, area);
+
+        // Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
+        // This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+        if (hitEnemy && PenetratesEnemies)
+        {
+            GD.Print($"[Bullet]: Penetrating through enemy, bullet continues flying");
+            // Track the enemy so we don't re-apply damage on subsequent area_entered calls
+            if (parent is Node2D parentNode2DTrack)
+            {
+                _penetratedEnemyBodies.Add(parentNode2DTrack);
+            }
+            return; // Don't destroy the bullet - it passes through
+        }
+
         QueueFree();
     }
 

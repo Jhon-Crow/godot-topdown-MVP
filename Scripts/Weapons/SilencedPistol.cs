@@ -341,16 +341,17 @@ public partial class SilencedPistol : BaseWeapon
         var query = PhysicsRayQueryParameters2D.Create(
             GlobalPosition,
             GlobalPosition + endPoint,
-            4 // Collision mask for obstacles (layer 3 = value 4)
+            6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
         );
 
         var result = spaceState.IntersectRay(query);
 
         if (result.Count > 0)
         {
-            // Hit an obstacle, shorten the laser
+            // Hit an obstacle or enemy, shorten the laser
+            // Extend 4px into the hit body so the laser visually penetrates the surface
             Vector2 hitPosition = (Vector2)result["position"];
-            endPoint = hitPosition - GlobalPosition;
+            endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
         }
 
         // Update the laser sight line points (in local coordinates)
@@ -460,9 +461,14 @@ public partial class SilencedPistol : BaseWeapon
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_pistol_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            GD.Print("[SilencedPistol] Playing pistol empty click sound (Issue #840)");
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        }
+        else
+        {
+            GD.Print($"[SilencedPistol] play_pistol_empty_click not available: audioManager={(audioManager != null ? "found" : "null")}, hasMethod={(audioManager?.HasMethod("play_pistol_empty_click") ?? false)}");
         }
     }
 
@@ -667,17 +673,17 @@ public partial class SilencedPistol : BaseWeapon
         var bulletNode = BulletScene.Instantiate<Node2D>();
         bulletNode.GlobalPosition = spawnPosition;
 
-        // Try to cast to C# Bullet type for direct property access
+        // Set bullet properties BEFORE AddChild() so _ready() sees correct values.
+        // Issue #781: Node.Set() silently fails for non-@export GDScript properties.
         var bullet = bulletNode as Bullet;
 
         if (bullet != null)
         {
-            // C# Bullet - set properties directly for reliable stun effect
+            // C# Bullet: direct property assignment works before AddChild
             bullet.Direction = direction;
             if (WeaponData != null)
             {
                 bullet.Speed = WeaponData.BulletSpeed;
-                // Set damage from weapon data - this is critical for one-shot kills
                 bullet.Damage = WeaponData.Damage;
             }
             var owner = GetParent();
@@ -686,61 +692,44 @@ public partial class SilencedPistol : BaseWeapon
                 bullet.ShooterId = owner.GetInstanceId();
             }
             bullet.ShooterPosition = GlobalPosition;
-
-            // Set stun duration for silenced pistol special effect
-            // Enemies hit by silenced pistol bullets are briefly stunned,
-            // allowing for follow-up shots while they can't retaliate
             bullet.StunDuration = StunDurationOnHit;
             GD.Print($"[SilencedPistol] Spawned C# bullet with Damage={bullet.Damage}, StunDuration={StunDurationOnHit}s");
         }
         else
         {
-            // GDScript bullet fallback - use Node.Set() for compatibility
-            if (bulletNode.HasMethod("SetDirection"))
-            {
-                bulletNode.Call("SetDirection", direction);
-            }
-            else
-            {
-                bulletNode.Set("Direction", direction);
-                bulletNode.Set("direction", direction);
-            }
-
+            // GDScript bullet: use Call() setter methods BEFORE AddChild() (Issue #781)
+            bulletNode.Call("set_direction", direction);
             if (WeaponData != null)
             {
-                bulletNode.Set("Speed", WeaponData.BulletSpeed);
-                bulletNode.Set("speed", WeaponData.BulletSpeed);
-                // Set damage from weapon data - critical for one-shot kills
-                bulletNode.Set("Damage", WeaponData.Damage);
-                bulletNode.Set("damage", WeaponData.Damage);
+                bulletNode.Call("set_speed", WeaponData.BulletSpeed);
+                bulletNode.Call("set_damage", WeaponData.Damage);
             }
-
             var owner = GetParent();
             if (owner != null)
             {
-                bulletNode.Set("ShooterId", owner.GetInstanceId());
-                bulletNode.Set("shooter_id", owner.GetInstanceId());
+                bulletNode.Call("set_shooter_id", (long)owner.GetInstanceId());
             }
-
-            bulletNode.Set("ShooterPosition", GlobalPosition);
-            bulletNode.Set("shooter_position", GlobalPosition);
-
-            // Try to set stun duration via Set() for GDScript bullets
-            bulletNode.Set("StunDuration", StunDurationOnHit);
-            bulletNode.Set("stun_duration", StunDurationOnHit);
+            bulletNode.Call("set_shooter_position", GlobalPosition);
+            bulletNode.Call("set_stun_duration", StunDurationOnHit);
             GD.Print($"[SilencedPistol] Spawned GDScript bullet with Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
         }
 
-        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        // Set breaker bullet flag BEFORE AddChild() so _ready() loads shrapnel scene (Issue #678)
         if (IsBreakerBulletActive)
         {
-            bulletNode.Set("is_breaker_bullet", true);
+            if (bullet != null)
+            {
+                bullet.IsBreakerBullet = true;
+            }
+            else
+            {
+                bulletNode.Call("set_is_breaker_bullet", true);
+            }
         }
 
         GetTree().CurrentScene.AddChild(bulletNode);
 
-        // Enable homing on the bullet if the player's homing effect is active (Issue #704)
-        // When firing during activation, use aim-line targeting (nearest to crosshair)
+        // Enable homing AFTER AddChild() - requires scene tree for physics raycasts (Issue #704, #781)
         var weaponOwner = GetParent();
         if (weaponOwner is Player player && player.IsHomingActive())
         {

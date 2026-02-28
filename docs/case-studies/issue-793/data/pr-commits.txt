@@ -1,0 +1,3 @@
+50a99015 Revert "Initial commit with task details"
+5bff4606 Add City map from PR #582 without sniper enemies
+e57a0b23 Initial commit with task details

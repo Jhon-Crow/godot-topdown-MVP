@@ -1,0 +1,7 @@
+100:	_area2d.collision_layer = 0   # Don't register on any layer
+102:	# Layer 6 (value 32) = "targets"    — grenades (RigidBody2D, collision_layer=32)
+103:	_area2d.collision_mask = 16 | 32  # = 48
+114:	_area2d.area_entered.connect(_on_projectile_entered)
+117:	_area2d.body_entered.connect(_on_body_entered)
+242:## Grenades are RigidBody2D and appear via body_entered instead (handled separately).
+268:func _on_body_entered(body: Node2D) -> void:

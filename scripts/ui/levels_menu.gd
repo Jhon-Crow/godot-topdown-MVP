@@ -51,14 +51,14 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "6000x2560"
 	},
 	{
-		"name": "Tutorial",
-		"name_ru": "Обучение",
-		"path": "res://scenes/levels/csharp/TestTier.tscn",
-		"description": "Step-by-step training: movement, shooting, bolt-action, scope, grenades.",
-		"preview_color": Color(0.2, 0.25, 0.3, 1.0),
-		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
-		"enemy_count": 4,
-		"map_size": "1280x720"
+		"name": "City",
+		"name_ru": "Город",
+		"path": "res://scenes/levels/CityLevel.tscn",
+		"description": "Large urban map with enterable buildings and street combat.",
+		"preview_color": Color(0.25, 0.22, 0.2, 1.0),
+		"preview_accent": Color(0.4, 0.35, 0.3, 1.0),
+		"enemy_count": 8,
+		"map_size": "6000x5000"
 	},
 	{
 		"name": "Beach",
@@ -69,6 +69,26 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.85, 0.75, 0.55, 1.0),
 		"enemy_count": 8,
 		"map_size": "2400x2000"
+	},
+	{
+		"name": "Docks",
+		"name_ru": "Доки",
+		"path": "res://scenes/levels/DocksLevel.tscn",
+		"description": "Large industrial docks with shipping containers, warehouses, and open areas between cover zones.",
+		"preview_color": Color(0.15, 0.25, 0.35, 1.0),
+		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
+		"enemy_count": 20,
+		"map_size": "5000x4000"
+	},
+	{
+		"name": "Double Corridor",
+		"name_ru": "Двойной Коридор",
+		"path": "res://scenes/levels/RevolverLevel.tscn",
+		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
+		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
+		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
+		"enemy_count": 12,
+		"map_size": "2000x1600"
 	}
 ]
 
@@ -427,6 +447,11 @@ func _on_level_selected(level_path: String) -> void:
 
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	# Save the selected level for next session (Issue #896)
+	var persist_manager: Node = get_node_or_null("/root/PersistManager")
+	if persist_manager and persist_manager.has_method("save_last_level"):
+		persist_manager.save_last_level(level_path)
 
 	# Change to the selected level
 	var error := get_tree().change_scene_to_file(level_path)
