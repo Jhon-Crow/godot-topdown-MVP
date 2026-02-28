@@ -1,0 +1,20 @@
+1c0890d8 fix: merge upstream/main, add BREAKER_BULLETS (Issue #678) alongside BFF_PENDANT
+666f0f92 fix: BFF companion uses player model (green tint), add debug logging, merge upstream invisibility suit
+46be77e9 Merge pull request #690 from konard/issue-678-e3a826c43858
+bce74edf Merge pull request #708 from konard/issue-705-1a06d8e79056
+b5c300a3 fix: apply per-shot random spread to AK bullets (#705)
+6d929862 Merge pull request #710 from konard/issue-709-a56c0f38a0e1
+afaa83f1 Merge pull request #734 from konard/issue-729-e0adef50ef62
+68375067 merge: resolve conflicts with upstream main (breaker bullets + invisibility suit coexist)
+db59d5d8 docs: add game logs for issue-709 case study analysis
+60be18f6 fix: sniper homing raycast offset and faster bullet turning (Issue #709)
+583a6dad Revert "Initial commit with task details"
+218d0e82 fix: aggressive enemies now navigate toward targets without LOS (Issue #729)
+ea956e8d Initial commit with task details
+3c20610b Merge pull request #731 from konard/issue-726-e9c46f466d55
+f60338f1 Merge pull request #728 from konard/issue-723-57076416a92b
+a0304ccf Rename active items section to Special in armory menu
+ad6cdd0b Revert "Initial commit with task details"
+470c1767 fix: rename 'ACTIVE ITEMS' to 'SPECIAL' in armory menu (Issue #726)
+eccd710e Initial commit with task details
+4c71a410 fix: add enemy memory reset to C# OnInvisibilityActivated callback (Issue #723)
