@@ -722,9 +722,20 @@ public partial class Player : BaseCharacter
     private const string HomingSoundPath = "res://assets/audio/homing_activation.wav";
 
     /// <summary>
+    /// Path to the homing bullets scanner looping ambient sound (Issue #890).
+    /// </summary>
+    private const string HomingScannerLoopPath = "res://assets/audio/homing_scanner_loop.wav";
+
+    /// <summary>
     /// AudioStreamPlayer for homing activation sound.
     /// </summary>
     private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+    /// Loops while homing bullets item is equipped (always-on ambient scanner).
+    /// </summary>
+    private AudioStreamPlayer? _homingScannerPlayer = null;
 
     /// <summary>
     /// Signal emitted when homing charges change.
@@ -1045,6 +1056,9 @@ public partial class Player : BaseCharacter
         // Initialize force field if active item manager has it selected (Issue #676)
         InitForceField();
 
+        // Initialize trajectory glasses if active item manager has them selected (Issue #744)
+        InitTrajectoryGlasses();
+
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
         int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
@@ -1336,6 +1350,9 @@ public partial class Player : BaseCharacter
 
         // Handle force field input (hold Space to activate) (Issue #676)
         HandleForceFieldInput((float)delta);
+
+        // Handle trajectory glasses input (press Space to activate) (Issue #744)
+        HandleTrajectoryGlassesInput();
     }
 
     /// <summary>
@@ -4639,6 +4656,7 @@ public partial class Player : BaseCharacter
             {
                 _homingActive = false;
                 _homingTimer = 0.0f;
+                StopHomingScanner();
                 EmitSignal(SignalName.HomingDeactivated);
                 LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
             }
@@ -4653,6 +4671,7 @@ public partial class Player : BaseCharacter
                 _homingTimer = HomingDuration;
                 _homingCharges--;
                 PlayHomingSound();
+                StartHomingScanner();
                 EmitSignal(SignalName.HomingActivated);
                 EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
                 LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
@@ -4744,7 +4763,7 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Set up the audio player for homing activation sound.
+    /// Set up the audio players for homing activation sound and scanner loop (Issue #890).
     /// </summary>
     private void SetupHomingAudio()
     {
@@ -4764,6 +4783,34 @@ public partial class Player : BaseCharacter
         {
             LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
         }
+
+        // Set up the looping scanner ambient sound (Issue #890).
+        if (ResourceLoader.Exists(HomingScannerLoopPath))
+        {
+            var scannerStream = GD.Load<AudioStreamWav>(HomingScannerLoopPath);
+            if (scannerStream != null)
+            {
+                scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
+                // Set loop endpoints so the stream actually loops the full clip.
+                // Without LoopEnd, Godot defaults to 0 → loops a zero-length region (silence).
+                int bytesPerSample = (scannerStream.Format == AudioStreamWav.FormatEnum.Format16Bits) ? 2 : 1;
+                int channels = scannerStream.Stereo ? 2 : 1;
+                int totalSamples = scannerStream.Data.Length / (bytesPerSample * channels);
+                scannerStream.LoopBegin = 0;
+                scannerStream.LoopEnd = totalSamples;
+                _homingScannerPlayer = new AudioStreamPlayer();
+                _homingScannerPlayer.Stream = scannerStream;
+                // 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+                _homingScannerPlayer.VolumeDb = -27.5f;
+                AddChild(_homingScannerPlayer);
+                // Do NOT play here — scanner starts only when homing is activated (Issue #890).
+                LogToFile($"[Player.Homing] Homing scanner loop ready (Issue #890), samples={totalSamples}");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing scanner loop sound not found: {HomingScannerLoopPath}");
+        }
     }
 
     /// <summary>
@@ -4774,6 +4821,30 @@ public partial class Player : BaseCharacter
         if (_homingAudioPlayer != null && IsInstanceValid(_homingAudioPlayer))
         {
             _homingAudioPlayer.Play();
+        }
+    }
+
+    /// <summary>
+    /// Start the looping scanner sound. Called when homing is activated (Issue #890).
+    /// </summary>
+    private void StartHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && !_homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Play();
+            LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
+        }
+    }
+
+    /// <summary>
+    /// Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+    /// </summary>
+    private void StopHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && _homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Stop();
+            LogToFile("[Player.Homing] Homing scanner loop stopped (Issue #890)");
         }
     }
 
@@ -4923,6 +4994,155 @@ public partial class Player : BaseCharacter
             _invisibilityHud.Call("set_active", false);
             _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
         }
+    }
+
+    #endregion
+
+    #region Trajectory Glasses System (Issue #744)
+
+    /// <summary>
+    /// Whether trajectory glasses are equipped (active item selected in armory).
+    /// </summary>
+    private bool _trajectoryGlassesEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript trajectory glasses effect node.
+    /// </summary>
+    private Node? _trajectoryGlassesEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript trajectory glasses HUD node.
+    /// </summary>
+    private Node? _trajectoryGlassesHud = null;
+
+    /// <summary>
+    /// Initialize trajectory glasses if the ActiveItemManager has them selected (Issue #744).
+    /// Loads and instantiates the GDScript trajectory_glasses_effect.gd controller.
+    /// </summary>
+    private void InitTrajectoryGlasses()
+    {
+        LogToFile("[Player.TrajectoryGlasses] Checking trajectory glasses...");
+
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_trajectory_glasses"))
+        {
+            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method");
+            return;
+        }
+
+        bool hasTrajectoryGlasses = (bool)activeItemManager.Call("has_trajectory_glasses");
+        if (!hasTrajectoryGlasses)
+        {
+            LogToFile("[Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/trajectory_glasses_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_effect.gd");
+            return;
+        }
+
+        _trajectoryGlassesEffect = new Node();
+        _trajectoryGlassesEffect.SetScript(effectScript);
+        _trajectoryGlassesEffect.Name = "TrajectoryGlassesEffect";
+        AddChild(_trajectoryGlassesEffect);
+
+        // Initialize with player reference
+        _trajectoryGlassesEffect.Call("initialize", this);
+
+        // Pass current weapon so ricochet angle is weapon-specific (Issue #744)
+        if (CurrentWeapon != null)
+        {
+            _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+            LogToFile($"[Player.TrajectoryGlasses] Weapon set: {CurrentWeapon.Name}");
+        }
+
+        // Connect signals
+        _trajectoryGlassesEffect.Connect("trajectory_activated", Callable.From<int>(OnTrajectoryActivated));
+        _trajectoryGlassesEffect.Connect("trajectory_deactivated", Callable.From<int>(OnTrajectoryDeactivated));
+
+        _trajectoryGlassesEquipped = true;
+        int charges = (int)_trajectoryGlassesEffect.Get("charges");
+        LogToFile($"[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: {charges}");
+
+        // Load and instantiate the GDScript HUD
+        var hudScript = GD.Load<Script>("res://scripts/ui/trajectory_glasses_hud.gd");
+        if (hudScript != null)
+        {
+            _trajectoryGlassesHud = new Node2D();
+            _trajectoryGlassesHud.SetScript(hudScript);
+            _trajectoryGlassesHud.Name = "TrajectoryGlassesHUD";
+            AddChild(_trajectoryGlassesHud);
+            _trajectoryGlassesHud.Call("initialize", _trajectoryGlassesEffect);
+            LogToFile("[Player.TrajectoryGlasses] HUD created");
+        }
+        else
+        {
+            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_hud.gd");
+        }
+    }
+
+    /// <summary>
+    /// Handle trajectory glasses input: press Space to activate (Issue #744).
+    /// Single press activates for full duration (10 seconds), auto-deactivates.
+    /// </summary>
+    private void HandleTrajectoryGlassesInput()
+    {
+        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+            if (!isActive)
+            {
+                // Update weapon reference in case player switched weapons (Issue #744)
+                if (CurrentWeapon != null)
+                {
+                    _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+                }
+
+                int charges = (int)_trajectoryGlassesEffect.Get("charges");
+                LogToFile($"[Player.TrajectoryGlasses] Space pressed - activating (charges: {charges})");
+                bool activated = (bool)_trajectoryGlassesEffect.Call("activate");
+                LogToFile($"[Player.TrajectoryGlasses] Activation result: {activated}");
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called when trajectory glasses activate.
+    /// </summary>
+    private void OnTrajectoryActivated(int chargesRemaining)
+    {
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Called when trajectory glasses deactivate.
+    /// </summary>
+    private void OnTrajectoryDeactivated(int chargesRemaining)
+    {
+        QueueRedraw();
     }
 
     #endregion
@@ -5216,6 +5436,9 @@ public partial class Player : BaseCharacter
         {
             DrawTeleportReticle();
         }
+
+        // Draw trajectory glasses laser (Issue #744)
+        DrawTrajectoryGlasses();
 
         // Determine if we should draw trajectory
         bool isSimpleAiming = _grenadeState == GrenadeState.SimpleAiming;
@@ -5609,6 +5832,100 @@ public partial class Player : BaseCharacter
 
         DrawLine(end, arrowLeft, color, width);
         DrawLine(end, arrowRight, color, width);
+    }
+
+    /// <summary>
+    /// Draw trajectory glasses laser lines in local player coordinates (Issue #744).
+    /// Uses the same _draw() approach as grenade trajectory: reads local-coordinate points
+    /// stored by trajectory_glasses_effect.gd and draws them here in Player's _Draw().
+    /// </summary>
+    private void DrawTrajectoryGlasses()
+    {
+        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            return;
+        }
+
+        bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+        if (!isActive)
+        {
+            return;
+        }
+
+        // Read trajectory points (in local player coordinates) from the GDScript effect
+        var pointsVariant = _trajectoryGlassesEffect.Get("trajectory_local_points");
+        if (pointsVariant.VariantType == Variant.Type.Nil)
+        {
+            return;
+        }
+
+        var pointsArray = pointsVariant.AsGodotArray();
+        if (pointsArray.Count < 2)
+        {
+            return;
+        }
+
+        // Read the index where the invalid (red) terminal segment starts.
+        // -1 means all segments are valid (green).
+        var invalidIdxVariant = _trajectoryGlassesEffect.Get("trajectory_invalid_start_index");
+        int invalidStartIndex = invalidIdxVariant.VariantType != Variant.Type.Nil
+            ? invalidIdxVariant.AsInt32()
+            : -1;
+
+        Color validColor = new Color(0.0f, 1.0f, 0.0f, 0.8f);   // Green
+        Color invalidColor = new Color(1.0f, 0.0f, 0.0f, 0.8f); // Red
+
+        // Determine up to which index valid (green) segments run.
+        // If invalidStartIndex == -1: all segments are green (0..Count-2).
+        // If invalidStartIndex >= 1: green segments are 0..invalidStartIndex-2,
+        //   and segment (invalidStartIndex-1) -> (invalidStartIndex) is red.
+        int lastValidSegmentEnd = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+
+        // Draw glow for valid segments
+        for (int i = 0; i < lastValidSegmentEnd; i++)
+        {
+            Color glowValid = new Color(0.0f, 1.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), glowValid, 6.0f);
+        }
+
+        // Draw glow for terminal invalid segment (if any)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
+        {
+            Color glowInvalid = new Color(1.0f, 0.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), glowInvalid, 6.0f);
+        }
+
+        // Draw main laser for valid segments (green)
+        for (int i = 0; i < lastValidSegmentEnd; i++)
+        {
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), validColor, 2.0f);
+        }
+
+        // Draw main laser for terminal invalid segment (red)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
+        {
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), invalidColor, 2.0f);
+        }
+
+        // Draw dot at start (bullet spawn point)
+        DrawCircle(pointsArray[0].As<Vector2>(), 3.0f, validColor);
+
+        // Draw small diamonds at valid bounce points (not at the terminal red point)
+        int lastDiamond = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+        for (int i = 1; i < lastDiamond; i++)
+        {
+            float s = 4.0f;
+            Vector2 p = pointsArray[i].As<Vector2>();
+            DrawLine(p + new Vector2(0, -s), p + new Vector2(s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(s, 0), p + new Vector2(0, s), validColor, 2.0f);
+            DrawLine(p + new Vector2(0, s), p + new Vector2(-s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(-s, 0), p + new Vector2(0, -s), validColor, 2.0f);
+        }
     }
 
     #endregion

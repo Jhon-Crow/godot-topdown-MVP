@@ -13,7 +13,8 @@ enum ActiveItemType {
 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
 	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
-	FORCE_FIELD        # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
+	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
+	TRAJECTORY_GLASSES # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 }
 
 ## Currently selected active item type.
@@ -31,7 +32,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.TELEPORT_BRACERS: false,
 	ActiveItemType.INVISIBILITY_SUIT: false,
 	ActiveItemType.BREAKER_BULLETS: false,
-	ActiveItemType.FORCE_FIELD: false
+	ActiveItemType.FORCE_FIELD: false,
+	ActiveItemType.TRAJECTORY_GLASSES: false  # Issue #744
 }
 
 ## Active item data for UI and selection.
@@ -74,6 +76,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
 		"description": "Force field — hold Space to activate glowing shield. 100% projectile reflection, grenades bounce without detonating. 8 second depletable charge.",
 		"activation_hint": "Hold Space to activate"
+	},
+	ActiveItemType.TRAJECTORY_GLASSES: {
+		"name": "Trajectory Glasses",
+		"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
+		"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
 	}
 }
 
@@ -188,6 +196,11 @@ func has_breaker_bullets() -> bool:
 ## Check if force field is currently equipped (Issue #676).
 func has_force_field() -> bool:
 	return current_active_item == ActiveItemType.FORCE_FIELD
+
+
+## Check if trajectory glasses are currently equipped (Issue #744).
+func has_trajectory_glasses() -> bool:
+	return current_active_item == ActiveItemType.TRAJECTORY_GLASSES
 
 
 ## Check if an active item type is unlocked.

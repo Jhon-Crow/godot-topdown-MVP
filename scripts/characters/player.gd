@@ -216,8 +216,16 @@ var _homing_timer: float = 0.0
 ## Path to the homing bullets activation sound.
 const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
 
+## Path to the homing bullets scanner looping ambient sound (Issue #890).
+## Plays quietly in a loop while the Homing Bullets item is equipped and active.
+const HOMING_SCANNER_LOOP_PATH: String = "res://assets/audio/homing_scanner_loop.wav"
+
 ## AudioStreamPlayer for homing activation sound.
 var _homing_audio_player: AudioStreamPlayer = null
+
+## AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+## Loops while homing bullets item is equipped (always-on ambient scanner).
+var _homing_scanner_player: AudioStreamPlayer = null
 
 
 func _ready() -> void:
@@ -349,6 +357,9 @@ func _ready() -> void:
 	# Initialize force field if active item manager has it selected (Issue #676)
 	_init_force_field()
 
+	# Initialize trajectory glasses if active item manager has trajectory glasses selected (Issue #744)
+	_init_trajectory_glasses()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
@@ -460,6 +471,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle force field input (hold Space to activate) (Issue #676)
 	_handle_force_field_input(delta)
+
+	# Handle trajectory glasses input (press Space to activate) (Issue #744)
+	_handle_trajectory_glasses_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -2477,7 +2491,10 @@ func _on_debug_mode_toggled(enabled: bool) -> void:
 ## In complex mode: Only shows when debug mode is enabled (F7).
 ## For non-contact grenades (flashbang), shows wall bounces.
 func _draw() -> void:
-	# Determine if we should draw trajectory
+	# Draw trajectory glasses laser visualization (Issue #744)
+	_draw_trajectory_glasses()
+
+	# Determine if we should draw grenade trajectory
 	var is_simple_aiming := _grenade_state == GrenadeState.SIMPLE_AIMING
 	var is_complex_aiming := _grenade_state == GrenadeState.AIMING
 
@@ -2795,6 +2812,60 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: f
 		prev_point = next_point
 
 
+## Draw trajectory glasses laser visualization (Issue #744).
+## Called from _draw() - uses local player coordinates for reliable rendering.
+## Trajectory points are updated by TrajectoryGlassesEffect._process() via queue_redraw().
+func _draw_trajectory_glasses() -> void:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return
+	if not is_instance_valid(_trajectory_glasses):
+		return
+	if not _trajectory_glasses.is_active:
+		return
+
+	var points: Array[Vector2] = _trajectory_glasses.trajectory_local_points
+	if points.size() < 2:
+		return
+
+	# trajectory_invalid_start_index: -1 = all valid, >= 1 = index of terminal red point
+	var invalid_start: int = _trajectory_glasses.trajectory_invalid_start_index
+
+	var valid_color := Color(0.0, 1.0, 0.0, 0.8)   # Green
+	var invalid_color := Color(1.0, 0.0, 0.0, 0.8) # Red
+
+	# Last index of valid segments (green). If invalid_start >= 1, green runs to invalid_start-1.
+	var last_valid_end: int = (invalid_start - 1) if invalid_start >= 1 else (points.size() - 1)
+
+	# Draw glow for valid segments
+	for i in range(last_valid_end):
+		draw_line(points[i], points[i + 1], Color(0.0, 1.0, 0.0, 0.3), 6.0)
+
+	# Draw glow for terminal invalid segment
+	if invalid_start >= 1 and invalid_start < points.size():
+		draw_line(points[invalid_start - 1], points[invalid_start], Color(1.0, 0.0, 0.0, 0.3), 6.0)
+
+	# Draw main laser for valid segments (green)
+	for i in range(last_valid_end):
+		draw_line(points[i], points[i + 1], valid_color, 2.0)
+
+	# Draw main laser for terminal invalid segment (red)
+	if invalid_start >= 1 and invalid_start < points.size():
+		draw_line(points[invalid_start - 1], points[invalid_start], invalid_color, 2.0)
+
+	# Draw dot at start (bullet spawn point)
+	draw_circle(points[0], 3.0, valid_color)
+
+	# Draw small diamonds at valid bounce points (not at terminal red point)
+	var last_diamond: int = (invalid_start - 1) if invalid_start >= 1 else (points.size() - 1)
+	for i in range(1, last_diamond):
+		var s := 4.0
+		var p := points[i]
+		draw_line(p + Vector2(-s, 0), p + Vector2(0, -s), valid_color, 2.0)
+		draw_line(p + Vector2(0, -s), p + Vector2(s, 0), valid_color, 2.0)
+		draw_line(p + Vector2(s, 0), p + Vector2(0, s), valid_color, 2.0)
+		draw_line(p + Vector2(0, s), p + Vector2(-s, 0), valid_color, 2.0)
+
+
 ## Enable debug logging for casing pushing (Issue #392 debugging).
 const DEBUG_CASING_PUSHING: bool = false
 
@@ -3049,6 +3120,7 @@ func _handle_homing_input(delta: float) -> void:
 		if _homing_timer <= 0.0:
 			_homing_active = false
 			_homing_timer = 0.0
+			_stop_homing_scanner()
 			homing_deactivated.emit()
 			FileLogger.info("[Player.Homing] Homing effect expired, charges remaining: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
 
@@ -3059,6 +3131,7 @@ func _handle_homing_input(delta: float) -> void:
 			_homing_timer = HOMING_DURATION
 			_homing_charges -= 1
 			_play_homing_sound()
+			_start_homing_scanner()
 			homing_activated.emit()
 			homing_charges_changed.emit(_homing_charges, HOMING_MAX_CHARGES)
 			FileLogger.info("[Player.Homing] Homing activated! Duration: %ss, charges remaining: %d/%d" % [HOMING_DURATION, _homing_charges, HOMING_MAX_CHARGES])
@@ -3080,6 +3153,7 @@ func get_max_homing_charges() -> int:
 
 
 ## Set up the audio player for homing activation sound.
+## Also sets up the looping scanner ambient sound (Issue #890).
 func _setup_homing_audio() -> void:
 	if ResourceLoader.exists(HOMING_SOUND_PATH):
 		var stream = load(HOMING_SOUND_PATH)
@@ -3092,11 +3166,48 @@ func _setup_homing_audio() -> void:
 	else:
 		FileLogger.info("[Player.Homing] Homing activation sound not found: %s" % HOMING_SOUND_PATH)
 
+	# Set up the looping scanner ambient sound (Issue #890).
+	# This sound plays continuously while the Homing Bullets item is equipped.
+	if ResourceLoader.exists(HOMING_SCANNER_LOOP_PATH):
+		var scanner_stream = load(HOMING_SCANNER_LOOP_PATH)
+		if scanner_stream and scanner_stream is AudioStreamWAV:
+			# Enable seamless looping on the WAV stream.
+			# Also set loop endpoints — without loop_end, Godot defaults to 0
+			# which loops a zero-length region (silence after first play-through).
+			scanner_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			var bytes_per_sample: int = 2 if scanner_stream.format == AudioStreamWAV.FORMAT_16_BITS else 1
+			var channels: int = 2 if scanner_stream.stereo else 1
+			scanner_stream.loop_begin = 0
+			scanner_stream.loop_end = scanner_stream.data.size() / (bytes_per_sample * channels)
+			_homing_scanner_player = AudioStreamPlayer.new()
+			_homing_scanner_player.stream = scanner_stream
+			# 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+			_homing_scanner_player.volume_db = -27.5
+			add_child(_homing_scanner_player)
+			# Do NOT play here — scanner starts only when homing is activated (Issue #890).
+			FileLogger.info("[Player.Homing] Homing scanner loop ready (Issue #890)")
+	else:
+		FileLogger.info("[Player.Homing] Homing scanner loop sound not found: %s" % HOMING_SCANNER_LOOP_PATH)
+
 
 ## Play the homing activation sound.
 func _play_homing_sound() -> void:
 	if _homing_audio_player and is_instance_valid(_homing_audio_player):
 		_homing_audio_player.play()
+
+
+## Start the looping scanner sound. Called when homing is activated (Issue #890).
+func _start_homing_scanner() -> void:
+	if _homing_scanner_player and is_instance_valid(_homing_scanner_player) and not _homing_scanner_player.playing:
+		_homing_scanner_player.play()
+		FileLogger.info("[Player.Homing] Homing scanner loop started (Issue #890)")
+
+
+## Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+func _stop_homing_scanner() -> void:
+	if _homing_scanner_player and is_instance_valid(_homing_scanner_player) and _homing_scanner_player.playing:
+		_homing_scanner_player.stop()
+		FileLogger.info("[Player.Homing] Homing scanner loop stopped (Issue #890)")
 
 
 # ============================================================================
@@ -3255,7 +3366,7 @@ func _init_breaker_bullets() -> void:
 		return
 
 	if not active_item_manager.has_breaker_bullets():
-		FileLogger.info("[Player.BreakerBullets] Breaker bullets not selected")
+		FileLogger.info("[Player.BreakerBullets] No breaker bullets selected in ActiveItemManager")
 		return
 
 	_breaker_bullets_active = true
@@ -3324,6 +3435,154 @@ func _handle_force_field_input(delta: float) -> void:
 ## Check if force field is currently protecting the player.
 func is_force_field_active() -> bool:
 	return _force_field_equipped and _force_field != null and _force_field.is_protecting()
+
+
+# ============================================================================
+# Trajectory Glasses (Issue #744)
+# ============================================================================
+
+
+## Preload the trajectory glasses effect script.
+const TrajectoryGlassesEffectScript = preload("res://scripts/effects/trajectory_glasses_effect.gd")
+
+## Preload the trajectory glasses HUD script.
+const TrajectoryGlassesHudScript = preload("res://scripts/ui/trajectory_glasses_hud.gd")
+
+## Whether trajectory glasses are equipped.
+var _trajectory_glasses_equipped: bool = false
+
+## Reference to the trajectory glasses effect node.
+var _trajectory_glasses: Node = null
+
+## Reference to the trajectory glasses HUD node.
+var _trajectory_glasses_hud: Node2D = null
+
+## Signal emitted when trajectory glasses state changes.
+signal trajectory_glasses_changed(is_active: bool, charges: int, max_charges: int)
+
+## Signal emitted when trajectory glasses charges change.
+signal trajectory_glasses_charges_changed(current: int, maximum: int)
+
+
+## Initialize the trajectory glasses if the ActiveItemManager has them selected.
+func _init_trajectory_glasses() -> void:
+	FileLogger.info("[Player.TrajectoryGlasses] Checking trajectory glasses...")
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.TrajectoryGlasses] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_trajectory_glasses"):
+		FileLogger.info("[Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method")
+		return
+
+	if not active_item_manager.has_trajectory_glasses():
+		FileLogger.info("[Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...")
+
+	# Create the trajectory glasses effect node
+	_trajectory_glasses = TrajectoryGlassesEffectScript.new()
+	_trajectory_glasses.name = "TrajectoryGlassesEffect"
+	add_child(_trajectory_glasses)
+
+	# Initialize with player reference
+	_trajectory_glasses.initialize(self)
+
+	# Try to get current weapon for aim direction
+	_update_trajectory_glasses_weapon()
+
+	# Connect signals for HUD updates
+	_trajectory_glasses.trajectory_activated.connect(_on_trajectory_activated)
+	_trajectory_glasses.trajectory_deactivated.connect(_on_trajectory_deactivated)
+	_trajectory_glasses.charges_changed.connect(_on_trajectory_charges_changed)
+
+	_trajectory_glasses_equipped = true
+	FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: %d" % _trajectory_glasses.charges)
+
+	# Create HUD overlay for displaying charges and timer
+	_trajectory_glasses_hud = TrajectoryGlassesHudScript.new()
+	_trajectory_glasses_hud.name = "TrajectoryGlassesHUD"
+	add_child(_trajectory_glasses_hud)
+	_trajectory_glasses_hud.initialize(_trajectory_glasses)
+
+	# Emit initial charges state for HUD
+	trajectory_glasses_charges_changed.emit(_trajectory_glasses.charges, _trajectory_glasses.MAX_CHARGES)
+
+
+## Update the weapon reference for trajectory glasses aim direction.
+func _update_trajectory_glasses_weapon() -> void:
+	if _trajectory_glasses == null:
+		return
+
+	# Try to find a weapon attached to the player
+	var weapon: Node2D = null
+
+	# Check for common weapon types
+	for weapon_name in ["AssaultRifle", "SilencedPistol", "MiniUzi", "Shotgun", "SniperRifle", "Revolver", "MakarovPM"]:
+		var found := get_node_or_null(weapon_name)
+		if found and found is Node2D:
+			weapon = found
+			break
+
+	if weapon:
+		_trajectory_glasses.set_weapon(weapon)
+
+
+## Handle trajectory glasses input: press Space to activate.
+func _handle_trajectory_glasses_input() -> void:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return
+
+	if not is_instance_valid(_trajectory_glasses):
+		return
+
+	# Activate on Space press (not hold — single press activates for full duration)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if not _trajectory_glasses.is_active:
+			# Update weapon reference before activation (in case player switched weapons)
+			_update_trajectory_glasses_weapon()
+			FileLogger.info("[Player.TrajectoryGlasses] Space pressed - activating (charges: %d)" % _trajectory_glasses.charges)
+			var activated := _trajectory_glasses.activate()
+			FileLogger.info("[Player.TrajectoryGlasses] Activation result: %s" % str(activated))
+
+
+## Callback when trajectory glasses activates.
+func _on_trajectory_activated(charges_remaining: int) -> void:
+	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.set_active(true)
+		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+
+
+## Callback when trajectory glasses deactivates.
+func _on_trajectory_deactivated(charges_remaining: int) -> void:
+	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.set_active(false)
+		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+
+
+## Callback when trajectory glasses charges change.
+func _on_trajectory_charges_changed(current: int, maximum: int) -> void:
+	trajectory_glasses_charges_changed.emit(current, maximum)
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.update_charges(current, maximum)
+
+
+## Check if trajectory glasses effect is currently active.
+func is_trajectory_glasses_active() -> bool:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return false
+	if not is_instance_valid(_trajectory_glasses):
+		return false
+	return _trajectory_glasses.is_active
+
+
+## Get the trajectory glasses effect node (for HUD queries).
+func get_trajectory_glasses() -> Node:
+	return _trajectory_glasses
 
 
 # ============================================================================

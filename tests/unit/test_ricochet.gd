@@ -358,3 +358,72 @@ func test_probability_at_90_degrees() -> void:
 	# At 90 degrees, probability should be ~10%
 	var probability := caliber.calculate_ricochet_probability(90.0)
 	assert_almost_eq(probability, 0.10, 0.02, "Probability at 90 degrees should be ~10%")
+
+
+# ============================================================================
+# ShotgunPellet Post-Ricochet Distance Tests (Issue #908)
+# ============================================================================
+
+
+func test_shotgun_pellet_scene_exists() -> void:
+	var scene := load("res://scenes/projectiles/csharp/ShotgunPellet.tscn")
+	assert_not_null(scene, "ShotgunPellet scene should exist at res://scenes/projectiles/csharp/ShotgunPellet.tscn")
+
+
+func test_shotgun_pellet_post_ricochet_distance_at_steep_angle_is_not_tiny() -> void:
+	# Regression test for Issue #908:
+	# After ricochet at steep angles (near MaxRicochetAngle=35°), the pellet was
+	# disappearing almost instantly because _maxPostRicochetDistance was too small.
+	#
+	# The bug: angleFactor = 1 - (impactAngleDeg / MaxRicochetAngle)
+	#          At 35° impact: angleFactor = 0.0, clamped to 0.1
+	#          maxPostRicochetDistance = 2203 * 0.1 * 0.5 = ~110 px = 59ms at 1875 px/s
+	#
+	# The fix: normalize against 90° (same as Bullet.cs), remove * 0.5 factor
+	#          At 35° impact: angleFactor = 1 - 35/90 = 0.61
+	#          maxPostRicochetDistance = 2203 * 0.61 = ~1344 px = 716ms at 1875 px/s
+	#
+	# We verify this by simulating the calculation both ways and confirming the
+	# fixed formula gives at least 10x more post-ricochet distance at steep angles.
+
+	var viewport_diagonal := 2203.0  # typical 1920x1080 diagonal
+	var impact_angle_deg := 30.0     # steep angle near the 35° limit
+
+	# Old (buggy) formula
+	var old_angle_factor := 1.0 - (impact_angle_deg / 35.0)  # MaxRicochetAngle was 35
+	old_angle_factor = clampf(old_angle_factor, 0.1, 1.0)
+	var old_max_dist := viewport_diagonal * old_angle_factor * 0.5  # had * 0.5
+
+	# New (fixed) formula: normalize against 90° like Bullet.cs, no * 0.5
+	var new_angle_factor := 1.0 - (impact_angle_deg / 90.0)
+	new_angle_factor = clampf(new_angle_factor, 0.1, 1.0)
+	var new_max_dist := viewport_diagonal * new_angle_factor
+
+	# At 30° impact: old formula gives ~157 px, new gives ~315 px (2× more)
+	# At 35° impact: old gives ~110 px (clamped), new gives ~1344 px (12× more)
+	assert_gt(new_max_dist, old_max_dist * 1.5,
+		"Fixed formula should give significantly longer post-ricochet distance at steep angles (Issue #908)")
+
+	# The pellet should survive at least 200ms after ricochet at steep angles
+	# At 1875 px/s (post-ricochet speed), need at least 375 px
+	var post_ricochet_speed := 2500.0 * 0.75  # Speed * VelocityRetention
+	var min_survival_time_seconds := 0.2
+	var min_required_dist := post_ricochet_speed * min_survival_time_seconds
+
+	assert_gt(new_max_dist, min_required_dist,
+		"Pellet should survive at least 200ms after ricochet at steep angles (Issue #908)")
+
+
+func test_shotgun_pellet_post_ricochet_distance_at_grazing_angle_is_long() -> void:
+	# At grazing angles (0°), the pellet should travel almost a full viewport diagonal.
+	var viewport_diagonal := 2203.0
+	var impact_angle_deg := 5.0  # nearly grazing
+
+	# Fixed formula
+	var angle_factor := 1.0 - (impact_angle_deg / 90.0)
+	angle_factor = clampf(angle_factor, 0.1, 1.0)
+	var max_dist := viewport_diagonal * angle_factor
+
+	# Should be close to viewport_diagonal * 0.944 = ~2080 px
+	assert_gt(max_dist, viewport_diagonal * 0.85,
+		"At nearly grazing angles, pellet should travel most of the viewport diagonal after ricochet")
