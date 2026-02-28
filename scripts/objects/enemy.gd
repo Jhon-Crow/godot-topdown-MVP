@@ -278,6 +278,10 @@ var _detection_timer: float = 0.0  ## Combat detection timer
 var _detection_delay_elapsed: bool = false  ## Detection delay done
 var _continuous_visibility_timer: float = 0.0  ## Continuous visibility timer
 var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
+## Issue #883: Vision check frame staggering — skip raycasts on most frames (83% reduction).
+var _vision_frame_counter: int = 0  ## Counts physics frames since last vision check
+var _vision_frame_offset: int = 0  ## Per-enemy stagger offset so checks are spread across frames
+const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -375,6 +379,8 @@ var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing r
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
+	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
+	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 
 	# Configure weapon parameters based on weapon type (before ammo init)
 	_configure_weapon_type()
@@ -3573,27 +3579,52 @@ func _is_position_in_fov(target_pos: Vector2) -> bool:
 
 ## Check if the player is visible using multi-point raycast. Updates visibility timer.
 func _check_player_visibility() -> void:
-	var was_visible := _can_see_player
-	_can_see_player = false
-	_player_visibility_ratio = 0.0
+	# Issue #883: Stagger vision raycasts across frames — only run the expensive
+	# multi-point raycast on the designated frame for this enemy.  All cheap,
+	# early-exit checks still run every frame so responsiveness is preserved for
+	# state changes such as blindness or the player going invisible.
+	_vision_frame_counter += 1
+	var is_vision_check_frame := (_vision_frame_counter % VISION_CHECK_INTERVAL) == _vision_frame_offset
 
+	var was_visible := _can_see_player
+
+	# Always clear visibility when a blocking condition applies (fast path, no raycasts).
 	# If blinded, cannot see player at all
 	if _is_blinded:
+		_can_see_player = false
+		_player_visibility_ratio = 0.0
 		_continuous_visibility_timer = 0.0
 		return
 
 	# If confused from memory reset, cannot see player (Issue #318)
 	if _memory_reset_confusion_timer > 0.0:
+		_can_see_player = false
+		_player_visibility_ratio = 0.0
 		_continuous_visibility_timer = 0.0
 		return
 
 	if _player == null or not _raycast:
+		_can_see_player = false
+		_player_visibility_ratio = 0.0
 		_continuous_visibility_timer = 0.0
 		return
 	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
 	if _player.has_method("is_invisible") and _player.is_invisible():
+		_can_see_player = false
+		_player_visibility_ratio = 0.0
 		_continuous_visibility_timer = 0.0
 		return
+
+	# Skip the expensive raycast loop on non-check frames — reuse the result from
+	# the last check so the enemy's response feels smooth even when checks are staggered.
+	if not is_vision_check_frame:
+		if _can_see_player:
+			_continuous_visibility_timer += get_physics_process_delta_time()
+		return
+
+	# --- Full vision check (runs every VISION_CHECK_INTERVAL frames) ---
+	_can_see_player = false
+	_player_visibility_ratio = 0.0
 
 	var distance_to_player := global_position.distance_to(_player.global_position)
 
