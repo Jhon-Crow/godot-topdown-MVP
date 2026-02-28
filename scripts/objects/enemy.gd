@@ -4113,8 +4113,8 @@ func _initialize_idle_scan_targets() -> void:
 
 ## Called when a bullet enters the threat sphere.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if "shooter_id" in area and area.shooter_id == get_instance_id():
-		return
+	if ("shooter_id" in area and area.shooter_id == get_instance_id()) or not _is_position_visible_to_enemy(area.global_position):
+		return  # Own bullet or wall blocking line of sight — no suppression
 	_bullets_in_threat_sphere.append(area)
 	_threat_memory_timer = THREAT_MEMORY_DURATION
 	_log_debug("Bullet entered threat sphere, starting reaction delay...")
