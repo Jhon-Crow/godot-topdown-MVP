@@ -391,6 +391,26 @@ namespace GodotTopdown.Scripts.Projectiles
             if (HasExploded)
                 return;
 
+            // FIX for Issue #886: When a Frag/VOG grenade hits a solid body, BOTH the GDScript
+            // handler (frag_grenade._on_body_entered → GrenadeBase._explode) and this C# handler
+            // (GrenadeTimer.OnBodyEntered → Explode) receive the same body_entered signal.
+            // GDScript fires first (connected in _ready() before C# _Ready()), setting
+            // _has_exploded=true. C# has a separate HasExploded bool that is still false.
+            // Without this guard, C# would spawn a second set of shrapnel, apply damage twice,
+            // and call QueueFree() a second time — causing the lag spike at explosion moment.
+            // Solution: read GDScript's _has_exploded via property interop. If true, GDScript
+            // already handled the full explosion (including PowerFantasy effect), so skip C# work.
+            if (_grenadeBody != null && Type == GrenadeType.Frag)
+            {
+                var gdscriptExploded = _grenadeBody.Get("_has_exploded");
+                if (gdscriptExploded.AsBool())
+                {
+                    LogToFile($"[GrenadeTimer] GDScript already handled {Type} explosion - skipping C# duplicate (Issue #886)");
+                    HasExploded = true; // Sync C# state to prevent future triggers
+                    return;
+                }
+            }
+
             HasExploded = true;
 
             if (_grenadeBody == null)
@@ -398,6 +418,21 @@ namespace GodotTopdown.Scripts.Projectiles
 
             Vector2 explosionPosition = _grenadeBody.GlobalPosition;
             LogToFile($"[GrenadeTimer] {Type} grenade activated at {explosionPosition}!");
+
+            // FIX for Issue #886: Trigger Power Fantasy time-freeze effect from C# path.
+            // GrenadeBase._explode() already calls on_grenade_exploded() in GDScript, but if C#
+            // somehow runs first (race condition) or GDScript _explode() is unavailable (export
+            // builds where GDScript execution is unreliable), the PF effect must still trigger.
+            // on_grenade_exploded() internally checks is_power_fantasy_mode(), so calling it
+            // twice is safe — the second call is a no-op if PF effect is already active.
+            if (Type == GrenadeType.Frag || Type == GrenadeType.Flashbang)
+            {
+                var pfManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+                if (pfManager != null && pfManager.HasMethod("on_grenade_exploded"))
+                {
+                    pfManager.Call("on_grenade_exploded");
+                }
+            }
 
             // Apply explosion effects based on type
             if (Type == GrenadeType.Frag)

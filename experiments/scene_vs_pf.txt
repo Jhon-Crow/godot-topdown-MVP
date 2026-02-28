@@ -1,0 +1,67 @@
+41:[01:32:04] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+204:[01:32:05] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+643:[01:32:17] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+6192:[01:33:17] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+6992:[01:33:31] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+7253:[01:33:38] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+10401:[01:34:01] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+10621:[01:34:03] [INFO] [GrenadeBase] EXPLODED at (711.8705, 1032.413)!
+10720:[01:34:04] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+10940:[01:34:05] [INFO] [GrenadeBase] EXPLODED at (701.9098, 1032.908)!
+10982:[01:34:06] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+11212:[01:34:09] [INFO] [GrenadeBase] EXPLODED at (496.1196, 791.3494)!
+11336:[01:34:10] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+11553:[01:34:12] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+16620:[01:34:40] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+16815:[01:34:44] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+17100:[01:34:48] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+17306:[01:34:51] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+17554:[01:34:55] [INFO] [GrenadeBase] EXPLODED at (656.2443, 660.1168)!
+17555:[01:34:55] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+19296:[01:35:21] [INFO] [GrenadeBase] EXPLODED at (1100.46, 1289.946)!
+19297:[01:35:21] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+19690:[01:35:27] [INFO] [GrenadeBase] EXPLODED at (1620.04, 986.2244)!
+19691:[01:35:27] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+19913:[01:35:30] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+20142:[01:35:32] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+20345:[01:35:36] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+20603:[01:35:39] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+20807:[01:35:43] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+21057:[01:35:48] [INFO] [GrenadeBase] EXPLODED at (647.2756, 656.0651)!
+21058:[01:35:48] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+21141:[01:35:50] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+21343:[01:35:52] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+21801:[01:36:02] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+22008:[01:36:09] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+22257:[01:36:13] [INFO] [GrenadeBase] EXPLODED at (449.7373, 780.4232)!
+22258:[01:36:13] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+23879:[01:36:16] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+24074:[01:36:23] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+24330:[01:36:28] [INFO] [GrenadeBase] EXPLODED at (656.9597, 689.6586)!
+24801:[01:36:32] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+25002:[01:36:41] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+26291:[01:36:49] [INFO] [GrenadeBase] EXPLODED at (1357.628, 532.7167)!
+31611:[01:37:01] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+32005:[01:37:04] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+32230:[01:37:07] [INFO] [GrenadeBase] EXPLODED at (1103.461, 1030.366)!
+32304:[01:37:08] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+32577:[01:37:13] [INFO] [GrenadeBase] EXPLODED at (638.6873, 673.1949)!
+33850:[01:37:22] [INFO] [GrenadeBase] EXPLODED at (2446.482, 371.2762)!
+38527:[01:37:40] [INFO] [GrenadeBase] EXPLODED at (1106.114, 72.34602)!
+38936:[01:37:44] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+39470:[01:37:49] [INFO] [GrenadeBase] EXPLODED at (557.2383, 666.3638)!
+39471:[01:37:49] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+39672:[01:37:51] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+39874:[01:37:54] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+40189:[01:37:58] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+40438:[01:38:02] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+40673:[01:38:04] [INFO] [GrenadeBase] EXPLODED at (583.476, 765.3641)!
+40674:[01:38:04] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+40853:[01:38:05] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+41116:[01:38:08] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+41322:[01:38:09] [INFO] [GrenadeBase] EXPLODED at (570.0801, 1376.776)!
+41323:[01:38:09] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+43323:[01:38:10] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+44823:[01:38:13] [INFO] [GrenadeBase] EXPLODED at (629.4394, 733.7542)!
+44824:[01:38:13] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+48250:[01:38:15] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
