@@ -50,7 +50,12 @@ func process_combat(delta: float, rotation_speed: float, shoot_cooldown: float, 
 		var wf: Vector2 = _parent._get_weapon_forward_direction() if _parent.has_method("_get_weapon_forward_direction") else Vector2.RIGHT.rotated(_parent.rotation)
 		if wf.dot(d) >= 0.866 and _parent._can_shoot() and _parent._shoot_timer >= shoot_cooldown:
 			_parent._shoot(); _parent._shoot_timer = 0.0
-		_parent.velocity = Vector2.ZERO
+		# [#858] Melee enemies must move toward target to get in range; ranged enemies stop
+		var is_melee: bool = _parent.get("_is_melee_weapon") == true
+		if is_melee:
+			if _parent.has_method("_move_to_target_nav"): _parent._move_to_target_nav(_target.global_position, combat_move_speed)
+		else:
+			_parent.velocity = Vector2.ZERO
 	elif _target != null:
 		# Have target but no LOS - navigate toward them
 		if _parent.has_method("_move_to_target_nav"): _parent._move_to_target_nav(_target.global_position, combat_move_speed)

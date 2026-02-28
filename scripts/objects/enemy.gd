@@ -3814,7 +3814,7 @@ func _aim_at_player() -> void:
 
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
-	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
+	if _is_melee_weapon and _machete: var _mt := (_aggression.get_target() if _aggression and _aggression.is_aggressive() and _aggression.get_target() else _player) as Node2D; if _mt: _machete.perform_melee_attack(_mt); return  # [#858] target enemy when aggressive
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
 	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
 	if not _can_shoot(): return
