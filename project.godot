@@ -35,6 +35,7 @@ ActiveItemManager="*res://scripts/autoload/active_item_manager.gd"
 FlashbangPlayerEffectsManager="*res://scripts/autoload/flashbang_player_effects_manager.gd"
 ProjectilePoolManager="*res://scripts/autoload/projectile_pool_manager.gd"
 PersistManager="*res://scripts/autoload/persist_manager.gd"
+UnlockManager="*res://scripts/autoload/unlock_manager.gd"
 
 [application]
 
