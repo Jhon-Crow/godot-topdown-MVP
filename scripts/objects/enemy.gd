@@ -4116,9 +4116,30 @@ func _initialize_idle_scan_targets() -> void:
 func _on_threat_area_entered(area: Area2D) -> void:
 	if "shooter_id" in area and area.shooter_id == get_instance_id():
 		return
+	# Check if a wall blocks line of sight between the bullet and the enemy.
+	# Enemies should not be suppressed by bullets they cannot "feel" due to a wall.
+	# However, if a bullet flies nearby (even past cover), it should still cause suppression
+	# as long as there is no wall directly between the bullet and the enemy.
+	if _is_wall_between_self_and(area.global_position):
+		_log_debug("Bullet in threat sphere blocked by wall — not suppressed")
+		return
 	_bullets_in_threat_sphere.append(area)
 	_threat_memory_timer = THREAT_MEMORY_DURATION
 	_log_debug("Bullet entered threat sphere, starting reaction delay...")
+
+
+## Checks whether a wall (obstacle) lies between this enemy and the given world position.
+## Uses a raycast on collision layer 3 (mask 4), matching all other LOS checks in this file.
+## Returns true if a wall is found, false if the path is clear.
+func _is_wall_between_self_and(target_pos: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = global_position
+	query.to = target_pos
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+	return not result.is_empty()
 
 ## Called when a bullet exits the threat sphere.
 func _on_threat_area_exited(area: Area2D) -> void:
