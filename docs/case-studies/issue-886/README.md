@@ -357,7 +357,7 @@ physics frame:
 
 #### Fix 1: Stop double explosion in GrenadeTimer.Explode()
 
-In `GrenadeTimer.cs`, before running explosion logic, check if GDScript already handled it:
+In `GrenadeTimer.cs`, before running explosion logic, check if GDScript already handled it using the public `has_exploded()` method (not `Get("_has_exploded")` — non-@export GDScript properties are not reliably accessible via `Get()` in release exports):
 
 ```csharp
 public void Explode()
@@ -369,12 +369,13 @@ public void Explode()
     // GDScript sets _has_exploded = true before C# OnBodyEntered fires.
     // If GDScript already handled the explosion, C# should skip to avoid
     // double shrapnel, double damage, and the lag spike at explosion moment.
-    if (_grenadeBody != null)
+    // Use Call("has_exploded") instead of Get("_has_exploded") — method calls
+    // are always accessible in exported builds, unlike non-@export GDScript vars.
+    if (_grenadeBody != null && Type == GrenadeType.Frag)
     {
-        var gdscriptExploded = _grenadeBody.Get("_has_exploded");
-        if (gdscriptExploded.AsBool())
+        if (_grenadeBody.HasMethod("has_exploded") && _grenadeBody.Call("has_exploded").AsBool())
         {
-            LogToFile($"[GrenadeTimer] GDScript already handled explosion - skipping C# duplicate");
+            LogToFile($"[GrenadeTimer] GDScript already handled Frag explosion - skipping C# duplicate");
             HasExploded = true; // Mark C# state to prevent future triggers
             return;
         }
@@ -420,3 +421,13 @@ func _load_settings() -> void:
         get_difficulty_name(), current_difficulty
     ])
 ```
+
+### Bug 2 Resolution: Not a Bug in Power Fantasy Mode
+
+Further analysis of the session log revealed that the "no time-stop for wall hits" symptom occurs **only in Normal mode sessions** (player health 4/4), not in Power Fantasy mode (health 10/10). In PF mode, ALL grenade explosions — including wall hits — correctly trigger the time-stop effect. The PowerFantasy path (via GDScript `GrenadeBase._explode()`) was already working correctly.
+
+The confusion arose because the session contained both Normal mode and Power Fantasy mode play (the user died and restarted multiple times, each time DifficultyManager loaded the saved difficulty from `user://difficulty_settings.cfg`). Without difficulty logging, it was impossible to tell which mode was active at each explosion. Fix 3 (DifficultyManager startup logging) resolves this observability gap.
+
+**For the C# path (Fix 2)**: Even though Bug 2 is not present in PF mode via the GDScript path, the `on_grenade_exploded()` call was added to `GrenadeTimer.Explode()` as a safety net. This ensures the PF time-stop triggers correctly even when:
+- GDScript `_explode()` is unavailable (extreme export edge case)
+- C# runs before GDScript due to a race condition (theoretical)

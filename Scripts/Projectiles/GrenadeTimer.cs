@@ -398,12 +398,12 @@ namespace GodotTopdown.Scripts.Projectiles
             // _has_exploded=true. C# has a separate HasExploded bool that is still false.
             // Without this guard, C# would spawn a second set of shrapnel, apply damage twice,
             // and call QueueFree() a second time — causing the lag spike at explosion moment.
-            // Solution: read GDScript's _has_exploded via property interop. If true, GDScript
-            // already handled the full explosion (including PowerFantasy effect), so skip C# work.
+            // Solution: call GDScript's has_exploded() method (more reliable than Get("_has_exploded")
+            // in exported builds — non-@export GDScript properties may not be accessible via Get()
+            // in release exports, but methods are always accessible via Call()).
             if (_grenadeBody != null && Type == GrenadeType.Frag)
             {
-                var gdscriptExploded = _grenadeBody.Get("_has_exploded");
-                if (gdscriptExploded.AsBool())
+                if (_grenadeBody.HasMethod("has_exploded") && _grenadeBody.Call("has_exploded").AsBool())
                 {
                     LogToFile($"[GrenadeTimer] GDScript already handled {Type} explosion - skipping C# duplicate (Issue #886)");
                     HasExploded = true; // Sync C# state to prevent future triggers
