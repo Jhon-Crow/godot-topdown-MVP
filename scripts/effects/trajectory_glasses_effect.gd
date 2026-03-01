@@ -300,19 +300,22 @@ func _get_weapon_max_ricochet_angle() -> float:
 		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: no caliber in weapon_data for %s, using default %.1f" % [_weapon.name, MAX_RICOCHET_ANGLE])
 		return MAX_RICOCHET_ANGLE
 
-	# Check if ricochet is possible at all for this caliber
-	var can_ricochet_val := true
-	if "can_ricochet" in caliber:
-		can_ricochet_val = caliber.get("can_ricochet")
-	if not can_ricochet_val:
+	# Cast to CaliberData so GDScript resolves the script class and exposes its
+	# properties directly.  When caliber is returned via .get("Caliber") from a
+	# C# Resource? property the "prop" in caliber operator can silently miss
+	# GDScript-defined @export properties, causing the fallback 90° value to be
+	# used even though the .tres contains the correct 70° value.
+	var caliber_typed := caliber as CaliberData
+
+	if caliber_typed == null:
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: caliber is not CaliberData for %s, using default %.1f" % [_weapon.name, MAX_RICOCHET_ANGLE])
+		return MAX_RICOCHET_ANGLE
+
+	if not caliber_typed.can_ricochet:
 		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s cannot ricochet (can_ricochet=false)" % _weapon.name)
 		return 0.0  # Weapon cannot ricochet (e.g. sniper rifle)
 
-	# Read the per-caliber max ricochet angle
-	var angle := MAX_RICOCHET_ANGLE
-	if "max_ricochet_angle" in caliber:
-		angle = float(caliber.get("max_ricochet_angle"))
-
+	var angle := caliber_typed.max_ricochet_angle
 	FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s -> max_ricochet_angle=%.1f" % [_weapon.name, angle])
 	return angle
 
@@ -343,10 +346,13 @@ func _get_weapon_max_ricochets() -> int:
 	if caliber == null:
 		return -1
 
-	var max_r := -1
-	if "max_ricochets" in caliber:
-		max_r = int(caliber.get("max_ricochets"))
+	# Cast to CaliberData — see comment in _get_weapon_max_ricochet_angle() for
+	# why direct property access avoids the C#/GDScript interop issue with "in".
+	var caliber_typed := caliber as CaliberData
+	if caliber_typed == null:
+		return -1
 
+	var max_r := caliber_typed.max_ricochets
 	FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochets: %s -> max_ricochets=%d" % [_weapon.name, max_r])
 	return max_r
 
