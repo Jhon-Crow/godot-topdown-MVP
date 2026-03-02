@@ -7,12 +7,16 @@ extends Node2D
 ##    - For shotgun: RMB UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
 ##    - For sniper: bolt-action between shots (separate hint shown simultaneously)
 ##    - For revolver: cylinder reload + cock hammer (RMB) hint (each shown as separate line)
+##    NOTE (Issue #945): Reload hint appears after 2 shots so player first experiences needing to reload.
 ## 3. Player throws a grenade (G + RMB drag right, then G+RMB held → release G, then RMB drag and release)
 ##    (shown simultaneously with reload hint from step 2)
 ## 4. Shows completion message with Q restart hint
 ##
 ## Issue #808: Reload and grenade hints are shown simultaneously. When an action is completed,
 ## only its corresponding hint disappears. Weapon special features each get their own hint line.
+##
+## Issue #945: (1) Reload hint shown after 2 shots. (2) Each simultaneous hint has a unique color.
+## (3) The NEXT button in a multi-step action is highlighted in red using BBCode in RichTextLabel.
 ##
 ## On this tutorial level, grenades are infinite so player can practice.
 ## Floating key prompts appear near the player until the action is completed.
@@ -85,12 +89,26 @@ const HINT_SCOPE := "scope"
 const HINT_FIRE_MODE := "fire_mode"
 const HINT_HAMMER_COCK := "hammer_cock"
 
-## Dictionary of active hint labels: hint_key -> Label node.
+## Dictionary of active hint labels: hint_key -> RichTextLabel node.
 ## Each hint is shown simultaneously and removed independently when the action completes.
 var _hint_labels: Dictionary = {}
 
 ## Vertical spacing between stacked hints above the player (pixels).
 const HINT_SPACING := 35
+
+## Number of shots fired by the player (Issue #945: reload hint appears after 2 shots).
+var _shots_fired: int = 0
+
+## Whether the reload hint has already been revealed (Issue #945).
+var _reload_hint_revealed: bool = false
+
+## Unique colors for each hint type (Issue #945: simultaneously displayed hints should be different colors).
+const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)    ## Cyan — fire mode switch
+const HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)       ## Green — reload
+const HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)     ## Orange — grenade
+const HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)  ## Purple — bolt cycling
+const HINT_COLOR_SCOPE := Color(0.3, 0.9, 1.0, 1.0)        ## Cyan — scope aiming
+const HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)  ## Yellow — hammer cock
 
 
 func _ready() -> void:
@@ -375,10 +393,24 @@ func _process(_delta: float) -> void:
 	_update_all_hint_positions()
 
 
+## Connect the Fired signal of a weapon node to the shot counter (Issue #945).
+func _connect_weapon_fired_signal(weapon_node: Node) -> void:
+	if weapon_node == null:
+		return
+	if weapon_node.has_signal("Fired"):
+		weapon_node.Fired.connect(_on_weapon_fired)
+		print("Tutorial: Connected to Fired signal on %s" % weapon_node.name)
+
+
 ## Connect to player signals for tracking tutorial actions.
 func _connect_player_signals() -> void:
 	if _player == null:
 		return
+
+	# Connect ReloadSequenceProgress for dynamic next-button highlighting (Issue #945)
+	if _player.has_signal("ReloadSequenceProgress"):
+		_player.ReloadSequenceProgress.connect(_on_reload_sequence_progress)
+		print("Tutorial: Connected to ReloadSequenceProgress signal")
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
@@ -393,6 +425,9 @@ func _connect_player_signals() -> void:
 		_sniper_rifle = sniper_rifle
 		_has_sniper_rifle = true
 		print("Tutorial: Player has ASVK Sniper Rifle - sniper-specific tutorial enabled")
+
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(sniper_rifle)
 
 		# Connect to bolt step changed signal for tracking reload
 		if sniper_rifle.has_signal("BoltStepChanged"):
@@ -413,6 +448,9 @@ func _connect_player_signals() -> void:
 		_has_shotgun = true
 		print("Tutorial: Player has Shotgun - shotgun-specific tutorial enabled")
 
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(shotgun)
+
 		# Connect to reload signals from player (C# Player)
 		if _player.has_signal("ReloadCompleted"):
 			_player.ReloadCompleted.connect(_on_player_reload_completed)
@@ -426,6 +464,9 @@ func _connect_player_signals() -> void:
 	elif mini_uzi != null:
 		# Mini UZI uses rifle-like reload (no fire mode switching)
 		print("Tutorial: Player has Mini UZI - rifle-like reload tutorial")
+
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(mini_uzi)
 
 		# Connect to reload signals from player (C# Player)
 		if _player.has_signal("ReloadCompleted"):
@@ -441,6 +482,9 @@ func _connect_player_signals() -> void:
 		_assault_rifle = weapon
 		_has_assault_rifle = true
 		print("Tutorial: Player has AssaultRifle - fire mode tutorial enabled")
+
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(weapon)
 
 		# Connect to reload signals from player (C# Player)
 		if _player.has_signal("ReloadCompleted"):
@@ -458,6 +502,9 @@ func _connect_player_signals() -> void:
 		_has_assault_rifle = true
 		print("Tutorial: Player has AKGL - fire mode tutorial enabled")
 
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(akgl)
+
 		# Connect to reload signals from player (C# Player)
 		if _player.has_signal("ReloadCompleted"):
 			_player.ReloadCompleted.connect(_on_player_reload_completed)
@@ -472,6 +519,9 @@ func _connect_player_signals() -> void:
 	elif revolver != null:
 		_has_revolver = true
 		print("Tutorial: Player has RSh-12 Revolver - cylinder reload tutorial enabled")
+
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(revolver)
 
 		# Connect to reload signals from player (C# Player)
 		if _player.has_signal("ReloadCompleted"):
@@ -491,6 +541,9 @@ func _connect_player_signals() -> void:
 	elif makarov_pm != null:
 		_has_makarov_pm = true
 		print("Tutorial: Player has MakarovPM - pistol tutorial (R->R reload)")
+
+		# Connect shot counter for reload hint reveal (Issue #945)
+		_connect_weapon_fired_signal(makarov_pm)
 
 		# Connect to reload signals from player (C# Player)
 		if _player.has_signal("ReloadCompleted"):
@@ -684,6 +737,72 @@ func _setup_targets() -> void:
 	print("Tutorial: Found %d targets for practice" % target_count)
 
 
+## Called when the player's weapon fires a shot (Issue #945).
+## Counts shots and reveals the reload hint after 2 shots.
+func _on_weapon_fired() -> void:
+	if _reload_hint_revealed:
+		return
+
+	_shots_fired += 1
+	print("Tutorial: Shot fired (%d total)" % _shots_fired)
+
+	if _shots_fired >= 2:
+		_reload_hint_revealed = true
+		_reveal_reload_hint()
+
+
+## Called when the reload sequence progresses (Issue #945).
+## Updates the reload hint to highlight the NEXT button in red.
+func _on_reload_sequence_progress(step: int, total: int) -> void:
+	if not _hint_labels.has(HINT_RELOAD):
+		return
+
+	var new_text := _build_reload_hint_bbcode(step, total)
+	var label: RichTextLabel = _hint_labels[HINT_RELOAD]
+	if is_instance_valid(label):
+		label.text = new_text
+	print("Tutorial: Reload sequence step %d/%d - hint updated" % [step, total])
+
+
+## Build BBCode text for the reload hint based on current step (Issue #945).
+## The NEXT required button is highlighted in red; completed steps are shown in grey.
+func _build_reload_hint_bbcode(step: int, total: int) -> String:
+	if _has_makarov_pm or (_has_revolver == false and _has_sniper_rifle == false
+			and _has_shotgun == false and total == 2):
+		# Makarov PM: R -> R (2 steps)
+		match step:
+			1:
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+			2:
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+			_:
+				return "[R] [R] Перезарядись"
+	else:
+		# Standard: R -> F -> R (3 steps)
+		match step:
+			1:
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+			2:
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+			3:
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+			_:
+				return "[R] [F] [R] Перезарядись"
+
+
+## Reveal the reload-related hints when the player has fired 2 shots (Issue #945).
+func _reveal_reload_hint() -> void:
+	if _current_step != TutorialStep.RELOAD:
+		return
+
+	print("Tutorial: 2 shots fired - revealing reload hint")
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		return
+
+	_add_reload_hints(canvas_layer)
+
+
 ## Called when player switches fire mode.
 func _on_fire_mode_changed(_new_mode: int) -> void:
 	if _current_step != TutorialStep.SWITCH_FIRE_MODE:
@@ -796,9 +915,12 @@ func _setup_initial_hints() -> void:
 
 	match _current_step:
 		TutorialStep.SWITCH_FIRE_MODE:
-			_add_hint(HINT_FIRE_MODE, "[B] Переключи режим стрельбы", canvas_layer)
+			_add_hint(HINT_FIRE_MODE,
+				"[color=#ff4444][B][/color] Переключи режим стрельбы", canvas_layer)
 		TutorialStep.RELOAD:
-			_add_reload_hints(canvas_layer)
+			# Issue #945: Reload hint is delayed until player fires 2 shots.
+			# Do not show reload hints here; _on_weapon_fired() will reveal them.
+			pass
 
 
 ## Show hints appropriate for the given step.
@@ -811,17 +933,25 @@ func _show_hints_for_step(step: TutorialStep) -> void:
 
 	match step:
 		TutorialStep.RELOAD:
-			_add_reload_hints(canvas_layer)
+			# Issue #945: Reload hint is only shown after 2 shots.
+			# _reveal_reload_hint() is called by _on_weapon_fired() after 2 shots.
+			# If the player has already fired 2+ shots (e.g. after fire mode step), show immediately.
+			if _reload_hint_revealed:
+				_add_reload_hints(canvas_layer)
 		TutorialStep.SCOPE_TRAINING:
 			# Scope hint added alongside still-active grenade hint
-			_add_hint(HINT_SCOPE, "[ПКМ] Прицелься через оптику", canvas_layer)
+			_add_hint(HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
 			# Grenade hint is also shown for sniper (add if not already present)
 			if not _hint_labels.has(HINT_GRENADE):
-				_add_hint(HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+				_add_hint(HINT_GRENADE,
+					"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
+					canvas_layer)
 		TutorialStep.THROW_GRENADE:
 			# Grenade hint may already be visible from RELOAD step; add if missing
 			if not _hint_labels.has(HINT_GRENADE):
-				_add_hint(HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+				_add_hint(HINT_GRENADE,
+					"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
+					canvas_layer)
 		TutorialStep.COMPLETED:
 			# Remove any remaining hints
 			for key in _hint_labels.keys():
@@ -831,48 +961,78 @@ func _show_hints_for_step(step: TutorialStep) -> void:
 ## Add reload-related hints for the current weapon type.
 ## For weapons with special features (sniper bolt, revolver hammer), each feature gets its own line.
 ## The grenade hint is always added alongside (Issue #808).
+## Issue #945: Reload hint uses BBCode with the first step highlighted in red.
 func _add_reload_hints(canvas_layer: Node) -> void:
 	# Add reload hint based on weapon type
 	if _has_shotgun:
-		# Shotgun-specific reload instructions
-		_add_hint(HINT_RELOAD, "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]", canvas_layer)
+		# Shotgun-specific reload instructions (first action highlighted red)
+		_add_hint(HINT_RELOAD,
+			"[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x8] [ПКМ↓ закрыть][/color]",
+			canvas_layer)
 	elif _has_sniper_rifle:
 		# Sniper: reload hint (magazine swap) + separate bolt-cycle hint (between shots)
-		_add_hint(HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
-		_add_hint(HINT_BOLT_CYCLE, "[←↓↑→] Передёрни затвор", canvas_layer)
+		_add_hint(HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись", canvas_layer)
+		_add_hint(HINT_BOLT_CYCLE, "[color=#ff4444][←↓↑→][/color] Передёрни затвор", canvas_layer)
 	elif _has_revolver:
 		# Revolver: cylinder reload + cock hammer hint (separate lines per feature, Issue #808)
-		_add_hint(HINT_RELOAD, "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]", canvas_layer)
-		_add_hint(HINT_HAMMER_COCK, "[ПКМ] Взведи курок", canvas_layer)
+		_add_hint(HINT_RELOAD,
+			"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]",
+			canvas_layer)
+		_add_hint(HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
 	elif _has_makarov_pm:
 		# Makarov PM uses simplified R->R reload
-		_add_hint(HINT_RELOAD, "[R] [R] Перезарядись", canvas_layer)
+		_add_hint(HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись", canvas_layer)
 	else:
-		_add_hint(HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
+		_add_hint(HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись", canvas_layer)
 
 	# Always add grenade hint alongside reload hint (Issue #808 - shown simultaneously)
 	if not _hint_labels.has(HINT_GRENADE):
-		_add_hint(HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+		_add_hint(HINT_GRENADE,
+			"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
+			canvas_layer)
 
 
-## Create and register a hint label with the given key and text.
+## Get the unique color for a hint by its key (Issue #945: different colors per hint).
+func _get_hint_color(hint_key: String) -> Color:
+	match hint_key:
+		HINT_FIRE_MODE:
+			return HINT_COLOR_FIRE_MODE
+		HINT_RELOAD:
+			return HINT_COLOR_RELOAD
+		HINT_GRENADE:
+			return HINT_COLOR_GRENADE
+		HINT_BOLT_CYCLE:
+			return HINT_COLOR_BOLT_CYCLE
+		HINT_SCOPE:
+			return HINT_COLOR_SCOPE
+		HINT_HAMMER_COCK:
+			return HINT_COLOR_HAMMER_COCK
+		_:
+			return Color(1.0, 1.0, 0.3, 1.0)  # Default yellow fallback
+
+
+## Create and register a hint RichTextLabel with the given key and BBCode text.
+## Issue #945: Uses RichTextLabel for BBCode color support (per-hint unique colors + red key highlights).
 func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	if _hint_labels.has(hint_key):
 		# Already exists - just update text
 		_hint_labels[hint_key].text = text
 		return
 
-	var label := Label.new()
+	var label := RichTextLabel.new()
 	label.name = "TutorialHint_" + hint_key
+	label.bbcode_enabled = true
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 20)
-	label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.3, 1.0))
+	label.add_theme_font_size_override("normal_font_size", 20)
+	# Issue #945: unique color per hint type for easy differentiation
+	label.add_theme_color_override("default_color", _get_hint_color(hint_key))
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
 	label.custom_minimum_size = Vector2(300, 30)
+	label.fit_content = true
+	label.scroll_active = false
 
 	canvas_layer.add_child(label)
 	_hint_labels[hint_key] = label
@@ -887,7 +1047,7 @@ func _dismiss_hint(hint_key: String) -> void:
 	if not _hint_labels.has(hint_key):
 		return
 
-	var label: Label = _hint_labels[hint_key]
+	var label: RichTextLabel = _hint_labels[hint_key]
 	label.queue_free()
 	_hint_labels.erase(hint_key)
 	print("Tutorial: Dismissed hint '%s'" % hint_key)
@@ -900,14 +1060,14 @@ func _update_all_hint_positions() -> void:
 
 	var index := 0
 	for hint_key in _hint_labels:
-		var label: Label = _hint_labels[hint_key]
+		var label: RichTextLabel = _hint_labels[hint_key]
 		if is_instance_valid(label):
 			_update_hint_position_indexed(label, index)
 			index += 1
 
 
 ## Update a single hint label's position.
-func _update_hint_position(hint_key: String, label: Label) -> void:
+func _update_hint_position(hint_key: String, label: RichTextLabel) -> void:
 	# Find this hint's index among active hints
 	var index := 0
 	for key in _hint_labels:
@@ -918,7 +1078,7 @@ func _update_hint_position(hint_key: String, label: Label) -> void:
 
 
 ## Position a hint label above the player at the given vertical index (0 = closest to player).
-func _update_hint_position_indexed(label: Label, index: int) -> void:
+func _update_hint_position_indexed(label: RichTextLabel, index: int) -> void:
 	if _player == null:
 		return
 
