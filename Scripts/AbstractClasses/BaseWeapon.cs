@@ -49,11 +49,14 @@ public abstract partial class BaseWeapon : Node2D
 
     /// <summary>
     /// Current ammunition in the magazine.
+    /// Exported so GDScript can read it via weapon.get("CurrentAmmo") (Issue #950).
+    /// The setter is only called internally from C# code.
     /// </summary>
+    [Export]
     public int CurrentAmmo
     {
         get => MagazineInventory.CurrentMagazine?.CurrentAmmo ?? 0;
-        protected set
+        set
         {
             if (MagazineInventory.CurrentMagazine != null)
             {
@@ -65,14 +68,17 @@ public abstract partial class BaseWeapon : Node2D
     /// <summary>
     /// Total reserve ammunition across all spare magazines.
     /// Note: This now represents total ammo in spare magazines, not a simple counter.
+    /// Exported so GDScript can read it via weapon.get("ReserveAmmo") (Issue #950).
+    /// The setter is kept for backward compatibility but is a no-op.
     /// </summary>
+    [Export]
     public int ReserveAmmo
     {
         get => MagazineInventory.TotalSpareAmmo;
-        protected set
+        set
         {
-            // This setter is kept for backward compatibility but does nothing
-            // The reserve ammo is now calculated from individual magazines
+            // This setter is kept for backward compatibility but does nothing.
+            // Reserve ammo is calculated from individual magazines.
         }
     }
 
