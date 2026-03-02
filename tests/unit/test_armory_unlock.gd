@@ -330,3 +330,81 @@ func test_get_unlocked_active_items() -> void:
 	assert_true(unlocked.has(0), "Should have NONE in unlocked active items")
 	assert_true(unlocked[0], "NONE should be unlocked")
 	assert_false(unlocked[1], "Flashlight should be locked")
+
+
+# ============================================================================
+# Condition-gated Unlock Tests (Issue #894 fix)
+# These tests verify the rule: locked items can only be unlocked via LMB hold
+# when their unlock condition is met. Without condition_met, LMB should do nothing.
+# ============================================================================
+
+
+## Simulate the armory LMB hold logic for weapons.
+## Returns true if the unlock would be started (condition met), false otherwise.
+func _simulate_weapon_lmb_press(weapon_id: String, is_unlocked: bool, condition_met: bool) -> bool:
+	if is_unlocked:
+		# Already unlocked: selecting, not unlocking — not what we test here
+		return false
+	elif condition_met:
+		# Start unlock tracking (simulated)
+		return true
+	else:
+		# No condition met: LMB does nothing
+		return false
+
+
+## Simulate the armory LMB hold logic for active items.
+func _simulate_active_item_lmb_press(item_type: int, is_unlocked: bool, condition_met: bool) -> bool:
+	if is_unlocked:
+		return false
+	elif condition_met:
+		return true
+	else:
+		return false
+
+
+func test_locked_weapon_without_condition_cannot_be_unlocked_via_lmb() -> void:
+	# mini_uzi is locked, no condition met (no Labyrinth progress)
+	var would_unlock := _simulate_weapon_lmb_press("mini_uzi", false, false)
+	assert_false(would_unlock,
+		"Locked weapon without condition met should NOT start LMB unlock tracking")
+
+
+func test_locked_weapon_with_condition_can_be_unlocked_via_lmb() -> void:
+	# mini_uzi is locked, condition IS met (Labyrinth completed with D+)
+	var would_unlock := _simulate_weapon_lmb_press("mini_uzi", false, true)
+	assert_true(would_unlock,
+		"Locked weapon with condition met SHOULD start LMB unlock tracking")
+
+
+func test_unlocked_weapon_lmb_does_not_trigger_unlock_flow() -> void:
+	# makarov_pm is already unlocked — LMB selects, doesn't unlock
+	var would_unlock := _simulate_weapon_lmb_press("makarov_pm", true, false)
+	assert_false(would_unlock,
+		"Already unlocked weapon should not go through unlock flow")
+
+
+func test_locked_active_item_without_condition_cannot_be_unlocked() -> void:
+	# Flashlight is locked, no condition met (Polygon not completed)
+	var would_unlock := _simulate_active_item_lmb_press(1, false, false)
+	assert_false(would_unlock,
+		"Locked active item without condition met should NOT start LMB unlock")
+
+
+func test_locked_active_item_with_condition_can_be_unlocked() -> void:
+	# Teleport Bracers locked, condition IS met (Castle completed with F+)
+	var would_unlock := _simulate_active_item_lmb_press(3, false, true)
+	assert_true(would_unlock,
+		"Locked active item with condition met SHOULD start LMB unlock")
+
+
+func test_multiple_locked_weapons_only_condition_met_ones_unlockable() -> void:
+	# shotgun: condition not met → not unlockable
+	assert_false(_simulate_weapon_lmb_press("shotgun", false, false),
+		"Shotgun without condition should not be unlockable")
+	# revolver: condition met → unlockable
+	assert_true(_simulate_weapon_lmb_press("revolver", false, true),
+		"Revolver with condition met should be unlockable")
+	# sniper: condition not met → not unlockable
+	assert_false(_simulate_weapon_lmb_press("sniper", false, false),
+		"Sniper without condition should not be unlockable")

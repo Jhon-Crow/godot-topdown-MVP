@@ -776,7 +776,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
-	slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data, is_unlocked))
+	slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data, is_unlocked, condition_met))
 	if is_unlocked:
 		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	else:
@@ -868,7 +868,7 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
-	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type, is_unlocked))
+	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type, is_unlocked, condition_met))
 	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 	# Apply style: gold if condition is met and item is locked, default otherwise
@@ -881,7 +881,7 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 
 
 ## Handle click on an active item slot.
-func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: int, is_unlocked: bool) -> void:
+func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: int, is_unlocked: bool, condition_met: bool = false) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if is_unlocked:
@@ -897,8 +897,8 @@ func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, ite
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
-			else:
-				# Locked item: start tracking LMB hold for unlocking
+			elif condition_met:
+				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
 					"start_time": Time.get_ticks_msec() / 1000.0,
 					"item_id": str(item_type),
@@ -968,8 +968,8 @@ func _apply_condition_met_style(slot: PanelContainer) -> void:
 
 ## Handle click on an item slot.
 ## Sets the pending selection (does NOT restart — user must press Apply).
-## For locked items, holding LMB unlocks the item.
-func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String, is_grenade: bool, item_data: Dictionary, is_unlocked: bool) -> void:
+## For locked items, holding LMB unlocks the item only if the unlock condition is met.
+func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String, is_grenade: bool, item_data: Dictionary, is_unlocked: bool, condition_met: bool = false) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if is_unlocked:
@@ -989,8 +989,8 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
-			else:
-				# Locked item: start tracking LMB hold for unlocking
+			elif condition_met:
+				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
 					"start_time": Time.get_ticks_msec() / 1000.0,
 					"item_id": item_id,
