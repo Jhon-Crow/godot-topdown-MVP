@@ -252,6 +252,13 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 	if _grenade_bag.is_empty():
 		return false
 
+	# Issue #953: Throttle inherited from EnemyGrenadeComponent — prevents per-frame
+	# raycast storms. _throw_check_timer and THROW_CHECK_INTERVAL are inherited vars.
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _throw_check_timer < THROW_CHECK_INTERVAL:
+		return false
+	_throw_check_timer = now
+
 	var dist := _enemy.global_position.distance_to(target)
 
 	# Get blast radius for the next grenade type

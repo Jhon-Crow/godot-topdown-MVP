@@ -585,15 +585,32 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	# Track decal for cleanup
 	_blood_decals.append(decal)
 
-	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
-	if MAX_BLOOD_DECALS > 0:
-		while _blood_decals.size() > MAX_BLOOD_DECALS:
+	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup).
+	# Issue #953: Also check ExperimentalSettings for a configurable budget.
+	var effective_limit := _get_blood_decal_limit()
+	if effective_limit > 0:
+		while _blood_decals.size() > effective_limit:
 			var oldest := _blood_decals.pop_front() as Node2D
 			if oldest and is_instance_valid(oldest):
 				oldest.queue_free()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
+
+
+## Issue #953: Returns the effective blood decal limit.
+## Returns ExperimentalSettings budget if enabled, falls back to MAX_BLOOD_DECALS constant.
+## Returns 0 (unlimited) when no budget is configured.
+func _get_blood_decal_limit() -> int:
+	if MAX_BLOOD_DECALS > 0:
+		return MAX_BLOOD_DECALS
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and \
+			experimental_settings.has_method("is_blood_decal_budget_enabled") and \
+			experimental_settings.is_blood_decal_budget_enabled() and \
+			experimental_settings.has_method("get_blood_decal_max_count"):
+		return experimental_settings.get_blood_decal_max_count()
+	return 0  # 0 = unlimited (original behavior)
 
 
 ## Clears all blood decals from the scene.
@@ -683,9 +700,11 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	# Track as blood decal for cleanup
 	_blood_decals.append(splatter)
 
-	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
-	if MAX_BLOOD_DECALS > 0:
-		while _blood_decals.size() > MAX_BLOOD_DECALS:
+	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup).
+	# Issue #953: Also check ExperimentalSettings for a configurable budget.
+	var effective_limit := _get_blood_decal_limit()
+	if effective_limit > 0:
+		while _blood_decals.size() > effective_limit:
 			var oldest := _blood_decals.pop_front() as Node2D
 			if oldest and is_instance_valid(oldest):
 				oldest.queue_free()

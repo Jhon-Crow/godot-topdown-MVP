@@ -46,6 +46,11 @@ var _enemy: CharacterBody2D = null
 var _logger: Node = null
 ## Cache for blast radius to avoid repeated scene instantiation (Issue #886)
 var _blast_radius_cache: float = -1.0
+## Issue #953: Throttle interval for try_throw() to prevent per-frame raycast storms.
+## try_throw() includes up to 2 raycasts per call. With 20 enemies at 60fps this
+## caused severe FPS drops. Checks are now throttled to at most once per interval.
+const THROW_CHECK_INTERVAL: float = 0.3
+var _throw_check_timer: float = 0.0
 
 # Trigger 1: Suppression
 var _hidden_timer: float = 0.0
@@ -262,6 +267,14 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 	if not is_alive or is_stunned or is_blinded or target == Vector2.ZERO or _enemy == null:
 		return false
 
+	# Issue #953: Throttle raycast-heavy throw checks to prevent per-frame performance spikes.
+	# Without this throttle, at 20 enemies and 60fps, try_throw() fires 1200 times/sec,
+	# executing up to 2400 raycasts/sec from grenade path and visibility checks alone.
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _throw_check_timer < THROW_CHECK_INTERVAL:
+		return false
+	_throw_check_timer = now
+
 	var dist := _enemy.global_position.distance_to(target)
 
 	# Issue #375: Check safe distance based on blast radius
@@ -448,8 +461,11 @@ func add_grenades(count: int) -> void:
 func _log(msg: String) -> void:
 	if debug_logging:
 		print("[EnemyGrenadeComponent] %s" % msg)
-	if _logger and _logger.has_method("log_info"):
-		_logger.log_info("[EnemyGrenade] %s" % msg)
+		# Issue #953: Gate file logging behind debug_logging to avoid per-frame disk I/O.
+		# Previously, _logger.log_info() was called unconditionally, producing 10,000+
+		# file writes per session from grenade skip messages alone (see issue #953 case study).
+		if _logger and _logger.has_method("log_info"):
+			_logger.log_info("[EnemyGrenade] %s" % msg)
 
 
 ## FIX for Issue #432: Attach C# GrenadeTimer component via autoload helper.

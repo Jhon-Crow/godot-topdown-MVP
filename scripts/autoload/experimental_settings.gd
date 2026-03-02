@@ -67,6 +67,19 @@ var fps_counter_enabled: bool = false
 ## When disabled (default), no FPS drop warnings are written.
 var fps_drop_logging_enabled: bool = false
 
+## Whether the blood decal budget limit is enabled (Issue #953).
+## When enabled, removes the oldest blood decals once the count exceeds
+## blood_decal_max_count, preventing unbounded scene-node accumulation.
+## When disabled (default), all blood decals persist forever (original behavior,
+## preserving issues #293 and #370 design intent).
+var blood_decal_budget_enabled: bool = false
+
+## Maximum number of blood decals when budget is enabled (Issue #953).
+## At 20 decals per lethal hit a long session can accumulate 2000+ decals
+## (6000+ scene nodes), causing significant render and physics overhead.
+## 200 provides a visually rich battlefield while bounding scene-tree growth.
+var blood_decal_max_count: int = 200
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -78,7 +91,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, Blood decal budget: %s (max: %d)" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, blood_decal_budget_enabled, blood_decal_max_count])
 
 
 ## Set FOV enabled/disabled.
@@ -239,6 +252,37 @@ func is_fps_drop_logging_enabled() -> bool:
 	return fps_drop_logging_enabled
 
 
+## Set blood decal budget limit enabled/disabled (Issue #953).
+## When enabled, removes oldest decals beyond blood_decal_max_count to prevent
+## unbounded scene-tree accumulation that causes FPS drops at high enemy counts.
+func set_blood_decal_budget_enabled(enabled: bool) -> void:
+	if blood_decal_budget_enabled != enabled:
+		blood_decal_budget_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Blood decal budget %s (max: %d)" % [("enabled" if enabled else "disabled"), blood_decal_max_count])
+
+
+## Check if blood decal budget limit is enabled (Issue #953).
+func is_blood_decal_budget_enabled() -> bool:
+	return blood_decal_budget_enabled
+
+
+## Set the maximum blood decal count when budget is enabled (Issue #953).
+func set_blood_decal_max_count(count: int) -> void:
+	var clamped := max(1, count)
+	if blood_decal_max_count != clamped:
+		blood_decal_max_count = clamped
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Blood decal max count set to %d" % blood_decal_max_count)
+
+
+## Get the maximum blood decal count (Issue #953).
+func get_blood_decal_max_count() -> int:
+	return blood_decal_max_count
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -253,6 +297,8 @@ func _save_settings() -> void:
 	config.set_value("experimental", "enemy_flashlight_blinding_enabled", enemy_flashlight_blinding_enabled)
 	config.set_value("experimental", "fps_counter_enabled", fps_counter_enabled)
 	config.set_value("experimental", "fps_drop_logging_enabled", fps_drop_logging_enabled)
+	config.set_value("experimental", "blood_decal_budget_enabled", blood_decal_budget_enabled)
+	config.set_value("experimental", "blood_decal_max_count", blood_decal_max_count)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -274,6 +320,8 @@ func _load_settings() -> void:
 		enemy_flashlight_blinding_enabled = config.get_value("experimental", "enemy_flashlight_blinding_enabled", false)
 		fps_counter_enabled = config.get_value("experimental", "fps_counter_enabled", false)
 		fps_drop_logging_enabled = config.get_value("experimental", "fps_drop_logging_enabled", false)
+		blood_decal_budget_enabled = config.get_value("experimental", "blood_decal_budget_enabled", false)
+		blood_decal_max_count = config.get_value("experimental", "blood_decal_max_count", 200)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -287,6 +335,8 @@ func _load_settings() -> void:
 		enemy_flashlight_blinding_enabled = false
 		fps_counter_enabled = false
 		fps_drop_logging_enabled = false
+		blood_decal_budget_enabled = false
+		blood_decal_max_count = 200
 
 
 ## Log a message to the file logger if available.
