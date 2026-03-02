@@ -12,6 +12,7 @@ WeaponData = ExtResource("4_weapon_data")
 BulletScene = ExtResource("2_bullet")
 CasingScene = ExtResource("3_casing")
 BulletSpawnOffset = 34.0
+CylinderSize = 5
 StartingMagazineCount = 4
 
 [node name="RevolverSprite" type="Sprite2D" parent="."]

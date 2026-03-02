@@ -78,10 +78,12 @@ class MockActiveItemManager:
 		FLASHLIGHT,
 		HOMING_BULLETS,
 		TELEPORT_BRACERS,
+		BFF_PENDANT,        # Issue #674
 		INVISIBILITY_SUIT,
 		BREAKER_BULLETS,
 		FORCE_FIELD,
-		TRAJECTORY_GLASSES  # Issue #744
+		TRAJECTORY_GLASSES, # Issue #744
+		LASER_SIGHT         # Issue #947
 	}
 
 	# Issue #894: only FLASHLIGHT and TELEPORT_BRACERS have conditions
@@ -91,10 +93,12 @@ class MockActiveItemManager:
 		ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
 		ActiveItemType.HOMING_BULLETS: true,       # No condition — freely available from start
 		ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Castle F+
+		ActiveItemType.BFF_PENDANT: true,          # No condition — freely available from start (Issue #674)
 		ActiveItemType.INVISIBILITY_SUIT: true,    # No condition — freely available from start
 		ActiveItemType.BREAKER_BULLETS: true,      # No condition — freely available from start
 		ActiveItemType.FORCE_FIELD: true,          # No condition — freely available from start
-		ActiveItemType.TRAJECTORY_GLASSES: true    # No condition — freely available from start
+		ActiveItemType.TRAJECTORY_GLASSES: true,   # No condition — freely available from start (Issue #744)
+		ActiveItemType.LASER_SIGHT: true           # No condition — freely available from start (Issue #947)
 	}
 
 	var unlock_signals: Array = []
@@ -244,13 +248,17 @@ func test_default_active_item_unlock_state() -> void:
 	assert_true(active_item_manager.is_active_item_unlocked(2),
 		"Homing Bullets should be unlocked by default (no unlock condition)")
 	assert_true(active_item_manager.is_active_item_unlocked(4),
-		"Invisibility Suit should be unlocked by default (no unlock condition)")
+		"BFF Pendant should be unlocked by default (no unlock condition)")
 	assert_true(active_item_manager.is_active_item_unlocked(5),
-		"Breaker Bullets should be unlocked by default (no unlock condition)")
+		"Invisibility Suit should be unlocked by default (no unlock condition)")
 	assert_true(active_item_manager.is_active_item_unlocked(6),
-		"Force Field should be unlocked by default (no unlock condition)")
+		"Breaker Bullets should be unlocked by default (no unlock condition)")
 	assert_true(active_item_manager.is_active_item_unlocked(7),
+		"Force Field should be unlocked by default (no unlock condition)")
+	assert_true(active_item_manager.is_active_item_unlocked(8),
 		"Trajectory Glasses should be unlocked by default (no unlock condition)")
+	assert_true(active_item_manager.is_active_item_unlocked(9),
+		"Laser Sight should be unlocked by default (no unlock condition)")
 
 
 func test_unlock_active_item() -> void:

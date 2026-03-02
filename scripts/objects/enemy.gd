@@ -278,6 +278,9 @@ var _detection_timer: float = 0.0  ## Combat detection timer
 var _detection_delay_elapsed: bool = false  ## Detection delay done
 var _continuous_visibility_timer: float = 0.0  ## Continuous visibility timer
 var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
+## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
+var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
+const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -375,6 +378,8 @@ var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing r
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
+	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
+	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 
 	# Configure weapon parameters based on weapon type (before ammo init)
 	_configure_weapon_type()
@@ -572,8 +577,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 
 		# React to vulnerable player sound - pursue (high-risk for reload actions)
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
 		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
@@ -602,8 +606,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# React to vulnerable player sound - transition to combat/pursuing
 		# All enemies in hearing range should pursue the vulnerable player!
 		# This makes empty click sounds a high-risk action when enemies are nearby.
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
+			# Leave cover/defensive/searching state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
 		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
@@ -1150,8 +1154,7 @@ func _process_ai_state(delta: float) -> void:
 		_transition_to_evading_grenade()
 		return
 
-	if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
-		_aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
+	if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
@@ -2606,8 +2609,8 @@ func _transition_to_assault() -> void:
 ## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
 func _transition_to_searching(center_position: Vector2) -> void:
 	_current_state = AIState.SEARCHING
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
+	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
+	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
@@ -3573,40 +3576,34 @@ func _is_position_in_fov(target_pos: Vector2) -> bool:
 
 ## Check if the player is visible using multi-point raycast. Updates visibility timer.
 func _check_player_visibility() -> void:
-	var was_visible := _can_see_player
-	_can_see_player = false
-	_player_visibility_ratio = 0.0
+	# Issue #883: Only run the expensive multi-point raycast every VISION_CHECK_INTERVAL frames.
+	# Cheap blocking checks (blinded, invisible, null) still run every frame for responsiveness.
+	_vision_frame_counter += 1
+	var is_vision_check_frame := (_vision_frame_counter % VISION_CHECK_INTERVAL) == _vision_frame_offset
 
-	# If blinded, cannot see player at all
-	if _is_blinded:
-		_continuous_visibility_timer = 0.0
+	# Fast-path: clear visibility immediately on blocking conditions (no raycasts needed).
+	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not _raycast \
+			or (_player.has_method("is_invisible") and _player.is_invisible()):
+		_can_see_player = false; _player_visibility_ratio = 0.0; _continuous_visibility_timer = 0.0
 		return
 
-	# If confused from memory reset, cannot see player (Issue #318)
-	if _memory_reset_confusion_timer > 0.0:
-		_continuous_visibility_timer = 0.0
+	# On non-check frames reuse last result; only accumulate timer if still visible (Issue #883).
+	if not is_vision_check_frame:
+		if _can_see_player: _continuous_visibility_timer += get_physics_process_delta_time()
 		return
 
-	if _player == null or not _raycast:
-		_continuous_visibility_timer = 0.0
-		return
-	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
-	if _player.has_method("is_invisible") and _player.is_invisible():
-		_continuous_visibility_timer = 0.0
-		return
-
+	# --- Full vision check (runs every VISION_CHECK_INTERVAL frames) ---
+	_can_see_player = false; _player_visibility_ratio = 0.0
 	var distance_to_player := global_position.distance_to(_player.global_position)
 
 	# Check if player is within detection range (only if detection_range is positive)
 	# If detection_range <= 0, detection is unlimited (line-of-sight only)
 	if detection_range > 0 and distance_to_player > detection_range:
-		_continuous_visibility_timer = 0.0
-		return
+		_continuous_visibility_timer = 0.0; return
 
 	# Check FOV angle (if FOV is enabled via ExperimentalSettings)
 	if not _is_position_in_fov(_player.global_position):
-		_continuous_visibility_timer = 0.0
-		return
+		_continuous_visibility_timer = 0.0; return
 
 	# Check multiple points on the player's body (center + corners) to handle
 	# cases where player is near a wall corner. A single raycast to the center
@@ -3615,22 +3612,16 @@ func _check_player_visibility() -> void:
 	# walls in narrow passages (issue #264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
-
 	for point in check_points:
 		if _is_player_point_visible_to_enemy(point):
-			visible_count += 1
-			# If any part of the player is visible, we can see them
-			_can_see_player = true
-			# Continue checking to calculate visibility ratio
+			visible_count += 1; _can_see_player = true  # Continue to calculate ratio
 
 	# Calculate visibility ratio based on how many points are visible
 	if _can_see_player:
 		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
 	else:
-		# Lost line of sight - reset the timer and visibility ratio
-		_continuous_visibility_timer = 0.0
-		_player_visibility_ratio = 0.0
+		_continuous_visibility_timer = 0.0; _player_visibility_ratio = 0.0
 
 ## Update enemy memory: visual detection, decay, prediction, flashlight detection, and intel sharing (Issue #297, #298, #574).
 func _update_memory(delta: float) -> void:
@@ -3814,7 +3805,7 @@ func _aim_at_player() -> void:
 
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
-	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
+	if _is_melee_weapon and _machete: var _mt := (_aggression.get_target() if _aggression and _aggression.is_aggressive() and _aggression.get_target() else _player) as Node2D; if _mt: _machete.perform_melee_attack(_mt); return  # [#858] target enemy when aggressive
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
 	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
 	if not _can_shoot(): return
@@ -4114,8 +4105,8 @@ func _initialize_idle_scan_targets() -> void:
 
 ## Called when a bullet enters the threat sphere.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if "shooter_id" in area and area.shooter_id == get_instance_id():
-		return
+	if ("shooter_id" in area and area.shooter_id == get_instance_id()) or not _is_position_visible_to_enemy(area.global_position):
+		return  # Own bullet or wall blocking line of sight — no suppression
 	_bullets_in_threat_sphere.append(area)
 	_threat_memory_timer = THREAT_MEMORY_DURATION
 	_log_debug("Bullet entered threat sphere, starting reaction delay...")
@@ -4172,8 +4163,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		# Spawn blood effect for non-lethal hit (smaller, no decal)
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
-		_update_health_visual()
-		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
+		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4385,6 +4375,7 @@ func _reset() -> void:
 	# Reset ally death observation state (Issue #409)
 	_witnessed_ally_death = false
 	_suspected_directions.clear()
+	_has_left_idle = false  # Issue #921: reset so respawned patrol enemies can timeout from SEARCHING
 	# Reset score tracking state
 	_killed_by_ricochet = false
 	_killed_by_penetration = false

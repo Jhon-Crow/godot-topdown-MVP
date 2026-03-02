@@ -57,10 +57,12 @@ class MockActiveItemManager:
 		1: false,  # FLASHLIGHT — condition: Polygon D+
 		2: true,   # HOMING_BULLETS — no condition, freely available from start
 		3: false,  # TELEPORT_BRACERS — condition: Castle F+
-		4: true,   # INVISIBILITY_SUIT — no condition, freely available from start
-		5: true,   # BREAKER_BULLETS — no condition, freely available from start
-		6: true,   # FORCE_FIELD — no condition, freely available from start
-		7: true    # TRAJECTORY_GLASSES — no condition, freely available from start
+		4: true,   # BFF_PENDANT — no condition, freely available from start (Issue #674)
+		5: true,   # INVISIBILITY_SUIT — no condition, freely available from start
+		6: true,   # BREAKER_BULLETS — no condition, freely available from start
+		7: true,   # FORCE_FIELD — no condition, freely available from start
+		8: true,   # TRAJECTORY_GLASSES — no condition, freely available from start (Issue #744)
+		9: true    # LASER_SIGHT — no condition, freely available from start (Issue #947)
 	}
 
 	var unlocked_signals: Array = []
@@ -76,10 +78,10 @@ class MockActiveItemManager:
 
 class MockGrenadeManager:
 	var unlocked_grenades: Dictionary = {
-		0: true,  # FLASHBANG
-		1: false, # FRAG
-		2: false, # DEFENSIVE
-		3: false  # AGGRESSION_GAS
+		0: true,  # FLASHBANG — always unlocked
+		1: true,  # FRAG — no condition, freely available from start
+		2: true,  # DEFENSIVE — no condition, freely available from start
+		3: true   # AGGRESSION_GAS — no condition, freely available from start
 	}
 
 	var unlocked_signals: Array = []

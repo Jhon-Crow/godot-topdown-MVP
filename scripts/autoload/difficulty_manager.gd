@@ -33,7 +33,12 @@ func _ready() -> void:
 ## Set the game difficulty.
 func set_difficulty(difficulty: Difficulty) -> void:
 	if current_difficulty != difficulty:
+		var old_name := get_difficulty_name()
 		current_difficulty = difficulty
+		# FIX for Issue #886: Log difficulty changes so session logs show difficulty state
+		FileLogger.info("[DifficultyManager] Difficulty changed: %s -> %s" % [
+			old_name, get_difficulty_name()
+		])
 		difficulty_changed.emit(difficulty)
 		_save_settings()
 
@@ -304,6 +309,12 @@ func _load_settings() -> void:
 	else:
 		# File doesn't exist or failed to load - use default
 		current_difficulty = Difficulty.NORMAL
+	# FIX for Issue #886: Log loaded difficulty so it is traceable in session logs.
+	# Previously, difficulty state was invisible in logs, making it impossible to
+	# diagnose why PowerFantasy effects fired in some sessions but not others.
+	FileLogger.info("[DifficultyManager] Loaded difficulty: %s (value: %d)" % [
+		get_difficulty_name(), current_difficulty
+	])
 
 
 # ============================================================================

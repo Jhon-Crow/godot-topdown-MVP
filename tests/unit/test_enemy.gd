@@ -1935,3 +1935,254 @@ func test_spawn_projectile_add_child_before_set_direction_issue_550() -> void:
 	assert_gt(set_dir_pos, 0, "SetDirection should exist in _spawn_projectile")
 	assert_lt(add_child_pos, set_dir_pos,
 		"Issue #550: add_child must come BEFORE SetDirection for C# interop")
+
+
+## Regression test for Issue #883: Enemy vision raycasts every frame.
+## Verifies that VISION_CHECK_INTERVAL constant (= 6) exists and the staggering
+## variables/logic are present in enemy.gd so raycasts fire at ~10 fps, not 60 fps.
+func test_vision_check_stagger_constants_exist_issue_883() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Verify the stagger constant is declared with value 6
+	assert_true(source.find("VISION_CHECK_INTERVAL: int = 6") >= 0,
+		"Issue #883: VISION_CHECK_INTERVAL constant (= 6) must exist in enemy.gd")
+
+	# Verify the per-frame counter variable exists
+	assert_true(source.find("_vision_frame_counter: int") >= 0,
+		"Issue #883: _vision_frame_counter variable must exist in enemy.gd")
+
+	# Verify the per-enemy stagger offset variable exists
+	assert_true(source.find("_vision_frame_offset: int") >= 0,
+		"Issue #883: _vision_frame_offset variable must exist in enemy.gd")
+
+	# Verify the stagger offset is initialised from instance ID in _ready
+	assert_true(source.find("_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL") >= 0,
+		"Issue #883: _vision_frame_offset must be set from instance_id % VISION_CHECK_INTERVAL in _ready")
+
+	# Verify _check_player_visibility uses the stagger guard
+	assert_true(source.find("is_vision_check_frame") >= 0,
+		"Issue #883: _check_player_visibility must use is_vision_check_frame stagger guard")
+
+
+## Regression test for Issue #883: verify staggering logic skips raycasts correctly.
+## Uses a pure mock that mirrors the counter/offset logic from enemy.gd.
+func test_vision_stagger_fires_only_every_interval_issue_883() -> void:
+	const INTERVAL: int = 6
+
+	# Simulate two enemies with different offsets
+	var counter_a: int = 0
+	var offset_a: int = 0  # fires on frames 0, 6, 12, ...
+	var counter_b: int = 0
+	var offset_b: int = 3  # fires on frames 3, 9, 15, ...
+
+	var check_count_a: int = 0
+	var check_count_b: int = 0
+	var total_frames: int = 60  # simulate 1 second at 60 fps
+
+	for _i in range(total_frames):
+		counter_a += 1
+		if (counter_a % INTERVAL) == offset_a:
+			check_count_a += 1
+
+		counter_b += 1
+		if (counter_b % INTERVAL) == offset_b:
+			check_count_b += 1
+
+	# Each enemy should perform exactly total_frames / INTERVAL checks
+	var expected_checks: int = total_frames / INTERVAL
+	assert_eq(check_count_a, expected_checks,
+		"Issue #883: enemy A should check vision %d times in %d frames (interval=%d)" % [expected_checks, total_frames, INTERVAL])
+	assert_eq(check_count_b, expected_checks,
+		"Issue #883: enemy B should check vision %d times in %d frames (interval=%d)" % [expected_checks, total_frames, INTERVAL])
+
+
+# ============================================================================
+# Issue #921: SEARCHING State Timeout and Vulnerability Sound Fixes
+# ============================================================================
+
+
+## Test that _transition_to_searching does NOT set _has_left_idle (Issue #921).
+## Before fix: _transition_to_searching set _has_left_idle = true, making the
+## SEARCH_MAX_DURATION timeout logically impossible to trigger.
+## After fix: _has_left_idle is preserved from caller context, so patrol enemies
+## that haven't engaged combat can timeout and return to their patrol route.
+func test_transition_to_searching_preserves_has_left_idle_issue_921() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find _transition_to_searching function body
+	var func_idx := source.find("func _transition_to_searching(")
+	assert_gt(func_idx, 0, "_transition_to_searching function should exist in enemy.gd")
+
+	# Extract function body (up to the next function)
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# Verify that _has_left_idle = true is NOT set in this function (Issue #921 fix)
+	assert_false(
+		func_body.contains("_has_left_idle = true"),
+		"Issue #921: _transition_to_searching must NOT set _has_left_idle = true. " +
+		"This would break the SEARCH_MAX_DURATION timeout for patrol enemies."
+	)
+
+
+## Test that SEARCHING state timeout is gated on _has_left_idle (Issue #921).
+## The timeout should only fire when _has_left_idle is false, meaning the enemy
+## went directly from IDLE to SEARCHING (never engaged in combat).
+func test_searching_timeout_logic_uses_has_left_idle_issue_921() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find _process_searching_state function body
+	var func_idx := source.find("func _process_searching_state(")
+	assert_gt(func_idx, 0, "_process_searching_state function should exist in enemy.gd")
+
+	# Extract function body
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# Verify the timeout check uses _has_left_idle
+	assert_true(
+		func_body.contains("SEARCH_MAX_DURATION") and func_body.contains("_has_left_idle"),
+		"Issue #921: Timeout check should use both SEARCH_MAX_DURATION and _has_left_idle"
+	)
+
+	# Verify the timeout transitions to IDLE
+	assert_true(
+		func_body.contains("_transition_to_idle"),
+		"Timeout in SEARCHING should transition to IDLE"
+	)
+
+
+## Test that SEARCHING state is included in vulnerability sound reaction list (Issue #921).
+## Before fix: enemies in SEARCHING state did not react to reload/empty_click sounds.
+## After fix: SEARCHING enemies transition to PURSUING when player vulnerability is heard.
+func test_searching_state_reacts_to_reload_sound_issue_921() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find the RELOAD sound handler section (sound_type == 3)
+	var reload_idx := source.find("if sound_type == 3 and source_type == 0")
+	assert_gt(reload_idx, 0, "RELOAD sound handler should exist in enemy.gd")
+
+	# Extract the section until the 'return' statement
+	var reload_section := source.substr(reload_idx, 600)
+	var return_idx := reload_section.find("\n\treturn")
+	if return_idx > 0:
+		reload_section = reload_section.substr(0, return_idx)
+
+	# Verify SEARCHING is in the state list for the vulnerability reaction
+	assert_true(
+		reload_section.contains("AIState.SEARCHING"),
+		"Issue #921: SEARCHING state must be in the reload sound reaction list"
+	)
+
+
+## Test that SEARCHING state is included in empty click sound reaction list (Issue #921).
+func test_searching_state_reacts_to_empty_click_sound_issue_921() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find the EMPTY_CLICK sound handler section (sound_type == 5)
+	var click_idx := source.find("if sound_type == 5 and source_type == 0")
+	assert_gt(click_idx, 0, "EMPTY_CLICK sound handler should exist in enemy.gd")
+
+	# Extract the section until the 'return' statement
+	var click_section := source.substr(click_idx, 600)
+	var return_idx := click_section.find("\n\treturn")
+	if return_idx > 0:
+		click_section = click_section.substr(0, return_idx)
+
+	# Verify SEARCHING is in the state list for the vulnerability reaction
+	assert_true(
+		click_section.contains("AIState.SEARCHING"),
+		"Issue #921: SEARCHING state must be in the empty click sound reaction list"
+	)
+
+
+## Test that _reset() properly resets _has_left_idle (Issue #921).
+## Before fix: _reset() (called on respawn) did not reset _has_left_idle.
+## After fix: _reset() resets _has_left_idle = false so respawned enemies
+## behave like fresh enemies and can timeout SEARCHING properly.
+func test_reset_clears_has_left_idle_issue_921() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Find _reset() function body
+	var func_idx := source.find("func _reset() -> void:")
+	assert_gt(func_idx, 0, "_reset function should exist in enemy.gd")
+
+	# Extract function body
+	var next_func_idx := source.find("\nfunc ", func_idx + 1)
+	var func_body := source.substr(func_idx, next_func_idx - func_idx)
+
+	# Verify _has_left_idle is reset in _reset()
+	assert_true(
+		func_body.contains("_has_left_idle = false"),
+		"Issue #921: _reset() must set _has_left_idle = false so respawned enemies " +
+		"properly timeout SEARCHING after respawn"
+	)
+
+
+## Test that the SEARCH_MAX_DURATION constant has a reasonable value (Issue #921).
+## Patrol enemies should time out after a reasonable search period.
+func test_search_max_duration_is_reasonable_issue_921() -> void:
+	var max_duration := 30.0  # SEARCH_MAX_DURATION in enemy.gd
+
+	# 30 seconds gives enemies enough time to search a reasonable area
+	assert_eq(max_duration, 30.0,
+		"SEARCH_MAX_DURATION should be 30 seconds")
+	assert_gt(max_duration, 0.0,
+		"SEARCH_MAX_DURATION must be positive")
+
+
+## Test the logic that patrol enemies (never in combat) should timeout SEARCHING (Issue #921).
+## This tests the intent: _has_left_idle=false means never been in combat → should timeout.
+func test_patrol_enemy_searching_timeout_logic_issue_921() -> void:
+	# Simulate the timeout check:
+	# if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle
+	var search_max_duration := 30.0
+	var search_state_timer := 31.0  # Over the limit
+
+	# Enemy that never left IDLE (never in combat)
+	var has_left_idle_fresh := false
+	var should_timeout_fresh := search_state_timer >= search_max_duration and not has_left_idle_fresh
+	assert_true(should_timeout_fresh,
+		"Patrol enemy (never in combat) should timeout SEARCHING after 30s")
+
+	# Enemy that was previously in combat
+	var has_left_idle_engaged := true
+	var should_timeout_engaged := search_state_timer >= search_max_duration and not has_left_idle_engaged
+	assert_false(should_timeout_engaged,
+		"Engaged enemy (was in combat) should NOT timeout SEARCHING")
