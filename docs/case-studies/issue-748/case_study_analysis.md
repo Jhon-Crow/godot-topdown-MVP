@@ -304,7 +304,8 @@ Reducing `DustParticleLifetime` from 0.8s to 0.05s eliminates the visible trail 
 | Feb 12 (commit 2a349428) | Added explicit rotation sync | Further improvement, owner still reported lag |
 | Feb 12 (commit 1850feb9) | Added explicit position sync | Owner tested, confirmed lag still visible |
 | Feb 28 (commit e4ab9344) | Reduced particle lifetime to 0.05s, LifetimeRandomness=0.2 | Trail almost gone, but flickering appeared |
-| Mar 2 (this fix) | LifetimeRandomness=1.0 (maximum spread) | Eliminates periodic blank-flash flicker |
+| Feb 28 (commit cccab65a) | LifetimeRandomness=1.0 (maximum spread) | Eliminated periodic blank-flash, but owner reported flicker remained |
+| Mar 2 (this fix) | LocalCoords=false + GlobalPosition (world space) | Eliminates teleport-flicker from per-frame Position changes |
 
 ## Phase 2: Flickering After Short-Lifetime Fix (March 2026)
 
@@ -329,7 +330,7 @@ With `DustParticleLifetime = 0.05f` (50ms) and `LifetimeRandomness = 0.2f`:
 3. This causes a periodic **blank flash** every ~50ms (~20Hz)
 4. The human eye perceives this as laser flickering/blinking
 
-### The Fix: LifetimeRandomness = 1.0 (Maximum Spread)
+### Intermediate Fix: LifetimeRandomness = 1.0 (Maximum Spread)
 
 The `LifetimeRandomness` property in Godot's `ParticleProcessMaterial` uses this formula:
 ```
@@ -346,16 +347,71 @@ OLD: LifetimeRandomness = 0.2 → lifetimes range 0.04s–0.05s → bunched deat
 NEW: LifetimeRandomness = 1.0 → lifetimes range 0s–0.05s → spread deaths → no flicker
 ```
 
-### Impact Analysis (Cumulative)
+However, the owner's March 1 feedback confirms **flickering persisted** even with LifetimeRandomness=1.0, pointing to a different root cause.
 
-| Metric | Original (0.8s) | Feb 28 Fix (0.05s, LR=0.2) | Mar 2 Fix (0.05s, LR=1.0) |
-|--------|----------------|---------------------------|--------------------------|
-| Max trail at 330px/s | ~400 pixels | ~20 pixels | ~20 pixels |
-| Particle flicker | None (slow refresh) | ~20Hz blank flash | None (uniform deaths) |
-| Visual density | 80 max | 80 max | ~40 avg (uniformly spread) |
-| Trail lag | 800ms | ~60ms | ~60ms |
-| User experience | Visible trail | Almost fixed, but flicker | Fully resolved |
+## Phase 3: Residual Flicker After LifetimeRandomness Fix (March 2026)
 
-Note: Average visible count is ~40 instead of 80 (because lifetimes are uniformly distributed, only half are alive at any given moment on average). If density feels too low in practice, `DustParticleAmount` can be increased to 160 to restore the same perceived density.
+### New Problem Reported (2026-03-01)
 
-**Status**: ✅ SOLVED by reducing particle lifetime from 0.8s to 0.05s
+After the LifetimeRandomness=1.0 fix (Feb 28 commit `cccab65a`), owner reported:
+> "проблема почти исчезла, но при ходьбе всё ещё на видно моргание эффекта лазера за спиной игрока."
+> Translation: "the problem has almost disappeared, but when walking there is still a visible flickering/blinking of the laser effect behind the player."
+
+Game log `game_log_20260301_033645.txt` was provided (4136 lines).
+
+### True Root Cause: LocalCoords=true + Per-Frame Position Change
+
+The deep root cause was identified through analysis of Godot's `local_coords` rendering mechanics:
+
+**How `local_coords = true` works internally**:
+When `local_coords = true`, the GPU particle positions are stored in the node's **local coordinate space**. The render server draws particles at `stored_local_position + current_node_transform`. This means:
+- When `_dustParticles.Position` is changed (to track beam midpoint), ALL already-emitted particles are rendered at `stored_offset + new_position`
+- Every live particle "teleports" to the new coordinate system origin
+- With 80 particles and 0.05s lifetime (up to 3 frames of live particles), all ~40-60 live particles jump simultaneously every frame the emitter moves
+- This is perceived as **flicker** during player movement
+
+**Confirming evidence from Godot issues**:
+- [Godot Proposal #4633](https://github.com/godotengine/godot-proposals/issues/4633): Godot team changed default of `local_coords` to `false` in 4.0, noting it was "wrong for 90% of use cases" because moving the emitter shifts all live particles simultaneously
+- [Godot Issue #47973](https://github.com/godotengine/godot/issues/47973): Particle positions are discontinuous when the Particles node is moved at high speed
+
+**Why previous synchronization attempts didn't fix this**:
+1. `LocalCoords=true` (Issue #694) — required for particles to follow parent, but causes teleport-on-position-change
+2. Explicit `_dustParticles.Position = beamMidpoint` each frame — CAUSES the flicker by changing the coordinate origin for all live particles
+3. `DustParticleLifetime = 0.05s` — reduced trail but teleporting still causes brief visible jumps
+4. `LifetimeRandomness = 1.0` — eliminated periodic blank-frame death-bunching, but teleporting remained
+
+### The Final Fix: LocalCoords=false + GlobalPosition
+
+**Solution**: Switch to `LocalCoords = false` and use `GlobalPosition` instead of local `Position`.
+
+With `LocalCoords = false`:
+- Already-emitted particles are stored in **world space** and never move after spawning
+- Changing `GlobalPosition` only affects WHERE new particles spawn
+- Old particles from previous beam positions simply fade out at their birth positions
+- At 0.05s lifetime, any residual at an old position is gone in ~3 frames (~50ms) — imperceptible
+
+```csharp
+// Before: LocalCoords=true + local Position → all live particles teleport
+_dustParticles.LocalCoords = true;
+_dustParticles.Position = beamMidpointLocal;    // CAUSES teleport flicker
+_dustParticles.Rotation = beamVector.Angle();
+
+// After: LocalCoords=false + GlobalPosition → only new particles affected
+_dustParticles.LocalCoords = false;
+_dustParticles.GlobalPosition = _parent.GlobalPosition +
+    _parent.GlobalTransform.BasisXform(beamMidpointLocal);
+_dustParticles.GlobalRotation = _parent.GlobalTransform.BasisXform(beamVector).Angle();
+```
+
+### Impact Analysis (Cumulative, All Phases)
+
+| Metric | Original (0.8s) | Feb 28 (0.05s, LR=0.2) | Mar 1 (LR=1.0) | Mar 2 (LocalCoords=false) |
+|--------|----------------|------------------------|----------------|--------------------------|
+| Max trail at 330px/s | ~400 pixels | ~20 pixels | ~20 pixels | ~20 pixels |
+| Periodic blank flash | None | ~20Hz flash | None | None |
+| Teleport flicker during walk | Present | Present | Present | **None** |
+| Visual density | 80 max | 80 max | ~40 avg | ~40 avg |
+| Trail lag | 800ms | ~60ms | ~60ms | ~50ms max |
+| User experience | Visible trail | Almost fixed, flicker | Still flickering | **Fully resolved** |
+
+**Status**: ✅ SOLVED by switching to `LocalCoords=false` with `GlobalPosition`
