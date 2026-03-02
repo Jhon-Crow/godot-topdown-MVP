@@ -53,6 +53,16 @@ public enum RevolverReloadState
 public partial class Revolver : BaseWeapon
 {
     /// <summary>
+    /// Number of chambers in the cylinder.
+    /// Exported as a separate property so it is set directly via the scene file
+    /// and does not depend on WeaponData resource deserialization (Issue #950).
+    /// WeaponData.MagazineSize mirrors this value for information purposes,
+    /// but the authoritative cylinder size comes from this exported property.
+    /// </summary>
+    [Export]
+    public int CylinderSize { get; set; } = 5;
+
+    /// <summary>
     /// Minimum drag distance to register a gesture (in pixels).
     /// Same threshold as shotgun for consistent feel.
     /// </summary>
@@ -293,7 +303,7 @@ public partial class Revolver : BaseWeapon
             GD.Print("[Revolver] No RevolverSprite node (visual model not yet added)");
         }
 
-        int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
+        int cylinderCapacity = CylinderCapacity;
 
         // Issue #668: Initialize per-chamber tracking array.
         // Chambers start based on CurrentAmmo (empty drum support - Issue #716).
@@ -339,6 +349,41 @@ public partial class Revolver : BaseWeapon
 
         // Issue #691: Setup cylinder HUD using CallDeferred so the scene tree is fully ready
         CallDeferred(MethodName.SetupCylinderHUD);
+    }
+
+    /// <summary>
+    /// Initializes magazine inventory using CylinderSize as the authoritative magazine size
+    /// instead of WeaponData.MagazineSize (Issue #950).
+    ///
+    /// Root cause: In Godot 4.3 release builds, C# [GlobalClass] resource properties
+    /// (such as WeaponData.MagazineSize in RevolverData.tres) may not be deserialized
+    /// correctly from .tres files. When this happens, the C# class default value is
+    /// used (MagazineSize = 30 from WeaponData.cs), causing the revolver to initialize
+    /// with 30-bullet "magazines" instead of the correct 5-round cylinders.
+    ///
+    /// The fix uses the exported CylinderSize property (set to 5 in Revolver.tscn),
+    /// which is a direct Godot [Export] property and is always deserialized correctly.
+    /// </summary>
+    protected override void InitializeMagazinesWithDifficulty()
+    {
+        int magazineCount = StartingMagazineCount;
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
+            int ammoMultiplier = multiplierResult.AsInt32();
+            if (ammoMultiplier > 1)
+            {
+                magazineCount *= ammoMultiplier;
+                GD.Print($"[Revolver] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} cylinders)");
+            }
+        }
+
+        int cylinderSize = CylinderSize;
+        GD.Print($"[Revolver] Initializing cylinder magazines: count={magazineCount}, cylinderSize={cylinderSize} (from CylinderSize export, not WeaponData)");
+
+        MagazineInventory.Initialize(magazineCount, cylinderSize, fillAllMagazines: true);
+        EmitMagazinesChanged();
     }
 
     /// <summary>
@@ -1147,8 +1192,9 @@ public partial class Revolver : BaseWeapon
 
     /// <summary>
     /// Gets the cylinder capacity (number of chambers in the revolver).
+    /// Uses the exported CylinderSize property as the authoritative source (Issue #950).
     /// </summary>
-    public int CylinderCapacity => WeaponData?.MagazineSize ?? 5;
+    public int CylinderCapacity => CylinderSize;
 
     /// <summary>
     /// Whether the cylinder can be opened for reloading.
