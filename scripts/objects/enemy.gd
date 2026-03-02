@@ -278,6 +278,9 @@ var _detection_timer: float = 0.0  ## Combat detection timer
 var _detection_delay_elapsed: bool = false  ## Detection delay done
 var _continuous_visibility_timer: float = 0.0  ## Continuous visibility timer
 var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
+## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
+var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
+const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -375,6 +378,8 @@ var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing r
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
+	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
+	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 
 	# Configure weapon parameters based on weapon type (before ammo init)
 	_configure_weapon_type()
@@ -3572,40 +3577,34 @@ func _is_position_in_fov(target_pos: Vector2) -> bool:
 
 ## Check if the player is visible using multi-point raycast. Updates visibility timer.
 func _check_player_visibility() -> void:
-	var was_visible := _can_see_player
-	_can_see_player = false
-	_player_visibility_ratio = 0.0
+	# Issue #883: Only run the expensive multi-point raycast every VISION_CHECK_INTERVAL frames.
+	# Cheap blocking checks (blinded, invisible, null) still run every frame for responsiveness.
+	_vision_frame_counter += 1
+	var is_vision_check_frame := (_vision_frame_counter % VISION_CHECK_INTERVAL) == _vision_frame_offset
 
-	# If blinded, cannot see player at all
-	if _is_blinded:
-		_continuous_visibility_timer = 0.0
+	# Fast-path: clear visibility immediately on blocking conditions (no raycasts needed).
+	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not _raycast \
+			or (_player.has_method("is_invisible") and _player.is_invisible()):
+		_can_see_player = false; _player_visibility_ratio = 0.0; _continuous_visibility_timer = 0.0
 		return
 
-	# If confused from memory reset, cannot see player (Issue #318)
-	if _memory_reset_confusion_timer > 0.0:
-		_continuous_visibility_timer = 0.0
+	# On non-check frames reuse last result; only accumulate timer if still visible (Issue #883).
+	if not is_vision_check_frame:
+		if _can_see_player: _continuous_visibility_timer += get_physics_process_delta_time()
 		return
 
-	if _player == null or not _raycast:
-		_continuous_visibility_timer = 0.0
-		return
-	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
-	if _player.has_method("is_invisible") and _player.is_invisible():
-		_continuous_visibility_timer = 0.0
-		return
-
+	# --- Full vision check (runs every VISION_CHECK_INTERVAL frames) ---
+	_can_see_player = false; _player_visibility_ratio = 0.0
 	var distance_to_player := global_position.distance_to(_player.global_position)
 
 	# Check if player is within detection range (only if detection_range is positive)
 	# If detection_range <= 0, detection is unlimited (line-of-sight only)
 	if detection_range > 0 and distance_to_player > detection_range:
-		_continuous_visibility_timer = 0.0
-		return
+		_continuous_visibility_timer = 0.0; return
 
 	# Check FOV angle (if FOV is enabled via ExperimentalSettings)
 	if not _is_position_in_fov(_player.global_position):
-		_continuous_visibility_timer = 0.0
-		return
+		_continuous_visibility_timer = 0.0; return
 
 	# Check multiple points on the player's body (center + corners) to handle
 	# cases where player is near a wall corner. A single raycast to the center
@@ -3614,22 +3613,16 @@ func _check_player_visibility() -> void:
 	# walls in narrow passages (issue #264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
-
 	for point in check_points:
 		if _is_player_point_visible_to_enemy(point):
-			visible_count += 1
-			# If any part of the player is visible, we can see them
-			_can_see_player = true
-			# Continue checking to calculate visibility ratio
+			visible_count += 1; _can_see_player = true  # Continue to calculate ratio
 
 	# Calculate visibility ratio based on how many points are visible
 	if _can_see_player:
 		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
 	else:
-		# Lost line of sight - reset the timer and visibility ratio
-		_continuous_visibility_timer = 0.0
-		_player_visibility_ratio = 0.0
+		_continuous_visibility_timer = 0.0; _player_visibility_ratio = 0.0
 
 ## Update enemy memory: visual detection, decay, prediction, flashlight detection, and intel sharing (Issue #297, #298, #574).
 func _update_memory(delta: float) -> void:
