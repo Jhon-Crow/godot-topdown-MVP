@@ -16,65 +16,112 @@
 This is the fourth consecutive issue on the force field feature:
 - **#676**: Force field not activating at all (missing `InitForceField()` in `Player.cs`)
 - **#906**: Requested bullet trapping + bubble visual
-- **#912**: Force field not trapping bullets (C# `QueueFree()` race condition + `has()` vs `in` GDScript bug)
-- **#932**: Bullet boundary snapping — bullets should visually stick to the EDGE of the field, not float inside it
+- **#912**: Force field not trapping bullets (C# `QueueFree()` race condition)
+- **#932 (PR #933 v1)**: Added boundary snapping (`_snap_to_boundary()`) — but bullets still weren't trapped
+- **#932 (PR #933 v2)**: Root cause found — GDScript/C# `in` operator interop bug (this fix)
 
 ---
 
 ## Root Cause Analysis
 
-### Feature Request #1: Bullets should snap to the boundary
+### Part 1: Boundary snapping (PR #933 v1)
 
-The existing `_trap_bullet()` in `force_field_effect.gd` (as of PR #913) correctly:
-- Stops the bullet's physics process
-- Stores it in `_trapped_bullets`
+The previous `_trap_bullet()` in `force_field_effect.gd` (as of PR #913) correctly:
+- Stopped the bullet's physics process
+- Stored it in `_trapped_bullets`
 
-However, it does NOT reposition the bullet to the boundary of the force field.
+But it did NOT reposition the bullet to the boundary of the force field. PR #933 v1 added `_snap_to_boundary()` to fix this. However, after deployment, the owner reported the fix still didn't work.
 
-When a bullet enters the `Area2D` (which has radius 35px), it is detected at whatever position it happens to be when the physics engine fires the `area_entered` signal. This can be anywhere from just barely inside the boundary to deep inside the field. The bullet freezes in place visually, which is not the intended "time stopped, stuck at the edge" effect.
+### Part 2: GDScript/C# `in` operator bug (root cause of "не работает")
 
-**Fix**: After stopping the bullet, calculate the point on the field boundary ring in the bullet's incoming direction and move the bullet there. The boundary position is:
+**Game log evidence** (`game_log_20260301_030334.txt`):
+
+Every time a C# `Bullet.cs` enters the force field, the log shows:
 ```
-boundary_pos = global_position + direction_to_bullet.normalized() * FIELD_RADIUS
+[ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[ForceFieldEffect] Bullet missing properties — has_direction=false has_speed=false class=Area2D — skipping trap
+[ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[Player] Hit blocked by force field (C#)
 ```
 
-This creates the visual effect of bullets hovering at the edge of the shield like a time-stop.
+The force field detects bullets but **never traps them** — the property check always fails, returning `has_direction=false has_speed=false`. On every deactivation: **"Released 0 trapped projectiles"**.
 
-### Feature Request #2: Bullets scatter outward on field deactivation
+**Why?** The code used:
+```gdscript
+var has_direction := "direction" in bullet   # ← ALWAYS FALSE for C# nodes!
+var has_speed := "speed" in bullet           # ← ALWAYS FALSE for C# nodes!
+```
 
-This was already implemented in `_release_trapped_projectiles()` / `_release_projectile()` as of PR #913. Each trapped bullet is given:
-- `direction = (bullet_position - center).normalized()` — outward direction
-- `speed = BULLET_RELEASE_SPEED` — release speed (800 px/s for bullets)
-- Physics process re-enabled
+In Godot 4, the GDScript `in` operator checks the node's **GDScript property table**. For C# nodes (`partial class Bullet : Area2D`), this table only contains the base Godot class properties (`Area2D`). C# `[Export]` properties like `Direction` and `Speed` are NOT in this table, so `"direction" in bullet` always returns `false`.
 
-This feature was functional but not fully testable without the boundary snapping fix, because bullets wouldn't be at expected positions on the boundary.
+This is confirmed by the log's `class=Area2D` — `get_class()` returns the base Godot type for C# nodes.
+
+**The correct pattern** (already used in level scripts throughout the codebase for other C# properties):
+```gdscript
+# From building_level.gd, revolver_level.gd, etc.:
+weapon.get("CurrentAmmo")    # PascalCase for C# [Export] properties
+weapon.get("ReserveAmmo")
+```
+
+For bullet properties which use GDScript-friendly snake_case names:
+```gdscript
+bullet.get("direction") != null   # Works for BOTH C# [Export] and GDScript vars
+bullet.get("speed") != null
+```
+
+The `Node.get()` method correctly resolves C# exported properties (registered as snake_case), while the `in` operator does not.
 
 ---
 
-## Implementation
+## Fix Applied
 
-### Modified file: `scripts/effects/force_field_effect.gd`
-
-Added `_snap_to_boundary()` call inside `_trap_bullet()` and `_trap_shrapnel()` after stopping movement:
+Replaced all `"prop" in node` checks with `node.get("prop") != null` in `force_field_effect.gd`:
 
 ```gdscript
-func _snap_to_boundary(projectile: Node2D) -> void:
-    var from_center := projectile.global_position - global_position
-    var direction_to_proj := from_center.normalized()
-    # If projectile is at or very near center, use its movement direction
-    if from_center.length_squared() < 1.0 and "direction" in projectile:
-        direction_to_proj = projectile.direction.normalized()
-    # Place at boundary
-    projectile.global_position = global_position + direction_to_proj * FIELD_RADIUS
+# BEFORE (broken for C# Bullet/ShotgunPellet nodes):
+var has_direction := "direction" in bullet   # always false
+var has_speed := "speed" in bullet           # always false
+if not has_direction or not has_speed:
+    return  # always skips the trap!
+
+# AFTER (works for both C# and GDScript nodes):
+var has_direction := bullet.get("direction") != null
+var has_speed := bullet.get("speed") != null
+if not has_direction or not has_speed:
+    return  # only skips if property truly doesn't exist
 ```
 
-This ensures trapped bullets always sit on the field boundary ring, creating the "time stopped at the edge" visual effect.
+Also fixed property writes to use `.set()` instead of direct assignment:
+```gdscript
+# BEFORE:
+if "shooter_id" in bullet:
+    bullet.shooter_id = -1
+
+# AFTER:
+if bullet.get("shooter_id") != null:
+    bullet.set("shooter_id", -1)
+```
+
+---
+
+## Prior Issues on This Feature
+
+| Issue | Description | Fix |
+|-------|-------------|-----|
+| #676 | Force field not activating | Added `InitForceField()` in `Player.cs` |
+| #912 | C# bullets destroying themselves before force field traps them | `IsForceFieldArea()` check in `Bullet.cs`/`ShotgunPellet.cs` |
+| #932 v1 | Bullets not snapping to boundary ring | Added `_snap_to_boundary()` and `_update_trapped_positions()` |
+| #932 v2 | Trap never executes — GDScript `in` operator bug | **This fix**: Replace `"prop" in node` with `node.get("prop") != null` |
 
 ---
 
 ## Files Modified
 
-1. `scripts/effects/force_field_effect.gd` — Add `_snap_to_boundary()` and call it from `_trap_bullet()` and `_trap_shrapnel()`
+1. `scripts/effects/force_field_effect.gd` — Replace `"prop" in node` with `node.get("prop") != null` throughout
+
+## Attached Data
+
+- `game_log_20260301_030334.txt` — Full game session log showing the bug (7,015 lines)
 
 ---
 
@@ -82,6 +129,6 @@ This ensures trapped bullets always sit on the field boundary ring, creating the
 
 - **FIELD_RADIUS**: 35px — the force field boundary radius
 - **Boundary snap**: `global_position + direction_to_bullet.normalized() * FIELD_RADIUS`
-- The release behavior (scatter outward) was already implemented correctly in `_release_projectile()`
-- C# bullets (Bullet.cs, ShotgunPellet.cs) already have `IsForceFieldArea()` checks to prevent `QueueFree()` when entering force field area (from PR #913)
+- C# `[Export]` properties are accessible via `node.get("snake_case_name")` from GDScript — but NOT via the `in` operator
+- C# bullets (Bullet.cs, ShotgunPellet.cs) have `IsForceFieldArea()` checks to prevent `QueueFree()` when entering force field area (from PR #913)
 - GDScript bullet (`bullet.gd`) naturally doesn't destroy itself when entering force field area because it only calls `_destroy()` when `area.has_method("on_hit")`, and the force field area does not have that method

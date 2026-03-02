@@ -359,9 +359,13 @@ func _on_body_entered(body: Node2D) -> void:
 func _snap_to_boundary(projectile: Node2D) -> void:
 	var from_center := projectile.global_position - global_position
 	var direction_to_proj := from_center.normalized()
-	# If projectile is at or very near center, use its travel direction as placement direction
-	if from_center.length_squared() < 1.0 and "direction" in projectile:
-		direction_to_proj = (projectile.direction as Vector2).normalized()
+	# If projectile is at or very near center, use its travel direction as placement direction.
+	# Use .get("direction") instead of "direction" in projectile — the `in` operator does NOT
+	# work for C# [Export] properties (only GDScript vars). .get() works for both.
+	if from_center.length_squared() < 1.0:
+		var proj_dir = projectile.get("direction")
+		if proj_dir != null:
+			direction_to_proj = (proj_dir as Vector2).normalized()
 	# Place at boundary ring
 	projectile.global_position = global_position + direction_to_proj * FIELD_RADIUS
 	# Store boundary angle for continuous tracking in _process()
@@ -371,10 +375,11 @@ func _snap_to_boundary(projectile: Node2D) -> void:
 ## Trap a bullet in the force field — stop its movement and snap it to the field boundary.
 ## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
 func _trap_bullet(bullet: Node2D) -> void:
-	# Use "prop" in node to check property existence (Godot 4 GDScript standard).
-	# This works for both GDScript vars and C# [Export] properties (registered as snake_case).
-	var has_direction := "direction" in bullet
-	var has_speed := "speed" in bullet
+	# Use .get("prop") to check property existence — works for BOTH GDScript vars and C# [Export]
+	# properties. The GDScript `in` operator does NOT work for C# nodes (always returns false),
+	# because it only checks GDScript's property table, not C# registered properties.
+	var has_direction := bullet.get("direction") != null
+	var has_speed := bullet.get("speed") != null
 	if not has_direction or not has_speed:
 		FileLogger.info("[ForceFieldEffect] Bullet missing properties — has_direction=%s has_speed=%s class=%s — skipping trap" % [
 			has_direction, has_speed, bullet.get_class()])
@@ -399,10 +404,9 @@ func _trap_bullet(bullet: Node2D) -> void:
 		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
 	# Reset shooter ID so released bullet can damage anyone (not just enemies).
-	# C# [Export] properties are registered as snake_case in GDScript,
-	# so "ShooterId" [Export] in C# is accessible as "shooter_id" in GDScript.
-	if "shooter_id" in bullet:
-		bullet.shooter_id = -1
+	# Use .get()/.set() for C#/GDScript-compatible property access (Issue #932).
+	if bullet.get("shooter_id") != null:
+		bullet.set("shooter_id", -1)
 
 	_trapped_bullets.append(bullet)
 
@@ -412,8 +416,8 @@ func _trap_bullet(bullet: Node2D) -> void:
 
 ## Trap shrapnel in the force field — stop its movement and snap it to the field boundary.
 func _trap_shrapnel(shrapnel: Node2D) -> void:
-	# Use "prop" in node to check property existence (GDScript 4 standard, Issue #912).
-	if not "direction" in shrapnel:
+	# Use .get("prop") for C#/GDScript-compatible property check (Issue #932).
+	if shrapnel.get("direction") == null:
 		return
 
 	# Already trapped? Skip.
@@ -433,8 +437,8 @@ func _trap_shrapnel(shrapnel: Node2D) -> void:
 		(shrapnel as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
 	# Reset source ID so released shrapnel can damage anyone
-	if "source_id" in shrapnel:
-		shrapnel.source_id = -1
+	if shrapnel.get("source_id") != null:
+		shrapnel.set("source_id", -1)
 
 	_trapped_shrapnel.append(shrapnel)
 
@@ -487,11 +491,11 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 			var random_angle := randf_range(0.0, TAU)
 			outward_dir = Vector2(cos(random_angle), sin(random_angle))
 
-	# Set new direction and speed
-	if "direction" in projectile:
-		projectile.direction = outward_dir
-	if "speed" in projectile:
-		projectile.speed = release_speed
+	# Set new direction and speed — use .set() for C#/GDScript-compatible property write (Issue #932).
+	if projectile.get("direction") != null:
+		projectile.set("direction", outward_dir)
+	if projectile.get("speed") != null:
+		projectile.set("speed", release_speed)
 
 	# Restore normal color
 	if projectile is CanvasItem:
@@ -504,7 +508,7 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 	# Update rotation to match new direction
 	if projectile.has_method("_update_rotation"):
 		projectile.call("_update_rotation")
-	elif "direction" in projectile:
+	elif projectile.get("direction") != null:
 		# Fallback: set rotation to match direction angle
 		projectile.rotation = outward_dir.angle()
 
