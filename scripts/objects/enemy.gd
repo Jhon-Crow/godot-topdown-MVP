@@ -1154,8 +1154,7 @@ func _process_ai_state(delta: float) -> void:
 		_transition_to_evading_grenade()
 		return
 
-	if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
-		_aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
+	if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
@@ -4164,8 +4163,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		# Spawn blood effect for non-lethal hit (smaller, no decal)
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
-		_update_health_visual()
-		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
+		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
