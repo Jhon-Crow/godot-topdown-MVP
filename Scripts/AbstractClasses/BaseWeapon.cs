@@ -440,6 +440,8 @@ public abstract partial class BaseWeapon : Node2D
             {
                 csBulletDirect.Speed = WeaponData.BulletSpeed;
                 csBulletDirect.Damage = WeaponData.Damage;
+                // Pass caliber data so Bullet.cs reads correct ricochet parameters (Issue #915)
+                csBulletDirect.CaliberData = WeaponData.Caliber;
             }
             var owner = GetParent();
             if (owner != null)

@@ -1,0 +1,5 @@
+1. при первом выборе силового поля игра вылетела
+2. нет ни визуальных не логических изменений силового поля (всё ещё квадрат вместо пузыря и не ловит пули).
+[game_log_20260225_013410.txt](https://github.com/user-attachments/files/25532060/game_log_20260225_013410.txt)
+[game_log_20260225_013424.txt](https://github.com/user-attachments/files/25532061/game_log_20260225_013424.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./

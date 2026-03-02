@@ -577,8 +577,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 
 		# React to vulnerable player sound - pursue (high-risk for reload actions)
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
 		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
@@ -607,8 +606,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# React to vulnerable player sound - transition to combat/pursuing
 		# All enemies in hearing range should pursue the vulnerable player!
 		# This makes empty click sounds a high-risk action when enemies are nearby.
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
+			# Leave cover/defensive/searching state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
 		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
@@ -2611,8 +2610,8 @@ func _transition_to_assault() -> void:
 ## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
 func _transition_to_searching(center_position: Vector2) -> void:
 	_current_state = AIState.SEARCHING
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
+	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
+	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
@@ -3807,7 +3806,7 @@ func _aim_at_player() -> void:
 
 ## Shoot a bullet or perform melee attack (Issue #579: MACHETE, Issue #824: night mode flash).
 func _shoot() -> void:
-	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
+	if _is_melee_weapon and _machete: var _mt := (_aggression.get_target() if _aggression and _aggression.is_aggressive() and _aggression.get_target() else _player) as Node2D; if _mt: _machete.perform_melee_attack(_mt); return  # [#858] target enemy when aggressive
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
 	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
 	if not _can_shoot(): return
@@ -4107,8 +4106,8 @@ func _initialize_idle_scan_targets() -> void:
 
 ## Called when a bullet enters the threat sphere.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if "shooter_id" in area and area.shooter_id == get_instance_id():
-		return
+	if ("shooter_id" in area and area.shooter_id == get_instance_id()) or not _is_position_visible_to_enemy(area.global_position):
+		return  # Own bullet or wall blocking line of sight — no suppression
 	_bullets_in_threat_sphere.append(area)
 	_threat_memory_timer = THREAT_MEMORY_DURATION
 	_log_debug("Bullet entered threat sphere, starting reaction delay...")
@@ -4378,6 +4377,7 @@ func _reset() -> void:
 	# Reset ally death observation state (Issue #409)
 	_witnessed_ally_death = false
 	_suspected_directions.clear()
+	_has_left_idle = false  # Issue #921: reset so respawned patrol enemies can timeout from SEARCHING
 	# Reset score tracking state
 	_killed_by_ricochet = false
 	_killed_by_penetration = false
