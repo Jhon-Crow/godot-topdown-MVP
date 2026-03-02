@@ -123,6 +123,10 @@ class MockLastChanceEffectsManager:
 	## Original process modes dictionary.
 	var _original_process_modes: Dictionary = {}
 
+	## Issue #937: Cache of StaticBody2D-like nodes to avoid full scene traversal.
+	## In tests we use a plain Array since we can't create StaticBody2D without a scene tree.
+	var _cached_static_bodies: Array = []
+
 	## Player original colors dictionary.
 	var _player_original_colors: Dictionary = {}
 
@@ -284,6 +288,12 @@ class MockLastChanceEffectsManager:
 		_original_process_modes.clear()
 		_player_original_colors.clear()
 		_player_was_invulnerable = false
+		# Issue #937: Clear cached static bodies on scene change
+		_cached_static_bodies.clear()
+
+	## Issue #937: Simulate pre-populating the static body cache.
+	func set_cached_static_bodies(bodies: Array) -> void:
+		_cached_static_bodies = bodies.duplicate()
 
 	## Returns whether the last chance effect is currently active.
 	func is_effect_active() -> bool:
@@ -1591,3 +1601,65 @@ func test_player_death_multiple_times() -> void:
 	# Die again immediately
 	manager.on_player_died()
 	assert_false(manager._effect_used, "Second death should remain false")
+
+
+# ============================================================================
+# Issue #937: StaticBody2D Cache Tests
+# ============================================================================
+
+
+func test_cached_static_bodies_empty_initially() -> void:
+	assert_eq(manager._cached_static_bodies.size(), 0,
+		"Issue #937: Cached static bodies should be empty before any scene is loaded")
+
+
+func test_reset_clears_cached_static_bodies() -> void:
+	# Simulate a scene with some StaticBody2D nodes having been cached
+	manager.set_cached_static_bodies(["wall1", "wall2", "wall3"])
+	assert_eq(manager._cached_static_bodies.size(), 3,
+		"Cache should have 3 entries before reset")
+
+	manager.reset_effects()
+
+	assert_eq(manager._cached_static_bodies.size(), 0,
+		"Issue #937: reset_effects() must clear the cached static bodies on scene change")
+
+
+func test_reset_clears_cache_when_effect_active() -> void:
+	# Even if the effect is active during reset, cache must still be cleared
+	manager.start_last_chance_effect(2.0, true)
+	manager.set_cached_static_bodies(["wall_a", "wall_b"])
+
+	manager.reset_effects()
+
+	assert_eq(manager._cached_static_bodies.size(), 0,
+		"Issue #937: Cache must be cleared by reset_effects() even when effect was active")
+
+
+func test_set_cached_static_bodies_populates_cache() -> void:
+	manager.set_cached_static_bodies(["wall1", "wall2"])
+
+	assert_eq(manager._cached_static_bodies.size(), 2,
+		"Issue #937: Setting cache should populate it with the provided entries")
+
+
+func test_cached_static_bodies_survives_effect_lifecycle() -> void:
+	# Cache should not be affected by starting/ending the effect (only reset clears it)
+	manager.set_cached_static_bodies(["wall1", "wall2", "wall3"])
+
+	manager.start_last_chance_effect(2.0, true)
+	assert_eq(manager._cached_static_bodies.size(), 3,
+		"Cache should still exist after starting effect")
+
+	manager.end_last_chance_effect()
+	assert_eq(manager._cached_static_bodies.size(), 3,
+		"Issue #937: Cache should persist across effect lifecycle — only cleared on scene change")
+
+
+func test_cache_cleared_after_double_reset() -> void:
+	manager.set_cached_static_bodies(["wall1", "wall2"])
+	manager.reset_effects()
+	manager.reset_effects()
+
+	assert_eq(manager._cached_static_bodies.size(), 0,
+		"Issue #937: Cache should remain empty after double reset")

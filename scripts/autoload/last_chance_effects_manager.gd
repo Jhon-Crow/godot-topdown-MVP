@@ -119,6 +119,13 @@ var _is_fading_out: bool = false
 ## Issue #597: When true, skip time freeze and process_mode changes (used during replay playback).
 var replay_mode: bool = false
 
+## Issue #937: Cache of StaticBody2D nodes in the current scene.
+## Populated once at scene load to avoid expensive full-tree traversal on every explosion.
+## StaticBody2D (walls, furniture) are set to PROCESS_MODE_ALWAYS during freeze so shrapnel
+## can still collide with them. In LabyrinthLevel there are 38+ such bodies — caching
+## eliminates the O(scene_nodes) traversal cost on each grenade explosion.
+var _cached_static_bodies: Array[StaticBody2D] = []
+
 ## The time when the fade-out started (in real time seconds).
 var _fade_out_start_time: float = 0.0
 
@@ -445,6 +452,22 @@ func _freeze_time() -> void:
 	if _player != null:
 		_enable_player_processing_always(_player)
 
+	# Issue #937: Apply PROCESS_MODE_ALWAYS to cached StaticBody2D nodes directly,
+	# avoiding the need to re-traverse the scene tree to find them on each explosion.
+	# StaticBody2D (walls, furniture) must be ALWAYS so shrapnel can collide with them
+	# even while the scene is frozen. In LabyrinthLevel there are 38+ such bodies.
+	if _cached_static_bodies.size() > 0:
+		for static_body in _cached_static_bodies:
+			if is_instance_valid(static_body):
+				_original_process_modes[static_body] = static_body.process_mode
+				static_body.process_mode = Node.PROCESS_MODE_ALWAYS
+				_log("Set StaticBody2D '%s' to PROCESS_MODE_ALWAYS for collision" % static_body.name)
+				# Also set CollisionShape2D children to ALWAYS
+				for child in static_body.get_children():
+					if child is CollisionShape2D:
+						_original_process_modes[child] = child.process_mode
+						child.process_mode = Node.PROCESS_MODE_ALWAYS
+
 	# Freeze all top-level nodes in the scene tree except player and autoloads
 	var root := get_tree().root
 	for child in root.get_children():
@@ -526,8 +549,14 @@ func _freeze_node_except_player(node: Node) -> void:
 	# 5. Container nodes (Node2D, Node, etc.) - DON'T disable, just process children
 	#    This is key: leaving containers at INHERIT preserves the physics tree structure
 
-	# Handle physics collision bodies - set to ALWAYS to preserve collision detection
+	# Handle physics collision bodies - set to ALWAYS to preserve collision detection.
+	# Issue #937: If the node was already handled via the _cached_static_bodies list
+	# (which is pre-built once per scene load), skip it to avoid duplicate work.
 	if node is StaticBody2D:
+		if _cached_static_bodies.size() > 0 and node in _cached_static_bodies:
+			# Already handled by the cache pass in _freeze_time() — skip
+			return
+		# Fallback: not in cache (e.g., dynamically added StaticBody2D or cache not built yet)
 		_original_process_modes[node] = node.process_mode
 		node.process_mode = Node.PROCESS_MODE_ALWAYS
 		_log("Set StaticBody2D '%s' to PROCESS_MODE_ALWAYS for collision" % node.name)
@@ -536,8 +565,12 @@ func _freeze_node_except_player(node: Node) -> void:
 			_freeze_node_except_player(child)
 		return
 
-	# CollisionShape2D nodes need ALWAYS to stay active for collision detection
+	# CollisionShape2D nodes need ALWAYS to stay active for collision detection.
+	# Issue #937: If parent StaticBody2D was handled by the cache pass, this
+	# CollisionShape2D was already set to ALWAYS there — skip if already stored.
 	if node is CollisionShape2D:
+		if node in _original_process_modes:
+			return  # Already handled by cache pass
 		_original_process_modes[node] = node.process_mode
 		node.process_mode = Node.PROCESS_MODE_ALWAYS
 		return
@@ -1339,6 +1372,8 @@ func reset_effects() -> void:
 	_original_process_modes.clear()
 	_player_original_colors.clear()
 	_player_was_invulnerable = false
+	# Issue #937: Clear cached static bodies on scene change (will be rebuilt for new scene)
+	_cached_static_bodies.clear()
 
 
 ## Called when the scene tree structure changes.
@@ -1348,6 +1383,31 @@ func _on_tree_changed() -> void:
 	if current_scene != null and current_scene != _previous_scene_root:
 		_previous_scene_root = current_scene
 		reset_effects()
+		# Issue #937: Rebuild static body cache for the new scene.
+		# Defer to ensure the new scene's nodes are fully added before scanning.
+		_cache_static_bodies.call_deferred()
+
+
+## Issue #937: Caches all StaticBody2D nodes in the current scene.
+## Called once per scene load. Allows _freeze_time() to avoid traversing the
+## full scene tree on every explosion by iterating this pre-built list instead.
+func _cache_static_bodies() -> void:
+	_cached_static_bodies.clear()
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	_collect_static_bodies_recursive(scene)
+	_log("Issue #937: Cached %d StaticBody2D nodes for fast freeze traversal" % _cached_static_bodies.size())
+
+
+## Recursively collects all StaticBody2D nodes from the given node's subtree.
+func _collect_static_bodies_recursive(node: Node) -> void:
+	if node is StaticBody2D:
+		_cached_static_bodies.append(node as StaticBody2D)
+		# StaticBody2D children (CollisionShape2D) are handled by _freeze_node_except_player
+		return
+	for child in node.get_children():
+		_collect_static_bodies_recursive(child)
 
 
 ## Performs warmup to pre-compile the last chance shader.

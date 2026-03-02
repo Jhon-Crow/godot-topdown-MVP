@@ -6,6 +6,9 @@ extends GutTest
 ## - количество осколков = 40 (shrapnel count)
 ## - таймер = 4 секунды (timer = 4 seconds)
 ## - Deals same damage to player and enemies (like frag grenade)
+##
+## Also tests issue #937 performance fix:
+## - shrapnel_max_ricochets defaults to 1 to limit collision cascade in enclosed spaces
 
 
 # ============================================================================
@@ -45,6 +48,10 @@ class MockDefensiveGrenade:
 
 	## Number of shrapnel pieces (40 per issue #495).
 	var shrapnel_count: int = 40
+
+	## Maximum ricochets per shrapnel piece (1 per issue #937 performance fix).
+	## Reduced from the default of 3 to limit collision cascade in enclosed spaces.
+	var shrapnel_max_ricochets: int = 1
 
 	## Fuse time in seconds (4 per issue #495).
 	var fuse_time: float = 4.0
@@ -178,6 +185,11 @@ func test_default_fuse_time_is_4_seconds() -> void:
 func test_default_explosion_damage() -> void:
 	assert_eq(grenade.explosion_damage, 99,
 		"Default explosion damage should be 99 (instant kill)")
+
+
+func test_default_shrapnel_max_ricochets_is_1() -> void:
+	assert_eq(grenade.shrapnel_max_ricochets, 1,
+		"Issue #937: shrapnel_max_ricochets must default to 1 to limit collision cascade in enclosed spaces (LabyrinthLevel). 40 shrapnel × 3 ricochets = 120 wall collision events caused lag.")
 
 
 # ============================================================================
