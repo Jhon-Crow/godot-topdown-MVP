@@ -321,6 +321,22 @@ public partial class Revolver : BaseWeapon
             }
         }
 
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                _laserSightColor = purpleColorVariant.AsColor();
+                if (GetNodeOrNull<Line2D>("LaserSight") == null)
+                    CreateLaserSight();
+                GD.Print($"[Revolver] Laser Sight active item: purple laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
         // Issue #691: Setup cylinder HUD using CallDeferred so the scene tree is fully ready
         CallDeferred(MethodName.SetupCylinderHUD);
     }
