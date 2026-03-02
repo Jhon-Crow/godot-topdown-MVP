@@ -1,0 +1,100 @@
+56:[01:32:04] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+57:[01:32:04] [INFO] [PowerFantasy] Saturation shader loaded successfully
+58:[01:32:04] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+59:[01:32:04] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+60:[01:32:04] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+205:[01:32:05] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+419:[01:32:13] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+422:[01:32:13] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+491:[01:32:16] [INFO] [GrenadeTimer] Frag grenade landed - EXPLODING!
+492:[01:32:16] [INFO] [GrenadeTimer] Frag grenade activated at (724.34235, 641.1516)!
+644:[01:32:17] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+1459:[01:32:27] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+1460:[01:32:27] [INFO] [PowerFantasy] Starting power fantasy effect:
+1461:[01:32:27] [INFO] [PowerFantasy]   - Time scale: 0.10
+1462:[01:32:27] [INFO] [PowerFantasy]   - Duration: 300ms
+1471:[01:32:28] [INFO] [PowerFantasy] Effect duration expired after 316.00 ms
+1472:[01:32:28] [INFO] [PowerFantasy] Ending power fantasy effect
+2029:[01:32:36] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+2030:[01:32:36] [INFO] [PowerFantasy] Starting power fantasy effect:
+2031:[01:32:36] [INFO] [PowerFantasy]   - Time scale: 0.10
+2032:[01:32:36] [INFO] [PowerFantasy]   - Duration: 300ms
+2072:[01:32:36] [INFO] [PowerFantasy] Effect duration expired after 302.00 ms
+2073:[01:32:36] [INFO] [PowerFantasy] Ending power fantasy effect
+2605:[01:32:38] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+2606:[01:32:38] [INFO] [PowerFantasy] Starting power fantasy effect:
+2607:[01:32:38] [INFO] [PowerFantasy]   - Time scale: 0.10
+2608:[01:32:38] [INFO] [PowerFantasy]   - Duration: 300ms
+2693:[01:32:38] [INFO] [PowerFantasy] Effect duration expired after 323.00 ms
+2694:[01:32:38] [INFO] [PowerFantasy] Ending power fantasy effect
+3017:[01:32:41] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+3018:[01:32:41] [INFO] [PowerFantasy] Starting power fantasy effect:
+3019:[01:32:41] [INFO] [PowerFantasy]   - Time scale: 0.10
+3020:[01:32:41] [INFO] [PowerFantasy]   - Duration: 300ms
+3055:[01:32:41] [INFO] [PowerFantasy] Effect duration expired after 331.00 ms
+3056:[01:32:41] [INFO] [PowerFantasy] Ending power fantasy effect
+3378:[01:32:44] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+3379:[01:32:44] [INFO] [PowerFantasy] Starting power fantasy effect:
+3380:[01:32:44] [INFO] [PowerFantasy]   - Time scale: 0.10
+3381:[01:32:44] [INFO] [PowerFantasy]   - Duration: 300ms
+3434:[01:32:44] [INFO] [PowerFantasy] Effect duration expired after 316.00 ms
+3435:[01:32:44] [INFO] [PowerFantasy] Ending power fantasy effect
+5291:[01:33:04] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+5292:[01:33:04] [INFO] [PowerFantasy] Starting power fantasy effect:
+5293:[01:33:04] [INFO] [PowerFantasy]   - Time scale: 0.10
+5294:[01:33:04] [INFO] [PowerFantasy]   - Duration: 300ms
+5319:[01:33:04] [INFO] [PowerFantasy] Effect duration expired after 301.00 ms
+5320:[01:33:04] [INFO] [PowerFantasy] Ending power fantasy effect
+6193:[01:33:17] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+6993:[01:33:31] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+7254:[01:33:38] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+7915:[01:33:43] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+7918:[01:33:43] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+8155:[01:33:50] [INFO] [GrenadeTimer] Frag grenade landed - EXPLODING!
+8156:[01:33:50] [INFO] [GrenadeTimer] Frag grenade activated at (609.4555, 708.041)!
+10402:[01:34:01] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+10591:[01:34:01] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+10594:[01:34:01] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+10621:[01:34:03] [INFO] [GrenadeBase] EXPLODED at (711.8705, 1032.413)!
+10631:[01:34:03] [INFO] [GrenadeTimer] Impact detected with Room2_WallBottom - EXPLODING!
+10632:[01:34:03] [INFO] [GrenadeTimer] Frag grenade activated at (711.8705, 1032.4133)!
+10721:[01:34:04] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+10910:[01:34:04] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+10913:[01:34:04] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+10940:[01:34:05] [INFO] [GrenadeBase] EXPLODED at (701.9098, 1032.908)!
+10950:[01:34:05] [INFO] [GrenadeTimer] Impact detected with Room2_WallBottom - EXPLODING!
+10951:[01:34:05] [INFO] [GrenadeTimer] Frag grenade activated at (701.9098, 1032.9077)!
+10983:[01:34:06] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+11171:[01:34:07] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+11174:[01:34:07] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+11212:[01:34:09] [INFO] [GrenadeBase] EXPLODED at (496.1196, 791.3494)!
+11245:[01:34:09] [INFO] [GrenadeTimer] Impact detected with Room2_WallLeft - EXPLODING!
+11246:[01:34:09] [INFO] [GrenadeTimer] Frag grenade activated at (496.1196, 791.3494)!
+11337:[01:34:10] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+11554:[01:34:12] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+16621:[01:34:40] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+16816:[01:34:44] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+17004:[01:34:45] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+17007:[01:34:45] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+17050:[01:34:47] [INFO] [GrenadeTimer] Frag grenade landed - EXPLODING!
+17051:[01:34:47] [INFO] [GrenadeTimer] Frag grenade activated at (633.5914, 609.3889)!
+17101:[01:34:48] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+17307:[01:34:51] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+17498:[01:34:51] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+17554:[01:34:55] [INFO] [GrenadeBase] EXPLODED at (656.2443, 660.1168)!
+17555:[01:34:55] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+17643:[01:34:55] [INFO] [PowerFantasy] Enemy killed - skipping 300ms effect (LastChance time-freeze already active)
+19207:[01:35:17] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+19286:[01:35:21] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+19296:[01:35:21] [INFO] [GrenadeBase] EXPLODED at (1100.46, 1289.946)!
+19297:[01:35:21] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+19674:[01:35:27] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+19690:[01:35:27] [INFO] [GrenadeBase] EXPLODED at (1620.04, 986.2244)!
+19691:[01:35:27] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+19914:[01:35:30] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+20106:[01:35:31] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+20143:[01:35:32] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+20346:[01:35:36] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+20535:[01:35:36] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+20538:[01:35:36] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+20572:[01:35:38] [INFO] [GrenadeTimer] Frag grenade landed - EXPLODING!
