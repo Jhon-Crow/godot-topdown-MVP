@@ -172,6 +172,22 @@ public partial class AKGL : BaseWeapon
                 GD.Print($"[AKGL] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
             }
         }
+
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                _laserSightColor = purpleColorVariant.AsColor();
+                if (GetNodeOrNull<Line2D>("LaserSight") == null)
+                    CreateLaserSight();
+                GD.Print($"[AKGL] Laser Sight active item: purple laser sight enabled with color {_laserSightColor}");
+            }
+        }
     }
 
     public override void _Process(double delta)
