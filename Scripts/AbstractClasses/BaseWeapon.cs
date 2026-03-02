@@ -870,4 +870,52 @@ public abstract partial class BaseWeapon : Node2D
 
         GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
     }
+
+    // =========================================================================
+    // Caliber Data Accessors (Issue #935)
+    // These C# methods expose caliber properties to GDScript callers.
+    // Direct property access via .get("Caliber") from GDScript on a C# Resource?
+    // property can return a stripped Resource object that loses its GDScript script
+    // binding, causing CaliberData casts to fail and property reads to return defaults.
+    // Using C# methods avoids this interop issue: C# reads the resource correctly.
+    // =========================================================================
+
+    /// <summary>
+    /// Returns the maximum ricochet angle in degrees for this weapon's caliber.
+    /// Returns 90.0 (default) if no caliber data is set.
+    /// Called by trajectory_glasses_effect.gd to correctly color ricochet segments.
+    /// </summary>
+    public float GetCaliberMaxRicochetAngle()
+    {
+        if (WeaponData?.Caliber == null)
+            return 90.0f;
+        var value = WeaponData.Caliber.Get("max_ricochet_angle");
+        return value.VariantType != Variant.Type.Nil ? value.AsSingle() : 90.0f;
+    }
+
+    /// <summary>
+    /// Returns the maximum number of ricochets allowed for this weapon's caliber.
+    /// Returns -1 (unlimited) if no caliber data is set.
+    /// Called by trajectory_glasses_effect.gd to determine bounce limit.
+    /// </summary>
+    public int GetCaliberMaxRicochets()
+    {
+        if (WeaponData?.Caliber == null)
+            return -1;
+        var value = WeaponData.Caliber.Get("max_ricochets");
+        return value.VariantType != Variant.Type.Nil ? value.AsInt32() : -1;
+    }
+
+    /// <summary>
+    /// Returns whether this weapon's caliber can ricochet.
+    /// Returns true (default) if no caliber data is set.
+    /// Called by trajectory_glasses_effect.gd to check ricochet capability.
+    /// </summary>
+    public bool GetCaliberCanRicochet()
+    {
+        if (WeaponData?.Caliber == null)
+            return true;
+        var value = WeaponData.Caliber.Get("can_ricochet");
+        return value.VariantType != Variant.Type.Nil ? value.AsBool() : true;
+    }
 }
