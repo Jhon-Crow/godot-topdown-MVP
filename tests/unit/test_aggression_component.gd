@@ -7,6 +7,8 @@ extends GutTest
 ## Issue #919 fix part 1: Aggression must NOT propagate to enemies hit by aggressive enemies.
 ## Issue #919 fix part 2: Non-aggressive enemies must detect and attack aggressive enemies
 ## (treating them as a second player/threat) without themselves becoming aggressive.
+## Issue #919 fix part 2 (extended): When no LOS to aggressor, non-aggressive enemies
+## must navigate toward the aggressor (same as #729 pattern for aggressive enemies).
 
 const AggressionComponent := preload("res://scripts/components/aggression_component.gd")
 
@@ -363,3 +365,76 @@ func test_non_aggressive_enemy_does_not_become_aggressive_when_targeting_aggress
 	# Then: Observer must still NOT be aggressive (aggression does not propagate)
 	assert_false(comp.is_aggressive(),
 		"Non-aggressive enemy must NOT become aggressive when engaging an aggressor (Issue #919)")
+
+
+## Issue #919 Part 2 (extended): Non-aggressive enemy must navigate toward an aggressive enemy
+## even when there is no LOS — mirrors the Issue #729 fix for aggressive enemies.
+func test_find_nearest_aggressive_enemy_any_finds_aggressor_without_los() -> void:
+	# Given: A non-aggressive observer and an aggressive enemy far away (no LOS in test)
+	var observer := MockEnemy.new()
+	var aggressor := MockEnemy.new()
+	add_child_autofree(observer)
+	add_child_autofree(aggressor)
+	observer.global_position = Vector2(0, 0)
+	aggressor.global_position = Vector2(1000, 1000)  # Far away
+	aggressor._mock_is_aggressive = true
+
+	var comp := AggressionComponent.new()
+	observer.add_child(comp)
+
+	await wait_frames(2)
+
+	# When: Looking for any aggressive enemy (regardless of LOS)
+	var result := comp._find_nearest_aggressive_enemy_any()
+
+	# Then: Should find the aggressive enemy even without LOS
+	assert_not_null(result, "Should find aggressor without requiring LOS")
+	assert_eq(result, aggressor, "Should return the aggressive enemy")
+
+
+## Issue #919 Part 2 (extended): _find_nearest_aggressive_enemy_any() must skip non-aggressive enemies.
+func test_find_nearest_aggressive_enemy_any_skips_non_aggressive() -> void:
+	# Given: Two non-aggressive enemies
+	var observer := MockEnemy.new()
+	var bystander := MockEnemy.new()
+	add_child_autofree(observer)
+	add_child_autofree(bystander)
+	observer.global_position = Vector2(0, 0)
+	bystander.global_position = Vector2(100, 0)
+	# bystander._mock_is_aggressive = false (default)
+
+	var comp := AggressionComponent.new()
+	observer.add_child(comp)
+
+	await wait_frames(2)
+
+	# When: Looking for any aggressive enemy
+	var result := comp._find_nearest_aggressive_enemy_any()
+
+	# Then: Should return null (no aggressive enemies)
+	assert_null(result, "Should return null when no aggressive enemies are present")
+
+
+## Issue #919 Part 2 (extended): process_aggression_tick() navigates toward aggressor when no LOS.
+## When the aggressor exists but has no LOS to this enemy, the enemy should pursue the aggressor.
+func test_process_aggression_tick_navigates_toward_aggressor_without_los() -> void:
+	# Given: A non-aggressive observer and an aggressive target far away
+	var observer := MockEnemy.new()
+	var aggressor := MockEnemy.new()
+	add_child_autofree(observer)
+	add_child_autofree(aggressor)
+	observer.global_position = Vector2(0, 0)
+	aggressor.global_position = Vector2(5000, 5000)  # Far away - no LOS expected
+	aggressor._mock_is_aggressive = true
+
+	var comp := AggressionComponent.new()
+	observer.add_child(comp)
+
+	await wait_frames(2)
+
+	# When: Running the aggression tick (aggressor is too far for LOS in test)
+	var result := comp.process_aggression_tick(0.016, 3.0, 0.5, 200.0)
+
+	# Then: Should return true (took over AI) and should navigate toward the aggressor
+	assert_true(result, "process_aggression_tick must return true when aggressor exists (Issue #919)")
+	assert_true(observer._move_called, "Should navigate toward aggressor even without LOS (Issue #919 #729 pattern)")
