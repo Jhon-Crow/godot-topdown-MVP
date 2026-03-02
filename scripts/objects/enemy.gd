@@ -1150,8 +1150,7 @@ func _process_ai_state(delta: float) -> void:
 		_transition_to_evading_grenade()
 		return
 
-	if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
-		_aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
+	if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)

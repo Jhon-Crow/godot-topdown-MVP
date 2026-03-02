@@ -11,14 +11,15 @@
 **Translation**: "Currently, aggression is passed/transferred to the enemy that an aggressive enemy attacks. But an aggressive enemy should simply be perceived by other enemies as the player."
 
 **Attached logs**:
-- `game_log_20260301_010737.txt` — 1493 lines
-- `game_log_20260301_010813.txt` — 6284 lines
+- `game_log_20260301_010737.txt` — 1493 lines (old build, bug present)
+- `game_log_20260301_010813.txt` — 6284 lines (old build, bug present)
+- `game_log_20260301_031619.txt` — 15154 lines (new build, added via PR comment)
 
 ---
 
 ## Timeline / Sequence of Events (From Logs)
 
-### Log 2 (game_log_20260301_010813.txt) — Primary Evidence
+### Log 2 (game_log_20260301_010813.txt) — Primary Evidence of Bug
 
 1. **01:08:13** — Game starts, `AggressionGasGrenade` loaded, grenade type set to `Aggression Gas`
 2. **01:08:14** — BuildingLevel loaded with 10 enemies: Enemy1-Enemy4, Grenadier, Enemy6-Enemy10
@@ -38,135 +39,125 @@
 10. **01:08:37** — `Enemy1` logs `[#675] Aggression expired` — Enemy1's aggression ends
 11. **01:08:39** — Enemy1 becomes **AGGRESSIVE** again (re-enters cloud or refreshed)
 
-### Summary of the Bug Pattern
+### Log 3 (game_log_20260301_031619.txt) — After First Fix (PR Feedback)
 
-```
-Player throws AggressionGasGrenade
-       ↓
-Enemy2 enters cloud → becomes AGGRESSIVE
-       ↓
-Enemy2 shoots Enemy1 (not in cloud, not intended to be aggressive)
-       ↓
-Enemy1 is hit → check_retaliation() triggers → on_hit_by_aggressive_enemy(Enemy2)
-       ↓
-Enemy1 is set AGGRESSIVE (_is_aggressive = true, target = Enemy2)
-       ↓  ← BUG: aggression propagates!
-Enemy1 now attacks Enemy7, Enemy10 (other non-gas enemies!)
-       ↓
-StatusEffectsManager.apply_aggression(Enemy1, 10.0) called — registered as aggression effect
-```
+After the initial fix (removing `check_retaliation`), the owner reported (2026-03-01):
+> "теперь враги не атакуют агрессивного врага" — "now enemies do not attack the aggressive enemy"
+
+The log confirms: multiple enemies (Enemy2, Enemy3, Enemy4, Enemy1) become **AGGRESSIVE** via gas cloud and attack each other, but non-aggressive enemies (Enemy7, Enemy8, Enemy9, Enemy10) do NOT engage aggressive enemies at all. They simply ignore them.
 
 ---
 
 ## Root Cause Analysis
 
-### File: `scripts/components/aggression_component.gd`
+### Bug 1: Aggression Propagation via `check_retaliation` (Fixed in First Commit)
 
-**Function: `on_hit_by_aggressive_enemy` (line 84-90)**
+**File**: `scripts/components/aggression_component.gd`
 
-```gdscript
-func on_hit_by_aggressive_enemy(attacker: Node2D) -> void:
-    if not is_instance_valid(attacker) or not _parent or _parent.get("_is_alive") == false: return
-    if not _is_aggressive: _log("Retaliating against %s" % attacker.name)
-    _is_aggressive = true; _target = attacker   # ← ROOT CAUSE
-    aggression_changed.emit(true)               # ← propagates through StatusEffectsManager
-    var sm: Node = _parent.get_node_or_null("/root/StatusEffectsManager")
-    if sm and sm.has_method("apply_aggression"): sm.apply_aggression(_parent, 10.0)  # ← further registers as aggressive
-```
-
-This function sets `_is_aggressive = true` on the victim enemy, making it:
-1. Actively search for ANY enemy to attack (via `_find_nearest_enemy_target_with_los()` and `_find_nearest_enemy_any()`)
-2. Registered with `StatusEffectsManager` as aggressive (tracked as an aggression effect)
-3. Perceived by OTHER non-aggressive enemies as an aggressor (if they get hit, they retaliate too)
-
-**Function: `check_retaliation` (line 72-82)**
+The removed functions:
 
 ```gdscript
 func check_retaliation(hit_direction: Vector2) -> void:
-    if not _parent: return
-    var adir := -hit_direction.normalized(); var best: Node2D = null; var bs := -INF
-    for e in _parent.get_tree().get_nodes_in_group("enemies"):
-        if e == _parent or not is_instance_valid(e) or not e is Node2D: continue
-        if not (e.has_method("is_aggressive") and e.is_aggressive()) or e.get("_is_alive") == false: continue
-        var dm := adir.dot((e.global_position - _parent.global_position).normalized())
-        if dm > 0.5:
-            var s := dm - (_parent.global_position.distance_to(e.global_position) / 1000.0)
-            if s > bs: bs = s; best = e
-    if best: on_hit_by_aggressive_enemy(best)  # ← triggers aggression propagation
+    # ...finds aggressive enemy in hit direction...
+    if best: on_hit_by_aggressive_enemy(best)
+
+func on_hit_by_aggressive_enemy(attacker: Node2D) -> void:
+    _is_aggressive = true; _target = attacker   # ← ROOT CAUSE: propagates aggression
+    aggression_changed.emit(true)
+    sm.apply_aggression(_parent, 10.0)  # registers as aggressive in StatusEffectsManager
 ```
 
-Called from `enemy.gd` line 4176 whenever an enemy survives a hit:
-```gdscript
-if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
-```
+Called from `enemy.gd` whenever an enemy survived a non-lethal hit. Result: any enemy shot by an aggressive enemy became aggressive itself, creating a chain reaction.
+
+### Bug 2: Non-Aggressive Enemies Not Engaging Aggressors (Fixed in Second Commit)
+
+After removing `check_retaliation`, non-aggressive enemies no longer respond to aggressive enemies at all. The owner's intent: "aggressive enemies should be perceived as the player by other enemies" — non-aggressive enemies should fight back against aggressors.
+
+**Root cause of Bug 2**: The enemy's normal AI only monitors `_player` as a target. There was no mechanism for a non-aggressive enemy to recognize and engage an aggressive enemy.
 
 ---
 
 ## Expected vs Actual Behavior
 
-| | **Actual (Buggy)** | **Expected (per Issue #919)** |
-|---|---|---|
-| Enemy hit by aggressive enemy | Becomes AGGRESSIVE itself (targets all enemies) | Enters combat against the aggressor only (treats aggressor as "the player") |
-| Aggression spread | Cascades to hit enemies | Does NOT spread via hits |
-| Non-gas enemies | Can become aggressive through chain | Only gas-exposed enemies are aggressive |
+| Scenario | **Buggy (Original)** | **After First Fix** | **Correct (Final)** |
+|---|---|---|---|
+| Non-aggressive enemy hit by aggressive enemy | Becomes AGGRESSIVE itself (chain reaction) | Nothing — ignores it | Fights back against aggressor without becoming aggressive |
+| Aggression flag | Spreads via hits | Does NOT spread ✓ | Does NOT spread ✓ |
+| Non-gas enemies vs aggressive enemies | Randomly attack other non-aggressive enemies | Ignore aggressive enemies | Attack the aggressive enemy only (treat as player) |
+| Gas-exposed enemies | Attack all enemies ✓ | Attack all enemies ✓ | Attack all enemies ✓ |
 
 ---
 
-## Proposed Solutions
+## Solution
 
-### Solution A: Remove `check_retaliation` (Simplest)
+### Fix 1: Remove Aggression Propagation (PR Commit 1)
 
-Remove the call to `check_retaliation` in `enemy.gd` line 4176. This stops aggression from propagating entirely.
+Removed `check_retaliation()` and `on_hit_by_aggressive_enemy()` from `AggressionComponent`.
+Removed the call `_aggression.check_retaliation(hit_direction)` from `enemy.gd`.
 
-**Pros**: Simple, precise fix
-**Cons**: Non-aggressive enemies hit by aggressive enemies won't defend themselves (they'll just stand there getting shot)
+**Result**: Aggression no longer propagates via hits. Only gas-exposed enemies become aggressive.
 
-### Solution B: Make victim enter combat vs attacker WITHOUT becoming aggressive (Recommended)
+### Fix 2: Non-Aggressive Enemies Engage Aggressors (PR Commit 2)
 
-The victim should perceive the aggressive attacker as "the player" — meaning it should fight back against the specific aggressive enemy — but NOT set `_is_aggressive = true` and NOT use the aggression system.
+**Files modified**:
+- `scripts/components/aggression_component.gd` — Added detection and combat logic
+- `scripts/objects/enemy.gd` — Replaced 2-line check with unified 1-line tick
 
-**Implementation**: Remove the `_is_aggressive = true` and `aggression_changed.emit(true)` calls from `on_hit_by_aggressive_enemy`. Instead, make the enemy retarget the attacker using normal combat mechanics (treating the aggressor as a pseudo-player target).
+**New mechanism in `AggressionComponent`**:
 
-**Pros**: Correct behavior — enemies fight back but don't spread aggression
-**Cons**: Requires more architectural changes to support "target override" in combat AI
+```gdscript
+var _hostile_aggressor: Node2D = null  # [#919] Detected aggressive enemy (not aggressive ourselves)
 
-### Solution C: Track "aggressor targets" separately from the aggression flag
+## Unified tick: handles both aggressive combat and non-aggressive aggressor detection.
+func process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed) -> bool:
+    if not _parent: return false
+    if _is_aggressive:
+        process_combat(...)  # Existing behavior: gas-exposed enemy attacks enemies
+        return true
+    # Non-aggressive: scan for visible aggressive enemies
+    if _hostile_aggressor is invalid or no longer aggressive:
+        _hostile_aggressor = _find_nearest_aggressive_enemy_with_los()
+    if _hostile_aggressor == null: return false  # Normal AI handles this
+    # Engage the aggressor as if it were the player (face, aim, shoot)
+    ...shoot at _hostile_aggressor...
+    return true  # AI override active
 
-Add a new `_aggressor_target: Node2D` variable that is distinct from `_is_aggressive`. When hit by an aggressive enemy, the victim enters combat against this specific target but the `_is_aggressive` flag remains false (and thus won't propagate further).
+## [#919] Only finds enemies where is_aggressive() == true
+func _find_nearest_aggressive_enemy_with_los() -> Node2D:
+    ...iterates "enemies" group, skips non-aggressive...
+```
 
-**Pros**: Clean solution, maintains the aggressive/non-aggressive distinction
-**Cons**: Requires changes to the process_combat logic
+**Change in `enemy.gd`** (`_process_ai_state`):
 
----
+```gdscript
+# OLD (2 lines):
+if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
+    _aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
 
-## Chosen Fix: Simplest Correct Fix
+# NEW (1 line, -1 from total):
+if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
+```
 
-Based on the issue description, the correct behavior is that aggressive enemies should be "perceived as the player" by other enemies. This means other enemies should fight back against the aggressive attacker.
+**Why this works**:
+- `process_aggression_tick()` is called before `_process_ai_state()` for every enemy every frame
+- For gas-exposed (aggressive) enemies: identical behavior to before (calls `process_combat()`)
+- For non-aggressive enemies: the method scans for nearby aggressive enemies with LOS
+  - If one found: engages it directly (face, aim, shoot) and returns `true` (bypasses normal AI)
+  - If none found: returns `false` (normal AI handles the enemy as usual)
+- Non-aggressive enemies NEVER set `_is_aggressive = true` — aggression does not propagate
 
-The simplest correct fix: **Modify `on_hit_by_aggressive_enemy` to NOT set `_is_aggressive = true`**. Instead, just target the attacker directly (set `_target = attacker`) and transition to combat. The enemy fights back against the specific aggressor without becoming aggressive itself.
-
-This requires:
-1. In `aggression_component.gd`: `on_hit_by_aggressive_enemy` should NOT set `_is_aggressive = true` and should NOT call `apply_aggression`
-2. The victim enemy needs a way to engage combat with the specific attacker without using the aggression system
-
-However, the problem is: the victim needs a combat target that isn't the player. The simplest approach that fits the existing architecture:
-
-**Remove `check_retaliation` entirely** and implement a simpler mechanism:
-- When a non-aggressive enemy is hit by an aggressive attacker, just have it retarget the aggressor using the existing combat state (without the aggression flag)
-- This can be done in `enemy.gd` by setting a temporary "threatened by" target
-
-Or even simpler: just **remove `check_retaliation`** — non-aggressive enemies that get shot by aggressive enemies should simply have their normal reaction to being shot (become alert, pursue the threat direction), not become aggressive themselves.
-
-**Final Decision**: Remove `check_retaliation` from `on_hit_with_bullet_info` and remove `on_hit_by_aggressive_enemy`. When a non-aggressive enemy is shot, it should use its normal enemy-detection logic (which won't target the aggressor since they're "in the enemies group", not "the player").
-
-Wait — but then non-aggressive enemies can't fight back at all against aggressive enemies. The issue says they should perceive aggressive enemies AS the player.
-
-The minimal correct fix: In `on_hit_by_aggressive_enemy`, do NOT set `_is_aggressive = true`. Instead, the fix in `check_retaliation` should make the victim enter COMBAT with the attacker (transition state), treating the attacker as a combat target, without the aggression propagation.
+**Key properties of the fix**:
+1. Non-aggressive enemies attack ONLY the aggressive enemy (not random other enemies)
+2. They ONLY attack if they can see the aggressive enemy (line of sight required)
+3. They remain non-aggressive throughout — no aggression propagation
+4. When the aggressive enemy dies or aggression expires, `_hostile_aggressor` becomes invalid and the enemy returns to normal AI behavior
+5. Line count maintained: enemy.gd reduced from 4998 to 4997 lines
 
 ---
 
 ## Files Involved
 
-- `scripts/components/aggression_component.gd` — Primary fix location
-- `scripts/objects/enemy.gd` — May need adjustment for combat state targeting
-- `tests/unit/test_aggression_component.gd` — Tests to update/add
+- `scripts/components/aggression_component.gd` — Primary fix location (both fixes)
+- `scripts/objects/enemy.gd` — Call site update (1-line change)
+- `tests/unit/test_aggression_component.gd` — Tests for both fixes
+- `docs/case-studies/issue-919/` — This analysis + game logs
