@@ -372,3 +372,36 @@ func test_caliber_data_762x39_has_restricted_angle() -> void:
 	assert_not_null(caliber, "caliber_762x39.tres should load as CaliberData")
 	assert_almost_eq(caliber.max_ricochet_angle, 70.0, 0.01,
 		"7.62x39mm max_ricochet_angle should be 70° (not the default 90°)")
+
+
+func test_akgl_weapon_data_has_caliber_max_ricochet_angle_70() -> void:
+	# Regression test for Issue #935 (v3 fix): AKGLData.tres must have
+	# CaliberMaxRicochetAngle = 70.0 as a native C# WeaponData property.
+	# Previous fixes tried reading from WeaponData.Caliber.Get("max_ricochet_angle")
+	# from C#, but Godot 4.3 returns the GDScript script default (90°) instead of
+	# the serialized .tres value (70°) in that case.
+	# The v3 fix stores the value directly in WeaponData.cs C# [Export] properties.
+	var weapon_data_res = load("res://resources/weapons/AKGLData.tres")
+	assert_not_null(weapon_data_res, "AKGLData.tres should load successfully")
+	var max_angle: float = weapon_data_res.get("CaliberMaxRicochetAngle")
+	assert_almost_eq(max_angle, 70.0, 0.01,
+		"AKGLData.CaliberMaxRicochetAngle must be 70° to fix ricochet indicator (Issue #935 v3)")
+
+
+func test_akgl_weapon_data_caliber_can_ricochet_true() -> void:
+	# Regression test: AKGLData.tres must have CaliberCanRicochet = true.
+	var weapon_data_res = load("res://resources/weapons/AKGLData.tres")
+	assert_not_null(weapon_data_res, "AKGLData.tres should load successfully")
+	var can_ricochet: bool = weapon_data_res.get("CaliberCanRicochet")
+	assert_true(can_ricochet,
+		"AKGLData.CaliberCanRicochet must be true for AKGL (Issue #935 v3)")
+
+
+func test_sniper_weapon_data_caliber_cannot_ricochet() -> void:
+	# Regression test: SniperRifleData.tres must have CaliberCanRicochet = false.
+	# 12.7x108mm anti-materiel caliber does not ricochet.
+	var weapon_data_res = load("res://resources/weapons/SniperRifleData.tres")
+	assert_not_null(weapon_data_res, "SniperRifleData.tres should load successfully")
+	var can_ricochet: bool = weapon_data_res.get("CaliberCanRicochet")
+	assert_false(can_ricochet,
+		"SniperRifleData.CaliberCanRicochet must be false for ASVK (12.7x108mm)")

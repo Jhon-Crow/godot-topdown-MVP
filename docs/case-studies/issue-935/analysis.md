@@ -81,31 +81,9 @@ After the first fix, the new log confirms the same failure for AKGL regardless o
 
 Both fail because the resource object passed through C# `Resource?` → GDScript `.get()` chain loses its GDScript script binding.
 
-### The Correct Fix: C# Helper Methods
+### Attempted Fix v2: C# Helper Methods (2026-03-02)
 
-The C# `Bullet.cs` successfully reads caliber properties because it uses C#-side `.Get()`:
-```csharp
-// In Bullet.cs ApplyCaliberData() - works correctly
-MaxRicochetAngle = CaliberData.Get("max_ricochet_angle").AsSingle();  // Returns 70.0 ✓
-```
-
-The solution is to add C# helper methods to `BaseWeapon.cs` that read the caliber properties using C# code (where the resource IS correctly bound) and expose them as regular C# methods that GDScript can `call()`:
-
-```csharp
-public float GetCaliberMaxRicochetAngle()
-{
-    if (WeaponData?.Caliber == null) return 90.0f;
-    var value = WeaponData.Caliber.Get("max_ricochet_angle");
-    return value.VariantType != Variant.Type.Nil ? value.AsSingle() : 90.0f;
-}
-```
-
-Then in `trajectory_glasses_effect.gd`:
-```gdscript
-if _weapon.has_method("GetCaliberMaxRicochetAngle"):
-    var angle: float = _weapon.call("GetCaliberMaxRicochetAngle")
-    # Returns 70.0 for AKGL ✓
-```
+The v2 fix added C# helper methods to `BaseWeapon.cs` that call `WeaponData.Caliber.Get("max_ricochet_angle")` from C#. This approach also fails — see v3 analysis below.
 
 ### Problem 2: AK Ricochet Parameters vs Backup Branch
 
@@ -121,21 +99,77 @@ At `weapon_max_angle=90.0` (degrees), every possible impact angle (0–90°) pas
 Impact angles above 70° (e.g., nearly perpendicular hits) should show red for AKGL, but were
 incorrectly shown green.
 
-## Fix Summary (Final)
+## Fix v2 (2026-03-02) — C# Helper Methods (Did Not Work)
+
+**Game log:** `game_log_20260302_195324.txt`
+
+The v2 fix added C# helper methods to `BaseWeapon.cs` that call `WeaponData.Caliber.Get("max_ricochet_angle")` from C#. The assumption was that C# can read GDScript resource values correctly (unlike GDScript-to-C#-to-GDScript interop). However, the log still shows:
+
+```
+[TrajectoryGlasses] _get_weapon_max_ricochet_angle: AKGL -> max_ricochet_angle=90.0 (via C# helper)
+```
+
+The `(via C# helper)` confirms the C# method IS being called, but it returns 90.0 instead of 70.0.
+
+This means the C# `.Get("max_ricochet_angle")` call on the GDScript-backed `CaliberData` resource ALSO returns the GDScript script default (90.0) instead of the serialized `.tres` value (70.0).
+
+### True Root Cause Confirmed (v3 analysis — 2026-03-02)
+
+In **Godot 4.3**, calling `.Get()` (or `Resource.Get()` from C#) on a GDScript-backed resource returns the **GDScript script-level property default**, NOT the serialized `.tres` value. This affects ALL approaches that go through GDScript property reading:
+
+| Approach | Result |
+|----------|--------|
+| GDScript `.get("max_ricochet_angle")` via duck-typing | 90.0 (script default) ❌ |
+| `caliber as CaliberData` cast | null (script binding lost) ❌ |
+| C# `WeaponData.Caliber.Get("max_ricochet_angle")` | 90.0 (script default) ❌ |
+
+The only reliable way to read values from a Godot resource in C# is to store those values as **native C# `[Export]` properties** on a **C# resource class**. Such properties are deserialized directly from the `.tres` file by the C# runtime, bypassing the GDScript property system entirely.
+
+## Fix Summary (v3 — Final, 2026-03-02)
+
+**Root cause:** In Godot 4.3, `.Get()` on a GDScript-backed Resource (whether called from GDScript or C#) returns the GDScript script property default, not the `.tres` serialized value.
+
+**Fix:** Store caliber ricochet parameters directly in `WeaponData.cs` as native C# `[Export]` properties. These are read directly from `.tres` files by the C# runtime with no GDScript involvement.
 
 **Files changed:**
-1. `Scripts/AbstractClasses/BaseWeapon.cs` — Add C# helper methods:
-   - `GetCaliberMaxRicochetAngle()` → reads `max_ricochet_angle` from caliber via C#
-   - `GetCaliberMaxRicochets()` → reads `max_ricochets` from caliber via C#
-   - `GetCaliberCanRicochet()` → reads `can_ricochet` from caliber via C#
 
-2. `scripts/effects/trajectory_glasses_effect.gd` — Use C# helpers as primary path:
-   - `_get_weapon_max_ricochet_angle()`: calls `GetCaliberCanRicochet()` and `GetCaliberMaxRicochetAngle()`
-   - `_get_weapon_max_ricochets()`: calls `GetCaliberMaxRicochets()`
-   - Fallback: original GDScript path retained for non-BaseWeapon weapons
+1. `Scripts/Data/WeaponData.cs` — Add three new C# `[Export]` properties:
+   - `CaliberCanRicochet` (bool, default true)
+   - `CaliberMaxRicochetAngle` (float, range 0–90, default 90.0)
+   - `CaliberMaxRicochets` (int, default -1 = unlimited)
 
-After the fix, trajectory glasses correctly returns 70.0 for AKGL, and segments with
-impact angle > 70° are shown in **red**, confirming the shot cannot ricochet at that angle.
+2. `Scripts/AbstractClasses/BaseWeapon.cs` — Update helper methods to read from WeaponData directly:
+   - `GetCaliberMaxRicochetAngle()` → `WeaponData.CaliberMaxRicochetAngle`
+   - `GetCaliberMaxRicochets()` → `WeaponData.CaliberMaxRicochets`
+   - `GetCaliberCanRicochet()` → `WeaponData.CaliberCanRicochet`
+
+3. All weapon `.tres` files — Set correct values matching the caliber `.tres` data:
+   - `AKGLData.tres`: `CaliberCanRicochet=true`, `CaliberMaxRicochetAngle=70.0`, `CaliberMaxRicochets=-1`
+   - `AssaultRifleData.tres`: `CaliberCanRicochet=true`, `CaliberMaxRicochetAngle=70.0`, `CaliberMaxRicochets=-1`
+   - `MakarovPMData.tres`: `CaliberCanRicochet=true`, `CaliberMaxRicochetAngle=20.0`, `CaliberMaxRicochets=1`
+   - `MiniUziData.tres`: `CaliberCanRicochet=true`, `CaliberMaxRicochetAngle=20.0`, `CaliberMaxRicochets=1`
+   - `RevolverData.tres`: `CaliberCanRicochet=true`, `CaliberMaxRicochetAngle=15.0`, `CaliberMaxRicochets=1`
+   - `ShotgunData.tres`: `CaliberCanRicochet=true`, `CaliberMaxRicochetAngle=35.0`, `CaliberMaxRicochets=1`
+   - `SilencedPistolData.tres`: `CaliberCanRicochet=true`, `CaliberMaxRicochetAngle=20.0`, `CaliberMaxRicochets=1`
+   - `SniperRifleData.tres`: `CaliberCanRicochet=false`, `CaliberMaxRicochetAngle=0.0`, `CaliberMaxRicochets=0`
+
+4. `scripts/effects/trajectory_glasses_effect.gd` — No change needed; already calls the C# helper methods.
+
+5. `tests/unit/test_trajectory_glasses.gd` — Add regression tests:
+   - `test_akgl_weapon_data_has_caliber_max_ricochet_angle_70()` — verifies `AKGLData.CaliberMaxRicochetAngle = 70°`
+   - `test_akgl_weapon_data_caliber_can_ricochet_true()` — verifies `AKGLData.CaliberCanRicochet = true`
+   - `test_sniper_weapon_data_caliber_cannot_ricochet()` — verifies `SniperRifleData.CaliberCanRicochet = false`
+
+**Expected behavior after fix:** The trajectory glasses will call `GetCaliberMaxRicochetAngle()` → `WeaponData.CaliberMaxRicochetAngle` → returns `70.0` for AKGL. Segments with impact angle > 70° are shown in **red**.
+
+## Evidence Files
+
+| Log file | Session | Key finding |
+|----------|---------|-------------|
+| `game_log_20260301_025341.txt` | M16 only | M16 reads 70° via duck-typing (worked in this session) |
+| `game_log_20260301_025844.txt` | AKGL only | AKGL reads 90° via duck-typing (broken) |
+| `game_log_20260301_034448.txt` | AKGL post v1 fix | AKGL still broken: `caliber is not CaliberData` |
+| `logs/game_log_20260302_195324.txt` | AKGL post v2 fix | AKGL still broken: C# helper returns 90.0 |
 
 ## Online Research: Godot C#/GDScript Interop
 
@@ -143,3 +177,5 @@ impact angle > 70° are shown in **red**, confirming the shot cannot ricochet at
   when retrieved via `.get()` from GDScript: https://docs.godotengine.org/en/stable/tutorials/scripting/cross_language_scripting.html
 - Pattern confirmed: C# code reading GDScript resources via `.Get()` works correctly;
   GDScript reading C# `Resource?` properties via `.get()` can lose the GDScript script class binding
+- **v3 update:** Even C# `.Get()` on a GDScript-backed resource returns script defaults, not .tres values.
+  The only reliable solution is to store the values as native C# `[Export]` properties on C# resource classes.
