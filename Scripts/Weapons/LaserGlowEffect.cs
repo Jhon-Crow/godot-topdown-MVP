@@ -118,9 +118,15 @@ public class LaserGlowEffect
     /// <summary>
     /// Lifetime of each dust particle in seconds. Very short lifetime ensures
     /// particles stay close to the current beam position and don't trail behind
-    /// when the player moves. At 0.05s lifetime (with max 0.06s including randomness),
-    /// the maximum visible lag at max walking speed (~330px/s) is only ~20 pixels —
-    /// effectively imperceptible compared to the previous 800ms trail (Issue #748).
+    /// when the player moves. At 0.05s lifetime the maximum visible lag at max
+    /// walking speed (~330px/s) is only ~20 pixels — effectively imperceptible
+    /// compared to the previous 800ms trail (Issue #748).
+    ///
+    /// Note: LifetimeRandomness must be set to 1.0 (maximum spread) to avoid
+    /// flickering. With short lifetimes and low LifetimeRandomness, all particles
+    /// die in a tight time window causing a periodic blank flash (Issue #748).
+    /// LifetimeRandomness=1.0 spreads deaths uniformly between 0 and lifetime,
+    /// ensuring constant visible density with no flicker.
     /// </summary>
     private const float DustParticleLifetime = 0.05f;
 
@@ -372,7 +378,12 @@ public class LaserGlowEffect
             ScaleMin = 0.3f,
             ScaleMax = 0.8f,
             ColorRamp = new GradientTexture1D { Gradient = colorRamp },
-            LifetimeRandomness = 0.2f,
+            // LifetimeRandomness=1.0 spreads particle deaths uniformly between 0 and
+            // DustParticleLifetime. With low randomness (0.2), all 80 particles die
+            // within a tight 10ms window every 50ms cycle, causing a periodic blank
+            // flash visible as laser flickering during player movement (Issue #748).
+            // Maximum spread (1.0) ensures constant beam density with no visible cycle.
+            LifetimeRandomness = 1.0f,
         };
 
         // Additive blending material for particles

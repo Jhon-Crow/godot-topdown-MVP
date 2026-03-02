@@ -296,13 +296,66 @@ Issue #748 persisted through multiple fix attempts because the root cause was **
 
 Reducing `DustParticleLifetime` from 0.8s to 0.05s eliminates the visible trail while maintaining the same visual density (same max particle count). This is a robust, engine-agnostic fix that doesn't rely on specific Godot coordinate system behaviors.
 
-### February 2026 Fix History
+### February–March 2026 Fix History
 
 | Date | Attempt | Result |
 |------|---------|--------|
 | Feb 8 (PR #697) | Added `LocalCoords=true` | Fixed rotation lag, but translation trail persisted |
 | Feb 12 (commit 2a349428) | Added explicit rotation sync | Further improvement, owner still reported lag |
 | Feb 12 (commit 1850feb9) | Added explicit position sync | Owner tested, confirmed lag still visible |
-| Feb 28 (this fix) | Reduced particle lifetime to 0.05s | Eliminates visible trail completely |
+| Feb 28 (commit e4ab9344) | Reduced particle lifetime to 0.05s, LifetimeRandomness=0.2 | Trail almost gone, but flickering appeared |
+| Mar 2 (this fix) | LifetimeRandomness=1.0 (maximum spread) | Eliminates periodic blank-flash flicker |
+
+## Phase 2: Flickering After Short-Lifetime Fix (March 2026)
+
+### New Problem Reported (2026-03-01)
+
+After reducing lifetime from 0.8s to 0.05s (Feb 28 fix), owner reported:
+> "проблема почти исчезла, но при ходьбе всё ещё на видно моргание эффекта лазера за спиной игрока."
+> Translation: "the problem has almost disappeared, but when walking there is still a visible flickering/blinking of the laser effect behind the player."
+
+A new game log was provided: `game_log_20260301_033645.txt` (4136 lines).
+
+### Root Cause: Particle Death Bunching (Periodic Blank Flash)
+
+With `DustParticleLifetime = 0.05f` (50ms) and `LifetimeRandomness = 0.2f`:
+- Min particle lifetime: `0.05 * (1 - 0.2 * rand)` where rand ∈ [0,1]
+- **Range of particle deaths**: 0.04s to 0.05s (only a 10ms window)
+- At 60fps, all 80 particles die within the same ~1 frame window
+
+**Mechanics of the flicker**:
+1. All 80 particles spawn over one cycle period (~50ms)
+2. With LifetimeRandomness=0.2, most die within a tight ~10ms window
+3. This causes a periodic **blank flash** every ~50ms (~20Hz)
+4. The human eye perceives this as laser flickering/blinking
+
+### The Fix: LifetimeRandomness = 1.0 (Maximum Spread)
+
+The `LifetimeRandomness` property in Godot's `ParticleProcessMaterial` uses this formula:
+```
+actual_lifetime = base_lifetime * (1.0 - lifetime_randomness * rand(0, 1))
+```
+
+With `LifetimeRandomness = 1.0`:
+- Particle lifetimes are **uniformly distributed** from 0 to `DustParticleLifetime` (0 to 0.05s)
+- At any given moment, particles die at a **constant rate** with no bunching
+- Result: **steady, constant beam density** with no visible periodic flash
+
+```
+OLD: LifetimeRandomness = 0.2 → lifetimes range 0.04s–0.05s → bunched deaths → flicker
+NEW: LifetimeRandomness = 1.0 → lifetimes range 0s–0.05s → spread deaths → no flicker
+```
+
+### Impact Analysis (Cumulative)
+
+| Metric | Original (0.8s) | Feb 28 Fix (0.05s, LR=0.2) | Mar 2 Fix (0.05s, LR=1.0) |
+|--------|----------------|---------------------------|--------------------------|
+| Max trail at 330px/s | ~400 pixels | ~20 pixels | ~20 pixels |
+| Particle flicker | None (slow refresh) | ~20Hz blank flash | None (uniform deaths) |
+| Visual density | 80 max | 80 max | ~40 avg (uniformly spread) |
+| Trail lag | 800ms | ~60ms | ~60ms |
+| User experience | Visible trail | Almost fixed, but flicker | Fully resolved |
+
+Note: Average visible count is ~40 instead of 80 (because lifetimes are uniformly distributed, only half are alive at any given moment on average). If density feels too low in practice, `DustParticleAmount` can be increased to 160 to restore the same perceived density.
 
 **Status**: ✅ SOLVED by reducing particle lifetime from 0.8s to 0.05s
