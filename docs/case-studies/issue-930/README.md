@@ -16,148 +16,197 @@ Current state (see `images/current_state.png`): A thin blue ring/circle outline 
 
 ## Data Collected
 
+### Files
+
 - `images/desired_1.png` — Reference image 1 (desired bubble appearance): 284×177 PNG
 - `images/desired_2.png` — Reference image 2 (desired bubble appearance): 462×280 PNG
 - `images/current_state.png` — Current broken visual (thin blue ring outline): 195×142 PNG
+- `game_log_20260301_032044.txt` — Game log from 2026-03-01, provided by Jhon-Crow in PR #931 comment
 
 ### Historical Context (Previous Issues)
 
 This issue is the third iteration of force field visual complaints:
-- **Issue #906** / PR #907: Initial force field visual with bullet trapping implemented. Shader was designed as Fresnel rim bubble.
-- **Issue #912** / PR #913: Force field still showed as large blue-filled circle (gradient texture bleeding), then as white square (shader not compositing in exports). Fix: Use `_create_ring_texture()` programmatic donut as primary visual, shader as optional enhancement.
+- **Issue #676** / PR ~dd84e96: Initial ForceFieldEffect implementation — basic Area2D + visual.
+- **Issue #906** / PR #907: Force field bullet trapping implemented. Shader was designed as Fresnel rim bubble.
+- **Issue #912** / PR #913: Force field showed as large blue-filled circle (gradient texture bleeding), then as white square (shader not compositing in exports). Fix: Use `_create_ring_texture()` programmatic donut as primary visual, shader as optional enhancement.
 - **Issue #930** (this issue): Force field now shows as thin blue ring — transparent center, visible rim only. Still not matching the desired bubble with translucent interior.
+- **PR #931** (ongoing): Attempted fix — added semi-transparent interior fill to both texture and shader. Owner reported "force field doesn't work at all (damage passes through)" in a PR comment with game log attached.
+
+---
+
+## Timeline / Sequence of Events (Reconstructed from Game Log)
+
+The game log `game_log_20260301_032044.txt` was collected on 2026-03-01 at 03:20 local time (UTC+3 timezone, based on log path `I:/Загрузки/` and Russian OS locale). The game was an exported Windows build (`Godot-Top-Down-Template.exe`) from the "сиЛовое ПОЛЕ" ("Force Field") folder — a dedicated test folder named after the feature being tested.
+
+### Session Summary (03:20:44 – 03:21:07)
+
+| Time | Event |
+|------|-------|
+| 03:20:44 | Game started. GameManager, ScoreManager, FileLogger initialized. |
+| 03:20:44 | LabyrinthLevel loaded. Force field NOT selected in ActiveItemManager. |
+| 03:20:44–45 | Scene transitions (LabyrinthLevel → BuildingLevel attempted multiple times). |
+| 03:20:48 | `[ActiveItemManager] Active item changed from BFF Pendant to Force Field` |
+| 03:20:48 | `[Player.ForceField] Force field is selected, initializing...` |
+| 03:20:48 | `[Player.ForceField] Force field initialized successfully` |
+| 03:20:48–50 | Player in BuildingLevel. 10 enemies spawned. |
+| 03:20:51 | **Player takes 1 damage.** `[PenultimateHit] Player damaged: 1.0 damage, current health: 2.0` |
+| 03:20:51 | **Player takes 1 more damage.** `current health: 1.0` |
+| 03:20:51 | LastChance effect triggers (1 HP). |
+| 03:20:51 | Multiple scene reloads follow (player likely died). |
+| 03:21:04 | Final attempt: Force field initialized, enemies spawned, player at 4 HP. |
+| 03:21:07 | Game log ends (session ended or crash). |
+
+### Key Observation: No `[ForceFieldEffect]` Logs
+
+Despite the C# Player successfully logging `[Player.ForceField] Force field initialized successfully` (confirming the ForceFieldEffect scene was instantiated and `AddChild()` was called), **zero log entries from `force_field_effect.gd` appear in the entire log**. The `_ready()` of the GDScript should log `[ForceFieldEffect] Initialized with 8.0s charge` — this never appears.
+
+This means one of:
+1. The binary was built from a version of the code that didn't have `FileLogger.info()` calls in `force_field_effect.gd` (i.e., pre-PR #912 binary or older).
+2. The GDScript's `_ready()` was never called due to a C#/GDScript interop issue in the exported build.
+3. A silent GDScript compilation error prevented the script from running.
+
+### Key Observation: No Force Field Activation
+
+The log shows **no `[ForceFieldEffect] Activated!` log entries**. This means either:
+- The user never pressed Space to activate the force field (so it was never active).
+- The field was active but the logs weren't captured (same reasons as above).
+
+The player took damage 3 seconds after spawning. If they were holding Space and the force field was active, `is_force_field_active()` would return `true` and damage would be blocked in `TakeDamage`. The fact that damage went through confirms the force field was NOT active when bullets hit.
 
 ---
 
 ## Root Cause Analysis
 
-### Why the current visual looks like a thin ring instead of a bubble
+### Root Cause 1 (Visual Issue): Ring Texture Has No Interior Fill
 
-After Issue #912's fix, `_setup_shield_visual()` uses `_create_ring_texture()` as the **primary visual** — a 256×256 programmatic image that is:
-- Fully transparent in the center (radius 0–84%)
-- Blue glowing rim at radius 84–100%
+The `_create_ring_texture()` function in `force_field_effect.gd` (pre-PR #930 fix) sets all pixels with `dist < rim_start` to fully transparent (`Color(0,0,0,0)`). The shader also produced only a rim-only output (`float combined = rim * glow_intensity * pulse`). Both the texture AND the shader gave zero alpha inside the circle, resulting in a hollow ring.
 
-The shader (`force_field.gdshader`) is loaded as an optional enhancement. The shader also currently outputs only the rim:
-```glsl
-// ---- Combined alpha ----
-// Rim-only effect: completely transparent center with bright glowing edge
-float combined = rim * glow_intensity * pulse;
-```
+**This is confirmed by the code diff between `main` and `HEAD`** — the only gameplay-affecting change in our PR is making `_create_ring_texture()` add a soft interior fill.
 
-Both the base texture AND the shader are designed with a transparent center. The result is a ring outline — correct behavior per the code, but not matching the desired bubble look.
+### Root Cause 2 (Damage Issue): Force Field Was Not Active
 
-### What the desired look requires
+The game log shows no activation of the force field. The user either:
+- Did not know to hold Space to activate it (the field is not active by default — it requires user input).
+- Found the bubble visual wasn't rendering (old binary without our fix) and assumed it was broken.
+- Pressed Space but the force field's Area2D was not set up (if `_ready()` didn't fire).
 
-The reference images show:
-1. A **semi-transparent interior** — the bubble is not hollow. The interior is dark but translucent (like frosted glass or a soap bubble). The game map/background is slightly visible through it.
-2. A **bright glowing rim** at the edge — correctly implemented.
-3. **Animated swirling surface texture** — energy lines, shimmer, particle-like dots moving across the surface.
-4. **Iridescent color shift** — cyan/blue tones, possibly slight purple shift.
+**Our PR (#931) did NOT change the damage blocking code.** The damage protection logic (`_on_projectile_entered`, `activate`, `is_protecting`, `TakeDamage` force field check) was completely untouched between `main` and `HEAD`. If the force field is active (`is_active = true`), damage is blocked in **both** the C# `TakeDamage` path and the GDScript `on_hit_with_info` path.
 
-The fix requires:
-- Adding interior fill alpha to both the ring texture and the shader.
-- Making the interior semi-transparent (not opaque, not fully transparent).
-- Enhancing the animation with multi-layer shimmer and surface energy patterns.
+### Root Cause 3 (Silent Failure Risk): C#/GDScript Interop in Exported Builds
+
+Online research reveals a documented class of Godot 4 issues where GDScript `_ready()` may not fire when called from C# `AddChild()` in exported builds:
+- **Godot Forums** (godotforums.org/d/24315): "C# Godot Scene Instance - Ready/Enter Tree Functions Not called" — confirms lifecycle callbacks can be silently skipped in C#/GDScript interop scenarios.
+- **Godot GitHub #75352**: "Loading/Assigning a GDScript-based scene exported from another project fails with 'Cannot instance script because the associated class could not be found'" — silent failure mode.
+- **Godot GitHub #94150**: GDScript export mode (compiled bytecode) breaks exported builds with certain addon configurations.
+
+This risk means that in the exported binary, if `_ready()` is never called on `ForceFieldEffect`:
+- `_setup_area2d()` never runs → no `Area2D` → no bullet trapping
+- `_setup_shield_visual()` never runs → no visual sprite → field is invisible
+- However, `is_active` defaults to `false`, so `is_protecting()` returns `false`
+- If the C# player's `HandleForceFieldInput` calls `activate()`, `is_active` becomes `true`
+- `is_force_field_active()` would return `true`, blocking damage in `TakeDamage`
+- BUT no visual feedback would be visible (player can't know the field is active)
+- AND no bullet trapping would occur (Area2D not set up)
+
+The damage protection via `TakeDamage` check should still work even without `_ready()` firing, as long as `activate()` is called. But the lack of visual and bullet trapping makes the feature effectively non-functional.
 
 ---
 
-## Online Research: Godot 2D Force Field / Shield Bubble Effects
+## Online Research: Godot 4 Force Field / Shield Patterns
 
-### Best Practices (Godot 4 canvas_item shaders)
+### Standard Hitbox/Hurtbox Architecture (GDQuest)
 
-According to the Godot documentation and community resources:
-- **Canvas_item shaders** run per-pixel on 2D nodes. They receive `UV` coordinates (0.0–1.0) and can use `TIME` for animation.
-- For a bubble effect, the standard approach is:
-  1. Fresnel-like term: `pow(r, n)` where r is normalized distance from center — gives high alpha at edge, low at center.
-  2. Interior fill: `smoothstep(0.3, 0.7, r)` — creates a soft fill that is transparent at center and opaque at rim.
-  3. Rim glow: A sharp narrow band at r ≈ 0.9–1.0 with high alpha.
-  4. Animation: `sin(TIME * speed + offset)` for pulsing; `sin(angle * n + TIME * s)` for rotating shimmer.
+The standard community pattern for damage interception in Godot 4 (per GDQuest's documented hitbox/hurtbox tutorial):
+- A `Hurtbox` (Area2D on the receiving entity) listens for `Hitbox` (Area2D on the attacker)
+- The hurtbox emits a `damaged` signal; the entity script decides whether to apply it
+- A force field intercepts this signal before it reaches the health system
 
-### Known Implementations / Similar Solutions
+Our implementation uses a layered approach:
+1. **Physical trapping** via ForceFieldEffect's `Area2D` (named `ForceFieldArea`) that intercepts bullets via `area_entered` signal
+2. **Damage blocking** in `TakeDamage` via `is_force_field_active()` check (fallback if trapping fails)
 
-- **Godot Forum "Energy Shield 2D" shader** (2023): Uses `fresnel = pow(r, 2.0)` + `inner = smoothstep(0.0, 0.8, r)` to achieve filled bubble look with translucent center. Mix `inner * 0.3 + fresnel * 0.7` as alpha.
-- **"Soap bubble" shader patterns**: Iridescent shimmer via angle-based sin waves, combined Fresnel + thin rim band.
-- **GDShader.com community examples**: For a "force field bubble", recommended combination of:
-  - Thin rim at outer edge (r > 0.85)
-  - Soft fill across interior (linear falloff from center)
-  - Noise-based or sin-based surface pattern
-  - Alpha = `mix(fill * 0.25, rim * glow, pulse)`
+This two-layer approach means even if the physical trapping fails (e.g., Area2D not set up), the `TakeDamage` check provides a backup damage block.
 
-### Key Insight for Top-Down 2D Games
+### Known Godot 4 Area2D Issues in Exported Builds
 
-In a top-down 2D game, the "bubble" effect differs from a 3D sphere:
-- There is no perspective distortion — the bubble is always viewed from directly above
-- The fill should be uniform across the circle, not sphere-shaped (no highlight at top-left corner from a "light source")
-- The rim glow at the edge should be the most prominent feature
-- A subtle soft fill (alpha 0.10–0.25) makes the interior visible as "something is there" without blocking gameplay visibility
+- **Godot GitHub #84511**: `CharacterBody2D` no longer actively detects `Area2D` in some Godot 4 configurations (regression from Godot 3). Our force field uses `Area2D.area_entered` to detect bullets (also Area2D), not `CharacterBody2D`, so this specific issue doesn't apply.
+- **`monitoring` / `monitorable` flags**: Area2D may silently fail to detect collisions in exported builds if `monitoring = false`. Our setup explicitly creates the Area2D in code and doesn't set `monitoring = false`, so this should be OK.
+
+### Best Practices for Force Field Visual (Godot 4 canvas_item shaders)
+
+Per community research on 2D shield/bubble shaders:
+- **Interior fill**: `pow(r, 2.5)` as Fresnel term gives transparent center, semi-opaque near rim
+- **Rim glow**: Narrow band at r ≈ 0.9–1.0, bell-curve alpha
+- **Pulsing**: `sin(TIME * speed) * 0.12 + 0.88` for subtle breathing effect
+- **Surface shimmer**: `sin(angle * n + TIME * s)` overlapping waves for swirling energy look
+- **Alpha range**: Interior at 0.1–0.25, rim at 0.7–0.9 (high contrast)
+
+Our PR #931 implementation follows these patterns exactly.
 
 ---
 
 ## Proposed Solutions
 
-### Solution A: Shader-Only Approach (Recommended for Godot 4 exports)
+### Solution A (Implemented): Bubble Texture + Enhanced Shader
 
-Given Issue #912's lesson that shaders may not apply correctly in exported builds, the safest approach is to make the **base ring texture** itself look like a bubble (with interior fill), while also updating the shader to match.
+**Status: Implemented in PR #931.**
 
-**Texture change**: Modify `_create_ring_texture()` to also paint a soft fill in the interior (alpha 0.08–0.15 in the center, ramping up to 0.7–0.9 at the rim).
+Modified `_create_ring_texture()` to include a soft translucent interior fill:
+- Interior fill: alpha 0–0.22 (pow(r,1.5) * 0.18 + inner ring effect)
+- Secondary ring at 60% radius for depth
+- Bright rim: unchanged (bell curve, peak 0.9)
 
-**Shader change**: Add `inner_fill` term back but with low alpha (unlike the removed `inner_glow` which was too strong). Use `fresnel = pow(r, 2.5)` at alpha 0.15 for the interior fill. Keep the rim glow at full brightness.
+Enhanced shader with:
+- `fill = (1.0 - pow(r, 2.5)) * fill_opacity` (frosted glass interior)
+- Secondary inner ring at r = 0.60
+- Surface energy shimmer via overlapping sin waves
+- Pulsing animation maintained
 
-### Solution B: Multi-layer Sprite Approach
+**Result**: Force field looks like a translucent bubble even without shader support (texture provides fallback).
 
-Use two overlapping `Sprite2D` nodes:
-1. A filled semi-transparent circle (inner layer) for the translucent interior.
-2. A ring texture (outer layer) for the glowing rim.
+### Solution B (Recommended Addition): Robustness Fix for C#/GDScript Interop
 
-**Downside**: More nodes, harder to animate consistently.
+Given the documented risk of `_ready()` not being called in exported C#/GDScript interop scenarios, add a robustness check in `activate()`:
 
-### Solution C: Animated Texture Generation
+```gdscript
+func activate() -> bool:
+    # Lazy initialization if _ready() was skipped (C#/GDScript interop robustness)
+    if _area2d == null:
+        _setup_area2d()
+    if _shield_sprite == null:
+        _setup_shield_visual()
+    ...
+```
 
-Generate the texture dynamically in `_process()` using GDScript `Image` API, updating the texture each frame with animated noise patterns.
+This ensures the force field works even if `_ready()` wasn't called. Combined with logging, this would show in the log whether lazy init was triggered, enabling future diagnosis.
 
-**Downside**: Extremely expensive (CPU texture generation per frame at 60fps). Not recommended.
+### Solution C: Improve Visual Feedback
 
-### Chosen Approach: Solution A
-
-Modify `_create_ring_texture()` to include a soft translucent interior fill, matching the desired bubble appearance even without shader support. Update the shader to also include the interior fill for enhanced animated version.
-
-**Changes needed:**
-1. `scripts/shaders/force_field.gdshader`: Add interior fill component (`fresnel` at low alpha), enhance animation.
-2. `scripts/effects/force_field_effect.gd`: Modify `_create_ring_texture()` to include interior fill.
-
----
-
-## Implementation Plan
-
-### 1. Update `_create_ring_texture()` in `force_field_effect.gd`
-
-The ring texture will include:
-- Transparent exterior (r > 1.0) — unchanged
-- Semi-transparent interior fill: alpha = `sin(r * PI * 0.5) * 0.18` for r = 0–0.84 (soft gradient from ~0.18 at center to 0 at inner rim edge)
-- Blue glowing rim at r = 0.84–1.0: alpha via bell curve `sin(t * PI) * 0.9` — unchanged
-
-The interior fill provides the "frosted bubble glass" look even without shader support.
-
-### 2. Update `force_field.gdshader`
-
-The shader will include:
-- **Interior fill**: `fill = pow(r, 1.5) * 0.25 * pulse` — grows from center outward, fades toward center
-- **Rim glow**: unchanged (narrow band at r ≈ 0.92)
-- **Surface shimmer**: Two overlapping sin waves at different angles for energy surface pattern
-- **Iridescent color**: unchanged
-- **Combined alpha**: `clamp(rim * glow_intensity + fill, 0.0, 1.0) * pulse * edge_fade`
-
-### 3. Add unit tests in `tests/unit/test_force_field_visual.gd`
-
-Test the visual constants and ring texture properties via a mock class.
+Add HUD indicator for force field charge (already partially planned in future issues). Without visual feedback, users may not know the field is active or depleted.
 
 ---
 
-## Expected Outcome
+## Implementation Status
 
-After fix:
-- The force field will appear as a translucent blue bubble (not just a ring outline)
-- The interior will have ~15-20% opacity, enough to see the field without blocking gameplay
-- The rim will glow brightly
-- The animation will pulse and shimmer with energy patterns
-- The effect will work correctly in both editor and exported games (texture provides fallback look)
+| Component | Status |
+|-----------|--------|
+| `scripts/effects/force_field_effect.gd` — bubble texture | ✅ Done (PR #931) |
+| `scripts/shaders/force_field.gdshader` — animated interior | ✅ Done (PR #931) |
+| `docs/case-studies/issue-930/` — case study | ✅ Updated |
+| `game_log_20260301_032044.txt` — game log from owner | ✅ Downloaded |
+| `docs/screenshots/issue-930/` — visual preview | ✅ Done (PR #931) |
+| `tests/unit/test_force_field_visual.gd` — regression tests | ✅ Done (PR #931) |
+| Robustness fix for C#/GDScript interop | ⚠️ Recommended — see Solution B |
+
+---
+
+## Expected Outcome After Fix
+
+After PR #931:
+- Force field appears as a **translucent blue bubble** (not just a ring outline)
+- Interior has ~15–22% opacity — visible without blocking gameplay
+- Rim glows brightly at the edge
+- Animation pulses and shimmers with surface energy lines
+- Effect works correctly in both editor and exported games (texture provides fallback visual)
+
+The owner's report of "damage passes through" appears to be caused by the force field **not being activated** (Space not held) during the game session, rather than a code regression in our PR. Our PR did not modify any damage-blocking code.

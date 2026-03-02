@@ -199,6 +199,9 @@ func _create_ring_texture() -> ImageTexture:
 
 
 ## Activate the force field.
+## Includes lazy initialization guard for C#/GDScript interop robustness (Issue #930):
+## In exported Godot 4 builds, _ready() may be skipped when AddChild() is called from C#.
+## See: https://godotforums.org/d/24315 and Godot GitHub #75352
 func activate() -> bool:
 	if is_active:
 		return false  # Already active
@@ -206,6 +209,15 @@ func activate() -> bool:
 	if remaining_charge <= 0.0:
 		FileLogger.info("[ForceFieldEffect] No charge remaining")
 		return false
+
+	# Lazy init: if _ready() was not called (C#/GDScript interop failure in exported builds),
+	# set up the Area2D and visual now so the force field is functional.
+	if _area2d == null:
+		FileLogger.info("[ForceFieldEffect] WARNING: _ready() was not called — lazy initializing Area2D (C#/GDScript interop issue)")
+		_setup_area2d()
+	if _shield_sprite == null:
+		FileLogger.info("[ForceFieldEffect] WARNING: _ready() was not called — lazy initializing visual (C#/GDScript interop issue)")
+		_setup_shield_visual()
 
 	is_active = true
 	_set_field_active(true)
