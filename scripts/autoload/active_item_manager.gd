@@ -22,18 +22,19 @@ enum ActiveItemType {
 var current_active_item: int = ActiveItemType.NONE
 
 ## Unlocked active items tracking.
-## By default, all active items are locked for debugging purposes.
-## Active items can be unlocked by holding LMB on their case in the armory menu.
 ## NONE is always unlocked (it's not a real item).
+## FLASHLIGHT and TELEPORT_BRACERS have unlock conditions (Issue #894).
+## All other active items are freely available from the start.
+## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
-	ActiveItemType.FLASHLIGHT: false,
-	ActiveItemType.HOMING_BULLETS: false,
-	ActiveItemType.TELEPORT_BRACERS: false,
-	ActiveItemType.INVISIBILITY_SUIT: false,
-	ActiveItemType.BREAKER_BULLETS: false,
-	ActiveItemType.FORCE_FIELD: false,
-	ActiveItemType.TRAJECTORY_GLASSES: false  # Issue #744
+	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
+	ActiveItemType.HOMING_BULLETS: true,       # No unlock condition — freely available from start
+	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Castle F+
+	ActiveItemType.INVISIBILITY_SUIT: true,    # No unlock condition — freely available from start
+	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
+	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
+	ActiveItemType.TRAJECTORY_GLASSES: true    # No unlock condition — freely available from start (Issue #744)
 }
 
 ## Active item data for UI and selection.

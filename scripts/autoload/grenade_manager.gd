@@ -18,13 +18,14 @@ enum GrenadeType {
 var current_grenade_type: int = GrenadeType.FLASHBANG
 
 ## Unlocked grenades tracking.
-## By default, only FLASHBANG (stun grenade) is unlocked for debugging purposes.
-## Grenades can be unlocked by holding LMB on their case in the armory menu.
+## FLASHBANG is always unlocked (default grenade, explicitly stated in issue #894).
+## No grenade has an unlock condition defined — all are freely available from the start.
+## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_grenades: Dictionary = {
 	GrenadeType.FLASHBANG: true,
-	GrenadeType.FRAG: false,
-	GrenadeType.DEFENSIVE: false,
-	GrenadeType.AGGRESSION_GAS: false
+	GrenadeType.FRAG: true,          # No unlock condition — freely available from start
+	GrenadeType.DEFENSIVE: true,     # No unlock condition — freely available from start
+	GrenadeType.AGGRESSION_GAS: true # No unlock condition — freely available from start
 }
 
 ## Grenade type data for UI and selection.

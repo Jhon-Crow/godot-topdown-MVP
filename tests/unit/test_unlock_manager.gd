@@ -31,13 +31,13 @@ class MockProgressManager:
 class MockGameManager:
 	var unlocked_weapons: Dictionary = {
 		"makarov_pm": true,
-		"m16": false,
-		"shotgun": false,
-		"mini_uzi": false,
-		"silenced_pistol": false,
-		"sniper": false,
-		"revolver": false,
-		"ak_gl": false
+		"m16": true,             # No condition — freely available from start
+		"shotgun": false,        # Condition: Building D+
+		"mini_uzi": false,       # Condition: Labyrinth D+
+		"silenced_pistol": true, # No condition — freely available from start
+		"sniper": false,         # Condition: Polygon D+
+		"revolver": false,       # Condition: Castle F+
+		"ak_gl": true            # No condition — freely available from start
 	}
 
 	var unlocked_signals: Array = []
@@ -53,14 +53,14 @@ class MockGameManager:
 
 class MockActiveItemManager:
 	var unlocked_active_items: Dictionary = {
-		0: true,   # NONE
-		1: false,  # FLASHLIGHT
-		2: false,  # HOMING_BULLETS
-		3: false,  # TELEPORT_BRACERS
-		4: false,  # INVISIBILITY_SUIT
-		5: false,  # BREAKER_BULLETS
-		6: false,  # FORCE_FIELD
-		7: false   # TRAJECTORY_GLASSES
+		0: true,   # NONE — always unlocked
+		1: false,  # FLASHLIGHT — condition: Polygon D+
+		2: true,   # HOMING_BULLETS — no condition, freely available from start
+		3: false,  # TELEPORT_BRACERS — condition: Castle F+
+		4: true,   # INVISIBILITY_SUIT — no condition, freely available from start
+		5: true,   # BREAKER_BULLETS — no condition, freely available from start
+		6: true,   # FORCE_FIELD — no condition, freely available from start
+		7: true    # TRAJECTORY_GLASSES — no condition, freely available from start
 	}
 
 	var unlocked_signals: Array = []
@@ -224,6 +224,23 @@ class TestableUnlockManager extends Node:
 		for item_type in condition.get("active_items", []):
 			if mock_active_item_manager and not mock_active_item_manager.is_active_item_unlocked(item_type):
 				mock_active_item_manager.unlock_active_item(item_type)
+
+	func reset_condition_gated_items() -> void:
+		for level_path in UNLOCK_CONDITIONS:
+			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+			if mock_game_manager:
+				for weapon_id in condition.get("weapons", []):
+					if weapon_id in mock_game_manager.unlocked_weapons:
+						mock_game_manager.unlocked_weapons[weapon_id] = false
+			if mock_active_item_manager:
+				for item_type in condition.get("active_items", []):
+					if item_type in mock_active_item_manager.unlocked_active_items:
+						mock_active_item_manager.unlocked_active_items[item_type] = false
+
+	func reset_and_apply_all_unlocks() -> void:
+		reset_condition_gated_items()
+		for level_path in UNLOCK_CONDITIONS:
+			check_and_apply_unlocks(level_path)
 
 
 # ============================================================================
@@ -542,7 +559,80 @@ func test_flashbang_is_unlocked_by_default() -> void:
 		"Flashbang grenade should be unlocked by default")
 
 
-func test_other_weapons_locked_by_default() -> void:
-	for weapon_id in ["m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "revolver", "ak_gl"]:
+func test_condition_locked_weapons_locked_by_default() -> void:
+	# These weapons have explicit unlock conditions and must start locked
+	for weapon_id in ["shotgun", "mini_uzi", "sniper", "revolver"]:
 		assert_false(game_manager.is_weapon_unlocked(weapon_id),
-			"%s should be locked by default" % weapon_id)
+			"%s should be locked by default (has unlock condition)" % weapon_id)
+
+
+func test_free_weapons_unlocked_by_default() -> void:
+	# These weapons have no conditions — they are freely available from the start
+	# Issue #894: "all unspecified items can be opened from the start"
+	for weapon_id in ["m16", "silenced_pistol", "ak_gl"]:
+		assert_true(game_manager.is_weapon_unlocked(weapon_id),
+			"%s should be unlocked by default (no unlock condition)" % weapon_id)
+
+
+# ============================================================================
+# Reset condition-gated items tests (Issue #894 bug fix)
+# ============================================================================
+
+
+func test_reset_condition_gated_resets_weapons_to_locked() -> void:
+	# Simulate corrupt save: condition-gated weapons were incorrectly marked as unlocked
+	game_manager.unlocked_weapons["mini_uzi"] = true
+	game_manager.unlocked_weapons["shotgun"] = true
+	game_manager.unlocked_weapons["sniper"] = true
+	game_manager.unlocked_weapons["revolver"] = true
+
+	# Reset should lock them back
+	unlock_manager.reset_condition_gated_items()
+
+	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
+		"mini_uzi should be re-locked after reset (conditions not met)")
+	assert_false(game_manager.is_weapon_unlocked("shotgun"),
+		"shotgun should be re-locked after reset (conditions not met)")
+	assert_false(game_manager.is_weapon_unlocked("sniper"),
+		"sniper should be re-locked after reset (conditions not met)")
+	assert_false(game_manager.is_weapon_unlocked("revolver"),
+		"revolver should be re-locked after reset (conditions not met)")
+
+
+func test_reset_does_not_affect_free_weapons() -> void:
+	# Free weapons (no conditions) should NOT be reset
+	unlock_manager.reset_condition_gated_items()
+
+	assert_true(game_manager.is_weapon_unlocked("m16"),
+		"m16 should remain unlocked after reset (no condition)")
+	assert_true(game_manager.is_weapon_unlocked("silenced_pistol"),
+		"silenced_pistol should remain unlocked after reset (no condition)")
+	assert_true(game_manager.is_weapon_unlocked("ak_gl"),
+		"ak_gl should remain unlocked after reset (no condition)")
+	assert_true(game_manager.is_weapon_unlocked("makarov_pm"),
+		"makarov_pm should remain unlocked after reset (always available)")
+
+
+func test_reset_and_apply_unlocks_correctly_after_condition_is_met() -> void:
+	# Simulate corrupt save: revolver incorrectly unlocked
+	game_manager.unlocked_weapons["revolver"] = true
+
+	# Set Castle progress to F (meets condition)
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+
+	# Reset and re-apply: revolver should end up unlocked (condition is met)
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(game_manager.is_weapon_unlocked("revolver"),
+		"Revolver should be re-unlocked since Castle F condition is met")
+
+
+func test_reset_and_apply_removes_invalid_unlocks() -> void:
+	# Simulate corrupt save: mini_uzi incorrectly unlocked (no Labyrinth progress)
+	game_manager.unlocked_weapons["mini_uzi"] = true
+
+	# No Labyrinth progress set — condition not met
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
+		"mini_uzi should be locked after reset (Labyrinth condition not met)")

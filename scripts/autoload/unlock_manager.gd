@@ -52,8 +52,11 @@ func _ready() -> void:
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	if progress_manager and progress_manager.has_signal("progress_updated"):
 		progress_manager.progress_updated.connect(_on_progress_updated)
-	# Apply all earned unlocks from existing progress at startup (deferred so managers are ready)
-	call_deferred("apply_all_earned_unlocks")
+	# Reset condition-gated items to locked state first (in case old save data has them incorrectly
+	# marked as unlocked), then re-apply earned unlocks from progress. This ensures the unlock
+	# state is always consistent with actual level completion progress.
+	# Note: deferred so PersistManager has already loaded its saved state before we reset.
+	call_deferred("_reset_and_apply_all_unlocks")
 	_log("UnlockManager ready")
 
 
@@ -267,6 +270,38 @@ func is_grenade_condition_met(grenade_type: int) -> bool:
 			if is_level_condition_met(level_path):
 				return true
 	return false
+
+
+## Reset all condition-gated items to locked state.
+## This undoes any incorrect unlock state that may have been loaded from an old save file,
+## ensuring only legitimately earned items remain unlocked (via apply_all_earned_unlocks).
+func _reset_condition_gated_items() -> void:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+
+	for level_path in UNLOCK_CONDITIONS:
+		var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+
+		# Reset condition-gated weapons
+		if game_manager:
+			for weapon_id in condition.get("weapons", []):
+				if weapon_id in game_manager.unlocked_weapons:
+					game_manager.unlocked_weapons[weapon_id] = false
+
+		# Reset condition-gated active items
+		if active_item_manager:
+			for item_type in condition.get("active_items", []):
+				if item_type in active_item_manager.unlocked_active_items:
+					active_item_manager.unlocked_active_items[item_type] = false
+
+	_log("Reset condition-gated items to locked state")
+
+
+## Reset condition-gated items to locked, then re-apply all earned unlocks from progress.
+## Called deferred at startup to validate that saved unlock states match actual progress.
+func _reset_and_apply_all_unlocks() -> void:
+	_reset_condition_gated_items()
+	apply_all_earned_unlocks()
 
 
 ## Re-check and apply all unlock conditions based on current progress.
