@@ -5,6 +5,14 @@ extends GutTest
 ## Issue #808: reload and grenade hints are shown simultaneously; each completes independently.
 ## Issue #945: (1) Reload hint appears after 2 shots. (2) Simultaneous hints use different colors.
 ## (3) The NEXT button in multi-step actions is highlighted in red using BBCode.
+##
+## Bug fixes (second review round):
+## Fix #1: Hint spacing increased to 50px to prevent overlap when hints wrap to 2 lines.
+## Fix #2: `step` in ReloadSequenceProgress is LAST COMPLETED step (0=nothing done);
+##          highlight step+1 as next.
+## Fix #3: Revolver hammer-cock hint shown from weapon pickup (before 2 shots).
+## Fix #4: Bolt-cycle hint (sniper/shotgun) shown after 1st shot, not 2nd.
+## Fix #5: Revolver/shotgun reload hints are static; ReloadSequenceProgress must not overwrite them.
 
 
 # ============================================================================
@@ -53,6 +61,8 @@ class MockTutorialLevel:
 	## Issue #945: Shot tracking for delayed reload hint reveal
 	var _shots_fired: int = 0
 	var _reload_hint_revealed: bool = false
+	## Bug fix #4: bolt-cycle hint revealed after 1st shot (sniper/shotgun)
+	var _bolt_cycle_hint_revealed: bool = false
 
 	## Active hints dictionary: hint_key -> hint_text (simulates visible labels)
 	var _active_hints: Dictionary = {}
@@ -103,19 +113,22 @@ class MockTutorialLevel:
 		_active_hints[hint_key] = text
 		_active_hint_colors[hint_key] = _get_hint_color(hint_key)
 
+	## Bug fix: bolt-cycle and hammer-cock hints NOT added here.
+	##   Bolt-cycle shown after 1st shot (fix #4), hammer-cock shown from start (fix #3).
 	func _add_reload_hints() -> void:
-		if _has_sniper_rifle:
-			_add_hint(HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись")
-			_add_hint(HINT_BOLT_CYCLE, "[color=#ff4444][←↓↑→][/color] Передёрни затвор")
-		elif _has_shotgun:
-			_add_hint(HINT_RELOAD, "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x8] [ПКМ↓ закрыть][/color]")
+		if _has_shotgun:
+			# Shotgun: bolt-cycle hint already shown after 1st shot; same mechanic as reload.
+			pass
+		elif _has_sniper_rifle:
+			# Sniper: reload hint only. Bolt-cycle hint shown after 1st shot.
+			_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 3))
 		elif _has_revolver:
+			# Revolver: cylinder reload hint. Hammer-cock hint shown from start (fix #3).
 			_add_hint(HINT_RELOAD, "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]")
-			_add_hint(HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок")
 		elif _has_makarov_pm:
-			_add_hint(HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись")
+			_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 2))
 		else:
-			_add_hint(HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись")
+			_add_hint(HINT_RELOAD, _build_reload_hint_bbcode(0, 3))
 		# Grenade hint shown simultaneously with reload (Issue #808)
 		if not _active_hints.has(HINT_GRENADE):
 			_add_hint(HINT_GRENADE, "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
@@ -139,47 +152,76 @@ class MockTutorialLevel:
 				_active_hints.clear()
 				_active_hint_colors.clear()
 
-	## Issue #945: Called when the weapon fires — counts shots and reveals reload hint after 2.
+	## Issue #945: Called when the weapon fires — counts shots and reveals hints.
+	## Bug fix #4: bolt-cycle hint (sniper/shotgun) shown after 1st shot.
+	## Bug fix: reload hint still revealed after 2nd shot.
 	func on_weapon_fired() -> void:
-		if _reload_hint_revealed:
-			return
 		_shots_fired += 1
-		if _shots_fired >= 2:
+		# Bug fix #4: reveal bolt-cycle hint after 1st shot for sniper/shotgun
+		if _shots_fired >= 1 and not _bolt_cycle_hint_revealed:
+			if _has_sniper_rifle or _has_shotgun:
+				_bolt_cycle_hint_revealed = true
+				_reveal_bolt_cycle_hint()
+		if not _reload_hint_revealed and _shots_fired >= 2:
 			_reload_hint_revealed = true
 			_reveal_reload_hint()
+
+	## Bug fix #4: Reveal bolt-cycle hint after 1st shot.
+	func _reveal_bolt_cycle_hint() -> void:
+		if _current_step != TutorialStep.RELOAD:
+			return
+		if _has_sniper_rifle:
+			if not _active_hints.has(HINT_BOLT_CYCLE):
+				_add_hint(HINT_BOLT_CYCLE, "[color=#ff4444][←↓↑→][/color] Передёрни затвор")
+		elif _has_shotgun:
+			if not _active_hints.has(HINT_BOLT_CYCLE):
+				_add_hint(HINT_BOLT_CYCLE, "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x8] [ПКМ↓ закрыть][/color]")
 
 	func _reveal_reload_hint() -> void:
 		if _current_step != TutorialStep.RELOAD:
 			return
 		_add_reload_hints()
 
-	## Issue #945: Called when reload sequence progresses — updates NEXT button highlight.
+	## Issue #945 + Bug fix #5: Called when reload sequence progresses.
+	## Revolver/shotgun use static hints — do not overwrite them.
+	## Bug fix #2: `step` is LAST COMPLETED step; highlight step+1 as next action.
 	func on_reload_sequence_progress(step: int, total: int) -> void:
+		# Bug fix #5: revolver and shotgun use static hints — skip dynamic update
+		if _has_revolver or _has_shotgun:
+			return
 		if not _active_hints.has(HINT_RELOAD):
 			return
-		_active_hints[HINT_RELOAD] = _build_reload_hint_bbcode(step, total)
+		var new_text := _build_reload_hint_bbcode(step, total)
+		if not new_text.is_empty():
+			_active_hints[HINT_RELOAD] = new_text
 
 	## Issue #945: Build BBCode text for reload hint with NEXT button highlighted red.
+	## Bug fix #2: `step` is LAST COMPLETED step (0 = nothing done, 1 = first press done, etc.).
+	## Bug fix #5: Revolver/shotgun return empty string (they have static hints).
 	func _build_reload_hint_bbcode(step: int, total: int) -> String:
-		if _has_makarov_pm or (not _has_revolver and not _has_sniper_rifle
-				and not _has_shotgun and total == 2):
+		# Guard: revolver and shotgun use static hints
+		if _has_revolver or _has_shotgun:
+			return ""
+		if _has_makarov_pm or (not _has_sniper_rifle and total <= 2):
+			# 2-step reload R -> R; step=0 → next is first R
 			match step:
-				1:
+				0:
 					return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
-				2:
+				1:
 					return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
 				_:
-					return "[R] [R] Перезарядись"
+					return "[color=#888888][R] [R][/color] Перезарядись"
 		else:
+			# 3-step reload R -> F -> R; step=0 → next is first R
 			match step:
-				1:
+				0:
 					return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
-				2:
+				1:
 					return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
-				3:
+				2:
 					return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
 				_:
-					return "[R] [F] [R] Перезарядись"
+					return "[color=#888888][R] [F] [R][/color] Перезарядись"
 
 	func on_fire_mode_changed() -> void:
 		if _current_step != TutorialStep.SWITCH_FIRE_MODE:
@@ -245,7 +287,9 @@ class MockTutorialLevel:
 		else:
 			_current_step = TutorialStep.RELOAD
 			# Issue #945: Reload hints NOT shown at startup — appear only after 2 shots.
-			# (Do not call _add_reload_hints here)
+			# Bug fix #3: Revolver hammer-cock hint shown immediately from weapon pickup.
+			if _has_revolver:
+				_add_hint(HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок")
 
 
 var tutorial: MockTutorialLevel
@@ -410,10 +454,10 @@ func test_fire_mode_hint_has_cyan_color() -> void:
 
 func test_bolt_cycle_hint_has_purple_color() -> void:
 	## Issue #945: Bolt cycle hint should use purple color.
+	## Bug fix #4: Bolt-cycle hint now appears after 1st shot, not 2nd.
 	tutorial._has_sniper_rifle = true
 	tutorial.set_initial_step_based_on_weapon(false)
-	tutorial.on_weapon_fired()
-	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()  # 1st shot triggers bolt-cycle hint
 
 	assert_eq(tutorial.get_hint_color(MockTutorialLevel.HINT_BOLT_CYCLE),
 		MockTutorialLevel.HINT_COLOR_BOLT_CYCLE,
@@ -422,14 +466,14 @@ func test_bolt_cycle_hint_has_purple_color() -> void:
 
 func test_hammer_cock_hint_has_yellow_color() -> void:
 	## Issue #945: Hammer cock hint should use yellow color.
+	## Bug fix #3: Hammer-cock hint now appears from weapon pickup (before any shots).
 	tutorial._has_revolver = true
 	tutorial.set_initial_step_based_on_weapon(false)
-	tutorial.on_weapon_fired()
-	tutorial.on_weapon_fired()
+	# No shots needed — hammer-cock hint appears immediately
 
 	assert_eq(tutorial.get_hint_color(MockTutorialLevel.HINT_HAMMER_COCK),
 		MockTutorialLevel.HINT_COLOR_HAMMER_COCK,
-		"Hammer cock hint should have yellow color (Issue #945 - unique colors per hint)")
+		"Hammer cock hint should have yellow color immediately on revolver pickup (Bug fix #3)")
 
 
 func test_simultaneously_shown_hints_have_different_colors() -> void:
@@ -463,8 +507,23 @@ func test_reload_hint_initial_text_has_red_first_step() -> void:
 		"First button [R] should be highlighted red at start of reload sequence (Issue #945)")
 
 
-func test_reload_sequence_step1_highlights_r_red() -> void:
-	## Issue #945: At step 1 (R pressed), R is highlighted; F and final R are greyed.
+func test_reload_sequence_step0_highlights_first_r_red() -> void:
+	## Bug fix #2: step=0 means nothing done yet; first [R] should be red.
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_reload_sequence_progress(0, 3)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.begins_with("[color=#ff4444][R]"),
+		"Step 0: first [R] should be highlighted red (Bug fix #2 — step is last completed)")
+	assert_true(hint_text.contains("[color=#888888]"),
+		"Step 0: subsequent steps should be greyed (Bug fix #2)")
+
+
+func test_reload_sequence_step1_highlights_f_red() -> void:
+	## Bug fix #2: step=1 means R was pressed; next is F (highlighted red).
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
@@ -472,14 +531,14 @@ func test_reload_sequence_step1_highlights_r_red() -> void:
 	tutorial.on_reload_sequence_progress(1, 3)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
-	assert_true(hint_text.contains("[color=#ff4444][R]"),
-		"Step 1: [R] should be highlighted red (Issue #945)")
-	assert_true(hint_text.contains("[color=#888888]"),
-		"Step 1: subsequent steps should be greyed (Issue #945)")
+	assert_true(hint_text.contains("[color=#ff4444][F]"),
+		"Step 1: [F] should be highlighted red as next button (Bug fix #2 — R just pressed)")
+	assert_true(hint_text.contains("[color=#888888][R][/color]"),
+		"Step 1: first [R] should be greyed (just pressed) (Bug fix #2)")
 
 
-func test_reload_sequence_step2_highlights_f_red() -> void:
-	## Issue #945: At step 2 (F expected), F is highlighted red; R and final R are grey.
+func test_reload_sequence_step2_highlights_final_r_red() -> void:
+	## Bug fix #2: step=2 means R+F pressed; next is final R (highlighted red).
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
@@ -487,12 +546,14 @@ func test_reload_sequence_step2_highlights_f_red() -> void:
 	tutorial.on_reload_sequence_progress(2, 3)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
-	assert_true(hint_text.contains("[color=#ff4444][F]"),
-		"Step 2: [F] should be highlighted red as the next button (Issue #945)")
+	assert_true(hint_text.contains("[color=#ff4444][R]"),
+		"Step 2: final [R] should be highlighted red (Bug fix #2 — R+F already pressed)")
+	assert_true(hint_text.contains("[color=#888888][R] [F]"),
+		"Step 2: earlier steps [R] and [F] should be greyed (Bug fix #2)")
 
 
-func test_reload_sequence_step3_highlights_final_r_red() -> void:
-	## Issue #945: At step 3 (final R expected), last R is highlighted red.
+func test_reload_sequence_step3_all_greyed() -> void:
+	## Bug fix #2: step=3 means all steps done; all greyed out.
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
@@ -500,14 +561,26 @@ func test_reload_sequence_step3_highlights_final_r_red() -> void:
 	tutorial.on_reload_sequence_progress(3, 3)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
-	assert_true(hint_text.contains("[color=#ff4444][R]"),
-		"Step 3: final [R] should be highlighted red (Issue #945)")
-	assert_true(hint_text.contains("[color=#888888][R] [F]"),
-		"Step 3: earlier steps [R] and [F] should be greyed (Issue #945)")
+	assert_false(hint_text.contains("[color=#ff4444]"),
+		"Step 3: no button should be highlighted red — all steps done (Bug fix #2)")
 
 
-func test_pistol_reload_step1_highlights_first_r() -> void:
-	## Issue #945: Makarov PM step 1 - first R is red.
+func test_pistol_reload_step0_highlights_first_r() -> void:
+	## Bug fix #2: Makarov PM step=0 — nothing done, first R is red.
+	tutorial._has_makarov_pm = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_reload_sequence_progress(0, 2)
+
+	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+	assert_true(hint_text.begins_with("[color=#ff4444][R]"),
+		"Pistol step 0: first [R] should be red (Bug fix #2)")
+
+
+func test_pistol_reload_step1_highlights_second_r() -> void:
+	## Bug fix #2: Makarov PM step=1 means first R pressed; second R is now red.
 	tutorial._has_makarov_pm = true
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
@@ -516,12 +589,12 @@ func test_pistol_reload_step1_highlights_first_r() -> void:
 	tutorial.on_reload_sequence_progress(1, 2)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
-	assert_true(hint_text.contains("[color=#ff4444][R]"),
-		"Pistol step 1: first [R] should be red (Issue #945)")
+	assert_true(hint_text.contains("[color=#888888][R][/color] [color=#ff4444][R]"),
+		"Pistol step 1: second [R] should be red, first grayed (Bug fix #2)")
 
 
-func test_pistol_reload_step2_highlights_second_r() -> void:
-	## Issue #945: Makarov PM step 2 - second R is red.
+func test_pistol_reload_step2_all_greyed() -> void:
+	## Bug fix #2: Makarov PM step=2 means both R pressed; all greyed.
 	tutorial._has_makarov_pm = true
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
@@ -530,8 +603,8 @@ func test_pistol_reload_step2_highlights_second_r() -> void:
 	tutorial.on_reload_sequence_progress(2, 2)
 
 	var hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
-	assert_true(hint_text.contains("[color=#888888][R][/color] [color=#ff4444][R]"),
-		"Pistol step 2: second [R] should be red, first grayed (Issue #945)")
+	assert_false(hint_text.contains("[color=#ff4444]"),
+		"Pistol step 2: no button should be highlighted — both pressed (Bug fix #2)")
 
 
 func test_reload_sequence_progress_ignored_when_hint_not_visible() -> void:
@@ -606,15 +679,32 @@ func test_no_hints_after_completion() -> void:
 # ============================================================================
 
 
-func test_sniper_shows_bolt_cycle_hint_separately() -> void:
+func test_sniper_bolt_cycle_hint_shown_after_first_shot() -> void:
+	## Bug fix #4: Sniper bolt-cycle hint appears after 1st shot, not 2nd.
 	tutorial._has_sniper_rifle = true
 	tutorial.set_initial_step_based_on_weapon(false)
-	tutorial.on_weapon_fired()
-	tutorial.on_weapon_fired()
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Bolt-cycle hint should NOT appear before any shots")
+
+	tutorial.on_weapon_fired()  # 1st shot
+
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Bolt-cycle hint should appear after 1st shot (Bug fix #4)")
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Reload hint should NOT appear after only 1 shot (still needs 2)")
+
+
+func test_sniper_shows_bolt_cycle_hint_separately() -> void:
+	## Sniper: bolt-cycle hint after 1st shot; reload hint after 2nd shot.
+	tutorial._has_sniper_rifle = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()  # 1st shot → bolt-cycle hint
+	tutorial.on_weapon_fired()  # 2nd shot → reload hint
 
 	# Both bolt cycle hint and reload hint should be separate lines
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
-		"Sniper should have reload hint")
+		"Sniper should have reload hint after 2nd shot")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
 		"Sniper should have separate bolt-cycle hint (weapon special feature, Issue #808)")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
@@ -667,28 +757,74 @@ func test_sniper_scope_dismissed_grenade_remains() -> void:
 		"Grenade hint remains after scope training (Issue #808)")
 
 
-func test_revolver_shows_reload_hint() -> void:
+func test_revolver_shows_hammer_cock_hint_from_start() -> void:
+	## Bug fix #3: Revolver hammer-cock hint appears immediately on weapon pickup.
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Revolver hammer-cock hint should appear immediately from weapon pickup (Bug fix #3)")
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Revolver reload hint should NOT appear yet (needs 2 shots)")
+
+
+func test_revolver_shows_reload_hint_after_two_shots() -> void:
 	tutorial._has_revolver = true
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
 
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
-		"Revolver should have reload hint")
+		"Revolver should have reload hint after 2 shots")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
 		"Grenade hint shown simultaneously with revolver reload (Issue #808)")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
+		"Hammer cock hint remains visible alongside reload (Bug fix #3)")
 
 
-func test_shotgun_shows_reload_hint() -> void:
+func test_revolver_reload_hint_not_overwritten_by_sequence_progress() -> void:
+	## Bug fix #5: ReloadSequenceProgress must not overwrite revolver's static hint.
+	tutorial._has_revolver = true
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	var revolver_hint_text: String = tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD]
+
+	# Simulate signal fire — should be ignored for revolver
+	tutorial.on_reload_sequence_progress(1, 3)
+
+	assert_eq(tutorial.get_active_hints()[MockTutorialLevel.HINT_RELOAD], revolver_hint_text,
+		"Revolver reload hint should not be overwritten by ReloadSequenceProgress (Bug fix #5)")
+
+
+func test_shotgun_shows_bolt_cycle_hint_after_first_shot() -> void:
+	## Bug fix #4: Shotgun bolt-cycle hint appears after 1st shot.
+	## Bug fix: Shotgun uses HINT_BOLT_CYCLE (not HINT_RELOAD) for its reload instruction.
+	tutorial._has_shotgun = true
+	tutorial.set_initial_step_based_on_weapon(false)
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Shotgun bolt-cycle hint should NOT appear before any shots")
+
+	tutorial.on_weapon_fired()  # 1st shot
+
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Shotgun bolt-cycle hint should appear after 1st shot (Bug fix #4)")
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
+		"Shotgun does not use separate RELOAD hint — it uses bolt-cycle hint")
+
+
+func test_shotgun_shows_grenade_hint_after_two_shots() -> void:
 	tutorial._has_shotgun = true
 	tutorial.set_initial_step_based_on_weapon(false)
 	tutorial.on_weapon_fired()
 	tutorial.on_weapon_fired()
 
-	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_RELOAD),
-		"Shotgun should have reload hint")
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Shotgun should have bolt-cycle hint")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
-		"Grenade hint shown simultaneously with shotgun reload (Issue #808)")
+		"Grenade hint shown simultaneously with shotgun bolt-cycle hint (Issue #808)")
 
 
 # ============================================================================
@@ -839,13 +975,13 @@ func test_early_grenade_not_double_dismissed() -> void:
 
 
 func test_revolver_shows_hammer_cock_hint() -> void:
+	## Bug fix #3: Hammer-cock hint shown from the very start (no shots needed).
 	tutorial._has_revolver = true
 	tutorial.set_initial_step_based_on_weapon(false)
-	tutorial.on_weapon_fired()
-	tutorial.on_weapon_fired()
+	# No shots — hammer-cock hint should already be visible
 
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_HAMMER_COCK),
-		"Revolver should show hammer cock hint as separate line (Issue #808)")
+		"Revolver should show hammer cock hint immediately on weapon pickup (Bug fix #3)")
 
 
 func test_revolver_hammer_cock_hint_dismissed_on_reload() -> void:
