@@ -1048,6 +1048,9 @@ func _dismiss_hint(hint_key: String) -> void:
 		return
 
 	var label: RichTextLabel = _hint_labels[hint_key]
+	# Hide immediately so the label does not overlap new hints during the same frame
+	# before queue_free() is processed.
+	label.visible = false
 	label.queue_free()
 	_hint_labels.erase(hint_key)
 	print("Tutorial: Dismissed hint '%s'" % hint_key)

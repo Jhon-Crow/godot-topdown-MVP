@@ -82,11 +82,12 @@ var _enemies: Array = []
 var _replay_manager: Node = null
 
 ## ============================================================
-## Tutorial hint system for the Laboratory level (Issue #808)
+## Tutorial hint system for the Laboratory level (Issue #808, #945)
 ## Mirrors tutorial_level.gd: weapon-dependent hints, grenade hint, no walk/shoot hints.
+## Issue #945: RichTextLabel with BBCode colors, red NEXT-button highlight, 2-shot reload delay.
 ## ============================================================
 
-## Tutorial hint labels: hint_key -> Label node.
+## Tutorial hint labels: hint_key -> RichTextLabel node (Issue #945: was Label).
 var _tutorial_hints: Dictionary = {}
 
 ## Tutorial state machine (same as tutorial_level.gd).
@@ -125,6 +126,18 @@ const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
 
 ## Vertical spacing between stacked tutorial hints (pixels).
 const TUTORIAL_HINT_SPACING: float = 35.0
+
+## Number of shots fired (Issue #945: reload hint appears after 2 shots).
+var _tutorial_shots_fired: int = 0
+
+## Whether the reload hint has already been revealed (Issue #945).
+var _tutorial_reload_hint_revealed: bool = false
+
+## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
+const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)       ## Green — reload
+const TUTORIAL_HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)     ## Orange — grenade
+const TUTORIAL_HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)  ## Purple — bolt cycling
+const TUTORIAL_HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)  ## Yellow — hammer cock
 
 
 ## Gets the ReplayManager autoload node.
@@ -541,6 +554,8 @@ func _setup_player_tracking() -> void:
 			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
+			# Also count shots for reload hint reveal (Issue #945)
+			weapon.Fired.connect(_on_tutorial_weapon_fired)
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
@@ -593,6 +608,11 @@ func _setup_player_tracking() -> void:
 		_player.GrenadeThrown.connect(_on_tutorial_grenade_thrown)
 	elif _player.has_signal("grenade_thrown"):
 		_player.grenade_thrown.connect(_on_tutorial_grenade_thrown)
+
+	# Connect ReloadSequenceProgress for dynamic next-button highlighting (Issue #945)
+	if _player.has_signal("ReloadSequenceProgress"):
+		_player.ReloadSequenceProgress.connect(_on_tutorial_reload_sequence_progress)
+		print("[LabyrinthLevel] Connected to ReloadSequenceProgress signal")
 
 
 ## Setup tracking for all enemies in the scene.
@@ -1502,38 +1522,122 @@ func _disable_player_controls() -> void:
 ## ============================================================
 
 
-## Create and show weapon-dependent tutorial hints at level start (Issue #808).
+## Create and show weapon-dependent tutorial hints at level start (Issue #808, #945).
 ## Mirrors tutorial_level.gd: shows reload + weapon-feature + grenade hints.
 ## No movement or shooting hints (owner request).
+## Issue #945: Reload hint is delayed until player fires 2 shots.
 func _setup_tutorial_hints() -> void:
+	_tutorial_step = TutorialStep.RELOAD
+	print("[LabyrinthLevel] Tutorial hints initialised — reload hint will appear after 2 shots (Issue #945)")
+
+
+## Called when player's weapon fires a shot (Issue #945).
+## Counts shots and reveals the reload hint after 2 shots.
+func _on_tutorial_weapon_fired() -> void:
+	if _tutorial_reload_hint_revealed:
+		return
+
+	_tutorial_shots_fired += 1
+	print("[LabyrinthLevel] Tutorial shot fired (%d total)" % _tutorial_shots_fired)
+
+	if _tutorial_shots_fired >= 2:
+		_tutorial_reload_hint_revealed = true
+		_reveal_tutorial_reload_hint()
+
+
+## Reveal the reload-related hints after the player has fired 2 shots (Issue #945).
+func _reveal_tutorial_reload_hint() -> void:
+	if _tutorial_step != TutorialStep.RELOAD:
+		return
+
+	print("[LabyrinthLevel] 2 shots fired — revealing reload hint")
 	var canvas_layer := get_node_or_null("CanvasLayer")
 	if canvas_layer == null:
 		return
 
-	_tutorial_step = TutorialStep.RELOAD
 	_add_tutorial_reload_hints(canvas_layer)
-	print("[LabyrinthLevel] Weapon-dependent tutorial hints shown (Issue #808)")
+
+
+## Called when the reload sequence progresses (Issue #945).
+## Updates the reload hint to highlight the NEXT button in red.
+func _on_tutorial_reload_sequence_progress(step: int, total: int) -> void:
+	if not _tutorial_hints.has(TUTORIAL_HINT_RELOAD):
+		return
+
+	var new_text := _build_tutorial_reload_hint_bbcode(step, total)
+	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_RELOAD]
+	if is_instance_valid(label):
+		label.text = new_text
+	print("[LabyrinthLevel] Reload sequence step %d/%d — hint updated" % [step, total])
+
+
+## Build BBCode text for the reload hint based on current step (Issue #945).
+## The NEXT required button is highlighted in red; completed steps are shown in grey.
+func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
+	if _tutorial_has_makarov_pm or (not _tutorial_has_revolver and not _tutorial_has_sniper_rifle
+			and not _tutorial_has_shotgun and total == 2):
+		# Makarov PM: R -> R (2 steps)
+		match step:
+			1:
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+			2:
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+			_:
+				return "[R] [R] Перезарядись"
+	else:
+		# Standard: R -> F -> R (3 steps)
+		match step:
+			1:
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+			2:
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+			3:
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+			_:
+				return "[R] [F] [R] Перезарядись"
+
+
+## Get the unique color for a tutorial hint by its key (Issue #945).
+func _get_tutorial_hint_color(hint_key: String) -> Color:
+	match hint_key:
+		TUTORIAL_HINT_RELOAD:
+			return TUTORIAL_HINT_COLOR_RELOAD
+		TUTORIAL_HINT_GRENADE:
+			return TUTORIAL_HINT_COLOR_GRENADE
+		TUTORIAL_HINT_BOLT_CYCLE:
+			return TUTORIAL_HINT_COLOR_BOLT_CYCLE
+		TUTORIAL_HINT_HAMMER_COCK:
+			return TUTORIAL_HINT_COLOR_HAMMER_COCK
+		_:
+			return Color(1.0, 1.0, 0.3, 1.0)  # Default yellow fallback
 
 
 ## Add reload-related hints for the current weapon type, plus grenade hint.
 ## Mirrors _add_reload_hints() from tutorial_level.gd.
+## Issue #945: Uses BBCode with the first step highlighted in red.
 func _add_tutorial_reload_hints(canvas_layer: Node) -> void:
 	if _tutorial_has_shotgun:
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD,
+			"[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x8] [ПКМ↓ закрыть][/color]",
+			canvas_layer)
 	elif _tutorial_has_sniper_rifle:
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
-		_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE, "[←↓↑→] Передёрни затвор", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE, "[color=#ff4444][←↓↑→][/color] Передёрни затвор", canvas_layer)
 	elif _tutorial_has_revolver:
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]", canvas_layer)
-		_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[ПКМ] Взведи курок", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD,
+			"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]",
+			canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
 	elif _tutorial_has_makarov_pm:
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R] [R] Перезарядись", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись", canvas_layer)
 	else:
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[R] [F] [R] Перезарядись", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись", canvas_layer)
 
 	# Always show grenade hint alongside reload (Issue #808)
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-		_add_tutorial_hint(TUTORIAL_HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
+			"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
+			canvas_layer)
 
 
 ## Called when sniper bolt step changes (Issue #808 - Lab sniper tutorial).
@@ -1573,7 +1677,9 @@ func _on_tutorial_reload_completed() -> void:
 			if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 				var canvas_layer := get_node_or_null("CanvasLayer")
 				if canvas_layer:
-					_add_tutorial_hint(TUTORIAL_HINT_GRENADE, "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]", canvas_layer)
+					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
+						"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
+						canvas_layer)
 
 
 ## Called when player throws a grenade — dismisses grenade hint (Issue #808).
@@ -1594,25 +1700,40 @@ func _dismiss_all_tutorial_hints() -> void:
 		_dismiss_tutorial_hint(key)
 
 
-## Create and register a tutorial hint label.
+## Create and register a tutorial hint RichTextLabel with BBCode support.
+## Issue #945: Uses RichTextLabel for BBCode color support (per-hint unique colors + red key highlights).
 func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	if _tutorial_hints.has(hint_key):
+		# Already exists - just update text
+		_tutorial_hints[hint_key].text = text
 		return
 
-	var label := Label.new()
+	var label := RichTextLabel.new()
 	label.name = "TutorialHint_" + hint_key
+	label.bbcode_enabled = true
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 20)
-	label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.3, 1.0))
+	label.add_theme_font_size_override("normal_font_size", 20)
+	# Issue #945: unique color per hint type for easy differentiation
+	label.add_theme_color_override("default_color", _get_tutorial_hint_color(hint_key))
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
 	label.custom_minimum_size = Vector2(300, 30)
+	label.fit_content = true
+	label.scroll_active = false
 
 	canvas_layer.add_child(label)
 	_tutorial_hints[hint_key] = label
+
+	# Position immediately
+	var index := _tutorial_hints.size() - 1
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * (_player.global_position if _player else Vector2.ZERO)
+	label.custom_minimum_size = Vector2(300, 30)
+	label.position = screen_pos + Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)
+
+	print("[LabyrinthLevel] Tutorial hint added '%s': %s" % [hint_key, text])
 
 
 ## Remove a tutorial hint label by key.
@@ -1620,8 +1741,11 @@ func _dismiss_tutorial_hint(hint_key: String) -> void:
 	if not _tutorial_hints.has(hint_key):
 		return
 
-	var label: Label = _tutorial_hints[hint_key]
+	var label: RichTextLabel = _tutorial_hints[hint_key]
 	if is_instance_valid(label):
+		# Hide immediately so it does not overlap new hints during the same frame
+		# before queue_free() is processed.
+		label.visible = false
 		label.queue_free()
 	_tutorial_hints.erase(hint_key)
 	print("[LabyrinthLevel] Tutorial hint dismissed: %s" % hint_key)
@@ -1637,7 +1761,7 @@ func _update_tutorial_hint_positions() -> void:
 
 	var index := 0
 	for hint_key in _tutorial_hints:
-		var label: Label = _tutorial_hints[hint_key]
+		var label: RichTextLabel = _tutorial_hints[hint_key]
 		if is_instance_valid(label):
 			label.custom_minimum_size = Vector2(300, 30)
 			label.position = screen_pos + Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)
