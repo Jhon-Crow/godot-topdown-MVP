@@ -61,9 +61,14 @@ func process_combat(delta: float, rotation_speed: float, shoot_cooldown: float, 
 		var wf: Vector2 = _parent._get_weapon_forward_direction() if _parent.has_method("_get_weapon_forward_direction") else Vector2.RIGHT.rotated(_parent.rotation)
 		if wf.dot(d) >= 0.866 and _parent._can_shoot() and _parent._shoot_timer >= shoot_cooldown:
 			_parent._shoot(); _parent._shoot_timer = 0.0
-		# [#858] Melee enemies must move toward target to get in range; ranged enemies stop
+		# [#858] Melee enemies must move toward target to get in range; ranged enemies stop.
+		# [Issue #954] Ranged aggressive enemies also move when bullet spawn is blocked by a wall
+		# (e.g. BFF companion pressed against a wall — must navigate away to get a clear shot).
 		var is_melee: bool = _parent.get("_is_melee_weapon") == true
-		if is_melee:
+		var bullet_spawn_blocked: bool = _parent.has_method("_is_bullet_spawn_clear") and \
+			_parent.has_method("_get_weapon_forward_direction") and \
+			not _parent._is_bullet_spawn_clear(_parent._get_weapon_forward_direction())
+		if is_melee or bullet_spawn_blocked:
 			if _parent.has_method("_move_to_target_nav"): _parent._move_to_target_nav(_target.global_position, combat_move_speed)
 		else:
 			_parent.velocity = Vector2.ZERO

@@ -3807,11 +3807,20 @@ func _aim_at_player() -> void:
 func _shoot() -> void:
 	if _is_melee_weapon and _machete: var _mt := (_aggression.get_target() if _aggression and _aggression.is_aggressive() and _aggression.get_target() else _player) as Node2D; if _mt: _machete.perform_melee_attack(_mt); return  # [#858] target enemy when aggressive
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
+	# [Issue #954] BFF companion (aggressive mode) must not fall back to shooting the player.
+	# When aggressive but no enemy target available, skip shooting entirely.
+	if _agg and (_aggression.get_target() == null):
+		return
 	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
 	if not _can_shoot(): return
 	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
 	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
-	if not _agg and not _should_shoot_at_target(target_position): return
+	if _agg:
+		# [Issue #954] For aggressive enemies (BFF companion): check bullet spawn is clear to
+		# prevent firing bullets into nearby walls (wall-stuck bug fix).
+		if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
+	else:
+		if not _should_shoot_at_target(target_position): return
 	if _enemy_flashlight:  # Issue #824/#825: block shooting while flashlight flash is in progress
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))
 		return  # Callback fires the shot after flash completes

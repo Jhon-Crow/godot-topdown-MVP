@@ -805,3 +805,232 @@ func test_bff_reaction_delays_not_applied_before_summon() -> void:
 		"Before summon, threat_reaction_delay should match enemy default")
 	assert_eq(companion.lead_prediction_delay, companion.DEFAULT_LEAD_PREDICTION_DELAY,
 		"Before summon, lead_prediction_delay should match enemy default")
+
+
+# ============================================================================
+# BFF Companion Friendly Fire Prevention Tests (Issue #954)
+# ============================================================================
+## Verifies that an aggressive BFF companion does NOT shoot the player when
+## no enemy targets are available (Bug #1 from Issue #954).
+
+
+class MockBffShootLogic:
+	## Simulates the _shoot() logic relevant to Issue #954 fix.
+	## Mirrors the aggression/player fallback guard added in enemy.gd.
+
+	## Whether this enemy is in aggressive mode (BFF pendant active)
+	var is_aggressive: bool = false
+
+	## Current aggression target (enemy to attack). null = no valid enemy target.
+	var aggression_target: Node = null
+
+	## Player reference (always set for enemy instances)
+	var player: Node = null
+
+	## Tracking: was a shot attempted and what was the target?
+	var last_shot_target: String = ""
+	var shot_count: int = 0
+
+	## Simulates the fixed _shoot() logic from enemy.gd (Issue #954):
+	## - Aggressive mode with no target: skip (don't fall back to player)
+	## - Aggressive mode with target: shoot at enemy target
+	## - Non-aggressive: shoot at player (original behavior)
+	func attempt_shoot() -> bool:
+		# [Issue #954 fix] When aggressive but no enemy target, skip entirely
+		if is_aggressive and aggression_target == null:
+			last_shot_target = "none"
+			return false
+
+		# Determine target position
+		if is_aggressive and aggression_target != null:
+			last_shot_target = "enemy"
+		elif player != null:
+			last_shot_target = "player"
+		else:
+			last_shot_target = "none"
+			return false
+
+		shot_count += 1
+		return true
+
+
+func test_bff_companion_no_shoot_when_aggressive_no_target() -> void:
+	var logic := MockBffShootLogic.new()
+	logic.is_aggressive = true
+	logic.aggression_target = null  # No enemies available
+	logic.player = RefCounted.new()  # Player exists in scene
+
+	var shot := logic.attempt_shoot()
+
+	assert_false(shot,
+		"Aggressive companion with no enemy target should NOT shoot (Issue #954 fix)")
+	assert_eq(logic.last_shot_target, "none",
+		"Should have no target when aggressive but no enemies available")
+	assert_eq(logic.shot_count, 0,
+		"No shots should be fired when aggressive with no enemy target")
+
+
+func test_bff_companion_shoots_enemy_when_aggressive_with_target() -> void:
+	var logic := MockBffShootLogic.new()
+	logic.is_aggressive = true
+	logic.aggression_target = RefCounted.new()  # Has enemy target
+	logic.player = RefCounted.new()
+
+	var shot := logic.attempt_shoot()
+
+	assert_true(shot,
+		"Aggressive companion with enemy target should shoot")
+	assert_eq(logic.last_shot_target, "enemy",
+		"Aggressive companion should target enemy, not player")
+	assert_eq(logic.shot_count, 1,
+		"Should fire exactly one shot at enemy target")
+
+
+func test_non_aggressive_enemy_shoots_player() -> void:
+	var logic := MockBffShootLogic.new()
+	logic.is_aggressive = false
+	logic.aggression_target = null
+	logic.player = RefCounted.new()  # Player exists in scene
+
+	var shot := logic.attempt_shoot()
+
+	assert_true(shot,
+		"Non-aggressive enemy should shoot at player (normal behavior)")
+	assert_eq(logic.last_shot_target, "player",
+		"Non-aggressive enemy should target player")
+
+
+func test_bff_companion_no_shoot_when_aggressive_no_target_no_player() -> void:
+	var logic := MockBffShootLogic.new()
+	logic.is_aggressive = true
+	logic.aggression_target = null
+	logic.player = null  # No player either
+
+	var shot := logic.attempt_shoot()
+
+	assert_false(shot,
+		"Aggressive companion with no targets should not shoot")
+	assert_eq(logic.shot_count, 0,
+		"Shot count remains 0 when no valid targets")
+
+
+func test_bff_companion_switch_to_no_target_stops_shooting() -> void:
+	var logic := MockBffShootLogic.new()
+	logic.is_aggressive = true
+	logic.player = RefCounted.new()
+
+	# First: companion has enemy target, shoots
+	logic.aggression_target = RefCounted.new()
+	var shot1 := logic.attempt_shoot()
+	assert_true(shot1, "Should shoot when has enemy target")
+	assert_eq(logic.shot_count, 1, "Should have 1 shot")
+
+	# Then: enemy target disappears (killed), should NOT fall back to player
+	logic.aggression_target = null
+	var shot2 := logic.attempt_shoot()
+	assert_false(shot2, "Should NOT shoot when aggressive and enemy died (no fallback to player)")
+	assert_eq(logic.shot_count, 1, "Shot count should still be 1 (no additional shot at player)")
+
+
+# ============================================================================
+# BFF Companion Wall-Stuck Prevention Tests (Issue #954)
+# ============================================================================
+## Verifies that the BFF companion moves away from walls when bullet spawn
+## is blocked (Bug #2 from Issue #954).
+
+
+class MockBffCombatMovement:
+	## Simulates the process_combat() movement decision logic.
+	## Mirrors the bullet_spawn_blocked guard added in aggression_component.gd.
+
+	## Whether this enemy uses a melee weapon
+	var is_melee: bool = false
+
+	## Whether bullet spawn is blocked (wall in front of weapon muzzle)
+	var bullet_spawn_blocked: bool = false
+
+	## Tracking: last movement decision
+	var last_movement: String = ""  # "stopped" or "moving"
+
+	## Simulates the fixed movement logic from process_combat() (Issue #954):
+	## - Melee: always move toward target
+	## - Ranged with bullet spawn blocked: move toward target (was previously stuck)
+	## - Ranged with clear shot: stop and shoot
+	func decide_movement() -> void:
+		if is_melee or bullet_spawn_blocked:
+			last_movement = "moving"
+		else:
+			last_movement = "stopped"
+
+
+func test_ranged_companion_stops_when_bullet_spawn_clear() -> void:
+	var logic := MockBffCombatMovement.new()
+	logic.is_melee = false
+	logic.bullet_spawn_blocked = false  # Clear shot
+
+	logic.decide_movement()
+
+	assert_eq(logic.last_movement, "stopped",
+		"Ranged enemy with clear bullet spawn should stop and shoot")
+
+
+func test_ranged_companion_moves_when_bullet_spawn_blocked() -> void:
+	var logic := MockBffCombatMovement.new()
+	logic.is_melee = false
+	logic.bullet_spawn_blocked = true  # Wall blocks bullet spawn
+
+	logic.decide_movement()
+
+	assert_eq(logic.last_movement, "moving",
+		"Ranged enemy with blocked bullet spawn must navigate (Issue #954 wall-stuck fix)")
+
+
+func test_melee_companion_always_moves() -> void:
+	var logic := MockBffCombatMovement.new()
+	logic.is_melee = true
+	logic.bullet_spawn_blocked = false
+
+	logic.decide_movement()
+
+	assert_eq(logic.last_movement, "moving",
+		"Melee enemy always moves toward target (pre-existing behavior)")
+
+
+func test_melee_companion_moves_even_when_spawn_blocked() -> void:
+	var logic := MockBffCombatMovement.new()
+	logic.is_melee = true
+	logic.bullet_spawn_blocked = true
+
+	logic.decide_movement()
+
+	assert_eq(logic.last_movement, "moving",
+		"Melee enemy moves regardless of bullet spawn state")
+
+
+func test_companion_transitions_from_blocked_to_clear() -> void:
+	var logic := MockBffCombatMovement.new()
+	logic.is_melee = false
+
+	# Initially against wall (blocked)
+	logic.bullet_spawn_blocked = true
+	logic.decide_movement()
+	assert_eq(logic.last_movement, "moving",
+		"Companion should move when blocked by wall")
+
+	# After navigating away, bullet spawn clears
+	logic.bullet_spawn_blocked = false
+	logic.decide_movement()
+	assert_eq(logic.last_movement, "stopped",
+		"Companion should stop and shoot once clear of wall")
+
+
+func test_companion_wall_stuck_fix_respects_melee_override() -> void:
+	# Both blocked AND melee — melee wins, should move
+	var logic := MockBffCombatMovement.new()
+	logic.is_melee = true
+	logic.bullet_spawn_blocked = true
+
+	logic.decide_movement()
+
+	assert_eq(logic.last_movement, "moving",
+		"Melee + blocked = always moving (melee dominates)")
