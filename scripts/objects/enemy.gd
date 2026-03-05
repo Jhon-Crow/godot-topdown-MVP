@@ -547,10 +547,9 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
-	# Only react if alive and not confused from memory reset (Issue #318 - block sounds during confusion)
-	if not _is_alive or _memory_reset_confusion_timer > 0.0:
-		return
-	# Calculate distance to sound for logging
+	if not _is_alive: return
+	var is_player_gunshot := sound_type == 0 and source_type == 0  # GUNSHOT from PLAYER (#910)
+	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
 
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
@@ -669,22 +668,16 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state (same for gunshots and explosions)
-	var should_react := false
-	if _current_state == AIState.IDLE:
-		should_react = intensity >= 0.01
-	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-		should_react = intensity >= 0.3
-	if not should_react:
-		return
+	# React based on current state (same for gunshots and explosions) - #910: also react in alert states to player gunshots
+	var should_react := (_current_state == AIState.IDLE and intensity >= 0.01) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
+	if is_player_gunshot and _current_state in [AIState.SEARCHING, AIState.PURSUING, AIState.IN_COVER, AIState.COMBAT]: should_react = intensity >= 0.01
+	if not should_react: return
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
 	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
 	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
-	# Issue #363: Track gunshots for sustained fire detection (only for actual gunshots)
-	if sound_type == 0:
-		_on_gunshot_heard_for_grenade(position)
+	if sound_type == 0: _on_gunshot_heard_for_grenade(position)  # #363: sustained fire detection
 
 	_last_known_player_position = position
 	if _memory:
@@ -4175,6 +4168,12 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
 		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
+		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
+		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
+			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
+			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
+			if _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:

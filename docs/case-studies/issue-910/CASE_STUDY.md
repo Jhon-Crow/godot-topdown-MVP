@@ -4,7 +4,7 @@
 
 **Issue Number:** #910 (tracking issue #911)
 **Title:** Enemies should shoot toward invisible player's sound source and muzzle flash
-**Status:** Implemented (iteration 3 — all 3 owner requirements addressed)
+**Status:** Implemented (iteration 4 — addressing root causes from 2026-02-28 feedback)
 **Author:** Jhon-Crow
 **Original Language:** Russian
 
@@ -350,4 +350,102 @@ All three owner requirements have been implemented:
 ## Game Log Files
 
 - `game_log_20260225_021948.txt` — Initial report, shows muzzle flash not working (pre-PR#911)
-- `game_log_20260301_014039.txt` — Latest report (2026-03-01), shows all 3 bugs present post-PR#911
+- `game_log_20260301_014039.txt` — Second report (2026-03-01), shows 3 bugs post-iteration 2
+- `game_log_20260301_023611.txt` — Third report (2026-03-01), shows sounds blocked by confusion timer
+- `game_log_20260301_023900.txt` — Fourth report (2026-03-01), shows enemy not reacting to hits
+
+---
+
+## Iteration 4 Analysis (2026-03-05)
+
+### Owner Feedback (2026-02-28 23:42:19)
+
+**Russian:**
+1. после попадания в противника противник остаётся в том же состоянии - это не правильно (сейчас игрок из невидимости стреляет в idle или searching врага безнаказанно)
+2. стрельба по игроку в невидимости либо срабатывает редко, либо не работает
+
+**Translation:**
+1. After hitting an enemy, the enemy stays in the same state - this is wrong (currently the player shoots from invisibility at idle or searching enemies without punishment)
+2. Shooting at the invisible player either works rarely or doesn't work
+
+### Root Cause Analysis from Logs (game_log_20260301_023900.txt)
+
+#### Root Cause A: Enemy Doesn't React to Being Hit by Invisible Player
+
+**Evidence from log:**
+```
+[02:39:20] [INFO] [Player] Reset memory for 10 enemies (invisibility activation - Issue #723)
+[02:39:20] [ENEMY] [Enemy3] Hit: dmg=1, hp=4/4->3/4
+[02:39:20] [ENEMY] [Enemy3] Hit: dmg=1, hp=3/4->2/4
+[02:39:20] [ENEMY] [Enemy3] Hit: dmg=1, hp=2/4->1/4
+[02:39:20] [ENEMY] [Enemy3] Hit: dmg=1, hp=1/4->0/4
+```
+
+Enemy3 is hit 4 times and killed while staying in IDLE state — NO state transition to COMBAT!
+
+**Code analysis (`enemy.gd` line 4169-4177):**
+```gdscript
+else:
+    # Play non-lethal hit sound
+    if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
+        audio_manager.play_hit_non_lethal(global_position)
+    # Spawn blood effect for non-lethal hit (smaller, no decal)
+    if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+        impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
+    _update_health_visual()
+    if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
+```
+
+**The bug:** `on_hit_with_bullet_info()` has NO state transition code. The only response is:
+1. Face toward attacker direction
+2. Visual/audio feedback
+3. `check_retaliation()` — which only handles **aggression gas (enemy vs enemy)**, NOT player attacks
+
+**Fix:** Added state transition to COMBAT when hit in non-combat states + fire suppressive shot back.
+
+#### Root Cause B: Confusion Timer Blocks ALL Player Sounds
+
+**Evidence from log (game_log_20260301_023611.txt):**
+```
+[02:36:19] [INFO] [Player] Reset memory for 10 enemies (invisibility activation - Issue #723)
+[02:36:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(553.80, 714.39), source=PLAYER (AssaultRifle), range=1469, listeners=20
+[02:36:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(578.46, 709.92), source=PLAYER (AssaultRifle), range=1469, listeners=10
+```
+
+20 potential listeners, but NO "Heard gunshot" log entries and NO "[#910] Suppressive" entries!
+
+**Code analysis (`enemy.gd` line 551):**
+```gdscript
+if not _is_alive or _memory_reset_confusion_timer > 0.0:
+    return  # BLOCKS ALL SOUNDS!
+```
+
+The `_memory_reset_confusion_timer` is set to 2.0 seconds when invisibility activates (line 3737). This blocks the ENTIRE `on_sound_heard_with_intensity()` function for 2 seconds — exactly when the player is shooting.
+
+**Fix:** Modified to allow player gunshot sounds during confusion (for suppressive fire).
+
+#### Root Cause C: Enemies in SEARCHING State Don't React to Gunshots
+
+**Code analysis (`enemy.gd` lines 676-683):**
+```gdscript
+var should_react := false
+if _current_state == AIState.IDLE:
+    should_react = intensity >= 0.01
+elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
+    should_react = intensity >= 0.3
+if not should_react:
+    return
+```
+
+Enemies in SEARCHING state (where they go after invisibility resets their memory) have `should_react = false` and return early, never reaching the suppressive fire call.
+
+**Fix:** Added SEARCHING/PURSUING/IN_COVER/COMBAT states to the reaction conditions for player gunshots.
+
+### Implementation (Iteration 4)
+
+| Fix | Requirement | File | Change |
+|-----|-------------|------|--------|
+| Hit triggers COMBAT + suppressive fire | Req #1 | `enemy.gd:4177` | Added state transition and suppressive fire when hit |
+| Allow gunshots during confusion | Req #2 | `enemy.gd:551` | Modified guard to allow player gunshots |
+| Searching/etc states react to gunshots | Req #2 | `enemy.gd:678` | Added more states to `should_react` check |
+| Clear confusion timer when hit | Correctness | `enemy.gd:4185` | Reset timer on hit ("wake-up call") |
