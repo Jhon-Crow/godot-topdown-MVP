@@ -291,6 +291,44 @@ func _load_state() -> void:
 	_log_to_file("State loaded successfully")
 
 
+## Clear all game saves and reset to first-launch state (Issue #938).
+## Deletes the save file, resets weapon/grenade/active item state in managers,
+## and clears all level progress.
+## Note: ExperimentalSettings are intentionally NOT reset.
+func clear_all_saves() -> void:
+	# Delete the save file
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
+
+	# Reset GameManager weapons to defaults
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager:
+		for weapon_id in game_manager.unlocked_weapons.keys():
+			game_manager.unlocked_weapons[weapon_id] = weapon_id == "makarov_pm"
+		game_manager.selected_weapon = "makarov_pm"
+
+	# Reset GrenadeManager to defaults
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	if grenade_manager:
+		for grenade_type in grenade_manager.unlocked_grenades.keys():
+			grenade_manager.unlocked_grenades[grenade_type] = grenade_type == grenade_manager.GrenadeType.FLASHBANG
+		grenade_manager.current_grenade_type = grenade_manager.GrenadeType.FLASHBANG
+
+	# Reset ActiveItemManager to defaults
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager:
+		for item_type in active_item_manager.unlocked_active_items.keys():
+			active_item_manager.unlocked_active_items[item_type] = item_type == active_item_manager.ActiveItemType.NONE
+		active_item_manager.current_active_item = active_item_manager.ActiveItemType.NONE
+
+	# Clear level progress
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	if progress_manager and progress_manager.has_method("clear_all_progress"):
+		progress_manager.clear_all_progress()
+
+	_log_to_file("All saves cleared — game reset to first-launch state")
+
+
 ## Log a message to the file logger if available.
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
