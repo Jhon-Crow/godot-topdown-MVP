@@ -1,0 +1,7 @@
+1. сейчас рикошет всегда зелёный (как будто всегда возможен)
+2. проверь, не менялись параметры рикошета самого оружия (АК), если менялись - верни параметры как в ветке backup
+
+[game_log_20260301_025341.txt](https://github.com/user-attachments/files/25640997/game_log_20260301_025341.txt)
+[game_log_20260301_025844.txt](https://github.com/user-attachments/files/25640996/game_log_20260301_025844.txt)
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+

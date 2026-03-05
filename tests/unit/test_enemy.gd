@@ -1937,6 +1937,71 @@ func test_spawn_projectile_add_child_before_set_direction_issue_550() -> void:
 		"Issue #550: add_child must come BEFORE SetDirection for C# interop")
 
 
+## Regression test for Issue #883: Enemy vision raycasts every frame.
+## Verifies that VISION_CHECK_INTERVAL constant (= 6) exists and the staggering
+## variables/logic are present in enemy.gd so raycasts fire at ~10 fps, not 60 fps.
+func test_vision_check_stagger_constants_exist_issue_883() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+
+	# Verify the stagger constant is declared with value 6
+	assert_true(source.find("VISION_CHECK_INTERVAL: int = 6") >= 0,
+		"Issue #883: VISION_CHECK_INTERVAL constant (= 6) must exist in enemy.gd")
+
+	# Verify the per-frame counter variable exists
+	assert_true(source.find("_vision_frame_counter: int") >= 0,
+		"Issue #883: _vision_frame_counter variable must exist in enemy.gd")
+
+	# Verify the per-enemy stagger offset variable exists
+	assert_true(source.find("_vision_frame_offset: int") >= 0,
+		"Issue #883: _vision_frame_offset variable must exist in enemy.gd")
+
+	# Verify the stagger offset is initialised from instance ID in _ready
+	assert_true(source.find("_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL") >= 0,
+		"Issue #883: _vision_frame_offset must be set from instance_id % VISION_CHECK_INTERVAL in _ready")
+
+	# Verify _check_player_visibility uses the stagger guard
+	assert_true(source.find("is_vision_check_frame") >= 0,
+		"Issue #883: _check_player_visibility must use is_vision_check_frame stagger guard")
+
+
+## Regression test for Issue #883: verify staggering logic skips raycasts correctly.
+## Uses a pure mock that mirrors the counter/offset logic from enemy.gd.
+func test_vision_stagger_fires_only_every_interval_issue_883() -> void:
+	const INTERVAL: int = 6
+
+	# Simulate two enemies with different offsets
+	var counter_a: int = 0
+	var offset_a: int = 0  # fires on frames 0, 6, 12, ...
+	var counter_b: int = 0
+	var offset_b: int = 3  # fires on frames 3, 9, 15, ...
+
+	var check_count_a: int = 0
+	var check_count_b: int = 0
+	var total_frames: int = 60  # simulate 1 second at 60 fps
+
+	for _i in range(total_frames):
+		counter_a += 1
+		if (counter_a % INTERVAL) == offset_a:
+			check_count_a += 1
+
+		counter_b += 1
+		if (counter_b % INTERVAL) == offset_b:
+			check_count_b += 1
+
+	# Each enemy should perform exactly total_frames / INTERVAL checks
+	var expected_checks: int = total_frames / INTERVAL
+	assert_eq(check_count_a, expected_checks,
+		"Issue #883: enemy A should check vision %d times in %d frames (interval=%d)" % [expected_checks, total_frames, INTERVAL])
+	assert_eq(check_count_b, expected_checks,
+		"Issue #883: enemy B should check vision %d times in %d frames (interval=%d)" % [expected_checks, total_frames, INTERVAL])
+
+
 # ============================================================================
 # Issue #921: SEARCHING State Timeout and Vulnerability Sound Fixes
 # ============================================================================
