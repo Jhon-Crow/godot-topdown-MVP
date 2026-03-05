@@ -602,7 +602,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.text = rank
 	big_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	big_rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	big_rank_label.add_theme_font_size_override("font_size", 200)
+	big_rank_label.add_theme_font_size_override("font_size", 280)
 	big_rank_label.add_theme_color_override("font_color", rank_color)
 	_apply_gothic_font(big_rank_label)
 	big_rank_label.set_anchors_preset(Control.PRESET_CENTER)
@@ -619,7 +619,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	final_rank_label.name = "FinalRankLabel"
 	final_rank_label.text = "RANK: %s" % rank
 	final_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	final_rank_label.add_theme_font_size_override("font_size", 48)
+	final_rank_label.add_theme_font_size_override("font_size", 67)
 	final_rank_label.add_theme_color_override("font_color", rank_color)
 	_apply_gothic_font(final_rank_label)
 	final_rank_label.modulate.a = 0.0
