@@ -4,83 +4,146 @@
 
 Implemented a neon sign visual style for the main font using:
 
-1. **LabelSettings Resource** (`resources/themes/neon_label_settings.tres`)
-   - Cyan/aqua neon color (Color: 0.4, 1.0, 1.0)
-   - Outline for edge glow effect
+1. **Beon Font** (`assets/fonts/neon/Beon-Regular.ttf`)
+   - Professional neon-style font with rounded tube-like letterforms
+   - Free for commercial use under SIL Open Font License
+   - Provides authentic neon sign appearance
+
+2. **LabelSettings Resource** (`resources/themes/neon_label_settings.tres`)
+   - Pink/magenta neon color scheme (matching reference images)
+   - White-pink core color for realistic tube appearance
+   - Outline for edge definition
    - Shadow with blur for soft glow
 
-2. **Glow Shader** (`resources/themes/neon_glow.gdshader`)
-   - Custom canvas_item shader for enhanced glow effect
+3. **Enhanced Glow Shader** (`resources/themes/neon_glow.gdshader`)
+   - Multi-layer glow effect:
+     - Inner glow (tight, bright)
+     - Outer glow (diffuse, softer)
+     - Bright core (white center like real neon tubes)
    - Configurable parameters:
-     - `glow_color`: Neon color for the glow
-     - `glow_intensity`: Brightness of the glow
-     - `glow_size`: Spread of the glow effect
-     - `blur_iterations`: Quality of the blur
+     - `glow_color`: Pink/magenta neon color
+     - `core_color`: Bright white-pink center
+     - `glow_intensity`: Overall brightness
+     - `inner_glow_size`: Tight glow around text
+     - `outer_glow_size`: Diffuse ambient glow
+     - `core_brightness`: How bright the tube center appears
      - `enable_flicker`: Optional neon tube flicker animation
-     - `flicker_speed` and `flicker_intensity`: Animation control
 
-3. **Button Theme** (`resources/themes/neon_button_theme.tres`)
+4. **Button Theme** (`resources/themes/neon_button_theme.tres`)
    - Consistent neon colors for button text
+   - Uses Beon font for all buttons
    - Hover and pressed states with brighter variants
 
-## Files Modified
+## Visual Reference
 
-### New Files Created
+The implementation was improved based on feedback to match these reference styles:
+
+- **Reference 1**: `images/reference-neon-1.png` - Pink neon with white outline stroke
+- **Reference 2**: `images/reference-neon-2.png` - Pink/magenta with bright white core
+- **Initial attempt**: `images/initial-implementation.png` - Cyan glow (before improvement)
+
+Key visual improvements in v2:
+1. Changed from cyan to pink/magenta color scheme
+2. Added bright white center to simulate real neon tube luminosity
+3. Added dedicated neon-style font (Beon) instead of default system font
+4. Enhanced shader with multi-layer glow for more realistic effect
+
+## Files Created/Modified
+
+### New Files
+- `assets/fonts/neon/Beon-Regular.ttf` - Neon-style font
+- `assets/fonts/neon/OFL-LICENSE.txt` - Font license
 - `resources/themes/neon_label_settings.tres` - LabelSettings for neon text
-- `resources/themes/neon_glow.gdshader` - Custom glow shader
-- `resources/themes/neon_glow_material.tres` - ShaderMaterial using the shader
+- `resources/themes/neon_glow.gdshader` - Custom multi-layer glow shader
+- `resources/themes/neon_glow_material.tres` - ShaderMaterial
 - `resources/themes/neon_button_theme.tres` - Theme for buttons
-- `docs/case-studies/issue-960/research.md` - Research documentation
-- `docs/case-studies/issue-960/implementation.md` - This file
+- `docs/case-studies/issue-960/` - Research and implementation docs
 
 ### Modified Scenes
-- `scenes/main/Main.tscn` - Applied neon styling to title label
-- `scenes/ui/PauseMenu.tscn` - Applied neon theme to menu
-- `scenes/ui/ControlsMenu.tscn` - Applied neon theme to menu
-- `scenes/ui/DifficultyMenu.tscn` - Applied neon theme to menu
-- `scenes/ui/SoundMenu.tscn` - Applied neon theme to menu
-- `scenes/ui/ExperimentalMenu.tscn` - Applied neon theme to menu
+- `scenes/ui/PauseMenu.tscn` - Applied neon theme
+- `scenes/ui/ControlsMenu.tscn` - Applied neon theme
+- `scenes/ui/DifficultyMenu.tscn` - Applied neon theme
+- `scenes/ui/SoundMenu.tscn` - Applied neon theme
+- `scenes/ui/ExperimentalMenu.tscn` - Applied neon theme
+
+### Modified Scripts
+- `scripts/ui/armory_menu.gd` - Added neon label settings to title
+- `scripts/ui/levels_menu.gd` - Added neon label settings to title
 
 ## Technical Details
 
-### Shader Approach
-The glow shader samples surrounding pixels in a circular pattern and applies a weighted blur. The result is mixed with the original text to create the characteristic neon glow where:
-- The center of the text appears brighter (simulating the gas tube)
-- The edges have a soft color glow
-- Optional flicker effect uses sine waves for realistic neon tube animation
+### Shader Algorithm
 
-### Color Scheme
-- Primary color: Cyan (0.4, 1.0, 1.0) - bright, energetic neon
-- Outline color: Darker cyan (0.0, 0.8, 0.9) - edge definition
-- Shadow/glow color: Soft cyan (0.0, 0.6, 0.8, 0.6) - ambient glow
-- Hover color: Brighter cyan (0.6, 1.0, 1.0)
-- Pressed color: White (1.0, 1.0, 1.0) - fully lit
+The enhanced glow shader uses a two-pass sampling approach:
+
+1. **Inner Glow Pass**: Samples pixels within a tight radius (default 2px) with high falloff
+2. **Outer Glow Pass**: Samples pixels within a larger radius (default 8px) with gradual falloff
+
+The shader then composites the layers:
+- Layer 1: Outer diffuse glow (colored, low opacity)
+- Layer 2: Inner glow (brighter colored glow)
+- Layer 3: Original text with bright core effect (white center fading to glow color)
+
+### Color Scheme (v2 - Pink/Magenta)
+
+- Primary glow color: `Color(1.0, 0.2, 0.6)` - Vibrant pink/magenta
+- Core color: `Color(1.0, 0.9, 0.95)` - Bright white-pink (tube center)
+- Font color: `Color(1.0, 0.85, 0.92)` - Light pink
+- Outline color: `Color(1.0, 0.3, 0.55)` - Darker pink
+- Shadow color: `Color(1.0, 0.1, 0.4, 0.5)` - Deep magenta glow
 
 ### Compatibility
-This implementation works with `gl_compatibility` renderer (which the project uses) by not relying on WorldEnvironment glow which requires forward_plus or mobile renderer.
+
+This implementation works with `gl_compatibility` renderer by using a custom shader instead of WorldEnvironment glow (which requires forward_plus renderer).
 
 ## Usage
 
 To apply neon styling to new UI elements:
 
-1. **For Labels (titles)**:
-   ```gdscript
-   label.label_settings = preload("res://resources/themes/neon_label_settings.tres")
-   label.material = preload("res://resources/themes/neon_glow_material.tres")
-   ```
+### For Labels (titles)
+```gdscript
+label.label_settings = load("res://resources/themes/neon_label_settings.tres")
+label.material = load("res://resources/themes/neon_glow_material.tres")
+```
 
-2. **For entire UI containers (buttons, checkboxes, etc.)**:
-   ```gdscript
-   control.theme = preload("res://resources/themes/neon_button_theme.tres")
-   ```
+### For entire UI containers
+```gdscript
+control.theme = load("res://resources/themes/neon_button_theme.tres")
+```
 
-3. **To enable flicker effect** (in shader material):
-   - Set `enable_flicker = true`
-   - Adjust `flicker_speed` (higher = faster)
-   - Adjust `flicker_intensity` (higher = more dramatic)
+### To customize colors
+Modify the shader material parameters:
+```gdscript
+var material = label.material as ShaderMaterial
+material.set_shader_parameter("glow_color", Color(0.0, 1.0, 0.5))  # Green neon
+material.set_shader_parameter("core_color", Color(0.9, 1.0, 0.95))  # Green-white core
+```
 
-## Future Enhancements
+### To enable flicker effect
+```gdscript
+var material = label.material as ShaderMaterial
+material.set_shader_parameter("enable_flicker", true)
+material.set_shader_parameter("flicker_speed", 3.0)
+material.set_shader_parameter("flicker_intensity", 0.05)
+```
 
-1. Add more neon color variants (pink, green, orange)
-2. Create animated neon sign that flickers on when scene loads
-3. Add HDR bloom support if renderer is changed to forward_plus
+## Font Resources
+
+The Beon font was selected based on research into neon-style fonts:
+
+**Font**: Beon
+- **Source**: [1001fonts.com](https://www.1001fonts.com/beon-font.html)
+- **License**: SIL Open Font License (OFL) - Free for commercial use
+- **Designer**: Bastien Sozoo / Noir Blanc Rouge
+- **Characteristics**:
+  - Rounded letterforms resembling bent neon tubes
+  - Clean, modern sans-serif style
+  - Full Latin character support
+
+## Notes for Gothic Font Exclusion
+
+The Gothic bitmap font (`assets/fonts/gothic_bitmap.fnt`) is used only in specific score screen contexts via explicit `add_theme_font_override()` calls in level scripts. The neon styling uses a different Theme/LabelSettings system, so the Gothic font is not affected.
+
+Files using Gothic font (unchanged):
+- `scripts/ui/animated_score_screen.gd` - Score screen labels
+- `scripts/levels/*.gd` - Level completion rank labels

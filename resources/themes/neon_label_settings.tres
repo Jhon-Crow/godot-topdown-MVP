@@ -1,10 +1,13 @@
-[gd_resource type="LabelSettings" format=3 uid="uid://c3qneonlabel01"]
+[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://c3qneonlabel01"]
+
+[ext_resource type="FontFile" uid="uid://c3qneonfont01" path="res://assets/fonts/neon/Beon-Regular.ttf" id="1_font"]
 
 [resource]
-font_size = 32
-font_color = Color(0.4, 1.0, 1.0, 1.0)
-outline_size = 4
-outline_color = Color(0.0, 0.8, 0.9, 1.0)
-shadow_size = 8
-shadow_color = Color(0.0, 0.6, 0.8, 0.6)
+font = ExtResource("1_font")
+font_size = 48
+font_color = Color(1.0, 0.85, 0.92, 1.0)
+outline_size = 3
+outline_color = Color(1.0, 0.3, 0.55, 1.0)
+shadow_size = 12
+shadow_color = Color(1.0, 0.1, 0.4, 0.5)
 shadow_offset = Vector2(0, 0)

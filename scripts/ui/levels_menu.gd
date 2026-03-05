@@ -179,12 +179,16 @@ func _build_ui() -> void:
 	main_vbox.add_theme_constant_override("separation", 8)
 	margin.add_child(main_vbox)
 
-	# Title
+	# Title with neon styling
 	var title := Label.new()
 	title.text = "SELECT LEVEL"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
+	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
+	if neon_label_settings:
+		title.label_settings = neon_label_settings
+	else:
+		title.add_theme_font_size_override("font_size", 22)
+		title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
 	main_vbox.add_child(title)
 
 	# Separator
