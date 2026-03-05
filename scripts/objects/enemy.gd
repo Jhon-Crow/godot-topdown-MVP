@@ -300,6 +300,7 @@ const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
 var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
+var _suppressive_fire: SuppressiveFireComponent = null  ## Issue #910: Suppressive fire component.
 
 ## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 var _memory: EnemyMemory = null
@@ -407,7 +408,7 @@ func _ready() -> void:
 	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
-	_setup_aggression_component()  # Issue #675
+	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
 	_setup_machete_component()  # Issue #579
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
@@ -558,10 +559,9 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
-	# Only react if alive and not confused from memory reset (Issue #318 - block sounds during confusion)
-	if not _is_alive or _memory_reset_confusion_timer > 0.0:
-		return
-	# Calculate distance to sound for logging
+	if not _is_alive: return
+	var is_player_gunshot := sound_type == 0 and source_type == 0  # GUNSHOT from PLAYER (#910)
+	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
 
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
@@ -587,8 +587,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "RELOAD")  # Issue #910
 		return
 
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
@@ -617,8 +617,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			# Leave cover/defensive/searching state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "EMPTY_CLICK")  # Issue #910
 		return
 
 	# Issue #426: Handle grenade landing sound (GRENADE_LANDING) - evade if heard nearby
@@ -636,6 +636,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_last_known_player_position = position
 		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
 		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
 	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
@@ -678,22 +679,16 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state (same for gunshots and explosions)
-	var should_react := false
-	if _current_state == AIState.IDLE:
-		should_react = intensity >= 0.01
-	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-		should_react = intensity >= 0.3
-	if not should_react:
-		return
+	# React based on current state (same for gunshots and explosions) - #910: also react in alert states to player gunshots
+	var should_react := (_current_state == AIState.IDLE and intensity >= 0.01) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
+	if is_player_gunshot and _current_state in [AIState.SEARCHING, AIState.PURSUING, AIState.IN_COVER, AIState.COMBAT]: should_react = intensity >= 0.01
+	if not should_react: return
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
 	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
 	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
-	# Issue #363: Track gunshots for sustained fire detection (only for actual gunshots)
-	if sound_type == 0:
-		_on_gunshot_heard_for_grenade(position)
+	if sound_type == 0: _on_gunshot_heard_for_grenade(position)  # #363: sustained fire detection
 
 	_last_known_player_position = position
 	if _memory:
@@ -703,7 +698,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_prediction.record_player_shot(sd)
 		_memory.update_shot_direction(sd)
 	_transition_to_combat()
-
+	if sound_type == 0 and source_type == 0 and _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "GUNSHOT")  # Issue #910
 ## Initialize GOAP world state.
 func _initialize_goap_state() -> void:
 	_goap_world_state = {
@@ -1373,8 +1368,7 @@ func _process_combat_state(delta: float) -> void:
 			_log_debug("Lost sight of player in COMBAT (%.2fs), transitioning to PURSUING" % _combat_state_timer)
 			_transition_to_pursuing()
 			return
-		# If minimum time hasn't elapsed, stay in COMBAT and wait
-		# This prevents rapid COMBAT<->PURSUING thrashing
+		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
@@ -1689,7 +1683,8 @@ func _process_in_cover_state(delta: float) -> void:
 
 	# If player (or companion) is no longer visible and not under fire, try pursuing
 	# Issue #934: consider companion visibility
-	if not (_can_see_player or _can_see_companion) and not _under_fire:
+	# Issue #910: also try suppressive fire before pursuing
+	if not (_can_see_player or _can_see_companion) and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
@@ -1974,6 +1969,7 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_combat()
 			return
 
+	if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 	# VULNERABILITY SOUND PURSUIT: When we heard a reload/empty click sound,
 	# move directly toward the sound position using navigation (goes around walls).
 	# This is a direct pursuit without cover-to-cover movement.
@@ -4160,6 +4156,12 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
+		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
+		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
+			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
+			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
+			if _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
