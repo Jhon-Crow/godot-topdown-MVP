@@ -177,3 +177,95 @@ if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 - [Game Log (initial)](https://github.com/user-attachments/files/25640945/game_log_20260301_024305.txt) — Evidence that companion is not targeted
 - [Game Log (re-report)](./logs/game_log_20260302_194932.txt) — Evidence of partial fix (rotation works, shooting doesn't)
 - GameAI Pro (2013): "Goal-Oriented Action Planning for a Smarter AI" — multi-target GOAP patterns
+
+---
+
+## Bug Re-occurrence Report #2 (March 5, 2026)
+
+### User Feedback
+On March 5, 2026, user Jhon-Crow reported: "враги всё ещё не стреляют в напарника" (enemies still don't shoot at companion).
+
+### Investigation
+
+Analysis of the game log (`game_log_20260305_223211.txt`) revealed:
+1. Enemies were detecting the companion correctly
+2. Rotation toward companion was working (`[->companion]` markers present)
+3. Enemies were in FLANKING state but not transitioning to COMBAT
+
+Key log entries showed enemies stuck in FLANKING state:
+```
+[22:32:29] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=FLANKING, target=-171.8°, current=-168.9°, player=(642,1040), corner_timer=0.00 [->companion]
+```
+
+### Root Cause (Third Pass)
+
+The second fix addressed the **shooting guard conditions** — places where `_shoot()` was called. However, the **state transition logic** was still checking only player visibility:
+
+1. **FLANKING state** (`_process_flanking_state`):
+   - Line 1708: On timeout, `if _can_see_player: _transition_to_combat()` — no companion check
+   - Line 1724: On stuck, same issue
+   - Line 1739: Combat transition used `_can_hit_player_from_current_position()` instead of `_can_hit_target_from_current_position()`
+
+2. **IN_COVER state** (`_process_in_cover_state`):
+   - Lines 1663-1685: Decision logic only checked `if _player:` and `if _can_see_player:` for transitions
+
+3. **PURSUING state** (`_process_pursuing_state`):
+   - Line 1976: Used `_can_hit_player_from_current_position()` with misleading comment
+   - Line 2031: Approach phase used player-only hit check
+
+### Pattern Applied (Third Fix)
+
+**Before:**
+```gdscript
+# FLANKING timeout
+if _can_see_player: _transition_to_combat()
+
+# FLANKING combat transition
+if _can_see_player and _can_hit_player_from_current_position():
+    _transition_to_combat()
+
+# IN_COVER decision
+if _player:
+    if _can_see_player:
+        _transition_to_combat()
+```
+
+**After:**
+```gdscript
+# FLANKING timeout
+if _can_see_player or _can_see_companion: _transition_to_combat()  # #934
+
+# FLANKING combat transition
+if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
+    _transition_to_combat()
+
+# IN_COVER decision
+var can_see_target := _can_see_player or _can_see_companion
+var has_target := (_player != null) or (_companion != null and _can_see_companion)
+if has_target:
+    if can_see_target:
+        _transition_to_combat()
+```
+
+### Lesson Learned
+
+When adding multi-target support to a state machine, **all three layers** must be updated:
+1. **Detection layer**: Find and track companion (`BffTargetingComponent`) ✓ (1st fix)
+2. **Action layer**: Shoot at companion (`_shoot()` guard conditions) ✓ (2nd fix)
+3. **Transition layer**: Change state when companion visible (`if _can_see_player` → `if _can_see_player or _can_see_companion`) ✓ (3rd fix)
+
+---
+
+## Files Modified (Complete)
+
+- `scripts/objects/enemy.gd` — Target selection, state transitions, shooting logic
+- `scripts/components/bff_targeting_component.gd` — Companion detection component
+- `tests/unit/test_bff_pendant.gd` — Regression tests for companion targeting
+
+---
+
+## Test Status
+
+- **Unit tests**: 26 tests pass (GUT framework)
+- **Line count**: 4988 lines (under 5000 CI limit)
+- **CI checks**: All passing
