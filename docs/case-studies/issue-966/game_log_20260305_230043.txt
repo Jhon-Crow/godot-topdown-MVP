@@ -1,0 +1,1647 @@
+[23:00:43] [INFO] ============================================================
+[23:00:43] [INFO] GAME LOG STARTED
+[23:00:43] [INFO] ============================================================
+[23:00:43] [INFO] Timestamp: 2026-03-05T23:00:43
+[23:00:43] [INFO] Log file: I:/Загрузки/godot exe/оптимизация/game_log_20260305_230043.txt
+[23:00:43] [INFO] Executable: I:/Загрузки/godot exe/оптимизация/Godot-Top-Down-Template.exe
+[23:00:43] [INFO] OS: Windows
+[23:00:43] [INFO] Debug build: false
+[23:00:43] [INFO] Engine version: 4.3-stable (official)
+[23:00:43] [INFO] Project: Godot Top-Down Template
+[23:00:43] [INFO] ------------------------------------------------------------
+[23:00:43] [INFO] [GameManager] GameManager ready
+[23:00:43] [INFO] [ScoreManager] ScoreManager ready
+[23:00:43] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[23:00:43] [INFO] [DifficultyManager] Loaded difficulty: Hard (value: 2)
+[23:00:43] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[23:00:43] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[23:00:43] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (0, 0) (added to group)
+[23:00:43] [INFO] [ImpactEffects] Blood decal pool initialized: 150 decals pre-created
+[23:00:43] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[23:00:43] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[23:00:43] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[23:00:43] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[23:00:43] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[23:00:43] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[23:00:43] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[23:00:43] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[23:00:43] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[23:00:43] [INFO] [LastChance] Resetting all effects (scene change detected)
+[23:00:43] [INFO] [LastChance] Last chance shader loaded successfully
+[23:00:43] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[23:00:43] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[23:00:43] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[23:00:43] [INFO] [LastChance]   Sepia intensity: 0.70
+[23:00:43] [INFO] [LastChance]   Brightness: 0.60
+[23:00:43] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[23:00:43] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[23:00:43] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[23:00:43] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[23:00:43] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true
+[23:00:43] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[23:00:43] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[23:00:43] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[23:00:43] [INFO] [CinemaEffects] Created effects layer at layer 99
+[23:00:43] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[23:00:43] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[23:00:43] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[23:00:43] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[23:00:43] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[23:00:43] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[23:00:43] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[23:00:43] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[23:00:43] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[23:00:43] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[23:00:43] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[23:00:43] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[23:00:43] [INFO] [GrenadeTimerHelper] Autoload ready
+[23:00:43] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[23:00:43] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[23:00:43] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[23:00:43] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[23:00:43] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[23:00:43] [INFO] [ProgressManager] ProgressManager ready, loaded 5 entries
+[23:00:43] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[23:00:43] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[23:00:43] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[23:00:43] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[23:00:43] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[23:00:43] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[23:00:43] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: m16
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: shotgun
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: mini_uzi
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: sniper
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: revolver
+[23:00:43] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[23:00:43] [INFO] [GameManager] Weapon selected: m16
+[23:00:43] [INFO] [PersistManager] Restored selected weapon: m16
+[23:00:43] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[23:00:43] [INFO] [PersistManager] Restored unlocked grenade type: 1
+[23:00:43] [INFO] [PersistManager] Restored unlocked grenade type: 2
+[23:00:43] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[23:00:43] [INFO] [GrenadeManager] Grenade type changed from Flashbang to F-1 Grenade
+[23:00:43] [INFO] [PersistManager] Restored selected grenade type: 2
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 0
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 1
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 2
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 3
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 4
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 5
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 6
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 7
+[23:00:43] [INFO] [PersistManager] Restored unlocked active item type: 8
+[23:00:43] [INFO] [ActiveItemManager] Active item changed from None to BFF Pendant
+[23:00:43] [INFO] [PersistManager] Restored selected active item type: 4
+[23:00:43] [INFO] [PersistManager] State loaded successfully
+[23:00:43] [INFO] [PersistManager] PersistManager ready
+[23:00:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:43] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[23:00:43] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[23:00:43] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[23:00:43] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[23:00:43] [ENEMY] [Enemy1] Death animation component initialized
+[23:00:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:43] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[23:00:43] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[23:00:43] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[23:00:43] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[23:00:43] [ENEMY] [Enemy2] Death animation component initialized
+[23:00:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:43] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[23:00:43] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[23:00:43] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[23:00:43] [ENEMY] [Enemy3] Death animation component initialized
+[23:00:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:43] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[23:00:43] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[23:00:43] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[23:00:43] [ENEMY] [Enemy4] Death animation component initialized
+[23:00:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:43] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[23:00:43] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[23:00:43] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[23:00:43] [ENEMY] [Enemy5] Death animation component initialized
+[23:00:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:43] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[23:00:43] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[23:00:43] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[23:00:43] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[23:00:43] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[23:00:43] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+[23:00:43] [INFO] [Player.Weapon] Removed default MakarovPM
+[23:00:43] [INFO] [Player.Weapon] Equipped AssaultRifle (ammo: 30/30)
+[23:00:43] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[23:00:43] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[23:00:43] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[23:00:43] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[23:00:43] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[23:00:43] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[23:00:43] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[23:00:43] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[23:00:43] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[23:00:43] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
+[23:00:43] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
+[23:00:43] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[23:00:43] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[23:00:43] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[23:00:43] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[23:00:43] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[23:00:43] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[23:00:43] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[23:00:43] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[23:00:43] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[23:00:43] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[23:00:43] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[23:00:43] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[23:00:43] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[23:00:43] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[23:00:43] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[23:00:43] [INFO] [LabyrinthLevel] Setting up weapon: m16
+[23:00:43] [INFO] [LabyrinthLevel] AssaultRifle already equipped by C# Player - skipping GDScript weapon swap
+[23:00:43] [INFO] [ScoreManager] Level started with 5 enemies
+[23:00:43] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[23:00:43] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[23:00:43] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[23:00:43] [INFO] [ReplayManager] Replay data cleared
+[23:00:43] [INFO] [LabyrinthLevel] Previous replay data cleared
+[23:00:43] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (M16)
+[23:00:43] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[23:00:43] [INFO] [ReplayManager] Level: LabyrinthLevel
+[23:00:43] [INFO] [ReplayManager] Player: Player (valid: True)
+[23:00:43] [INFO] [ReplayManager] Enemies count: 5
+[23:00:43] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[23:00:43] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[23:00:43] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[23:00:43] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[23:00:43] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[23:00:43] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[23:00:43] [INFO] [LabyrinthLevel] Replay recording started successfully
+[23:00:44] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[23:00:44] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (301.3289, 989.9114) - skipping throw
+[23:00:44] [INFO] [CinemaEffects] Found player node: Player
+[23:00:44] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[23:00:44] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/BuildingLevel.tscn
+[23:00:44] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[23:00:44] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[23:00:44] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[23:00:44] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[23:00:44] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[23:00:44] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[23:00:44] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[23:00:44] [INFO] [PenultimateHit] Shader warmup complete in 713 ms
+[23:00:44] [INFO] [LastChance] Shader warmup complete in 712 ms
+[23:00:44] [INFO] [CinemaEffects] Cinema shader warmup complete in 627 ms
+[23:00:44] [INFO] [FlashbangPlayer] Shader warmup complete in 617 ms
+[23:00:44] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[23:00:44] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[23:00:44] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[23:00:44] [INFO] [LastChance] Resetting all effects (scene change detected)
+[23:00:44] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[23:00:44] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[23:00:44] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[23:00:44] [ENEMY] [Enemy1] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[23:00:44] [ENEMY] [Enemy2] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[23:00:44] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[23:00:44] [ENEMY] [Enemy3] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[23:00:44] [ENEMY] [Enemy4] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[23:00:44] [INFO] [EnemyGrenade] Grenade bag built (hard): [Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Defensive]
+[23:00:44] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
+[23:00:44] [ENEMY] [Grenadier] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[23:00:44] [ENEMY] [Enemy6] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[23:00:44] [ENEMY] [Enemy7] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[23:00:44] [ENEMY] [Enemy8] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[23:00:44] [ENEMY] [Enemy9] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[23:00:44] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[23:00:44] [ENEMY] [Enemy10] Death animation component initialized
+[23:00:44] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:00:44] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[23:00:44] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[23:00:44] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[23:00:44] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[23:00:44] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[23:00:44] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+[23:00:44] [INFO] [Player.Weapon] Removed default MakarovPM
+[23:00:44] [INFO] [Player.Weapon] Equipped AssaultRifle (ammo: 30/30)
+[23:00:44] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[23:00:44] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[23:00:44] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[23:00:44] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[23:00:44] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[23:00:44] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[23:00:44] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[23:00:44] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[23:00:44] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[23:00:44] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
+[23:00:44] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
+[23:00:44] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[23:00:44] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[23:00:44] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[23:00:44] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[23:00:44] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[23:00:44] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[23:00:44] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[23:00:44] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[23:00:44] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[23:00:44] [INFO] [BuildingLevel] Setting up weapon: m16
+[23:00:44] [INFO] [BuildingLevel] AssaultRifle already equipped by C# Player - skipping GDScript weapon swap
+[23:00:44] [INFO] [ScoreManager] Level started with 10 enemies
+[23:00:44] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[23:00:44] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[23:00:44] [INFO] [ReplayManager] Replay data cleared
+[23:00:44] [INFO] [BuildingLevel] Previous replay data cleared
+[23:00:44] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (M16)
+[23:00:44] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[23:00:44] [INFO] [ReplayManager] Level: BuildingLevel
+[23:00:44] [INFO] [ReplayManager] Player: Player (valid: True)
+[23:00:44] [INFO] [ReplayManager] Enemies count: 10
+[23:00:44] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[23:00:44] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[23:00:44] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[23:00:44] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[23:00:44] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[23:00:44] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[23:00:44] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[23:00:44] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[23:00:44] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[23:00:44] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[23:00:44] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[23:00:44] [INFO] [BuildingLevel] Replay recording started successfully
+[23:00:44] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[23:00:44] [INFO] [CinemaEffects] Found player node: Player
+[23:00:44] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[23:00:44] [ENEMY] [Enemy1] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 3, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[23:00:44] [ENEMY] [Enemy2] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[23:00:44] [ENEMY] [Enemy3] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 4, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[23:00:44] [ENEMY] [Enemy4] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[23:00:44] [ENEMY] [Grenadier] Registered as sound listener
+[23:00:44] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[23:00:44] [ENEMY] [Enemy6] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[23:00:44] [ENEMY] [Enemy7] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 4, behavior: PATROL
+[23:00:44] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[23:00:44] [ENEMY] [Enemy8] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[23:00:44] [ENEMY] [Enemy9] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 2, behavior: GUARD
+[23:00:44] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[23:00:44] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[23:00:44] [ENEMY] [Enemy10] Registered as sound listener
+[23:00:44] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 2, behavior: PATROL
+[23:00:44] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[23:00:44] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[23:00:44] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=180.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=78.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:00:44] [INFO] [Player] Detecting weapon pose (frame 3)...
+[23:00:44] [INFO] [Player] Detected weapon: Rifle (default pose)
+[23:00:44] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[23:00:44] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[23:00:44] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[23:00:44] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[23:00:44] [INFO] [LastChance] Found player: Player
+[23:00:44] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[23:00:44] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[23:00:44] [INFO] [LastChance] Connected to player Died signal (C#)
+[23:00:44] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[23:00:44] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 1295 ms
+[23:00:45] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[23:00:46] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[23:00:47] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[23:00:48] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[23:00:49] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=10
+[23:00:50] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=10
+[23:00:51] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=10
+[23:00:52] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=True, enemies=10
+[23:00:53] [INFO] [ReplayManager] Recording frame 540 (9,0s): player_valid=True, enemies=10
+[23:00:54] [INFO] [ReplayManager] Recording frame 600 (10,0s): player_valid=True, enemies=10
+[23:00:55] [INFO] [ReplayManager] Recording frame 660 (11,0s): player_valid=True, enemies=10
+[23:00:56] [INFO] [ReplayManager] Recording frame 720 (12,0s): player_valid=True, enemies=10
+[23:00:57] [INFO] [ReplayManager] Recording frame 780 (13,0s): player_valid=True, enemies=10
+[23:00:58] [INFO] [ReplayManager] Recording frame 840 (14,0s): player_valid=True, enemies=10
+[23:00:59] [INFO] [ReplayManager] Recording frame 900 (15,0s): player_valid=True, enemies=10
+[23:01:00] [INFO] [ReplayManager] Recording frame 960 (16,0s): player_valid=True, enemies=10
+[23:01:01] [INFO] [ReplayManager] Recording frame 1020 (17,0s): player_valid=True, enemies=10
+[23:01:02] [INFO] [ReplayManager] Recording frame 1080 (18,0s): player_valid=True, enemies=10
+[23:01:03] [INFO] [ReplayManager] Recording frame 1140 (19,0s): player_valid=True, enemies=10
+[23:01:04] [INFO] [ReplayManager] Recording frame 1200 (20,0s): player_valid=True, enemies=10
+[23:01:05] [INFO] [ReplayManager] Recording frame 1260 (21,0s): player_valid=True, enemies=10
+[23:01:06] [INFO] [ReplayManager] Recording frame 1320 (22,0s): player_valid=True, enemies=10
+[23:01:07] [INFO] [ReplayManager] Recording frame 1380 (23,0s): player_valid=True, enemies=10
+[23:01:08] [INFO] [ReplayManager] Recording frame 1440 (24,0s): player_valid=True, enemies=10
+[23:01:09] [INFO] [ReplayManager] Recording frame 1500 (25,0s): player_valid=True, enemies=10
+[23:01:10] [INFO] [ReplayManager] Recording frame 1560 (26,0s): player_valid=True, enemies=10
+[23:01:11] [INFO] [ReplayManager] Recording frame 1620 (27,0s): player_valid=True, enemies=10
+[23:01:12] [INFO] [ReplayManager] Recording frame 1680 (28,0s): player_valid=True, enemies=10
+[23:01:13] [INFO] [ReplayManager] Recording frame 1740 (29,0s): player_valid=True, enemies=10
+[23:01:14] [INFO] [ReplayManager] Recording frame 1800 (30,0s): player_valid=True, enemies=10
+[23:01:15] [INFO] [ReplayManager] Recording frame 1860 (31,0s): player_valid=True, enemies=10
+[23:01:16] [INFO] [ReplayManager] Recording frame 1920 (32,0s): player_valid=True, enemies=10
+[23:01:17] [INFO] [ReplayManager] Recording frame 1980 (33,0s): player_valid=True, enemies=10
+[23:01:18] [INFO] [ReplayManager] Recording frame 2040 (34,0s): player_valid=True, enemies=10
+[23:01:19] [INFO] [ReplayManager] Recording frame 2100 (35,0s): player_valid=True, enemies=10
+[23:01:20] [INFO] [ReplayManager] Recording frame 2160 (36,0s): player_valid=True, enemies=10
+[23:01:21] [INFO] [ReplayManager] Recording frame 2220 (37,0s): player_valid=True, enemies=10
+[23:01:22] [INFO] [ReplayManager] Recording frame 2280 (38,0s): player_valid=True, enemies=10
+[23:01:23] [INFO] [ReplayManager] Recording frame 2340 (39,0s): player_valid=True, enemies=10
+[23:01:24] [INFO] [ReplayManager] Recording frame 2400 (40,0s): player_valid=True, enemies=10
+[23:01:25] [INFO] [ReplayManager] Recording frame 2460 (41,0s): player_valid=True, enemies=10
+[23:01:26] [INFO] [ReplayManager] Recording frame 2520 (42,0s): player_valid=True, enemies=10
+[23:01:27] [INFO] [ReplayManager] Recording frame 2580 (43,0s): player_valid=True, enemies=10
+[23:01:28] [INFO] [ReplayManager] Recording frame 2640 (44,0s): player_valid=True, enemies=10
+[23:01:29] [INFO] [ReplayManager] Recording frame 2700 (45,0s): player_valid=True, enemies=10
+[23:01:30] [INFO] [ReplayManager] Recording frame 2760 (46,0s): player_valid=True, enemies=10
+[23:01:31] [INFO] [ReplayManager] Recording frame 2820 (47,0s): player_valid=True, enemies=10
+[23:01:32] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[23:01:32] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[23:01:32] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(450,1111), corner_timer=0.30
+[23:01:32] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(450,1111), corner_timer=0.30
+[23:01:32] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(450,1019), corner_timer=-0.02
+[23:01:32] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[23:01:32] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(450,1019), corner_timer=-0.02
+[23:01:32] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[23:01:32] [INFO] [ReplayManager] Recording frame 2880 (48,0s): player_valid=True, enemies=10
+[23:01:33] [INFO] [PauseMenu] Armory button pressed
+[23:01:33] [INFO] [PauseMenu] Creating new armory menu instance
+[23:01:33] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[23:01:33] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[23:01:33] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[23:01:33] [INFO] [PauseMenu] back_pressed signal exists on instance
+[23:01:33] [INFO] [PauseMenu] back_pressed signal connected
+[23:01:33] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[23:01:33] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[23:01:33] [INFO] [ReplayManager] Recording frame 2940 (49,0s): player_valid=True, enemies=10
+[23:01:33] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(450,1016), corner_timer=0.30
+[23:01:33] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(450,1016), corner_timer=0.30
+[23:01:34] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(450,1004), corner_timer=-0.02
+[23:01:34] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[23:01:34] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(450,1004), corner_timer=0.30
+[23:01:34] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[23:01:34] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:01:34] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:01:34] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(450,1004), corner_timer=-0.02
+[23:01:34] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[23:01:34] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(450,1004), corner_timer=0.30
+[23:01:34] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[23:01:34] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (676.74286, 880.0393)
+[23:01:34] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[23:01:34] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:01:34] [INFO] [DefensiveGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:01:34] [INFO] [GrenadeTimer] Initialized for Flashbang grenade, effect radius: 700
+[23:01:34] [INFO] [Player.Grenade] Added GrenadeTimer component (type: Flashbang)
+[23:01:34] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[23:01:34] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[23:01:34] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1004.44446)
+[23:01:34] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:01:34] [INFO] [Player.Grenade] Step 1 complete! Drag: (154.98956, -0.34124756)
+[23:01:34] [INFO] [ReplayManager] Recording frame 3000 (50,0s): player_valid=True, enemies=10
+[23:01:34] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:01:34] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[23:01:34] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(450,1004), corner_timer=-0.02
+[23:01:34] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[23:01:34] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(450,1004), corner_timer=0.30
+[23:01:35] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(450,1004), corner_timer=-0.02
+[23:01:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[23:01:35] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(450,1004), corner_timer=0.30
+[23:01:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:35] [INFO] [ReplayManager] Recording frame 3060 (51,0s): player_valid=True, enemies=10
+[23:01:35] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(428,1004), corner_timer=-0.02
+[23:01:35] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[23:01:35] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(424,1003), corner_timer=0.30
+[23:01:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:36] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(351,951), corner_timer=-0.02
+[23:01:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[23:01:36] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(348,949), corner_timer=0.30
+[23:01:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:36] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.4°, current=120.7°, player=(324,935), corner_timer=-0.02
+[23:01:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[23:01:36] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.7°, current=123.6°, player=(324,935), corner_timer=0.30
+[23:01:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:36] [INFO] [ReplayManager] Recording frame 3120 (52,0s): player_valid=True, enemies=10
+[23:01:36] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.9°, current=89.7°, player=(324,935), corner_timer=-0.02
+[23:01:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[23:01:36] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=92.5°, player=(324,935), corner_timer=0.30
+[23:01:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:37] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.7°, current=89.6°, player=(324,935), corner_timer=-0.02
+[23:01:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[23:01:37] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(324,935), corner_timer=0.30
+[23:01:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:37] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.5°, player=(324,935), corner_timer=-0.02
+[23:01:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[23:01:37] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(324,935), corner_timer=0.30
+[23:01:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:37] [INFO] [Player.Grenade.Simple] Throwing! Target: (663.38165, 630.69684), Distance: 395,4, Speed: 487,0, Friction: 300,0
+[23:01:37] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,7326241
+[23:01:37] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[23:01:37] [INFO] [Player.Grenade.Simple] C# set velocity directly: dir=(0.7434219, -0.66882277), speed=487,0, spawn=(369.4647, 895.1205)
+[23:01:37] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.743422, -0.668823), Speed: 487.0 (clamped from 487.0, max: 1000.0)
+[23:01:37] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:01:37] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[23:01:37] [INFO] [Player.Grenade] State reset to IDLE
+[23:01:37] [INFO] [Player.Grenade] State reset to IDLE
+[23:01:37] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:01:37] [INFO] [ReplayManager] Recording frame 3180 (53,0s): player_valid=True, enemies=10
+[23:01:37] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.4°, current=89.5°, player=(324,935), corner_timer=-0.02
+[23:01:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[23:01:37] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.3°, player=(324,935), corner_timer=0.30
+[23:01:37] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:01:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:38] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:01:38] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.5°, player=(375,935), corner_timer=-0.02
+[23:01:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:38] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(381,935), corner_timer=0.30
+[23:01:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:38] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:38] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:38] [INFO] [ReplayManager] Recording frame 3240 (54,0s): player_valid=True, enemies=10
+[23:01:38] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:38] [INFO] [GrenadeBase] EXPLODED at (624.7548, 665.4474)!
+[23:01:38] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(624.7548, 665.4474), source=NEUTRAL (DefensiveGrenade), range=2937, listeners=10
+[23:01:38] [ENEMY] [Enemy1] Heard EXPLOSION at (624.7548, 665.4474), intensity=0.01, distance=453
+[23:01:38] [ENEMY] [Enemy2] Heard EXPLOSION at (624.7548, 665.4474), intensity=0.04, distance=253
+[23:01:38] [ENEMY] [Enemy3] Heard EXPLOSION at (624.7548, 665.4474), intensity=0.20, distance=113
+[23:01:38] [ENEMY] [Enemy4] Heard EXPLOSION at (624.7548, 665.4474), intensity=0.03, distance=293
+[23:01:38] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0, below_threshold=6
+[23:01:38] [ENEMY] [Enemy2] Hit: dmg=1, hp=4/4->3/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(-0.889514, -0.456907), lethal=false
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1)
+[23:01:38] [ENEMY] [Enemy2] Hit: dmg=1, hp=3/4->2/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(-0.889514, -0.456907), lethal=false
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1)
+[23:01:38] [ENEMY] [Enemy2] Hit: dmg=1, hp=2/4->1/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(-0.889514, -0.456907), lethal=false
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1)
+[23:01:38] [ENEMY] [Enemy2] Hit: dmg=1, hp=1/4->0/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(-0.889514, -0.456907), lethal=true
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1.5)
+[23:01:38] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false)
+[23:01:38] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[23:01:38] [ENEMY] [Enemy2] [AllyDeath] Notified 2 enemies
+[23:01:38] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 9)
+[23:01:38] [INFO] [DeathAnim] Started - Angle: -152.8 deg, Index: 1
+[23:01:38] [ENEMY] [Enemy2] Death animation started with hit direction: (-0.889514, -0.456907)
+[23:01:38] [INFO] [DefensiveGrenade] Applied 99 HE damage to enemy at distance 252.7
+[23:01:38] [ENEMY] [Enemy3] Hit: dmg=1, hp=4/4->3/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(0.664795, 0.747026), lethal=false
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Wall found for blood splatter at (753.3953, 810) (dist=80 px)
+[23:01:38] [INFO] [BloodDecal] Blood puddle created at (753.3953, 809) (added to group)
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[23:01:38] [ENEMY] [Enemy3] Hit: dmg=1, hp=3/4->2/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(0.664795, 0.747026), lethal=false
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Wall found for blood splatter at (753.3953, 810) (dist=80 px)
+[23:01:38] [INFO] [BloodDecal] Blood puddle created at (753.3953, 809) (added to group)
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[23:01:38] [ENEMY] [Enemy3] Hit: dmg=1, hp=2/4->1/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(0.664795, 0.747026), lethal=false
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Wall found for blood splatter at (753.3953, 810) (dist=80 px)
+[23:01:38] [INFO] [BloodDecal] Blood puddle created at (753.3953, 809) (added to group)
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[23:01:38] [ENEMY] [Enemy3] Hit: dmg=1, hp=1/4->0/4
+[23:01:38] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(0.664795, 0.747026), lethal=true
+[23:01:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:38] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[23:01:38] [INFO] [ImpactEffects] Wall found for blood splatter at (753.3953, 810) (dist=80 px)
+[23:01:38] [INFO] [BloodDecal] Blood puddle created at (753.3953, 809) (added to group)
+[23:01:38] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1.5)
+[23:01:38] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[23:01:38] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[23:01:38] [ENEMY] [Enemy3] [AllyDeath] Notified 1 enemies
+[23:01:38] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 8)
+[23:01:38] [INFO] [DeathAnim] Started - Angle: 48.3 deg, Index: 15
+[23:01:38] [ENEMY] [Enemy3] Death animation started with hit direction: (0.664795, 0.747026)
+[23:01:38] [INFO] [DefensiveGrenade] Applied 99 HE damage to enemy at distance 113.2
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #1 at angle 3.4 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #2 at angle 21.7 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #3 at angle 18.6 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #4 at angle 33.7 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #5 at angle 31.8 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #6 at angle 49.8 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #7 at angle 40.6 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #8 at angle 75.5 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #9 at angle 63.9 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #10 at angle 86.4 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #11 at angle 96.5 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #12 at angle 93.2 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #13 at angle 119.6 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #14 at angle 120.0 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #15 at angle 124.6 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #16 at angle 146.1 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #17 at angle 133.9 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #18 at angle 165.9 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #19 at angle 149.9 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #20 at angle 172.5 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #21 at angle 172.5 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #22 at angle 188.8 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #23 at angle 184.7 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #24 at angle 192.3 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #25 at angle 203.2 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #26 at angle 237.1 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #27 at angle 248.0 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #28 at angle 231.9 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #29 at angle 253.7 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #30 at angle 254.7 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #31 at angle 271.4 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #32 at angle 271.5 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #33 at angle 283.4 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #34 at angle 294.9 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #35 at angle 304.0 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #36 at angle 325.0 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #37 at angle 328.3 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #38 at angle 338.4 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #39 at angle 342.9 degrees
+[23:01:38] [INFO] [DefensiveGrenade] Spawned shrapnel #40 at angle 357.5 degrees
+[23:01:38] [INFO] [GrenadeTimer] Timer expired for Flashbang grenade!
+[23:01:38] [INFO] [GrenadeTimer] Flashbang grenade activated at (624.75476, 665.4474)!
+[23:01:38] [INFO] [GrenadeTimer] Applying flashbang effects (radius: 700, blindness: 12s, stun: 6s)
+[23:01:38] [INFO] [FlashbangStatus] Flashbang: blind=7.7s, stun=3.8s
+[23:01:38] [INFO] [FlashbangStatus] Status: BLINDED applied
+[23:01:38] [INFO] [FlashbangStatus] Status: STUNNED applied
+[23:01:38] [INFO] [GrenadeTimer] Applied flashbang to enemy at distance 252,7 (intensity: 0,64)
+[23:01:38] [INFO] [FlashbangStatus] Flashbang: blind=10.1s, stun=5.0s
+[23:01:38] [INFO] [FlashbangStatus] Status: BLINDED applied
+[23:01:38] [INFO] [FlashbangStatus] Status: STUNNED applied
+[23:01:38] [INFO] [GrenadeTimer] Applied flashbang to enemy at distance 113,2 (intensity: 0,84)
+[23:01:38] [INFO] [GrenadeTimer] Player behind wall - flashbang blocked (distance: 304,3)
+[23:01:38] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(624.7548, 665.4474), source=NEUTRAL (DefensiveGrenade), range=2938, listeners=8
+[23:01:38] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[23:01:38] [INFO] [GrenadeTimer] Spawned flashbang effect at (624.75476, 665.4474) (radius: 700)
+[23:01:38] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=72.5°, current=-157.5°, player=(483,935), corner_timer=0.00
+[23:01:38] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=173.6°, current=168.8°, player=(483,935), corner_timer=0.00
+[23:01:38] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:39] [ENEMY] [Enemy4] Hit: dmg=1, hp=2/2->1/2
+[23:01:39] [INFO] [ImpactEffects] spawn_blood_effect called at (778.7569, 905.0839), dir=(-0.858248, 0.513235), lethal=false
+[23:01:39] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:39] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:39] [INFO] [ImpactEffects] Blood effect spawned at (778.7569, 905.0839) (scale=1)
+[23:01:39] [ENEMY] [Enemy4] Hit: dmg=1, hp=1/2->0/2
+[23:01:39] [INFO] [ImpactEffects] spawn_blood_effect called at (778.4516, 905.4561), dir=(0.3179, 0.948124), lethal=true
+[23:01:39] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:39] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[23:01:39] [INFO] [ImpactEffects] Wall found for blood splatter at (810.1516, 1000) (dist=99 px)
+[23:01:39] [INFO] [BloodDecal] Blood puddle created at (810.1516, 999) (added to group)
+[23:01:39] [INFO] [ImpactEffects] Blood effect spawned at (778.4516, 905.4561) (scale=1.5)
+[23:01:39] [ENEMY] [Enemy4] Enemy died (ricochet: false, penetration: false)
+[23:01:39] [INFO] [ScoreManager] Kill registered. Combo: 3 (points: 3000)
+[23:01:39] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 7)
+[23:01:39] [INFO] [DeathAnim] Started - Angle: 71.5 deg, Index: 16
+[23:01:39] [ENEMY] [Enemy4] Death animation started with hit direction: (0.3179, 0.948124)
+[23:01:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:39] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:39] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:39] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[23:01:39] [ENEMY] [Enemy2] Ragdoll activated
+[23:01:39] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[23:01:39] [ENEMY] [Enemy3] Ragdoll activated
+[23:01:39] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[23:01:39] [ENEMY] [Enemy4] Ragdoll activated
+[23:01:39] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[23:01:39] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:39] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:39] [INFO] [ReplayManager] Recording frame 3300 (55,0s): player_valid=True, enemies=10
+[23:01:39] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:39] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:40] [WARN] [FPS] Drop detected: 7 fps (threshold: 30)
+[23:01:40] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:40] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:40] [ENEMY] [Enemy2] Death animation completed
+[23:01:40] [ENEMY] [Enemy3] Death animation completed
+[23:01:40] [ENEMY] [Enemy4] Death animation completed
+[23:01:40] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:40] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:40] [INFO] [ReplayManager] Recording frame 3360 (56,0s): player_valid=True, enemies=10
+[23:01:40] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,935), corner_timer=-0.02
+[23:01:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:40] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,935), corner_timer=0.30
+[23:01:40] [ENEMY] [Enemy1] PURSUING corner check: angle -139.2°
+[23:01:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [WARN] [FPS] Drop detected: 18 fps (threshold: 30)
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,895), corner_timer=-0.02
+[23:01:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,889), corner_timer=0.30
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy1] PURSUING corner check: angle -80.1°
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,785), corner_timer=-0.02
+[23:01:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,779), corner_timer=0.30
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy1] PURSUING corner check: angle 116.4°
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:41] [INFO] [ReplayManager] Recording frame 3420 (57,0s): player_valid=True, enemies=10
+[23:01:41] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,728), corner_timer=-0.02
+[23:01:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:41] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,728), corner_timer=0.30
+[23:01:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:42] [WARN] [FPS] Drop detected: 27 fps (threshold: 30)
+[23:01:42] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(483,728), corner_timer=-0.02
+[23:01:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:42] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(483,728), corner_timer=0.30
+[23:01:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[23:01:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[23:01:42] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[23:01:42] [INFO] [LastChance] Resetting all effects (scene change detected)
+[23:01:42] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[23:01:42] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[23:01:42] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[23:01:42] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[23:01:42] [ENEMY] [Enemy1] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[23:01:42] [ENEMY] [Enemy2] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[23:01:42] [ENEMY] [Enemy3] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[23:01:42] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[23:01:42] [ENEMY] [Enemy4] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[23:01:42] [INFO] [EnemyGrenade] Grenade bag built (hard): [Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Defensive]
+[23:01:42] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
+[23:01:42] [ENEMY] [Grenadier] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[23:01:42] [ENEMY] [Enemy6] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[23:01:42] [ENEMY] [Enemy7] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[23:01:42] [ENEMY] [Enemy8] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[23:01:42] [ENEMY] [Enemy9] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[23:01:42] [ENEMY] [Enemy10] Death animation component initialized
+[23:01:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[23:01:42] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[23:01:42] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[23:01:42] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[23:01:42] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[23:01:42] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[23:01:42] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+[23:01:42] [INFO] [Player.Weapon] Removed default MakarovPM
+[23:01:42] [INFO] [Player.Weapon] Equipped AssaultRifle (ammo: 30/30)
+[23:01:42] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[23:01:42] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[23:01:42] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[23:01:42] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[23:01:42] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[23:01:42] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[23:01:42] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[23:01:42] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[23:01:42] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[23:01:42] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
+[23:01:42] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
+[23:01:42] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[23:01:42] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[23:01:42] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[23:01:42] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[23:01:42] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[23:01:42] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[23:01:42] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[23:01:42] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[23:01:42] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[23:01:42] [INFO] [BuildingLevel] Setting up weapon: m16
+[23:01:42] [INFO] [BuildingLevel] AssaultRifle already equipped by C# Player - skipping GDScript weapon swap
+[23:01:42] [INFO] [ScoreManager] Level started with 10 enemies
+[23:01:42] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[23:01:42] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[23:01:42] [INFO] [ReplayManager] Replay data cleared
+[23:01:42] [INFO] [BuildingLevel] Previous replay data cleared
+[23:01:42] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (M16)
+[23:01:42] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[23:01:42] [INFO] [ReplayManager] Level: BuildingLevel
+[23:01:42] [INFO] [ReplayManager] Player: Player (valid: True)
+[23:01:42] [INFO] [ReplayManager] Enemies count: 10
+[23:01:42] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[23:01:42] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[23:01:42] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[23:01:42] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[23:01:42] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[23:01:42] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[23:01:42] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[23:01:42] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[23:01:42] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[23:01:42] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[23:01:42] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[23:01:42] [INFO] [BuildingLevel] Replay recording started successfully
+[23:01:42] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[23:01:42] [INFO] [CinemaEffects] Found player node: Player
+[23:01:42] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 8)
+[23:01:42] [ENEMY] [Enemy1] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 3, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 9)
+[23:01:42] [ENEMY] [Enemy2] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 2, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 10)
+[23:01:42] [ENEMY] [Enemy3] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 3, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 11)
+[23:01:42] [ENEMY] [Enemy4] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 12)
+[23:01:42] [ENEMY] [Grenadier] Registered as sound listener
+[23:01:42] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 13)
+[23:01:42] [ENEMY] [Enemy6] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 3, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 14)
+[23:01:42] [ENEMY] [Enemy7] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 2, behavior: PATROL
+[23:01:42] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 15)
+[23:01:42] [ENEMY] [Enemy8] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 4, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 16)
+[23:01:42] [ENEMY] [Enemy9] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[23:01:42] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[23:01:42] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 17)
+[23:01:42] [ENEMY] [Enemy10] Registered as sound listener
+[23:01:42] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 2, behavior: PATROL
+[23:01:42] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[23:01:42] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[23:01:42] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=225.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=213.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[23:01:42] [INFO] [Player] Detecting weapon pose (frame 3)...
+[23:01:42] [INFO] [Player] Detected weapon: Rifle (default pose)
+[23:01:42] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[23:01:42] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[23:01:42] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[23:01:42] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[23:01:42] [INFO] [LastChance] Found player: Player
+[23:01:42] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[23:01:42] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[23:01:42] [INFO] [LastChance] Connected to player Died signal (C#)
+[23:01:42] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[23:01:42] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[23:01:42] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:01:42] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:01:42] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[23:01:42] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (516.91815, 890)
+[23:01:42] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[23:01:42] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:01:43] [INFO] [DefensiveGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:01:43] [INFO] [GrenadeTimer] Initialized for Flashbang grenade, effect radius: 700
+[23:01:43] [INFO] [Player.Grenade] Added GrenadeTimer component (type: Flashbang)
+[23:01:43] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[23:01:43] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[23:01:43] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[23:01:43] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:01:43] [INFO] [Player.Grenade] Step 1 complete! Drag: (317.54932, 62.11505)
+[23:01:43] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:01:43] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[23:01:43] [WARN] [FPS] Drop detected: 28 fps (threshold: 30)
+[23:01:43] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[23:01:44] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[23:01:44] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[23:01:44] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(306,1209), corner_timer=0.30
+[23:01:44] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(306,1209), corner_timer=0.30
+[23:01:44] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(327,1139), corner_timer=-0.02
+[23:01:44] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[23:01:44] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(327,1139), corner_timer=-0.02
+[23:01:44] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[23:01:44] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(331,1137), corner_timer=0.30
+[23:01:44] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(331,1137), corner_timer=0.30
+[23:01:44] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[23:01:44] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(423,1131), corner_timer=-0.02
+[23:01:44] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[23:01:44] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(426,1131), corner_timer=0.30
+[23:01:45] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(428,1124), corner_timer=-0.02
+[23:01:45] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[23:01:45] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(425,1122), corner_timer=0.30
+[23:01:45] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(356,1053), corner_timer=-0.02
+[23:01:45] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[23:01:45] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(352,1049), corner_timer=0.30
+[23:01:45] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[23:01:45] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(278,975), corner_timer=-0.02
+[23:01:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[23:01:45] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(274,972), corner_timer=0.30
+[23:01:45] [INFO] [Player.Grenade.Simple] Throwing! Target: (647.34827, 667.32654), Distance: 430,8, Speed: 508,4, Friction: 300,0
+[23:01:45] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,6048212
+[23:01:45] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[23:01:45] [INFO] [Player.Grenade.Simple] C# set velocity directly: dir=(0.8226038, -0.568615), speed=508,4, spawn=(292.96536, 912.2895)
+[23:01:45] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.822604, -0.568615), Speed: 508.4 (clamped from 508.4, max: 1000.0)
+[23:01:45] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:01:45] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[23:01:45] [INFO] [Player.Grenade] State reset to IDLE
+[23:01:45] [INFO] [Player.Grenade] State reset to IDLE
+[23:01:45] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:01:45] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:01:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:46] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:01:46] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(280,924), corner_timer=-0.02
+[23:01:46] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[23:01:46] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(285,924), corner_timer=0.30
+[23:01:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:46] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[23:01:46] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(358,981), corner_timer=-0.02
+[23:01:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[23:01:46] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(359,986), corner_timer=0.30
+[23:01:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:46] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.4°, current=120.7°, player=(357,1086), corner_timer=-0.02
+[23:01:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[23:01:46] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.7°, current=123.6°, player=(355,1090), corner_timer=0.30
+[23:01:47] [INFO] [GrenadeBase] EXPLODED at (608.3726, 694.2685)!
+[23:01:47] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(608.3726, 694.2685), source=NEUTRAL (DefensiveGrenade), range=2937, listeners=17
+[23:01:47] [INFO] [SoundPropagation] Cleaned up 7 invalid listeners
+[23:01:47] [ENEMY] [Enemy1] Heard EXPLOSION at (608.3726, 694.2685), intensity=0.01, distance=462
+[23:01:47] [ENEMY] [Enemy2] Heard EXPLOSION at (608.3726, 694.2685), intensity=0.04, distance=253
+[23:01:47] [ENEMY] [Enemy3] Heard EXPLOSION at (608.3726, 694.2685), intensity=0.22, distance=107
+[23:01:47] [ENEMY] [Enemy4] Heard EXPLOSION at (608.3726, 694.2685), intensity=0.03, distance=281
+[23:01:47] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0, below_threshold=6
+[23:01:47] [ENEMY] [Enemy2] Hit: dmg=1, hp=2/2->1/2
+[23:01:47] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(-0.822173, -0.569238), lethal=false
+[23:01:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:47] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:47] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1)
+[23:01:47] [ENEMY] [Enemy2] Hit: dmg=1, hp=1/2->0/2
+[23:01:47] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(-0.822173, -0.569238), lethal=true
+[23:01:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:47] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[23:01:47] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1.5)
+[23:01:47] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false)
+[23:01:47] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[23:01:47] [ENEMY] [Enemy2] [AllyDeath] Notified 2 enemies
+[23:01:47] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 9)
+[23:01:47] [INFO] [DeathAnim] Started - Angle: -145.3 deg, Index: 2
+[23:01:47] [ENEMY] [Enemy2] Death animation started with hit direction: (-0.822173, -0.569238)
+[23:01:47] [INFO] [DefensiveGrenade] Applied 99 HE damage to enemy at distance 253.4
+[23:01:47] [ENEMY] [Enemy3] Hit: dmg=1, hp=3/3->2/3
+[23:01:47] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(0.854371, 0.519663), lethal=false
+[23:01:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:47] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:47] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[23:01:47] [ENEMY] [Enemy3] Hit: dmg=1, hp=2/3->1/3
+[23:01:47] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(0.854371, 0.519663), lethal=false
+[23:01:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:47] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:47] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[23:01:47] [ENEMY] [Enemy3] Hit: dmg=1, hp=1/3->0/3
+[23:01:47] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(0.854371, 0.519663), lethal=true
+[23:01:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:47] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[23:01:47] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1.5)
+[23:01:47] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[23:01:47] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[23:01:47] [ENEMY] [Enemy3] [AllyDeath] Notified 1 enemies
+[23:01:47] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 8)
+[23:01:47] [INFO] [DeathAnim] Started - Angle: 31.3 deg, Index: 14
+[23:01:47] [ENEMY] [Enemy3] Death animation started with hit direction: (0.854371, 0.519663)
+[23:01:47] [INFO] [DefensiveGrenade] Applied 99 HE damage to enemy at distance 107.2
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #1 at angle -3.0 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #2 at angle 2.1 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #3 at angle 29.8 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #4 at angle 32.9 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #5 at angle 34.5 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #6 at angle 50.6 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #7 at angle 58.8 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #8 at angle 76.0 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #9 at angle 83.6 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #10 at angle 74.2 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #11 at angle 91.9 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #12 at angle 95.5 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #13 at angle 120.2 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #14 at angle 116.3 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #15 at angle 116.5 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #16 at angle 142.5 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #17 at angle 156.9 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #18 at angle 142.4 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #19 at angle 170.4 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #20 at angle 176.4 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #21 at angle 181.7 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #22 at angle 197.2 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #23 at angle 212.8 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #24 at angle 219.9 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #25 at angle 208.5 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #26 at angle 234.6 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #27 at angle 226.6 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #28 at angle 233.1 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #29 at angle 265.9 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #30 at angle 260.4 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #31 at angle 269.7 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #32 at angle 268.3 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #33 at angle 279.6 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #34 at angle 286.4 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #35 at angle 318.0 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #36 at angle 316.3 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #37 at angle 337.5 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #38 at angle 321.3 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #39 at angle 356.1 degrees
+[23:01:47] [INFO] [DefensiveGrenade] Spawned shrapnel #40 at angle 361.5 degrees
+[23:01:47] [INFO] [GrenadeTimer] Timer expired for Flashbang grenade!
+[23:01:47] [INFO] [GrenadeTimer] Flashbang grenade activated at (608.3726, 694.2685)!
+[23:01:47] [INFO] [GrenadeTimer] Applying flashbang effects (radius: 700, blindness: 12s, stun: 6s)
+[23:01:47] [INFO] [FlashbangStatus] Flashbang: blind=7.7s, stun=3.8s
+[23:01:47] [INFO] [FlashbangStatus] Status: BLINDED applied
+[23:01:47] [INFO] [FlashbangStatus] Status: STUNNED applied
+[23:01:47] [INFO] [GrenadeTimer] Applied flashbang to enemy at distance 253,4 (intensity: 0,64)
+[23:01:47] [INFO] [FlashbangStatus] Flashbang: blind=10.2s, stun=5.1s
+[23:01:47] [INFO] [FlashbangStatus] Status: BLINDED applied
+[23:01:47] [INFO] [FlashbangStatus] Status: STUNNED applied
+[23:01:47] [INFO] [GrenadeTimer] Applied flashbang to enemy at distance 107,2 (intensity: 0,85)
+[23:01:47] [INFO] [GrenadeTimer] Player behind wall - flashbang blocked (distance: 507,4)
+[23:01:47] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(608.3726, 694.2685), source=NEUTRAL (DefensiveGrenade), range=2938, listeners=8
+[23:01:47] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[23:01:47] [INFO] [GrenadeTimer] Spawned flashbang effect at (608.3726, 694.2685) (radius: 700)
+[23:01:47] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=87.6°, current=-157.5°, player=(332,1119), corner_timer=0.00
+[23:01:47] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=154.8°, current=-67.5°, player=(332,1119), corner_timer=0.00
+[23:01:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:47] [ENEMY] [Enemy1] Hit: dmg=1, hp=3/3->2/3
+[23:01:47] [INFO] [ImpactEffects] spawn_blood_effect called at (298.7202, 376.2652), dir=(-0.686997, -0.72666), lethal=false
+[23:01:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:47] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:47] [INFO] [ImpactEffects] Blood effect spawned at (298.7202, 376.2652) (scale=1)
+[23:01:47] [ENEMY] [Enemy4] Hit: dmg=1, hp=4/4->3/4
+[23:01:47] [INFO] [ImpactEffects] spawn_blood_effect called at (752.0021, 914.9169), dir=(0.159008, -0.987277), lethal=false
+[23:01:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[23:01:47] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[23:01:47] [INFO] [ImpactEffects] Wall found for blood splatter at (756.0151, 890) (dist=25 px)
+[23:01:47] [INFO] [BloodDecal] Blood puddle created at (756.0151, 891) (added to group)
+[23:01:47] [INFO] [ImpactEffects] Blood effect spawned at (752.0021, 914.9169) (scale=1)
+[23:01:47] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.9°, current=89.7°, player=(285,1166), corner_timer=-0.02
+[23:01:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[23:01:47] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=92.5°, player=(281,1170), corner_timer=0.30
+[23:01:47] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[23:01:47] [ENEMY] [Enemy1] State: COMBAT -> RETREATING
+[23:01:47] [ENEMY] [Enemy4] ROT_CHANGE: P2:combat_state -> P4:velocity, state=RETREATING, target=180.0°, current=114.1°, player=(269,1182), corner_timer=0.00
+[23:01:47] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[23:01:47] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P4:velocity, state=RETREATING, target=0.0°, current=84.8°, player=(265,1185), corner_timer=0.00
+[23:01:47] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[23:01:47] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[23:01:47] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[23:01:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:47] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=10
+[23:01:47] [ENEMY] [Enemy2] Ragdoll activated
+[23:01:47] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[23:01:47] [ENEMY] [Enemy3] Ragdoll activated
+[23:01:47] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[23:01:47] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.7°, current=89.6°, player=(196,1216), corner_timer=-0.02
+[23:01:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[23:01:47] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(191,1215), corner_timer=0.30
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:47] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.5°, player=(140,1164), corner_timer=-0.02
+[23:01:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:47] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(140,1159), corner_timer=0.30
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:47] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.4°, current=89.5°, player=(144,1057), corner_timer=-0.02
+[23:01:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.3°, player=(146,1052), corner_timer=0.30
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [WARN] [FPS] Drop detected: 16 fps (threshold: 30)
+[23:01:48] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=10
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy2] Death animation completed
+[23:01:48] [ENEMY] [Enemy3] Death animation completed
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.5°, player=(214,976), corner_timer=-0.02
+[23:01:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(218,972), corner_timer=0.30
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [BloodyFeet:Enemy4] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(302,922), corner_timer=-0.02
+[23:01:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(308,922), corner_timer=0.30
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (198 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (196 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (193 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:48] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (190 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (187 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (185 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (182 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (179 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (176 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (174 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (171 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (168 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (165 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (163 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (160 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (158 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (156 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (154 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(408,922), corner_timer=-0.02
+[23:01:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (152 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(412,922), corner_timer=0.30
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (150 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (148 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (147 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (146 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (144 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (143 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (142 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (141 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (141 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (140 < 275 safe distance, blast=225, margin=50) - skipping throw
+[23:01:49] [INFO] [EnemyGrenade] Unsafe throw distance (200 < 275 safe, blast=225) for Offensive - skipping
+[23:01:49] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=10
+[23:01:49] [WARN] [FPS] Drop detected: 19 fps (threshold: 30)
+[23:01:49] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(436,922), corner_timer=-0.02
+[23:01:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:49] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(436,922), corner_timer=0.30
+[23:01:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:49] [ENEMY] [Enemy4] State: SUPPRESSED -> IN_COVER
+[23:01:49] [ENEMY] [Enemy4] State: IN_COVER -> PURSUING
+[23:01:49] [ENEMY] [Enemy4] ROT_CHANGE: P4:velocity -> P2:combat_state, state=PURSUING, target=178.3°, current=119.8°, player=(436,922), corner_timer=0.00
+[23:01:49] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(436,922), corner_timer=-0.02
+[23:01:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:49] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(436,922), corner_timer=0.30
+[23:01:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:50] [ENEMY] [Enemy1] State: SUPPRESSED -> IN_COVER
+[23:01:50] [ENEMY] [Enemy1] State: IN_COVER -> PURSUING
+[23:01:50] [ENEMY] [Enemy1] ROT_CHANGE: P4:velocity -> P2:combat_state, state=PURSUING, target=76.9°, current=79.1°, player=(436,922), corner_timer=0.00
+[23:01:50] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(436,922), corner_timer=-0.02
+[23:01:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:50] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(436,922), corner_timer=0.30
+[23:01:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:50] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=True, enemies=10
+[23:01:50] [WARN] [FPS] Drop detected: 20 fps (threshold: 30)
+[23:01:50] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(436,922), corner_timer=-0.02
+[23:01:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:50] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(436,922), corner_timer=0.30
+[23:01:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:50] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(436,922), corner_timer=-0.02
+[23:01:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:50] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(436,922), corner_timer=0.30
+[23:01:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[23:01:51] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(436,922), corner_timer=-0.02
+[23:01:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[23:01:51] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(436,922), corner_timer=0.30
+[23:01:51] [INFO] ------------------------------------------------------------
+[23:01:51] [INFO] GAME LOG ENDED: 2026-03-05T23:01:51
+[23:01:51] [INFO] ============================================================
