@@ -145,6 +145,19 @@ public partial class SilencedPistol : BaseWeapon
             GD.Print("[SilencedPistol] No PistolSprite node (visual model not yet added)");
         }
 
+        // Check for Laser Sight active item - overrides color to purple regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                LaserSightColor = purpleColorVariant.AsColor();
+                GD.Print($"[SilencedPistol] Laser Sight active item: laser color set to purple {LaserSightColor}");
+            }
+        }
+
         // Get or create the laser sight Line2D
         _laserSight = GetNodeOrNull<Line2D>("LaserSight");
 

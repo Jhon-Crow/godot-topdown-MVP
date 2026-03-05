@@ -11,9 +11,12 @@ enum ActiveItemType {
 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
 	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
+	BFF_PENDANT,       # BFF pendant - press Space to summon a friendly companion with M16
 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
 	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
-	FORCE_FIELD        # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
+	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
+	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
+	LASER_SIGHT        # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
 }
 
 ## Currently selected active item type.
@@ -29,9 +32,12 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.FLASHLIGHT: false,
 	ActiveItemType.HOMING_BULLETS: false,
 	ActiveItemType.TELEPORT_BRACERS: false,
+	ActiveItemType.BFF_PENDANT: false,       # Issue #674
 	ActiveItemType.INVISIBILITY_SUIT: false,
 	ActiveItemType.BREAKER_BULLETS: false,
-	ActiveItemType.FORCE_FIELD: false
+	ActiveItemType.FORCE_FIELD: false,
+	ActiveItemType.TRAJECTORY_GLASSES: false, # Issue #744
+	ActiveItemType.LASER_SIGHT: false         # Issue #947
 }
 
 ## Active item data for UI and selection.
@@ -58,6 +64,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
 		"activation_hint": "Hold Space to aim, release to teleport"
 	},
+	ActiveItemType.BFF_PENDANT: {
+		"name": "BFF Pendant",
+		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
+		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle.",
+		"activation_hint": "Press Space to summon"
+	},
 	ActiveItemType.INVISIBILITY_SUIT: {
 		"name": "Invisibility",
 		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
@@ -74,6 +86,17 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/force_field_icon.png",
 		"description": "Force field — hold Space to activate glowing shield. 100% projectile reflection, grenades bounce without detonating. 8 second depletable charge.",
 		"activation_hint": "Hold Space to activate"
+	},
+	ActiveItemType.TRAJECTORY_GLASSES: {
+		"name": "Trajectory Glasses",
+		"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
+		"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.LASER_SIGHT: {
+		"name": "Laser Sight",
+		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
+		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
 	}
 }
 
@@ -175,6 +198,11 @@ func has_teleport_bracers() -> bool:
 	return current_active_item == ActiveItemType.TELEPORT_BRACERS
 
 
+## Check if BFF pendant is currently equipped.
+func has_bff_pendant() -> bool:
+	return current_active_item == ActiveItemType.BFF_PENDANT
+
+
 ## Check if an invisibility suit is currently equipped (Issue #673).
 func has_invisibility_suit() -> bool:
 	return current_active_item == ActiveItemType.INVISIBILITY_SUIT
@@ -188,6 +216,28 @@ func has_breaker_bullets() -> bool:
 ## Check if force field is currently equipped (Issue #676).
 func has_force_field() -> bool:
 	return current_active_item == ActiveItemType.FORCE_FIELD
+
+
+## Check if trajectory glasses are currently equipped (Issue #744).
+func has_trajectory_glasses() -> bool:
+	return current_active_item == ActiveItemType.TRAJECTORY_GLASSES
+
+
+## Check if laser sight is currently equipped (Issue #947).
+func has_laser_sight() -> bool:
+	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Get the laser sight color (purple).
+## Used by weapons to show purple laser when laser sight item is equipped.
+func get_laser_sight_color() -> Color:
+	return Color(0.6, 0.0, 1.0, 0.6)  # Purple with some transparency
+
+
+## Check if a laser sight should be forced on all weapons.
+## Returns true when laser sight active item is equipped (Issue #947).
+func should_force_laser_sight() -> bool:
+	return current_active_item == ActiveItemType.LASER_SIGHT
 
 
 ## Check if an active item type is unlocked.

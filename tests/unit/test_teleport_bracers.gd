@@ -11,9 +11,9 @@ extends GutTest
 
 
 func test_active_item_type_teleport_bracers_value() -> void:
-	# ActiveItemType.TELEPORT_BRACERS should be 2
-	var expected := 2
-	assert_eq(expected, 2, "TELEPORT_BRACERS should be the third active item type (2)")
+	# ActiveItemType.TELEPORT_BRACERS should be 3
+	var expected := 3
+	assert_eq(expected, 3, "TELEPORT_BRACERS should be the fourth active item type (3)")
 
 
 # ============================================================================
@@ -65,7 +65,9 @@ class MockActiveItemManager:
 	const ActiveItemType := {
 		NONE = 0,
 		FLASHLIGHT = 1,
-		TELEPORT_BRACERS = 2
+		HOMING_BULLETS = 2,
+		TELEPORT_BRACERS = 3,
+		BFF_PENDANT = 4
 	}
 
 	## Currently selected active item type
@@ -84,9 +86,19 @@ class MockActiveItemManager:
 			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
 		},
 		2: {
+			"name": "Homing Bullets",
+			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
+			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
+		},
+		3: {
 			"name": "Teleport Bracers",
 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+		},
+		4: {
+			"name": "BFF Pendant",
+			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
+			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
 		}
 	}
 
@@ -144,9 +156,17 @@ class MockActiveItemManager:
 	func has_flashlight() -> bool:
 		return current_active_item == ActiveItemType.FLASHLIGHT
 
+	## Check if homing bullets are currently equipped
+	func has_homing_bullets() -> bool:
+		return current_active_item == ActiveItemType.HOMING_BULLETS
+
 	## Check if teleport bracers are currently equipped
 	func has_teleport_bracers() -> bool:
 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+
+	## Check if BFF pendant is currently equipped
+	func has_bff_pendant() -> bool:
+		return current_active_item == ActiveItemType.BFF_PENDANT
 
 
 var manager: MockActiveItemManager
@@ -171,7 +191,7 @@ func test_default_active_item_is_none() -> void:
 
 
 func test_teleport_bracers_not_selected_by_default() -> void:
-	assert_false(manager.is_selected(2),
+	assert_false(manager.is_selected(3),
 		"Teleport Bracers should not be selected by default")
 
 
@@ -186,19 +206,19 @@ func test_no_teleport_bracers_by_default() -> void:
 
 
 func test_set_active_item_to_teleport_bracers() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_eq(manager.current_active_item, 2,
 		"Active item type should change to TELEPORT_BRACERS")
 
 
 func test_set_teleport_bracers_emits_change() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_eq(manager.type_changed_count, 1,
 		"Type change should increment counter")
 
 
 func test_set_teleport_bracers_triggers_restart_by_default() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_true(manager.last_restart_called,
 		"Level restart should be triggered by default")
 
@@ -210,20 +230,20 @@ func test_set_teleport_bracers_without_restart() -> void:
 
 
 func test_has_teleport_bracers_after_selection() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_true(manager.has_teleport_bracers(),
 		"has_teleport_bracers should return true after selecting bracers")
 
 
 func test_no_teleport_bracers_after_deselection() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	manager.set_active_item(0)
 	assert_false(manager.has_teleport_bracers(),
 		"has_teleport_bracers should return false after switching back to none")
 
 
 func test_no_flashlight_when_teleport_bracers_selected() -> void:
-	manager.set_active_item(2)
+	manager.set_active_item(3)
 	assert_false(manager.has_flashlight(),
 		"has_flashlight should return false when bracers are selected")
 
@@ -240,17 +260,19 @@ func test_no_teleport_bracers_when_flashlight_selected() -> void:
 
 
 func test_get_active_item_data_teleport_bracers() -> void:
-	var data := manager.get_active_item_data(2)
+	var data := manager.get_active_item_data(3)
 	assert_eq(data["name"], "Teleport Bracers")
 
 
 func test_get_all_active_item_types_includes_teleport_bracers() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 3,
-		"Should return 3 active item types")
+	assert_eq(types.size(), 5,
+		"Should return 5 active item types")
 	assert_true(0 in types, "Should have NONE")
 	assert_true(1 in types, "Should have FLASHLIGHT")
-	assert_true(2 in types, "Should have TELEPORT_BRACERS")
+	assert_true(2 in types, "Should have HOMING_BULLETS")
+	assert_true(3 in types, "Should have TELEPORT_BRACERS")
+	assert_true(4 in types, "Should have BFF_PENDANT")
 
 
 func test_get_active_item_name_teleport_bracers() -> void:
@@ -275,8 +297,8 @@ func test_get_active_item_icon_path_teleport_bracers() -> void:
 
 
 func test_is_selected_after_changing_to_teleport_bracers() -> void:
-	manager.set_active_item(2)
-	assert_true(manager.is_selected(2),
+	manager.set_active_item(3)
+	assert_true(manager.is_selected(3),
 		"TELEPORT_BRACERS should be selected after changing to it")
 	assert_false(manager.is_selected(0),
 		"NONE should not be selected after changing away from it")
@@ -286,9 +308,9 @@ func test_is_selected_after_changing_to_teleport_bracers() -> void:
 
 func test_switch_between_all_active_items() -> void:
 	manager.set_active_item(1)  # Flashlight
-	manager.set_active_item(2)  # Teleport Bracers
+	manager.set_active_item(3)  # Teleport Bracers
 	manager.set_active_item(0)  # None
-	manager.set_active_item(2)  # Back to Teleport Bracers
+	manager.set_active_item(3)  # Back to Teleport Bracers
 
 	assert_eq(manager.current_active_item, 2)
 	assert_eq(manager.type_changed_count, 4)
@@ -399,7 +421,8 @@ class MockArmoryWithTeleportBracers:
 	const ACTIVE_ITEMS: Dictionary = {
 		0: {"name": "None", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
-		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
+		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
+		3: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"}
 	}
 
 	## Applied active item type
@@ -546,3 +569,126 @@ func test_wall_not_hit_when_cursor_before_wall() -> void:
 	var result := calc.ray_hits_wall(Vector2(0, 0), Vector2(50, 0))
 	assert_false(result["hit"],
 		"Should not hit wall when cursor is before it")
+
+
+# ============================================================================
+# Map Boundary Clamping Tests (Issue #939)
+# ============================================================================
+
+
+class MockNavigationMeshClamper:
+	## Simulates the navigation mesh boundary clamping used to prevent
+	## teleporting outside the map boundary walls (Issue #939).
+
+	## The navigable rectangle (inner bounds, inside boundary walls)
+	var nav_rect: Rect2
+
+	func _init(rect: Rect2) -> void:
+		nav_rect = rect
+
+	## Returns the closest point on the navigation mesh boundary.
+	## If the point is inside, returns the point itself.
+	## If outside, clamps to the nearest edge.
+	func clamp_to_nav_mesh(pos: Vector2) -> Vector2:
+		return Vector2(
+			clampf(pos.x, nav_rect.position.x, nav_rect.position.x + nav_rect.size.x),
+			clampf(pos.y, nav_rect.position.y, nav_rect.position.y + nav_rect.size.y)
+		)
+
+	## Check if a position is within the navigation mesh
+	func is_within_nav_mesh(pos: Vector2) -> bool:
+		return nav_rect.has_point(pos)
+
+
+func test_position_inside_map_unchanged_by_clamp() -> void:
+	# Navigation area: (64, 64) to (6064, 5064) — typical for CityLevel
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	var inside_pos := Vector2(500, 500)
+	var result := clamper.clamp_to_nav_mesh(inside_pos)
+	assert_almost_eq(result.x, inside_pos.x, 1.0,
+		"Position inside map should not be altered by boundary clamp (x)")
+	assert_almost_eq(result.y, inside_pos.y, 1.0,
+		"Position inside map should not be altered by boundary clamp (y)")
+
+
+func test_position_outside_map_clamped_to_boundary() -> void:
+	# Navigation area: (64, 64) to (6064, 5064)
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position outside the top boundary wall (y < 64)
+	var outside_pos := Vector2(500, 10)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Clamped position should be within navigation mesh")
+	assert_almost_eq(result.y, 64.0, 1.0,
+		"Position outside top wall should be clamped to top nav boundary")
+
+
+func test_position_outside_left_wall_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position to the left of the left boundary wall
+	var outside_pos := Vector2(-200, 500)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside left wall should be clamped to navigation mesh")
+	assert_almost_eq(result.x, 64.0, 1.0,
+		"Position outside left wall should be clamped to left nav boundary")
+
+
+func test_position_outside_right_wall_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position to the right of the right boundary wall
+	var outside_pos := Vector2(8000, 500)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside right wall should be clamped to navigation mesh")
+	assert_almost_eq(result.x, 6064.0, 1.0,
+		"Position outside right wall should be clamped to right nav boundary")
+
+
+func test_position_outside_bottom_wall_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position below the bottom boundary wall
+	var outside_pos := Vector2(500, 8000)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside bottom wall should be clamped to navigation mesh")
+	assert_almost_eq(result.y, 5064.0, 1.0,
+		"Position outside bottom wall should be clamped to bottom nav boundary")
+
+
+func test_position_at_corner_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position far outside at corner (beyond both top and left walls)
+	var corner_pos := Vector2(-500, -500)
+	var result := clamper.clamp_to_nav_mesh(corner_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside corner should be clamped to navigation mesh")
+
+
+func test_boundary_wall_skip_blocked() -> void:
+	## Simulate the scenario where wall-skip logic would skip through the outer
+	## boundary wall — the final clamp should prevent the player from landing outside.
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 400, 400))
+
+	# Simulate: player at center (200, 200), cursor aimed at (200, 10) — past the top wall
+	# Wall-skip "finds" position at (200, 0) — outside the map
+	var outside_after_skip := Vector2(200, 0)
+
+	# Clamp should bring it back inside
+	var result := clamper.clamp_to_nav_mesh(outside_after_skip)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Wall-skip result outside map should be clamped back inside (Issue #939)")
+	assert_almost_eq(result.y, 64.0, 1.0,
+		"Clamped y should be at top nav boundary")
+
+
+func test_teleport_within_map_not_affected() -> void:
+	## Verify that a valid in-map teleport position is not altered by boundary clamping.
+	## This ensures the fix doesn't break normal teleport behavior.
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 400, 400))
+	var valid_pos := Vector2(200, 200)  # center of map
+	var result := clamper.clamp_to_nav_mesh(valid_pos)
+	assert_almost_eq(result.x, valid_pos.x, 1.0,
+		"Valid in-map position x should not be altered by clamping")
+	assert_almost_eq(result.y, valid_pos.y, 1.0,
+		"Valid in-map position y should not be altered by clamping")

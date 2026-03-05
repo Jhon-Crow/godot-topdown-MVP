@@ -722,9 +722,20 @@ public partial class Player : BaseCharacter
     private const string HomingSoundPath = "res://assets/audio/homing_activation.wav";
 
     /// <summary>
+    /// Path to the homing bullets scanner looping ambient sound (Issue #890).
+    /// </summary>
+    private const string HomingScannerLoopPath = "res://assets/audio/homing_scanner_loop.wav";
+
+    /// <summary>
     /// AudioStreamPlayer for homing activation sound.
     /// </summary>
     private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+    /// Loops while homing bullets item is equipped (always-on ambient scanner).
+    /// </summary>
+    private AudioStreamPlayer? _homingScannerPlayer = null;
 
     /// <summary>
     /// Signal emitted when homing charges change.
@@ -743,6 +754,31 @@ public partial class Player : BaseCharacter
     /// </summary>
     [Signal]
     public delegate void HomingDeactivatedEventHandler();
+
+    #endregion
+
+    #region BFF Pendant System (Issue #674)
+
+    /// <summary>
+    /// Path to the enemy scene used for the BFF companion (spawn actual enemy with aggressive AI).
+    /// Issue #674: Instead of a custom companion scene, we reuse the Enemy scene in aggressive state.
+    /// </summary>
+    private const string BffEnemyScenePath = "res://scenes/objects/Enemy.tscn";
+
+    /// <summary>
+    /// Whether the BFF pendant is equipped (active item selected in armory).
+    /// </summary>
+    private bool _bffPendantEquipped = false;
+
+    /// <summary>
+    /// Whether the companion has already been summoned this battle (one charge per battle).
+    /// </summary>
+    private bool _bffCompanionSummoned = false;
+
+    /// <summary>
+    /// Reference to the summoned companion node.
+    /// </summary>
+    private Node2D? _bffCompanionNode = null;
 
     #endregion
 
@@ -1036,6 +1072,9 @@ public partial class Player : BaseCharacter
         // Initialize homing bullets if active item manager has them selected (Issue #677)
         InitHomingBullets();
 
+        // Initialize BFF pendant if active item manager has it selected (Issue #674)
+        InitBffPendant();
+
         // Initialize invisibility suit if active item manager has it selected (Issue #673)
         InitInvisibilitySuit();
 
@@ -1044,6 +1083,9 @@ public partial class Player : BaseCharacter
 
         // Initialize force field if active item manager has it selected (Issue #676)
         InitForceField();
+
+        // Initialize trajectory glasses if active item manager has them selected (Issue #744)
+        InitTrajectoryGlasses();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1331,11 +1373,17 @@ public partial class Player : BaseCharacter
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
 
+        // Handle BFF pendant input (press Space to summon companion) (Issue #674)
+        HandleBffPendantInput();
+
         // Handle invisibility suit input (press Space to activate) (Issue #673)
         HandleInvisibilitySuitInput();
 
         // Handle force field input (hold Space to activate) (Issue #676)
         HandleForceFieldInput((float)delta);
+
+        // Handle trajectory glasses input (press Space to activate) (Issue #744)
+        HandleTrajectoryGlassesInput();
     }
 
     /// <summary>
@@ -4421,10 +4469,12 @@ public partial class Player : BaseCharacter
     /// The reticle should "skip through" walls — if the cursor is past a wall,
     /// the teleport lands on the far side of the wall, not before it.
     /// Uses multiple raycasts to find clear space beyond obstacles.
+    /// The result is always clamped to the navigation mesh to prevent teleporting
+    /// outside the map boundary walls (Issue #939).
     /// </summary>
     /// <param name="fromPos">The player's current position.</param>
     /// <param name="cursorPos">The mouse cursor position (intended target).</param>
-    /// <returns>A safe teleport destination position.</returns>
+    /// <returns>A safe teleport destination position within the map bounds.</returns>
     private Vector2 GetSafeTeleportPosition(Vector2 fromPos, Vector2 cursorPos)
     {
         var spaceState = GetWorld2D().DirectSpaceState;
@@ -4439,67 +4489,96 @@ public partial class Player : BaseCharacter
         directQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
         var directResult = spaceState.IntersectRay(directQuery);
 
+        Vector2 candidatePos;
         if (directResult.Count == 0)
         {
             // No wall in the way — check if cursor position itself is inside a wall
-            return EnsureNotInsideWall(spaceState, cursorPos);
+            candidatePos = EnsureNotInsideWall(spaceState, cursorPos);
         }
-
-        // Wall detected between player and cursor.
-        // "Skip through" the wall: find clear space on the far side.
-        Vector2 wallHitPos = (Vector2)directResult["position"];
-        Vector2 direction = (cursorPos - fromPos).Normalized();
-        float totalDistance = fromPos.DistanceTo(cursorPos);
-        float wallDistance = fromPos.DistanceTo(wallHitPos);
-
-        // Probe from just past the wall hit point to the cursor, looking for open space
-        float probeStart = wallDistance + PlayerCollisionRadius + 2.0f;
-        float step = PlayerCollisionRadius;
-
-        // Start from cursor position and work backward to find the closest valid position to cursor
-        Vector2 bestPosition = fromPos + direction * Mathf.Max(wallDistance - PlayerCollisionRadius - 2.0f, 0.0f);
-
-        for (float dist = probeStart; dist <= totalDistance + step; dist += step)
+        else
         {
-            float clampedDist = Mathf.Min(dist, totalDistance);
-            Vector2 testPos = fromPos + direction * clampedDist;
+            // Wall detected between player and cursor.
+            // "Skip through" the wall: find clear space on the far side.
+            Vector2 wallHitPos = (Vector2)directResult["position"];
+            Vector2 direction = (cursorPos - fromPos).Normalized();
+            float totalDistance = fromPos.DistanceTo(cursorPos);
+            float wallDistance = fromPos.DistanceTo(wallHitPos);
 
-            // Check if this position is inside a wall using shape query
-            if (!IsPositionInsideWall(spaceState, testPos))
+            // Probe from just past the wall hit point to the cursor, looking for open space
+            float probeStart = wallDistance + PlayerCollisionRadius + 2.0f;
+            float step = PlayerCollisionRadius;
+
+            // Start from cursor position and work backward to find the closest valid position to cursor
+            candidatePos = fromPos + direction * Mathf.Max(wallDistance - PlayerCollisionRadius - 2.0f, 0.0f);
+
+            for (float dist = probeStart; dist <= totalDistance + step; dist += step)
             {
-                // Found clear space beyond the wall — verify we can raycast from there
-                // back to the cursor (no additional walls in between)
-                bestPosition = testPos;
+                float clampedDist = Mathf.Min(dist, totalDistance);
+                Vector2 testPos = fromPos + direction * clampedDist;
 
-                // Now find the best position closest to the cursor
-                // Continue scanning forward to get as close to cursor as possible
-                Vector2 lastGoodPos = testPos;
-                for (float fwdDist = clampedDist + step; fwdDist <= totalDistance; fwdDist += step)
+                // Check if this position is inside a wall using shape query
+                if (!IsPositionInsideWall(spaceState, testPos))
                 {
-                    Vector2 fwdTestPos = fromPos + direction * fwdDist;
-                    if (!IsPositionInsideWall(spaceState, fwdTestPos))
-                    {
-                        lastGoodPos = fwdTestPos;
-                    }
-                    else
-                    {
-                        // Hit another wall, stop here
-                        break;
-                    }
-                }
+                    // Found clear space beyond the wall — verify we can raycast from there
+                    // back to the cursor (no additional walls in between)
+                    candidatePos = testPos;
 
-                // Also test exact cursor position
-                if (!IsPositionInsideWall(spaceState, cursorPos))
-                {
-                    lastGoodPos = cursorPos;
-                }
+                    // Now find the best position closest to the cursor
+                    // Continue scanning forward to get as close to cursor as possible
+                    Vector2 lastGoodPos = testPos;
+                    for (float fwdDist = clampedDist + step; fwdDist <= totalDistance; fwdDist += step)
+                    {
+                        Vector2 fwdTestPos = fromPos + direction * fwdDist;
+                        if (!IsPositionInsideWall(spaceState, fwdTestPos))
+                        {
+                            lastGoodPos = fwdTestPos;
+                        }
+                        else
+                        {
+                            // Hit another wall, stop here
+                            break;
+                        }
+                    }
 
-                return lastGoodPos;
+                    // Also test exact cursor position
+                    if (!IsPositionInsideWall(spaceState, cursorPos))
+                    {
+                        lastGoodPos = cursorPos;
+                    }
+
+                    candidatePos = lastGoodPos;
+                    break;
+                }
             }
         }
 
-        // Could not find clear space beyond the wall — teleport to just before it
-        return bestPosition;
+        // Clamp the final position to the navigation mesh to prevent teleporting
+        // outside the map boundary walls (Issue #939).
+        return ClampToNavigationMesh(candidatePos);
+    }
+
+    /// <summary>
+    /// Clamp a position to the navigation mesh so the player cannot teleport
+    /// outside the solid boundary walls surrounding the map (Issue #939).
+    /// Uses NavigationServer2D to find the closest valid point on the nav mesh.
+    /// </summary>
+    /// <param name="position">The candidate teleport position.</param>
+    /// <returns>The closest valid position within the navigation mesh.</returns>
+    private Vector2 ClampToNavigationMesh(Vector2 position)
+    {
+        var navMap = GetWorld2D().NavigationMap;
+        if (!navMap.IsValid)
+        {
+            LogToFile("[Player.TeleportBracers] Warning: Could not get NavigationMap for boundary check");
+            return position;
+        }
+
+        Vector2 closest = NavigationServer2D.MapGetClosestPoint(navMap, position);
+        if (!closest.IsEqualApprox(position))
+        {
+            LogToFile($"[Player.TeleportBracers] Clamped teleport from {position} to {closest} (outside map bounds)");
+        }
+        return closest;
     }
 
     /// <summary>
@@ -4639,6 +4718,7 @@ public partial class Player : BaseCharacter
             {
                 _homingActive = false;
                 _homingTimer = 0.0f;
+                StopHomingScanner();
                 EmitSignal(SignalName.HomingDeactivated);
                 LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
             }
@@ -4653,6 +4733,7 @@ public partial class Player : BaseCharacter
                 _homingTimer = HomingDuration;
                 _homingCharges--;
                 PlayHomingSound();
+                StartHomingScanner();
                 EmitSignal(SignalName.HomingActivated);
                 EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
                 LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
@@ -4744,7 +4825,7 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Set up the audio player for homing activation sound.
+    /// Set up the audio players for homing activation sound and scanner loop (Issue #890).
     /// </summary>
     private void SetupHomingAudio()
     {
@@ -4764,6 +4845,34 @@ public partial class Player : BaseCharacter
         {
             LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
         }
+
+        // Set up the looping scanner ambient sound (Issue #890).
+        if (ResourceLoader.Exists(HomingScannerLoopPath))
+        {
+            var scannerStream = GD.Load<AudioStreamWav>(HomingScannerLoopPath);
+            if (scannerStream != null)
+            {
+                scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
+                // Set loop endpoints so the stream actually loops the full clip.
+                // Without LoopEnd, Godot defaults to 0 → loops a zero-length region (silence).
+                int bytesPerSample = (scannerStream.Format == AudioStreamWav.FormatEnum.Format16Bits) ? 2 : 1;
+                int channels = scannerStream.Stereo ? 2 : 1;
+                int totalSamples = scannerStream.Data.Length / (bytesPerSample * channels);
+                scannerStream.LoopBegin = 0;
+                scannerStream.LoopEnd = totalSamples;
+                _homingScannerPlayer = new AudioStreamPlayer();
+                _homingScannerPlayer.Stream = scannerStream;
+                // 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+                _homingScannerPlayer.VolumeDb = -27.5f;
+                AddChild(_homingScannerPlayer);
+                // Do NOT play here — scanner starts only when homing is activated (Issue #890).
+                LogToFile($"[Player.Homing] Homing scanner loop ready (Issue #890), samples={totalSamples}");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing scanner loop sound not found: {HomingScannerLoopPath}");
+        }
     }
 
     /// <summary>
@@ -4778,11 +4887,291 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Start the looping scanner sound. Called when homing is activated (Issue #890).
+    /// </summary>
+    private void StartHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && !_homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Play();
+            LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
+        }
+    }
+
+    /// <summary>
+    /// Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+    /// </summary>
+    private void StopHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && _homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Stop();
+            LogToFile("[Player.Homing] Homing scanner loop stopped (Issue #890)");
+        }
+    }
+
+    /// <summary>
     /// Check if homing bullets effect is currently active.
     /// </summary>
     public bool IsHomingActive()
     {
         return _homingActive;
+    }
+
+    #endregion
+
+    #region BFF Pendant Methods (Issue #674)
+
+    /// <summary>
+    /// Initialize the BFF pendant if the ActiveItemManager has it selected.
+    /// </summary>
+    private void InitBffPendant()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_bff_pendant"))
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method");
+            return;
+        }
+
+        bool hasBffPendant = (bool)activeItemManager.Call("has_bff_pendant");
+        if (!hasBffPendant)
+        {
+            LogToFile("[Player.BffPendant] No BFF pendant selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.BffPendant] BFF pendant is selected, ready to summon companion");
+
+        // Verify enemy scene exists (we spawn an actual enemy as companion)
+        if (!ResourceLoader.Exists(BffEnemyScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
+            return;
+        }
+
+        _bffPendantEquipped = true;
+        _bffCompanionSummoned = false;
+        LogToFile("[Player.BffPendant] BFF pendant equipped — press Space to summon companion");
+    }
+
+    /// <summary>
+    /// Handle BFF pendant input: press Space to summon a companion (one charge per battle).
+    /// </summary>
+    private void HandleBffPendantInput()
+    {
+        if (!_bffPendantEquipped)
+        {
+            return;
+        }
+
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            SummonBffCompanion();
+        }
+    }
+
+    /// <summary>
+    /// Summon the BFF companion near the player.
+    /// Issue #674: Spawns an actual Enemy in permanent aggressive state.
+    /// User feedback: "copy enemy AI but make it aggressive and not treat player as enemy"
+    /// </summary>
+    private void SummonBffCompanion()
+    {
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (!ResourceLoader.Exists(BffEnemyScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
+            return;
+        }
+
+        var enemyScene = GD.Load<PackedScene>(BffEnemyScenePath);
+        if (enemyScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: Failed to load enemy scene");
+            return;
+        }
+
+        var companion = enemyScene.Instantiate<Node2D>();
+
+        // Configure health range to 2-4 HP as per issue requirements (before adding to scene)
+        if (companion.HasMethod("set") && companion.Get("min_health").VariantType != Variant.Type.Nil)
+        {
+            companion.Set("min_health", 2);
+            companion.Set("max_health", 4);
+        }
+
+        // Issue #926: BFF companion has 50% slower reaction speed than enemies.
+        // Multiply all reaction/detection delays by 1.5 (150% of normal = 50% slower).
+        const float BffReactionMultiplier = 1.5f;
+        companion.Set("detection_delay", 0.2f * BffReactionMultiplier);       // 0.2s * 1.5 = 0.3s
+        companion.Set("threat_reaction_delay", 0.2f * BffReactionMultiplier); // 0.2s * 1.5 = 0.3s
+        companion.Set("lead_prediction_delay", 0.3f * BffReactionMultiplier); // 0.3s * 1.5 = 0.45s
+
+        // Add to the current scene (not as child of player, so it moves independently)
+        var tree = GetTree();
+        if (tree?.CurrentScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: No current scene to add companion to");
+            companion.QueueFree();
+            return;
+        }
+
+        tree.CurrentScene.AddChild(companion);
+
+        // CRITICAL: Remove from "enemies" group so other enemies don't target it
+        // and so it doesn't count toward level enemy counter
+        companion.RemoveFromGroup("enemies");
+
+        // Add to "bff_companions" group for identification
+        companion.AddToGroup("bff_companions");
+
+        // Set companion name for logging
+        companion.Name = "BffCompanion";
+
+        // Make companion permanently aggressive (uses AggressionComponent AI to attack enemies)
+        if (companion.HasMethod("set_aggressive"))
+        {
+            companion.Call("set_aggressive", true);
+            LogToFile("[Player.BffPendant] Companion set to aggressive state");
+        }
+
+        // Apply green-cyan tint to distinguish from regular enemies
+        ApplyBffCompanionVisualTint(companion);
+
+        // Find a valid spawn position that is not inside a wall
+        var spawnPos = FindValidBffCompanionSpawnPosition();
+        companion.GlobalPosition = spawnPos;
+
+        _bffCompanionNode = companion;
+        _bffCompanionSummoned = true;
+
+        // Connect companion death signal if it exists
+        if (companion.HasSignal("died"))
+        {
+            companion.Connect("died", Callable.From(OnBffCompanionDied));
+        }
+
+        LogToFile($"[Player.BffPendant] Companion spawned at {companion.GlobalPosition} (aggressive enemy)");
+    }
+
+    /// <summary>
+    /// Apply a green-cyan tint to the companion to distinguish it from regular enemies.
+    /// </summary>
+    private static void ApplyBffCompanionVisualTint(Node2D companion)
+    {
+        var model = companion.GetNodeOrNull("EnemyModel");
+        if (model == null)
+        {
+            return;
+        }
+
+        var tint = new Color(0.3f, 1.0f, 0.7f, 1.0f);
+        foreach (var spriteName in new[] { "Body", "Head", "LeftArm", "RightArm" })
+        {
+            var sprite = model.GetNodeOrNull(spriteName);
+            if (sprite is Sprite2D sprite2D)
+            {
+                sprite2D.Modulate = tint;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Find a valid spawn position for the companion that is not inside a wall.
+    /// Tries multiple offsets around the player until a valid position is found.
+    /// Issue #674: Prevents companion from spawning inside/behind walls.
+    /// </summary>
+    private Vector2 FindValidBffCompanionSpawnPosition()
+    {
+        var spaceState = GetWorld2D().DirectSpaceState;
+        if (spaceState == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: Physics state unavailable, using default spawn");
+            return GlobalPosition + new Vector2(-50, 30);
+        }
+
+        const float CompanionRadius = 24.0f;
+
+        float baseRotation = _playerModel?.Rotation ?? 0.0f;
+        var offsets = new Vector2[]
+        {
+            new Vector2(-50, 30).Rotated(baseRotation),
+            new Vector2(-60, 0).Rotated(baseRotation),
+            new Vector2(-50, -30).Rotated(baseRotation),
+            new Vector2(0, 50).Rotated(baseRotation),
+            new Vector2(0, -50).Rotated(baseRotation),
+            new Vector2(50, 30).Rotated(baseRotation),
+            new Vector2(50, -30).Rotated(baseRotation),
+            new Vector2(-30, 0).Rotated(baseRotation),
+        };
+
+        foreach (var offset in offsets)
+        {
+            var testPos = GlobalPosition + offset;
+            if (IsBffSpawnPositionValid(spaceState, testPos, CompanionRadius))
+            {
+                LogToFile($"[Player.BffPendant] Found valid spawn at offset {offset}");
+                return testPos;
+            }
+        }
+
+        LogToFile("[Player.BffPendant] WARNING: No valid spawn position found, spawning at player");
+        return GlobalPosition;
+    }
+
+    /// <summary>
+    /// Check if a position is valid for spawning the companion.
+    /// Returns true if the position is not inside a wall and has line of sight from player.
+    /// </summary>
+    private bool IsBffSpawnPositionValid(PhysicsDirectSpaceState2D spaceState, Vector2 pos, float radius)
+    {
+        // First check: line of sight from player to spawn position
+        var losQuery = new PhysicsRayQueryParameters2D
+        {
+            From = GlobalPosition,
+            To = pos,
+            CollisionMask = 1  // Walls only (layer 1)
+        };
+        var losResult = spaceState.IntersectRay(losQuery);
+        if (losResult.Count > 0)
+        {
+            return false; // Wall blocks line of sight
+        }
+
+        // Second check: position itself is not inside a wall
+        var shapeQuery = new PhysicsShapeQueryParameters2D
+        {
+            Shape = new CircleShape2D { Radius = radius },
+            Transform = new Transform2D(0, pos),
+            CollisionMask = 1  // Walls only (layer 1)
+        };
+        var overlapResult = spaceState.IntersectShape(shapeQuery);
+        return overlapResult.Count == 0;
+    }
+
+    /// <summary>
+    /// Called when the BFF companion dies.
+    /// </summary>
+    private void OnBffCompanionDied()
+    {
+        LogToFile("[Player.BffPendant] Companion has been killed");
+        _bffCompanionNode = null;
     }
 
     #endregion
@@ -4923,6 +5312,155 @@ public partial class Player : BaseCharacter
             _invisibilityHud.Call("set_active", false);
             _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
         }
+    }
+
+    #endregion
+
+    #region Trajectory Glasses System (Issue #744)
+
+    /// <summary>
+    /// Whether trajectory glasses are equipped (active item selected in armory).
+    /// </summary>
+    private bool _trajectoryGlassesEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript trajectory glasses effect node.
+    /// </summary>
+    private Node? _trajectoryGlassesEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript trajectory glasses HUD node.
+    /// </summary>
+    private Node? _trajectoryGlassesHud = null;
+
+    /// <summary>
+    /// Initialize trajectory glasses if the ActiveItemManager has them selected (Issue #744).
+    /// Loads and instantiates the GDScript trajectory_glasses_effect.gd controller.
+    /// </summary>
+    private void InitTrajectoryGlasses()
+    {
+        LogToFile("[Player.TrajectoryGlasses] Checking trajectory glasses...");
+
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_trajectory_glasses"))
+        {
+            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method");
+            return;
+        }
+
+        bool hasTrajectoryGlasses = (bool)activeItemManager.Call("has_trajectory_glasses");
+        if (!hasTrajectoryGlasses)
+        {
+            LogToFile("[Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/trajectory_glasses_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_effect.gd");
+            return;
+        }
+
+        _trajectoryGlassesEffect = new Node();
+        _trajectoryGlassesEffect.SetScript(effectScript);
+        _trajectoryGlassesEffect.Name = "TrajectoryGlassesEffect";
+        AddChild(_trajectoryGlassesEffect);
+
+        // Initialize with player reference
+        _trajectoryGlassesEffect.Call("initialize", this);
+
+        // Pass current weapon so ricochet angle is weapon-specific (Issue #744)
+        if (CurrentWeapon != null)
+        {
+            _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+            LogToFile($"[Player.TrajectoryGlasses] Weapon set: {CurrentWeapon.Name}");
+        }
+
+        // Connect signals
+        _trajectoryGlassesEffect.Connect("trajectory_activated", Callable.From<int>(OnTrajectoryActivated));
+        _trajectoryGlassesEffect.Connect("trajectory_deactivated", Callable.From<int>(OnTrajectoryDeactivated));
+
+        _trajectoryGlassesEquipped = true;
+        int charges = (int)_trajectoryGlassesEffect.Get("charges");
+        LogToFile($"[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: {charges}");
+
+        // Load and instantiate the GDScript HUD
+        var hudScript = GD.Load<Script>("res://scripts/ui/trajectory_glasses_hud.gd");
+        if (hudScript != null)
+        {
+            _trajectoryGlassesHud = new Node2D();
+            _trajectoryGlassesHud.SetScript(hudScript);
+            _trajectoryGlassesHud.Name = "TrajectoryGlassesHUD";
+            AddChild(_trajectoryGlassesHud);
+            _trajectoryGlassesHud.Call("initialize", _trajectoryGlassesEffect);
+            LogToFile("[Player.TrajectoryGlasses] HUD created");
+        }
+        else
+        {
+            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_hud.gd");
+        }
+    }
+
+    /// <summary>
+    /// Handle trajectory glasses input: press Space to activate (Issue #744).
+    /// Single press activates for full duration (10 seconds), auto-deactivates.
+    /// </summary>
+    private void HandleTrajectoryGlassesInput()
+    {
+        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+            if (!isActive)
+            {
+                // Update weapon reference in case player switched weapons (Issue #744)
+                if (CurrentWeapon != null)
+                {
+                    _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+                }
+
+                int charges = (int)_trajectoryGlassesEffect.Get("charges");
+                LogToFile($"[Player.TrajectoryGlasses] Space pressed - activating (charges: {charges})");
+                bool activated = (bool)_trajectoryGlassesEffect.Call("activate");
+                LogToFile($"[Player.TrajectoryGlasses] Activation result: {activated}");
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called when trajectory glasses activate.
+    /// </summary>
+    private void OnTrajectoryActivated(int chargesRemaining)
+    {
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Called when trajectory glasses deactivate.
+    /// </summary>
+    private void OnTrajectoryDeactivated(int chargesRemaining)
+    {
+        QueueRedraw();
     }
 
     #endregion
@@ -5216,6 +5754,9 @@ public partial class Player : BaseCharacter
         {
             DrawTeleportReticle();
         }
+
+        // Draw trajectory glasses laser (Issue #744)
+        DrawTrajectoryGlasses();
 
         // Determine if we should draw trajectory
         bool isSimpleAiming = _grenadeState == GrenadeState.SimpleAiming;
@@ -5609,6 +6150,100 @@ public partial class Player : BaseCharacter
 
         DrawLine(end, arrowLeft, color, width);
         DrawLine(end, arrowRight, color, width);
+    }
+
+    /// <summary>
+    /// Draw trajectory glasses laser lines in local player coordinates (Issue #744).
+    /// Uses the same _draw() approach as grenade trajectory: reads local-coordinate points
+    /// stored by trajectory_glasses_effect.gd and draws them here in Player's _Draw().
+    /// </summary>
+    private void DrawTrajectoryGlasses()
+    {
+        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            return;
+        }
+
+        bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+        if (!isActive)
+        {
+            return;
+        }
+
+        // Read trajectory points (in local player coordinates) from the GDScript effect
+        var pointsVariant = _trajectoryGlassesEffect.Get("trajectory_local_points");
+        if (pointsVariant.VariantType == Variant.Type.Nil)
+        {
+            return;
+        }
+
+        var pointsArray = pointsVariant.AsGodotArray();
+        if (pointsArray.Count < 2)
+        {
+            return;
+        }
+
+        // Read the index where the invalid (red) terminal segment starts.
+        // -1 means all segments are valid (green).
+        var invalidIdxVariant = _trajectoryGlassesEffect.Get("trajectory_invalid_start_index");
+        int invalidStartIndex = invalidIdxVariant.VariantType != Variant.Type.Nil
+            ? invalidIdxVariant.AsInt32()
+            : -1;
+
+        Color validColor = new Color(0.0f, 1.0f, 0.0f, 0.8f);   // Green
+        Color invalidColor = new Color(1.0f, 0.0f, 0.0f, 0.8f); // Red
+
+        // Determine up to which index valid (green) segments run.
+        // If invalidStartIndex == -1: all segments are green (0..Count-2).
+        // If invalidStartIndex >= 1: green segments are 0..invalidStartIndex-2,
+        //   and segment (invalidStartIndex-1) -> (invalidStartIndex) is red.
+        int lastValidSegmentEnd = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+
+        // Draw glow for valid segments
+        for (int i = 0; i < lastValidSegmentEnd; i++)
+        {
+            Color glowValid = new Color(0.0f, 1.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), glowValid, 6.0f);
+        }
+
+        // Draw glow for terminal invalid segment (if any)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
+        {
+            Color glowInvalid = new Color(1.0f, 0.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), glowInvalid, 6.0f);
+        }
+
+        // Draw main laser for valid segments (green)
+        for (int i = 0; i < lastValidSegmentEnd; i++)
+        {
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), validColor, 2.0f);
+        }
+
+        // Draw main laser for terminal invalid segment (red)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
+        {
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), invalidColor, 2.0f);
+        }
+
+        // Draw dot at start (bullet spawn point)
+        DrawCircle(pointsArray[0].As<Vector2>(), 3.0f, validColor);
+
+        // Draw small diamonds at valid bounce points (not at the terminal red point)
+        int lastDiamond = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+        for (int i = 1; i < lastDiamond; i++)
+        {
+            float s = 4.0f;
+            Vector2 p = pointsArray[i].As<Vector2>();
+            DrawLine(p + new Vector2(0, -s), p + new Vector2(s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(s, 0), p + new Vector2(0, s), validColor, 2.0f);
+            DrawLine(p + new Vector2(0, s), p + new Vector2(-s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(-s, 0), p + new Vector2(0, -s), validColor, 2.0f);
+        }
     }
 
     #endregion

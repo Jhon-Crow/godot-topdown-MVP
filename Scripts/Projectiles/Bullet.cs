@@ -71,40 +71,61 @@ public partial class Bullet : Area2D
     public ulong ShooterId { get; set; } = 0;
 
     // =========================================================================
-    // Ricochet Configuration (5.45x39mm defaults, matching GDScript bullet)
+    // Ricochet Configuration (read from CaliberData when available)
     // =========================================================================
 
     /// <summary>
-    /// Maximum number of ricochets allowed. -1 = unlimited.
+    /// Caliber data resource for this bullet (set by the weapon that fires it).
+    /// When set, overrides the hardcoded ricochet/penetration constants below.
+    /// Exported to allow setting via Node.Set() with snake_case name "caliber_data".
     /// </summary>
-    private const int MaxRicochets = -1;
+    [Export]
+    public Resource? CaliberData { get; set; }
 
     /// <summary>
-    /// Maximum angle (degrees) from surface at which ricochet is possible.
-    /// Set to 90 to allow ricochets at all angles with varying probability.
+    /// Default maximum number of ricochets allowed. -1 = unlimited.
+    /// Overridden by CaliberData.max_ricochets when caliber is set.
     /// </summary>
-    private const float MaxRicochetAngle = 90.0f;
+    private const int DefaultMaxRicochets = -1;
 
     /// <summary>
-    /// Base probability of ricochet at optimal (grazing) angle.
+    /// Default maximum angle (degrees) from surface at which ricochet is possible.
+    /// Overridden by CaliberData.max_ricochet_angle when caliber is set.
     /// </summary>
-    private const float BaseRicochetProbability = 1.0f;
+    private const float DefaultMaxRicochetAngle = 90.0f;
 
     /// <summary>
-    /// Velocity retention factor after ricochet (0-1).
+    /// Default base probability of ricochet at optimal (grazing) angle.
+    /// Overridden by CaliberData.base_ricochet_probability when caliber is set.
+    /// </summary>
+    private const float DefaultBaseRicochetProbability = 1.0f;
+
+    /// <summary>
+    /// Default velocity retention factor after ricochet (0-1).
     /// Higher values mean less speed loss. 0.85 = 85% speed retained.
+    /// Overridden by CaliberData.velocity_retention when caliber is set.
     /// </summary>
-    private const float VelocityRetention = 0.85f;
+    private const float DefaultVelocityRetention = 0.85f;
 
     /// <summary>
-    /// Damage multiplier after each ricochet.
+    /// Default damage multiplier after each ricochet.
+    /// Overridden by CaliberData.ricochet_damage_multiplier when caliber is set.
     /// </summary>
-    private const float RicochetDamageMultiplier = 0.5f;
+    private const float DefaultRicochetDamageMultiplier = 0.5f;
 
     /// <summary>
-    /// Random angle deviation (degrees) for ricochet direction.
+    /// Default random angle deviation (degrees) for ricochet direction.
+    /// Overridden by CaliberData.ricochet_angle_deviation when caliber is set.
     /// </summary>
-    private const float RicochetAngleDeviation = 10.0f;
+    private const float DefaultRicochetAngleDeviation = 10.0f;
+
+    // Instance fields populated from CaliberData in _Ready() (or defaults if no caliber set)
+    private int MaxRicochets = DefaultMaxRicochets;
+    private float MaxRicochetAngle = DefaultMaxRicochetAngle;
+    private float BaseRicochetProbability = DefaultBaseRicochetProbability;
+    private float VelocityRetention = DefaultVelocityRetention;
+    private float RicochetDamageMultiplier = DefaultRicochetDamageMultiplier;
+    private float RicochetAngleDeviation = DefaultRicochetAngleDeviation;
 
     /// <summary>
     /// Current damage multiplier (decreases with each ricochet).
@@ -289,6 +310,9 @@ public partial class Bullet : Area2D
             Damage = BulletData.Damage;
         }
 
+        // Apply caliber data if available (overrides hardcoded ricochet constants)
+        ApplyCaliberData();
+
         // Connect to collision signals
         BodyEntered += OnBodyEntered;
         BodyExited += OnBodyExited;
@@ -312,6 +336,53 @@ public partial class Bullet : Area2D
 
         // Set initial rotation based on direction
         UpdateRotation();
+    }
+
+    /// <summary>
+    /// Reads ricochet and penetration parameters from CaliberData if set.
+    /// This aligns C# Bullet behavior with GDScript bullet.gd which also reads from caliber.
+    /// Called in _Ready() after CaliberData is set by the spawning weapon.
+    /// </summary>
+    private void ApplyCaliberData()
+    {
+        if (CaliberData == null)
+            return;
+
+        // Read max_ricochet_angle from caliber (controls trajectory glasses AND actual bullet)
+        if (CaliberData.Get("max_ricochet_angle").VariantType != Variant.Type.Nil)
+        {
+            MaxRicochetAngle = CaliberData.Get("max_ricochet_angle").AsSingle();
+        }
+
+        // Read max_ricochets from caliber (-1 = unlimited)
+        if (CaliberData.Get("max_ricochets").VariantType != Variant.Type.Nil)
+        {
+            MaxRicochets = CaliberData.Get("max_ricochets").AsInt32();
+        }
+
+        // Read base_ricochet_probability from caliber
+        if (CaliberData.Get("base_ricochet_probability").VariantType != Variant.Type.Nil)
+        {
+            BaseRicochetProbability = CaliberData.Get("base_ricochet_probability").AsSingle();
+        }
+
+        // Read velocity_retention from caliber
+        if (CaliberData.Get("velocity_retention").VariantType != Variant.Type.Nil)
+        {
+            VelocityRetention = CaliberData.Get("velocity_retention").AsSingle();
+        }
+
+        // Read ricochet_damage_multiplier from caliber
+        if (CaliberData.Get("ricochet_damage_multiplier").VariantType != Variant.Type.Nil)
+        {
+            RicochetDamageMultiplier = CaliberData.Get("ricochet_damage_multiplier").AsSingle();
+        }
+
+        // Read ricochet_angle_deviation from caliber
+        if (CaliberData.Get("ricochet_angle_deviation").VariantType != Variant.Type.Nil)
+        {
+            RicochetAngleDeviation = CaliberData.Get("ricochet_angle_deviation").AsSingle();
+        }
     }
 
     /// <summary>
@@ -629,11 +700,46 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
+    /// Checks if the given area belongs to an active force field (Issue #912).
+    /// When the force field Area2D overlaps this bullet, the force field GDScript
+    /// handles trapping the bullet. The bullet must NOT call QueueFree() in this case —
+    /// doing so would immediately destroy the bullet before the force field can hold it.
+    /// Detection strategy: check area name "ForceFieldArea" or parent's is_protecting() method.
+    /// </summary>
+    private static bool IsForceFieldArea(Area2D area)
+    {
+        // Primary check: area node name set in force_field_effect.gd _setup_area2d()
+        if (area.Name.ToString().Contains("ForceField", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Secondary check: parent node is the ForceFieldEffect which has is_protecting()
+        var parent = area.GetParent();
+        if (parent != null && parent.HasMethod("is_protecting"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Called when the bullet hits another area (like a target or enemy).
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
         GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
+
+        // Issue #912: If this area belongs to the force field, let the force field
+        // GDScript handle trapping the bullet. Do NOT destroy this bullet here —
+        // the force field's _on_projectile_entered will call set_physics_process(false)
+        // and store a reference to this bullet for later release.
+        if (IsForceFieldArea(area))
+        {
+            GD.Print($"[Bullet]: Entering force field area — letting force field handle this bullet");
+            return;
+        }
 
         // Check if this is a HitArea - if so, check against parent's instance ID
         // This prevents the shooter from damaging themselves with direct shots

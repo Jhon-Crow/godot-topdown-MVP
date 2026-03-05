@@ -119,7 +119,10 @@ func _setup_area2d() -> void:
 	FileLogger.info("[ForceFieldEffect] Area2D setup with radius %.0fpx" % FIELD_RADIUS)
 
 
-## Set up the shield visual (bubble sprite with shader).
+## Set up the shield visual (bubble sprite with ring texture).
+## Uses a programmatic ring texture as the primary visual so it works in exported
+## games without relying on runtime shader compilation.
+## The shader is applied as an optional enhancement when available.
 func _setup_shield_visual() -> void:
 	_shield_sprite = Sprite2D.new()
 	_shield_sprite.name = "ShieldVisual"
@@ -127,42 +130,58 @@ func _setup_shield_visual() -> void:
 	_shield_sprite.z_index = 10  # Draw above player
 	add_child(_shield_sprite)
 
-	# Create a circular texture for the shield
-	_shield_sprite.texture = _create_shield_texture()
+	# Always use the ring texture as the primary visual.
+	# This works reliably in both editor and exported games (no shader compilation needed).
+	# The ring texture already looks like a translucent blue bubble — transparent center,
+	# blue glowing rim — matching the "soap bubble" aesthetic required by Issue #906.
+	_shield_sprite.texture = _create_ring_texture()
 
-	# Load and apply shader
+	# Optionally load and apply shader as enhancement (e.g. pulse animation, iridescence).
+	# If the shader fails to load, the ring texture still provides correct bubble look.
 	if ResourceLoader.exists(SHADER_PATH):
 		var shader = load(SHADER_PATH)
 		if shader:
 			_shader_material = ShaderMaterial.new()
 			_shader_material.shader = shader
 			_shield_sprite.material = _shader_material
-			FileLogger.info("[ForceFieldEffect] Shader loaded successfully")
+			FileLogger.info("[ForceFieldEffect] Shader loaded successfully (ring texture used as base)")
 		else:
-			FileLogger.info("[ForceFieldEffect] WARNING: Failed to load shader")
+			FileLogger.info("[ForceFieldEffect] WARNING: Failed to load shader — ring texture only")
 	else:
-		FileLogger.info("[ForceFieldEffect] WARNING: Shader not found: %s" % SHADER_PATH)
+		FileLogger.info("[ForceFieldEffect] WARNING: Shader not found: %s — ring texture only" % SHADER_PATH)
 
 
-## Create a circular gradient texture for the shield visual.
-func _create_shield_texture() -> GradientTexture2D:
-	var gradient := Gradient.new()
-	# Transparent center, strong blue edge — creates a bubble/sphere look
-	gradient.set_color(0, Color(0.3, 0.6, 1.0, 0.0))   # Transparent blue center
-	gradient.set_color(1, Color(0.5, 0.8, 1.0, 0.9))   # Bright blue edge
+## Create a plain white 256x256 texture.
+## The shader controls all colors/alpha — the texture just provides UV coordinates.
+func _create_white_texture() -> ImageTexture:
+	var image := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	image.fill(Color(1.0, 1.0, 1.0, 1.0))
+	return ImageTexture.create_from_image(image)
 
-	# Offset the gradient stop so the bright edge is narrow
-	gradient.set_offset(0, 0.0)
-	gradient.set_offset(1, 1.0)
 
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 256
-	texture.height = 256
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(0.5, 0.0)
-	return texture
+## Fallback: create a ring (donut) texture for when the shader is unavailable.
+## The ring is fully transparent in the center and at the outside, with a bright
+## blue rim at ~84–100% radius — giving the same bubble look without shader support.
+func _create_ring_texture() -> ImageTexture:
+	var size := 256
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5       # 128px
+	var rim_start := outer_r * 0.84  # inner edge of visible ring
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist > outer_r or dist < rim_start:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				# Alpha strongest at the mid-rim, fading to edges
+				var t := (dist - rim_start) / (outer_r - rim_start)  # 0 at rim_start, 1 at edge
+				var alpha := sin(t * PI) * 0.9  # bell curve, peak alpha 0.9
+				image.set_pixel(x, y, Color(0.4, 0.7, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Activate the force field.
@@ -240,6 +259,12 @@ func get_remaining_charge() -> float:
 ## Handle projectile entering the force field area.
 ## In Godot 4 bullets and shrapnel are Area2D nodes themselves, so `area` IS the projectile.
 ## Grenades are RigidBody2D and appear via body_entered instead (handled separately).
+##
+## IMPORTANT (Issue #912): C# bullets call QueueFree() in their own OnAreaEntered handler.
+## The IsForceFieldArea() check in Bullet.cs and ShotgunPellet.cs prevents this when the
+## force field area is detected — but only when the project is built from source (not a
+## pre-compiled .exe). Without that C# fix, the bullet gets queued-for-free in the same
+## physics frame and is removed at frame end even if we successfully disable its processing.
 func _on_projectile_entered(area: Area2D) -> void:
 	if not is_active:
 		return
@@ -256,12 +281,33 @@ func _on_projectile_entered(area: Area2D) -> void:
 
 	var script_path: String = script.resource_path
 	FileLogger.info("[ForceFieldEffect] Area entered: %s (script: %s)" % [area.name, script_path])
-	if "bullet" in script_path.to_lower():
+
+	# Identify projectile type by script path.
+	# Bullets: bullet.gd  or Bullet.cs
+	# Shotgun pellets: ShotgunPellet.cs — trapped same as bullets (have direction/speed)
+	# Shrapnel: shrapnel.gd, BreakerShrapnel.gd
+	var lower_path := script_path.to_lower()
+	if "bullet" in lower_path or "shotgunpellet" in lower_path or "pellet" in lower_path:
 		_trap_bullet(area)
-	elif "shrapnel" in script_path.to_lower():
+		# Deferred validity check: if the bullet was freed by C# OnAreaEntered in the same
+		# frame (pre-compiled .exe without IsForceFieldArea fix), log a diagnostic message.
+		# This confirms whether C# rebuild is needed.
+		_check_trapped_bullet_validity.call_deferred(area)
+	elif "shrapnel" in lower_path:
 		_trap_shrapnel(area)
 	else:
-		FileLogger.info("[ForceFieldEffect] Unknown projectile type: %s" % script_path)
+		FileLogger.info("[ForceFieldEffect] Unknown projectile type, script path: %s" % script_path)
+
+
+## Deferred validity check after trapping a bullet.
+## Logs whether the bullet survived the trap attempt (i.e., C# did not call QueueFree).
+## DIAGNOSTIC: If this logs "freed by C#", rebuild the project from source to apply the
+## IsForceFieldArea() fix in Bullet.cs / ShotgunPellet.cs (Issue #912).
+func _check_trapped_bullet_validity(bullet: Area2D) -> void:
+	if not is_instance_valid(bullet):
+		FileLogger.info("[ForceFieldEffect] DIAGNOSTIC: Bullet was freed by C# after trap attempt — rebuild from source to apply Issue #912 fix (Bullet.cs IsForceFieldArea check)")
+	else:
+		FileLogger.info("[ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active")
 
 
 ## Handle grenade (RigidBody2D) entering the force field area.
@@ -285,33 +331,45 @@ func _on_body_entered(body: Node2D) -> void:
 ## Trap a bullet in the force field — stop its movement and hold it in place.
 ## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
 func _trap_bullet(bullet: Node2D) -> void:
-	if not bullet.has("direction") or not bullet.has("speed"):
+	# Use "prop" in node to check property existence (Godot 4 GDScript standard).
+	# This works for both GDScript vars and C# [Export] properties (registered as snake_case).
+	var has_direction := "direction" in bullet
+	var has_speed := "speed" in bullet
+	if not has_direction or not has_speed:
+		FileLogger.info("[ForceFieldEffect] Bullet missing properties — has_direction=%s has_speed=%s class=%s — skipping trap" % [
+			has_direction, has_speed, bullet.get_class()])
 		return
 
 	# Already trapped? Skip.
 	if bullet in _trapped_bullets:
 		return
 
-	# Freeze bullet movement by disabling its physics process
+	# Freeze bullet movement by disabling its physics process.
+	# For GDScript bullets: stops _physics_process (direction*speed*delta movement).
+	# For C# bullets: stops _PhysicsProcess (Direction*Speed*(float)delta movement).
 	bullet.set_physics_process(false)
 	bullet.set_process(false)
 
 	# Make bullet dimly visible to show it's trapped
-	if bullet.has_method("set") and bullet is CanvasItem:
+	if bullet is CanvasItem:
 		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
-	# Reset shooter ID so released bullet can damage anyone
-	if bullet.has("shooter_id"):
+	# Reset shooter ID so released bullet can damage anyone (not just enemies).
+	# C# [Export] properties are registered as snake_case in GDScript,
+	# so "ShooterId" [Export] in C# is accessible as "shooter_id" in GDScript.
+	if "shooter_id" in bullet:
 		bullet.shooter_id = -1
 
 	_trapped_bullets.append(bullet)
 
-	FileLogger.info("[ForceFieldEffect] Bullet trapped. Total trapped: %d" % _trapped_bullets.size())
+	FileLogger.info("[ForceFieldEffect] Bullet trapped (class=%s). Total trapped: %d" % [
+		bullet.get_class(), _trapped_bullets.size()])
 
 
 ## Trap shrapnel in the force field — stop its movement and hold it in place.
 func _trap_shrapnel(shrapnel: Node2D) -> void:
-	if not shrapnel.has("direction"):
+	# Use "prop" in node to check property existence (GDScript 4 standard, Issue #912).
+	if not "direction" in shrapnel:
 		return
 
 	# Already trapped? Skip.
@@ -327,7 +385,7 @@ func _trap_shrapnel(shrapnel: Node2D) -> void:
 		(shrapnel as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
 	# Reset source ID so released shrapnel can damage anyone
-	if shrapnel.has("source_id"):
+	if "source_id" in shrapnel:
 		shrapnel.source_id = -1
 
 	_trapped_shrapnel.append(shrapnel)
@@ -374,9 +432,9 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 		outward_dir = Vector2(cos(random_angle), sin(random_angle))
 
 	# Set new direction and speed
-	if projectile.has("direction"):
+	if "direction" in projectile:
 		projectile.direction = outward_dir
-	if projectile.has("speed"):
+	if "speed" in projectile:
 		projectile.speed = release_speed
 
 	# Restore normal color
@@ -390,7 +448,7 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 	# Update rotation to match new direction
 	if projectile.has_method("_update_rotation"):
 		projectile.call("_update_rotation")
-	elif projectile.has("direction"):
+	elif "direction" in projectile:
 		# Fallback: set rotation to match direction angle
 		projectile.rotation = outward_dir.angle()
 
