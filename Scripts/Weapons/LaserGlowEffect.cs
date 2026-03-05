@@ -37,6 +37,11 @@ public class LaserGlowEffect
     /// </summary>
     private static bool _diagnosticLogging = false;
 
+    /// <summary>
+    /// Frame counter for debug logging.
+    /// </summary>
+    private static int frame_count = 0;
+
     // =========================================================================
     // Glow layer configuration
     // =========================================================================
@@ -111,10 +116,26 @@ public class LaserGlowEffect
     private const int DustParticleAmount = 80;
 
     /// <summary>
-    /// Lifetime of each dust particle in seconds. Shorter lifetime keeps
-    /// particles flickering and refreshing, simulating brief dust glints.
+    /// Lifetime of each dust particle in seconds. Very short lifetime ensures
+    /// particles stay close to the current beam position and don't trail behind
+    /// when the player moves. At 0.05s lifetime the maximum visible lag at max
+    /// walking speed (~330px/s) is only ~20 pixels — effectively imperceptible
+    /// compared to the previous 800ms trail (Issue #748).
+    ///
+    /// Note: LocalCoords must be set to false (global coordinates). With
+    /// LocalCoords=true and per-frame Position changes, all live particles
+    /// teleport to the new emitter position every frame, causing visible flicker.
+    /// With LocalCoords=false, already-emitted particles stay in world space and
+    /// fade naturally, while new particles spawn at the updated emitter position.
+    /// At 0.05s lifetime any residual at old position is gone in ~3 frames (Issue #748).
+    ///
+    /// Note: LifetimeRandomness must be set to 1.0 (maximum spread) to avoid
+    /// periodic blank frames. With short lifetimes and low LifetimeRandomness,
+    /// all particles die in a tight time window causing a periodic blank flash.
+    /// LifetimeRandomness=1.0 spreads deaths uniformly between 0 and lifetime,
+    /// ensuring constant visible density with no flicker.
     /// </summary>
-    private const float DustParticleLifetime = 0.8f;
+    private const float DustParticleLifetime = 0.05f;
 
     /// <summary>
     /// Size of the dust mote texture in pixels. Small size (6px) ensures
@@ -240,6 +261,9 @@ public class LaserGlowEffect
     /// <param name="endPoint">End point of the laser (local coordinates, from raycast).</param>
     public void Update(Vector2 startPoint, Vector2 endPoint)
     {
+        // Increment frame counter for debugging
+        frame_count++;
+
         // Sync all glow layers with main laser
         if (_glowLines != null)
         {
@@ -361,7 +385,12 @@ public class LaserGlowEffect
             ScaleMin = 0.3f,
             ScaleMax = 0.8f,
             ColorRamp = new GradientTexture1D { Gradient = colorRamp },
-            LifetimeRandomness = 0.5f,
+            // LifetimeRandomness=1.0 spreads particle deaths uniformly between 0 and
+            // DustParticleLifetime. With low randomness (0.2), all 80 particles die
+            // within a tight 10ms window every 50ms cycle, causing a periodic blank
+            // flash visible as laser flickering during player movement (Issue #748).
+            // Maximum spread (1.0) ensures constant beam density with no visible cycle.
+            LifetimeRandomness = 1.0f,
         };
 
         // Additive blending material for particles
@@ -381,10 +410,15 @@ public class LaserGlowEffect
             Material = particleMaterial,
             ZIndex = 0,
             Visible = true,
-            // Use local coordinates so particles move with the parent node.
-            // Without this, particles use global coordinates and lag behind
-            // when the weapon/player moves (Issue #694).
-            LocalCoords = true
+            // Use global coordinates (LocalCoords=false) to prevent flicker.
+            // With LocalCoords=true, changing the emitter's Position every frame
+            // causes all live particles to teleport to the new origin, producing
+            // visible flicker during player movement (Issue #748).
+            // With LocalCoords=false, already-emitted particles stay in world
+            // space and fade naturally; only new particles spawn at the updated
+            // GlobalPosition. At 0.05s lifetime any residual trail at the old
+            // position is gone within ~3 frames — imperceptible.
+            LocalCoords = false
         };
 
         parent.AddChild(_dustParticles);
@@ -395,12 +429,19 @@ public class LaserGlowEffect
 
     /// <summary>
     /// Updates the dust particle emitter to follow the laser beam.
-    /// Positions at beam midpoint, rotates to beam angle, and stretches
-    /// the emission box to cover the beam length.
+    /// Positions at beam midpoint in world space, rotates to beam angle, and
+    /// stretches the emission box to cover the beam length.
+    ///
+    /// Uses LocalCoords=false (global coordinates) to prevent flicker:
+    /// Already-emitted particles stay in their world-space birth positions and
+    /// fade naturally. Only the emission origin (GlobalPosition) and rotation
+    /// are updated each frame, which only affects newly spawned particles.
+    /// With 0.05s lifetime, any residual at an old position disappears in ~3
+    /// frames — imperceptible during normal gameplay (Issue #748).
     /// </summary>
     private void UpdateDustParticles(Vector2 startPoint, Vector2 endPoint)
     {
-        if (_dustParticles == null || _dustMaterial == null)
+        if (_dustParticles == null || _dustMaterial == null || _parent == null)
             return;
 
         var beamVector = endPoint - startPoint;
@@ -413,9 +454,29 @@ public class LaserGlowEffect
         }
 
         _dustParticles.Visible = true;
-        _dustParticles.Position = (startPoint + endPoint) / 2.0f;
-        _dustParticles.Rotation = beamVector.Angle();
+
+        // Calculate beam midpoint in local coordinates, then convert to world space.
+        // With LocalCoords=false, GlobalPosition controls where new particles spawn.
+        // Changing GlobalPosition does NOT move already-emitted particles (they stay
+        // in world space), eliminating the teleport-flicker seen with LocalCoords=true.
+        var beamMidpointLocal = (startPoint + endPoint) / 2.0f;
+        _dustParticles.GlobalPosition = _parent.GlobalPosition +
+            _parent.GlobalTransform.BasisXform(beamMidpointLocal);
+
+        // Rotate emitter to match beam angle so the box emission aligns with beam.
+        // Convert local beam direction to world space, then extract world angle.
+        // With LocalCoords=false this only affects new particle spawn direction.
+        var beamWorldDirection = _parent.GlobalTransform.BasisXform(beamVector);
+        var targetRotation = beamWorldDirection.Angle();
+        _dustParticles.GlobalRotation = targetRotation;
+
+        // Update emission box half-extent to cover the full beam length.
         _dustMaterial.EmissionBoxExtents = new Vector3(beamLength / 2.0f, DustEmissionHalfHeight, 0.0f);
+
+        if (_diagnosticLogging && frame_count % 60 == 0)
+        {
+            GD.Print($"[LaserGlowEffect] Sync - GlobalPos: {_dustParticles.GlobalPosition}, GlobalRot: {targetRotation:F3}");
+        }
     }
 
     /// <summary>

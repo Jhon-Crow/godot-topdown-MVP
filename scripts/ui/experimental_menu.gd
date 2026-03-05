@@ -9,17 +9,19 @@ extends CanvasLayer
 signal back_pressed
 
 ## Reference to UI elements.
-@onready var fov_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/FOVContainer/FOVCheckbox
-@onready var complex_grenade_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComplexGrenadeContainer/ComplexGrenadeCheckbox
-@onready var ai_prediction_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AIPredictionContainer/AIPredictionCheckbox
-@onready var debug_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DebugModeContainer/DebugModeCheckbox
-@onready var invincibility_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/InvincibilityContainer/InvincibilityCheckbox
-@onready var replay_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ReplayContainer/ReplayCheckbox
-@onready var logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/LoggingContainer/LoggingCheckbox
-@onready var enemy_flashlight_blinding_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EnemyFlashlightBlindingContainer/EnemyFlashlightBlindingCheckbox
-@onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
-@onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
-@onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
+@onready var fov_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FOVContainer/FOVCheckbox
+@onready var complex_grenade_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer/ComplexGrenadeCheckbox
+@onready var ai_prediction_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPredictionContainer/AIPredictionCheckbox
+@onready var debug_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer/DebugModeCheckbox
+@onready var invincibility_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer/InvincibilityCheckbox
+@onready var replay_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer/ReplayCheckbox
+@onready var logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer/LoggingCheckbox
+@onready var enemy_flashlight_blinding_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer/EnemyFlashlightBlindingCheckbox
+@onready var fps_counter_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer/FpsCounterCheckbox
+@onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
+@onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
+@onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
+@onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 
 
 func _ready() -> void:
@@ -32,6 +34,8 @@ func _ready() -> void:
 	replay_checkbox.toggled.connect(_on_replay_toggled)
 	logging_checkbox.toggled.connect(_on_logging_toggled)
 	enemy_flashlight_blinding_checkbox.toggled.connect(_on_enemy_flashlight_blinding_toggled)
+	fps_counter_checkbox.toggled.connect(_on_fps_counter_toggled)
+	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
@@ -62,6 +66,8 @@ func _update_ui() -> void:
 	replay_checkbox.button_pressed = experimental_settings.is_replay_enabled()
 	logging_checkbox.button_pressed = experimental_settings.is_logging_enabled()
 	enemy_flashlight_blinding_checkbox.button_pressed = experimental_settings.is_enemy_flashlight_blinding_enabled()
+	fps_counter_checkbox.button_pressed = experimental_settings.is_fps_counter_enabled()
+	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -81,6 +87,10 @@ func _update_ui() -> void:
 		status_parts.append("Log recording")
 	if experimental_settings.is_enemy_flashlight_blinding_enabled():
 		status_parts.append("Enemy flashlight blinding")
+	if experimental_settings.is_fps_counter_enabled():
+		status_parts.append("FPS counter")
+	if experimental_settings.is_fps_drop_logging_enabled():
+		status_parts.append("FPS drop logging")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -154,6 +164,20 @@ func _on_enemy_flashlight_blinding_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_enemy_flashlight_blinding_enabled(enabled)
+	_update_ui()
+
+
+func _on_fps_counter_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_fps_counter_enabled(enabled)
+	_update_ui()
+
+
+func _on_fps_drop_logging_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_fps_drop_logging_enabled(enabled)
 	_update_ui()
 
 
