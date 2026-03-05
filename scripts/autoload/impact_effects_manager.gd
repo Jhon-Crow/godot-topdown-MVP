@@ -89,30 +89,6 @@ var _last_scene: Node = null
 ## Warmup pre-compiles GPU shaders to prevent first-shot lag (Issue #343).
 var _warmup_completed: bool = false
 
-# =============================================================================
-# Blood Decal Pooling (Issue #966 Performance Optimization)
-# =============================================================================
-# Instead of instantiating new decals and using individual timers, we:
-# 1. Pool blood decal objects for reuse (eliminates instantiation overhead)
-# 2. Batch delayed spawns in a queue processed each frame (eliminates timer overhead)
-# 3. Limit decals spawned per frame (spreads load across frames)
-
-## Pool of inactive blood decals ready for reuse.
-var _blood_decal_pool: Array[Node2D] = []
-
-## Queue of pending blood decal spawns (delayed spawns waiting for their time).
-## Each entry: { origin: Vector2, landing_pos: Vector2, rotation: float, scale: float, delay: float }
-var _pending_decal_spawns: Array[Dictionary] = []
-
-## Maximum number of blood decals to spawn per frame (prevents frame spikes).
-const MAX_DECALS_PER_FRAME: int = 5
-
-## Size of the blood decal pool (pre-created at warmup).
-const BLOOD_DECAL_POOL_SIZE: int = 150
-
-## Container node for pooled blood decals.
-var _blood_decal_container: Node = null
-
 
 func _ready() -> void:
 	# CRITICAL: First line diagnostic - if this doesn't appear, script failed to load
@@ -136,35 +112,9 @@ func _ready() -> void:
 	# Initialize explosion light pool (Issue #724 optimization)
 	_init_explosion_light_pool()
 
-	# Initialize blood decal pool (Issue #966 optimization)
-	_init_blood_decal_pool()
-
 	# Perform shader warmup to prevent first-shot lag (Issue #343)
 	# This pre-compiles GPU shaders for particle effects during loading
 	_warmup_particle_shaders()
-
-
-## Process pending blood decal spawns in batches (Issue #966 optimization).
-## This replaces individual timers with a frame-based queue system.
-func _process(delta: float) -> void:
-	if _pending_decal_spawns.is_empty():
-		return
-
-	var spawned_this_frame := 0
-
-	# Process pending spawns - decrease timers and spawn when ready
-	var i := 0
-	while i < _pending_decal_spawns.size() and spawned_this_frame < MAX_DECALS_PER_FRAME:
-		_pending_decal_spawns[i].delay -= delta
-
-		if _pending_decal_spawns[i].delay <= 0:
-			var spawn_data: Dictionary = _pending_decal_spawns[i]
-			_pending_decal_spawns.remove_at(i)
-			_spawn_decal_from_pool(spawn_data)
-			spawned_this_frame += 1
-			# Don't increment i since we removed an element
-		else:
-			i += 1
 
 
 ## Logs to FileLogger and always prints to console for diagnostics.
@@ -586,24 +536,23 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 
 
-## Schedules a single blood decal to spawn after a delay.
-## Issue #966 optimization: Instead of creating individual timers, we add to a queue
-## that's processed in _process() with a per-frame limit.
+## Schedules a single blood decal to spawn after a delay, checking for wall collisions at spawn time.
 func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotation: float, decal_scale: float, delay: float) -> void:
-	# Add to pending spawns queue instead of creating a timer
-	_pending_decal_spawns.append({
-		"origin": origin,
-		"landing_pos": landing_pos,
-		"rotation": decal_rotation,
-		"scale": decal_scale,
-		"delay": delay
-	})
+	# Use a timer to delay the spawn
+	var tree := get_tree()
+	if tree == null:
+		return
 
+	await tree.create_timer(delay).timeout
 
-## Spawns a blood decal from the pool (Issue #966 optimization).
-## Performs line-of-sight check and configures decal properties.
-func _spawn_decal_from_pool(spawn_data: Dictionary) -> void:
-	# Get the current scene for raycasting
+	# Check if we're still valid after await (scene might have changed)
+	if not is_instance_valid(self):
+		return
+
+	if _blood_decal_scene == null:
+		return
+
+	# Get the current scene for raycasting at spawn time
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
@@ -611,9 +560,6 @@ func _spawn_decal_from_pool(spawn_data: Dictionary) -> void:
 	var space_state: PhysicsDirectSpaceState2D = scene.get_world_2d().direct_space_state
 	if space_state == null:
 		return
-
-	var origin: Vector2 = spawn_data.origin
-	var landing_pos: Vector2 = spawn_data.landing_pos
 
 	# Check if there's a wall between origin and landing position
 	var query := PhysicsRayQueryParameters2D.create(origin, landing_pos, WALL_COLLISION_LAYER)
@@ -624,20 +570,17 @@ func _spawn_decal_from_pool(spawn_data: Dictionary) -> void:
 		# Wall detected between origin and landing - skip this decal
 		return
 
-	# Get decal from pool or create new if pool empty
-	var decal: Node2D = _get_blood_decal_from_pool()
+	# Create the decal
+	var decal := _blood_decal_scene.instantiate() as Node2D
 	if decal == null:
 		return
 
-	# Configure decal
 	decal.global_position = landing_pos
-	decal.rotation = spawn_data.rotation
-	decal.scale = Vector2(spawn_data.scale, spawn_data.scale)
-	decal.visible = true
+	decal.rotation = decal_rotation
+	decal.scale = Vector2(decal_scale, decal_scale)
 
-	# Ensure decal is in the scene tree
-	if not decal.is_inside_tree():
-		_add_effect_to_scene(decal)
+	# Add to scene
+	_add_effect_to_scene(decal)
 
 	# Track decal for cleanup
 	_blood_decals.append(decal)
@@ -647,80 +590,21 @@ func _spawn_decal_from_pool(spawn_data: Dictionary) -> void:
 		while _blood_decals.size() > MAX_BLOOD_DECALS:
 			var oldest := _blood_decals.pop_front() as Node2D
 			if oldest and is_instance_valid(oldest):
-				_return_blood_decal_to_pool(oldest)
+				oldest.queue_free()
 
 	if _debug_effects:
-		print("[ImpactEffectsManager] Blood decal spawned from pool at ", landing_pos)
-
-
-## Initializes the blood decal pool with pre-created objects (Issue #966 optimization).
-func _init_blood_decal_pool() -> void:
-	if _blood_decal_scene == null:
-		return
-
-	# Create container for pooled decals
-	_blood_decal_container = Node.new()
-	_blood_decal_container.name = "BloodDecalPool"
-	add_child(_blood_decal_container)
-
-	# Pre-create pool objects
-	for i in range(BLOOD_DECAL_POOL_SIZE):
-		var decal := _blood_decal_scene.instantiate() as Node2D
-		if decal:
-			decal.visible = false
-			_blood_decal_container.add_child(decal)
-			_blood_decal_pool.append(decal)
-
-	_log_info("Blood decal pool initialized: %d decals pre-created" % BLOOD_DECAL_POOL_SIZE)
-
-
-## Gets a blood decal from the pool or creates a new one if pool is empty.
-func _get_blood_decal_from_pool() -> Node2D:
-	# Try to get from pool
-	if _blood_decal_pool.size() > 0:
-		var decal: Node2D = _blood_decal_pool.pop_back()
-		return decal
-
-	# Pool empty - create new decal (fallback)
-	if _blood_decal_scene:
-		var decal := _blood_decal_scene.instantiate() as Node2D
-		if decal and _blood_decal_container:
-			_blood_decal_container.add_child(decal)
-		return decal
-
-	return null
-
-
-## Returns a blood decal to the pool for reuse.
-func _return_blood_decal_to_pool(decal: Node2D) -> void:
-	if not is_instance_valid(decal):
-		return
-
-	# Hide and reset
-	decal.visible = false
-
-	# Remove from active tracking
-	var idx := _blood_decals.find(decal)
-	if idx >= 0:
-		_blood_decals.remove_at(idx)
-
-	# Return to pool
-	_blood_decal_pool.append(decal)
+		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
 
 
 ## Clears all blood decals from the scene.
 ## Call this on scene transitions or when cleaning up.
-## Issue #966: Returns decals to pool instead of freeing them.
 func clear_blood_decals() -> void:
 	for decal in _blood_decals:
 		if decal and is_instance_valid(decal):
-			decal.visible = false
-			_blood_decal_pool.append(decal)
+			decal.queue_free()
 	_blood_decals.clear()
-	# Also clear any pending spawns
-	_pending_decal_spawns.clear()
 	if _debug_effects:
-		print("[ImpactEffectsManager] All blood decals cleared (returned to pool)")
+		print("[ImpactEffectsManager] All blood decals cleared")
 
 
 ## Checks for nearby walls in the bullet direction and spawns blood splatters on them.
@@ -960,8 +844,6 @@ func _on_tree_changed() -> void:
 		_blood_decals.clear()
 		_bullet_holes.clear()
 		_penetration_holes.clear()
-		# Issue #966: Clear pending decal spawns on scene change
-		_pending_decal_spawns.clear()
 		_last_scene = current_scene
 
 
