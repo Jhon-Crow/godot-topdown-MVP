@@ -1659,30 +1659,25 @@ func _process_in_cover_state(delta: float) -> void:
 
 	# NOTE: ASSAULT state transition removed per issue #169
 
-	# Decision making based on player distance and visibility
-	if _player:
-		var player_close := _is_player_close()
-		var can_hit := _can_hit_player_from_current_position()
-
-		if _can_see_player:
-			if player_close:
-				# Player is close - engage in combat (come out, shoot, go back)
-				_log_debug("Player is close, transitioning to COMBAT")
+	# Decision making based on target (player or companion) distance and visibility (#934)
+	var can_see_target := _can_see_player or _can_see_companion
+	var has_target := (_player != null) or (_companion != null and _can_see_companion)
+	if has_target:
+		var target_close := _is_target_close()
+		var can_hit := _can_hit_target_from_current_position()
+		if can_see_target:
+			if target_close:  # Target is close - engage in combat
+				_log_debug("Target is close, transitioning to COMBAT")
 				_transition_to_combat()
 				return
-			else:
-				# Player is far
-				if can_hit:
-					# Can hit from current position - come out and shoot
-					# (Don't pursue, just transition to combat which will handle the cycling)
-					_log_debug("Player is far but can hit from here, transitioning to COMBAT")
-					_transition_to_combat()
-					return
-				else:
-					# Can't hit from here - need to pursue (move cover-to-cover)
-					_log_debug("Player is far and can't hit, transitioning to PURSUING")
-					_transition_to_pursuing()
-					return
+			elif can_hit:  # Target is far but can hit from current position
+				_log_debug("Target is far but can hit from here, transitioning to COMBAT")
+				_transition_to_combat()
+				return
+			else:  # Can't hit from here - need to pursue (move cover-to-cover)
+				_log_debug("Target is far and can't hit, transitioning to PURSUING")
+				_transition_to_pursuing()
+				return
 
 	# If not under fire and can see player or companion, engage (only shoot after detection delay)
 	# Issue #934: also shoot at companion if visible
@@ -1705,7 +1700,7 @@ func _process_flanking_state(delta: float) -> void:
 	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
 		_log_to_file("FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position])
 		_flank_side_initialized = false
-		if _can_see_player: _transition_to_combat()
+		if _can_see_player or _can_see_companion: _transition_to_combat()  # #934: incl. companion
 		else: _transition_to_pursuing()
 		return
 
@@ -1721,7 +1716,7 @@ func _process_flanking_state(delta: float) -> void:
 				_log_to_file("FLANKING disabled after %d failures" % _flank_fail_count)
 				_transition_to_combat()
 				return
-			if _can_see_player: _transition_to_combat()
+			if _can_see_player or _can_see_companion: _transition_to_combat()  # #934: incl. companion
 			else: _transition_to_pursuing()
 			return
 	else:
@@ -1735,8 +1730,8 @@ func _process_flanking_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
-	# Only transition to combat if we can ACTUALLY HIT the player (not just see)
-	if _can_see_player and _can_hit_player_from_current_position():
+	# Only transition to combat if we can ACTUALLY HIT the target (#934: incl. companion)
+	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
@@ -1968,12 +1963,9 @@ func _process_pursuing_state(delta: float) -> void:
 	# Issue #657: Non-grenadier allies wait for nearby grenadier to throw before advancing
 	if not is_grenadier and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
 
-	# If can see player/companion and can hit them from current position, engage
-	# But only after minimum time has elapsed to prevent rapid state thrashing
-	# when visibility flickers at wall/obstacle edges
-	# Issue #934: also consider companion visibility
+	# If can see player/companion and can hit them, engage (after min time to prevent thrash) #934
 	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
-		var can_hit := _can_hit_player_from_current_position()  # Uses _current_target when set
+		var can_hit := _can_hit_target_from_current_position()
 		if can_hit and _pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT:
 			_log_debug("Can see and hit target from pursuit (%.2fs), transitioning to COMBAT" % _pursuing_state_timer)
 			_has_pursuit_cover = false
@@ -1988,11 +1980,9 @@ func _process_pursuing_state(delta: float) -> void:
 	if _pursuing_vulnerability_sound and _last_known_player_position != Vector2.ZERO:
 		var distance_to_sound := global_position.distance_to(_last_known_player_position)
 
-		# If we reached the sound position
-		if distance_to_sound < 50.0:
+		if distance_to_sound < 50.0:  # Reached the sound position
 			_log_debug("Reached vulnerability sound position (dist=%.0f)" % distance_to_sound)
-			# If we can see the player/companion now, attack
-			# Issue #934: also consider companion visibility
+			# If we can see the player/companion now, attack (#934)
 			if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 				_log_debug("Can see target at sound position, transitioning to COMBAT")
 				_pursuing_vulnerability_sound = false
@@ -2024,17 +2014,18 @@ func _process_pursuing_state(delta: float) -> void:
 				if _transition_to_flanking():
 					return
 
-	# Process approach phase - moving directly toward player when no better cover exists
+	# Process approach phase - moving directly toward target (player or companion) #934
 	if _pursuit_approaching:
-		if _player:
-			var direction := (_player.global_position - global_position).normalized()
-			var can_hit := _can_hit_player_from_current_position()
+		var approach_target := _current_target if _current_target != null else _player
+		if approach_target:
+			var direction := (approach_target.global_position - global_position).normalized()
+			var can_hit := _can_hit_target_from_current_position()
 
 			_pursuit_approach_timer += delta
 
-			# If we can now hit the player, transition to combat
+			# If we can now hit the target, transition to combat
 			if can_hit:
-				_log_debug("Can now hit player after approach (%.1fs), transitioning to COMBAT" % _pursuit_approach_timer)
+				_log_debug("Can now hit target after approach (%.1fs), transitioning to COMBAT" % _pursuit_approach_timer)
 				_pursuit_approaching = false
 				_transition_to_combat()
 				return
