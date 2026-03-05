@@ -19,6 +19,7 @@ signal back_pressed
 @onready var enemy_flashlight_blinding_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer/EnemyFlashlightBlindingCheckbox
 @onready var fps_counter_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer/FpsCounterCheckbox
 @onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
+@onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 
@@ -35,6 +36,7 @@ func _ready() -> void:
 	enemy_flashlight_blinding_checkbox.toggled.connect(_on_enemy_flashlight_blinding_toggled)
 	fps_counter_checkbox.toggled.connect(_on_fps_counter_toggled)
 	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
+	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -177,6 +179,13 @@ func _on_fps_drop_logging_toggled(enabled: bool) -> void:
 	if experimental_settings:
 		experimental_settings.set_fps_drop_logging_enabled(enabled)
 	_update_ui()
+
+
+func _on_delete_saves_pressed() -> void:
+	var persist_manager: Node = get_node_or_null("/root/PersistManager")
+	if persist_manager and persist_manager.has_method("clear_all_saves"):
+		persist_manager.clear_all_saves()
+	status_label.text = "Saves deleted. Game reset to first-launch state."
 
 
 func _on_back_pressed() -> void:

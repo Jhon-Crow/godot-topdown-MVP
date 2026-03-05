@@ -1,0 +1,53 @@
+title:	fix: laser glow lag when player walks (#748)
+state:	OPEN
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	749
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/749
+additions:	141
+deletions:	1
+auto-merge:	disabled
+--
+## 🎯 Fix Laser Glow Lag When Player Walks
+
+### 📋 Issue Reference
+Fixes Jhon-Crow/godot-topdown-MVP#748
+
+### 🔍 Root Cause
+While the original Issue #694 fix (`LocalCoords = true`) correctly handled translation lag, Godot engine issue #71480 reveals that `LocalCoords = true` doesn't properly handle **rotation lag** when parent nodes rotate.
+
+When players walk and rotate, the laser dust particles were lagging behind the beam, creating a visible disconnect between the laser line and its glow effect.
+
+### ✨ Solution
+Enhanced the `UpdateDustParticles()` method in `LaserGlowEffect.cs` to explicitly synchronize particle rotation each frame:
+
+```csharp
+// CRITICAL FIX: Force rotation to match beam angle every frame
+// This works around Godot issue #71480 where LocalCoords=true
+// doesn't properly handle particle rotation following parent rotation.
+var targetRotation = beamVector.Angle();
+_dustParticles.Rotation = targetRotation;
+```
+
+### 🧪 How It Works
+1. **Explicit rotation sync** - Each frame sets particle rotation to match laser beam angle
+2. **Works around engine limitation** - Bypasses Godot's LocalCoords rotation handling issue  
+3. **Maintains compatibility** - Preserves existing translation fix while adding rotation handling
+4. **Zero performance impact** - Single rotation assignment per frame
+
+### ✅ Testing
+- ✅ Build successful
+- ✅ Backward compatible  
+- ✅ Minimal code impact
+- ✅ Targets rotation-specific lag symptom
+
+### 📁 Files Changed
+- `Scripts/Weapons/LaserGlowEffect.cs` - Enhanced rotation synchronization
+- `docs/case-studies/issue-748/` - Complete case study analysis
+
+---
+*Fixes laser glow lag that occurred specifically when player rotated while walking*
