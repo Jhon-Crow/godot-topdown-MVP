@@ -109,7 +109,63 @@ Add tests covering:
 ## Files Modified
 
 - `scripts/objects/enemy.gd` — Target selection logic
+- `scripts/components/bff_targeting_component.gd` — Companion detection component
 - `tests/unit/test_bff_pendant.gd` — Regression tests for companion targeting
+
+---
+
+## Bug Re-occurrence Report (March 2026)
+
+### User Feedback
+On March 2, 2026, user Jhon-Crow reported that "enemies still don't attack the companion" despite the initial PR implementation.
+
+### Investigation
+
+Analysis of the game log (`logs/game_log_20260302_194932.txt`) revealed:
+1. The companion was correctly spawned and placed in the `bff_companions` group
+2. Enemies were detecting the companion (evidenced by `[->companion]` markers in rotation logs)
+3. Enemies were rotating toward the companion
+
+However, enemies were NOT shooting at the companion.
+
+### Root Cause (Second Pass)
+
+The initial implementation added:
+- `BffTargetingComponent` for companion detection and target selection
+- `_can_see_companion` flag set correctly
+- `_current_target` pointing to the closer visible target
+- `_aim_at_player()` using `_current_target` correctly
+- `_shoot()` supporting companion targeting via `_aiming_companion`
+
+**BUT** the shooting guard conditions throughout the state processing functions still checked only `_can_see_player and _player`, blocking shooting even when the companion was the valid target.
+
+### Locations Fixed
+
+The following shooting guard conditions were updated to also consider companion visibility:
+
+1. `_process_seeking_cover_state()` - Line 1613
+2. `_process_in_cover_state()` - Lines 1687, 1694
+3. `_process_suppressed_state()` - Lines 1772, 1800
+4. `_process_retreating_state()` - Line 1888
+5. `_process_pursuing_state()` - Lines 1953, 1974, 1994, 2087
+6. `_get_target_position()` - Added companion position fallback
+7. Debug drawing - Added companion visibility line
+
+### Pattern Applied
+
+**Before:**
+```gdscript
+if _can_see_player and _player:
+    _aim_at_player()
+    _shoot()
+```
+
+**After:**
+```gdscript
+if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+    _aim_at_player()  # Uses _current_target internally
+    _shoot()          # Supports companion via _aiming_companion
+```
 
 ---
 
@@ -118,5 +174,6 @@ Add tests covering:
 - [Issue #674](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/674) — BFF Pendant implementation
 - [Issue #729](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/729) — Aggressive enemy navigation
 - [Issue #675](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/675) — Aggression gas component
-- [Game Log](https://github.com/user-attachments/files/25640945/game_log_20260301_024305.txt) — Evidence that companion is not targeted
+- [Game Log (initial)](https://github.com/user-attachments/files/25640945/game_log_20260301_024305.txt) — Evidence that companion is not targeted
+- [Game Log (re-report)](./logs/game_log_20260302_194932.txt) — Evidence of partial fix (rotation works, shooting doesn't)
 - GameAI Pro (2013): "Goal-Oriented Action Planning for a Smarter AI" — multi-target GOAP patterns

@@ -1610,7 +1610,8 @@ func _process_seeking_cover_state(_delta: float) -> void:
 	_move_to_target_nav(_cover_position, combat_move_speed)
 
 	# Can still shoot while moving to cover (only after detection delay)
-	if _can_see_player and _player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+	# Issue #934: also shoot at companion if visible
+	if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 		_aim_at_player()
 		_shoot()
 		_shoot_timer = 0.0
@@ -1683,15 +1684,17 @@ func _process_in_cover_state(delta: float) -> void:
 					_transition_to_pursuing()
 					return
 
-	# If not under fire and can see player, engage (only shoot after detection delay)
-	if _can_see_player and _player:
+	# If not under fire and can see player or companion, engage (only shoot after detection delay)
+	# Issue #934: also shoot at companion if visible
+	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# If player is no longer visible and not under fire, try pursuing
-	if not _can_see_player and not _under_fire:
+	# If player (or companion) is no longer visible and not under fire, try pursuing
+	# Issue #934: consider companion visibility
+	if not (_can_see_player or _can_see_companion) and not _under_fire:
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
@@ -1765,8 +1768,9 @@ func _process_suppressed_state(delta: float) -> void:
 	# Check if player has flanked us - if we're now visible from player's position,
 	# we need to find new cover even while suppressed
 	if _is_visible_from_player():
-		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player
-		if _can_see_player and _player:
+		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
+		# Issue #934: also consider companion visibility
+		if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1795,7 +1799,8 @@ func _process_suppressed_state(delta: float) -> void:
 		return
 
 	# Can still shoot while suppressed (only after detection delay)
-	if _can_see_player and _player:
+	# Issue #934: also shoot at companion if visible
+	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
@@ -1881,7 +1886,8 @@ func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> voi
 				velocity = Vector2.ZERO
 
 			# Shoot with reduced accuracy (only after detection delay)
-			if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			# Issue #934: also shoot at companion if visible
+			if (_can_see_player or _can_see_companion) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 				_shoot_with_inaccuracy()
 				_shoot_timer = 0.0
 
@@ -1944,7 +1950,9 @@ func _process_pursuing_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
-		if _can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE:
+		# Issue #934: also consider companion for melee engagement
+		if ((_can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE) or
+				(_can_see_companion and _companion != null and global_position.distance_to(_companion.global_position) <= CLOSE_COMBAT_DISTANCE)):
 			_transition_to_combat(); return
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
 		_pursuit_approaching = false
@@ -1960,13 +1968,14 @@ func _process_pursuing_state(delta: float) -> void:
 	# Issue #657: Non-grenadier allies wait for nearby grenadier to throw before advancing
 	if not is_grenadier and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
 
-	# If can see player and can hit them from current position, engage
+	# If can see player/companion and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
 	# when visibility flickers at wall/obstacle edges
-	if _can_see_player and _player:
-		var can_hit := _can_hit_player_from_current_position()
+	# Issue #934: also consider companion visibility
+	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+		var can_hit := _can_hit_player_from_current_position()  # Uses _current_target when set
 		if can_hit and _pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT:
-			_log_debug("Can see and hit player from pursuit (%.2fs), transitioning to COMBAT" % _pursuing_state_timer)
+			_log_debug("Can see and hit target from pursuit (%.2fs), transitioning to COMBAT" % _pursuing_state_timer)
 			_has_pursuit_cover = false
 			_pursuit_approaching = false
 			_pursuing_vulnerability_sound = false
@@ -1982,9 +1991,10 @@ func _process_pursuing_state(delta: float) -> void:
 		# If we reached the sound position
 		if distance_to_sound < 50.0:
 			_log_debug("Reached vulnerability sound position (dist=%.0f)" % distance_to_sound)
-			# If we can see the player now, attack
-			if _can_see_player and _player:
-				_log_debug("Can see player at sound position, transitioning to COMBAT")
+			# If we can see the player/companion now, attack
+			# Issue #934: also consider companion visibility
+			if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+				_log_debug("Can see target at sound position, transitioning to COMBAT")
 				_pursuing_vulnerability_sound = false
 				_transition_to_combat()
 				return
@@ -2072,11 +2082,12 @@ func _process_pursuing_state(delta: float) -> void:
 			if _has_pursuit_cover:
 				_log_debug("Found pursuit cover at %s" % _pursuit_next_cover)
 			else:
-				# No pursuit cover found - start approach phase if we can see player
+				# No pursuit cover found - start approach phase if we can see player/companion
+				# Issue #934: also consider companion visibility
 				_log_debug("No pursuit cover found, checking fallback options")
-				if _can_see_player and _player:
+				if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 					# Can see but can't hit (at last cover) - start approach phase
-					_log_debug("Can see player but can't hit, starting approach phase")
+					_log_debug("Can see target but can't hit, starting approach phase")
 					_pursuit_approaching = true
 					_pursuit_approach_timer = 0.0
 					return
@@ -2980,10 +2991,13 @@ func _is_target_close() -> bool:
 	var t := _current_target if _current_target != null else _player
 	return t != null and global_position.distance_to(t.global_position) <= CLOSE_COMBAT_DISTANCE
 
-## Get target position: visible player > memory > last known > stay in place (Issue #297, #318).
+## Get target position: visible player/companion > memory > last known > stay in place (Issue #297, #318, #934).
 func _get_target_position() -> Vector2:
+	# Issue #934: also consider companion visibility
 	if _can_see_player and _player:
 		return _player.global_position
+	if _can_see_companion and _companion != null:
+		return _companion.global_position
 	if _memory and _memory.has_target():
 		return _memory.suspected_position
 	if _last_known_player_position != Vector2.ZERO:
@@ -4582,6 +4596,10 @@ func _draw() -> void:
 	if _can_see_player and _player:
 		var to_player := _player.global_position - global_position
 		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
+	# Issue #934: Draw line to companion if visible
+	if _can_see_companion and _companion != null:
+		var to_companion := _companion.global_position - global_position
+		draw_line(Vector2.ZERO, to_companion, Color.ORANGE, 1.5)
 
 		# Draw bullet spawn point (actual muzzle position) and check if blocked
 		var weapon_forward := _get_weapon_forward_direction()
