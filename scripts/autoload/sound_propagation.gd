@@ -57,7 +57,10 @@ const PROPAGATION_DISTANCES: Dictionary = {
 	SoundType.EMPTY_CLICK: 600.0,      ## Shorter than reload but still audible through walls
 	SoundType.RELOAD_COMPLETE: 900.0,  ## Bolt cycling sound - same range as reload start
 	SoundType.GRENADE_LANDING: 112.0,  ## Issue #426: 1/4 of half-reload (450/4) - enemies hear grenade very close
-	SoundType.CASING_KICK: 900.0       ## Issue #693: Same range as reload - enemies hear casings kicked by player
+	SoundType.CASING_KICK: 150.0       ## Issue #953: Reduced from 900px to 150px. Casings only roll a short
+	                                   ## distance and at 900px the sound was notifying all 19 enemies per shot,
+	                                   ## causing O(n) broadcast overhead. 150px ~= grenade close range × 1.3.
+	                                   ## Original value was Issue #693: same range as reload (900px).
 }
 
 ## Reference distance for sound intensity calculations (in pixels).
