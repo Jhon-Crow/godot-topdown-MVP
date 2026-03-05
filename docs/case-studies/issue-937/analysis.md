@@ -221,6 +221,55 @@ The combination of two targeted fixes addresses both identified root causes:
 
 These are the most surgical changes that address root cause 1 and 2 without changing gameplay significantly.
 
+## Bug Fix: Game Crash on Grenade Explosion (PR Feedback)
+
+### Issue Report
+
+After initial PR implementation, user reported game crash during grenade explosion (comment from 2026-03-02):
+- "при взрыве гранаты вылетела игра" (game crashed when grenade exploded)
+- Attached log: `game_log_20260302_194309.txt`
+
+### Analysis
+
+The crash log showed:
+1. Game running normally until 19:44:28 (frame 1020)
+2. DefensiveGrenade exploded, spawned 40 shrapnel pieces
+3. Log ends abruptly with no error message — indicating hard crash (SEGFAULT)
+
+### Root Cause
+
+**Issue 1: Unsafe property check in `defensive_grenade.gd`**
+
+```gdscript
+# BEFORE (unsafe):
+if shrapnel.has_method("is_pooled") or "max_ricochets" in shrapnel:
+    shrapnel.max_ricochets = shrapnel_max_ricochets
+
+# AFTER (safe):
+if "max_ricochets" in shrapnel:
+    shrapnel.max_ricochets = shrapnel_max_ricochets
+```
+
+The `or` condition meant that if a shrapnel had `is_pooled()` method but somehow lacked the `max_ricochets` property, the code would crash trying to access a nonexistent property.
+
+**Issue 2: Missing `max_ricochets` reset in `shrapnel.gd` pooling**
+
+```gdscript
+# BEFORE: _reset_state() did NOT reset max_ricochets
+# Pool reuse would carry over the previous max_ricochets value
+
+# AFTER: Added to _reset_state():
+max_ricochets = _original_max_ricochets  # Reset to default (3)
+```
+
+This caused shrapnel reused from the pool to keep the `max_ricochets = 1` value from defensive grenades, even when reused for frag grenades which expect the default of 3.
+
+### Fix Applied
+
+1. Changed `defensive_grenade.gd` property check from `or` to simple property existence check
+2. Added `_original_max_ricochets` variable to `shrapnel.gd` for reset
+3. Added `max_ricochets = _original_max_ricochets` to `_reset_state()` function
+
 ## Related Prior Issues
 
 | Issue | Connection |

@@ -265,6 +265,10 @@ var _is_pooled: bool = false
 ## Original speed value for reset.
 var _original_speed: float = 5000.0
 
+## Original max_ricochets value for reset (Issue #937 fix).
+## Ensures shrapnel reused from pool gets correct ricochet limit restored.
+var _original_max_ricochets: int = 3
+
 
 ## Activates the shrapnel from the pool with the given parameters.
 ## @param pos: Global position to spawn at.
@@ -347,8 +351,9 @@ func _reset_state() -> void:
 	source_id = -1
 	thrower_id = -1
 
-	# Reset ricochet state
+	# Reset ricochet state (Issue #937 fix: also reset max_ricochets for pool reuse)
 	_ricochet_count = 0
+	max_ricochets = _original_max_ricochets
 
 	# Clear position history
 	_position_history.clear()

@@ -235,7 +235,7 @@ func _spawn_shrapnel() -> void:
 			if shrapnel and shrapnel.has_method("pool_activate"):
 				shrapnel.pool_activate(spawn_pos, direction, get_instance_id(), thrower_id)
 				# Issue #937: Limit ricochets to reduce collision cascade in enclosed spaces
-				if shrapnel.has_method("is_pooled") or "max_ricochets" in shrapnel:
+				if "max_ricochets" in shrapnel:
 					shrapnel.max_ricochets = shrapnel_max_ricochets
 				continue  # Shrapnel is ready, skip to next
 
