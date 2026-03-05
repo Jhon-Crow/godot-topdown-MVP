@@ -1,0 +1,18 @@
+[gd_resource type="Theme" format=3 uid="uid://c3qneonbtn01"]
+
+[resource]
+Button/colors/font_color = Color(0.4, 1.0, 1.0, 1.0)
+Button/colors/font_disabled_color = Color(0.2, 0.5, 0.5, 0.5)
+Button/colors/font_focus_color = Color(0.6, 1.0, 1.0, 1.0)
+Button/colors/font_hover_color = Color(0.6, 1.0, 1.0, 1.0)
+Button/colors/font_hover_pressed_color = Color(1.0, 1.0, 1.0, 1.0)
+Button/colors/font_pressed_color = Color(1.0, 1.0, 1.0, 1.0)
+Button/colors/icon_disabled_color = Color(0.2, 0.5, 0.5, 0.5)
+Button/colors/icon_focus_color = Color(0.4, 1.0, 1.0, 1.0)
+Button/colors/icon_hover_color = Color(0.6, 1.0, 1.0, 1.0)
+Button/colors/icon_hover_pressed_color = Color(1.0, 1.0, 1.0, 1.0)
+Button/colors/icon_normal_color = Color(0.4, 1.0, 1.0, 1.0)
+Button/colors/icon_pressed_color = Color(1.0, 1.0, 1.0, 1.0)
+Label/colors/font_color = Color(0.4, 1.0, 1.0, 1.0)
+Label/colors/font_outline_color = Color(0.0, 0.8, 0.9, 1.0)
+Label/colors/font_shadow_color = Color(0.0, 0.6, 0.8, 0.6)

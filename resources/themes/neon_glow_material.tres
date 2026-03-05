@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://c3qneonglow01"]
+
+[ext_resource type="Shader" path="res://resources/themes/neon_glow.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/glow_color = Color(0.0, 0.8, 1.0, 1.0)
+shader_parameter/glow_intensity = 2.0
+shader_parameter/glow_size = 4.0
+shader_parameter/blur_iterations = 8
+shader_parameter/enable_flicker = false
+shader_parameter/flicker_speed = 3.0
+shader_parameter/flicker_intensity = 0.1

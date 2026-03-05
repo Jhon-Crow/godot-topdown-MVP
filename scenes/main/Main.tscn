@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8qbm3v6xg4ow"]
+[gd_scene load_steps=4 format=3 uid="uid://c8qbm3v6xg4ow"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
+[ext_resource type="Material" uid="uid://c3qneonglow01" path="res://resources/themes/neon_glow_material.tres" id="3_neon_glow"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -19,6 +21,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="TitleLabel" type="Label" parent="CanvasLayer/UI"]
+material = ExtResource("3_neon_glow")
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -29,6 +32,7 @@ offset_right = 200.0
 offset_bottom = 150.0
 grow_horizontal = 2
 text = "Godot Top-Down Template"
+label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -45,6 +49,7 @@ offset_right = 150.0
 offset_bottom = 50.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_colors/font_color = Color(0.4, 1.0, 1.0, 1.0)
 text = "Press F5 to run the project
 WASD or Arrow Keys to move
 
