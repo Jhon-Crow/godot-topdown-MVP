@@ -243,7 +243,13 @@ func should_force_laser_sight() -> bool:
 ## Check if an active item type is unlocked.
 ## @param item_type: The active item type to check.
 ## @return: true if the item is unlocked, false otherwise.
+## Note: If all_weapons_unlocked is enabled in ExperimentalSettings, all items return true.
 func is_active_item_unlocked(item_type: int) -> bool:
+	# Check if all weapons are unlocked via experimental setting (Issue #882)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_all_weapons_unlocked"):
+		if experimental_settings.is_all_weapons_unlocked():
+			return true
 	return unlocked_active_items.get(item_type, false)
 
 
