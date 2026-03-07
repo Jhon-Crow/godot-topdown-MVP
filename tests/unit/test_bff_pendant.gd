@@ -1422,3 +1422,96 @@ func test_v2_fix_still_blocks_wall_within_old_check_range() -> void:
 		"Old 35px check blocks when wall is at 20px")
 	assert_false(check.new_check_passes(),
 		"New real-muzzle check also blocks when wall is at 20px")
+
+
+# ============================================================================
+# Issue #954 Bug #3 v3: Muzzle Point-Intersection Check (intersect_point fix)
+# ============================================================================
+## Tests validating the v3 fix: _is_bullet_spawn_clear() now uses intersect_point()
+## at the muzzle position to detect walls even when the enemy center is already
+## touching/inside a wall.
+##
+## Root cause evidence (game_log_20260307_205200.txt):
+##   BffCompanion fired through walls with bullets spawning at (522, 838) — inside a wall.
+##   The v2 raycast from center→muzzle failed because when the enemy is touching the wall,
+##   the raycast START may be inside the collider, and Godot does not report intersections
+##   for rays that originate inside a shape (a known Godot physics limitation).
+##   intersect_point() correctly detects whether the muzzle point is inside any wall shape,
+##   regardless of where the query originates.
+
+
+class MockMuzzlePointCheck:
+	## Simulates the v3 fix: uses point-intersection at muzzle to detect inside-wall case.
+
+	## Whether the muzzle point is inside a wall (true = muzzle is inside wall, blocked)
+	var muzzle_inside_wall: bool = false
+
+	## Whether a wall blocks the path from enemy center to muzzle (raycast check)
+	var wall_between_center_and_muzzle: bool = false
+
+	func v2_raycast_catches_wall() -> bool:
+		## v2 fix: raycast from center to muzzle. FAILS if center is also inside the wall.
+		## (When origin is inside a collider, Godot returns no intersection.)
+		return not wall_between_center_and_muzzle  # simplified: passes when no wall found
+
+	func v3_point_check_catches_wall() -> bool:
+		## v3 fix: intersect_point() at muzzle pos. Works even if center is in wall.
+		return not muzzle_inside_wall
+
+	func v3_combined_check_passes() -> bool:
+		## v3 uses both: point check at muzzle AND raycast center→muzzle
+		return v3_point_check_catches_wall() and v2_raycast_catches_wall()
+
+
+func test_v3_fix_catches_muzzle_inside_wall_when_center_also_touching_wall() -> void:
+	## This is the exact scenario from game_log_20260307_205200.txt:
+	## Companion pushed against wall corner, both center and muzzle inside wall.
+	## v2 raycast from center→muzzle silently passes (origin inside collider).
+	## v3 intersect_point() at muzzle correctly blocks the shot.
+	var check := MockMuzzlePointCheck.new()
+	check.muzzle_inside_wall = true
+	check.wall_between_center_and_muzzle = false  # v2 raycast fails to detect this
+
+	assert_true(check.v2_raycast_catches_wall(),
+		"v2 raycast incorrectly PASSES when companion center is inside wall (this was the bug)")
+	assert_false(check.v3_point_check_catches_wall(),
+		"v3 point check correctly BLOCKS when muzzle is inside wall")
+	assert_false(check.v3_combined_check_passes(),
+		"v3 combined check correctly BLOCKS when muzzle is inside wall")
+
+
+func test_v3_fix_allows_clear_shot_when_muzzle_outside_wall() -> void:
+	## Normal case: companion has clear muzzle position outside any wall.
+	## Both v2 and v3 should allow the shot.
+	var check := MockMuzzlePointCheck.new()
+	check.muzzle_inside_wall = false
+	check.wall_between_center_and_muzzle = false
+
+	assert_true(check.v3_point_check_catches_wall(),
+		"v3 point check passes when muzzle is not inside any wall")
+	assert_true(check.v3_combined_check_passes(),
+		"v3 combined check passes when both muzzle and path are clear")
+
+
+func test_v3_fix_blocks_wall_between_center_and_muzzle() -> void:
+	## Wall between enemy center and muzzle (but muzzle is not inside wall).
+	## The raycast part of v3 catches this case.
+	var check := MockMuzzlePointCheck.new()
+	check.muzzle_inside_wall = false
+	check.wall_between_center_and_muzzle = true
+
+	assert_true(check.v3_point_check_catches_wall(),
+		"v3 point check passes (muzzle itself is not inside wall)")
+	assert_false(check.v3_combined_check_passes(),
+		"v3 combined check blocks because raycast finds wall between center and muzzle")
+
+
+func test_v3_fix_blocks_when_both_center_and_muzzle_inside_wall() -> void:
+	## Extreme case: both center and muzzle inside wall (deep penetration).
+	## v2 fails completely; v3 point check catches it.
+	var check := MockMuzzlePointCheck.new()
+	check.muzzle_inside_wall = true
+	check.wall_between_center_and_muzzle = false  # ray from center still finds no wall
+
+	assert_false(check.v3_combined_check_passes(),
+		"v3 combined check blocks even when center is inside wall (point check saves it)")

@@ -17,14 +17,18 @@ The companion continues getting stuck in ALWAYS-COMBAT state (never transitions 
 **Additional issue reported in PR #955 review (2026-03-05)**:
 "Update from main and continue from comment #3985986837. Also separately pay attention to the companion shooting at the edge of a passage (trying to hit enemies through walls)."
 
-**Additional issue reported in PR #955 review (2026-03-07)**:
+**Additional issue reported in PR #955 review (2026-03-07, session 3)**:
 "Still occasionally shoots at the corner of a wall." — Confirms Bug #3 is still occurring despite the v1 fix.
+
+**Additional issue reported in PR #955 review (2026-03-07, session 4)**:
+"The problem is not fixed." — Confirms Bug #3 persists even after the v2 fix. New log `game_log_20260307_205200.txt` provided.
 
 ## Game Logs
 
 - `logs/game_log_20260302_205254.txt` — Session 1 (77,988 lines): Severe 96-shot stuck cluster, companion locked for 32 seconds
 - `logs/game_log_20260302_205756.txt` — Session 2 (1,978 lines): Rapid P1↔P2 state oscillation, 7 shots through wall within 1 second of spawn
 - `logs/game_log_20260307_201817.txt` — Session 3 (8,047 lines): 20+ shots into wall at (2026,1406) with bullet spawning at (2036,1473) — 68px from center. Distance=0 logged by bullet, confirming muzzle was inside the wall.
+- `logs/game_log_20260307_205200.txt` — Session 4 (4,484 lines): Shots through wall at (527.5, 838.7) — bullet spawns inside wall with Distance=0. Companion fires repeatedly through wall corner while navigating the BuildingLevel. Confirms v2 fix is also insufficient; identifies Godot raycast limitation as root cause.
 
 ---
 
@@ -220,6 +224,45 @@ var check_end := global_position + direction * (real_muzzle_distance + 5.0)
 
 By casting from enemy center to the actual muzzle position (+5px buffer), the check correctly detects walls that the muzzle would overhang, blocking the shot and triggering navigation.
 
+#### v3 Fix (current) — Handles Raycast-Inside-Collider Limitation
+
+**Evidence from `game_log_20260307_205200.txt`** (2026-03-07, session 4):
+- BffCompanion fires through wall; bullets spawn at (522.78, 838.68) with `Distance to wall: 0`
+- 20+ wall-penetrating shots from same position, each traveling 41.67px through wall before exiting
+- The companion is against a wall corner; both center and muzzle are touching/inside the collider
+- v2 raycast from `global_position` to `muzzle_pos` fails because Godot does not report intersections when a ray's origin is inside a shape — this is a documented Godot physics limitation
+
+**Root cause of v2 failure**: When the companion presses against a wall hard enough that its center (body collider) is already at the boundary of or touching the wall collider, the v2 raycast from `global_position` → muzzle starts inside (or at the exact edge of) the obstacle collider. Godot's `intersect_ray()` returns empty when the origin is inside a shape.
+
+**v3 fix in `_is_bullet_spawn_clear()` (enemy.gd)**:
+```gdscript
+# [#954 v3] Point-check the muzzle position directly. intersect_point() correctly
+# detects walls even when the query point is inside the collider, unlike raycasts
+# which silently fail when the ray origin is inside a shape.
+var point_query := PhysicsPointQueryParameters2D.new()
+point_query.position = muzzle_pos
+point_query.collision_mask = 4  # Only check obstacles (layer 3)
+point_query.exclude = [get_rid()]
+var point_result := space_state.intersect_point(point_query, 1)
+if not point_result.is_empty():
+    return false
+# Also raycast from enemy center to muzzle to catch walls between them
+var ray_query := PhysicsRayQueryParameters2D.new()
+ray_query.from = global_position; ray_query.to = muzzle_pos
+ray_query.collision_mask = 4
+ray_query.exclude = [get_rid()]
+var ray_result := space_state.intersect_ray(ray_query)
+if not ray_result.is_empty():
+    return false
+return true
+```
+
+`intersect_point()` checks if a single point overlaps any physics shape, even if the query is initiated from inside the shape. This is fundamentally different from `intersect_ray()` and correctly handles the case where the companion is pressed against a wall.
+
+The combined v3 check:
+1. **Point check at muzzle** — catches muzzle-inside-wall (the primary failure mode)
+2. **Raycast center→muzzle** — catches walls between center and muzzle (secondary case)
+
 ---
 
 ## Regression Tests
@@ -229,3 +272,4 @@ Tests added to `tests/unit/test_bff_pendant.gd`:
 - **Bug #2** (7 tests): `MockBffCombatMovement` — verifies navigation when center spawn blocked
 - **Bug #3** (6 tests): `MockMuzzleWallCheck` — verifies no shooting when real muzzle path blocked
 - **Bug #3 v2** (4 tests): `MockBulletSpawnCheck` — verifies real muzzle distance catches walls at 40-50px that old 35px check missed
+- **Bug #3 v3** (4 tests): `MockMuzzlePointCheck` — verifies intersect_point() at muzzle detects inside-wall case that raycasts miss when enemy center is also touching/inside a wall

@@ -2877,8 +2877,9 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 	return true
 
 ## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
-## [Issue #954] Uses the actual muzzle position from _get_bullet_spawn_position (~52-68px),
-## not bullet_spawn_offset (30px). Prevents muzzle-inside-wall shots at passage edges.
+## [Issue #954 v3] Uses intersect_point() at the muzzle position to detect walls even
+## when the enemy center is already touching/inside a wall (raycasts miss this case because
+## Godot does not report collisions for rays that start inside a collider).
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 	# Fail-open: allow shooting if physics is not ready
 	var world_2d := get_world_2d()
@@ -2887,19 +2888,29 @@ func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 	var space_state := world_2d.direct_space_state
 	if space_state == null:
 		return true
-	# [#954] Use real muzzle position: bullet_spawn_offset (30px) underestimates real
-	# muzzle offset (~52-68px), missing walls between 35px-68px from center.
 	var muzzle_pos := _get_bullet_spawn_position(direction)
+	# [#954 v3] Point-check the muzzle position directly. intersect_point() correctly
+	# detects walls even when the query point is inside the collider, unlike raycasts
+	# which silently fail when the ray origin is inside a shape.
+	var point_query := PhysicsPointQueryParameters2D.new()
+	point_query.position = muzzle_pos
+	point_query.collision_mask = 4  # Only check obstacles (layer 3)
+	point_query.exclude = [get_rid()]
+	var point_result := space_state.intersect_point(point_query, 1)
+	if not point_result.is_empty():
+		_log_debug("Bullet spawn blocked: muzzle at %.0f,%.0f is inside wall" % [
+			muzzle_pos.x, muzzle_pos.y])
+		return false
+	# Also raycast from enemy center to muzzle to catch walls between them
 	var real_muzzle_distance := global_position.distance_to(muzzle_pos)
-	var check_end := global_position + direction * (real_muzzle_distance + 5.0)
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position; query.to = check_end
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = [get_rid()]
-	var result := space_state.intersect_ray(query)
-	if not result.is_empty():
+	var ray_query := PhysicsRayQueryParameters2D.new()
+	ray_query.from = global_position; ray_query.to = muzzle_pos
+	ray_query.collision_mask = 4  # Only check obstacles (layer 3)
+	ray_query.exclude = [get_rid()]
+	var ray_result := space_state.intersect_ray(ray_query)
+	if not ray_result.is_empty():
 		_log_debug("Bullet spawn blocked: wall at distance %.1f (muzzle at %.1f)" % [
-			global_position.distance_to(result["position"]), real_muzzle_distance])
+			global_position.distance_to(ray_result["position"]), real_muzzle_distance])
 		return false
 	return true
 
