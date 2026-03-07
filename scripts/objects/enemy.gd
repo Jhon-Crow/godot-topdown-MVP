@@ -174,6 +174,10 @@ const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (secon
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
 var _initial_position: Vector2
 var _can_see_player: bool = false  ## Can see player
+var _bff_targeting: BffTargetingComponent = null  ## Issue #934: companion targeting
+var _companion: Node2D = null  ## BFF companion reference (Issue #934, alias for _bff_targeting.companion)
+var _can_see_companion: bool = false  ## Can see BFF companion (Issue #934)
+var _current_target: Node2D = null  ## Best current target: player or companion (Issue #934)
 var _current_state: AIState = AIState.IDLE  ## AI state
 var _cover_position: Vector2 = Vector2.ZERO  ## Cover position
 var _has_valid_cover: bool = false  ## Has valid cover
@@ -278,6 +282,9 @@ var _detection_timer: float = 0.0  ## Combat detection timer
 var _detection_delay_elapsed: bool = false  ## Detection delay done
 var _continuous_visibility_timer: float = 0.0  ## Continuous visibility timer
 var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
+## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
+var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
+const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -293,6 +300,7 @@ const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
 var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
+var _suppressive_fire: SuppressiveFireComponent = null  ## Issue #910: Suppressive fire component.
 
 ## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 var _memory: EnemyMemory = null
@@ -375,6 +383,11 @@ var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing r
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
+	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
+	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+
+	# Issue #934: Initialize BFF companion targeting component
+	_bff_targeting = BffTargetingComponent.new(self)
 
 	# Configure weapon parameters based on weapon type (before ammo init)
 	_configure_weapon_type()
@@ -395,7 +408,7 @@ func _ready() -> void:
 	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
-	_setup_aggression_component()  # Issue #675
+	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
 	_setup_machete_component()  # Issue #579
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
@@ -546,10 +559,9 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
-	# Only react if alive and not confused from memory reset (Issue #318 - block sounds during confusion)
-	if not _is_alive or _memory_reset_confusion_timer > 0.0:
-		return
-	# Calculate distance to sound for logging
+	if not _is_alive: return
+	var is_player_gunshot := sound_type == 0 and source_type == 0  # GUNSHOT from PLAYER (#910)
+	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
 
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
@@ -575,8 +587,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "RELOAD")  # Issue #910
 		return
 
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
@@ -605,8 +617,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			# Leave cover/defensive/searching state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "EMPTY_CLICK")  # Issue #910
 		return
 
 	# Issue #426: Handle grenade landing sound (GRENADE_LANDING) - evade if heard nearby
@@ -624,6 +636,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_last_known_player_position = position
 		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
 		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
 	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
@@ -666,22 +679,16 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if sound_type != 0 and sound_type != 1:
 		return
 
-	# React based on current state (same for gunshots and explosions)
-	var should_react := false
-	if _current_state == AIState.IDLE:
-		should_react = intensity >= 0.01
-	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-		should_react = intensity >= 0.3
-	if not should_react:
-		return
+	# React based on current state (same for gunshots and explosions) - #910: also react in alert states to player gunshots
+	var should_react := (_current_state == AIState.IDLE and intensity >= 0.01) or (_current_state in [AIState.FLANKING, AIState.RETREATING] and intensity >= 0.3)
+	if is_player_gunshot and _current_state in [AIState.SEARCHING, AIState.PURSUING, AIState.IN_COVER, AIState.COMBAT]: should_react = intensity >= 0.01
+	if not should_react: return
 
 	var sound_name := "EXPLOSION" if sound_type == 1 else "gunshot"
 	_log_debug("Heard %s (intensity=%.2f, distance=%.0f) at %s" % [sound_name, intensity, distance, position])
 	_log_to_file("Heard %s at %s, intensity=%.2f, distance=%.0f" % [sound_name, position, intensity, distance])
 
-	# Issue #363: Track gunshots for sustained fire detection (only for actual gunshots)
-	if sound_type == 0:
-		_on_gunshot_heard_for_grenade(position)
+	if sound_type == 0: _on_gunshot_heard_for_grenade(position)  # #363: sustained fire detection
 
 	_last_known_player_position = position
 	if _memory:
@@ -691,7 +698,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_prediction.record_player_shot(sd)
 		_memory.update_shot_direction(sd)
 	_transition_to_combat()
-
+	if sound_type == 0 and source_type == 0 and _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "GUNSHOT")  # Issue #910
 ## Initialize GOAP world state.
 func _initialize_goap_state() -> void:
 	_goap_world_state = {
@@ -780,6 +787,16 @@ func _find_player_recursive(node: Node) -> Node2D:
 			return result
 	return null
 
+## Update BFF companion reference and select best target (Issue #934).
+## Delegates to BffTargetingComponent to keep this file within line limits.
+func _find_companion() -> void:
+	_bff_targeting.find_companion()
+	_companion = _bff_targeting.companion
+
+func _select_best_target() -> void:
+	_bff_targeting.select_best_target(_player, _can_see_player)
+	_current_target = _bff_targeting.current_target
+
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
@@ -840,6 +857,10 @@ func _physics_process(delta: float) -> void:
 	if _player == null:
 		_find_player()
 	_check_player_visibility()
+	# Issue #934: Check BFF companion as secondary threat target
+	_find_companion()
+	_check_companion_visibility()
+	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
 	_update_suppression(delta)
@@ -871,7 +892,9 @@ func _physics_process(delta: float) -> void:
 
 ## Update GOAP world state based on current conditions.
 func _update_goap_state() -> void:
-	_goap_world_state["player_visible"] = _can_see_player
+	# Issue #934: player_visible/player_close/can_hit_from_cover reflect the best target
+	# (either the main player or the BFF companion, whichever is more accessible).
+	_goap_world_state["player_visible"] = _can_see_player or _can_see_companion
 	_goap_world_state["under_fire"] = _under_fire
 	_goap_world_state["health_low"] = _get_health_percent() < 0.5
 	_goap_world_state["in_cover"] = _current_state == AIState.IN_COVER
@@ -880,8 +903,8 @@ func _update_goap_state() -> void:
 	_goap_world_state["hits_taken"] = _hits_taken_in_encounter
 	_goap_world_state["is_pursuing"] = _current_state == AIState.PURSUING
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
-	_goap_world_state["player_close"] = _is_player_close()
-	_goap_world_state["can_hit_from_cover"] = _can_hit_player_from_current_position()
+	_goap_world_state["player_close"] = _is_target_close()
+	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
 	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
@@ -915,14 +938,14 @@ func _update_enemy_model_rotation() -> void:
 	var rotation_reason := ""  # Issue #397 debug: track which priority was used
 	if _is_facing_for_grenade_throw and _grenade_throw_facing_direction != Vector2.ZERO:  # P0: Issue #712
 		target_angle = _grenade_throw_facing_direction.angle(); has_target = true; rotation_reason = "P0:grenade_throw"
-	elif _player != null and _can_see_player:  # P1: Face player if visible
-		target_angle = (_player.global_position - global_position).normalized().angle()
+	elif _current_target != null and (_can_see_player or _can_see_companion):  # P1: Face best target if visible
+		target_angle = (_current_target.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P1:visible"
-	# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
-	# Includes SEARCHING and ASSAULT - enemies should always face player during these states
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
-		target_angle = (_player.global_position - global_position).normalized().angle()
+	# Priority 2: During active combat states, maintain focus on best target even without visibility (#386, #397)
+	# Includes SEARCHING and ASSAULT - enemies should always face target during these states
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:
+		target_angle = (_current_target.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P2:combat_state"
 	elif _corner_check_timer > 0:
@@ -942,7 +965,7 @@ func _update_enemy_model_rotation() -> void:
 	# Issue #397 debug: Log rotation priority changes
 	if rotation_reason != _last_rotation_reason:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
-		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer])
+		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer, " [->companion]" if _current_target == _companion else ""])
 		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
@@ -1149,8 +1172,7 @@ func _process_ai_state(delta: float) -> void:
 		_transition_to_evading_grenade()
 		return
 
-	if _aggression and _aggression.is_aggressive():  # [Issue #675] Aggression override
-		_aggression.process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed); return
+	if _aggression and _aggression.process_aggression_tick(delta, rotation_speed, shoot_cooldown, combat_move_speed): return  # [Issue #675,#919]
 
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
@@ -1280,7 +1302,8 @@ func _process_ai_state(delta: float) -> void:
 
 ## Process IDLE state - patrol or guard behavior.
 func _process_idle_state(delta: float) -> void:
-	if _can_see_player and _player:
+	# Issue #934: also enter combat when companion is visible
+	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		if _is_melee_weapon: _transition_to_pursuing()  # Issue #579: machete sneaks first
 		else: _transition_to_combat()
 		return
@@ -1345,8 +1368,7 @@ func _process_combat_state(delta: float) -> void:
 			_log_debug("Lost sight of player in COMBAT (%.2fs), transitioning to PURSUING" % _combat_state_timer)
 			_transition_to_pursuing()
 			return
-		# If minimum time hasn't elapsed, stay in COMBAT and wait
-		# This prevents rapid COMBAT<->PURSUING thrashing
+		if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
@@ -1582,7 +1604,8 @@ func _process_seeking_cover_state(_delta: float) -> void:
 	_move_to_target_nav(_cover_position, combat_move_speed)
 
 	# Can still shoot while moving to cover (only after detection delay)
-	if _can_see_player and _player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+	# Issue #934: also shoot at companion if visible
+	if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 		_aim_at_player()
 		_shoot()
 		_shoot_timer = 0.0
@@ -1630,40 +1653,38 @@ func _process_in_cover_state(delta: float) -> void:
 
 	# NOTE: ASSAULT state transition removed per issue #169
 
-	# Decision making based on player distance and visibility
-	if _player:
-		var player_close := _is_player_close()
-		var can_hit := _can_hit_player_from_current_position()
-
-		if _can_see_player:
-			if player_close:
-				# Player is close - engage in combat (come out, shoot, go back)
-				_log_debug("Player is close, transitioning to COMBAT")
+	# Decision making based on target (player or companion) distance and visibility (#934)
+	var can_see_target := _can_see_player or _can_see_companion
+	var has_target := (_player != null) or (_companion != null and _can_see_companion)
+	if has_target:
+		var target_close := _is_target_close()
+		var can_hit := _can_hit_target_from_current_position()
+		if can_see_target:
+			if target_close:  # Target is close - engage in combat
+				_log_debug("Target is close, transitioning to COMBAT")
 				_transition_to_combat()
 				return
-			else:
-				# Player is far
-				if can_hit:
-					# Can hit from current position - come out and shoot
-					# (Don't pursue, just transition to combat which will handle the cycling)
-					_log_debug("Player is far but can hit from here, transitioning to COMBAT")
-					_transition_to_combat()
-					return
-				else:
-					# Can't hit from here - need to pursue (move cover-to-cover)
-					_log_debug("Player is far and can't hit, transitioning to PURSUING")
-					_transition_to_pursuing()
-					return
+			elif can_hit:  # Target is far but can hit from current position
+				_log_debug("Target is far but can hit from here, transitioning to COMBAT")
+				_transition_to_combat()
+				return
+			else:  # Can't hit from here - need to pursue (move cover-to-cover)
+				_log_debug("Target is far and can't hit, transitioning to PURSUING")
+				_transition_to_pursuing()
+				return
 
-	# If not under fire and can see player, engage (only shoot after detection delay)
-	if _can_see_player and _player:
+	# If not under fire and can see player or companion, engage (only shoot after detection delay)
+	# Issue #934: also shoot at companion if visible
+	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# If player is no longer visible and not under fire, try pursuing
-	if not _can_see_player and not _under_fire:
+	# If player (or companion) is no longer visible and not under fire, try pursuing
+	# Issue #934: consider companion visibility
+	# Issue #910: also try suppressive fire before pursuing
+	if not (_can_see_player or _can_see_companion) and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
@@ -1674,7 +1695,7 @@ func _process_flanking_state(delta: float) -> void:
 	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
 		_log_to_file("FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position])
 		_flank_side_initialized = false
-		if _can_see_player: _transition_to_combat()
+		if _can_see_player or _can_see_companion: _transition_to_combat()  # #934: incl. companion
 		else: _transition_to_pursuing()
 		return
 
@@ -1690,7 +1711,7 @@ func _process_flanking_state(delta: float) -> void:
 				_log_to_file("FLANKING disabled after %d failures" % _flank_fail_count)
 				_transition_to_combat()
 				return
-			if _can_see_player: _transition_to_combat()
+			if _can_see_player or _can_see_companion: _transition_to_combat()  # #934: incl. companion
 			else: _transition_to_pursuing()
 			return
 	else:
@@ -1704,8 +1725,8 @@ func _process_flanking_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
-	# Only transition to combat if we can ACTUALLY HIT the player (not just see)
-	if _can_see_player and _can_hit_player_from_current_position():
+	# Only transition to combat if we can ACTUALLY HIT the target (#934: incl. companion)
+	if (_can_see_player or _can_see_companion) and _can_hit_target_from_current_position():
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
@@ -1737,8 +1758,9 @@ func _process_suppressed_state(delta: float) -> void:
 	# Check if player has flanked us - if we're now visible from player's position,
 	# we need to find new cover even while suppressed
 	if _is_visible_from_player():
-		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player
-		if _can_see_player and _player:
+		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
+		# Issue #934: also consider companion visibility
+		if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1767,7 +1789,8 @@ func _process_suppressed_state(delta: float) -> void:
 		return
 
 	# Can still shoot while suppressed (only after detection delay)
-	if _can_see_player and _player:
+	# Issue #934: also shoot at companion if visible
+	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 		_aim_at_player()
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
@@ -1853,7 +1876,8 @@ func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> voi
 				velocity = Vector2.ZERO
 
 			# Shoot with reduced accuracy (only after detection delay)
-			if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+			# Issue #934: also shoot at companion if visible
+			if (_can_see_player or _can_see_companion) and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 				_shoot_with_inaccuracy()
 				_shoot_timer = 0.0
 
@@ -1916,7 +1940,9 @@ func _process_pursuing_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
-		if _can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE:
+		# Issue #934: also consider companion for melee engagement
+		if ((_can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE) or
+				(_can_see_companion and _companion != null and global_position.distance_to(_companion.global_position) <= CLOSE_COMBAT_DISTANCE)):
 			_transition_to_combat(); return
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
 		_pursuit_approaching = false
@@ -1932,31 +1958,29 @@ func _process_pursuing_state(delta: float) -> void:
 	# Issue #657: Non-grenadier allies wait for nearby grenadier to throw before advancing
 	if not is_grenadier and _should_wait_for_nearby_grenadier(): velocity = Vector2.ZERO; return
 
-	# If can see player and can hit them from current position, engage
-	# But only after minimum time has elapsed to prevent rapid state thrashing
-	# when visibility flickers at wall/obstacle edges
-	if _can_see_player and _player:
-		var can_hit := _can_hit_player_from_current_position()
+	# If can see player/companion and can hit them, engage (after min time to prevent thrash) #934
+	if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+		var can_hit := _can_hit_target_from_current_position()
 		if can_hit and _pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT:
-			_log_debug("Can see and hit player from pursuit (%.2fs), transitioning to COMBAT" % _pursuing_state_timer)
+			_log_debug("Can see and hit target from pursuit (%.2fs), transitioning to COMBAT" % _pursuing_state_timer)
 			_has_pursuit_cover = false
 			_pursuit_approaching = false
 			_pursuing_vulnerability_sound = false
 			_transition_to_combat()
 			return
 
+	if _suppressive_fire: _suppressive_fire.try_suppress_pursuing(_can_see_player, _last_known_player_position, _is_melee_weapon, _player, _is_reloading, _shoot_timer, shoot_cooldown)  # Issue #910
 	# VULNERABILITY SOUND PURSUIT: When we heard a reload/empty click sound,
 	# move directly toward the sound position using navigation (goes around walls).
 	# This is a direct pursuit without cover-to-cover movement.
 	if _pursuing_vulnerability_sound and _last_known_player_position != Vector2.ZERO:
 		var distance_to_sound := global_position.distance_to(_last_known_player_position)
 
-		# If we reached the sound position
-		if distance_to_sound < 50.0:
+		if distance_to_sound < 50.0:  # Reached the sound position
 			_log_debug("Reached vulnerability sound position (dist=%.0f)" % distance_to_sound)
-			# If we can see the player now, attack
-			if _can_see_player and _player:
-				_log_debug("Can see player at sound position, transitioning to COMBAT")
+			# If we can see the player/companion now, attack (#934)
+			if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+				_log_debug("Can see target at sound position, transitioning to COMBAT")
 				_pursuing_vulnerability_sound = false
 				_transition_to_combat()
 				return
@@ -1986,17 +2010,18 @@ func _process_pursuing_state(delta: float) -> void:
 				if _transition_to_flanking():
 					return
 
-	# Process approach phase - moving directly toward player when no better cover exists
+	# Process approach phase - moving directly toward target (player or companion) #934
 	if _pursuit_approaching:
-		if _player:
-			var direction := (_player.global_position - global_position).normalized()
-			var can_hit := _can_hit_player_from_current_position()
+		var approach_target := _current_target if _current_target != null else _player
+		if approach_target:
+			var direction := (approach_target.global_position - global_position).normalized()
+			var can_hit := _can_hit_target_from_current_position()
 
 			_pursuit_approach_timer += delta
 
-			# If we can now hit the player, transition to combat
+			# If we can now hit the target, transition to combat
 			if can_hit:
-				_log_debug("Can now hit player after approach (%.1fs), transitioning to COMBAT" % _pursuit_approach_timer)
+				_log_debug("Can now hit target after approach (%.1fs), transitioning to COMBAT" % _pursuit_approach_timer)
 				_pursuit_approaching = false
 				_transition_to_combat()
 				return
@@ -2044,11 +2069,12 @@ func _process_pursuing_state(delta: float) -> void:
 			if _has_pursuit_cover:
 				_log_debug("Found pursuit cover at %s" % _pursuit_next_cover)
 			else:
-				# No pursuit cover found - start approach phase if we can see player
+				# No pursuit cover found - start approach phase if we can see player/companion
+				# Issue #934: also consider companion visibility
 				_log_debug("No pursuit cover found, checking fallback options")
-				if _can_see_player and _player:
+				if (_can_see_player and _player) or (_can_see_companion and _companion != null):
 					# Can see but can't hit (at last cover) - start approach phase
-					_log_debug("Can see player but can't hit, starting approach phase")
+					_log_debug("Can see target but can't hit, starting approach phase")
 					_pursuit_approaching = true
 					_pursuit_approach_timer = 0.0
 					return
@@ -2789,34 +2815,17 @@ func _get_player_check_points(center: Vector2) -> Array[Vector2]:
 
 	return points
 
-## Check if a single point on the player is visible from the enemy's position.
-## Uses direct space state query to check for obstacles blocking line of sight.
+## Check if a single point is visible from the enemy (no blocking obstacles).
 func _is_player_point_visible_to_enemy(point: Vector2) -> bool:
 	var distance := global_position.distance_to(point)
-
-	# Use direct space state to check line of sight from enemy to point
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position
-	query.to = point
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = [get_rid()]  # Exclude self
-
+	query.from = global_position; query.to = point
+	query.collision_mask = 4; query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		# No obstacle between enemy and point - point is visible
-		return true
-
-	# Check if we hit an obstacle before reaching the point
-	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := global_position.distance_to(hit_position)
-
-	# If we hit something before the point, the point is blocked
-	if distance_to_hit < distance - 5.0:  # 5 pixel tolerance
-		return false
-
-	return true
+	if result.is_empty(): return true
+	var distance_to_hit := global_position.distance_to(result["position"])
+	return distance_to_hit >= distance - 5.0  # 5 pixel tolerance
 
 ## Calculate player body visibility fraction (0.0=hidden, 1.0=visible) using multi-point checks.
 func _calculate_player_visibility_ratio() -> float:
@@ -2832,94 +2841,61 @@ func _calculate_player_visibility_ratio() -> float:
 
 	return float(visible_count) / float(check_points.size())
 
-## Check if the line of fire to the target position is clear of other enemies.
-## Returns true if no other enemies would be hit by a bullet traveling to the target.
+## Check if firing line to target is clear of friendly enemies.
 func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
-	if not enable_friendly_fire_avoidance:
-		return true
-
-	# Get actual muzzle position for accurate raycast
+	if not enable_friendly_fire_avoidance: return true
 	var weapon_forward := _get_weapon_forward_direction()
 	var muzzle_pos := _get_bullet_spawn_position(weapon_forward)
 	var distance := muzzle_pos.distance_to(target_position)
-
-	# Use direct space state to check if any enemies are in the firing line
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = muzzle_pos  # Start from actual muzzle position
-	query.to = target_position
-	query.collision_mask = 2  # Only check enemies (layer 2)
-	query.exclude = [get_rid()]  # Exclude self using RID
-
+	query.from = muzzle_pos; query.to = target_position
+	query.collision_mask = 2; query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		return true  # No enemies in the way
-
-	# Check if the hit position is before the target
-	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := muzzle_pos.distance_to(hit_position)
-
+	if result.is_empty(): return true
+	var distance_to_hit := muzzle_pos.distance_to(result["position"])
 	if distance_to_hit < distance - 20.0:  # 20 pixel tolerance
 		_log_debug("Friendly in firing line at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
 		return false
-
 	return true
 
-## Check if shot to target is blocked by cover. Returns true if clear, false if blocked.
+## Check if shot to target is blocked by cover. Returns true if clear.
 func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
-	# Get actual muzzle position for accurate raycast
 	var weapon_forward := _get_weapon_forward_direction()
 	var muzzle_pos := _get_bullet_spawn_position(weapon_forward)
 	var distance := muzzle_pos.distance_to(target_position)
-
-	# Use direct space state to check if obstacles block the shot
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = muzzle_pos  # Start from actual muzzle position
-	query.to = target_position
+	query.from = muzzle_pos; query.to = target_position
 	query.collision_mask = 4  # Only check obstacles (layer 3)
-
 	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		return true  # No obstacles in the way
-
-	# Check if the obstacle is before the target position
-	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := muzzle_pos.distance_to(hit_position)
-
+	if result.is_empty(): return true
+	var distance_to_hit := muzzle_pos.distance_to(result["position"])
 	if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
 		_log_debug("Shot blocked by cover at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
 		return false
-
 	return true
 
 ## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
+## [#954 v3] Uses intersect_point() at muzzle (detects muzzle-inside-wall even when enemy
+## center is inside collider — raycasts silently miss this case in Godot) plus center→muzzle
+## raycast to catch walls between center and muzzle.
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
-	# Fail-open: allow shooting if physics is not ready
 	var world_2d := get_world_2d()
-	if world_2d == null:
-		return true
+	if world_2d == null: return true
 	var space_state := world_2d.direct_space_state
-	if space_state == null:
-		return true
-
-	# Check from enemy center to bullet spawn position plus a small buffer
-	var check_distance := bullet_spawn_offset + 5.0
-
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position
-	query.to = global_position + direction * check_distance
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = [get_rid()]
-
-	var result := space_state.intersect_ray(query)
-	if not result.is_empty():
-		_log_debug("Bullet spawn blocked: wall at distance %.1f" % [
-			global_position.distance_to(result["position"])])
-		return false
-
+	if space_state == null: return true
+	var muzzle_pos := _get_bullet_spawn_position(direction)
+	var pq := PhysicsPointQueryParameters2D.new()  # [#954 v3] point test at muzzle — intersect_point detects inside-wall even when origin is inside collider
+	pq.position = muzzle_pos; pq.collision_mask = 4; pq.exclude = [get_rid()]
+	if not space_state.intersect_point(pq, 1).is_empty():
+		_log_debug("Bullet spawn blocked: muzzle at %.0f,%.0f is inside wall" % [muzzle_pos.x, muzzle_pos.y]); return false
+	var rq := PhysicsRayQueryParameters2D.new()  # secondary raycast center→muzzle catches walls between them
+	rq.from = global_position; rq.to = muzzle_pos; rq.collision_mask = 4; rq.exclude = [get_rid()]
+	var rr := space_state.intersect_ray(rq)
+	if not rr.is_empty():
+		_log_debug("Bullet spawn blocked: wall at distance %.1f (muzzle at %.1f)" % [
+			global_position.distance_to(rr["position"]), global_position.distance_to(muzzle_pos)]); return false
 	return true
 
 ## Find a sidestep direction for a clear shot. Returns Vector2.ZERO if none found.
@@ -2992,10 +2968,18 @@ func _is_player_close() -> bool:
 		return false
 	return global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE
 
-## Get target position: visible player > memory > last known > stay in place (Issue #297, #318).
+## Check if best target (player or companion) is close (Issue #934).
+func _is_target_close() -> bool:
+	var t := _current_target if _current_target != null else _player
+	return t != null and global_position.distance_to(t.global_position) <= CLOSE_COMBAT_DISTANCE
+
+## Get target position: visible player/companion > memory > last known > stay in place (Issue #297, #318, #934).
 func _get_target_position() -> Vector2:
+	# Issue #934: also consider companion visibility
 	if _can_see_player and _player:
 		return _player.global_position
+	if _can_see_companion and _companion != null:
+		return _companion.global_position
 	if _memory and _memory.has_target():
 		return _memory.suspected_position
 	if _last_known_player_position != Vector2.ZERO:
@@ -3003,17 +2987,14 @@ func _get_target_position() -> Vector2:
 	return global_position  # No valid target - stay in place
 
 ## Check if the enemy can hit the player from their current position.
-## Returns true if there's a clear line of fire to the player.
 func _can_hit_player_from_current_position() -> bool:
-	if _player == null:
-		return false
+	return _player != null and _can_see_player and _is_shot_clear_of_cover(_player.global_position)
 
-	# Check if we can see the player
-	if not _can_see_player:
-		return false
-
-	# Check if the shot would be blocked by cover
-	return _is_shot_clear_of_cover(_player.global_position)
+## Check if enemy can hit best target (player or companion) (Issue #934).
+func _can_hit_target_from_current_position() -> bool:
+	if _current_target == null: return _can_hit_player_from_current_position()
+	var can_see := _can_see_player if _current_target == _player else _can_see_companion
+	return can_see and _is_shot_clear_of_cover(_current_target.global_position)
 
 ## Count enemies in combat states (COMBAT/PURSUING/ASSAULT/IN_COVER) for assault trigger.
 func _count_enemies_in_combat() -> int:
@@ -3572,40 +3553,34 @@ func _is_position_in_fov(target_pos: Vector2) -> bool:
 
 ## Check if the player is visible using multi-point raycast. Updates visibility timer.
 func _check_player_visibility() -> void:
-	var was_visible := _can_see_player
-	_can_see_player = false
-	_player_visibility_ratio = 0.0
+	# Issue #883: Only run the expensive multi-point raycast every VISION_CHECK_INTERVAL frames.
+	# Cheap blocking checks (blinded, invisible, null) still run every frame for responsiveness.
+	_vision_frame_counter += 1
+	var is_vision_check_frame := (_vision_frame_counter % VISION_CHECK_INTERVAL) == _vision_frame_offset
 
-	# If blinded, cannot see player at all
-	if _is_blinded:
-		_continuous_visibility_timer = 0.0
+	# Fast-path: clear visibility immediately on blocking conditions (no raycasts needed).
+	if _is_blinded or _memory_reset_confusion_timer > 0.0 or _player == null or not _raycast \
+			or (_player.has_method("is_invisible") and _player.is_invisible()):
+		_can_see_player = false; _player_visibility_ratio = 0.0; _continuous_visibility_timer = 0.0
 		return
 
-	# If confused from memory reset, cannot see player (Issue #318)
-	if _memory_reset_confusion_timer > 0.0:
-		_continuous_visibility_timer = 0.0
+	# On non-check frames reuse last result; only accumulate timer if still visible (Issue #883).
+	if not is_vision_check_frame:
+		if _can_see_player: _continuous_visibility_timer += get_physics_process_delta_time()
 		return
 
-	if _player == null or not _raycast:
-		_continuous_visibility_timer = 0.0
-		return
-	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
-	if _player.has_method("is_invisible") and _player.is_invisible():
-		_continuous_visibility_timer = 0.0
-		return
-
+	# --- Full vision check (runs every VISION_CHECK_INTERVAL frames) ---
+	_can_see_player = false; _player_visibility_ratio = 0.0
 	var distance_to_player := global_position.distance_to(_player.global_position)
 
 	# Check if player is within detection range (only if detection_range is positive)
 	# If detection_range <= 0, detection is unlimited (line-of-sight only)
 	if detection_range > 0 and distance_to_player > detection_range:
-		_continuous_visibility_timer = 0.0
-		return
+		_continuous_visibility_timer = 0.0; return
 
 	# Check FOV angle (if FOV is enabled via ExperimentalSettings)
 	if not _is_position_in_fov(_player.global_position):
-		_continuous_visibility_timer = 0.0
-		return
+		_continuous_visibility_timer = 0.0; return
 
 	# Check multiple points on the player's body (center + corners) to handle
 	# cases where player is near a wall corner. A single raycast to the center
@@ -3614,22 +3589,22 @@ func _check_player_visibility() -> void:
 	# walls in narrow passages (issue #264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
-
 	for point in check_points:
 		if _is_player_point_visible_to_enemy(point):
-			visible_count += 1
-			# If any part of the player is visible, we can see them
-			_can_see_player = true
-			# Continue checking to calculate visibility ratio
+			visible_count += 1; _can_see_player = true  # Continue to calculate ratio
 
 	# Calculate visibility ratio based on how many points are visible
 	if _can_see_player:
 		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
 	else:
-		# Lost line of sight - reset the timer and visibility ratio
-		_continuous_visibility_timer = 0.0
-		_player_visibility_ratio = 0.0
+		_continuous_visibility_timer = 0.0; _player_visibility_ratio = 0.0
+
+## Check if the BFF companion is visible (Issue #934). Delegates to BffTargetingComponent.
+func _check_companion_visibility() -> void:
+	_bff_targeting.check_visibility(_is_blinded, _memory_reset_confusion_timer, detection_range,
+		_raycast, _get_player_check_points, _is_player_point_visible_to_enemy, _is_position_in_fov)
+	_can_see_companion = _bff_targeting.can_see_companion
 
 ## Update enemy memory: visual detection, decay, prediction, flashlight detection, and intel sharing (Issue #297, #298, #574).
 func _update_memory(delta: float) -> void:
@@ -3789,11 +3764,13 @@ func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 
 	return has_los
 
-## Aim the enemy sprite/direction at the player using gradual rotation.
+## Aim the enemy sprite/direction at the best current target (player or companion) using gradual rotation.
+## Issue #934: aims at companion when it is the best target.
 func _aim_at_player() -> void:
-	if _player == null:
+	var aim_at: Node2D = _current_target if _current_target != null else _player
+	if aim_at == null:
 		return
-	var direction := (_player.global_position - global_position).normalized()
+	var direction := (aim_at.global_position - global_position).normalized()
 	var target_angle := direction.angle()
 
 	# Calculate the shortest rotation direction
@@ -3815,11 +3792,18 @@ func _aim_at_player() -> void:
 func _shoot() -> void:
 	if _is_melee_weapon and _machete: var _mt := (_aggression.get_target() if _aggression and _aggression.is_aggressive() and _aggression.get_target() else _player) as Node2D; if _mt: _machete.perform_melee_attack(_mt); return  # [#858] target enemy when aggressive
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
-	if bullet_scene == null or not (_player != null or (_agg and _aggression.get_target() != null)): return
+	if _agg and (_aggression.get_target() == null): return  # [Issue #954] no fallback to shooting player
+	var _aiming_companion := (_current_target == _companion and _can_see_companion)  # Issue #934
+	if bullet_scene == null or not (_player != null or _aiming_companion or (_agg and _aggression.get_target() != null)): return
 	if not _can_shoot(): return
-	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_player.global_position if _player else global_position)
-	if enable_lead_prediction and not _agg and _player: target_position = _calculate_lead_prediction()
-	if not _agg and not _should_shoot_at_target(target_position): return
+	# Issue #934: aggression target > companion > player
+	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_companion.global_position if _aiming_companion else (_player.global_position if _player else global_position))
+	if enable_lead_prediction and not _agg and _player and not _aiming_companion: target_position = _calculate_lead_prediction()
+	if _agg:
+		# [Issue #954] Check both 35px center ray AND real muzzle-to-target path (passage-edge wall bug fix)
+		if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
+		if not _is_shot_clear_of_cover(_aggression.get_target_position()): return
+	elif not _aiming_companion and not _should_shoot_at_target(target_position): return
 	if _enemy_flashlight:  # Issue #824/#825: block shooting while flashlight flash is in progress
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))
 		return  # Callback fires the shot after flash completes
@@ -4171,8 +4155,13 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		# Spawn blood effect for non-lethal hit (smaller, no decal)
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
-		_update_health_visual()
-		if _aggression: _aggression.check_retaliation(hit_direction)  # [Issue #675] retaliate
+		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
+		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
+		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
+			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			if _memory: _memory.update_position(est_pos, 0.6); _memory_reset_confusion_timer = 0.0
+			_log_to_file("[#910] Hit triggered COMBAT from %s" % AIState.keys()[_current_state]); _transition_to_combat()
+			if _suppressive_fire and _player and _player.has_method("is_invisible") and _player.is_invisible(): _suppressive_fire.shoot(est_pos)
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
@@ -4600,6 +4589,10 @@ func _draw() -> void:
 	if _can_see_player and _player:
 		var to_player := _player.global_position - global_position
 		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
+	# Issue #934: Draw line to companion if visible
+	if _can_see_companion and _companion != null:
+		var to_companion := _companion.global_position - global_position
+		draw_line(Vector2.ZERO, to_companion, Color.ORANGE, 1.5)
 
 		# Draw bullet spawn point (actual muzzle position) and check if blocked
 		var weapon_forward := _get_weapon_forward_direction()
@@ -4742,8 +4735,7 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	return direction
 
 ## Move toward a target position using NavigationAgent2D pathfinding.
-## This is the primary movement function that should be used instead of direct velocity assignment.
-## Returns true if movement was applied, false if target was reached or navigation unavailable.
+## Primary navigation movement. Returns true if movement applied, false if target reached or nav unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 
@@ -4760,17 +4752,13 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 
 ## Check if the navigation agent has a valid path to the target.
 func _has_nav_path_to(target_pos: Vector2) -> bool:
-	if _nav_agent == null:
-		return false
-
+	if _nav_agent == null: return false
 	_nav_agent.target_position = target_pos
 	return not _nav_agent.is_navigation_finished()
 
 ## Get distance to target along the navigation path (more accurate than straight-line).
 func _get_nav_path_distance(target_pos: Vector2) -> float:
-	if _nav_agent == null:
-		return global_position.distance_to(target_pos)
-
+	if _nav_agent == null: return global_position.distance_to(target_pos)
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
 
@@ -4836,7 +4824,10 @@ func _setup_grenade_component() -> void:
 
 func _update_grenade_triggers(delta: float) -> void:
 	if _grenade_component == null: return
-	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health, _memory)
+	# Issue #934: pass best target (player or companion) to grenade component
+	var grenade_target := _current_target if _current_target != null else _player
+	var can_see_target := _can_see_player or _can_see_companion
+	_grenade_component.update(delta, can_see_target, _under_fire, grenade_target, _current_health, _memory)
 	_update_grenade_world_state()
 
 func _on_gunshot_heard_for_grenade(position: Vector2) -> void:

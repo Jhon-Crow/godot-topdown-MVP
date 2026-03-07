@@ -15,7 +15,8 @@ enum ActiveItemType {
 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
 	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
-	TRAJECTORY_GLASSES # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
+	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
+	LASER_SIGHT        # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
 }
 
 ## Currently selected active item type.
@@ -23,19 +24,21 @@ enum ActiveItemType {
 var current_active_item: int = ActiveItemType.NONE
 
 ## Unlocked active items tracking.
-## By default, all active items are locked for debugging purposes.
-## Active items can be unlocked by holding LMB on their case in the armory menu.
 ## NONE is always unlocked (it's not a real item).
+## FLASHLIGHT (Polygon D+) and TELEPORT_BRACERS (Castle F+) have unlock conditions (Issue #894).
+## All other active items are freely available from the start.
+## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
-	ActiveItemType.FLASHLIGHT: false,
-	ActiveItemType.HOMING_BULLETS: false,
-	ActiveItemType.TELEPORT_BRACERS: false,
-	ActiveItemType.BFF_PENDANT: false,       # Issue #674
-	ActiveItemType.INVISIBILITY_SUIT: false,
-	ActiveItemType.BREAKER_BULLETS: false,
-	ActiveItemType.FORCE_FIELD: false,
-	ActiveItemType.TRAJECTORY_GLASSES: false  # Issue #744
+	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
+	ActiveItemType.HOMING_BULLETS: true,       # No unlock condition — freely available from start
+	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Castle F+
+	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
+	ActiveItemType.INVISIBILITY_SUIT: true,    # No unlock condition — freely available from start
+	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
+	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
+	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
+	ActiveItemType.LASER_SIGHT: true           # No unlock condition — freely available from start (Issue #947)
 }
 
 ## Active item data for UI and selection.
@@ -90,6 +93,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
 		"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle.",
 		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.LASER_SIGHT: {
+		"name": "Laser Sight",
+		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
+		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
 	}
 }
 
@@ -216,10 +224,33 @@ func has_trajectory_glasses() -> bool:
 	return current_active_item == ActiveItemType.TRAJECTORY_GLASSES
 
 
+## Check if laser sight is currently equipped (Issue #947).
+func has_laser_sight() -> bool:
+	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Get the laser sight color (purple).
+## Used by weapons to show purple laser when laser sight item is equipped.
+func get_laser_sight_color() -> Color:
+	return Color(0.6, 0.0, 1.0, 0.6)  # Purple with some transparency
+
+
+## Check if a laser sight should be forced on all weapons.
+## Returns true when laser sight active item is equipped (Issue #947).
+func should_force_laser_sight() -> bool:
+	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
 ## Check if an active item type is unlocked.
 ## @param item_type: The active item type to check.
 ## @return: true if the item is unlocked, false otherwise.
+## Note: If all_weapons_unlocked is enabled in ExperimentalSettings, all items return true.
 func is_active_item_unlocked(item_type: int) -> bool:
+	# Check if all weapons are unlocked via experimental setting (Issue #882)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_all_weapons_unlocked"):
+		if experimental_settings.is_all_weapons_unlocked():
+			return true
 	return unlocked_active_items.get(item_type, false)
 
 

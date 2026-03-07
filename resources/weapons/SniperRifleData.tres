@@ -22,3 +22,6 @@ ScreenShakeIntensity = 25.0
 ScreenShakeMinRecoveryTime = 0.5
 ScreenShakeMaxRecoveryTime = 0.1
 Caliber = ExtResource("2_caliber")
+CaliberCanRicochet = false
+CaliberMaxRicochetAngle = 0.0
+CaliberMaxRicochets = 0

@@ -22,6 +22,8 @@ Current state (see `images/current_state.png`): A thin blue ring/circle outline 
 - `images/desired_2.png` — Reference image 2 (desired bubble appearance): 462×280 PNG
 - `images/current_state.png` — Current broken visual (thin blue ring outline): 195×142 PNG
 - `game_log_20260301_032044.txt` — Game log from 2026-03-01, provided by Jhon-Crow in PR #931 comment
+- `game_log_20260302_191109.txt` — Game log from 2026-03-02 19:11, second "still broken" report
+- `game_log_20260302_191152.txt` — Game log from 2026-03-02 19:11, second "still broken" report (second run)
 
 ### Historical Context (Previous Issues)
 
@@ -32,9 +34,14 @@ This issue is the third iteration of force field visual complaints:
 - **Issue #930** (this issue): Force field now shows as thin blue ring — transparent center, visible rim only. Still not matching the desired bubble with translucent interior.
 - **PR #931** (ongoing): Attempted fix — added semi-transparent interior fill to both texture and shader. Owner reported "force field doesn't work at all (damage passes through)" in a PR comment with game log attached.
 
+### Historical Context (Continued)
+
+- **Issue #932** / PR #932: Fix for C# bullet Direction/Speed not being read by the force field (PascalCase fallback). Also added `_trapped_boundary_angles` so bullets snap to and follow the field boundary ring. Merged into `main` 2026-03-07.
+- PR #931 now merges in the Issue #932 functional fixes while retaining the Issue #930 bubble texture visual fix.
+
 ---
 
-## Timeline / Sequence of Events (Reconstructed from Game Log)
+## Timeline / Sequence of Events (Reconstructed from Game Logs)
 
 The game log `game_log_20260301_032044.txt` was collected on 2026-03-01 at 03:20 local time (UTC+3 timezone, based on log path `I:/Загрузки/` and Russian OS locale). The game was an exported Windows build (`Godot-Top-Down-Template.exe`) from the "сиЛовое ПОЛЕ" ("Force Field") folder — a dedicated test folder named after the feature being tested.
 
@@ -192,11 +199,15 @@ Add HUD indicator for force field charge (already partially planned in future is
 |-----------|--------|
 | `scripts/effects/force_field_effect.gd` — bubble texture | ✅ Done (PR #931) |
 | `scripts/shaders/force_field.gdshader` — animated interior | ✅ Done (PR #931) |
-| `docs/case-studies/issue-930/` — case study | ✅ Updated |
-| `game_log_20260301_032044.txt` — game log from owner | ✅ Downloaded |
+| Lazy init guard for C#/GDScript interop (Issue #930) | ✅ Done (PR #931, commit 19c75f6f) |
+| PascalCase/snake_case property fallback (Issue #932) | ✅ Done (merged from main, commit 3f9dc2e0) |
+| Bullet boundary snapping + position tracking (Issue #932) | ✅ Done (merged from main) |
+| `docs/case-studies/issue-930/` — case study | ✅ Updated (all 3 game logs) |
+| `game_log_20260301_032044.txt` — game log from owner (1st report) | ✅ Downloaded |
+| `game_log_20260302_191109.txt` — game log from owner (2nd report) | ✅ Downloaded |
+| `game_log_20260302_191152.txt` — game log from owner (2nd report) | ✅ Downloaded |
 | `docs/screenshots/issue-930/` — visual preview | ✅ Done (PR #931) |
 | `tests/unit/test_force_field_visual.gd` — regression tests | ✅ Done (PR #931) |
-| Robustness fix for C#/GDScript interop | ⚠️ Recommended — see Solution B |
 
 ---
 
@@ -209,4 +220,65 @@ After PR #931:
 - Animation pulses and shimmers with surface energy lines
 - Effect works correctly in both editor and exported games (texture provides fallback visual)
 
-The owner's report of "damage passes through" appears to be caused by the force field **not being activated** (Space not held) during the game session, rather than a code regression in our PR. Our PR did not modify any damage-blocking code.
+The owner's first report of "damage passes through" appears to be caused by the force field **not being activated** (Space not held) during the game session, rather than a code regression in our PR. Our PR did not modify any damage-blocking code.
+
+---
+
+## Second Owner Report: "Still Completely Broken" (2026-03-02)
+
+### Session 1: `game_log_20260302_191109.txt` (19:11:09–19:11:25)
+
+**Summary**: Force field initialized 6 times (scene reloads), but zero `[ForceFieldEffect]` entries.
+
+| Time | Event |
+|------|-------|
+| 19:11:09 | Game started. Force field NOT selected (player started without it). |
+| 19:11:14 | `[Player.ForceField] Force field is selected, initializing...` |
+| 19:11:14 | `[Player.ForceField] Force field initialized successfully` |
+| 19:11:14–25 | Multiple BuildingLevel scene reloads. Force field initialized each time. |
+| (all) | **Zero `[ForceFieldEffect]` entries** — `_ready()` not called in binary. |
+| (all) | No player damage recorded in this log. |
+
+### Session 2: `game_log_20260302_191152.txt` (19:11:52–19:12:07)
+
+**Summary**: Force field initialized, zero `[ForceFieldEffect]` entries, player takes damage.
+
+| Time | Event |
+|------|-------|
+| 19:11:52 | Game started. Force field selected immediately. |
+| 19:11:52 | `[Player.ForceField] Force field initialized successfully` |
+| 19:12:02 | **Player takes 1 damage.** `[PenultimateHit] Player damaged: 1.0 damage, current health: 1.0` |
+| 19:12:05 | **Second damage.** Player at 1 HP. LastChance triggers. |
+| (all) | **Zero `[ForceFieldEffect]` entries** — no activation, no trapping. |
+| 19:12:07 | Log ends (session end or restart). |
+
+### Analysis of Second Report
+
+**Critical finding**: The `19c75f6f` commit (lazy init guard + `[ForceFieldEffect]` initialization log) was pushed at `2026-03-02T15:24:04Z` — approximately **4 hours before** these logs were recorded at 19:11. However, the logs still show zero `[ForceFieldEffect]` entries, meaning:
+
+1. **The owner tested the previously-compiled `.exe`** — not a fresh build from our updated code. Exported game binaries in Godot must be rebuilt from source; GitHub pushes do not automatically update installed game builds.
+2. **OR** the binary includes our updated code but `_ready()` is still silently skipped. Our lazy init guard in `activate()` requires the player to **hold Space** to trigger initialization — if Space was never pressed, the guard never fires.
+
+Both scenarios are consistent with zero `[ForceFieldEffect]` entries:
+- If the old binary: `FileLogger.info("[ForceFieldEffect] Initialized...")` was never in the code → no entries.
+- If new binary + Space not pressed: `activate()` never called → guard never fires → no entries.
+- If new binary + Space pressed + guard fires: we would see `[ForceFieldEffect] WARNING: _ready() was not called` — this is absent.
+
+### Key Root Cause: Binary Not Rebuilt / Space Not Pressed
+
+The second report `"силовое поле всё ещё полностью сломано"` ("force field is still completely broken") is most likely explained by one of:
+1. **Owner is testing with the old compiled `.exe`** from before our fixes. In Godot 4 exported builds, the code is embedded — you must rebuild and re-export to test code changes.
+2. **Force field was initialized but never activated** — no Space key press detected in either log.
+
+This is the same root cause as the first report. Our fix (lazy init guard + bubble texture) is correct, but its effect can only be verified with a fresh build that includes the fix.
+
+### Post-PR #932 Resolution
+
+Issue #932 (separate PR, merged into `main` 2026-03-07) confirmed a third root cause: **C# bullet properties were using PascalCase (`Direction`, `Speed`) but the force field only read snake_case (`direction`, `speed`)**. All C# enemy bullets were being silently skipped with:
+```
+[ForceFieldEffect] Bullet missing properties — has_direction=false has_speed=false — skipping trap
+```
+
+This means even when the force field WAS correctly initialized and activated (in a fresh build), enemy bullets still passed through because they couldn't be trapped.
+
+PR #931 (this PR) now incorporates the PascalCase/snake_case fix from Issue #932, along with the bubble texture visual and lazy init guard. The complete fix addresses all three root causes.

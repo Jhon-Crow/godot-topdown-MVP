@@ -569,3 +569,126 @@ func test_wall_not_hit_when_cursor_before_wall() -> void:
 	var result := calc.ray_hits_wall(Vector2(0, 0), Vector2(50, 0))
 	assert_false(result["hit"],
 		"Should not hit wall when cursor is before it")
+
+
+# ============================================================================
+# Map Boundary Clamping Tests (Issue #939)
+# ============================================================================
+
+
+class MockNavigationMeshClamper:
+	## Simulates the navigation mesh boundary clamping used to prevent
+	## teleporting outside the map boundary walls (Issue #939).
+
+	## The navigable rectangle (inner bounds, inside boundary walls)
+	var nav_rect: Rect2
+
+	func _init(rect: Rect2) -> void:
+		nav_rect = rect
+
+	## Returns the closest point on the navigation mesh boundary.
+	## If the point is inside, returns the point itself.
+	## If outside, clamps to the nearest edge.
+	func clamp_to_nav_mesh(pos: Vector2) -> Vector2:
+		return Vector2(
+			clampf(pos.x, nav_rect.position.x, nav_rect.position.x + nav_rect.size.x),
+			clampf(pos.y, nav_rect.position.y, nav_rect.position.y + nav_rect.size.y)
+		)
+
+	## Check if a position is within the navigation mesh
+	func is_within_nav_mesh(pos: Vector2) -> bool:
+		return nav_rect.has_point(pos)
+
+
+func test_position_inside_map_unchanged_by_clamp() -> void:
+	# Navigation area: (64, 64) to (6064, 5064) — typical for CityLevel
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	var inside_pos := Vector2(500, 500)
+	var result := clamper.clamp_to_nav_mesh(inside_pos)
+	assert_almost_eq(result.x, inside_pos.x, 1.0,
+		"Position inside map should not be altered by boundary clamp (x)")
+	assert_almost_eq(result.y, inside_pos.y, 1.0,
+		"Position inside map should not be altered by boundary clamp (y)")
+
+
+func test_position_outside_map_clamped_to_boundary() -> void:
+	# Navigation area: (64, 64) to (6064, 5064)
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position outside the top boundary wall (y < 64)
+	var outside_pos := Vector2(500, 10)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Clamped position should be within navigation mesh")
+	assert_almost_eq(result.y, 64.0, 1.0,
+		"Position outside top wall should be clamped to top nav boundary")
+
+
+func test_position_outside_left_wall_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position to the left of the left boundary wall
+	var outside_pos := Vector2(-200, 500)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside left wall should be clamped to navigation mesh")
+	assert_almost_eq(result.x, 64.0, 1.0,
+		"Position outside left wall should be clamped to left nav boundary")
+
+
+func test_position_outside_right_wall_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position to the right of the right boundary wall
+	var outside_pos := Vector2(8000, 500)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside right wall should be clamped to navigation mesh")
+	assert_almost_eq(result.x, 6064.0, 1.0,
+		"Position outside right wall should be clamped to right nav boundary")
+
+
+func test_position_outside_bottom_wall_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position below the bottom boundary wall
+	var outside_pos := Vector2(500, 8000)
+	var result := clamper.clamp_to_nav_mesh(outside_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside bottom wall should be clamped to navigation mesh")
+	assert_almost_eq(result.y, 5064.0, 1.0,
+		"Position outside bottom wall should be clamped to bottom nav boundary")
+
+
+func test_position_at_corner_clamped() -> void:
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 6000, 5000))
+	# Position far outside at corner (beyond both top and left walls)
+	var corner_pos := Vector2(-500, -500)
+	var result := clamper.clamp_to_nav_mesh(corner_pos)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Position outside corner should be clamped to navigation mesh")
+
+
+func test_boundary_wall_skip_blocked() -> void:
+	## Simulate the scenario where wall-skip logic would skip through the outer
+	## boundary wall — the final clamp should prevent the player from landing outside.
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 400, 400))
+
+	# Simulate: player at center (200, 200), cursor aimed at (200, 10) — past the top wall
+	# Wall-skip "finds" position at (200, 0) — outside the map
+	var outside_after_skip := Vector2(200, 0)
+
+	# Clamp should bring it back inside
+	var result := clamper.clamp_to_nav_mesh(outside_after_skip)
+	assert_true(clamper.is_within_nav_mesh(result),
+		"Wall-skip result outside map should be clamped back inside (Issue #939)")
+	assert_almost_eq(result.y, 64.0, 1.0,
+		"Clamped y should be at top nav boundary")
+
+
+func test_teleport_within_map_not_affected() -> void:
+	## Verify that a valid in-map teleport position is not altered by boundary clamping.
+	## This ensures the fix doesn't break normal teleport behavior.
+	var clamper := MockNavigationMeshClamper.new(Rect2(64, 64, 400, 400))
+	var valid_pos := Vector2(200, 200)  # center of map
+	var result := clamper.clamp_to_nav_mesh(valid_pos)
+	assert_almost_eq(result.x, valid_pos.x, 1.0,
+		"Valid in-map position x should not be altered by clamping")
+	assert_almost_eq(result.y, valid_pos.y, 1.0,
+		"Valid in-map position y should not be altered by clamping")

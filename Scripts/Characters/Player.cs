@@ -4469,10 +4469,12 @@ public partial class Player : BaseCharacter
     /// The reticle should "skip through" walls — if the cursor is past a wall,
     /// the teleport lands on the far side of the wall, not before it.
     /// Uses multiple raycasts to find clear space beyond obstacles.
+    /// The result is always clamped to the navigation mesh to prevent teleporting
+    /// outside the map boundary walls (Issue #939).
     /// </summary>
     /// <param name="fromPos">The player's current position.</param>
     /// <param name="cursorPos">The mouse cursor position (intended target).</param>
-    /// <returns>A safe teleport destination position.</returns>
+    /// <returns>A safe teleport destination position within the map bounds.</returns>
     private Vector2 GetSafeTeleportPosition(Vector2 fromPos, Vector2 cursorPos)
     {
         var spaceState = GetWorld2D().DirectSpaceState;
@@ -4487,67 +4489,96 @@ public partial class Player : BaseCharacter
         directQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
         var directResult = spaceState.IntersectRay(directQuery);
 
+        Vector2 candidatePos;
         if (directResult.Count == 0)
         {
             // No wall in the way — check if cursor position itself is inside a wall
-            return EnsureNotInsideWall(spaceState, cursorPos);
+            candidatePos = EnsureNotInsideWall(spaceState, cursorPos);
         }
-
-        // Wall detected between player and cursor.
-        // "Skip through" the wall: find clear space on the far side.
-        Vector2 wallHitPos = (Vector2)directResult["position"];
-        Vector2 direction = (cursorPos - fromPos).Normalized();
-        float totalDistance = fromPos.DistanceTo(cursorPos);
-        float wallDistance = fromPos.DistanceTo(wallHitPos);
-
-        // Probe from just past the wall hit point to the cursor, looking for open space
-        float probeStart = wallDistance + PlayerCollisionRadius + 2.0f;
-        float step = PlayerCollisionRadius;
-
-        // Start from cursor position and work backward to find the closest valid position to cursor
-        Vector2 bestPosition = fromPos + direction * Mathf.Max(wallDistance - PlayerCollisionRadius - 2.0f, 0.0f);
-
-        for (float dist = probeStart; dist <= totalDistance + step; dist += step)
+        else
         {
-            float clampedDist = Mathf.Min(dist, totalDistance);
-            Vector2 testPos = fromPos + direction * clampedDist;
+            // Wall detected between player and cursor.
+            // "Skip through" the wall: find clear space on the far side.
+            Vector2 wallHitPos = (Vector2)directResult["position"];
+            Vector2 direction = (cursorPos - fromPos).Normalized();
+            float totalDistance = fromPos.DistanceTo(cursorPos);
+            float wallDistance = fromPos.DistanceTo(wallHitPos);
 
-            // Check if this position is inside a wall using shape query
-            if (!IsPositionInsideWall(spaceState, testPos))
+            // Probe from just past the wall hit point to the cursor, looking for open space
+            float probeStart = wallDistance + PlayerCollisionRadius + 2.0f;
+            float step = PlayerCollisionRadius;
+
+            // Start from cursor position and work backward to find the closest valid position to cursor
+            candidatePos = fromPos + direction * Mathf.Max(wallDistance - PlayerCollisionRadius - 2.0f, 0.0f);
+
+            for (float dist = probeStart; dist <= totalDistance + step; dist += step)
             {
-                // Found clear space beyond the wall — verify we can raycast from there
-                // back to the cursor (no additional walls in between)
-                bestPosition = testPos;
+                float clampedDist = Mathf.Min(dist, totalDistance);
+                Vector2 testPos = fromPos + direction * clampedDist;
 
-                // Now find the best position closest to the cursor
-                // Continue scanning forward to get as close to cursor as possible
-                Vector2 lastGoodPos = testPos;
-                for (float fwdDist = clampedDist + step; fwdDist <= totalDistance; fwdDist += step)
+                // Check if this position is inside a wall using shape query
+                if (!IsPositionInsideWall(spaceState, testPos))
                 {
-                    Vector2 fwdTestPos = fromPos + direction * fwdDist;
-                    if (!IsPositionInsideWall(spaceState, fwdTestPos))
-                    {
-                        lastGoodPos = fwdTestPos;
-                    }
-                    else
-                    {
-                        // Hit another wall, stop here
-                        break;
-                    }
-                }
+                    // Found clear space beyond the wall — verify we can raycast from there
+                    // back to the cursor (no additional walls in between)
+                    candidatePos = testPos;
 
-                // Also test exact cursor position
-                if (!IsPositionInsideWall(spaceState, cursorPos))
-                {
-                    lastGoodPos = cursorPos;
-                }
+                    // Now find the best position closest to the cursor
+                    // Continue scanning forward to get as close to cursor as possible
+                    Vector2 lastGoodPos = testPos;
+                    for (float fwdDist = clampedDist + step; fwdDist <= totalDistance; fwdDist += step)
+                    {
+                        Vector2 fwdTestPos = fromPos + direction * fwdDist;
+                        if (!IsPositionInsideWall(spaceState, fwdTestPos))
+                        {
+                            lastGoodPos = fwdTestPos;
+                        }
+                        else
+                        {
+                            // Hit another wall, stop here
+                            break;
+                        }
+                    }
 
-                return lastGoodPos;
+                    // Also test exact cursor position
+                    if (!IsPositionInsideWall(spaceState, cursorPos))
+                    {
+                        lastGoodPos = cursorPos;
+                    }
+
+                    candidatePos = lastGoodPos;
+                    break;
+                }
             }
         }
 
-        // Could not find clear space beyond the wall — teleport to just before it
-        return bestPosition;
+        // Clamp the final position to the navigation mesh to prevent teleporting
+        // outside the map boundary walls (Issue #939).
+        return ClampToNavigationMesh(candidatePos);
+    }
+
+    /// <summary>
+    /// Clamp a position to the navigation mesh so the player cannot teleport
+    /// outside the solid boundary walls surrounding the map (Issue #939).
+    /// Uses NavigationServer2D to find the closest valid point on the nav mesh.
+    /// </summary>
+    /// <param name="position">The candidate teleport position.</param>
+    /// <returns>The closest valid position within the navigation mesh.</returns>
+    private Vector2 ClampToNavigationMesh(Vector2 position)
+    {
+        var navMap = GetWorld2D().NavigationMap;
+        if (!navMap.IsValid)
+        {
+            LogToFile("[Player.TeleportBracers] Warning: Could not get NavigationMap for boundary check");
+            return position;
+        }
+
+        Vector2 closest = NavigationServer2D.MapGetClosestPoint(navMap, position);
+        if (!closest.IsEqualApprox(position))
+        {
+            LogToFile($"[Player.TeleportBracers] Clamped teleport from {position} to {closest} (outside map bounds)");
+        }
+        return closest;
     }
 
     /// <summary>
@@ -4984,6 +5015,13 @@ public partial class Player : BaseCharacter
             companion.Set("min_health", 2);
             companion.Set("max_health", 4);
         }
+
+        // Issue #926: BFF companion has 50% slower reaction speed than enemies.
+        // Multiply all reaction/detection delays by 1.5 (150% of normal = 50% slower).
+        const float BffReactionMultiplier = 1.5f;
+        companion.Set("detection_delay", 0.2f * BffReactionMultiplier);       // 0.2s * 1.5 = 0.3s
+        companion.Set("threat_reaction_delay", 0.2f * BffReactionMultiplier); // 0.2s * 1.5 = 0.3s
+        companion.Set("lead_prediction_delay", 0.3f * BffReactionMultiplier); // 0.3s * 1.5 = 0.45s
 
         // Add to the current scene (not as child of player, so it moves independently)
         var tree = GetTree();
