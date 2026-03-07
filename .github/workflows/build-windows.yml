@@ -37,6 +37,26 @@ jobs:
           dotnet restore GodotTopDownTemplate.sln
           dotnet build GodotTopDownTemplate.sln --configuration Release
 
+      # Workaround: wget returns 403 on GitHub releases due to a TLS redirect issue.
+      # Replace wget with a curl-based wrapper so the godot-export action can download.
+      - name: Install wget-curl wrapper
+        run: |
+          mkdir -p "$HOME/bin"
+          printf '%s\n' '#!/bin/bash' \
+            'output="" url="" prev=""' \
+            'for i in "$@"; do' \
+            '  case "$prev" in -O) output="$i" ;; esac' \
+            '  if [[ "$i" == http* ]]; then url="$i"; fi' \
+            '  prev="$i"' \
+            'done' \
+            'if [ -n "$output" ]; then' \
+            '  exec curl -L --retry 3 --retry-delay 5 -o "$output" "$url"' \
+            'else' \
+            '  exec curl -L --retry 3 --retry-delay 5 "$url"' \
+            'fi' > "$HOME/bin/wget"
+          chmod +x "$HOME/bin/wget"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
       - name: Export game
         id: export
         uses: firebelley/godot-export@v7.0.0
