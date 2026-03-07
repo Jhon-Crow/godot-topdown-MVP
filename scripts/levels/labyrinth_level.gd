@@ -85,6 +85,8 @@ var _replay_manager: Node = null
 ## Tutorial hint system for the Laboratory level (Issue #808, #945)
 ## Mirrors tutorial_level.gd: weapon-dependent hints, grenade hint, no walk/shoot hints.
 ## Issue #945: RichTextLabel with BBCode colors, red NEXT-button highlight, 2-shot reload delay.
+## Bug fixes (3rd review round): spacing, bolt-cycle timing, sniper sequence, grenade ordering,
+## shotgun reload count, hammer-cock persistence, grenade check, AK GL hint.
 ## ============================================================
 
 ## Tutorial hint labels: hint_key -> RichTextLabel node (Issue #945: was Label).
@@ -118,15 +120,31 @@ var _tutorial_has_revolver: bool = false
 ## Whether the player has a Makarov PM (R->R reload hint).
 var _tutorial_has_makarov_pm: bool = false
 
+## Whether the player has an AK GL (for underbarrel grenade launcher tutorial, Bug fix #10).
+var _tutorial_has_ak_gl: bool = false
+
+## Reference to the player's assault rifle node (for GL ammo check, Bug fix #10).
+var _tutorial_assault_rifle: Node = null
+
+## Reference to the player's shotgun node (for shell count, Bug fix #7).
+var _tutorial_shotgun: Node = null
+
+## Reference to the player's sniper rifle node (for bolt step tracking, Bug fix #3).
+var _tutorial_sniper_rifle: Node = null
+
+## Whether the sniper bolt has been cycled (for reload step tracking).
+var _tutorial_sniper_bolt_cycled: bool = false
+
 ## Hint keys (same as tutorial_level.gd).
 const TUTORIAL_HINT_RELOAD := "reload"
 const TUTORIAL_HINT_GRENADE := "grenade"
 const TUTORIAL_HINT_HAMMER_COCK := "hammer_cock"
 const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
+const TUTORIAL_HINT_GRENADE_LAUNCHER := "grenade_launcher"  ## AK GL underbarrel (Bug fix #10)
 
 ## Vertical spacing between stacked tutorial hints (pixels).
-## Increased to 50 to prevent overlap when hints wrap to 2 lines (Bug fix #1).
-const TUTORIAL_HINT_SPACING: float = 50.0
+## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
+const TUTORIAL_HINT_SPACING: float = 60.0
 
 ## Number of shots fired (Issue #945: reload hint appears after 2 shots).
 var _tutorial_shots_fired: int = 0
@@ -138,10 +156,11 @@ var _tutorial_reload_hint_revealed: bool = false
 var _tutorial_bolt_cycle_hint_revealed: bool = false
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
-const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)       ## Green — reload
-const TUTORIAL_HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)     ## Orange — grenade
-const TUTORIAL_HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)  ## Purple — bolt cycling
-const TUTORIAL_HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)  ## Yellow — hammer cock
+const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
+const TUTORIAL_HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)            ## Orange — grenade
+const TUTORIAL_HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)         ## Purple — bolt cycling
+const TUTORIAL_HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)         ## Yellow — hammer cock
+const TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)    ## Red-orange — AK GL
 
 
 ## Gets the ReplayManager autoload node.
@@ -560,6 +579,9 @@ func _setup_player_tracking() -> void:
 			weapon.Fired.connect(_on_shot_fired)
 			# Also count shots for reload hint reveal (Issue #945)
 			weapon.Fired.connect(_on_tutorial_weapon_fired)
+		elif weapon.has_signal("ShotFired"):
+			# Bug fix #2: fallback signal name for weapons that use ShotFired
+			weapon.ShotFired.connect(_on_tutorial_weapon_fired)
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
@@ -570,12 +592,14 @@ func _setup_player_tracking() -> void:
 		_configure_silenced_pistol_ammo(weapon)
 		_configure_makarov_pm_ammo(weapon)
 
-		# Detect weapon type for tutorial hints (Issue #808)
+		# Detect weapon type for tutorial hints (Issue #808, #945)
 		match weapon.name:
 			"Shotgun":
 				_tutorial_has_shotgun = true
+				_tutorial_shotgun = weapon  # Bug fix #7: reference for shell count
 			"SniperRifle":
 				_tutorial_has_sniper_rifle = true
+				_tutorial_sniper_rifle = weapon  # Bug fix #3: reference for bolt step hints
 				if weapon.has_signal("BoltStepChanged"):
 					weapon.BoltStepChanged.connect(_on_tutorial_sniper_bolt_step_changed)
 			"Revolver":
@@ -585,6 +609,11 @@ func _setup_player_tracking() -> void:
 					weapon.HammerCocked.connect(_on_tutorial_hammer_cocked)
 			"MakarovPM":
 				_tutorial_has_makarov_pm = true
+			"AssaultRifle":
+				_tutorial_assault_rifle = weapon  # Bug fix #6: M16 post-reload fire-mode hint
+			"AKGL":
+				_tutorial_has_ak_gl = true  # Bug fix #10
+				_tutorial_assault_rifle = weapon  # Bug fix #10: reference for GL ammo check
 	else:
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
@@ -855,6 +884,7 @@ func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
 
 
 ## Called when shotgun shell count changes (during shell-by-shell reload).
+## Bug fix #7: also updates the bolt-cycle hint to reflect remaining shells to load.
 func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 	var reserve_ammo: int = 0
 	if _player:
@@ -862,6 +892,11 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 		if weapon != null and weapon.get("ReserveAmmo") != null:
 			reserve_ammo = weapon.ReserveAmmo
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
+	# Bug fix #7: update bolt-cycle hint with new shell count to load
+	if _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+		var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
+		if is_instance_valid(label):
+			label.text = _build_tutorial_shotgun_reload_hint_bbcode()
 
 
 ## Called when player runs out of ammo in current magazine.
@@ -1573,12 +1608,12 @@ func _reveal_tutorial_bolt_cycle_hint() -> void:
 
 	if _tutorial_has_sniper_rifle:
 		if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
-			_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE, "[color=#ff4444][←↓↑→][/color] Передёрни затвор", canvas_layer)
+			# Bug fix #4: show 4 separate steps. Bug fix #3: first step highlighted red (step=0).
+			_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE, _build_tutorial_sniper_bolt_hint_bbcode(0), canvas_layer)
 	elif _tutorial_has_shotgun:
+		# Bug fix #7: show actual shell count to load.
 		if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
-			_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE,
-				"[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x8] [ПКМ↓ закрыть][/color]",
-				canvas_layer)
+			_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE, _build_tutorial_shotgun_reload_hint_bbcode(), canvas_layer)
 
 
 ## Reveal the reload-related hints after the player has fired 2 shots (Issue #945).
@@ -1660,13 +1695,16 @@ func _get_tutorial_hint_color(hint_key: String) -> Color:
 			return TUTORIAL_HINT_COLOR_BOLT_CYCLE
 		TUTORIAL_HINT_HAMMER_COCK:
 			return TUTORIAL_HINT_COLOR_HAMMER_COCK
+		TUTORIAL_HINT_GRENADE_LAUNCHER:
+			return TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER
 		_:
 			return Color(1.0, 1.0, 0.3, 1.0)  # Default yellow fallback
 
 
-## Add reload-related hints for the current weapon type, plus grenade hint.
+## Add reload-related hints for the current weapon type.
 ## Mirrors _add_reload_hints() from tutorial_level.gd.
 ## Issue #945: Uses BBCode with the first step highlighted in red.
+## Bug fix #5: Grenade hint is shown AFTER reload disappears, NOT simultaneously.
 ## Bug fix: Shotgun/sniper bolt-cycle hint is NOT added here (it appears after 1st shot via
 ##   _reveal_tutorial_bolt_cycle_hint). Revolver hammer-cock hint is NOT added here (shown from start).
 func _add_tutorial_reload_hints(canvas_layer: Node) -> void:
@@ -1688,17 +1726,19 @@ func _add_tutorial_reload_hints(canvas_layer: Node) -> void:
 		# Standard R->F->R. Initial text = step 0.
 		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 3), canvas_layer)
 
-	# Always show grenade hint alongside reload (Issue #808)
-	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-		_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
-			"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
-			canvas_layer)
+	# Bug fix #5: grenade hint shown AFTER reload disappears, not simultaneously.
 
 
 ## Called when sniper bolt step changes (Issue #808 - Lab sniper tutorial).
+## Bug fix #3: dynamically updates bolt-cycle hint text to highlight the NEXT step in red.
 func _on_tutorial_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 	if _tutorial_step != TutorialStep.RELOAD:
 		return
+	# Bug fix #3: update bolt-cycle hint text step-by-step
+	if _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+		var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
+		if is_instance_valid(label):
+			label.text = _build_tutorial_sniper_bolt_hint_bbcode(step)
 	if step >= total_steps and not _tutorial_has_reloaded:
 		_tutorial_has_reloaded = true
 		_dismiss_tutorial_hint(TUTORIAL_HINT_RELOAD)
@@ -1708,6 +1748,17 @@ func _on_tutorial_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 			_dismiss_all_tutorial_hints()
 		else:
 			_tutorial_step = TutorialStep.THROW_GRENADE
+			# Bug fix #5: grenade hint shown AFTER reload, not simultaneously.
+			# Bug fix #9: only show grenade hint if player has grenades.
+			if _tutorial_player_has_grenades():
+				var canvas_layer := get_node_or_null("CanvasLayer")
+				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
+					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
+						"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
+						canvas_layer)
+			else:
+				_tutorial_step = TutorialStep.COMPLETED
+				_dismiss_all_tutorial_hints()
 
 
 ## Called when revolver hammer is cocked — dismisses hammer hint (Issue #808).
@@ -1716,25 +1767,47 @@ func _on_tutorial_hammer_cocked() -> void:
 
 
 ## Called on tutorial reload completion (Issue #808).
+## Bug fix #5: grenade hint shown AFTER reload (not simultaneously).
+## Bug fix #7: shotgun bolt-cycle hint dismissed on reload completion.
+## Bug fix #8: hammer-cock hint NOT dismissed here — only via HammerCocked signal.
+## Bug fix #9: grenade hint only shown if player has grenades.
 func _on_tutorial_reload_completed() -> void:
 	if _tutorial_step != TutorialStep.RELOAD:
 		return
 	if not _tutorial_has_reloaded:
 		_tutorial_has_reloaded = true
+		# Dismiss reload hint; also dismiss bolt-cycle hint for shotgun (Bug fix #7).
+		# Bug fix #8: do NOT dismiss hammer-cock hint here — stays until player manually cocks.
 		_dismiss_tutorial_hint(TUTORIAL_HINT_RELOAD)
-		_dismiss_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK)
+		if _tutorial_has_shotgun:
+			_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
+		var canvas_layer := get_node_or_null("CanvasLayer")
+		# Bug fix #6: M16 (not AK GL) shows fire-mode switch hint after reload.
+		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
+			if canvas_layer:
+				_add_tutorial_hint("fire_mode",
+					"[color=#ff4444][B][/color] Переключи режим стрельбы", canvas_layer)
+		# Bug fix #10: AK GL shows underbarrel grenade launcher hint after reload (if round loaded).
+		if _tutorial_has_ak_gl and canvas_layer and _tutorial_ak_gl_has_round_loaded():
+			_add_tutorial_hint(TUTORIAL_HINT_GRENADE_LAUNCHER,
+				"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом", canvas_layer)
 		if _tutorial_has_thrown_grenade:
 			_tutorial_step = TutorialStep.COMPLETED
 			_dismiss_all_tutorial_hints()
 		else:
 			_tutorial_step = TutorialStep.THROW_GRENADE
-			# Ensure grenade hint is visible (may have already been added)
-			if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-				var canvas_layer := get_node_or_null("CanvasLayer")
-				if canvas_layer:
+			# Bug fix #5: grenade hint shown AFTER reload disappears.
+			# Bug fix #9: only shown if player has grenades.
+			if _tutorial_player_has_grenades():
+				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
 					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 						"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]",
 						canvas_layer)
+			else:
+				# No grenades — skip grenade step
+				print("[LabyrinthLevel] Player has no grenades — skipping grenade hint")
+				_tutorial_step = TutorialStep.COMPLETED
+				_dismiss_all_tutorial_hints()
 
 
 ## Called when player throws a grenade — dismisses grenade hint (Issue #808).
@@ -1747,6 +1820,66 @@ func _on_tutorial_grenade_thrown() -> void:
 		if _tutorial_step == TutorialStep.THROW_GRENADE:
 			_tutorial_step = TutorialStep.COMPLETED
 			_dismiss_all_tutorial_hints()
+
+
+## Check whether the player currently holds at least one grenade (Bug fix #9).
+func _tutorial_player_has_grenades() -> bool:
+	if _player == null:
+		return false
+	var grenade_count = _player.get("GrenadeCount")
+	if grenade_count != null:
+		return int(grenade_count) > 0
+	return false  # Lab level does not give infinite grenades
+
+
+## Check whether the AK GL has a round in the grenade launcher (Bug fix #10).
+func _tutorial_ak_gl_has_round_loaded() -> bool:
+	if _tutorial_assault_rifle == null:
+		return false
+	var gl_ammo = _tutorial_assault_rifle.get("GrenadeLauncherAmmo")
+	if gl_ammo != null:
+		return int(gl_ammo) > 0
+	return true  # Assume loaded if property not found
+
+
+## Build BBCode for sniper bolt-cycle hint showing 4-step sequence (Bug fix #4).
+## Bug fix #3: highlights the NEXT step in red based on last completed step.
+func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
+	const STEPS := ["←", "↓", "↑", "→"]
+	var parts: PackedStringArray = []
+	for i in range(STEPS.size()):
+		if i < step:
+			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+		elif i == step:
+			parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
+		else:
+			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+	return " ".join(parts) + " Передёрни затвор"
+
+
+## Build BBCode for shotgun reload hint with dynamic shell count (Bug fix #7).
+func _build_tutorial_shotgun_reload_hint_bbcode() -> String:
+	var shells_needed: int = _get_tutorial_shotgun_shells_to_load()
+	return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+
+
+## Return the number of shells the shotgun still needs to fill up to capacity (Bug fix #7).
+func _get_tutorial_shotgun_shells_to_load() -> int:
+	if _tutorial_shotgun == null:
+		return 8
+	var current_ammo = _tutorial_shotgun.get("CurrentAmmo")
+	var max_ammo = _tutorial_shotgun.get("MaxAmmo")
+	if current_ammo == null or max_ammo == null:
+		return 8
+	return int(max_ammo) - int(current_ammo)
+
+
+## Get the unique color for a tutorial hint by its key (Issue #945).
+## Extends the existing function to include GRENADE_LAUNCHER color.
+func _get_tutorial_hint_color_extended(hint_key: String) -> Color:
+	if hint_key == TUTORIAL_HINT_GRENADE_LAUNCHER:
+		return TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER
+	return _get_tutorial_hint_color(hint_key)
 
 
 ## Dismiss all remaining tutorial hints.

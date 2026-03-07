@@ -15,6 +15,16 @@ extends GutTest
 ## Fix #3: Revolver hammer-cock hint shown from weapon pickup (before 2 shots).
 ## Fix #4: Bolt-cycle hint (sniper/shotgun) shown after 1st shot, not 2nd.
 ## Fix #5: Revolver/shotgun reload hints are static; ReloadSequenceProgress must not overwrite.
+##
+## Bug fixes (third review round, Issue #945):
+## Fix 3rd#1: HINT_SPACING increased to 60px.
+## Fix 3rd#4: Sniper bolt-action shows 4 separate steps [←][↓][↑][→].
+## Fix 3rd#3: Sniper bolt-cycle hint updates step-by-step.
+## Fix 3rd#5: Grenade hint shown AFTER reload disappears, not simultaneously.
+## Fix 3rd#7: Shotgun reload hint count updates live; dismissed on reload.
+## Fix 3rd#8: Revolver hammer-cock hint stays until player manually cocks.
+## Fix 3rd#9: Grenade hint only shown when player has grenades.
+## Fix 3rd#10: AK GL shows underbarrel grenade launcher hint after reload.
 
 
 # ============================================================================
@@ -35,12 +45,17 @@ class MockLabyrinthTutorial:
 	const TUTORIAL_HINT_GRENADE := "grenade"
 	const TUTORIAL_HINT_HAMMER_COCK := "hammer_cock"
 	const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
+	const TUTORIAL_HINT_GRENADE_LAUNCHER := "grenade_launcher"  ## Fix 3rd#10
+
+	## Fix 3rd#1: Hint spacing increased to 60px.
+	const TUTORIAL_HINT_SPACING: float = 60.0
 
 	## Unique colors per hint type (Issue #945).
 	const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)
 	const TUTORIAL_HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)
 	const TUTORIAL_HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)
 	const TUTORIAL_HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)
+	const TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)
 
 	var _tutorial_step: TutorialStep = TutorialStep.RELOAD
 	var _tutorial_has_reloaded: bool = false
@@ -49,12 +64,22 @@ class MockLabyrinthTutorial:
 	var _tutorial_has_sniper_rifle: bool = false
 	var _tutorial_has_revolver: bool = false
 	var _tutorial_has_makarov_pm: bool = false
+	var _tutorial_has_ak_gl: bool = false  ## Fix 3rd#10
+
+	## Fix 3rd#7: Shotgun ammo tracking
+	var _shotgun_capacity: int = 8
+	var _shotgun_current_ammo: int = 0
+	## Fix 3rd#9: Grenade count
+	var _grenade_count: int = 3
+	## Fix 3rd#10: AK GL round
+	var _ak_gl_has_round: bool = true
 
 	## Issue #945: shot counter and reveal flag.
 	var _tutorial_shots_fired: int = 0
 	var _tutorial_reload_hint_revealed: bool = false
 	## Bug fix #4: bolt-cycle hint revealed after 1st shot.
 	var _tutorial_bolt_cycle_hint_revealed: bool = false
+	var _tutorial_sniper_bolt_cycled: bool = false
 
 	## Active hints: hint_key -> hint_text (simulates visible labels).
 	var _active_hints: Dictionary = {}
@@ -89,6 +114,8 @@ class MockLabyrinthTutorial:
 				return TUTORIAL_HINT_COLOR_BOLT_CYCLE
 			TUTORIAL_HINT_HAMMER_COCK:
 				return TUTORIAL_HINT_COLOR_HAMMER_COCK
+			TUTORIAL_HINT_GRENADE_LAUNCHER:
+				return TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER  ## Fix 3rd#10
 			_:
 				return Color(1.0, 1.0, 0.3, 1.0)
 
@@ -99,6 +126,28 @@ class MockLabyrinthTutorial:
 	func _dismiss_hint(hint_key: String) -> void:
 		_active_hints.erase(hint_key)
 		_active_hint_colors.erase(hint_key)
+
+	## Fix 3rd#4, 3rd#3: Build BBCode for sniper bolt-cycle hint with 4-step sequence.
+	func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
+		const STEPS := ["←", "↓", "↑", "→"]
+		var parts: PackedStringArray = []
+		for i in range(STEPS.size()):
+			if i == step:
+				parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
+			else:
+				parts.append("[color=#888888][%s][/color]" % STEPS[i])
+		return " ".join(parts) + " Передёрни затвор"
+
+	## Fix 3rd#7: Build BBCode for shotgun reload hint with dynamic shell count.
+	func _build_tutorial_shotgun_reload_hint_bbcode() -> String:
+		var shells_needed: int = _shotgun_capacity - _shotgun_current_ammo
+		return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+
+	## Fix 3rd#7: Update shotgun bolt-cycle hint when shells are loaded.
+	func on_tutorial_shell_count_changed(shell_count: int) -> void:
+		_shotgun_current_ammo = shell_count
+		if _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+			_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_reload_hint_bbcode()
 
 	## Build BBCode text for the reload hint based on current step (Issue #945).
 	## Bug fix #2: `step` is LAST COMPLETED step (0=nothing done, 1=first press done, etc.).
@@ -130,6 +179,7 @@ class MockLabyrinthTutorial:
 
 	## Bug fix: bolt-cycle and hammer-cock hints NOT added here.
 	##   Bolt-cycle shown after 1st shot (fix #4), hammer-cock shown from start (fix #3).
+	##   Fix 3rd#5: grenade hint NOT added here — shown AFTER reload disappears.
 	func _add_tutorial_reload_hints() -> void:
 		if _tutorial_has_shotgun:
 			# Shotgun: bolt-cycle hint already shown after 1st shot; same mechanic as reload.
@@ -145,9 +195,7 @@ class MockLabyrinthTutorial:
 			_add_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 2))
 		else:
 			_add_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 3))
-		if not _active_hints.has(TUTORIAL_HINT_GRENADE):
-			_add_hint(TUTORIAL_HINT_GRENADE,
-				"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
+		# Fix 3rd#5: grenade hint shown AFTER reload disappears, not simultaneously.
 
 	## Simulate _setup_tutorial_hints(): sets step, shows hammer-cock for revolver (Bug fix #3).
 	func setup_tutorial_hints() -> void:
@@ -170,16 +218,18 @@ class MockLabyrinthTutorial:
 			_reveal_tutorial_reload_hint()
 
 	## Bug fix #4: Reveal bolt-cycle hint after 1st shot.
+	## Fix 3rd#4: Sniper uses 4-step sequence. Fix 3rd#7: Shotgun uses dynamic count.
 	func _reveal_tutorial_bolt_cycle_hint() -> void:
 		if _tutorial_step != TutorialStep.RELOAD:
 			return
 		if _tutorial_has_sniper_rifle:
 			if not _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
-				_add_hint(TUTORIAL_HINT_BOLT_CYCLE, "[color=#ff4444][←↓↑→][/color] Передёрни затвор")
+				# Fix 3rd#4: 4 separate steps, fix 3rd#3: first step in red
+				_add_hint(TUTORIAL_HINT_BOLT_CYCLE, _build_tutorial_sniper_bolt_hint_bbcode(0))
 		elif _tutorial_has_shotgun:
 			if not _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
-				_add_hint(TUTORIAL_HINT_BOLT_CYCLE,
-					"[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x8] [ПКМ↓ закрыть][/color]")
+				# Fix 3rd#7: dynamic shell count
+				_add_hint(TUTORIAL_HINT_BOLT_CYCLE, _build_tutorial_shotgun_reload_hint_bbcode())
 
 	func _reveal_tutorial_reload_hint() -> void:
 		if _tutorial_step != TutorialStep.RELOAD:
@@ -200,37 +250,61 @@ class MockLabyrinthTutorial:
 			_active_hints[TUTORIAL_HINT_RELOAD] = new_text
 
 	## Simulate _on_tutorial_reload_completed() (Issue #808).
+	## Fix 3rd#5: Grenade shown AFTER reload, not simultaneously.
+	## Fix 3rd#7: Shotgun bolt-cycle hint dismissed on reload.
+	## Fix 3rd#8: Hammer-cock hint NOT dismissed here.
+	## Fix 3rd#9: Grenade hint only shown when player has grenades.
+	## Fix 3rd#10: AK GL shows underbarrel grenade launcher hint after reload.
 	func on_tutorial_reload_completed() -> void:
 		if _tutorial_step != TutorialStep.RELOAD:
 			return
 		if not _tutorial_has_reloaded:
 			_tutorial_has_reloaded = true
 			_dismiss_hint(TUTORIAL_HINT_RELOAD)
-			_dismiss_hint(TUTORIAL_HINT_HAMMER_COCK)
+			# Fix 3rd#7: dismiss bolt-cycle hint for shotgun on reload
+			if _tutorial_has_shotgun:
+				_dismiss_hint(TUTORIAL_HINT_BOLT_CYCLE)
+			# Fix 3rd#8: do NOT dismiss hammer-cock — stays until player manually cocks
+			# Fix 3rd#10: AK GL shows underbarrel grenade launcher hint after reload
+			if _tutorial_has_ak_gl and _ak_gl_has_round:
+				_add_hint(TUTORIAL_HINT_GRENADE_LAUNCHER,
+					"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом")
 			if _tutorial_has_thrown_grenade:
 				_tutorial_step = TutorialStep.COMPLETED
 				_dismiss_all_hints()
 			else:
 				_tutorial_step = TutorialStep.THROW_GRENADE
-				if not _active_hints.has(TUTORIAL_HINT_GRENADE):
-					_add_hint(TUTORIAL_HINT_GRENADE,
-						"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
+				# Fix 3rd#9: only show grenade hint if player has grenades
+				if _grenade_count > 0:
+					if not _active_hints.has(TUTORIAL_HINT_GRENADE):
+						_add_hint(TUTORIAL_HINT_GRENADE,
+							"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
+				else:
+					# Fix 3rd#9: no grenades — auto-complete tutorial
+					_tutorial_step = TutorialStep.COMPLETED
+					_dismiss_all_hints()
 
 	## Simulate _on_tutorial_grenade_thrown() (Issue #808).
+	## Fix 3rd#5: Grenade only handled in THROW_GRENADE step; ignore during RELOAD.
 	func on_tutorial_grenade_thrown() -> void:
-		if _tutorial_step != TutorialStep.THROW_GRENADE and _tutorial_step != TutorialStep.RELOAD:
+		if _tutorial_step != TutorialStep.THROW_GRENADE:
 			return
 		if not _tutorial_has_thrown_grenade:
 			_tutorial_has_thrown_grenade = true
 			_dismiss_hint(TUTORIAL_HINT_GRENADE)
-			if _tutorial_step == TutorialStep.THROW_GRENADE:
-				_tutorial_step = TutorialStep.COMPLETED
-				_dismiss_all_hints()
+			_tutorial_step = TutorialStep.COMPLETED
+			_dismiss_all_hints()
 
 	## Simulate _on_tutorial_sniper_bolt_step_changed() (Issue #808).
+	## Fix 3rd#3: Dynamically update bolt-cycle hint text per step.
+	## Fix 3rd#5: Grenade hint shown AFTER bolt cycle (not during reload).
+	## Fix 3rd#9: Grenade hint only shown when player has grenades.
 	func on_tutorial_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 		if _tutorial_step != TutorialStep.RELOAD:
 			return
+		# Fix 3rd#3: update bolt-cycle hint dynamically
+		if _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+			_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_sniper_bolt_hint_bbcode(step)
 		if step >= total_steps and not _tutorial_has_reloaded:
 			_tutorial_has_reloaded = true
 			_dismiss_hint(TUTORIAL_HINT_RELOAD)
@@ -240,6 +314,14 @@ class MockLabyrinthTutorial:
 				_dismiss_all_hints()
 			else:
 				_tutorial_step = TutorialStep.THROW_GRENADE
+				# Fix 3rd#5/#9: grenade hint shown after bolt cycle only if player has grenades
+				if _grenade_count > 0:
+					if not _active_hints.has(TUTORIAL_HINT_GRENADE):
+						_add_hint(TUTORIAL_HINT_GRENADE,
+							"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
+				else:
+					_tutorial_step = TutorialStep.COMPLETED
+					_dismiss_all_hints()
 
 	## Simulate _on_tutorial_hammer_cocked() (Issue #808).
 	func on_tutorial_hammer_cocked() -> void:
@@ -288,14 +370,15 @@ func test_reload_hint_not_shown_after_one_shot() -> void:
 
 
 func test_reload_hint_shown_after_two_shots() -> void:
-	## Issue #945: After 2 shots, reload and grenade hints should both appear.
+	## Issue #945: After 2 shots, reload hint should appear.
+	## Fix 3rd#5: Grenade hint NOT shown simultaneously with reload — appears after reload.
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
 
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
 		"Reload hint should appear after 2 shots (Issue #945)")
-	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
-		"Grenade hint should also appear after 2 shots (Issue #945)")
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint should NOT appear during reload step (Fix 3rd#5 — appears after reload)")
 
 
 func test_reload_hint_shown_after_more_than_two_shots() -> void:
@@ -310,14 +393,15 @@ func test_reload_hint_shown_after_more_than_two_shots() -> void:
 
 func test_weapon_fired_idempotent_after_reveal() -> void:
 	## Issue #945: Additional shots after reveal should not cause duplicate hints.
+	## Fix 3rd#5: Only reload hint shown during reload step (grenade appears after reload).
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()  # Extra shots after reveal
 	lab.on_tutorial_weapon_fired()
 
-	# Standard weapon: reload + grenade = 2 hints
-	assert_eq(lab.get_active_hint_count(), 2,
-		"Only 2 hints (reload + grenade) should be active (Issue #945)")
+	# Standard weapon: only reload hint shown during RELOAD step (Fix 3rd#5)
+	assert_eq(lab.get_active_hint_count(), 1,
+		"Only 1 hint (reload) should be active during reload step (Fix 3rd#5)")
 
 
 # ============================================================================
@@ -337,8 +421,10 @@ func test_reload_hint_has_green_color() -> void:
 
 func test_grenade_hint_has_orange_color() -> void:
 	## Issue #945: Grenade hint should use orange.
+	## Fix 3rd#5: Grenade hint only shown AFTER reload, so must complete reload first.
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_reload_completed()  # Grenade hint appears after reload
 
 	assert_eq(lab.get_hint_color(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
 		MockLabyrinthTutorial.TUTORIAL_HINT_COLOR_GRENADE,
@@ -369,15 +455,18 @@ func test_hammer_cock_hint_has_yellow_color() -> void:
 
 
 func test_simultaneous_hints_have_different_colors() -> void:
-	## Issue #945: Reload and grenade hints shown at the same time must have different colors.
+	## Issue #945: Reload and grenade hints use different colors.
+	## Fix 3rd#5: Grenade shown AFTER reload, not simultaneously.
+	## Test checks colors when grenade hint is shown (after reload step).
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_reload_completed()  # Now grenade hint is visible
 
-	var reload_color := lab.get_hint_color(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD)
 	var grenade_color := lab.get_hint_color(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
 
-	assert_ne(reload_color, grenade_color,
-		"Simultaneously shown hints must use different colors (Issue #945)")
+	# Grenade hint color should be orange (not the same as reload which was green)
+	assert_ne(grenade_color, MockLabyrinthTutorial.TUTORIAL_HINT_COLOR_RELOAD,
+		"Grenade hint must use a different color from reload hint (Issue #945)")
 
 
 # ============================================================================
@@ -463,19 +552,26 @@ func test_makarov_pm_reload_hint_has_two_steps() -> void:
 # ============================================================================
 
 
-func test_reload_and_grenade_hints_shown_simultaneously() -> void:
-	## Issue #808: Reload and grenade hints are shown at the same time.
+func test_reload_hint_shown_then_grenade_after() -> void:
+	## Fix 3rd#5: Reload hint shown first (during reload step); grenade shown AFTER reload.
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
 
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
-		"Reload hint should be visible (Issue #808)")
+		"Reload hint should be visible during reload step (Fix 3rd#5)")
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint should NOT be visible during reload step (Fix 3rd#5)")
+
+	lab.on_tutorial_reload_completed()
+
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
+		"Reload hint dismissed after reload (Fix 3rd#5)")
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
-		"Grenade hint should be visible simultaneously (Issue #808)")
+		"Grenade hint appears AFTER reload (Fix 3rd#5)")
 
 
-func test_reload_dismisses_only_reload_hint() -> void:
-	## Issue #808: Completing reload removes only the reload hint; grenade hint stays.
+func test_reload_dismissed_grenade_hint_appears() -> void:
+	## Fix 3rd#5: Completing reload removes the reload hint and SHOWS grenade hint.
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_reload_completed()
@@ -483,27 +579,28 @@ func test_reload_dismisses_only_reload_hint() -> void:
 	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
 		"Reload hint should be gone after reload (Issue #808)")
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
-		"Grenade hint should remain after reload (Issue #808)")
+		"Grenade hint should appear after reload (Fix 3rd#5)")
 
 
-func test_grenade_dismisses_only_grenade_hint() -> void:
-	## Issue #808: Throwing grenade (from RELOAD step) removes only the grenade hint.
+func test_grenade_thrown_during_reload_step_is_ignored() -> void:
+	## Fix 3rd#5: Grenade thrown during RELOAD step is ignored (hint not shown yet).
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
-	lab.on_tutorial_grenade_thrown()
+	lab.on_tutorial_grenade_thrown()  # Not in THROW_GRENADE step — ignored
 
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
-		"Reload hint should remain after grenade thrown during reload step (Issue #808)")
+		"Reload hint should remain (grenade thrown was ignored during RELOAD step — Fix 3rd#5)")
 	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
-		"Grenade hint should be gone after grenade thrown (Issue #808)")
+		"Grenade hint should NOT be shown (Fix 3rd#5 — not in THROW_GRENADE step)")
 
 
 func test_both_hints_dismissed_after_both_actions() -> void:
 	## Issue #808: When both actions complete, all hints disappear.
+	## Fix 3rd#5: Reload first, then grenade hint appears (sequential, not simultaneous).
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
-	lab.on_tutorial_reload_completed()
-	lab.on_tutorial_grenade_thrown()
+	lab.on_tutorial_reload_completed()  # Grenade hint appears now
+	lab.on_tutorial_grenade_thrown()  # Complete — all hints gone
 
 	assert_false(lab.is_any_hint_active(),
 		"All hints should be gone after completing both actions (Issue #808)")
@@ -527,6 +624,7 @@ func test_sniper_bolt_cycle_hint_shown_after_first_shot() -> void:
 
 func test_sniper_shows_bolt_cycle_hint() -> void:
 	## Issue #808: Sniper rifle shows bolt-cycle hint after 1st shot, reload after 2nd.
+	## Fix 3rd#5: Grenade NOT shown during reload step.
 	lab._tutorial_has_sniper_rifle = true
 	lab.setup_tutorial_hints()
 	lab.on_tutorial_weapon_fired()  # 1st shot → bolt-cycle hint
@@ -536,8 +634,8 @@ func test_sniper_shows_bolt_cycle_hint() -> void:
 		"Sniper: reload hint should be visible after 2nd shot (Issue #808)")
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
 		"Sniper: bolt-cycle hint should be visible (Bug fix #4)")
-	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
-		"Sniper: grenade hint should be visible simultaneously (Issue #808)")
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Sniper: grenade hint NOT shown during reload step (Fix 3rd#5)")
 
 
 func test_revolver_shows_hammer_cock_hint_from_start() -> void:
@@ -553,6 +651,7 @@ func test_revolver_shows_hammer_cock_hint_from_start() -> void:
 
 func test_revolver_shows_hammer_cock_hint() -> void:
 	## Issue #808: Revolver shows hammer-cock hint alongside reload hint after 2 shots.
+	## Fix 3rd#5: Grenade hint NOT shown during reload step.
 	lab._tutorial_has_revolver = true
 	lab.setup_tutorial_hints()
 	lab.on_tutorial_weapon_fired()
@@ -562,8 +661,8 @@ func test_revolver_shows_hammer_cock_hint() -> void:
 		"Revolver: reload hint should be visible (Issue #808)")
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_HAMMER_COCK),
 		"Revolver: hammer-cock hint should be visible (Bug fix #3 — shown from start)")
-	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
-		"Revolver: grenade hint should be visible simultaneously (Issue #808)")
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Revolver: grenade hint NOT shown during reload step (Fix 3rd#5)")
 
 
 func test_revolver_reload_hint_not_overwritten_by_sequence_progress() -> void:
@@ -584,6 +683,7 @@ func test_revolver_reload_hint_not_overwritten_by_sequence_progress() -> void:
 
 func test_hammer_cocked_dismisses_only_hammer_hint() -> void:
 	## Issue #808: Cocking the revolver hammer removes only the hammer hint.
+	## Fix 3rd#8: Hammer-cock hint stays after reload; dismissed only by HammerCocked.
 	lab._tutorial_has_revolver = true
 	lab.setup_tutorial_hints()  # reinit with revolver flag → shows hammer_cock immediately
 	lab.on_tutorial_weapon_fired()
@@ -594,14 +694,22 @@ func test_hammer_cocked_dismisses_only_hammer_hint() -> void:
 		"Hammer-cock hint should be dismissed after cocking (Issue #808)")
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
 		"Reload hint should remain after cocking the hammer (Issue #808)")
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint NOT shown during reload step (Fix 3rd#5)")
 
 
 func test_sniper_bolt_completion_dismisses_reload_and_bolt_hints() -> void:
 	## Issue #808: Completing bolt-action cycle removes reload + bolt hints.
+	## Fix 3rd#5: Grenade hint shown AFTER bolt cycle completes (not during reload).
 	lab._tutorial_has_sniper_rifle = true
 	lab.setup_tutorial_hints()  # reinit with sniper flag
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
+
+	# During reload step — no grenade
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint should NOT appear during reload step (Fix 3rd#5)")
+
 	lab.on_tutorial_sniper_bolt_step_changed(4, 4)  # Bolt fully cycled
 
 	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
@@ -609,19 +717,19 @@ func test_sniper_bolt_completion_dismisses_reload_and_bolt_hints() -> void:
 	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
 		"Bolt-cycle hint should be gone after bolt-cycle completion (Issue #808)")
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
-		"Grenade hint should remain after bolt-cycle completion (Issue #808)")
+		"Grenade hint should appear AFTER bolt-cycle completion (Fix 3rd#5)")
 
 
 func test_grenade_thrown_before_reload_stays_in_reload_step() -> void:
-	## Issue #808: Throwing grenade while still in RELOAD step does not skip reload.
+	## Fix 3rd#5: Throwing grenade during RELOAD step is ignored (hint not active, not in THROW_GRENADE step).
 	lab.on_tutorial_weapon_fired()
 	lab.on_tutorial_weapon_fired()
-	lab.on_tutorial_grenade_thrown()
+	lab.on_tutorial_grenade_thrown()  # Ignored — not in THROW_GRENADE step
 
 	assert_eq(lab.get_step(), MockLabyrinthTutorial.TutorialStep.RELOAD,
-		"Should remain in RELOAD step after throwing grenade early (Issue #808)")
+		"Should remain in RELOAD step after throwing grenade early (Fix 3rd#5)")
 	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
-		"Reload hint should still be visible (Issue #808)")
+		"Reload hint should still be visible (Fix 3rd#5)")
 
 
 func test_shotgun_bolt_cycle_hint_after_first_shot() -> void:
@@ -652,3 +760,218 @@ func test_shotgun_bolt_cycle_hint_uses_bbcode_red() -> void:
 		"Shotgun bolt-cycle hint should highlight first action in red (Issue #945)")
 	assert_true(hint_text.contains("ПКМ↑ открыть"),
 		"Shotgun bolt-cycle hint should contain the open-bolt instruction")
+
+
+# ============================================================================
+# Third Review Round Bug Fix Tests
+# ============================================================================
+
+
+func test_hint_spacing_is_60() -> void:
+	## Fix 3rd#1: TUTORIAL_HINT_SPACING should be 60 to prevent overlap.
+	assert_eq(MockLabyrinthTutorial.TUTORIAL_HINT_SPACING, 60.0,
+		"TUTORIAL_HINT_SPACING should be 60px (Fix 3rd#1)")
+
+
+func test_shotgun_bolt_cycle_hint_shows_dynamic_count() -> void:
+	## Fix 3rd#7: Shotgun reload hint shows actual shells to load.
+	lab._tutorial_has_shotgun = true
+	lab._shotgun_capacity = 8
+	lab._shotgun_current_ammo = 2  # 2 shells loaded, 6 to go
+	lab.setup_tutorial_hints()
+
+	lab.on_tutorial_weapon_fired()  # Reveals bolt-cycle hint
+
+	var hint_text: String = lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE)
+	assert_true(hint_text.contains("x6"),
+		"Shotgun bolt-cycle hint shows 'x6' shells to load (8-2=6, Fix 3rd#7)")
+
+
+func test_shotgun_reload_count_updates_on_shell_loaded() -> void:
+	## Fix 3rd#7: Shell count updates live as each shell is loaded.
+	lab._tutorial_has_shotgun = true
+	lab._shotgun_capacity = 8
+	lab._shotgun_current_ammo = 0
+	lab.setup_tutorial_hints()
+	lab.on_tutorial_weapon_fired()  # Reveals bolt-cycle hint
+
+	# Load 3 shells
+	lab.on_tutorial_shell_count_changed(3)
+
+	var hint_text: String = lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE)
+	assert_true(hint_text.contains("x5"),
+		"Shotgun reload count updates to x5 after loading 3 shells (8-3=5, Fix 3rd#7)")
+
+
+func test_sniper_bolt_hint_shows_4_steps() -> void:
+	## Fix 3rd#4: Sniper bolt-cycle hint shows 4 separate steps [←][↓][↑][→].
+	lab._tutorial_has_sniper_rifle = true
+	lab.setup_tutorial_hints()
+	lab.on_tutorial_weapon_fired()  # Reveals bolt-cycle hint
+
+	var hint_text: String = lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE)
+	assert_true(hint_text.contains("[←]"), "Hint shows [←] step (Fix 3rd#4)")
+	assert_true(hint_text.contains("[↓]"), "Hint shows [↓] step (Fix 3rd#4)")
+	assert_true(hint_text.contains("[↑]"), "Hint shows [↑] step (Fix 3rd#4)")
+	assert_true(hint_text.contains("[→]"), "Hint shows [→] step (Fix 3rd#4)")
+
+
+func test_sniper_bolt_hint_first_step_in_red() -> void:
+	## Fix 3rd#3: First step [←] should be highlighted red initially.
+	lab._tutorial_has_sniper_rifle = true
+	lab.setup_tutorial_hints()
+	lab.on_tutorial_weapon_fired()  # Reveals bolt-cycle hint at step=0
+
+	var hint_text: String = lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE)
+	assert_true(hint_text.contains("#ff4444][←]"),
+		"First step [←] is red at step=0 (Fix 3rd#3)")
+	assert_true(hint_text.contains("#888888][↓]"),
+		"Second step [↓] is grey at step=0 (Fix 3rd#3)")
+
+
+func test_sniper_bolt_hint_updates_per_step() -> void:
+	## Fix 3rd#3: Bolt-cycle hint text updates to show current step in red.
+	lab._tutorial_has_sniper_rifle = true
+	lab.setup_tutorial_hints()
+	lab.on_tutorial_weapon_fired()  # Step 0: [←] in red
+	lab.on_tutorial_weapon_fired()  # 2nd shot reveals reload hint too
+
+	# Advance bolt to step 2
+	lab.on_tutorial_sniper_bolt_step_changed(2, 4)
+
+	var hint_text: String = lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE)
+	assert_true(hint_text.contains("#888888][←]"),
+		"[←] is grey after step 2 (Fix 3rd#3)")
+	assert_true(hint_text.contains("#888888][↓]"),
+		"[↓] is grey after step 2 (Fix 3rd#3)")
+	assert_true(hint_text.contains("#ff4444][↑]"),
+		"[↑] is red at step 2 (Fix 3rd#3)")
+
+
+func test_grenade_hint_appears_after_reload_not_simultaneously() -> void:
+	## Fix 3rd#5: Grenade hint must appear AFTER reload disappears, not during.
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+
+	# During reload — no grenade hint
+	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD))
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint must NOT appear during reload (Fix 3rd#5)")
+
+	# After reload — grenade hint appears
+	lab.on_tutorial_reload_completed()
+
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD))
+	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint appears AFTER reload (Fix 3rd#5)")
+
+
+func test_shotgun_reload_hint_dismissed_after_reload() -> void:
+	## Fix 3rd#7: Shotgun bolt-cycle hint is dismissed when reload completes.
+	lab._tutorial_has_shotgun = true
+	lab._shotgun_capacity = 8
+	lab._shotgun_current_ammo = 0
+	lab.setup_tutorial_hints()
+	lab.on_tutorial_weapon_fired()  # Reveals bolt-cycle hint
+
+	lab.on_tutorial_reload_completed()
+
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		"Shotgun bolt-cycle hint dismissed after reload (Fix 3rd#7)")
+
+
+func test_revolver_hammer_cock_hint_stays_after_reload() -> void:
+	## Fix 3rd#8: Hammer-cock hint must NOT be dismissed on reload.
+	lab._tutorial_has_revolver = true
+	lab.setup_tutorial_hints()
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+
+	lab.on_tutorial_reload_completed()
+
+	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_HAMMER_COCK),
+		"Hammer cock hint must stay after reload (Fix 3rd#8)")
+
+
+func test_revolver_hammer_cock_hint_stays_until_manual_cock() -> void:
+	## Fix 3rd#8: Revolver hammer-cock hint stays after reload; dismissed only by HammerCocked signal.
+	lab._tutorial_has_revolver = true
+	lab.setup_tutorial_hints()
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+
+	lab.on_tutorial_reload_completed()
+
+	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_HAMMER_COCK),
+		"Hammer-cock hint stays after reload (Fix 3rd#8)")
+
+	# Manual cock dismisses it
+	lab.on_tutorial_hammer_cocked()
+
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_HAMMER_COCK),
+		"Hammer-cock hint dismissed after manual cock (Fix 3rd#8)")
+
+
+func test_grenade_hint_not_shown_without_grenades() -> void:
+	## Fix 3rd#9: Grenade hint should NOT appear if player has no grenades.
+	lab._grenade_count = 0
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+
+	lab.on_tutorial_reload_completed()
+
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint NOT shown when player has no grenades (Fix 3rd#9)")
+	assert_eq(lab.get_step(), MockLabyrinthTutorial.TutorialStep.COMPLETED,
+		"Tutorial auto-completes when no grenades available (Fix 3rd#9)")
+
+
+func test_grenade_hint_shown_when_has_grenades() -> void:
+	## Fix 3rd#9: Grenade hint IS shown when player has at least 1 grenade.
+	lab._grenade_count = 3
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+
+	lab.on_tutorial_reload_completed()
+
+	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE),
+		"Grenade hint shown when player has grenades (Fix 3rd#9)")
+
+
+func test_ak_gl_shows_grenade_launcher_hint_after_reload() -> void:
+	## Fix 3rd#10: AK GL shows underbarrel grenade launcher hint after reload.
+	lab._tutorial_has_ak_gl = true
+	lab._ak_gl_has_round = true
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()  # Triggers reload hint reveal
+
+	lab.on_tutorial_reload_completed()
+
+	assert_true(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE_LAUNCHER),
+		"AK GL shows underbarrel grenade launcher hint after reload (Fix 3rd#10)")
+
+
+func test_ak_gl_no_grenade_launcher_hint_when_no_round() -> void:
+	## Fix 3rd#10: AK GL should NOT show launcher hint if no round is loaded.
+	lab._tutorial_has_ak_gl = true
+	lab._ak_gl_has_round = false
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+
+	lab.on_tutorial_reload_completed()
+
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE_LAUNCHER),
+		"AK GL does NOT show launcher hint when no round loaded (Fix 3rd#10)")
+
+
+func test_grenade_launcher_hint_has_correct_color() -> void:
+	## Fix 3rd#10: AK GL grenade launcher hint should use the dedicated orange-red color.
+	lab._tutorial_has_ak_gl = true
+	lab._ak_gl_has_round = true
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_weapon_fired()
+	lab.on_tutorial_reload_completed()
+
+	assert_eq(lab.get_hint_color(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE_LAUNCHER),
+		MockLabyrinthTutorial.TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER,
+		"AK GL grenade launcher hint should use orange-red color (Fix 3rd#10)")

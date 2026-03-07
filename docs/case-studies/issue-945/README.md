@@ -7,8 +7,8 @@
 | Issue | [#945 — update строки обучения](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/945) |
 | Pull Request | [#946 — Fix tutorial training lines](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/946) |
 | Branch | `issue-945-2a1f269473d3` |
-| Resolution Date | 2026-03-02 |
-| Status | Fixed (both original requirements and post-review bugs) |
+| Resolution Date | 2026-03-02 (ongoing — 3rd review round 2026-03-07) |
+| Status | Fixed (original requirements + 2nd review bugs + 3rd review bugs) |
 
 ---
 
@@ -198,6 +198,84 @@ All 5 GitHub Actions workflows passed on commit `66add97f`:
 2. **Cross-level consistency** — when a UI system is duplicated across multiple level scripts, all copies must be updated together. The lack of a shared base class or autoload for the tutorial hint system meant the Lab level was missed in the first pass. Consider refactoring into a shared `TutorialHintManager` autoload to prevent this class of bug in the future.
 
 3. **`RichTextLabel` vs `Label`** — `RichTextLabel` with `fit_content = true` and `scroll_active = false` is the correct Godot node for BBCode-formatted text in tutorial overlays. The `fit_content` property requires `custom_minimum_size` to also be set for proper sizing.
+
+---
+
+## Third Review Round Bugs (2026-03-02 — Fixed 2026-03-07)
+
+Owner `Jhon-Crow` posted 10 new bugs after the second session. All were fixed in a third session.
+
+### Bug 3rd#1: Hint spacing still too small (overlap)
+
+**Fix:** Increased `HINT_SPACING` from 50 to 60 in both `tutorial_level.gd` and `labyrinth_level.gd`.
+
+### Bug 3rd#2: Shotgun bolt-ready hint not appearing after 1st shot
+
+**Root cause:** The `ShotFired` signal was used as a fallback for weapons that do not emit `Fired`, but the connection was missing for shotgun.
+
+**Fix:** Added explicit `ShotFired` signal fallback in `_connect_weapon_fired_signal()`.
+
+### Bug 3rd#3: Red highlight does not change for most multi-step operations
+
+**Root cause:** Sniper bolt-cycle hint was a static string. The `BoltStepChanged` signal was not connected for the bolt-cycle hint.
+
+**Fix:** Added `_on_sniper_bolt_step_changed()` handler that calls `_build_sniper_bolt_hint_bbcode(step)` and overwrites the hint text in-place each time a bolt step completes.
+
+### Bug 3rd#4: Sniper bolt-action shown as single combined action
+
+**Before:** `[color=#ff4444][←↓↑→][/color] Передёрни затвор` — all 4 arrows in one bracket.
+
+**After:** `[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] Передёрни затвор` — 4 separate steps, current step red.
+
+**Fix:** Added `_build_sniper_bolt_hint_bbcode(step: int) -> String` helper that renders each of the 4 directions as its own bracket `[←]`, `[↓]`, `[↑]`, `[→]`.
+
+### Bug 3rd#5: Grenade tutorial shown simultaneously with reload (should be after)
+
+**Root cause:** The original Issue #808 implementation intentionally showed reload and grenade hints simultaneously. The 3rd review reversed this requirement.
+
+**Fix:** Removed grenade hint from `_add_reload_hints()` (and from the bolt-cycle path and scope path). Grenade hint now added in `_on_player_reload_completed()` (and after `BoltStepChanged` completes, after scope training ends) only when the step advances to `THROW_GRENADE`.
+
+### Bug 3rd#6: M16 should show fire-mode switch hint (B) after reload
+
+**Fix:** Added a check in `_on_player_reload_completed()`: if weapon is `_has_assault_rifle` but NOT `_has_ak_gl`, show `HINT_FIRE_MODE` with `[B]` key.
+
+### Bug 3rd#7: Shotgun reload hint count doesn't update and hint doesn't dismiss
+
+**Root cause:** The `ShellCountChanged` signal was not connected to update the hint text. The hint was also not dismissed when reload completed.
+
+**Fix:**
+- Connected `ShellCountChanged` → `_on_shell_count_changed()` which calls `_build_shotgun_reload_hint_bbcode()` and updates `HINT_BOLT_CYCLE` in-place.
+- `_build_shotgun_reload_hint_bbcode()` computes `shells_needed = capacity - current_ammo` and renders `xN`.
+- Added `_dismiss_hint(HINT_BOLT_CYCLE)` in `_on_player_reload_completed()` for shotgun.
+
+### Bug 3rd#8: Revolver hammer-cock hint disappears after reload (should persist)
+
+**Root cause:** `_on_player_reload_completed()` called `_dismiss_hint(HINT_HAMMER_COCK)`.
+
+**Fix:** Removed that call. Hammer-cock hint is now only dismissed by `_on_revolver_hammer_cocked()`.
+
+### Bug 3rd#9: Grenade tutorial shown even if player has no grenades
+
+**Fix:** Added `_player_has_grenades() -> bool` helper. Grenade hint only added when this returns true. If player has no grenades and the step advances to `THROW_GRENADE`, the tutorial auto-completes.
+
+### Bug 3rd#10: AK should show underbarrel grenade launcher hint (RMB) after reload
+
+**Fix:**
+- Added `_has_ak_gl: bool = false` flag, set in `_connect_player_signals()` when AKGL weapon detected.
+- Added `const HINT_GRENADE_LAUNCHER := "grenade_launcher"` and `HINT_COLOR_GRENADE_LAUNCHER`.
+- Added `_ak_gl_has_round_loaded() -> bool` helper.
+- In `_on_player_reload_completed()`: if `_has_ak_gl and _ak_gl_has_round_loaded()`, show `HINT_GRENADE_LAUNCHER` with `[ПКМ]` key. M16 fire-mode hint is only shown for `_has_assault_rifle and not _has_ak_gl`.
+
+---
+
+## Files Changed (All Rounds)
+
+| File | Change |
+|---|---|
+| `scripts/levels/tutorial_level.gd` | Round 1: shot counter, colors, BBCode. Round 2: overlap fix. Round 3: 10 bug fixes |
+| `scripts/levels/labyrinth_level.gd` | Round 2: full overhaul to match tutorial. Round 3: 10 bug fixes mirrored |
+| `tests/unit/test_tutorial_level.gd` | Round 1: all new tests. Round 2: updated for fix #1-#5. Round 3: 14 new tests + updated existing |
+| `tests/unit/test_labyrinth_level.gd` | Round 2: new file, full coverage. Round 3: 15 new tests + updated 10 existing |
 
 ---
 
