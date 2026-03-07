@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://s0undm3nu839"]
+[gd_scene load_steps=5 format=3 uid="uid://s0undm3nu839"]
 
 [ext_resource type="Script" path="res://scripts/ui/sound_menu.gd" id="1_sound"]
 [ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
 [ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="3_neon_theme"]
+[ext_resource type="Material" uid="uid://c3qneonglow01" path="res://resources/themes/neon_glow_material.tres" id="4_neon_glow"]
 
 [node name="SoundMenu" type="CanvasLayer"]
 layer = 101
@@ -44,6 +45,7 @@ layout_mode = 2
 theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+material = ExtResource("4_neon_glow")
 layout_mode = 2
 text = "Sound Settings"
 label_settings = ExtResource("2_neon_label")
