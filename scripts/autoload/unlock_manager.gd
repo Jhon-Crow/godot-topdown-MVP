@@ -2,8 +2,9 @@ extends Node
 ## Autoload singleton for managing condition-based item unlocks.
 ##
 ## Tracks which items can be unlocked by completing certain levels at certain grades.
-## When a level is completed with a qualifying grade, the corresponding items are
-## automatically unlocked and saved.
+## When a level is completed with a qualifying grade, the corresponding locked item slots
+## highlight in gold in the armory. The player must then hold LMB on a gold slot to
+## permanently unlock the item (the armory handles the actual unlock call).
 ##
 ## Issue #894: добавь систему анлоков (Add an unlock system)
 
@@ -61,47 +62,14 @@ func _ready() -> void:
 
 
 ## Called when ProgressManager emits progress_updated after a level is completed.
-## Checks if any unlock conditions are now satisfied and unlocks items.
+## Checks if any unlock conditions are now satisfied (items turn gold in armory).
+## Note: items are NOT auto-unlocked here — the player must hold LMB on the gold
+## slot in the armory to actually unlock them.
 func _on_progress_updated(level_path: String, difficulty_name: String) -> void:
-	_check_and_apply_unlocks(level_path)
-
-
-## Check unlock conditions for a given level path and apply any earned unlocks.
-## @param level_path: The scene file path of the completed level.
-func _check_and_apply_unlocks(level_path: String) -> void:
-	if level_path not in UNLOCK_CONDITIONS:
-		return
-
-	var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
-	var min_rank: String = condition.get("min_rank", "D")
-
-	# Get the best rank achieved on this level across all difficulties
-	var best_rank: String = _get_best_rank_any_difficulty(level_path)
-	if best_rank.is_empty():
-		return
-
-	# Check if the best rank meets the minimum requirement
-	if not _is_rank_sufficient(best_rank, min_rank):
-		return
-
-	# Apply all unlocks for this condition
-	var any_unlocked: bool = false
-
-	for weapon_id in condition.get("weapons", []):
-		if _unlock_weapon(weapon_id):
-			any_unlocked = true
-
-	for grenade_type in condition.get("grenades", []):
-		if _unlock_grenade(grenade_type):
-			any_unlocked = true
-
-	for item_type in condition.get("active_items", []):
-		if _unlock_active_item(item_type):
-			any_unlocked = true
-
-	if any_unlocked:
+	# Notify that conditions may have changed so armory can refresh gold highlights.
+	if level_path in UNLOCK_CONDITIONS and is_level_condition_met(level_path):
 		items_unlocked_by_condition.emit(level_path)
-		_log("Unlocked items for level: %s (rank: %s)" % [level_path, best_rank])
+		_log("Condition met for level: %s — items now available to unlock in armory" % level_path)
 
 
 ## Get the best rank for a level across all difficulties.
@@ -144,45 +112,6 @@ func _is_rank_better(new_rank: String, old_rank: String) -> bool:
 	if old_index == -1:
 		return true
 	return new_index > old_index
-
-
-## Unlock a weapon by ID.
-## @return: true if the weapon was newly unlocked.
-func _unlock_weapon(weapon_id: String) -> bool:
-	var game_manager: Node = get_node_or_null("/root/GameManager")
-	if not game_manager:
-		return false
-	if game_manager.is_weapon_unlocked(weapon_id):
-		return false  # Already unlocked
-	game_manager.unlock_weapon(weapon_id)
-	_log("Weapon unlocked: %s" % weapon_id)
-	return true
-
-
-## Unlock a grenade by type.
-## @return: true if the grenade was newly unlocked.
-func _unlock_grenade(grenade_type: int) -> bool:
-	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
-	if not grenade_manager:
-		return false
-	if grenade_manager.is_grenade_unlocked(grenade_type):
-		return false  # Already unlocked
-	grenade_manager.unlock_grenade(grenade_type)
-	_log("Grenade unlocked: type %d" % grenade_type)
-	return true
-
-
-## Unlock an active item by type.
-## @return: true if the item was newly unlocked.
-func _unlock_active_item(item_type: int) -> bool:
-	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
-	if not active_item_manager:
-		return false
-	if active_item_manager.is_active_item_unlocked(item_type):
-		return false  # Already unlocked
-	active_item_manager.unlock_active_item(item_type)
-	_log("Active item unlocked: type %d" % item_type)
-	return true
 
 
 ## Check if a specific level's unlock condition is currently met (for UI highlighting).
@@ -297,19 +226,12 @@ func _reset_condition_gated_items() -> void:
 	_log("Reset condition-gated items to locked state")
 
 
-## Reset condition-gated items to locked, then re-apply all earned unlocks from progress.
-## Called deferred at startup to validate that saved unlock states match actual progress.
+## Reset condition-gated items to locked state on startup.
+## This removes any incorrectly-saved unlock states (e.g. from old buggy save files).
+## Items whose conditions are met will be highlighted in gold in the armory;
+## the player must still hold LMB on the gold slot to permanently unlock them.
 func _reset_and_apply_all_unlocks() -> void:
 	_reset_condition_gated_items()
-	apply_all_earned_unlocks()
-
-
-## Re-check and apply all unlock conditions based on current progress.
-## Call this on startup to ensure all earned unlocks are applied.
-func apply_all_earned_unlocks() -> void:
-	for level_path in UNLOCK_CONDITIONS:
-		_check_and_apply_unlocks(level_path)
-	_log("Applied all earned unlocks from progress")
 
 
 ## Log a message to the file logger if available.

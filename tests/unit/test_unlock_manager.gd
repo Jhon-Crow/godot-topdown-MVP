@@ -1,8 +1,9 @@
 extends GutTest
 ## Unit tests for UnlockManager — condition-based item unlock system.
 ##
-## Tests that items are unlocked automatically when level completion
-## conditions are met, and that gold highlighting logic is correct.
+## Tests that unlock conditions are tracked correctly and gold-highlighting
+## logic works as expected.  Items are NOT auto-unlocked when conditions are
+## met — the player must hold LMB on the gold slot in the armory instead.
 ## Issue #894: добавь систему анлоков (Add an unlock system)
 
 
@@ -207,26 +208,6 @@ class TestableUnlockManager extends Node:
 					return true
 		return false
 
-	func check_and_apply_unlocks(level_path: String) -> void:
-		if level_path not in UNLOCK_CONDITIONS:
-			return
-		var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
-		var min_rank: String = condition.get("min_rank", "D")
-		var best_rank: String = _get_best_rank_any_difficulty(level_path)
-		if best_rank.is_empty():
-			return
-		if not _is_rank_sufficient(best_rank, min_rank):
-			return
-		for weapon_id in condition.get("weapons", []):
-			if mock_game_manager and not mock_game_manager.is_weapon_unlocked(weapon_id):
-				mock_game_manager.unlock_weapon(weapon_id)
-		for grenade_type in condition.get("grenades", []):
-			if mock_grenade_manager and not mock_grenade_manager.is_grenade_unlocked(grenade_type):
-				mock_grenade_manager.unlock_grenade(grenade_type)
-		for item_type in condition.get("active_items", []):
-			if mock_active_item_manager and not mock_active_item_manager.is_active_item_unlocked(item_type):
-				mock_active_item_manager.unlock_active_item(item_type)
-
 	func reset_condition_gated_items() -> void:
 		for level_path in UNLOCK_CONDITIONS:
 			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
@@ -239,10 +220,10 @@ class TestableUnlockManager extends Node:
 					if item_type in mock_active_item_manager.unlocked_active_items:
 						mock_active_item_manager.unlocked_active_items[item_type] = false
 
+	# reset_and_apply_all_unlocks now only resets (no auto-applying).
+	# Items stay locked until the player holds LMB on the gold armory slot.
 	func reset_and_apply_all_unlocks() -> void:
 		reset_condition_gated_items()
-		for level_path in UNLOCK_CONDITIONS:
-			check_and_apply_unlocks(level_path)
 
 
 # ============================================================================
@@ -441,109 +422,92 @@ func test_homing_bullets_has_no_condition() -> void:
 
 
 # ============================================================================
-# Auto-unlock on progress update tests
+# Condition tracking tests (items are NOT auto-unlocked — player uses LMB)
 # ============================================================================
 
 
-func test_unlocks_uzi_when_labyrinth_completed_with_d() -> void:
+func test_uzi_condition_not_met_with_no_progress() -> void:
+	# No progress at all
+	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should NOT be met with no Labyrinth progress")
+	# And item remains locked — no auto-unlock happens
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
-		"Uzi should be locked before completing Labyrinth")
+		"Uzi should stay locked — player must use LMB to unlock")
 
-	# Simulate completing Labyrinth with grade D
+
+func test_uzi_condition_met_after_labyrinth_d_but_still_locked() -> void:
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/LabyrinthLevel.tscn")
-
-	assert_true(game_manager.is_weapon_unlocked("mini_uzi"),
-		"Uzi should be unlocked after Labyrinth grade D")
-
-
-func test_does_not_unlock_uzi_when_labyrinth_completed_with_f() -> void:
+	# Condition is now met (gold in armory)
+	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should be met after Labyrinth D")
+	# But item is still locked — no auto-unlock
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
-		"Uzi should be locked before completing Labyrinth")
+		"Uzi should still be locked until player holds LMB on the gold slot")
 
-	# Simulate completing Labyrinth with grade F (below requirement)
+
+func test_condition_not_met_for_labyrinth_with_f_rank() -> void:
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/LabyrinthLevel.tscn")
-
+	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should NOT be met with Labyrinth grade F (requires D+)")
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
-		"Uzi should NOT be unlocked with Labyrinth grade F")
+		"Uzi should stay locked")
 
 
-func test_unlocks_shotgun_when_building_completed_with_d() -> void:
-	assert_false(game_manager.is_weapon_unlocked("shotgun"),
-		"Shotgun should be locked before completing Building")
-
+func test_shotgun_condition_met_after_building_d_but_still_locked() -> void:
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/BuildingLevel.tscn")
+	assert_true(unlock_manager.is_weapon_condition_met("shotgun"),
+		"Shotgun condition should be met after Building D")
+	assert_false(game_manager.is_weapon_unlocked("shotgun"),
+		"Shotgun should still be locked — player must hold LMB to unlock")
 
-	assert_true(game_manager.is_weapon_unlocked("shotgun"),
-		"Shotgun should be unlocked after Building grade D")
 
-
-func test_unlocks_sniper_and_flashlight_when_polygon_completed_with_d() -> void:
-	assert_false(game_manager.is_weapon_unlocked("sniper"),
-		"Sniper should be locked before Polygon")
-	assert_false(active_item_manager.is_active_item_unlocked(1),
-		"Flashlight should be locked before Polygon")
-
+func test_sniper_and_flashlight_condition_met_after_polygon_d() -> void:
 	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/TestTier.tscn")
+	assert_true(unlock_manager.is_weapon_condition_met("sniper"),
+		"Sniper condition should be met after Polygon D")
+	assert_true(unlock_manager.is_active_item_condition_met(1),
+		"Flashlight condition should be met after Polygon D")
+	# Neither item auto-unlocks
+	assert_false(game_manager.is_weapon_unlocked("sniper"),
+		"Sniper should stay locked until LMB hold")
+	assert_false(active_item_manager.is_active_item_unlocked(1),
+		"Flashlight should stay locked until LMB hold")
 
-	assert_true(game_manager.is_weapon_unlocked("sniper"),
-		"Sniper should be unlocked after Polygon grade D")
-	assert_true(active_item_manager.is_active_item_unlocked(1),
-		"Flashlight should be unlocked after Polygon grade D")
 
-
-func test_unlocks_revolver_and_teleport_when_castle_completed_with_f() -> void:
+func test_revolver_and_teleport_condition_met_after_castle_f() -> void:
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.is_weapon_condition_met("revolver"),
+		"Revolver condition should be met after Castle F")
+	assert_true(unlock_manager.is_active_item_condition_met(3),
+		"Teleport Bracers condition should be met after Castle F")
+	# Neither item auto-unlocks
 	assert_false(game_manager.is_weapon_unlocked("revolver"),
-		"Revolver should be locked before Castle")
+		"Revolver should stay locked until LMB hold")
 	assert_false(active_item_manager.is_active_item_unlocked(3),
-		"Teleport Bracers should be locked before Castle")
-
-	# F rank is sufficient for Castle (any completion)
-	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/CastleLevel.tscn")
-
-	assert_true(game_manager.is_weapon_unlocked("revolver"),
-		"Revolver should be unlocked after Castle grade F")
-	assert_true(active_item_manager.is_active_item_unlocked(3),
-		"Teleport Bracers should be unlocked after Castle grade F")
+		"Teleport Bracers should stay locked until LMB hold")
 
 
-func test_does_not_double_unlock() -> void:
-	# Manually unlock revolver first
-	game_manager.unlocked_weapons["revolver"] = true
-
-	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/CastleLevel.tscn")
-
-	# No duplicate signal should be emitted
-	assert_eq(game_manager.unlocked_signals.size(), 0,
-		"Should not emit unlock signal for already unlocked weapon")
-
-
-func test_unlocks_on_easy_difficulty() -> void:
-	# Completing on Easy should also count
+func test_condition_met_on_easy_difficulty() -> void:
+	# Completing on Easy should also mark condition as met
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "D")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/LabyrinthLevel.tscn")
-
-	assert_true(game_manager.is_weapon_unlocked("mini_uzi"),
-		"Uzi should be unlocked even on Easy difficulty")
-
-
-func test_unlocks_when_better_rank_achieved_later() -> void:
-	# First, get F on Labyrinth (not enough)
-	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/LabyrinthLevel.tscn")
+	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should be met even on Easy difficulty")
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
-		"Uzi should still be locked with F rank")
+		"Uzi should still need player LMB to unlock")
 
-	# Then, get D on Labyrinth (enough)
+
+func test_condition_not_met_then_met_after_better_rank() -> void:
+	# F rank on Labyrinth (not enough)
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
+	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should NOT be met with F rank")
+
+	# Now achieve D rank
 	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
-	unlock_manager.check_and_apply_unlocks("res://scenes/levels/LabyrinthLevel.tscn")
-	assert_true(game_manager.is_weapon_unlocked("mini_uzi"),
-		"Uzi should be unlocked once D rank is achieved")
+	assert_true(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"Uzi condition should now be met with D rank")
+	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
+		"Uzi still locked — player must open it with LMB")
 
 
 # ============================================================================
@@ -615,18 +579,22 @@ func test_reset_does_not_affect_free_weapons() -> void:
 		"makarov_pm should remain unlocked after reset (always available)")
 
 
-func test_reset_and_apply_unlocks_correctly_after_condition_is_met() -> void:
+func test_reset_and_apply_removes_invalid_unlocks_condition_met() -> void:
 	# Simulate corrupt save: revolver incorrectly unlocked
 	game_manager.unlocked_weapons["revolver"] = true
 
-	# Set Castle progress to F (meets condition)
+	# Set Castle progress to F (condition met)
 	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
 
-	# Reset and re-apply: revolver should end up unlocked (condition is met)
+	# reset_and_apply now ONLY resets — no auto-applying.
+	# Revolver ends up locked; the player must use LMB in the armory.
 	unlock_manager.reset_and_apply_all_unlocks()
 
-	assert_true(game_manager.is_weapon_unlocked("revolver"),
-		"Revolver should be re-unlocked since Castle F condition is met")
+	assert_false(game_manager.is_weapon_unlocked("revolver"),
+		"Revolver should be locked after reset — player must hold LMB to unlock")
+	# But the condition IS met (gold slot shows in armory)
+	assert_true(unlock_manager.is_weapon_condition_met("revolver"),
+		"Revolver condition IS met — the slot will show gold in the armory")
 
 
 func test_reset_and_apply_removes_invalid_unlocks() -> void:
@@ -638,3 +606,5 @@ func test_reset_and_apply_removes_invalid_unlocks() -> void:
 
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
 		"mini_uzi should be locked after reset (Labyrinth condition not met)")
+	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
+		"mini_uzi condition is also not met — slot stays plain locked (no gold)")
