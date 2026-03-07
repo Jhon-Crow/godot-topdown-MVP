@@ -440,8 +440,14 @@ func _ready() -> void:
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 
 ## Initialize health with random value between min and max.
+## In Black Metal mode (Issue #958), enemy health is reduced by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
+	# Black Metal mode: apply HP multiplier (0.75 = 25% less HP)
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("get_hp_multiplier"):
+		var hp_mult: float = difficulty_manager.get_hp_multiplier()
+		_max_health = maxi(1, int(_max_health * hp_mult))
 	_current_health = _max_health
 	_is_alive = true
 
