@@ -33,18 +33,21 @@ var invincibility_enabled: bool = false
 var selected_weapon: String = "makarov_pm"
 
 ## Unlocked weapons tracking.
-## By default, only "makarov_pm" (PM) is unlocked for debugging purposes.
-## Weapons can be unlocked by holding LMB on their case in the armory menu.
+## PM is always unlocked (starting weapon).
+## Weapons with unlock conditions (shotgun, mini_uzi, sniper, revolver) start locked.
+## All other weapons (m16, silenced_pistol, ak_gl) are freely available from the start.
+## Weapons can be unlocked by holding LMB on their case in the armory menu once condition is met.
+## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_weapons: Dictionary = {
 	"makarov_pm": true,
-	"m16": false,
-	"shotgun": false,
-	"mini_uzi": false,
-	"silenced_pistol": false,
-	"sniper": false,
-	"revolver": false,
-	"ak_gl": false,
-	"smg": false
+	"m16": true,       # No unlock condition — freely available from start
+	"shotgun": false,  # Condition: Building D+
+	"mini_uzi": false, # Condition: Labyrinth D+
+	"silenced_pistol": true,  # No unlock condition — freely available from start
+	"sniper": false,   # Condition: Polygon D+
+	"revolver": false, # Condition: Castle F+
+	"ak_gl": true,     # No unlock condition — freely available from start
+	"smg": false       # Coming soon — not yet available
 }
 
 ## Weapon scene paths mapped to weapon IDs.
