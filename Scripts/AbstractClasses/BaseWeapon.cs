@@ -876,4 +876,60 @@ public abstract partial class BaseWeapon : Node2D
 
         GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
     }
+
+    // =========================================================================
+    // Caliber Data Accessors (Issue #935)
+    // These C# methods expose caliber properties to GDScript callers.
+    //
+    // Root cause of Issue #935 (v3 analysis):
+    // All previous approaches (duck-typing .get(), "as CaliberData" cast, and
+    // reading WeaponData.Caliber.Get() from C#) returned 90.0 (the GDScript
+    // script default) instead of the serialized .tres value (70.0).
+    //
+    // This happens because in Godot 4.3, calling .Get() from C# on a GDScript-
+    // backed Resource returns the GDScript script-level default, not the
+    // deserialized .tres property value.
+    //
+    // Fix: Store caliber ricochet parameters directly in WeaponData.cs as C#
+    // [Export] properties (CaliberCanRicochet, CaliberMaxRicochetAngle,
+    // CaliberMaxRicochets). Being native C# properties on a C# resource, they
+    // are always read correctly from .tres files with no GDScript interop.
+    // The corresponding weapon .tres files are updated to set the correct values.
+    // =========================================================================
+
+    /// <summary>
+    /// Returns the maximum ricochet angle in degrees for this weapon's caliber.
+    /// Returns 90.0 (default) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to correctly color ricochet segments.
+    /// </summary>
+    public float GetCaliberMaxRicochetAngle()
+    {
+        if (WeaponData == null)
+            return 90.0f;
+        return WeaponData.CaliberMaxRicochetAngle;
+    }
+
+    /// <summary>
+    /// Returns the maximum number of ricochets allowed for this weapon's caliber.
+    /// Returns -1 (unlimited) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to determine bounce limit.
+    /// </summary>
+    public int GetCaliberMaxRicochets()
+    {
+        if (WeaponData == null)
+            return -1;
+        return WeaponData.CaliberMaxRicochets;
+    }
+
+    /// <summary>
+    /// Returns whether this weapon's caliber can ricochet.
+    /// Returns true (default) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to check ricochet capability.
+    /// </summary>
+    public bool GetCaliberCanRicochet()
+    {
+        if (WeaponData == null)
+            return true;
+        return WeaponData.CaliberCanRicochet;
+    }
 }

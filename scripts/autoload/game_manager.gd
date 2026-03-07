@@ -241,7 +241,13 @@ func get_selected_weapon_scene_path() -> String:
 ## Check if a weapon is unlocked.
 ## @param weapon_id: The weapon identifier to check.
 ## @return: true if the weapon is unlocked, false otherwise.
+## Note: If all_weapons_unlocked is enabled in ExperimentalSettings, all weapons return true.
 func is_weapon_unlocked(weapon_id: String) -> bool:
+	# Check if all weapons are unlocked via experimental setting (Issue #882)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_all_weapons_unlocked"):
+		if experimental_settings.is_all_weapons_unlocked():
+			return true
 	return unlocked_weapons.get(weapon_id, false)
 
 

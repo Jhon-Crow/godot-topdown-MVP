@@ -184,7 +184,13 @@ func is_selected(type: int) -> bool:
 ## Check if a grenade type is unlocked.
 ## @param grenade_type: The grenade type to check.
 ## @return: true if the grenade is unlocked, false otherwise.
+## Note: If all_weapons_unlocked is enabled in ExperimentalSettings, all grenades return true.
 func is_grenade_unlocked(grenade_type: int) -> bool:
+	# Check if all weapons are unlocked via experimental setting (Issue #882)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_all_weapons_unlocked"):
+		if experimental_settings.is_all_weapons_unlocked():
+			return true
 	return unlocked_grenades.get(grenade_type, false)
 
 

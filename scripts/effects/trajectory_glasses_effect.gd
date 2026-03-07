@@ -274,12 +274,32 @@ func _get_aim_direction() -> Vector2:
 ## Get the maximum ricochet angle for the current weapon in degrees.
 ## Reads from the weapon's CaliberData resource when available.
 ## Falls back to MAX_RICOCHET_ANGLE (90 degrees) if no caliber data is found.
+##
+## Implementation note (Issue #935):
+## Accessing caliber properties via GDScript .get("Caliber") on a C# Resource?
+## property returns a stripped Resource object that loses its GDScript script
+## binding — making "as CaliberData" return null and .get("max_ricochet_angle")
+## return the GDScript default (90°) instead of the .tres value (70°).
+## The fix is to call C# helper methods (GetCaliberMaxRicochetAngle, etc.) that
+## read the caliber resource via C#, where the resource is correctly bound.
 func _get_weapon_max_ricochet_angle() -> float:
 	if _weapon == null or not is_instance_valid(_weapon):
 		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: no weapon, using default %.1f" % MAX_RICOCHET_ANGLE)
 		return MAX_RICOCHET_ANGLE
 
-	# Try to read WeaponData.Caliber.max_ricochet_angle from C# BaseWeapon
+	# Preferred path: use C# helper methods on BaseWeapon subclasses (Issue #935).
+	# These methods read the caliber resource from the C# side where it is correctly
+	# bound, avoiding the GDScript interop issue with Resource? properties.
+	if _weapon.has_method("GetCaliberCanRicochet") and _weapon.has_method("GetCaliberMaxRicochetAngle"):
+		var can_ricochet: bool = _weapon.call("GetCaliberCanRicochet")
+		if not can_ricochet:
+			FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s cannot ricochet (can_ricochet=false)" % _weapon.name)
+			return 0.0
+		var angle: float = _weapon.call("GetCaliberMaxRicochetAngle")
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s -> max_ricochet_angle=%.1f (via C# helper)" % [_weapon.name, angle])
+		return angle
+
+	# Fallback: try to read WeaponData.Caliber.max_ricochet_angle directly (GDScript weapons).
 	var weapon_data = null
 	if "WeaponData" in _weapon:
 		weapon_data = _weapon.get("WeaponData")
@@ -300,19 +320,16 @@ func _get_weapon_max_ricochet_angle() -> float:
 		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: no caliber in weapon_data for %s, using default %.1f" % [_weapon.name, MAX_RICOCHET_ANGLE])
 		return MAX_RICOCHET_ANGLE
 
-	# Check if ricochet is possible at all for this caliber
-	var can_ricochet_val := true
-	if "can_ricochet" in caliber:
-		can_ricochet_val = caliber.get("can_ricochet")
-	if not can_ricochet_val:
+	var caliber_typed := caliber as CaliberData
+	if caliber_typed == null:
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: caliber is not CaliberData for %s, using default %.1f" % [_weapon.name, MAX_RICOCHET_ANGLE])
+		return MAX_RICOCHET_ANGLE
+
+	if not caliber_typed.can_ricochet:
 		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s cannot ricochet (can_ricochet=false)" % _weapon.name)
-		return 0.0  # Weapon cannot ricochet (e.g. sniper rifle)
+		return 0.0
 
-	# Read the per-caliber max ricochet angle
-	var angle := MAX_RICOCHET_ANGLE
-	if "max_ricochet_angle" in caliber:
-		angle = float(caliber.get("max_ricochet_angle"))
-
+	var angle := caliber_typed.max_ricochet_angle
 	FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochet_angle: %s -> max_ricochet_angle=%.1f" % [_weapon.name, angle])
 	return angle
 
@@ -324,7 +341,13 @@ func _get_weapon_max_ricochets() -> int:
 	if _weapon == null or not is_instance_valid(_weapon):
 		return -1
 
-	# Try to read WeaponData.Caliber.max_ricochets from C# BaseWeapon
+	# Preferred path: use C# helper method on BaseWeapon subclasses (Issue #935).
+	if _weapon.has_method("GetCaliberMaxRicochets"):
+		var max_r: int = _weapon.call("GetCaliberMaxRicochets")
+		FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochets: %s -> max_ricochets=%d (via C# helper)" % [_weapon.name, max_r])
+		return max_r
+
+	# Fallback: try to read WeaponData.Caliber.max_ricochets directly (GDScript weapons).
 	var weapon_data = null
 	if "WeaponData" in _weapon:
 		weapon_data = _weapon.get("WeaponData")
@@ -343,10 +366,11 @@ func _get_weapon_max_ricochets() -> int:
 	if caliber == null:
 		return -1
 
-	var max_r := -1
-	if "max_ricochets" in caliber:
-		max_r = int(caliber.get("max_ricochets"))
+	var caliber_typed := caliber as CaliberData
+	if caliber_typed == null:
+		return -1
 
+	var max_r := caliber_typed.max_ricochets
 	FileLogger.info("[TrajectoryGlasses] _get_weapon_max_ricochets: %s -> max_ricochets=%d" % [_weapon.name, max_r])
 	return max_r
 

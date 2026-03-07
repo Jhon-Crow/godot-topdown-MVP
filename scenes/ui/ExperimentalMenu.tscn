@@ -30,9 +30,9 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -220.0
+offset_left = -440.0
 offset_top = -370.0
-offset_right = 220.0
+offset_right = 440.0
 offset_bottom = 370.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -259,6 +259,50 @@ layout_mode = 2
 layout_mode = 2
 text = "When enabled, logs a warning to the log file when
 FPS drops below 30. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator11" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllWeaponsUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllWeaponsUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unlock All Weapons"
+
+[node name="AllWeaponsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer"]
+layout_mode = 2
+
+[node name="AllWeaponsUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, all weapons, grenades, and items are
+unlocked in the armory. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DeleteSavesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Delete Saves"
+
+[node name="DeleteSavesButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer"]
+layout_mode = 2
+text = "Delete"
+
+[node name="DeleteSavesDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Erases all progress (completed levels, unlocked weapons).
+Game returns to first-launch state.
+Experimental settings are preserved."
 horizontal_alignment = 1
 autowrap_mode = 2
 

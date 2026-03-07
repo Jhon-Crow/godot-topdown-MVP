@@ -1034,3 +1034,175 @@ func test_companion_wall_stuck_fix_respects_melee_override() -> void:
 
 	assert_eq(logic.last_movement, "moving",
 		"Melee + blocked = always moving (melee dominates)")
+
+
+# ============================================================================
+# BFF Companion Enemy Targeting Tests (Issue #934)
+# ============================================================================
+## These tests verify that the enemy's BFF companion targeting logic works correctly:
+## - Enemies detect companions in "bff_companions" group
+## - Enemies prefer the more accessible target (visible + closer)
+## - GOAP world state reflects companion visibility
+
+
+class MockTarget:
+	## Simulates a player or companion Node2D for targeting logic tests.
+	var global_position: Vector2 = Vector2.ZERO
+	var _is_alive: bool = true
+
+	func _init(pos: Vector2, alive: bool = true) -> void:
+		global_position = pos
+		_is_alive = alive
+
+
+class MockBffTargetingLogic:
+	## Pure logic simulation of BffTargetingComponent.select_best_target().
+	## Tests that the target selection algorithm is correct without needing
+	## a full scene tree.
+
+	## Simulates the selection logic from BffTargetingComponent.
+	## Returns: "player", "companion", or "none".
+	static func select_best_target(
+			enemy_pos: Vector2,
+			player: MockTarget,
+			can_see_player: bool,
+			companion: MockTarget,
+			can_see_companion: bool) -> String:
+		var has_player := player != null and can_see_player
+		var has_companion := companion != null and can_see_companion
+
+		if not has_player and not has_companion:
+			return "player" if player != null else "none"
+
+		if has_player and not has_companion:
+			return "player"
+
+		if has_companion and not has_player:
+			return "companion"
+
+		# Both visible — pick the closer one
+		var dist_player := enemy_pos.distance_to(player.global_position)
+		var dist_companion := enemy_pos.distance_to(companion.global_position)
+		return "companion" if dist_companion < dist_player else "player"
+
+
+func test_targeting_player_only_visible() -> void:
+	var player := MockTarget.new(Vector2(100, 0))
+	var companion := MockTarget.new(Vector2(200, 0))
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, player, true, companion, false)
+	assert_eq(result, "player",
+		"Should target player when only player is visible")
+
+
+func test_targeting_companion_only_visible() -> void:
+	var player := MockTarget.new(Vector2(100, 0))
+	var companion := MockTarget.new(Vector2(200, 0))
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, player, false, companion, true)
+	assert_eq(result, "companion",
+		"Should target companion when only companion is visible")
+
+
+func test_targeting_both_visible_player_closer() -> void:
+	var player := MockTarget.new(Vector2(50, 0))   # closer
+	var companion := MockTarget.new(Vector2(200, 0))  # farther
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, player, true, companion, true)
+	assert_eq(result, "player",
+		"Should target player when both visible and player is closer")
+
+
+func test_targeting_both_visible_companion_closer() -> void:
+	var player := MockTarget.new(Vector2(200, 0))   # farther
+	var companion := MockTarget.new(Vector2(50, 0))  # closer
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, player, true, companion, true)
+	assert_eq(result, "companion",
+		"Should target companion when both visible and companion is closer")
+
+
+func test_targeting_neither_visible_falls_back_to_player() -> void:
+	var player := MockTarget.new(Vector2(100, 0))
+	var companion := MockTarget.new(Vector2(50, 0))  # closer but not visible
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, player, false, companion, false)
+	assert_eq(result, "player",
+		"Should fall back to player (for memory-based pursuit) when neither visible")
+
+
+func test_targeting_no_player_no_companion() -> void:
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, null, false, null, false)
+	assert_eq(result, "none",
+		"Should return none when neither player nor companion exists")
+
+
+func test_targeting_player_null_companion_visible() -> void:
+	var companion := MockTarget.new(Vector2(50, 0))
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, null, false, companion, true)
+	assert_eq(result, "companion",
+		"Should target companion when player is null but companion is visible")
+
+
+func test_targeting_dead_companion_not_targeted() -> void:
+	# A dead companion should have _is_alive == false.
+	# The BffTargetingComponent checks this before reporting visibility.
+	# Simulate: companion dead -> can_see_companion = false
+	var player := MockTarget.new(Vector2(100, 0))
+	var dead_companion := MockTarget.new(Vector2(50, 0), false)
+	# Since companion is dead, can_see_companion should be false (handled in check_visibility)
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, player, true, dead_companion, false)
+	assert_eq(result, "player",
+		"Should not target dead companion (can_see_companion=false when dead)")
+
+
+func test_targeting_companion_equidistant_prefers_player() -> void:
+	# When both are at exactly the same distance, companion is NOT closer,
+	# so player should be preferred (dist_companion < dist_player is false).
+	var player := MockTarget.new(Vector2(100, 0))
+	var companion := MockTarget.new(Vector2(100, 0))  # same position
+	var result := MockBffTargetingLogic.select_best_target(
+		Vector2.ZERO, player, true, companion, true)
+	assert_eq(result, "player",
+		"Should prefer player when companion is at equal distance (not strictly closer)")
+
+
+# ============================================================================
+# GOAP World State: player_visible includes companion (Issue #934)
+# ============================================================================
+
+
+class MockGoapWorldState:
+	## Simulates the GOAP world state update for player_visible
+	## when both player and companion visibility are considered.
+
+	static func update_player_visible(can_see_player: bool, can_see_companion: bool) -> bool:
+		## Issue #934: player_visible is true when either the player OR companion is visible.
+		return can_see_player or can_see_companion
+
+
+func test_goap_player_visible_when_only_player_seen() -> void:
+	var visible := MockGoapWorldState.update_player_visible(true, false)
+	assert_true(visible,
+		"player_visible should be true when only player is seen")
+
+
+func test_goap_player_visible_when_only_companion_seen() -> void:
+	var visible := MockGoapWorldState.update_player_visible(false, true)
+	assert_true(visible,
+		"player_visible should be true when only companion is seen (Issue #934)")
+
+
+func test_goap_player_visible_when_both_seen() -> void:
+	var visible := MockGoapWorldState.update_player_visible(true, true)
+	assert_true(visible,
+		"player_visible should be true when both player and companion are seen")
+
+
+func test_goap_player_not_visible_when_neither_seen() -> void:
+	var visible := MockGoapWorldState.update_player_visible(false, false)
+	assert_false(visible,
+		"player_visible should be false when neither player nor companion is seen")
