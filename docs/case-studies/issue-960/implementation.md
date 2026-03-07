@@ -71,6 +71,17 @@ After removing the outline entirely in v3, the owner found large text still had 
 - Set `outline_size = 3` with `outline_color = Color(1.0, 0.3, 0.55, 0.2)` — pink outline at 20% alpha
 - Applied same 20% opacity outline to `neon_button_theme.tres` Label styles
 
+### v5 Fix: Completely Remove Outline from Large Letters
+
+**Owner feedback (v5)**: "попробуй полностью убрать обводку у крупных букв (PAUSED и подобных)" (try to completely remove the outline from large letters like PAUSED and similar).
+
+The 20% opacity outline in v4 was still too visible on large text like "PAUSED". The owner requested completely removing the outline so only the glow/shadow effect remains.
+
+**Changes in v5**:
+- Set `outline_size = 0` in `neon_label_settings.tres` — no outline at all
+- Removed `outline_color` property (no longer needed with size=0)
+- Set `Label/constants/outline_size = 0` in `neon_button_theme.tres` and removed `Label/colors/font_outline_color`
+
 ## Files Created/Modified
 
 ### New Files
