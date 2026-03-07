@@ -19,6 +19,9 @@ signal back_pressed
 @onready var enemy_flashlight_blinding_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer/EnemyFlashlightBlindingCheckbox
 @onready var fps_counter_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer/FpsCounterCheckbox
 @onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
+@onready var all_weapons_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer/AllWeaponsUnlockedCheckbox
+@onready var ricochet_points_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/RicochetPointsContainer/RicochetPointsCheckbox
+@onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 
@@ -35,6 +38,9 @@ func _ready() -> void:
 	enemy_flashlight_blinding_checkbox.toggled.connect(_on_enemy_flashlight_blinding_toggled)
 	fps_counter_checkbox.toggled.connect(_on_fps_counter_toggled)
 	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
+	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
+	ricochet_points_checkbox.toggled.connect(_on_ricochet_points_toggled)
+	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -66,6 +72,8 @@ func _update_ui() -> void:
 	enemy_flashlight_blinding_checkbox.button_pressed = experimental_settings.is_enemy_flashlight_blinding_enabled()
 	fps_counter_checkbox.button_pressed = experimental_settings.is_fps_counter_enabled()
 	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
+	all_weapons_unlocked_checkbox.button_pressed = experimental_settings.is_all_weapons_unlocked()
+	ricochet_points_checkbox.button_pressed = experimental_settings.is_ricochet_points_enabled()
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -89,6 +97,10 @@ func _update_ui() -> void:
 		status_parts.append("FPS counter")
 	if experimental_settings.is_fps_drop_logging_enabled():
 		status_parts.append("FPS drop logging")
+	if experimental_settings.is_all_weapons_unlocked():
+		status_parts.append("All weapons unlocked")
+	if experimental_settings.is_ricochet_points_enabled():
+		status_parts.append("Ricochet points (+20%)")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -177,6 +189,27 @@ func _on_fps_drop_logging_toggled(enabled: bool) -> void:
 	if experimental_settings:
 		experimental_settings.set_fps_drop_logging_enabled(enabled)
 	_update_ui()
+
+
+func _on_all_weapons_unlocked_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_all_weapons_unlocked(enabled)
+	_update_ui()
+
+
+func _on_ricochet_points_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_ricochet_points_enabled(enabled)
+	_update_ui()
+
+
+func _on_delete_saves_pressed() -> void:
+	var persist_manager: Node = get_node_or_null("/root/PersistManager")
+	if persist_manager and persist_manager.has_method("clear_all_saves"):
+		persist_manager.clear_all_saves()
+	status_label.text = "Saves deleted. Game reset to first-launch state."
 
 
 func _on_back_pressed() -> void:

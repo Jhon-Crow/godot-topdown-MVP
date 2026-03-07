@@ -24,20 +24,21 @@ enum ActiveItemType {
 var current_active_item: int = ActiveItemType.NONE
 
 ## Unlocked active items tracking.
-## By default, all active items are locked for debugging purposes.
-## Active items can be unlocked by holding LMB on their case in the armory menu.
 ## NONE is always unlocked (it's not a real item).
+## FLASHLIGHT (Polygon D+) and TELEPORT_BRACERS (Castle F+) have unlock conditions (Issue #894).
+## All other active items are freely available from the start.
+## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
-	ActiveItemType.FLASHLIGHT: false,
-	ActiveItemType.HOMING_BULLETS: false,
-	ActiveItemType.TELEPORT_BRACERS: false,
-	ActiveItemType.BFF_PENDANT: false,       # Issue #674
-	ActiveItemType.INVISIBILITY_SUIT: false,
-	ActiveItemType.BREAKER_BULLETS: false,
-	ActiveItemType.FORCE_FIELD: false,
-	ActiveItemType.TRAJECTORY_GLASSES: false, # Issue #744
-	ActiveItemType.LASER_SIGHT: false         # Issue #947
+	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
+	ActiveItemType.HOMING_BULLETS: true,       # No unlock condition — freely available from start
+	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Castle F+
+	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
+	ActiveItemType.INVISIBILITY_SUIT: true,    # No unlock condition — freely available from start
+	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
+	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
+	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
+	ActiveItemType.LASER_SIGHT: true           # No unlock condition — freely available from start (Issue #947)
 }
 
 ## Active item data for UI and selection.
@@ -243,7 +244,13 @@ func should_force_laser_sight() -> bool:
 ## Check if an active item type is unlocked.
 ## @param item_type: The active item type to check.
 ## @return: true if the item is unlocked, false otherwise.
+## Note: If all_weapons_unlocked is enabled in ExperimentalSettings, all items return true.
 func is_active_item_unlocked(item_type: int) -> bool:
+	# Check if all weapons are unlocked via experimental setting (Issue #882)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_all_weapons_unlocked"):
+		if experimental_settings.is_all_weapons_unlocked():
+			return true
 	return unlocked_active_items.get(item_type, false)
 
 

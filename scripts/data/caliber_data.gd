@@ -113,6 +113,8 @@ class_name CaliberData
 ## - 0-15°: ~100% (grazing shots always ricochet)
 ## - 45°: ~80% (moderate angles have good ricochet chance)
 ## - 90°: ~10% (perpendicular shots rarely ricochet)
+## When Ricochet Points experimental setting is enabled (Issue #975),
+## probability is increased by 20% at angles where ricochet is possible.
 ## @param impact_angle_degrees: Angle between bullet direction and surface (0 = grazing).
 ## @return: Probability of ricochet (0.0 to 1.0).
 func calculate_ricochet_probability(impact_angle_degrees: float) -> float:
@@ -130,7 +132,16 @@ func calculate_ricochet_probability(impact_angle_degrees: float) -> float:
 	# Power of 2.17 creates a curve matching real-world ballistics
 	var power_factor := pow(normalized_angle, 2.17)
 	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
-	return base_ricochet_probability * angle_factor
+	var probability := base_ricochet_probability * angle_factor
+
+	# Issue #975: Ricochet Points experimental setting boosts ricochet chance by 20%
+	# at angles where ricochet is possible (same condition as green trajectory ray).
+	var experimental_settings: Node = Engine.get_main_loop().root.get_node_or_null("ExperimentalSettings") if Engine.get_main_loop() else null
+	if experimental_settings and experimental_settings.has_method("is_ricochet_points_enabled"):
+		if experimental_settings.is_ricochet_points_enabled():
+			probability = minf(probability + 0.2, 1.0)
+
+	return probability
 
 
 ## Calculates the new velocity after ricochet.
