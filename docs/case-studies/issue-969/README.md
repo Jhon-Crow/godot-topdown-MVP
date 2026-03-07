@@ -8,14 +8,27 @@ game session logs provided by the reporter.
 
 ## Logs Analyzed
 
-| Log file | Duration | FPS drops | Worst FPS |
-|---|---|---|---|
-| game_log_20260305_233837.txt | ~2.7 min | 13 | 9 fps |
-| game_log_20260305_233927.txt | ~2.4 min | 35 | 5 fps |
-| game_log_20260305_234058.txt | ~2.4 min | 18 | 24 fps |
+### Before Fix (Original Reports)
 
-**Common game setup**: MiniUzi (32/32 ammo), 10 enemy listeners, Hard difficulty, FPS counter +
-drop logging enabled.
+| Log file | Duration | FPS drops | Worst FPS | Enemies |
+|---|---|---|---|---|
+| game_log_20260305_233837.txt | ~2.7 min | 13 | 9 fps | 10 |
+| game_log_20260305_233927.txt | ~2.4 min | 35 | 5 fps | 10 |
+| game_log_20260305_234058.txt | ~2.4 min | 18 | 24 fps | 10 |
+
+**Common setup**: MiniUzi (32/32 ammo), 10 enemy listeners, Hard difficulty, FPS counter + drop logging enabled.
+
+### After Fix (Verification Log — 2026-03-07)
+
+| Log file | Duration | FPS drops | Worst FPS | Enemies (section) |
+|---|---|---|---|---|
+| game_log_20260307_203841.txt | ~2 min | 1 (29fps) | **29 fps** | 10 enemies (20:38:42–20:39:03) |
+| game_log_20260307_203841.txt | ~30 s | 16 | 4 fps | 20 enemies (20:39:03–20:39:33) |
+
+**Key finding**: With the initial fix (debug logging + CASING_KICK throttle) applied, the **10-enemy
+scenario is resolved** — only 1 borderline drop at 29 fps (vs 5–9 fps before). The 20-enemy scenario
+still showed severe drops because of a **newly identified root cause (RCA-6)**: enemy AI gunshot
+propagation flooding with many enemies active.
 
 ## Root Causes Found
 
@@ -93,14 +106,56 @@ compounds quickly.
 `_is_inside_penetration_hole()` calls `get_overlapping_areas()` on every `_on_body_entered`
 event, even when not near any penetration hole. This can be expensive in dense scenes.
 
+### RCA-6 (High, newly discovered): Enemy GUNSHOT propagation flooding with 20+ enemies
+
+**File:** `scripts/objects/enemy.gd`, lines 2402, 2462, 3843
+**Severity:** High — when multiple high-fire-rate enemies are present, each shot propagates
+to ALL registered listeners (other enemies + player), creating O(enemies²) distance calculations.
+
+**Evidence from verification log (game_log_20260307_203841.txt):**
+```
+[20:39:07] Sound emitted: GUNSHOT, listeners=19
+[20:39:08] Sound emitted: GUNSHOT, listeners=19   ← 48 gunshots at 20:39:08
+... (48 enemy gunshot events in 1 second × 19 listeners = 912 distance calculations)
+```
+
+During the 20-enemy section (20:39:03–20:39:33):
+- **526 enemy gunshot events** in 30 seconds (17.5/second average)
+- **WarehouseA_UZI2 alone fired 13 shots/second** (high-fire-rate enemy weapon)
+- At 19 listeners: **526 × 19 = ~9,994 distance calculations** from enemy shots alone
+- Enemy AI reaction to ENEMY gunshots only triggers for IDLE enemies; all others skip it
+  — meaning the vast majority of these calculations result in no action at all
+
+Compounding factor: Blood decal deferred spawning creates burst events when many particles
+land simultaneously (72 blood decals in one second at 20:39:10), accounting for the worst drops.
+
 ## Quantitative Impact
 
-| Issue | Events/session (log2) | Cost per event | Total impact |
+### Before Fix (original log2 — 10 enemies)
+
+| Issue | Events/session | Cost per event | Total impact |
 |---|---|---|---|
 | Debug logging per wall hit | ~1,262 | file I/O + print | Very High |
 | CASING_KICK propagation | 3,193 | 10× distance calc | High |
 | Casing instantiation | ~3,000+ | Node alloc + physics | Medium |
 | Penetration raycasts | varies | 2× raycast/frame | Medium |
+
+### After Initial Fix (verification log — 10 enemies section)
+
+| Issue | Events/session | Reduction |
+|---|---|---|
+| Debug penetration logging | **0** (was 1,262) | **100%** eliminated |
+| CASING_KICK propagation | **99** (was 3,193) | **97%** reduction |
+| Enemy GUNSHOT propagation | still high (640+ events) | not yet fixed |
+
+**Result with 10 enemies**: Worst FPS drop was 29 fps (vs 5–9 fps before) — essentially fixed.
+
+### After Full Fix (adding per-enemy gunshot cooldown)
+
+| Issue | Events expected | Reduction |
+|---|---|---|
+| Enemy GUNSHOT propagation | ~60 per 30s (from 526) | **~89%** reduction |
+| Distance calculations from enemy shots | ~1,140 (from ~10,000) | ~89% |
 
 ## Solutions Implemented
 
@@ -131,6 +186,25 @@ RigidBody2D node accumulation.
 
 Extended the `ProjectilePoolManager` to include a casing pool, so casing nodes are reused
 rather than created and destroyed each shot.
+
+### Fix 4 (new, from verification): Per-enemy GUNSHOT propagation cooldown
+
+**File:** `scripts/objects/enemy.gd`
+
+Added `ENEMY_GUNSHOT_PROPAGATION_COOLDOWN = 0.5s` per-enemy constant and
+`_last_gunshot_propagation_time` tracking variable. Each of the three enemy shoot functions
+(`_shoot_with_inaccuracy`, `_shoot_burst_shot`, `_execute_shoot`) now checks the cooldown
+before calling `sound_propagation.emit_sound()`.
+
+**Rationale:**
+- Idle enemies only need one alert per ~0.5s to transition to COMBAT (they're already alert after first shot)
+- Non-idle enemies (COMBAT, PURSUING, RETREATING, etc.) ignore enemy gunshot sounds entirely per the
+  existing `should_react` logic in `on_sound_heard_with_intensity()` — so all their propagation was wasted
+- Each enemy has an independent cooldown, so different enemies still alert properly; only
+  rapid burst-fire from a single enemy is throttled
+
+**Expected reduction:** WarehouseA_UZI2 firing 13 shots/sec → propagates 1 per 0.5s = 2/sec
+(vs 13/sec before). With 5 firing enemies, total sound propagation drops from ~270/sec to ~10/sec.
 
 ## References
 

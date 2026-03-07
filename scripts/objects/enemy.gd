@@ -152,6 +152,13 @@ var _max_health: int = 0  ## Max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
 var _shoot_timer: float = 0.0  ## Time since last shot
+## Issue #969: Minimum interval between this enemy's GUNSHOT sound propagations (seconds).
+## High-fire-rate enemies (e.g. UZI) fire 10-15 shots/second. Without throttling, each shot
+## propagates to all 19+ listeners, creating thousands of distance calculations per second.
+## Once per 0.5s is enough to keep all idle enemies alerted — active combat enemies ignore
+## enemy gunshot sounds anyway (see on_sound_heard_with_intensity: should_react check).
+const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5
+var _last_gunshot_propagation_time: float = -999.0  ## Issue #969: per-enemy gunshot cooldown
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
 var _is_reloading: bool = false  ## Currently reloading
@@ -2397,9 +2404,13 @@ func _shoot_with_inaccuracy() -> void:
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
 	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
+	# Issue #969: throttled to ENEMY_GUNSHOT_PROPAGATION_COOLDOWN to prevent flooding
+	# with 20+ listeners when multiple high-fire-rate enemies fire simultaneously.
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
+	var _now := Time.get_ticks_msec() / 1000.0
+	if sound_propagation and sound_propagation.has_method("emit_sound") and _now - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
 		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+		_last_gunshot_propagation_time = _now
 	_play_delayed_shell_sound()
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
@@ -2457,9 +2468,12 @@ func _shoot_burst_shot() -> void:
 
 	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
 	# Uses weapon_loudness to determine propagation range
+	# Issue #969: throttled to ENEMY_GUNSHOT_PROPAGATION_COOLDOWN per-enemy
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
+	var _now2 := Time.get_ticks_msec() / 1000.0
+	if sound_propagation and sound_propagation.has_method("emit_sound") and _now2 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
 		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+		_last_gunshot_propagation_time = _now2
 
 	_play_delayed_shell_sound()
 
@@ -3839,8 +3853,12 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
+	# Issue #969: throttled to ENEMY_GUNSHOT_PROPAGATION_COOLDOWN per-enemy
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
-	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	var _now3 := Time.get_ticks_msec() / 1000.0
+	if sp and sp.has_method("emit_sound") and _now3 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+		_last_gunshot_propagation_time = _now3
 	_play_delayed_shell_sound()
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
