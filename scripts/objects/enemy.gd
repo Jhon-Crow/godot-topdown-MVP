@@ -3797,10 +3797,7 @@ func _aim_at_player() -> void:
 func _shoot() -> void:
 	if _is_melee_weapon and _machete: var _mt := (_aggression.get_target() if _aggression and _aggression.is_aggressive() and _aggression.get_target() else _player) as Node2D; if _mt: _machete.perform_melee_attack(_mt); return  # [#858] target enemy when aggressive
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
-	# [Issue #954] BFF companion (aggressive mode) must not fall back to shooting the player.
-	# When aggressive but no enemy target available, skip shooting entirely.
-	if _agg and (_aggression.get_target() == null):
-		return
+	if _agg and (_aggression.get_target() == null): return  # [Issue #954] no fallback to shooting player
 	var _aiming_companion := (_current_target == _companion and _can_see_companion)  # Issue #934
 	if bullet_scene == null or not (_player != null or _aiming_companion or (_agg and _aggression.get_target() != null)): return
 	if not _can_shoot(): return
@@ -3808,12 +3805,8 @@ func _shoot() -> void:
 	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_companion.global_position if _aiming_companion else (_player.global_position if _player else global_position))
 	if enable_lead_prediction and not _agg and _player and not _aiming_companion: target_position = _calculate_lead_prediction()
 	if _agg:
-		# [Issue #954] For aggressive enemies (BFF companion): check bullet spawn is clear to
-		# prevent firing bullets into nearby walls (wall-stuck bug fix).
+		# [Issue #954] Check both 35px center ray AND real muzzle-to-target path (passage-edge wall bug fix)
 		if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
-		# [Issue #954] Also verify the shot path from the real muzzle position to the target is
-		# unobstructed. The center-based _is_bullet_spawn_clear check misses cases where the
-		# muzzle overhangs a wall corner at the edge of a passage (shooting through walls bug).
 		if not _is_shot_clear_of_cover(_aggression.get_target_position()): return
 	elif not _aiming_companion and not _should_shoot_at_target(target_position): return
 	if _enemy_flashlight:  # Issue #824/#825: block shooting while flashlight flash is in progress
