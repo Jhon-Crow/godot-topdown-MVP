@@ -201,14 +201,14 @@ var _homing_equipped: bool = false
 ## Whether homing bullets effect is currently active (bullets home toward enemies).
 var _homing_active: bool = false
 
-## Remaining homing charges (6 per battle).
-var _homing_charges: int = 6
+## Remaining homing charges (2 per battle).
+var _homing_charges: int = 2
 
 ## Maximum homing charges per battle.
-const HOMING_MAX_CHARGES: int = 6
+const HOMING_MAX_CHARGES: int = 2
 
 ## Duration of homing effect per activation in seconds.
-const HOMING_DURATION: float = 1.0
+const HOMING_DURATION: float = 1.2
 
 ## Timer tracking remaining homing effect duration.
 var _homing_timer: float = 0.0
