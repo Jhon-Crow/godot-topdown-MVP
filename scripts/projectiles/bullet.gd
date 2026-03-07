@@ -100,7 +100,9 @@ var _penetrating_body: Node2D = null
 var _has_penetrated: bool = false
 
 ## Enable/disable debug logging for penetration calculations.
-var _debug_penetration: bool = true
+## Issue #969: Set to false by default — having this true in gameplay generates
+## hundreds of file I/O operations per second during shootouts, causing FPS drops.
+var _debug_penetration: bool = false
 
 ## Default penetration settings (used when caliber_data is not set).
 const DEFAULT_CAN_PENETRATE: bool = true
@@ -362,7 +364,8 @@ func _on_body_entered(body: Node2D) -> void:
 	if penetrates_enemies and body.has_method("is_alive") and body.is_alive():
 		if body not in _passed_through_enemy_bodies:
 			_passed_through_enemy_bodies.append(body)
-			print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
+			if _debug_penetration:
+				print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
 		return  # Don't destroy the bullet - it passes through the enemy body
 
 	# If we're currently penetrating the same body, ignore re-entry
@@ -504,7 +507,8 @@ func _on_area_entered(area: Area2D) -> void:
 		# Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
 		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
 		if penetrates_enemies:
-			print("[Bullet]: Penetrating through enemy, bullet continues flying")
+			if _debug_penetration:
+				print("[Bullet]: Penetrating through enemy, bullet continues flying")
 			# Track the enemy so we don't re-apply damage on subsequent area_entered calls
 			if parent != null and parent not in _penetrated_enemy_bodies:
 				_penetrated_enemy_bodies.append(parent)

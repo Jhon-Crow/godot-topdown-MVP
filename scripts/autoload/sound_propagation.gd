@@ -75,6 +75,16 @@ var _listeners: Array = []
 ## Whether debug logging is enabled.
 var _debug_logging: bool = false
 
+## Issue #969: Minimum interval (seconds) between CASING_KICK sound propagations.
+## Casings ejected from high-fire-rate weapons (e.g. MiniUzi) immediately enter the
+## player's CasingPusher area and trigger receive_kick(), which emits CASING_KICK for
+## every enemy on every shot. Throttling prevents flooding the sound propagation system
+## with redundant alerts — enemies already react to the GUNSHOT sound from the same shot.
+const CASING_KICK_PROPAGATION_COOLDOWN: float = 0.4
+
+## Timestamp of the last CASING_KICK propagation (for throttling).
+var _last_casing_kick_time: float = -999.0
+
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
@@ -276,7 +286,16 @@ func emit_grenade_landing(position: Vector2, source_node: Node2D = null) -> void
 ## Convenience method to emit a casing kick sound (Issue #693).
 ## When a player walks over shell casings and kicks them, enemies hear the metallic sound.
 ## This sound has the same range as reload (900px) and propagates through walls.
+##
+## Issue #969: Throttled to at most once every CASING_KICK_PROPAGATION_COOLDOWN seconds.
+## High-fire-rate weapons eject casings that immediately enter the player's CasingPusher
+## area, triggering a CASING_KICK propagation for every single shot. Since enemies already
+## react to the GUNSHOT sound, this flooding is redundant and causes FPS drops.
 func emit_casing_kick(position: Vector2, source_node: Node2D = null) -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _last_casing_kick_time < CASING_KICK_PROPAGATION_COOLDOWN:
+		return  # Throttled: too soon since last CASING_KICK propagation
+	_last_casing_kick_time = current_time
 	emit_sound(SoundType.CASING_KICK, position, SourceType.NEUTRAL, source_node)
 
 
