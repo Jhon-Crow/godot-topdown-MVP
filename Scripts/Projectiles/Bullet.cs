@@ -1077,6 +1077,8 @@ public partial class Bullet : Area2D
     /// - 0-15°: ~100% (grazing shots always ricochet)
     /// - 45°: ~80% (moderate angles have good ricochet chance)
     /// - 90°: ~10% (perpendicular shots rarely ricochet)
+    /// When Ricochet Points experimental setting is enabled (Issue #975),
+    /// probability is increased by 20% at angles where ricochet is possible.
     /// </summary>
     /// <param name="impactAngleDeg">Impact angle in degrees.</param>
     /// <returns>Probability of ricochet (0.0 to 1.0).</returns>
@@ -1096,7 +1098,21 @@ public partial class Bullet : Area2D
         // Power of 2.17 creates a curve matching real-world ballistics
         float powerFactor = Mathf.Pow(normalizedAngle, 2.17f);
         float angleFactor = (1.0f - powerFactor) * 0.9f + 0.1f;
-        return BaseRicochetProbability * angleFactor;
+        float probability = BaseRicochetProbability * angleFactor;
+
+        // Issue #975: Ricochet Points experimental setting boosts ricochet chance by 20%
+        // at angles where ricochet is possible (same condition as green trajectory ray).
+        var experimentalSettings = GetNodeOrNull("/root/ExperimentalSettings");
+        if (experimentalSettings != null && experimentalSettings.HasMethod("is_ricochet_points_enabled"))
+        {
+            bool ricochetPointsEnabled = experimentalSettings.Call("is_ricochet_points_enabled").AsBool();
+            if (ricochetPointsEnabled)
+            {
+                probability = Mathf.Min(probability + 0.2f, 1.0f);
+            }
+        }
+
+        return probability;
     }
 
     /// <summary>
