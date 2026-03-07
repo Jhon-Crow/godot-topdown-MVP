@@ -201,6 +201,41 @@ func is_grenade_condition_met(grenade_type: int) -> bool:
 	return false
 
 
+## Check if there is any item (weapon, grenade, or active item) whose unlock condition
+## is met but which has not yet been unlocked by the player.
+## Used to highlight the Armory button in the pause menu and score screen.
+## @return: true if at least one item is ready to unlock (condition met, but still locked).
+func has_any_available_unlock() -> bool:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+
+	for level_path in UNLOCK_CONDITIONS:
+		if not is_level_condition_met(level_path):
+			continue
+		var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+
+		# Check condition-gated weapons
+		if game_manager:
+			for weapon_id in condition.get("weapons", []):
+				if game_manager.has_method("is_weapon_unlocked") and not game_manager.is_weapon_unlocked(weapon_id):
+					return true
+
+		# Check condition-gated active items
+		if active_item_manager:
+			for item_type in condition.get("active_items", []):
+				if active_item_manager.has_method("is_active_item_unlocked") and not active_item_manager.is_active_item_unlocked(item_type):
+					return true
+
+		# Check condition-gated grenades
+		if grenade_manager:
+			for grenade_type in condition.get("grenades", []):
+				if grenade_manager.has_method("is_grenade_unlocked") and not grenade_manager.is_grenade_unlocked(grenade_type):
+					return true
+
+	return false
+
+
 ## Reset all condition-gated items to locked state.
 ## This undoes any incorrect unlock state that may have been loaded from an old save file,
 ## ensuring only legitimately earned items remain unlocked (via apply_all_earned_unlocks).

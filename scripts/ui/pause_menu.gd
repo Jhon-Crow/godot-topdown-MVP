@@ -69,6 +69,9 @@ func _ready() -> void:
 	experimental_button.pressed.connect(_on_experimental_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
+	# Highlight armory button if there are available unlocks
+	_refresh_armory_button_highlight()
+
 	# Preload controls menu if not set
 	if controls_menu_scene == null:
 		controls_menu_scene = preload("res://scenes/ui/ControlsMenu.tscn")
@@ -130,6 +133,9 @@ func pause_game() -> void:
 
 	# Ensure main menu container is visible
 	menu_container.show()
+
+	# Refresh armory highlight each time the menu opens
+	_refresh_armory_button_highlight()
 
 	show()
 	resume_button.grab_focus()
@@ -254,6 +260,8 @@ func _on_armory_back() -> void:
 	if _armory_menu:
 		_armory_menu.hide()
 	menu_container.show()
+	# Refresh highlight in case the player just unlocked an item
+	_refresh_armory_button_highlight()
 	armory_button.grab_focus()
 
 
@@ -339,3 +347,32 @@ func _on_training_pressed() -> void:
 func _on_quit_pressed() -> void:
 	get_tree().paused = false
 	get_tree().quit()
+
+
+## Refresh the armory button highlight to indicate if there are items available to unlock.
+## The button turns gold when the player has earned the right to unlock an item in the armory
+## but has not yet done so. The highlight disappears once all available items are opened.
+func _refresh_armory_button_highlight() -> void:
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock"):
+		return
+
+	if unlock_manager.has_any_available_unlock():
+		# Highlight armory button in gold to draw attention to unlockable items
+		var highlight_style := StyleBoxFlat.new()
+		highlight_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		highlight_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		highlight_style.border_width_left = 2
+		highlight_style.border_width_right = 2
+		highlight_style.border_width_top = 2
+		highlight_style.border_width_bottom = 2
+		highlight_style.corner_radius_top_left = 4
+		highlight_style.corner_radius_top_right = 4
+		highlight_style.corner_radius_bottom_left = 4
+		highlight_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", highlight_style)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+	else:
+		# Remove highlight — no available unlocks
+		armory_button.remove_theme_stylebox_override("normal")
+		armory_button.remove_theme_color_override("font_color")

@@ -715,6 +715,8 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 	# Store metadata for click handling
 	slot.set_meta("item_id", item_id)
 	slot.set_meta("is_grenade", is_grenade)
+	slot.set_meta("is_unlocked", is_unlocked)
+	slot.set_meta("condition_met", condition_met)
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -804,6 +806,8 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	# Store metadata
 	slot.set_meta("item_id", item_id)
 	slot.set_meta("is_active_item", true)
+	slot.set_meta("is_unlocked", is_unlocked)
+	slot.set_meta("condition_met", condition_met)
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1088,18 +1092,37 @@ func _on_apply_pressed() -> void:
 
 
 ## Highlight the currently selected (pending) weapon, grenade, and active item slots.
+## Preserves gold condition-met styling for locked slots whose unlock condition is met.
 func _highlight_selected_items() -> void:
-	# Reset all weapon slots to default
+	# Reset all weapon slots to default or condition-met gold
 	for wid in _weapon_slots:
-		_apply_default_style(_weapon_slots[wid])
+		var slot: PanelContainer = _weapon_slots[wid]
+		var slot_unlocked: bool = slot.get_meta("is_unlocked", true)
+		var slot_condition_met: bool = slot.get_meta("condition_met", false)
+		if not slot_unlocked and slot_condition_met:
+			_apply_condition_met_style(slot)
+		else:
+			_apply_default_style(slot)
 
-	# Reset all grenade slots to default
+	# Reset all grenade slots to default or condition-met gold
 	for gtype in _grenade_slots:
-		_apply_default_style(_grenade_slots[gtype])
+		var slot: PanelContainer = _grenade_slots[gtype]
+		var slot_unlocked: bool = slot.get_meta("is_unlocked", true)
+		var slot_condition_met: bool = slot.get_meta("condition_met", false)
+		if not slot_unlocked and slot_condition_met:
+			_apply_condition_met_style(slot)
+		else:
+			_apply_default_style(slot)
 
-	# Reset all active item slots to default
+	# Reset all active item slots to default or condition-met gold
 	for atype in _active_item_slots:
-		_apply_default_style(_active_item_slots[atype])
+		var slot: PanelContainer = _active_item_slots[atype]
+		var slot_unlocked: bool = slot.get_meta("is_unlocked", true)
+		var slot_condition_met: bool = slot.get_meta("condition_met", false)
+		if not slot_unlocked and slot_condition_met:
+			_apply_condition_met_style(slot)
+		else:
+			_apply_default_style(slot)
 
 	# Highlight pending weapon
 	if _pending_weapon_id in _weapon_slots:

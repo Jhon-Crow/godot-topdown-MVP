@@ -225,6 +225,31 @@ class TestableUnlockManager extends Node:
 	func reset_and_apply_all_unlocks() -> void:
 		reset_condition_gated_items()
 
+	## Check if any item has its unlock condition met but is not yet unlocked.
+	## Used to highlight the Armory button in the pause menu and score screen (Issue #897).
+	func has_any_available_unlock() -> bool:
+		for level_path in UNLOCK_CONDITIONS:
+			if not is_level_condition_met(level_path):
+				continue
+			var condition: Dictionary = UNLOCK_CONDITIONS[level_path]
+
+			if mock_game_manager:
+				for weapon_id in condition.get("weapons", []):
+					if not mock_game_manager.is_weapon_unlocked(weapon_id):
+						return true
+
+			if mock_active_item_manager:
+				for item_type in condition.get("active_items", []):
+					if not mock_active_item_manager.is_active_item_unlocked(item_type):
+						return true
+
+			if mock_grenade_manager:
+				for grenade_type in condition.get("grenades", []):
+					if not mock_grenade_manager.is_grenade_unlocked(grenade_type):
+						return true
+
+		return false
+
 
 # ============================================================================
 # Test setup
@@ -608,3 +633,85 @@ func test_reset_and_apply_removes_invalid_unlocks() -> void:
 		"mini_uzi should be locked after reset (Labyrinth condition not met)")
 	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
 		"mini_uzi condition is also not met — slot stays plain locked (no gold)")
+
+
+# ============================================================================
+# has_any_available_unlock() tests (Issue #897 — armory button highlight)
+# ============================================================================
+
+
+func test_no_available_unlocks_when_no_progress() -> void:
+	# No level progress at all — no conditions met, no items available
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"Should return false when no level progress (no conditions met)")
+
+
+func test_no_available_unlocks_when_all_locked_but_condition_not_met() -> void:
+	# Items are locked but condition is not met (e.g. rank F when D required)
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F")
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"Should return false when condition not met (F rank for D requirement)")
+
+
+func test_has_available_unlock_when_weapon_condition_met() -> void:
+	# Labyrinth D+ unlocks mini_uzi — condition met, item still locked
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"Should return true when mini_uzi condition is met but item is locked")
+
+
+func test_no_available_unlocks_when_weapon_already_unlocked() -> void:
+	# Labyrinth D+ unlocks mini_uzi — condition met, item already unlocked
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	game_manager.unlocked_weapons["mini_uzi"] = true
+
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"Should return false when mini_uzi condition is met and item is already unlocked")
+
+
+func test_has_available_unlock_when_active_item_condition_met() -> void:
+	# Castle F+ unlocks teleport bracers — condition met, item still locked
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"Should return true when teleport bracers condition is met but item is locked")
+
+
+func test_no_available_unlocks_when_all_items_unlocked() -> void:
+	# Conditions met for multiple levels, but all items already unlocked
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+
+	game_manager.unlocked_weapons["mini_uzi"] = true
+	game_manager.unlocked_weapons["shotgun"] = true
+	game_manager.unlocked_weapons["sniper"] = true
+	game_manager.unlocked_weapons["revolver"] = true
+	active_item_manager.unlocked_active_items[1] = true   # FLASHLIGHT
+	active_item_manager.unlocked_active_items[3] = true   # TELEPORT_BRACERS
+
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"Should return false when all condition-gated items are already unlocked")
+
+
+func test_has_available_unlock_when_some_unlocked_some_not() -> void:
+	# Conditions met for multiple levels, some items unlocked, some not
+	progress_manager.set_rank("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "D")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+
+	game_manager.unlocked_weapons["mini_uzi"] = true   # Already unlocked
+	# shotgun still locked
+
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"Should return true when some condition-met items are still locked (shotgun)")
+
+
+func test_has_available_unlock_after_new_level_completion() -> void:
+	# Player completes Castle level — revolver and teleport bracers become available
+	assert_false(unlock_manager.has_any_available_unlock(),
+		"No available unlocks before Castle completion")
+
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+
+	assert_true(unlock_manager.has_any_available_unlock(),
+		"After Castle F completion: revolver and teleport bracers are available to unlock")
