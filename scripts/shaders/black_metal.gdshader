@@ -1,103 +1,76 @@
 shader_type canvas_item;
 
 // Black Metal difficulty visual filter.
+// Creates a high-contrast black-and-white look with vivid red and fire/explosion colors preserved.
+// Based on ghost_replay.gdshader — the same stylized filter the game already uses for Ghost mode.
 //
-// APPROACH: OVERLAY-BASED (no hint_screen_texture)
-// This shader creates a dark, desaturating overlay that blends on top of the
-// rendered scene. It does NOT sample the screen texture, which avoids known bugs
-// in Godot's gl_compatibility renderer that cause white screens on scene load.
+// Rules:
+//   - Red-dominant pixels stay vivid red (blood, health indicators)
+//   - Warm/fiery pixels (orange, yellow) stay vivid (explosions, muzzle flashes, bullets)
+//   - Everything else is converted to high-contrast black-and-white
 //
-// The black-and-white + red aesthetic is achieved architecturally:
-//   - This CanvasLayer (layer 97) covers the game world with a dark desaturating overlay.
-//   - Blood/hit effects and other vivid effects render on higher layers (100+) and appear
-//     ABOVE this overlay in full color — naturally preserving red and fire tones.
+// WHITE SCREEN FIX (Issue #958):
+//   The manager using this shader performs warmup with intensity=0.0 (invisible pass-through)
+//   before going live. On scene transitions, it defers activation by 3+ frames to ensure
+//   the framebuffer is fully populated before hint_screen_texture is read.
+//   This is the same warmup pattern used by hit_effects_manager and last_chance_effects_manager.
 //
-// Visual effects:
-//   - Dark vignette (edges darken heavily — grim, oppressive framing)
-//   - Film grain (grainy, harsh texture)
-//   - Desaturating dark overlay (scene appears muted and dark)
-//
-// References:
-//   - cinema_film.gdshader v5.3 (overlay approach, no screen_texture)
-//   - cinema_effects_manager.gd ARCHITECTURE note (why we avoid hint_screen_texture)
-//   - GitHub Issue godotengine/godot#79914
+// Uses hint_screen_texture for fullscreen post-processing via a ColorRect overlay.
+// Uses textureLod for gl_compatibility renderer support.
 
-// Intensity of the overall effect (0.0 = none, 1.0 = full).
+// Intensity of the overall effect (0.0 = pass-through, 1.0 = full effect).
+// Set to 0.0 during warmup to make the overlay invisible.
 uniform float intensity : hint_range(0.0, 1.0) = 1.0;
 
-// Vignette: how dark the edges become (0.0 = no vignette, 1.0 = full black).
-uniform float vignette_intensity : hint_range(0.0, 1.0) = 0.75;
+// Minimum red dominance over green+blue to classify as "red" pixel.
+uniform float red_threshold : hint_range(0.0, 1.0) = 0.15;
 
-// Vignette softness (0.0 = sharp edge, 1.0 = very soft gradient).
-uniform float vignette_softness : hint_range(0.0, 1.0) = 0.35;
+// Boost applied to the red channel on red-dominant pixels.
+uniform float red_boost : hint_range(1.0, 3.0) = 1.8;
 
-// Grain intensity (0.0 = no grain, 0.5 = heavy grain).
-uniform float grain_intensity : hint_range(0.0, 0.5) = 0.12;
+// Minimum "warmth" (red+green combined vs blue) to classify as fire/explosion.
+uniform float fire_threshold : hint_range(0.0, 1.0) = 0.25;
 
-// Desaturation overlay darkness (0.0 = no overlay, 1.0 = completely black).
-// A moderate value adds a dark grey overlay that makes the scene look washed out
-// and muted, reinforcing the B&W feel.
-uniform float desaturation_darkness : hint_range(0.0, 1.0) = 0.55;
+// Contrast boost applied to the grayscale channel (higher = darker blacks/brighter whites).
+uniform float contrast : hint_range(0.5, 3.0) = 1.5;
 
-
-// ============================================================================
-// NOISE
-// ============================================================================
-
-float hash(vec2 p) {
-	p += vec2(0.1, 0.1);
-	vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
-	p3 += dot(p3, p3.yxz + 33.33);
-	return fract((p3.x + p3.y) * p3.z);
-}
-
-float film_grain(vec2 uv, float seed) {
-	float noise = hash(uv * 1200.0 + vec2(seed, seed * 0.7));
-	return noise - 0.5;
-}
-
-
-// ============================================================================
-// MAIN FRAGMENT
-// Builds a transparent overlay — the scene underneath shows through the alpha.
-// ============================================================================
+// Screen texture sampler for reading the rendered scene.
+// hint_screen_texture is safe here because:
+//   1. Warmup runs at intensity=0.0 so even if screen is white, the output is pass-through.
+//   2. Activation is deferred by ACTIVATION_DELAY_FRAMES frames after scene transitions,
+//      ensuring the framebuffer is populated before we read it.
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 void fragment() {
-	// Start transparent
-	vec4 overlay = vec4(0.0, 0.0, 0.0, 0.0);
+	vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
 
-	// --- Desaturating dark overlay ---
-	// Adds a near-black transparent layer that mutes all scene colors.
-	// Higher desaturation_darkness -> scene looks darker and more B&W.
-	if (desaturation_darkness > 0.0) {
-		// Dark grey-black overlay. Slightly blue-black for cold steel feel.
-		overlay.rgb = vec3(0.02, 0.02, 0.04);
-		overlay.a = desaturation_darkness * 0.7;
-	}
+	// Calculate luminance (grayscale)
+	float lum = dot(original.rgb, vec3(0.299, 0.587, 0.114));
 
-	// --- Film grain ---
-	if (grain_intensity > 0.0) {
-		float seed = floor(TIME * 24.0 + 0.5);
-		float grain = film_grain(UV, seed);
-		float grain_alpha = abs(grain) * grain_intensity * 2.5;
-		// Mix between black (for dark grain) and near-white (for light grain specks)
-		vec3 grain_color = grain > 0.0 ? vec3(0.85, 0.85, 0.85) : vec3(0.0, 0.0, 0.0);
-		overlay.rgb = mix(overlay.rgb, grain_color, grain_alpha * 0.4);
-		overlay.a = max(overlay.a, grain_alpha * 0.35);
-	}
+	// High-contrast grayscale
+	float gray = clamp((lum - 0.5) * contrast + 0.5, 0.0, 1.0);
 
-	// --- Heavy vignette (oppressive black frame) ---
-	if (vignette_intensity > 0.0) {
-		vec2 centered_uv = UV - 0.5;
-		float vignette_dist = length(centered_uv) * 1.414;
-		float vignette = smoothstep(vignette_softness, 1.0, vignette_dist);
-		// Add black overlay at edges
-		overlay.rgb = mix(overlay.rgb, vec3(0.0), vignette * vignette_intensity);
-		overlay.a = max(overlay.a, vignette * vignette_intensity * 0.95);
-	}
+	// Detect red-ish pixels: high red channel relative to green and blue
+	float red_dominance = original.r - max(original.g, original.b);
+	float is_red = step(red_threshold, red_dominance) * step(0.1, original.r);
 
-	// Apply global intensity
-	overlay.a *= intensity;
+	// Detect warm/fiery pixels: high red+green relative to blue (orange, yellow)
+	float warmth = (original.r + original.g) * 0.5 - original.b;
+	float is_fire = step(fire_threshold, warmth) * step(0.2, original.r) * (1.0 - is_red);
 
-	COLOR = overlay;
+	// Build final color:
+	// - Red pixels: vivid red
+	// - Fire/explosion pixels: keep original color
+	// - Everything else: high-contrast B&W
+	vec3 red_color = vec3(min(original.r * red_boost, 1.0), gray * 0.15, gray * 0.15);
+	vec3 bw_color = vec3(gray);
+
+	vec3 result = bw_color;
+	result = mix(result, red_color, is_red);
+	result = mix(result, original.rgb, is_fire);
+
+	// Apply intensity: 0.0 = original scene (invisible pass-through), 1.0 = full B&W+red effect.
+	// This allows safe warmup (intensity=0 → no visual change even if screen_texture is white).
+	COLOR.rgb = mix(original.rgb, result, intensity);
+	COLOR.a = original.a;
 }
