@@ -30,6 +30,20 @@ scenario is resolved** — only 1 borderline drop at 29 fps (vs 5–9 fps before
 still showed severe drops because of a **newly identified root cause (RCA-6)**: enemy AI gunshot
 propagation flooding with many enemies active.
 
+### Second Verification Log — 2026-03-07 (21:15:03)
+
+| Log file | Duration | FPS drops | Worst FPS | Enemies (section) |
+|---|---|---|---|---|
+| game_log_20260307_211503.txt | ~53 s | 2 (29fps) | **29 fps** | 10 enemies (21:15:12–21:15:24) |
+| game_log_20260307_211503.txt | ~27 s | 19 | 5 fps | 20 enemies (21:15:25–21:15:52) |
+
+**Key findings** (with Fixes 1–4 applied):
+- **10-enemy scenario**: Only 2 borderline drops at 29 fps — effectively fixed ✅
+- **20-enemy scenario**: Still 19 drops (5–19 fps range) — Fix 4 did NOT fully resolve it
+- **CASING_KICK throttle confirmed working**: Only 36 events (vs 3,193 originally, vs 99 in first verification)
+- **Enemy GUNSHOT propagation confirmed working**: Max 10 enemy gunshots/second (vs 526 in previous log)
+- **New root causes identified**: RCA-7, RCA-8, RCA-9 (see below)
+
 ## Root Causes Found
 
 ### RCA-1 (Critical): `_debug_penetration = true` by default in `bullet.gd`
@@ -106,7 +120,7 @@ compounds quickly.
 `_is_inside_penetration_hole()` calls `get_overlapping_areas()` on every `_on_body_entered`
 event, even when not near any penetration hole. This can be expensive in dense scenes.
 
-### RCA-6 (High, newly discovered): Enemy GUNSHOT propagation flooding with 20+ enemies
+### RCA-6 (High, from first verification): Enemy GUNSHOT propagation flooding with 20+ enemies
 
 **File:** `scripts/objects/enemy.gd`, lines 2402, 2462, 3843
 **Severity:** High — when multiple high-fire-rate enemies are present, each shot propagates
@@ -129,6 +143,50 @@ During the 20-enemy section (20:39:03–20:39:33):
 Compounding factor: Blood decal deferred spawning creates burst events when many particles
 land simultaneously (72 blood decals in one second at 20:39:10), accounting for the worst drops.
 
+### RCA-7 (High, from second verification): EnemyGrenadeComponent logs ALL throw attempts to file
+
+**File:** `scripts/components/enemy_grenade_component.gd`, lines 448–452
+**Severity:** High — the `_log()` function correctly gates `print()` behind `debug_logging = false`,
+but **always writes to `FileLogger`** regardless of the flag:
+
+```gdscript
+func _log(msg: String) -> void:
+    if debug_logging:
+        print("[EnemyGrenadeComponent] %s" % msg)
+    if _logger and _logger.has_method("log_info"):  # ← BUG: always writes to file!
+        _logger.log_info("[EnemyGrenade] %s" % msg)
+```
+
+**Evidence from game_log_20260307_211503.txt:**
+- **466 EnemyGrenade log entries** in a 27-second 20-enemy session
+- Breakdown: 114 "Unsafe throw distance", 127 "Target not visible", 118 "not in enemy FOV", 58 "Throw path blocked"
+- At 20 enemies with grenade-capable enemies, throw attempts fire EVERY frame per grenade check cycle
+- **121 events in one second** (21:15:49) — each is a file I/O write
+
+### RCA-8 (High, from second verification): `_is_visible_from_player()` called every frame per enemy
+
+**File:** `scripts/objects/enemy.gd`, functions `_process_suppressed_state`, `_process_seeking_cover_state`, `_process_retreating_state`
+**Severity:** High — each call performs 5 raycasts via `direct_space_state.intersect_ray()`.
+Called on **every physics frame** when enemy is in SUPPRESSED, SEEKING_COVER, or RETREATING state.
+
+**Evidence from second verification log:**
+- **817 state transitions** in 53 seconds = 15+ state changes/second
+- ContainerYardA_Rifle1 alone: **10 state cycles per second** at peak (21:15:50)
+- With 20 enemies × 60fps × 5 raycasts/call = up to **6,000 raycasts/second** from this one function
+- No per-frame caching existed — each call fully re-ran the raycast check
+
+### RCA-9 (High, from second verification): `_find_cover_position()` called repeatedly with no cooldown
+
+**File:** `scripts/objects/enemy.gd`, function `_find_cover_position()`
+**Severity:** High — each call does **16 `force_raycast_update()` calls** (COVER_CHECK_COUNT = 16).
+Called from state processing whenever no valid cover is cached.
+
+**Evidence from second verification log:**
+- **311 "SEEKING_COVER → COMBAT" + "RETREATING → SUPPRESSED" transitions** = 311+ cover search attempts
+- At open-area levels where cover is sparse, repeated searches return no results
+- 311 calls × 16 raycasts = **4,976 cover raycasts** in one session
+- No minimum cooldown between searches — enemies retry every frame when cover is not found
+
 ## Quantitative Impact
 
 ### Before Fix (original log2 — 10 enemies)
@@ -150,12 +208,25 @@ land simultaneously (72 blood decals in one second at 20:39:10), accounting for 
 
 **Result with 10 enemies**: Worst FPS drop was 29 fps (vs 5–9 fps before) — essentially fixed.
 
-### After Full Fix (adding per-enemy gunshot cooldown)
+### After Fix 4 (per-enemy gunshot cooldown) — second verification log (20 enemies)
 
-| Issue | Events expected | Reduction |
+| Issue | Events/session | Reduction from original |
 |---|---|---|
-| Enemy GUNSHOT propagation | ~60 per 30s (from 526) | **~89%** reduction |
-| Distance calculations from enemy shots | ~1,140 (from ~10,000) | ~89% |
+| CASING_KICK propagation | **36** (was 3,193) | **99%** eliminated |
+| Enemy GUNSHOT propagation | **135** (was 526 in 30s) | **74%** reduction |
+| EnemyGrenade log writes to file | **466** | **NEW** — not yet fixed |
+| _is_visible_from_player() raycasts | **~6,000/sec** | **NEW** — not yet fixed |
+| _find_cover_position() raycasts | **4,976** | **NEW** — not yet fixed |
+
+**Result with 20 enemies**: Still 19 FPS drops (5–19 fps range) — 3 new root causes identified.
+
+### After Fixes 5–7 (expected improvement — 20 enemies)
+
+| Issue | Events expected | Expected reduction |
+|---|---|---|
+| EnemyGrenade log writes to file | **0** (was 466) | **100%** eliminated |
+| _is_visible_from_player() raycasts | **5/enemy/frame** (1 check cached per frame) | ~**95%** reduction |
+| _find_cover_position() raycasts | **~330** (from 4,976) | ~**93%** reduction (0.3s cooldown) |
 
 ## Solutions Implemented
 
@@ -187,7 +258,7 @@ RigidBody2D node accumulation.
 Extended the `ProjectilePoolManager` to include a casing pool, so casing nodes are reused
 rather than created and destroyed each shot.
 
-### Fix 4 (new, from verification): Per-enemy GUNSHOT propagation cooldown
+### Fix 4 (from first verification): Per-enemy GUNSHOT propagation cooldown
 
 **File:** `scripts/objects/enemy.gd`
 
@@ -203,8 +274,61 @@ before calling `sound_propagation.emit_sound()`.
 - Each enemy has an independent cooldown, so different enemies still alert properly; only
   rapid burst-fire from a single enemy is throttled
 
-**Expected reduction:** WarehouseA_UZI2 firing 13 shots/sec → propagates 1 per 0.5s = 2/sec
-(vs 13/sec before). With 5 firing enemies, total sound propagation drops from ~270/sec to ~10/sec.
+**Measured reduction:** Max 10 enemy gunshots/second observed (vs 526 in 30s = 17.5/sec before).
+
+### Fix 5 (from second verification): Gate EnemyGrenadeComponent file logging behind debug_logging
+
+**File:** `scripts/components/enemy_grenade_component.gd`, lines 448–452
+
+The `_log()` function was gating `print()` behind `debug_logging` but **always writing to FileLogger**.
+Fix: moved `_logger.log_info()` inside the `if debug_logging:` block.
+
+```gdscript
+# BEFORE (broken):
+func _log(msg: String) -> void:
+    if debug_logging:
+        print("...")
+    if _logger and _logger.has_method("log_info"):  # ← always wrote to file
+        _logger.log_info("...")
+
+# AFTER (fixed):
+func _log(msg: String) -> void:
+    if debug_logging:
+        print("...")
+        if _logger and _logger.has_method("log_info"):  # ← gated by debug_logging
+            _logger.log_info("...")
+```
+
+**Expected elimination:** 466 file I/O writes per 27-second session → **0** writes when debug_logging = false.
+
+### Fix 6 (from second verification): Cache `_is_visible_from_player()` result per physics frame
+
+**File:** `scripts/objects/enemy.gd`, function `_is_visible_from_player()`
+
+Added `_cached_visible_from_player: bool` and `_visible_from_player_cache_frame: int` variables.
+The function now returns the cached result if called multiple times in the same physics frame
+(detected via `Engine.get_physics_frames()`).
+
+**Rationale:** The function was called from `_process_suppressed_state`, `_process_seeking_cover_state`,
+and `_process_retreating_state` — all on every physics frame. With 20 enemies each in these states,
+each check does 5 raycasts = up to 100 raycasts/frame just from this function.
+
+**Expected reduction:** 5 raycasts per enemy per frame (first call caches), vs 5–50 per enemy before.
+For 20 enemies in cover states: ~100 raycasts/frame → ~5 raycasts/frame = **95% reduction**.
+
+### Fix 7 (from second verification): Add cover search cooldown in `_find_cover_position()`
+
+**File:** `scripts/objects/enemy.gd`, function `_find_cover_position()`
+
+Added `COVER_SEARCH_COOLDOWN = 0.3s` constant and `_last_cover_search_time: float` tracker.
+The function now skips the 16-raycast cover search if called within 0.3 seconds of the last search
+(only skips when existing cover is still valid).
+
+**Rationale:** In open-area levels where cover is sparse, enemies rapidly cycle SEEKING_COVER → COMBAT
+→ RETREATING → SUPPRESSED at up to 10 cycles/second. Each cycle triggers `_find_cover_position()`
+which always returns empty. With 0.3s cooldown, max 3–4 searches/second vs 10+ before.
+
+**Expected reduction:** 311 cover searches × 16 raycasts = 4,976 total → ~50 searches × 16 = ~800 raycasts = **84% reduction**.
 
 ## References
 

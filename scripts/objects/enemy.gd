@@ -152,8 +152,10 @@ var _max_health: int = 0  ## Max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
 var _shoot_timer: float = 0.0  ## Time since last shot
-const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5  ## Issue #969: throttle enemy gunshot propagation (sec)
-var _last_gunshot_propagation_time: float = -999.0  ## Issue #969: per-enemy gunshot cooldown tracker
+## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
+const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
+const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
+var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
 var _is_reloading: bool = false  ## Currently reloading
@@ -2695,20 +2697,16 @@ func _transition_to_retreating() -> void:
 	# Find cover position for retreating
 	_find_cover_position()
 
-## Check if PLAYER can see ENEMY (inverse of _can_see_player). Checks center + corners.
+## Check if PLAYER can see ENEMY. Checks center + corners. Issue #969: per-frame cached.
 func _is_visible_from_player() -> bool:
-	if _player == null:
-		return false
-
-	# Check visibility to multiple points on the enemy body
-	# This accounts for the enemy's size - corners can stick out from cover
-	var check_points := _get_enemy_check_points(global_position)
-
-	for point in check_points:
-		if _is_point_visible_from_player(point):
-			return true
-
-	return false
+	if _player == null: return false
+	var current_frame := Engine.get_physics_frames()  # Issue #969: per-frame cache
+	if current_frame == _visible_from_player_cache_frame: return _cached_visible_from_player
+	var is_visible := false
+	for point in _get_enemy_check_points(global_position):
+		if _is_point_visible_from_player(point): is_visible = true; break
+	_cached_visible_from_player = is_visible; _visible_from_player_cache_frame = current_frame
+	return is_visible
 
 ## Get center + 4 corner points on enemy body for visibility testing.
 func _get_enemy_check_points(center: Vector2) -> Array[Vector2]:
@@ -3222,13 +3220,16 @@ func _find_cover_closest_to_player() -> void:
 		# Fall back to normal cover finding
 		_find_cover_position()
 
-## Find a valid cover position relative to the player.
-## The cover position must be hidden from the player's line of sight.
-## Enhanced: Now validates that the cover position is reachable (no walls blocking path).
+## Find cover position hidden from player (validates reachability). Issue #969: throttled.
 func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
+
+	# Issue #969: throttle 16-raycast cover search; skip if valid cover exists and cooldown not elapsed
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	_last_cover_search_time = current_time
 
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
