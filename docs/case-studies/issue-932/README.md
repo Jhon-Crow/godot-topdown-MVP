@@ -147,8 +147,8 @@ The player is shooting with MiniUzi (`source=PLAYER (MiniUzi)`) and all those bu
 ## Attached Data
 
 - `game_log_20260301_030334.txt` — Full game session log showing v1 bug (7,015 lines)
-- `logs/game_log_20260302_185211.txt` — Game log showing v2 bug (bullets disappear — older build)
-- `logs/game_log_20260306_001151.txt` — Game log showing v3 bug (player bullets trapped)
+- `game_log_20260302_185211.txt` — Game log showing v2 bug (bullets disappear — older build)
+- `game_log_20260306_001151.txt` — Game log showing v3 bug (player bullets trapped)
 
 ---
 
