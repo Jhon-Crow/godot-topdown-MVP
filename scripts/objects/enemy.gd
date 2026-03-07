@@ -2877,41 +2877,25 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 	return true
 
 ## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
-## [Issue #954 v3] Uses intersect_point() at the muzzle position to detect walls even
-## when the enemy center is already touching/inside a wall (raycasts miss this case because
-## Godot does not report collisions for rays that start inside a collider).
+## [#954 v3] Uses intersect_point() at muzzle (detects muzzle-inside-wall even when enemy
+## center is inside collider — raycasts silently miss this case in Godot) plus center→muzzle
+## raycast to catch walls between center and muzzle.
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
-	# Fail-open: allow shooting if physics is not ready
 	var world_2d := get_world_2d()
-	if world_2d == null:
-		return true
+	if world_2d == null: return true
 	var space_state := world_2d.direct_space_state
-	if space_state == null:
-		return true
+	if space_state == null: return true
 	var muzzle_pos := _get_bullet_spawn_position(direction)
-	# [#954 v3] Point-check the muzzle position directly. intersect_point() correctly
-	# detects walls even when the query point is inside the collider, unlike raycasts
-	# which silently fail when the ray origin is inside a shape.
-	var point_query := PhysicsPointQueryParameters2D.new()
-	point_query.position = muzzle_pos
-	point_query.collision_mask = 4  # Only check obstacles (layer 3)
-	point_query.exclude = [get_rid()]
-	var point_result := space_state.intersect_point(point_query, 1)
-	if not point_result.is_empty():
-		_log_debug("Bullet spawn blocked: muzzle at %.0f,%.0f is inside wall" % [
-			muzzle_pos.x, muzzle_pos.y])
-		return false
-	# Also raycast from enemy center to muzzle to catch walls between them
-	var real_muzzle_distance := global_position.distance_to(muzzle_pos)
-	var ray_query := PhysicsRayQueryParameters2D.new()
-	ray_query.from = global_position; ray_query.to = muzzle_pos
-	ray_query.collision_mask = 4  # Only check obstacles (layer 3)
-	ray_query.exclude = [get_rid()]
-	var ray_result := space_state.intersect_ray(ray_query)
-	if not ray_result.is_empty():
+	var pq := PhysicsPointQueryParameters2D.new()  # [#954 v3] point test at muzzle — intersect_point detects inside-wall even when origin is inside collider
+	pq.position = muzzle_pos; pq.collision_mask = 4; pq.exclude = [get_rid()]
+	if not space_state.intersect_point(pq, 1).is_empty():
+		_log_debug("Bullet spawn blocked: muzzle at %.0f,%.0f is inside wall" % [muzzle_pos.x, muzzle_pos.y]); return false
+	var rq := PhysicsRayQueryParameters2D.new()  # secondary raycast center→muzzle catches walls between them
+	rq.from = global_position; rq.to = muzzle_pos; rq.collision_mask = 4; rq.exclude = [get_rid()]
+	var rr := space_state.intersect_ray(rq)
+	if not rr.is_empty():
 		_log_debug("Bullet spawn blocked: wall at distance %.1f (muzzle at %.1f)" % [
-			global_position.distance_to(ray_result["position"]), real_muzzle_distance])
-		return false
+			global_position.distance_to(rr["position"]), global_position.distance_to(muzzle_pos)]); return false
 	return true
 
 ## Find a sidestep direction for a clear shot. Returns Vector2.ZERO if none found.
