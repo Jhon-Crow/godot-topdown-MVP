@@ -372,6 +372,38 @@ func _snap_to_boundary(projectile: Node2D) -> void:
 	_trapped_boundary_angles[projectile] = direction_to_proj.angle()
 
 
+## Check if a projectile was fired by the player (issue #932).
+## The force field should only trap ENEMY bullets, not the player's own projectiles.
+## Uses shooter_id / source_id property (set by the weapon on spawn) to look up the shooter node
+## and checks group membership — the same strategy used in bullet.gd _is_player_bullet().
+## Returns true if the projectile was fired by the player and should NOT be trapped.
+func _is_player_projectile(projectile: Node2D) -> bool:
+	# GDScript bullets use shooter_id (int, -1 = unknown)
+	# C# bullets use ShooterId (ulong, exported with snake_case "shooter_id")
+	# Shrapnel uses source_id
+	# Use .get() for C#/GDScript-compatible property read (Issue #932).
+	var raw_shooter_id = projectile.get("shooter_id")
+	if raw_shooter_id == null:
+		raw_shooter_id = projectile.get("source_id")
+
+	if raw_shooter_id == null:
+		return false  # No shooter info — assume enemy, allow trapping
+
+	# GDScript bullets default to -1 when no shooter is set; C# bullets default to 0.
+	var shooter_id_int: int = int(raw_shooter_id)
+	if shooter_id_int <= 0:
+		return false  # No valid shooter — assume enemy, allow trapping
+
+	# Look up the shooter node by instance ID
+	var shooter: Object = instance_from_id(shooter_id_int)
+	if shooter == null or not shooter is Node:
+		return false  # Shooter no longer in scene — allow trapping
+
+	# Check group membership: player nodes are in the "player" group (set in Player.tscn).
+	# This works for both C# Player and GDScript players.
+	return (shooter as Node).is_in_group("player")
+
+
 ## Trap a bullet in the force field — stop its movement and snap it to the field boundary.
 ## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
 func _trap_bullet(bullet: Node2D) -> void:
@@ -383,6 +415,11 @@ func _trap_bullet(bullet: Node2D) -> void:
 	if not has_direction or not has_speed:
 		FileLogger.info("[ForceFieldEffect] Bullet missing properties — has_direction=%s has_speed=%s class=%s — skipping trap" % [
 			has_direction, has_speed, bullet.get_class()])
+		return
+
+	# Skip player's own bullets — the force field only traps ENEMY projectiles (Issue #932).
+	if _is_player_projectile(bullet):
+		FileLogger.info("[ForceFieldEffect] Skipping player bullet — force field only traps enemy bullets (class=%s)" % bullet.get_class())
 		return
 
 	# Already trapped? Skip.
@@ -418,6 +455,11 @@ func _trap_bullet(bullet: Node2D) -> void:
 func _trap_shrapnel(shrapnel: Node2D) -> void:
 	# Use .get("prop") for C#/GDScript-compatible property check (Issue #932).
 	if shrapnel.get("direction") == null:
+		return
+
+	# Skip player's own shrapnel — the force field only traps ENEMY projectiles (Issue #932).
+	if _is_player_projectile(shrapnel):
+		FileLogger.info("[ForceFieldEffect] Skipping player shrapnel — force field only traps enemy shrapnel (class=%s)" % shrapnel.get_class())
 		return
 
 	# Already trapped? Skip.

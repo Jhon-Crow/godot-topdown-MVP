@@ -104,6 +104,30 @@ if bullet.get("shooter_id") != null:
 
 ---
 
+### Part 3: Force field trapping player's own bullets (PR #933 v3)
+
+After v2 fix was applied, the owner tested again and reported:
+> "сейчас щит останавливает пули игрока, а не врагов"
+> (Translation: "now the shield stops the player's bullets, not the enemies'")
+
+**Game log evidence** (`game_log_20260306_001151.txt`):
+
+```
+[SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469
+[ForceFieldEffect] Area entered: Bullet9mm (script: res://scripts/projectiles/bullet.gd)
+[ForceFieldEffect] Bullet trapped at boundary (class=Area2D). Total trapped: 1
+```
+
+The player is shooting with MiniUzi (`source=PLAYER (MiniUzi)`) and all those bullets are being trapped. The force field was trapping ALL bullets in range — including those fired by the player.
+
+**Root cause**: `_trap_bullet()` and `_trap_shrapnel()` had no check for who fired the projectile. Any bullet with `direction` and `speed` properties would be trapped, regardless of whether it was fired by an enemy or by the player.
+
+**Why this wasn't caught earlier**: In PR #933 v2, the owner had invincibility mode enabled (`[ExperimentalSettings] Invincibility: true`). The player fired first and those bullets filled the field. The expected behavior (enemy bullets being trapped) was never tested.
+
+**Fix (PR #933 v3)**: Added `_is_player_projectile()` helper that looks up the shooter via `instance_from_id(shooter_id)` and checks `is_in_group("player")`. Both `_trap_bullet()` and `_trap_shrapnel()` call this before trapping and skip player-fired projectiles.
+
+---
+
 ## Prior Issues on This Feature
 
 | Issue | Description | Fix |
@@ -111,17 +135,20 @@ if bullet.get("shooter_id") != null:
 | #676 | Force field not activating | Added `InitForceField()` in `Player.cs` |
 | #912 | C# bullets destroying themselves before force field traps them | `IsForceFieldArea()` check in `Bullet.cs`/`ShotgunPellet.cs` |
 | #932 v1 | Bullets not snapping to boundary ring | Added `_snap_to_boundary()` and `_update_trapped_positions()` |
-| #932 v2 | Trap never executes — GDScript `in` operator bug | **This fix**: Replace `"prop" in node` with `node.get("prop") != null` |
+| #932 v2 | Trap never executes — GDScript `in` operator bug | Replace `"prop" in node` with `node.get("prop") != null` |
+| #932 v3 | Force field traps player's own bullets | **This fix**: Added `_is_player_projectile()` check using `shooter_id` + `is_in_group("player")` |
 
 ---
 
 ## Files Modified
 
-1. `scripts/effects/force_field_effect.gd` — Replace `"prop" in node` with `node.get("prop") != null` throughout
+1. `scripts/effects/force_field_effect.gd` — Replace `"prop" in node` with `node.get("prop") != null` throughout; add `_is_player_projectile()` to skip player-fired projectiles
 
 ## Attached Data
 
-- `game_log_20260301_030334.txt` — Full game session log showing the bug (7,015 lines)
+- `game_log_20260301_030334.txt` — Full game session log showing v1 bug (7,015 lines)
+- `logs/game_log_20260302_185211.txt` — Game log showing v2 bug (bullets disappear — older build)
+- `logs/game_log_20260306_001151.txt` — Game log showing v3 bug (player bullets trapped)
 
 ---
 
@@ -132,3 +159,4 @@ if bullet.get("shooter_id") != null:
 - C# `[Export]` properties are accessible via `node.get("snake_case_name")` from GDScript — but NOT via the `in` operator
 - C# bullets (Bullet.cs, ShotgunPellet.cs) have `IsForceFieldArea()` checks to prevent `QueueFree()` when entering force field area (from PR #913)
 - GDScript bullet (`bullet.gd`) naturally doesn't destroy itself when entering force field area because it only calls `_destroy()` when `area.has_method("on_hit")`, and the force field area does not have that method
+- `shooter_id` is set on every bullet by the weapon when spawning; Player is in `"player"` group (in `scenes/characters/Player.tscn`); enemies are in `"enemies"` group (added via `add_to_group("enemies")` in `enemy.gd`)
