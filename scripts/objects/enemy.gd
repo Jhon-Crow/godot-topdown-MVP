@@ -3811,6 +3811,10 @@ func _shoot() -> void:
 		# [Issue #954] For aggressive enemies (BFF companion): check bullet spawn is clear to
 		# prevent firing bullets into nearby walls (wall-stuck bug fix).
 		if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
+		# [Issue #954] Also verify the shot path from the real muzzle position to the target is
+		# unobstructed. The center-based _is_bullet_spawn_clear check misses cases where the
+		# muzzle overhangs a wall corner at the edge of a passage (shooting through walls bug).
+		if not _is_shot_clear_of_cover(_aggression.get_target_position()): return
 	elif not _aiming_companion and not _should_shoot_at_target(target_position): return
 	if _enemy_flashlight:  # Issue #824/#825: block shooting while flashlight flash is in progress
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))

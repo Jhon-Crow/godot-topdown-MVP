@@ -1,4 +1,4 @@
-# Case Study: Issue #954 — BFF Companion AI Bugs (Shoots Player, Stuck in Wall)
+# Case Study: Issue #954 — BFF Companion AI Bugs (Shoots Player, Stuck in Wall, Shoots Through Walls)
 
 ## Issue Summary
 
@@ -9,6 +9,18 @@
 **Description (Russian)**:
 1. напарник иногда стреляет в игрока (companion sometimes shoots at the player)
 2. напарник часто упирается в стену и стреляет (не попадает, перестаёт перемещаться) (companion often presses against wall and shoots — misses, stops moving)
+3. напарник стреляет у края прохода (пытается попасть во врагов сквозь стены) (companion shoots at the edge of a passage — tries to hit enemies through walls)
+
+**Additional issue reported in PR #955 review (2026-03-02)**:
+The companion continues getting stuck in ALWAYS-COMBAT state (never transitions to other states). This was observed via game logs attached to the review.
+
+**Additional issue reported in PR #955 review (2026-03-05)**:
+"Update from main and continue from comment #3985986837. Also separately pay attention to the companion shooting at the edge of a passage (trying to hit enemies through walls)."
+
+## Game Logs
+
+- `logs/game_log_20260302_205254.txt` — Session 1 (77,988 lines): Severe 96-shot stuck cluster, companion locked for 32 seconds
+- `logs/game_log_20260302_205756.txt` — Session 2 (1,978 lines): Rapid P1↔P2 state oscillation, 7 shots through wall within 1 second of spawn
 
 ---
 
@@ -102,6 +114,49 @@ func process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed) ->
         _parent.velocity = Vector2.ZERO  # Stops moving even if against wall
 ```
 
+### Bug #3: Companion Shoots at Enemies Through Walls (Edge of Passage)
+
+**Sequence**:
+1. BFF companion navigates toward an enemy. At some point, it stands at the edge of a passage/doorway.
+2. `process_combat()` calls `_has_los(target)` — center-to-center raycast → returns `true` (centers have clear LOS).
+3. `bullet_spawn_blocked` check uses `_is_bullet_spawn_clear()` which only casts a 35px ray from the **enemy center** — this also returns `true` (center area is clear).
+4. `velocity = Vector2.ZERO` — companion stops and starts firing.
+5. The real weapon muzzle is located ~68px from center at an angle (actual measurement from logs: ~56px lateral + ~38px forward). This muzzle position overhangs the wall corner.
+6. `_execute_shoot()` calls `_get_bullet_spawn_position()` which computes the true muzzle at 52px from `_weapon_sprite.global_position` which itself is ~20px from center. The real muzzle lands inside or behind the wall.
+7. The bullet is spawned with `distance=0` (point-blank, body falls back to center), or travels ~333px before hitting the perpendicular wall.
+8. The AI never stops because `_is_bullet_spawn_clear()` (35px from center) and `_has_los()` (center-to-center) both keep returning `true`.
+
+**Evidence from game logs**:
+
+*Session 1 (game_log_20260302_205254.txt)*:
+- **Line 705–2003**: 45-shot stuck cluster at muzzle `(141.3543, 802.4822)`. Every shot shows `bullet_pos == shooter_position` and `distance=0` — the bullet is spawning inside the wall. Muzzle offset from body: **68px**.
+- **Line 49854–72577**: **96-shot stuck cluster** spanning 32 seconds at muzzle `(980.1033, 924.3707)`. Only 4 ROT_CHANGE events during entire 32-second window. Body drifted 136px while muzzle stayed fixed at wall corner.
+
+*Session 2 (game_log_20260302_205756.txt)*:
+- **Line 580–639**: 7 shots through wall within 1 second of spawn, while log simultaneously shows `Moving to Enemy4 (no LOS)` — firing at an enemy it acknowledges it cannot see.
+- **Lines 920–1001**: 14 rapid P1↔P2 state oscillations over 4 seconds, target angle oscillating -119° to -146°, consistent with muzzle borderline at wall corner.
+
+**Root Cause**:
+```
+_is_bullet_spawn_clear():  35px ray from CENTER   → often CLEAR  (misses muzzle overhang)
+_is_shot_clear_of_cover(): ray from REAL MUZZLE   → BLOCKED      (correctly detects wall)
+```
+
+The aggressive companion code path in `_shoot()` only called `_is_bullet_spawn_clear()` (center-based, 35px). The non-aggressive path called `_should_shoot_at_target()` which additionally runs `_is_shot_clear_of_cover()` from the real muzzle position. This inconsistency caused the companion to fire in cases where non-aggressive enemies would not.
+
+Same inconsistency existed in `aggression_component.process_combat()`: `bullet_spawn_blocked` used only `_is_bullet_spawn_clear()`, so when the center was clear but the muzzle was inside a wall, the companion stopped moving and kept shooting into the wall.
+
+---
+
+## Evidence Summary from Logs
+
+| Session | Lines | Duration | Shots | Position (muzzle) | Behavior |
+|---------|-------|----------|-------|-------------------|----------|
+| Log 1 | 705–2003 | 9s | 45 | (141.3, 802.5) | Point-blank wall, bullet_pos=body_pos |
+| Log 1 | 3346–4316 | 6s | 30 | (520.3, 750.3) | Fixed muzzle, stuck at passage |
+| Log 1 | 49854–72577 | 32s | 96 | (980.1, 924.4) | Muzzle anchored to wall corner, body drifted 136px |
+| Log 2 | 580–639 | 1s | 7 | (549.9, 1206.0) | Fires 1s after spawn, no LOS acknowledged |
+
 ---
 
 ## Additional Online Research
@@ -109,49 +164,56 @@ func process_combat(delta, rotation_speed, shoot_cooldown, combat_move_speed) ->
 ### Godot AI Navigation Patterns
 - **Center-to-LOS vs bullet-spawn-LOS mismatch**: A known pattern in 2D game AI — the character center has clear LOS but the weapon muzzle does not. Best practice: use muzzle position for LOS checks when computing firing solutions.
 - **Friendly fire prevention**: Standard approach is to check target faction/group before firing, not just rely on aggression target being non-null.
+- **Passage edge problem**: When an AI agent stands at a doorway corner, the agent's center may be in the clear area but the weapon (offset from center) clips the wall. A correct implementation must check from the actual muzzle position, not the center.
 
 ---
 
-## Proposed Solutions
+## Implemented Fixes
 
-### Fix #1 — Companion Never Shoots Player (enemy.gd)
+### Fix #1 — Companion Never Shoots Player (enemy.gd) ✓
 
-**In `_shoot()`**: Add a guard to prevent BFF companions from targeting the player.
+**In `_shoot()`**: Added early return when `_agg` is true but `_aggression.get_target()` is null. This prevents the fallback to `_player.global_position` that caused friendly fire.
 
 ```gdscript
-# Add flag: is this enemy a BFF companion?
-var _is_bff_companion: bool = false  # Set in player.gd when summoning
-
-# In _shoot(), prevent player targeting when companion
-if _is_bff_companion and (_agg and _aggression.get_target() == null):
-    return  # No enemy targets — don't fall back to shooting player
+# [Issue #954] BFF companion (aggressive mode) must not fall back to shooting the player.
+if _agg and (_aggression.get_target() == null):
+    return
 ```
 
-**Alternative**: Instead of a flag, check if the node is in "bff_companions" group.
+### Fix #2 — Prevent Companion from Getting Stuck Against Wall (aggression_component.gd + enemy.gd) ✓
 
-### Fix #2 — Prevent Companion from Getting Stuck Against Wall (aggression_component.gd)
+**In `aggression_component.process_combat()`**: Added bullet spawn blocked check using `_is_bullet_spawn_clear()`. When blocked, navigate toward target instead of stopping.
 
-**Option A**: In `process_combat()`, add bullet spawn clear check before stopping movement:
+**In `_shoot()` for aggressive enemies**: Added `_is_bullet_spawn_clear()` check — when bullet spawn is blocked by the wall the companion is pressing against, abort the shot.
+
+### Fix #3 — Prevent Companion from Shooting Through Walls at Passage Edges (enemy.gd + aggression_component.gd) ✓
+
+**Root cause**: `_is_bullet_spawn_clear()` only checks 35px from enemy center. The real muzzle is ~68px from center at an angle and can overhang wall corners. For non-aggressive enemies, `_should_shoot_at_target()` was used which calls `_is_shot_clear_of_cover()` from the real muzzle. For aggressive enemies, only the center check was used.
+
+**Fix in `enemy.gd` `_shoot()`**: After the 35px center check, also call `_is_shot_clear_of_cover()` which raycasts from the real muzzle position to the target:
 ```gdscript
-if _target != null and _has_los(_target):
-    var weapon_dir := ...
-    if not _is_bullet_spawn_clear_for_parent():
-        # Move out from wall instead of standing still
-        _parent._move_to_target_nav(_target.global_position, combat_move_speed)
-        return
-    # ...stand still and shoot
+if _agg:
+    if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
+    # [Issue #954] Also verify real muzzle path is unobstructed (passage-edge wall bug)
+    if not _is_shot_clear_of_cover(_aggression.get_target_position()): return
 ```
 
-**Option B**: In `_shoot()`, add `_is_bullet_spawn_clear()` check even for aggressive enemies.
+**Fix in `aggression_component.gd` `process_combat()`**: Extended `bullet_spawn_blocked` to also consider the real muzzle path:
+```gdscript
+var center_blocked: bool = ...  # existing 35px center check
+var muzzle_blocked: bool = not center_blocked and
+    _parent.has_method("_is_shot_clear_of_cover") and
+    not _parent._is_shot_clear_of_cover(_target.global_position)
+var bullet_spawn_blocked: bool = center_blocked or muzzle_blocked
+```
 
-**Recommendation**: Fix both in `_shoot()` since that's where the actual shooting decision is made.
+When `muzzle_blocked` is true (muzzle overhangs wall corner), the companion navigates to find a clear shooting position instead of stopping.
 
 ---
 
-## Implementation Plan
+## Regression Tests
 
-1. **Fix Bug #1**: In `_shoot()`, when `_agg` is true but `_aggression.get_target()` is null, return early instead of falling back to `_player`. Also prevent `_execute_shoot()` from firing toward player position when companion.
-
-2. **Fix Bug #2**: In `_shoot()`, add bullet spawn clear check for aggressive enemies: remove the `not _agg` guard from `_should_shoot_at_target()` check. Additionally, in `process_combat()`, move toward target when bullet spawn is blocked.
-
-3. **Add `is_bff_companion` flag**: Set in `player.gd`/`Player.cs` during summoning so the companion can be identified by its AI code.
+Tests added to `tests/unit/test_bff_pendant.gd`:
+- **Bug #1** (5 tests): `MockBffShootLogic` — verifies no fallback to player shooting
+- **Bug #2** (7 tests): `MockBffCombatMovement` — verifies navigation when center spawn blocked
+- **Bug #3** (6 tests): `MockMuzzleWallCheck` — verifies no shooting when real muzzle path blocked

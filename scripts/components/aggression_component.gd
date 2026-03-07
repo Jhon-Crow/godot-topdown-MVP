@@ -65,9 +65,15 @@ func process_combat(delta: float, rotation_speed: float, shoot_cooldown: float, 
 		# [Issue #954] Ranged aggressive enemies also move when bullet spawn is blocked by a wall
 		# (e.g. BFF companion pressed against a wall — must navigate away to get a clear shot).
 		var is_melee: bool = _parent.get("_is_melee_weapon") == true
-		var bullet_spawn_blocked: bool = _parent.has_method("_is_bullet_spawn_clear") and \
+		# Check center-based spawn clear AND real muzzle path to target.
+		# The center-only check misses muzzle-overhangs at passage edges (Issue #954 wall-shoot bug).
+		var center_blocked: bool = _parent.has_method("_is_bullet_spawn_clear") and \
 			_parent.has_method("_get_weapon_forward_direction") and \
 			not _parent._is_bullet_spawn_clear(_parent._get_weapon_forward_direction())
+		var muzzle_blocked: bool = not center_blocked and \
+			_parent.has_method("_is_shot_clear_of_cover") and \
+			not _parent._is_shot_clear_of_cover(_target.global_position)  # [Issue #954] real muzzle check
+		var bullet_spawn_blocked: bool = center_blocked or muzzle_blocked
 		if is_melee or bullet_spawn_blocked:
 			if _parent.has_method("_move_to_target_nav"): _parent._move_to_target_nav(_target.global_position, combat_move_speed)
 		else:

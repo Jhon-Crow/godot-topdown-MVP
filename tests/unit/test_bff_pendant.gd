@@ -1206,3 +1206,114 @@ func test_goap_player_not_visible_when_neither_seen() -> void:
 	var visible := MockGoapWorldState.update_player_visible(false, false)
 	assert_false(visible,
 		"player_visible should be false when neither player nor companion is seen")
+
+
+# ============================================================================
+# BFF Companion Passage-Edge Wall-Shooting Prevention Tests (Issue #954 Bug #3)
+# ============================================================================
+## Verifies that the BFF companion does NOT shoot when the real muzzle path
+## is blocked by a wall, even if the center-to-center line-of-sight is clear.
+## This fixes the "shooting at the edge of a passage" bug where the muzzle
+## overhangs a wall corner and bullets are wasted against the wall.
+
+
+class MockMuzzleWallCheck:
+	## Simulates the dual-check logic in _shoot() and process_combat() for Issue #954 Bug #3.
+	## The center-to-center check (35px radius) may pass while the real muzzle
+	## path (from actual muzzle position, ~68px from center at an angle) is blocked.
+
+	## Whether the 35px center-forward spawn check is clear
+	var center_spawn_clear: bool = true
+
+	## Whether the real muzzle-to-target path is clear (used by _is_shot_clear_of_cover)
+	var muzzle_path_clear: bool = true
+
+	## Whether this is an aggressive companion (uses dual check path)
+	var is_aggressive: bool = true
+
+	## Simulates the combined shoot guard from _shoot() in enemy.gd (Issue #954):
+	## - Aggressive: needs BOTH center spawn clear AND real muzzle path clear
+	## - Non-aggressive: handled by _should_shoot_at_target (already uses real muzzle)
+	func should_shoot() -> bool:
+		if is_aggressive:
+			if not center_spawn_clear:
+				return false  # Center check blocked
+			if not muzzle_path_clear:
+				return false  # Real muzzle path blocked (new Issue #954 Bug #3 fix)
+			return true
+		else:
+			# Non-aggressive already uses real muzzle via _should_shoot_at_target
+			return center_spawn_clear and muzzle_path_clear
+
+	## Simulates the movement decision in aggression_component.process_combat().
+	## Returns "moving" if companion should navigate, "stopped" if it should stand and shoot.
+	func decide_movement() -> String:
+		var center_blocked: bool = not center_spawn_clear
+		var muzzle_blocked: bool = not center_blocked and not muzzle_path_clear
+		var bullet_spawn_blocked: bool = center_blocked or muzzle_blocked
+		return "moving" if bullet_spawn_blocked else "stopped"
+
+
+func test_companion_no_shoot_when_center_clear_but_muzzle_blocked() -> void:
+	## Simulates: companion at passage edge — center-to-enemy ray is clear (35px),
+	## but muzzle (68px, angled) overhangs the wall corner. Real muzzle path is blocked.
+	var check := MockMuzzleWallCheck.new()
+	check.is_aggressive = true
+	check.center_spawn_clear = true   # 35px center ray: clear
+	check.muzzle_path_clear = false   # Real muzzle → enemy path: blocked by wall corner
+
+	assert_false(check.should_shoot(),
+		"Aggressive companion should NOT shoot when real muzzle path is blocked (Issue #954 Bug #3)")
+
+
+func test_companion_shoots_when_both_center_and_muzzle_clear() -> void:
+	## Normal case: companion has clear LOS and clear muzzle path — should shoot.
+	var check := MockMuzzleWallCheck.new()
+	check.is_aggressive = true
+	check.center_spawn_clear = true
+	check.muzzle_path_clear = true
+
+	assert_true(check.should_shoot(),
+		"Aggressive companion should shoot when both center and muzzle paths are clear")
+
+
+func test_companion_moves_when_center_blocked() -> void:
+	## Classic wall-flush case: center ray already blocked — companion must navigate.
+	var check := MockMuzzleWallCheck.new()
+	check.center_spawn_clear = false
+	check.muzzle_path_clear = false  # Irrelevant when center blocked
+
+	assert_eq(check.decide_movement(), "moving",
+		"Companion must navigate when center spawn check is blocked")
+
+
+func test_companion_moves_when_muzzle_blocked_but_center_clear() -> void:
+	## Passage-edge case: center is clear but real muzzle path is blocked.
+	## Companion must navigate to find a position with full clear shot.
+	var check := MockMuzzleWallCheck.new()
+	check.center_spawn_clear = true
+	check.muzzle_path_clear = false
+
+	assert_eq(check.decide_movement(), "moving",
+		"Companion must navigate when muzzle path blocked even though center check passes (Issue #954 Bug #3)")
+
+
+func test_companion_stops_when_both_paths_clear() -> void:
+	## Full clear shot: companion stops and engages.
+	var check := MockMuzzleWallCheck.new()
+	check.center_spawn_clear = true
+	check.muzzle_path_clear = true
+
+	assert_eq(check.decide_movement(), "stopped",
+		"Companion should stop and shoot when both center and muzzle paths are clear")
+
+
+func test_companion_no_shoot_when_center_blocked_regardless_of_muzzle() -> void:
+	## Even if muzzle_path_clear were true, center blocked means no shot.
+	var check := MockMuzzleWallCheck.new()
+	check.is_aggressive = true
+	check.center_spawn_clear = false
+	check.muzzle_path_clear = true  # Doesn't matter if center is blocked
+
+	assert_false(check.should_shoot(),
+		"Should not shoot when center spawn is blocked (muzzle path irrelevant in this case)")
