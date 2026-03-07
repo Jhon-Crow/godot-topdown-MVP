@@ -48,6 +48,29 @@ Key visual improvements in v2:
 3. Added dedicated neon-style font (Beon) instead of default system font
 4. Enhanced shader with multi-layer glow for more realistic effect
 
+## Fix History
+
+### v3 Fix: Remove Opaque Outline
+
+**Owner feedback (v3)**: "у больших надписей не прозрачная обводка, выглядит не как свечение" (large text has non-transparent outline, doesn't look like glow) — see `images/owner-feedback-opaque-outline.png`.
+
+**Root cause**: `neon_label_settings.tres` had `outline_size = 3` with solid `outline_color = Color(1.0, 0.3, 0.55, 1.0)` (fully opaque). This created a hard pink border ring around each letter, making text look "outlined" rather than glowing.
+
+**Changes in v3**:
+- Set `outline_size = 0` to remove solid outline
+- Increased shadow size from 12 to 16 pixels for stronger ambient glow
+- Applied neon glow shader to sub-menu TitleLabels (Controls, Difficulty, Sound, Experimental)
+
+### v4 Fix: Semi-Transparent Outline (20% Opacity)
+
+**Owner feedback (v4)**: "маленький шрифт выглядит хорошо, но обводка больших букв не прозрачная, выглядит некрасиво (если можно сделать обводку непрозрачной на 20% было бы хорошо)" (small font looks good, but large letters have non-transparent outline — if possible make outline 20% opaque) — see `images/owner-feedback-v4-opaque-outline.png`.
+
+After removing the outline entirely in v3, the owner found large text still had visible outlines. Investigation revealed the shadow rendering at large font sizes was creating a visible ring effect, and a subtle semi-transparent outline would look better than none at all.
+
+**Changes in v4**:
+- Set `outline_size = 3` with `outline_color = Color(1.0, 0.3, 0.55, 0.2)` — pink outline at 20% alpha
+- Applied same 20% opacity outline to `neon_button_theme.tres` Label styles
+
 ## Files Created/Modified
 
 ### New Files
