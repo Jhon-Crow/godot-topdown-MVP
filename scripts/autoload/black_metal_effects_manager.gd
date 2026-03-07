@@ -6,6 +6,14 @@ extends Node
 ## preserved in color; everything else is rendered in high-contrast grayscale.
 ##
 ## The filter is automatically enabled/disabled when difficulty changes.
+##
+## IMPORTANT: hint_screen_texture requires at least one rendered frame before it is valid.
+## Showing the overlay on frame 0 produces a white screen in Godot's gl_compatibility
+## renderer. We therefore defer the first show by one frame (same fix used in
+## CinemaEffectsManager v5.3).
+
+## Number of frames to wait after enable_filter() before making the overlay visible.
+const ACTIVATION_DELAY_FRAMES: int = 1
 
 ## CanvasLayer for the screen-space filter overlay.
 var _filter_layer: CanvasLayer = null
@@ -13,8 +21,17 @@ var _filter_layer: CanvasLayer = null
 ## ColorRect carrying the shader material.
 var _filter_rect: ColorRect = null
 
-## Whether the filter is currently visible.
+## Whether the filter should be visible (logical state).
 var _is_active: bool = false
+
+## Whether we are currently waiting to show the overlay after a delay.
+var _waiting_for_activation: bool = false
+
+## Frame counter used for the activation delay.
+var _activation_frame_counter: int = 0
+
+## Tracks the previous scene root to re-trigger activation on scene changes.
+var _previous_scene_root: Node = null
 
 
 func _ready() -> void:
@@ -48,6 +65,9 @@ func _ready() -> void:
 	_filter_rect.visible = false
 	_filter_layer.add_child(_filter_rect)
 
+	# Connect to scene changes so the filter re-activates properly after level loads.
+	get_tree().tree_changed.connect(_on_tree_changed)
+
 	# Connect to difficulty changes to enable/disable the filter.
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager:
@@ -58,19 +78,40 @@ func _ready() -> void:
 		_log("WARNING: DifficultyManager not found - filter will not activate automatically")
 
 
-## Enables the Black Metal visual filter.
+## Called every frame to handle the activation delay.
+func _process(_delta: float) -> void:
+	if not _waiting_for_activation:
+		return
+	_activation_frame_counter += 1
+	if _activation_frame_counter >= ACTIVATION_DELAY_FRAMES:
+		_waiting_for_activation = false
+		if _is_active and _filter_rect:
+			_filter_rect.visible = true
+			_log("Black Metal filter now visible (after %d frame delay)" % ACTIVATION_DELAY_FRAMES)
+
+
+## Enables the Black Metal visual filter (with a one-frame delay to avoid white screen).
 func enable_filter() -> void:
-	if _filter_rect:
-		_filter_rect.visible = true
 	_is_active = true
-	_log("Black Metal filter ENABLED")
+	_start_delayed_activation()
+	_log("Black Metal filter ENABLED (activation deferred by %d frame(s))" % ACTIVATION_DELAY_FRAMES)
+
+
+## Starts the delayed-activation sequence.
+## Hides the overlay and waits for the scene to render before showing it.
+func _start_delayed_activation() -> void:
+	if _filter_rect:
+		_filter_rect.visible = false
+	_waiting_for_activation = true
+	_activation_frame_counter = 0
 
 
 ## Disables the Black Metal visual filter.
 func disable_filter() -> void:
+	_is_active = false
+	_waiting_for_activation = false
 	if _filter_rect:
 		_filter_rect.visible = false
-	_is_active = false
 	_log("Black Metal filter DISABLED")
 
 
@@ -92,6 +133,17 @@ func _apply_current_difficulty() -> void:
 			enable_filter()
 		else:
 			disable_filter()
+
+
+## Called when the scene tree structure changes.
+## Re-triggers activation on scene load so the filter appears in the new level.
+func _on_tree_changed() -> void:
+	var current_scene := get_tree().current_scene
+	if current_scene != null and current_scene != _previous_scene_root:
+		_previous_scene_root = current_scene
+		_log("Scene changed to: %s" % current_scene.name)
+		if _is_active:
+			_start_delayed_activation()
 
 
 ## Log a message with the BlackMetal prefix.
