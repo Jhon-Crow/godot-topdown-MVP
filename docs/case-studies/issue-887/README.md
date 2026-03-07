@@ -36,10 +36,17 @@ The "наводящиеся пули" (homing bullets) active item had two incor
 - Additional CI fix commit `83a9b51a`: `fix(ci): replace wget with curl wrapper to fix 403 on GitHub release downloads`
 - All CI checks passed (5 workflows + Windows build)
 
-### 2026-03-07 18:06 UTC — User reports "charges not changed"
+### 2026-03-07 18:06 UTC — User reports "charges not changed" (first report)
 - User (Jhon-Crow) tested the game and reported the number of charges didn't change
 - User uploaded game log: `game_log_20260307_210527.txt`
 - Log path shows: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`
+- AI responded explaining the stale binary hypothesis with evidence
+
+### 2026-03-07 18:23 UTC — User reports "still more than 2 charges" (second report)
+- User (Jhon-Crow) tested again and still reported more than 2 charges
+- User uploaded second game log: `game_log_20260307_212306.txt`
+- **Second log shows the exact same executable path**: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`
+- This confirms the user ran the same pre-fix binary both times — no newly built binary was used
 
 ---
 
@@ -47,22 +54,31 @@ The "наводящиеся пули" (homing bullets) active item had two incor
 
 ### Finding
 
-The game log clearly shows the **old values** were used during the user's test:
+**Both game logs** clearly show the **old values** were used during the user's tests:
 
+**First log** (`game_log_20260307_210527.txt`):
 ```
 [21:05:32] [INFO] [Player.Homing] Homing bullets equipped, charges: 6/6
 [21:05:33] [INFO] [Player.Homing] Homing activated! Duration: 1s, charges remaining: 5/6
 ```
 
-**The fix WAS applied correctly to the source code.** However, the user tested with an **old pre-built executable** that was compiled before our fix was merged.
+**Second log** (`game_log_20260307_212306.txt`):
+```
+[21:23:11] [INFO] [Player.Homing] Homing bullets equipped, charges: 6/6
+[21:23:12] [INFO] [Player.Homing] Homing activated! Duration: 1s, charges remaining: 5/6
+```
+
+**The fix WAS applied correctly to the source code.** However, both times the user tested with the **same old pre-built executable** that was compiled before our fix was applied.
 
 ### Evidence
 
-1. **Executable path in log**: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`
-   - This is a **local pre-built binary** downloaded previously, not freshly compiled from the fixed branch
-   - The folder name "микро фиксы" ("micro fixes") suggests this was a build downloaded before our fix
+1. **Executable path is identical in both logs**:
+   - First log: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`
+   - Second log: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`
+   - Both point to the **same local pre-built binary** downloaded previously
+   - The folder name "микро фиксы" ("micro fixes") identifies this as a build from a prior release, not from this branch
 
-2. **Old values in log**: The log shows `6/6` charges and `Duration: 1s` — exactly matching the **pre-fix values** (`HOMING_MAX_CHARGES = 6`, `HOMING_DURATION = 1.0`)
+2. **Old values in both logs**: Both logs show `6/6` charges and `Duration: 1s` — exactly matching the **pre-fix values** (`HOMING_MAX_CHARGES = 6`, `HOMING_DURATION = 1.0`)
 
 3. **Current source code** (our fix, commit `00761de9`):
    ```gdscript
@@ -132,7 +148,8 @@ A Windows build was automatically compiled by CI from the fixed branch (commit `
 ## Files in This Case Study
 
 - `README.md` — This analysis document
-- `game_log_20260307_210527.txt` — Game log provided by the user showing old (pre-fix) executable behavior
+- `game_log_20260307_210527.txt` — First game log provided by the user (2026-03-07 21:05 UTC) showing old (pre-fix) executable behavior
+- `game_log_20260307_212306.txt` — Second game log provided by the user (2026-03-07 21:23 UTC) confirming the same pre-fix executable was used again
 
 ---
 
