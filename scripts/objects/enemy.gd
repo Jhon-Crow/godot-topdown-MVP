@@ -2877,30 +2877,25 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 	return true
 
 ## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
+## [#954 v3] Uses intersect_point() at muzzle (detects muzzle-inside-wall even when enemy
+## center is inside collider — raycasts silently miss this case in Godot) plus center→muzzle
+## raycast to catch walls between center and muzzle.
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
-	# Fail-open: allow shooting if physics is not ready
 	var world_2d := get_world_2d()
-	if world_2d == null:
-		return true
+	if world_2d == null: return true
 	var space_state := world_2d.direct_space_state
-	if space_state == null:
-		return true
-
-	# Check from enemy center to bullet spawn position plus a small buffer
-	var check_distance := bullet_spawn_offset + 5.0
-
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position
-	query.to = global_position + direction * check_distance
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = [get_rid()]
-
-	var result := space_state.intersect_ray(query)
-	if not result.is_empty():
-		_log_debug("Bullet spawn blocked: wall at distance %.1f" % [
-			global_position.distance_to(result["position"])])
-		return false
-
+	if space_state == null: return true
+	var muzzle_pos := _get_bullet_spawn_position(direction)
+	var pq := PhysicsPointQueryParameters2D.new()  # [#954 v3] point test at muzzle — intersect_point detects inside-wall even when origin is inside collider
+	pq.position = muzzle_pos; pq.collision_mask = 4; pq.exclude = [get_rid()]
+	if not space_state.intersect_point(pq, 1).is_empty():
+		_log_debug("Bullet spawn blocked: muzzle at %.0f,%.0f is inside wall" % [muzzle_pos.x, muzzle_pos.y]); return false
+	var rq := PhysicsRayQueryParameters2D.new()  # secondary raycast center→muzzle catches walls between them
+	rq.from = global_position; rq.to = muzzle_pos; rq.collision_mask = 4; rq.exclude = [get_rid()]
+	var rr := space_state.intersect_ray(rq)
+	if not rr.is_empty():
+		_log_debug("Bullet spawn blocked: wall at distance %.1f (muzzle at %.1f)" % [
+			global_position.distance_to(rr["position"]), global_position.distance_to(muzzle_pos)]); return false
 	return true
 
 ## Find a sidestep direction for a clear shot. Returns Vector2.ZERO if none found.
@@ -3797,13 +3792,18 @@ func _aim_at_player() -> void:
 func _shoot() -> void:
 	if _is_melee_weapon and _machete: var _mt := (_aggression.get_target() if _aggression and _aggression.is_aggressive() and _aggression.get_target() else _player) as Node2D; if _mt: _machete.perform_melee_attack(_mt); return  # [#858] target enemy when aggressive
 	var _agg := _aggression != null and _aggression.is_aggressive()  # [Issue #675]
+	if _agg and (_aggression.get_target() == null): return  # [Issue #954] no fallback to shooting player
 	var _aiming_companion := (_current_target == _companion and _can_see_companion)  # Issue #934
 	if bullet_scene == null or not (_player != null or _aiming_companion or (_agg and _aggression.get_target() != null)): return
 	if not _can_shoot(): return
 	# Issue #934: aggression target > companion > player
 	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_companion.global_position if _aiming_companion else (_player.global_position if _player else global_position))
 	if enable_lead_prediction and not _agg and _player and not _aiming_companion: target_position = _calculate_lead_prediction()
-	if not _agg and not _aiming_companion and not _should_shoot_at_target(target_position): return
+	if _agg:
+		# [Issue #954] Check both 35px center ray AND real muzzle-to-target path (passage-edge wall bug fix)
+		if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
+		if not _is_shot_clear_of_cover(_aggression.get_target_position()): return
+	elif not _aiming_companion and not _should_shoot_at_target(target_position): return
 	if _enemy_flashlight:  # Issue #824/#825: block shooting while flashlight flash is in progress
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))
 		return  # Callback fires the shot after flash completes
