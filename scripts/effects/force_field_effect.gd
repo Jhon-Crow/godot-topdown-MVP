@@ -351,6 +351,52 @@ func _on_body_entered(body: Node2D) -> void:
 			_reflect_grenade(body)
 
 
+# ===========================================================================
+# C#/GDScript-compatible property helpers (Issue #932)
+#
+# Problem: GDScript .get("direction") works for:
+#   - GDScript variables ("direction" snake_case var in bullet.gd)
+#   - Properties explicitly written with Set("direction", ...) from C#
+# But NOT for C# [Export] properties set via direct C# property assignment
+#   (e.g. csBullet.Direction = v in BaseWeapon.cs), which are stored under
+#   the PascalCase name and require .get("Direction").
+#
+# Solution: try snake_case first (GDScript), fall back to PascalCase (C#).
+# This is the same pattern used in enemy.gd _spawn_projectile().
+# ===========================================================================
+
+## Read the direction property from a projectile.
+## Tries "direction" (GDScript bullets / pellets set via Set()) first,
+## then "Direction" (C# Bullet/ShotgunPellet set via direct C# property assignment).
+func _get_direction(projectile: Node2D):
+	var d = projectile.get("direction")
+	if d != null:
+		return d
+	return projectile.get("Direction")
+
+
+## Read the speed property from a projectile (snake_case → PascalCase fallback).
+func _get_speed(projectile: Node2D):
+	var s = projectile.get("speed")
+	if s != null:
+		return s
+	return projectile.get("Speed")
+
+
+## Read the shooter ID from a projectile (snake_case → PascalCase → source_id fallback).
+## GDScript bullets: "shooter_id" (snake_case int var, default -1)
+## C# Bullet/ShotgunPellet: "ShooterId" (PascalCase ulong [Export], default 0)
+## Shrapnel: "source_id" (snake_case int var)
+func _get_shooter_id(projectile: Node2D):
+	var id = projectile.get("shooter_id")
+	if id != null:
+		return id
+	id = projectile.get("ShooterId")
+	if id != null:
+		return id
+	return projectile.get("source_id")
+
+
 ## Snap a projectile to the force field boundary ring and record its boundary angle.
 ## Moves the projectile to the surface of the field (at FIELD_RADIUS distance from center)
 ## so that all trapped projectiles visually hover at the field edge — like time stopped.
@@ -360,10 +406,9 @@ func _snap_to_boundary(projectile: Node2D) -> void:
 	var from_center := projectile.global_position - global_position
 	var direction_to_proj := from_center.normalized()
 	# If projectile is at or very near center, use its travel direction as placement direction.
-	# Use .get("direction") instead of "direction" in projectile — the `in` operator does NOT
-	# work for C# [Export] properties (only GDScript vars). .get() works for both.
+	# Use _get_direction() for C#/GDScript-compatible property read (Issue #932).
 	if from_center.length_squared() < 1.0:
-		var proj_dir = projectile.get("direction")
+		var proj_dir = _get_direction(projectile)
 		if proj_dir != null:
 			direction_to_proj = (proj_dir as Vector2).normalized()
 	# Place at boundary ring
@@ -374,17 +419,15 @@ func _snap_to_boundary(projectile: Node2D) -> void:
 
 ## Check if a projectile was fired by the player (issue #932).
 ## The force field should only trap ENEMY bullets, not the player's own projectiles.
-## Uses shooter_id / source_id property (set by the weapon on spawn) to look up the shooter node
-## and checks group membership — the same strategy used in bullet.gd _is_player_bullet().
+## Uses _get_shooter_id() to look up the shooter node and checks group membership —
+## the same strategy used in bullet.gd _is_player_bullet().
 ## Returns true if the projectile was fired by the player and should NOT be trapped.
 func _is_player_projectile(projectile: Node2D) -> bool:
-	# GDScript bullets use shooter_id (int, -1 = unknown)
-	# C# bullets use ShooterId (ulong, exported with snake_case "shooter_id")
-	# Shrapnel uses source_id
-	# Use .get() for C#/GDScript-compatible property read (Issue #932).
-	var raw_shooter_id = projectile.get("shooter_id")
-	if raw_shooter_id == null:
-		raw_shooter_id = projectile.get("source_id")
+	# Read shooter ID with C#/GDScript-compatible helper (Issue #932):
+	# GDScript bullets: "shooter_id" (snake_case, default -1)
+	# C# Bullet/ShotgunPellet: "ShooterId" (PascalCase [Export], default 0)
+	# Shrapnel: "source_id" (snake_case)
+	var raw_shooter_id = _get_shooter_id(projectile)
 
 	if raw_shooter_id == null:
 		return false  # No shooter info — assume enemy, allow trapping
@@ -407,11 +450,15 @@ func _is_player_projectile(projectile: Node2D) -> bool:
 ## Trap a bullet in the force field — stop its movement and snap it to the field boundary.
 ## The bullet is stored in _trapped_bullets and will be released when the field deactivates.
 func _trap_bullet(bullet: Node2D) -> void:
-	# Use .get("prop") to check property existence — works for BOTH GDScript vars and C# [Export]
-	# properties. The GDScript `in` operator does NOT work for C# nodes (always returns false),
-	# because it only checks GDScript's property table, not C# registered properties.
-	var has_direction := bullet.get("direction") != null
-	var has_speed := bullet.get("speed") != null
+	# Use _get_direction()/_get_speed() to check property existence — handles BOTH:
+	#   GDScript bullets: "direction"/"speed" (snake_case vars)
+	#   C# Bullet/ShotgunPellet: "Direction"/"Speed" (PascalCase [Export] set via direct C# assignment)
+	# The old .get("direction") ONLY worked for GDScript bullets; C# bullets required .get("Direction").
+	# See Issue #932 for full root-cause analysis.
+	var bullet_dir = _get_direction(bullet)
+	var bullet_spd = _get_speed(bullet)
+	var has_direction := bullet_dir != null
+	var has_speed := bullet_spd != null
 	if not has_direction or not has_speed:
 		FileLogger.info("[ForceFieldEffect] Bullet missing properties — has_direction=%s has_speed=%s class=%s — skipping trap" % [
 			has_direction, has_speed, bullet.get_class()])
@@ -441,9 +488,11 @@ func _trap_bullet(bullet: Node2D) -> void:
 		(bullet as CanvasItem).modulate = Color(0.6, 0.8, 1.0, 0.7)
 
 	# Reset shooter ID so released bullet can damage anyone (not just enemies).
-	# Use .get()/.set() for C#/GDScript-compatible property access (Issue #932).
+	# Try snake_case first (GDScript), then PascalCase (C#) for compatible write.
 	if bullet.get("shooter_id") != null:
 		bullet.set("shooter_id", -1)
+	elif bullet.get("ShooterId") != null:
+		bullet.set("ShooterId", 0)
 
 	_trapped_bullets.append(bullet)
 
@@ -453,8 +502,8 @@ func _trap_bullet(bullet: Node2D) -> void:
 
 ## Trap shrapnel in the force field — stop its movement and snap it to the field boundary.
 func _trap_shrapnel(shrapnel: Node2D) -> void:
-	# Use .get("prop") for C#/GDScript-compatible property check (Issue #932).
-	if shrapnel.get("direction") == null:
+	# Use _get_direction() for C#/GDScript-compatible property check (Issue #932).
+	if _get_direction(shrapnel) == null:
 		return
 
 	# Skip player's own shrapnel — the force field only traps ENEMY projectiles (Issue #932).
@@ -533,11 +582,16 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 			var random_angle := randf_range(0.0, TAU)
 			outward_dir = Vector2(cos(random_angle), sin(random_angle))
 
-	# Set new direction and speed — use .set() for C#/GDScript-compatible property write (Issue #932).
+	# Set new direction and speed — use _get_direction()/_get_speed() for C#/GDScript compatibility.
+	# For writing: try snake_case first (GDScript), fall back to PascalCase (C#).
 	if projectile.get("direction") != null:
 		projectile.set("direction", outward_dir)
+	elif projectile.get("Direction") != null:
+		projectile.set("Direction", outward_dir)
 	if projectile.get("speed") != null:
 		projectile.set("speed", release_speed)
+	elif projectile.get("Speed") != null:
+		projectile.set("Speed", release_speed)
 
 	# Restore normal color
 	if projectile is CanvasItem:
@@ -550,7 +604,9 @@ func _release_projectile(projectile: Node2D, release_speed: float) -> void:
 	# Update rotation to match new direction
 	if projectile.has_method("_update_rotation"):
 		projectile.call("_update_rotation")
-	elif projectile.get("direction") != null:
+	elif projectile.has_method("UpdateRotation"):
+		projectile.call("UpdateRotation")
+	elif _get_direction(projectile) != null:
 		# Fallback: set rotation to match direction angle
 		projectile.rotation = outward_dir.angle()
 

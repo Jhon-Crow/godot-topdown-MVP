@@ -18,7 +18,9 @@ This is the fourth consecutive issue on the force field feature:
 - **#906**: Requested bullet trapping + bubble visual
 - **#912**: Force field not trapping bullets (C# `QueueFree()` race condition)
 - **#932 (PR #933 v1)**: Added boundary snapping (`_snap_to_boundary()`) — but bullets still weren't trapped
-- **#932 (PR #933 v2)**: Root cause found — GDScript/C# `in` operator interop bug (this fix)
+- **#932 (PR #933 v2)**: Root cause found — GDScript/C# `in` operator interop bug
+- **#932 (PR #933 v3)**: Fixed force field trapping player's own bullets
+- **#932 (PR #933 v4)**: Root cause found — `.get("direction")` vs `.get("Direction")` — C# bullet properties not read (this fix)
 
 ---
 
@@ -106,6 +108,8 @@ if bullet.get("shooter_id") != null:
 
 ### Part 3: Force field trapping player's own bullets (PR #933 v3)
 
+**NOTE**: Parts 2 and 3 (v2, v3) thought `.get("direction")` worked for C# bullets, but that assumption was wrong. Part 4 below corrects this. The v2/v3 fix only helped for GDScript bullets and shotgun pellets that were explicitly set via `Set("direction", ...)` from Shotgun.cs.
+
 After v2 fix was applied, the owner tested again and reported:
 > "сейчас щит останавливает пули игрока, а не врагов"
 > (Translation: "now the shield stops the player's bullets, not the enemies'")
@@ -128,6 +132,50 @@ The player is shooting with MiniUzi (`source=PLAYER (MiniUzi)`) and all those bu
 
 ---
 
+### Part 4: Bullets still not caught — `.get("direction")` doesn't work for C# PascalCase properties (PR #933 v4)
+
+After v3, the owner tested again and reported:
+> "пули не ловятся (просто пролетают вроде)"
+> (Translation: "bullets are not caught (they just fly through it seems)")
+
+**Game log evidence** (`logs/game_log_20260307_203634.txt`):
+
+```
+[ForceFieldEffect] Area entered: Bullet (script: res://Scripts/Projectiles/Bullet.cs)
+[ForceFieldEffect] Bullet missing properties — has_direction=false has_speed=false class=Area2D — skipping trap
+[ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+```
+
+This is the SAME error as Bug 2 (v2). Even though v2 replaced `"direction" in bullet` with `bullet.get("direction") != null`, the check still returns false for C# bullets fired from `BaseWeapon.cs`.
+
+**Root cause**: The assumption in v2 was wrong. `Node.get("direction")` does NOT universally work for all C# `[Export]` properties. It depends on HOW the property was set:
+
+| Bullet Type | How Direction is Set | `.get("direction")` | `.get("Direction")` |
+|-------------|---------------------|---------------------|---------------------|
+| GDScript `bullet.gd` | `direction = val` (GDScript var) | ✅ returns value | ❌ null |
+| C# `Bullet.cs` via `BaseWeapon.cs` | `csBulletDirect.Direction = val` (C# direct assignment) | ❌ null | ✅ returns value |
+| C# `ShotgunPellet.cs` via `Shotgun.cs` | `pellet.Set("Direction", ...)` AND `pellet.Set("direction", ...)` | ✅ returns value | ✅ returns value |
+
+The key insight: `BaseWeapon.cs` sets C# bullet direction via direct C# property assignment (`csBulletDirect.Direction = direction`), NOT via `Set("direction", ...)`. Direct C# property assignment stores the value under the PascalCase name, so it's only accessible via `.get("Direction")` (PascalCase) from GDScript.
+
+This is why the Shotgun pellets (set via BOTH `Set("Direction", ...)` and `Set("direction", ...)`) would sometimes work, but regular C# Bullet.cs bullets never did.
+
+**Evidence from codebase**: The same fallback pattern is already used in `enemy.gd _spawn_projectile()`:
+```gdscript
+if p.has_method("SetDirection"): p.SetDirection(dir)
+elif p.get("direction") != null: p.direction = dir
+elif p.get("Direction") != null: p.Direction = dir  # ← PascalCase fallback
+```
+
+**Fix (PR #933 v4)**: Added three helper methods to `force_field_effect.gd`:
+- `_get_direction(projectile)` — tries `"direction"` (GDScript) then `"Direction"` (C#)
+- `_get_speed(projectile)` — tries `"speed"` (GDScript) then `"Speed"` (C#)
+- `_get_shooter_id(projectile)` — tries `"shooter_id"`, `"ShooterId"`, `"source_id"`
+
+All property reads/writes in `_trap_bullet()`, `_trap_shrapnel()`, `_is_player_projectile()`, `_snap_to_boundary()`, and `_release_projectile()` now use these helpers.
+
+---
+
 ## Prior Issues on This Feature
 
 | Issue | Description | Fix |
@@ -136,19 +184,21 @@ The player is shooting with MiniUzi (`source=PLAYER (MiniUzi)`) and all those bu
 | #912 | C# bullets destroying themselves before force field traps them | `IsForceFieldArea()` check in `Bullet.cs`/`ShotgunPellet.cs` |
 | #932 v1 | Bullets not snapping to boundary ring | Added `_snap_to_boundary()` and `_update_trapped_positions()` |
 | #932 v2 | Trap never executes — GDScript `in` operator bug | Replace `"prop" in node` with `node.get("prop") != null` |
-| #932 v3 | Force field traps player's own bullets | **This fix**: Added `_is_player_projectile()` check using `shooter_id` + `is_in_group("player")` |
+| #932 v3 | Force field traps player's own bullets | Added `_is_player_projectile()` check using `shooter_id` + `is_in_group("player")` |
+| #932 v4 | C# bullets still not caught — `.get("direction")` returns null for PascalCase C# properties | **This fix**: Added `_get_direction()`/`_get_speed()`/`_get_shooter_id()` helpers that try snake_case then PascalCase |
 
 ---
 
 ## Files Modified
 
-1. `scripts/effects/force_field_effect.gd` — Replace `"prop" in node` with `node.get("prop") != null` throughout; add `_is_player_projectile()` to skip player-fired projectiles
+1. `scripts/effects/force_field_effect.gd` — Added `_get_direction()`, `_get_speed()`, `_get_shooter_id()` helpers; all property access uses these helpers for C#/GDScript compatibility
 
 ## Attached Data
 
 - `game_log_20260301_030334.txt` — Full game session log showing v1 bug (7,015 lines)
 - `game_log_20260302_185211.txt` — Game log showing v2 bug (bullets disappear — older build)
 - `game_log_20260306_001151.txt` — Game log showing v3 bug (player bullets trapped)
+- `logs/game_log_20260307_203634.txt` — Game log showing v4 bug (C# bullets still not caught)
 
 ---
 
@@ -156,7 +206,10 @@ The player is shooting with MiniUzi (`source=PLAYER (MiniUzi)`) and all those bu
 
 - **FIELD_RADIUS**: 35px — the force field boundary radius
 - **Boundary snap**: `global_position + direction_to_bullet.normalized() * FIELD_RADIUS`
-- C# `[Export]` properties are accessible via `node.get("snake_case_name")` from GDScript — but NOT via the `in` operator
+- C# `[Export]` properties set via **direct C# assignment** (e.g. `bullet.Direction = v`) are stored under PascalCase and require `.get("Direction")` from GDScript
+- C# `[Export]` properties set via `Node.Set("direction", ...)` from C# are stored under snake_case and accessible via `.get("direction")` from GDScript
+- GDScript vars (e.g. `var direction: Vector2`) are stored under snake_case and require `.get("direction")`
+- The `in` operator in GDScript NEVER works for C# properties (only GDScript's property table)
 - C# bullets (Bullet.cs, ShotgunPellet.cs) have `IsForceFieldArea()` checks to prevent `QueueFree()` when entering force field area (from PR #913)
 - GDScript bullet (`bullet.gd`) naturally doesn't destroy itself when entering force field area because it only calls `_destroy()` when `area.has_method("on_hit")`, and the force field area does not have that method
 - `shooter_id` is set on every bullet by the weapon when spawning; Player is in `"player"` group (in `scenes/characters/Player.tscn`); enemies are in `"enemies"` group (added via `add_to_group("enemies")` in `enemy.gd`)
