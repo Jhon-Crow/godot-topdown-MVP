@@ -2877,6 +2877,8 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 	return true
 
 ## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
+## [Issue #954] Uses the actual muzzle position from _get_bullet_spawn_position (~52-68px),
+## not bullet_spawn_offset (30px). Prevents muzzle-inside-wall shots at passage edges.
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 	# Fail-open: allow shooting if physics is not ready
 	var world_2d := get_world_2d()
@@ -2885,22 +2887,20 @@ func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 	var space_state := world_2d.direct_space_state
 	if space_state == null:
 		return true
-
-	# Check from enemy center to bullet spawn position plus a small buffer
-	var check_distance := bullet_spawn_offset + 5.0
-
+	# [#954] Use real muzzle position: bullet_spawn_offset (30px) underestimates real
+	# muzzle offset (~52-68px), missing walls between 35px-68px from center.
+	var muzzle_pos := _get_bullet_spawn_position(direction)
+	var real_muzzle_distance := global_position.distance_to(muzzle_pos)
+	var check_end := global_position + direction * (real_muzzle_distance + 5.0)
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position
-	query.to = global_position + direction * check_distance
+	query.from = global_position; query.to = check_end
 	query.collision_mask = 4  # Only check obstacles (layer 3)
 	query.exclude = [get_rid()]
-
 	var result := space_state.intersect_ray(query)
 	if not result.is_empty():
-		_log_debug("Bullet spawn blocked: wall at distance %.1f" % [
-			global_position.distance_to(result["position"])])
+		_log_debug("Bullet spawn blocked: wall at distance %.1f (muzzle at %.1f)" % [
+			global_position.distance_to(result["position"]), real_muzzle_distance])
 		return false
-
 	return true
 
 ## Find a sidestep direction for a clear shot. Returns Vector2.ZERO if none found.

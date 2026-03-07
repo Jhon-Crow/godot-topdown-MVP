@@ -1215,31 +1215,44 @@ func test_goap_player_not_visible_when_neither_seen() -> void:
 ## is blocked by a wall, even if the center-to-center line-of-sight is clear.
 ## This fixes the "shooting at the edge of a passage" bug where the muzzle
 ## overhangs a wall corner and bullets are wasted against the wall.
+##
+## Fix evolution (Issue #954 Bug #3):
+## - v1: Added _is_shot_clear_of_cover() check in _shoot() for aggressive path.
+##   Problem: _is_shot_clear_of_cover() casts from muzzle to target; when muzzle is
+##   already inside a wall, Godot returns no hit (ray starts inside collider), so the
+##   check erroneously passes and shots are fired into the wall.
+## - v2 (current): _is_bullet_spawn_clear() now uses _get_bullet_spawn_position() to
+##   compute the actual muzzle position (~52-68px from center) and casts from enemy
+##   center to that real muzzle. This correctly detects walls between center and muzzle.
+##   Log evidence: BffCompanion fired 20+ shots from pos=(2026,1406) with bullet spawning
+##   at (2036,1473) — distance 68px — while 35px check passed and muzzle was inside wall.
 
 
 class MockMuzzleWallCheck:
-	## Simulates the dual-check logic in _shoot() and process_combat() for Issue #954 Bug #3.
-	## The center-to-center check (35px radius) may pass while the real muzzle
-	## path (from actual muzzle position, ~68px from center at an angle) is blocked.
+	## Simulates the spawn-clear check logic in _shoot() and process_combat() for Issue #954 Bug #3.
+	## With the v2 fix: _is_bullet_spawn_clear() now uses the actual muzzle distance (~68px)
+	## via _get_bullet_spawn_position(), replacing the old fixed 35px estimate.
 
-	## Whether the 35px center-forward spawn check is clear
+	## Whether the real muzzle spawn check is clear (center→actual muzzle, ~68px)
+	## With v2 fix, this IS the primary check (no longer just a 35px estimate).
 	var center_spawn_clear: bool = true
 
 	## Whether the real muzzle-to-target path is clear (used by _is_shot_clear_of_cover)
+	## Still used as a secondary check in _shoot() for aggressive enemies.
 	var muzzle_path_clear: bool = true
 
 	## Whether this is an aggressive companion (uses dual check path)
 	var is_aggressive: bool = true
 
 	## Simulates the combined shoot guard from _shoot() in enemy.gd (Issue #954):
-	## - Aggressive: needs BOTH center spawn clear AND real muzzle path clear
+	## - Aggressive: needs BOTH real muzzle spawn clear AND real muzzle path clear
 	## - Non-aggressive: handled by _should_shoot_at_target (already uses real muzzle)
 	func should_shoot() -> bool:
 		if is_aggressive:
 			if not center_spawn_clear:
-				return false  # Center check blocked
+				return false  # Real muzzle spawn blocked (v2: uses actual muzzle distance)
 			if not muzzle_path_clear:
-				return false  # Real muzzle path blocked (new Issue #954 Bug #3 fix)
+				return false  # Real muzzle path blocked by cover (secondary check)
 			return true
 		else:
 			# Non-aggressive already uses real muzzle via _should_shoot_at_target
@@ -1255,11 +1268,12 @@ class MockMuzzleWallCheck:
 
 
 func test_companion_no_shoot_when_center_clear_but_muzzle_blocked() -> void:
-	## Simulates: companion at passage edge — center-to-enemy ray is clear (35px),
-	## but muzzle (68px, angled) overhangs the wall corner. Real muzzle path is blocked.
+	## Simulates: companion at passage edge — real muzzle spawn check (now ~68px) is clear,
+	## but secondary muzzle-to-target path check is blocked by wall corner.
+	## With v2 fix, the primary spawn check uses actual muzzle distance, catching wall hits.
 	var check := MockMuzzleWallCheck.new()
 	check.is_aggressive = true
-	check.center_spawn_clear = true   # 35px center ray: clear
+	check.center_spawn_clear = true   # Real muzzle spawn check (~68px): clear
 	check.muzzle_path_clear = false   # Real muzzle → enemy path: blocked by wall corner
 
 	assert_false(check.should_shoot(),
@@ -1317,3 +1331,94 @@ func test_companion_no_shoot_when_center_blocked_regardless_of_muzzle() -> void:
 
 	assert_false(check.should_shoot(),
 		"Should not shoot when center spawn is blocked (muzzle path irrelevant in this case)")
+
+
+# ============================================================================
+# Issue #954 Bug #3 v2: _is_bullet_spawn_clear Real Muzzle Distance Fix
+# ============================================================================
+## Tests validating the v2 fix: _is_bullet_spawn_clear() now uses the actual
+## muzzle position from _get_bullet_spawn_position() (~68px) instead of the
+## fixed bullet_spawn_offset estimate (30px + 5px buffer = 35px).
+##
+## Root cause evidence (game_log_20260307_201817.txt):
+##   BffCompanion at (2026.06, 1406.34) fired 20+ shots with bullet spawning
+##   at (2036.26, 1473.62) — 68px from center. Godot reported distance=0,
+##   meaning the bullet spawned INSIDE the wall. The old 35px check missed
+##   the wall entirely since the wall was between 35-68px from center.
+
+
+class MockBulletSpawnCheck:
+	## Simulates the real-muzzle spawn check (v2 fix for Issue #954 Bug #3).
+	## In the real code, _is_bullet_spawn_clear() uses _get_bullet_spawn_position()
+	## to get the actual muzzle distance (~52-68px) and casts from center to muzzle+5px.
+
+	## Distance from enemy center to the wall (simulates the geometry)
+	var wall_distance_px: float = INF  # Default: no wall
+
+	## Actual muzzle distance from enemy center (calculated from weapon sprite position)
+	var actual_muzzle_distance_px: float = 68.0  # Typical value (~52px sprite + model offset)
+
+	## Old check distance (the bug): bullet_spawn_offset + 5 = 35px
+	const OLD_CHECK_DISTANCE: float = 35.0
+
+	## New check distance (the fix): center.distance_to(actual_muzzle_pos) + 5px buffer
+	var new_check_distance: float:
+		get: return actual_muzzle_distance_px + 5.0
+
+	func old_check_passes() -> bool:
+		## Old 35px check — misses walls beyond 35px from center
+		return wall_distance_px > OLD_CHECK_DISTANCE
+
+	func new_check_passes() -> bool:
+		## New real-muzzle check — catches walls up to actual_muzzle_distance + 5px
+		return wall_distance_px > new_check_distance
+
+
+func test_v2_fix_catches_wall_at_50px_that_old_check_missed() -> void:
+	## Wall at 50px — between 35px (old check) and 68px (real muzzle).
+	## Old: passes (35px ray misses wall at 50px). New: blocks (73px ray hits wall at 50px).
+	var check := MockBulletSpawnCheck.new()
+	check.wall_distance_px = 50.0
+	check.actual_muzzle_distance_px = 68.0
+
+	assert_true(check.old_check_passes(),
+		"Old 35px check should incorrectly PASS when wall is at 50px (this was the bug)")
+	assert_false(check.new_check_passes(),
+		"New real-muzzle check should correctly BLOCK when wall is at 50px (this is the fix)")
+
+
+func test_v2_fix_catches_wall_at_40px_that_old_check_missed() -> void:
+	## Wall at 40px — just beyond old 35px check, but before real 68px muzzle.
+	var check := MockBulletSpawnCheck.new()
+	check.wall_distance_px = 40.0
+	check.actual_muzzle_distance_px = 68.0
+
+	assert_true(check.old_check_passes(),
+		"Old 35px check passes at 40px wall distance (the bug that caused wall shooting)")
+	assert_false(check.new_check_passes(),
+		"New real-muzzle check (73px) correctly blocks at 40px wall distance")
+
+
+func test_v2_fix_allows_clear_shot_when_no_wall_within_muzzle_range() -> void:
+	## No wall within muzzle range: both old and new checks should pass.
+	var check := MockBulletSpawnCheck.new()
+	check.wall_distance_px = 200.0  # Wall far away, no obstruction
+	check.actual_muzzle_distance_px = 68.0
+
+	assert_true(check.old_check_passes(),
+		"Old check should pass when wall is far away")
+	assert_true(check.new_check_passes(),
+		"New check should also pass when wall is far away — no false positives")
+
+
+func test_v2_fix_still_blocks_wall_within_old_check_range() -> void:
+	## Wall at 20px — within both old (35px) and new (73px) check range.
+	## Both should block.
+	var check := MockBulletSpawnCheck.new()
+	check.wall_distance_px = 20.0
+	check.actual_muzzle_distance_px = 68.0
+
+	assert_false(check.old_check_passes(),
+		"Old 35px check blocks when wall is at 20px")
+	assert_false(check.new_check_passes(),
+		"New real-muzzle check also blocks when wall is at 20px")

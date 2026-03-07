@@ -17,10 +17,14 @@ The companion continues getting stuck in ALWAYS-COMBAT state (never transitions 
 **Additional issue reported in PR #955 review (2026-03-05)**:
 "Update from main and continue from comment #3985986837. Also separately pay attention to the companion shooting at the edge of a passage (trying to hit enemies through walls)."
 
+**Additional issue reported in PR #955 review (2026-03-07)**:
+"Still occasionally shoots at the corner of a wall." — Confirms Bug #3 is still occurring despite the v1 fix.
+
 ## Game Logs
 
 - `logs/game_log_20260302_205254.txt` — Session 1 (77,988 lines): Severe 96-shot stuck cluster, companion locked for 32 seconds
 - `logs/game_log_20260302_205756.txt` — Session 2 (1,978 lines): Rapid P1↔P2 state oscillation, 7 shots through wall within 1 second of spawn
+- `logs/game_log_20260307_201817.txt` — Session 3 (8,047 lines): 20+ shots into wall at (2026,1406) with bullet spawning at (2036,1473) — 68px from center. Distance=0 logged by bullet, confirming muzzle was inside the wall.
 
 ---
 
@@ -188,26 +192,33 @@ if _agg and (_aggression.get_target() == null):
 
 ### Fix #3 — Prevent Companion from Shooting Through Walls at Passage Edges (enemy.gd + aggression_component.gd) ✓
 
-**Root cause**: `_is_bullet_spawn_clear()` only checks 35px from enemy center. The real muzzle is ~68px from center at an angle and can overhang wall corners. For non-aggressive enemies, `_should_shoot_at_target()` was used which calls `_is_shot_clear_of_cover()` from the real muzzle. For aggressive enemies, only the center check was used.
+#### v1 Fix (PR #955 initial) — Partially Effective
 
-**Fix in `enemy.gd` `_shoot()`**: After the 35px center check, also call `_is_shot_clear_of_cover()` which raycasts from the real muzzle position to the target:
+**Root cause identified**: The real muzzle is ~68px from enemy center at an angle and can overhang wall corners. For aggressive enemies, only the 35px center check (`_is_bullet_spawn_clear`) was used.
+
+**v1 fix**: Added `_is_shot_clear_of_cover()` check in `_shoot()` for aggressive path (raycasts from muzzle to target). Also added muzzle check in `aggression_component.process_combat()`.
+
+**Why v1 was insufficient**: `_is_shot_clear_of_cover()` casts a ray FROM the muzzle TO the target. When the muzzle is already INSIDE a wall (which happens when enemy is flush against a wall corner), Godot's physics engine returns no hit for rays starting inside a collider. So the check erroneously passes and shots are fired into the wall.
+
+#### v2 Fix (current) — Root Cause Resolution
+
+**Evidence from `game_log_20260307_201817.txt`** (2026-03-07 session):
+- BffCompanion at `(2026.06, 1406.34)` fired 20+ shots while stuck
+- Bullet log: `bullet_pos=(2036.26, 1473.62)` — 68px from center
+- Bullet log: `Distance to wall: 0` — bullet spawned INSIDE a wall
+- The 35px `_is_bullet_spawn_clear` check never reached the wall (wall was at ~35-68px range)
+- `_is_shot_clear_of_cover` started its ray from inside the wall and returned clear (Godot behavior)
+
+**v2 fix in `_is_bullet_spawn_clear()` (enemy.gd)**:
 ```gdscript
-if _agg:
-    if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
-    # [Issue #954] Also verify real muzzle path is unobstructed (passage-edge wall bug)
-    if not _is_shot_clear_of_cover(_aggression.get_target_position()): return
+# [#954] Use real muzzle position: bullet_spawn_offset (30px) underestimates real
+# muzzle offset (~52-68px), missing walls between 35px-68px from center.
+var muzzle_pos := _get_bullet_spawn_position(direction)
+var real_muzzle_distance := global_position.distance_to(muzzle_pos)
+var check_end := global_position + direction * (real_muzzle_distance + 5.0)
 ```
 
-**Fix in `aggression_component.gd` `process_combat()`**: Extended `bullet_spawn_blocked` to also consider the real muzzle path:
-```gdscript
-var center_blocked: bool = ...  # existing 35px center check
-var muzzle_blocked: bool = not center_blocked and
-    _parent.has_method("_is_shot_clear_of_cover") and
-    not _parent._is_shot_clear_of_cover(_target.global_position)
-var bullet_spawn_blocked: bool = center_blocked or muzzle_blocked
-```
-
-When `muzzle_blocked` is true (muzzle overhangs wall corner), the companion navigates to find a clear shooting position instead of stopping.
+By casting from enemy center to the actual muzzle position (+5px buffer), the check correctly detects walls that the muzzle would overhang, blocking the shot and triggering navigation.
 
 ---
 
@@ -217,3 +228,4 @@ Tests added to `tests/unit/test_bff_pendant.gd`:
 - **Bug #1** (5 tests): `MockBffShootLogic` — verifies no fallback to player shooting
 - **Bug #2** (7 tests): `MockBffCombatMovement` — verifies navigation when center spawn blocked
 - **Bug #3** (6 tests): `MockMuzzleWallCheck` — verifies no shooting when real muzzle path blocked
+- **Bug #3 v2** (4 tests): `MockBulletSpawnCheck` — verifies real muzzle distance catches walls at 40-50px that old 35px check missed
