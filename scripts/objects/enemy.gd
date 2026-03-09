@@ -155,6 +155,7 @@ var _shoot_timer: float = 0.0  ## Time since last shot
 ## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
 const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
+const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
 var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
@@ -1785,6 +1786,8 @@ func _process_suppressed_state(delta: float) -> void:
 						_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0
 				return  # Stay suppressed while firing burst
 
+		# Issue #969 RCA-11: minimum stay prevents SUPPRESSED→SEEKING_COVER rapid cycle
+		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time < SUPPRESSED_MIN_DURATION: return
 		# Burst complete or can't see player, seek new cover
 		_log_debug("Player flanked our cover position while suppressed, seeking new cover")
 		_has_valid_cover = false  # Invalidate current cover
@@ -2400,8 +2403,7 @@ func _shoot_with_inaccuracy() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
-	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
-	# Issue #969: throttled — prevents flooding with 20+ listeners
+	# Emit gunshot sound (alerts other enemies); Issue #969: throttled
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 	var _now := Time.get_ticks_msec() / 1000.0
 	if sound_propagation and sound_propagation.has_method("emit_sound") and _now - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
@@ -2598,11 +2600,8 @@ func _is_flank_target_reachable() -> bool:
 ## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
-	# Enter alarm mode when suppressed
-	_in_alarm_mode = true
-
+	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
+	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
 ## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
 	_current_state = AIState.PURSUING
@@ -3226,7 +3225,7 @@ func _find_cover_position() -> void:
 		_has_valid_cover = false
 		return
 
-	# Issue #969: throttle 16-raycast cover search; skip if valid cover exists and cooldown not elapsed
+	# Issue #969: throttle 16-raycast cover search
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
 	_last_cover_search_time = current_time

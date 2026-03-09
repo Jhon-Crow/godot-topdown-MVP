@@ -44,6 +44,23 @@ propagation flooding with many enemies active.
 - **Enemy GUNSHOT propagation confirmed working**: Max 10 enemy gunshots/second (vs 526 in previous log)
 - **New root causes identified**: RCA-7, RCA-8, RCA-9 (see below)
 
+### Third Verification Log — 2026-03-07 (21:51:33)
+
+| Log file | Duration | FPS drops | Worst FPS | Notes |
+|---|---|---|---|---|
+| game_log_20260307_215133.txt | ~87 s | **48** | 1 fps (shader warmup) | DocksLevel (20 enemies) |
+
+**Key findings** (with Fixes 1–7 applied):
+- The 1 fps drop at 21:51:35 is a one-time GPU shader compilation stall (not a gameplay issue)
+- Still 47 drops ranging from 5 fps to 29 fps during the 20-enemy combat section
+- **New root causes identified**: RCA-10, RCA-11 (see below)
+
+**Confirmed improvements** (vs second verification log):
+- CASING_KICK: 79 events/session (low, throttle working)
+- Enemy GUNSHOT propagation: max 13/sec (expected with 20 enemies shooting)
+- EnemyGrenade log writes: 0 (Fix 5 working)
+- Per-frame visibility cache: working (Fix 6)
+
 ## Root Causes Found
 
 ### RCA-1 (Critical): `_debug_penetration = true` by default in `bullet.gd`
@@ -187,6 +204,49 @@ Called from state processing whenever no valid cover is cached.
 - 311 calls × 16 raycasts = **4,976 cover raycasts** in one session
 - No minimum cooldown between searches — enemies retry every frame when cover is not found
 
+### RCA-10 (High, from third verification): `impact_effects_manager.gd` logs on every blood effect
+
+**File:** `scripts/autoload/impact_effects_manager.gd`, function `spawn_blood_effect()` and `_spawn_blood_decals_at_particle_landing()`
+**Severity:** High — `_log_info()` writes to FileLogger **unconditionally** (no debug flag check) on every blood effect.
+With MiniUzi at 13 shots/sec hitting enemies, this produces:
+- "spawn_blood_effect called at..." — 1 write/hit
+- "Blood particle effect instantiated successfully" — 1 write/hit
+- "Blood decals scheduled: N..." — 1 write/hit
+- "Blood effect spawned at..." — 1 write/hit
+- "Wall found for blood splatter at..." (if wall nearby) — 1 write/hit
+
+**Evidence from third verification log:**
+- **765 ImpactEffects events** in 87-second session
+- Peak: blood decal spawns contributing 128 puddle-creation events in a single second (21:51:47)
+- Pattern: all drops correlate with sustained shooting → blood effect burst → file write flood
+
+### RCA-11 (High, from third verification): Enemy SUPPRESSED state rapid cycling when no cover available
+
+**File:** `scripts/objects/enemy.gd`, function `_process_suppressed_state()`
+**Severity:** High — enemies in open terrain (no cover available) rapidly cycle through states:
+`SUPPRESSED → SEEKING_COVER → COMBAT → RETREATING → SUPPRESSED` at 4–6 full cycles per second.
+
+**Evidence from third verification log (OpenArea_Patrol2):**
+```
+[21:51:42] SUPPRESSED → SEEKING_COVER
+[21:51:42] SEEKING_COVER → COMBAT      ← no cover found
+[21:51:42] COMBAT → RETREATING
+[21:51:42] RETREATING → SUPPRESSED
+[21:51:43] SUPPRESSED → SEEKING_COVER  ← cycle repeats immediately
+[21:51:43] SEEKING_COVER → COMBAT      ← still no cover found
+...continues for entire session (100+ cycles in 87 seconds)
+```
+
+Each cycle triggers:
+- `_find_cover_position()`: 16 raycasts → 0 results (open terrain)
+- `_is_visible_from_player()`: up to 5 raycasts per call (even with cache, once per frame)
+- State machine transitions: 4 function calls per cycle
+- Navigation path updates: per SEEKING_COVER entry
+
+With Fix 7 (COVER_SEARCH_COOLDOWN = 0.3s), the cover search itself was throttled, but state cycling
+still forced `_transition_to_seeking_cover()` immediately when SUPPRESSED with `_is_visible_from_player() == true`.
+The SUPPRESSED state itself had no minimum duration, so it exited in under one physics frame.
+
 ## Quantitative Impact
 
 ### Before Fix (original log2 — 10 enemies)
@@ -227,6 +287,13 @@ Called from state processing whenever no valid cover is cached.
 | EnemyGrenade log writes to file | **0** (was 466) | **100%** eliminated |
 | _is_visible_from_player() raycasts | **5/enemy/frame** (1 check cached per frame) | ~**95%** reduction |
 | _find_cover_position() raycasts | **~330** (from 4,976) | ~**93%** reduction (0.3s cooldown) |
+
+### After Fixes 8–9 (from third verification — 20 enemies, DocksLevel)
+
+| Issue | Events expected | Expected reduction |
+|---|---|---|
+| ImpactEffects file writes per hit | **0** (was 4–5 per hit) | **100%** eliminated (debug_effects = false) |
+| Enemy SUPPRESSED cycling rate | **max 2/sec** (was 4–6/sec) | **>50%** reduction (0.5s minimum duration) |
 
 ## Solutions Implemented
 
@@ -329,6 +396,40 @@ The function now skips the 16-raycast cover search if called within 0.3 seconds 
 which always returns empty. With 0.3s cooldown, max 3–4 searches/second vs 10+ before.
 
 **Expected reduction:** 311 cover searches × 16 raycasts = 4,976 total → ~50 searches × 16 = ~800 raycasts = **84% reduction**.
+
+### Fix 8 (from third verification): Gate ImpactEffectsManager per-hit logging behind debug flag
+
+**File:** `scripts/autoload/impact_effects_manager.gd`, function `spawn_blood_effect()`, `_spawn_blood_decals_at_particle_landing()`, `_spawn_wall_blood_splatter()`
+
+Moved per-hit `_log_info()` calls inside `if _debug_effects:` blocks. The calls affected:
+- `"spawn_blood_effect called at..."` in `spawn_blood_effect()`
+- `"Blood particle effect instantiated successfully"` in `spawn_blood_effect()`
+- `"Blood effect spawned at..."` in `spawn_blood_effect()`
+- `"Blood decals scheduled: N..."` in `_spawn_blood_decals_at_particle_landing()`
+- `"Wall found for blood splatter at..."` in `_spawn_wall_blood_splatter()`
+
+**Rationale:** `_log_info()` writes to FileLogger unconditionally. Each MiniUzi shot that hits
+an enemy triggers 4–5 `_log_info()` calls. At 13 shots/sec with continuous hits: **52–65 file
+writes/sec** from this function alone. Gating behind `_debug_effects = false` (the default)
+eliminates all file I/O from normal gameplay hits.
+
+**Expected elimination:** 765 ImpactEffects events/session → **0** writes in normal gameplay.
+
+### Fix 9 (from third verification): Add minimum SUPPRESSED duration before cover-seek transition
+
+**File:** `scripts/objects/enemy.gd`, function `_process_suppressed_state()` and `_transition_to_suppressed()`
+
+Added `SUPPRESSED_MIN_DURATION = 0.5s` constant and `_suppressed_entry_time: float` tracker.
+`_transition_to_suppressed()` now records entry time; `_process_suppressed_state()` checks
+minimum duration before transitioning to `SEEKING_COVER` when visible to player.
+
+**Rationale:** Without this gate, an enemy entering SUPPRESSED with `_is_visible_from_player() == true`
+would immediately transition to SEEKING_COVER in the same physics frame, then COMBAT (no cover),
+then RETREATING, then SUPPRESSED again — completing a full cycle in < 5 physics frames (< 85ms at 60fps).
+With a 0.5s minimum, cycling is capped at 2 full cycles/second maximum per enemy.
+
+**Expected reduction:** OpenArea_Patrol2 was cycling 4–6 times/second → max 2 times/second = **>50% reduction** in
+state-driven raycast load for open-terrain enemies.
 
 ## References
 
