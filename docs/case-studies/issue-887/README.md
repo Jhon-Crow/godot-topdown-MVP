@@ -48,6 +48,15 @@ The "наводящиеся пули" (homing bullets) active item had two incor
 - **Second log shows the exact same executable path**: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`
 - This confirms the user ran the same pre-fix binary both times — no newly built binary was used
 
+### 2026-03-07 18:45 UTC — User reports "still more than 2 charges" (third report)
+- User (Jhon-Crow) tested yet again and reported still more than 2 charges
+- User uploaded two more game logs:
+  - `game_log_20260307_214436.txt` — brief session (Force Field selected, homing bullets NOT equipped)
+  - `game_log_20260307_214500.txt` — longer session with homing bullets equipped, showing `6/6` charges
+- **Both logs still show the exact same executable path**: `I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe`
+- Fourth log clearly shows: `[Player.Homing] Homing bullets equipped, charges: 6/6` — the OLD pre-fix value
+- This is the **third consecutive test** with the same stale binary
+
 ---
 
 ## Root Cause Analysis
@@ -67,6 +76,18 @@ The "наводящиеся пули" (homing bullets) active item had two incor
 [21:23:11] [INFO] [Player.Homing] Homing bullets equipped, charges: 6/6
 [21:23:12] [INFO] [Player.Homing] Homing activated! Duration: 1s, charges remaining: 5/6
 ```
+
+**Third log** (`game_log_20260307_214436.txt`):
+- This log shows "Force Field" was selected, NOT homing bullets
+- Line 79: `[ActiveItemManager] Active item changed from None to Force Field`
+- No homing bullets logs appear because a different active item was equipped
+
+**Fourth log** (`game_log_20260307_214500.txt`):
+```
+[21:45:00] [INFO] [ActiveItemManager] Active item changed from None to Homing Bullets
+[21:45:00] [INFO] [Player.Homing] Homing bullets equipped, charges: 6/6
+```
+- Same executable path, same old 6/6 charges value
 
 **The fix WAS applied correctly to the source code.** However, both times the user tested with the **same old pre-built executable** that was compiled before our fix was applied.
 
@@ -95,7 +116,7 @@ The "наводящиеся пули" (homing bullets) active item had two incor
    const DURATION: float = 1.2   # was 1.0
    ```
 
-5. **All CI checks pass** on commit `83a9b51a` (the latest commit on the branch):
+5. **All CI checks pass** on commit `ece9c23b` (the latest commit on the branch):
    - Architecture Best Practices Check: ✅
    - Gameplay Critical Systems Validation: ✅
    - C# and GDScript Interoperability Check: ✅
@@ -123,10 +144,16 @@ The "наводящиеся пули" (homing bullets) active item had two incor
 The correct way to verify this fix is to use a freshly compiled build from the fixed branch, **not** a pre-built binary from before the fix.
 
 ### Option 1: Download CI-built artifact
-A Windows build was automatically compiled by CI from the fixed branch (commit `83a9b51a`):
-- Artifact: `windows-build` from workflow run [#22802974713](https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions/runs/22802974713)
-- Built at: 2026-03-07T16:44:20Z (after the fix commit)
+A Windows build was automatically compiled by CI from the fixed branch (latest commit `ece9c23b`):
+- Artifact: `windows-build` from workflow run [#22804706872](https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions/runs/22804706872)
+- Built at: 2026-03-07T18:29:32Z (after the fix commit)
 - This build contains the fixed values: **2 charges** and **1.2s duration**
+
+**Direct download steps**:
+1. Go to https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions/runs/22804706872
+2. Scroll down to "Artifacts" section
+3. Click on `windows-build` to download the ZIP file
+4. Extract and run the executable from the ZIP — this is the **fixed version**
 
 ### Option 2: Build from source
 1. Pull the latest code from branch `issue-887-b0735317c4f2`
@@ -150,6 +177,8 @@ A Windows build was automatically compiled by CI from the fixed branch (commit `
 - `README.md` — This analysis document
 - `game_log_20260307_210527.txt` — First game log provided by the user (2026-03-07 21:05 UTC) showing old (pre-fix) executable behavior
 - `game_log_20260307_212306.txt` — Second game log provided by the user (2026-03-07 21:23 UTC) confirming the same pre-fix executable was used again
+- `game_log_20260307_214436.txt` — Third game log (2026-03-07 21:44 UTC) with Force Field selected (not homing bullets)
+- `game_log_20260307_214500.txt` — Fourth game log (2026-03-07 21:45 UTC) showing homing bullets with old 6/6 charges, same stale executable
 
 ---
 
