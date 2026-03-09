@@ -336,10 +336,16 @@ func _can_trigger_effect() -> bool:
 		_log("Effect already active")
 		return false
 
-	# Only trigger in hard mode
+	# Only trigger in hard mode (not in Black Metal - Issue #985)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null:
 		_log("DifficultyManager not found")
+		return false
+
+	# Issue #985: Explicitly check that we're NOT in Black Metal mode.
+	# Black Metal is a separate difficulty that should NOT have the last chance effect.
+	if difficulty_manager.is_black_metal_mode():
+		_log("Black Metal mode - last chance effect disabled (Issue #985)")
 		return false
 
 	if not difficulty_manager.is_hard_mode():
