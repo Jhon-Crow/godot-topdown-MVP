@@ -261,6 +261,13 @@ func _ready() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager:
 		max_ammo = difficulty_manager.get_max_ammo()
+		# Black Metal mode: 25% less HP and 25% faster movement (Issue #958)
+		if difficulty_manager.has_method("get_hp_multiplier"):
+			var hp_mult: float = difficulty_manager.get_hp_multiplier()
+			max_health = maxi(1, int(max_health * hp_mult))
+		if difficulty_manager.has_method("get_player_speed_multiplier"):
+			var speed_mult: float = difficulty_manager.get_player_speed_multiplier()
+			max_speed = max_speed * speed_mult
 		# Connect to difficulty changes to update ammo limit mid-game
 		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
 			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
