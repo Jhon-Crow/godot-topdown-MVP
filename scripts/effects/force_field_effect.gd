@@ -378,48 +378,82 @@ func _on_body_entered(body: Node2D) -> void:
 
 
 # ===========================================================================
-# C#/GDScript-compatible property helpers (Issue #932)
+# C#/GDScript-compatible property helpers (Issue #930, #932)
 #
 # Problem: GDScript .get("direction") works for:
 #   - GDScript variables ("direction" snake_case var in bullet.gd)
 #   - Properties explicitly written with Set("direction", ...) from C#
 # But NOT for C# [Export] properties set via direct C# property assignment
-#   (e.g. csBullet.Direction = v in BaseWeapon.cs), which are stored under
-#   the PascalCase name and require .get("Direction").
+#   (e.g. csBullet.Direction = v in BaseWeapon.cs). The .get() method
+#   returns null even for [Export] properties in Godot 4 C#.
 #
-# Solution: try snake_case first (GDScript), fall back to PascalCase (C#).
-# This is the same pattern used in enemy.gd _spawn_projectile().
+# Solution (Issue #930): Try property access first, then fall back to calling
+# explicit getter methods (get_direction, get_speed, get_shooter_id) added
+# to Bullet.cs and ShotgunPellet.cs. These methods reliably work from GDScript.
 # ===========================================================================
 
 ## Read the direction property from a projectile.
-## Tries "direction" (GDScript bullets / pellets set via Set()) first,
-## then "Direction" (C# Bullet/ShotgunPellet set via direct C# property assignment).
+## Priority order:
+##   1. GDScript property "direction" (snake_case var in bullet.gd)
+##   2. Explicit getter method "get_direction" (C# Bullet/ShotgunPellet)
+##   3. Explicit getter method "GetDirection" (C# PascalCase alias)
+##   4. Direct property "Direction" (fallback for edge cases)
 func _get_direction(projectile: Node2D):
+	# 1. Try GDScript property (snake_case)
 	var d = projectile.get("direction")
 	if d != null:
 		return d
+	# 2. Try C# getter method (snake_case, added in Issue #930)
+	if projectile.has_method("get_direction"):
+		return projectile.call("get_direction")
+	# 3. Try C# getter method (PascalCase alias)
+	if projectile.has_method("GetDirection"):
+		return projectile.call("GetDirection")
+	# 4. Fallback to PascalCase property (unlikely to work but try anyway)
 	return projectile.get("Direction")
 
 
-## Read the speed property from a projectile (snake_case → PascalCase fallback).
+## Read the speed property from a projectile.
+## Priority order:
+##   1. GDScript property "speed" (snake_case @export in bullet.gd)
+##   2. Explicit getter method "get_speed" (C# Bullet/ShotgunPellet)
+##   3. Explicit getter method "GetSpeed" (C# PascalCase alias)
+##   4. Direct property "Speed" (fallback for edge cases)
 func _get_speed(projectile: Node2D):
+	# 1. Try GDScript property (snake_case)
 	var s = projectile.get("speed")
 	if s != null:
 		return s
+	# 2. Try C# getter method (snake_case, added in Issue #930)
+	if projectile.has_method("get_speed"):
+		return projectile.call("get_speed")
+	# 3. Try C# getter method (PascalCase alias)
+	if projectile.has_method("GetSpeed"):
+		return projectile.call("GetSpeed")
+	# 4. Fallback to PascalCase property (unlikely to work but try anyway)
 	return projectile.get("Speed")
 
 
-## Read the shooter ID from a projectile (snake_case → PascalCase → source_id fallback).
+## Read the shooter ID from a projectile.
 ## GDScript bullets: "shooter_id" (snake_case int var, default -1)
-## C# Bullet/ShotgunPellet: "ShooterId" (PascalCase ulong [Export], default 0)
+## C# Bullet/ShotgunPellet: get_shooter_id() or GetShooterId() method
 ## Shrapnel: "source_id" (snake_case int var)
 func _get_shooter_id(projectile: Node2D):
+	# 1. Try GDScript property (snake_case)
 	var id = projectile.get("shooter_id")
 	if id != null:
 		return id
+	# 2. Try C# getter method (snake_case, added in Issue #930)
+	if projectile.has_method("get_shooter_id"):
+		return projectile.call("get_shooter_id")
+	# 3. Try C# getter method (PascalCase alias)
+	if projectile.has_method("GetShooterId"):
+		return projectile.call("GetShooterId")
+	# 4. Fallback to PascalCase property
 	id = projectile.get("ShooterId")
 	if id != null:
 		return id
+	# 5. Try shrapnel's source_id
 	return projectile.get("source_id")
 
 

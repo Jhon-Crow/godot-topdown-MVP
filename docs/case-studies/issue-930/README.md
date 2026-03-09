@@ -274,11 +274,55 @@ This is the same root cause as the first report. Our fix (lazy init guard + bubb
 
 ### Post-PR #932 Resolution
 
-Issue #932 (separate PR, merged into `main` 2026-03-07) confirmed a third root cause: **C# bullet properties were using PascalCase (`Direction`, `Speed`) but the force field only read snake_case (`direction`, `speed`)**. All C# enemy bullets were being silently skipped with:
+Issue #932 (separate PR, merged into `main` 2026-03-07) attempted to fix a third root cause: **C# bullet properties were using PascalCase (`Direction`, `Speed`) but the force field only read snake_case (`direction`, `speed`)**. All C# enemy bullets were being silently skipped with:
 ```
 [ForceFieldEffect] Bullet missing properties — has_direction=false has_speed=false — skipping trap
 ```
 
-This means even when the force field WAS correctly initialized and activated (in a fresh build), enemy bullets still passed through because they couldn't be trapped.
+---
 
-PR #931 (this PR) now incorporates the PascalCase/snake_case fix from Issue #932, along with the bubble texture visual and lazy init guard. The complete fix addresses all three root causes.
+## Fourth Root Cause: GDScript `.get()` Doesn't Work With C# [Export] Properties
+
+### Discovery (2026-03-09)
+
+Analysis of `game_log_20260307_203634.txt` (from Issue #932 case study) revealed that **BOTH snake_case and PascalCase fallbacks failed** for C# bullets:
+- `.get("direction")` returns `null`
+- `.get("Direction")` also returns `null`
+
+Despite C# Bullet.cs having `[Export] public Vector2 Direction { get; set; }`, neither property name variant is accessible via GDScript's `.get()` method.
+
+### Online Research
+
+Per [Godot GitHub Issues](https://github.com/godotengine/godot/issues/92183) and [Godot Forums](https://godotforums.org/d/32925-c-get-snake-case-from-reflected-property):
+- C# `[Export]` properties are exposed to Godot's property system with automatic snake_case conversion
+- **However**, the `.get()` method from GDScript may not reliably read these properties
+- Instead, explicit **getter methods** (callable via `.Call()`) are required
+
+### Solution (2026-03-09)
+
+Added explicit getter methods to C# bullets (`Bullet.cs`, `ShotgunPellet.cs`):
+- `get_direction()` / `GetDirection()` → returns `Direction`
+- `get_speed()` / `GetSpeed()` → returns `Speed`
+- `get_shooter_id()` / `GetShooterId()` → returns `ShooterId`
+
+Updated `force_field_effect.gd` helper functions to use `.Call()` for method invocation:
+```gdscript
+func _get_direction(projectile: Node2D):
+    var d = projectile.get("direction")  # GDScript bullets
+    if d != null:
+        return d
+    if projectile.has_method("get_direction"):  # C# getter (new)
+        return projectile.call("get_direction")
+    ...
+```
+
+### Summary of All Root Causes
+
+| # | Root Cause | Fix |
+|---|-----------|-----|
+| 1 | Visual: Ring texture had no interior fill | Bubble texture + shader interior fill |
+| 2 | Damage: Force field not activated (Space not pressed) | N/A (user behavior) |
+| 3 | Silent failure: `_ready()` skipped in C#/GDScript interop | Lazy init guard in `activate()` |
+| 4 | **C# properties: `.get()` returns null** | **Getter methods + `.Call()` pattern** |
+
+PR #931 (this PR) now incorporates all fixes: bubble texture visual, lazy init guard, PascalCase/snake_case fallback, AND explicit C# getter methods.
