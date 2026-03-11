@@ -16,7 +16,8 @@ enum ActiveItemType {
 	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
-	LASER_SIGHT        # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	RICOCHET_POINTS    # Ricochet Points - passive: ricochet chance +30% at valid angles (Issue #1004)
 }
 
 ## Currently selected active item type.
@@ -38,7 +39,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
-	ActiveItemType.LASER_SIGHT: true           # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.RICOCHET_POINTS: true       # No unlock condition — freely available from start (Issue #1004)
 }
 
 ## Active item data for UI and selection.
@@ -98,6 +100,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Laser Sight",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+	},
+	ActiveItemType.RICOCHET_POINTS: {
+		"name": "Ricochet Points",
+		"icon_path": "res://assets/sprites/weapons/ricochet_points_icon.png",
+		"description": "Ricochet Points — passive: ricochet chance is increased by 30% at angles where ricochet is possible (green ray)."
 	}
 }
 
@@ -227,6 +234,11 @@ func has_trajectory_glasses() -> bool:
 ## Check if laser sight is currently equipped (Issue #947).
 func has_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if ricochet points is currently equipped (Issue #1004).
+func has_ricochet_points() -> bool:
+	return current_active_item == ActiveItemType.RICOCHET_POINTS
 
 
 ## Get the laser sight color (purple).
