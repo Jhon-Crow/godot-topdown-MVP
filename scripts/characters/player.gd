@@ -3797,19 +3797,26 @@ func _handle_trajectory_glasses_input() -> void:
 
 
 ## Callback when trajectory glasses activates.
+## Issue #974: Show segmented charge bar at moment of use.
 func _on_trajectory_activated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
 		_trajectory_glasses_hud.set_active(true)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	# Issue #974: Show segmented charge bar above player (in addition to custom HUD)
+	_show_active_item_charge_bar(charges_remaining, _trajectory_glasses.MAX_CHARGES)
 
 
 ## Callback when trajectory glasses deactivates.
+## Issue #974: Hide charge bar after a brief delay.
 func _on_trajectory_deactivated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
 		_trajectory_glasses_hud.set_active(false)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	# Issue #974: Schedule auto-hide of the segmented charge bar
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
 
 
 ## Callback when trajectory glasses charges change.
@@ -3916,9 +3923,9 @@ func _hide_active_item_bar() -> void:
 
 ## Handle charge bar hide timer and active item timer bar updates.
 func _update_charge_bar_timer(delta: float) -> void:
-	# Update continuous timer bar while homing is active
-	if _homing_equipped and _homing_active:
-		_show_active_item_timer_bar(_homing_timer, HOMING_DURATION)
+	# Issue #974: Homing bullets use segmented charge bar (not continuous timer)
+	# to show remaining charges at the moment of use. The bar stays visible
+	# while the effect is active so the player can see how many charges are left.
 
 	# Handle charge bar auto-hide (300ms delay for charge-based items)
 	if _charge_bar_hide_pending and not _homing_active:
@@ -3928,20 +3935,22 @@ func _update_charge_bar_timer(delta: float) -> void:
 			_hide_active_item_bar()
 
 
-## Called when homing bullets are activated - show the charge bar briefly,
-## then transition to continuous timer bar during active effect.
+## Called when homing bullets are activated - show the segmented charge bar
+## with divisions to display remaining charges at the moment of use (Issue #974).
+## Rule: Items with discrete charges show a segmented progress bar appearing on use.
 func _on_homing_activated_show_bar() -> void:
-	# Show continuous timer bar during active effect
-	_show_active_item_timer_bar(HOMING_DURATION, HOMING_DURATION)
-	# Set up charge bar to show briefly after effect ends
-	_charge_bar_hide_pending = true
-	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+	# Issue #974: Show segmented charge bar (not continuous timer) to display
+	# remaining charges. The bar shows the current charge count after this activation.
+	_show_active_item_charge_bar(_homing_charges, HOMING_MAX_CHARGES)
+	# Do NOT set hide pending - keep bar visible while effect is active
+	_charge_bar_hide_pending = false
 
 
 ## Called when homing bullets effect deactivates (timer expires).
-## Show charge bar briefly (300ms) then hide.
+## Hide the charge bar after a brief delay (Issue #974).
 func _on_homing_deactivated_hide_bar() -> void:
-	_show_active_item_charge_bar(_homing_charges, HOMING_MAX_CHARGES)
+	# Issue #974: Set up auto-hide timer. The segmented charge bar was already
+	# shown on activation - now schedule it to hide after a brief delay.
 	_charge_bar_hide_pending = true
 	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
 
