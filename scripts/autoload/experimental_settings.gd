@@ -72,6 +72,12 @@ var fps_drop_logging_enabled: bool = false
 ## When disabled (default), only normally unlocked items are available.
 var all_weapons_unlocked: bool = false
 
+## Whether ricochet points are enabled (Issue #975).
+## When enabled, ricochet chance is increased by 20% at angles where ricochet is possible
+## (when the trajectory glasses ray is green, i.e. within the weapon's max ricochet angle).
+## When disabled (default), normal ricochet probability applies.
+var ricochet_points_enabled: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -83,7 +89,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, Ricochet points: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, ricochet_points_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -258,6 +264,20 @@ func is_all_weapons_unlocked() -> bool:
 	return all_weapons_unlocked
 
 
+## Set ricochet points enabled/disabled (Issue #975).
+func set_ricochet_points_enabled(enabled: bool) -> void:
+	if ricochet_points_enabled != enabled:
+		ricochet_points_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Ricochet points %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if ricochet points is enabled (Issue #975).
+func is_ricochet_points_enabled() -> bool:
+	return ricochet_points_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -273,6 +293,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "fps_counter_enabled", fps_counter_enabled)
 	config.set_value("experimental", "fps_drop_logging_enabled", fps_drop_logging_enabled)
 	config.set_value("experimental", "all_weapons_unlocked", all_weapons_unlocked)
+	config.set_value("experimental", "ricochet_points_enabled", ricochet_points_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -295,6 +316,7 @@ func _load_settings() -> void:
 		fps_counter_enabled = config.get_value("experimental", "fps_counter_enabled", false)
 		fps_drop_logging_enabled = config.get_value("experimental", "fps_drop_logging_enabled", false)
 		all_weapons_unlocked = config.get_value("experimental", "all_weapons_unlocked", false)
+		ricochet_points_enabled = config.get_value("experimental", "ricochet_points_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -309,6 +331,7 @@ func _load_settings() -> void:
 		fps_counter_enabled = false
 		fps_drop_logging_enabled = false
 		all_weapons_unlocked = false
+		ricochet_points_enabled = false
 
 
 ## Log a message to the file logger if available.

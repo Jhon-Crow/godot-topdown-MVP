@@ -13,7 +13,8 @@ class MockDifficultyManager:
 		EASY,
 		NORMAL,
 		HARD,
-		POWER_FANTASY
+		POWER_FANTASY,
+		BLACK_METAL  ## Issue #958: 25% less HP, 25% faster, B&W+red visual filter
 	}
 
 	## Night mode reaction delay multiplier (Issue #825)
@@ -48,6 +49,9 @@ class MockDifficultyManager:
 	func is_power_fantasy_mode() -> bool:
 		return current_difficulty == Difficulty.POWER_FANTASY
 
+	func is_black_metal_mode() -> bool:
+		return current_difficulty == Difficulty.BLACK_METAL
+
 	func get_difficulty_name() -> String:
 		match current_difficulty:
 			Difficulty.EASY:
@@ -58,6 +62,8 @@ class MockDifficultyManager:
 				return "Hard"
 			Difficulty.POWER_FANTASY:
 				return "Power Fantasy"
+			Difficulty.BLACK_METAL:
+				return "Black Metal"
 			_:
 				return "Unknown"
 
@@ -71,6 +77,8 @@ class MockDifficultyManager:
 				return "Hard"
 			Difficulty.POWER_FANTASY:
 				return "Power Fantasy"
+			Difficulty.BLACK_METAL:
+				return "Black Metal"
 			_:
 				return "Unknown"
 
@@ -84,11 +92,23 @@ class MockDifficultyManager:
 				return 60
 			Difficulty.POWER_FANTASY:
 				return 270
+			Difficulty.BLACK_METAL:
+				return 90
 			_:
 				return 90
 
 	func is_distraction_attack_enabled() -> bool:
 		return current_difficulty == Difficulty.HARD
+
+	func get_hp_multiplier() -> float:
+		if current_difficulty == Difficulty.BLACK_METAL:
+			return 0.75
+		return 1.0
+
+	func get_player_speed_multiplier() -> float:
+		if current_difficulty == Difficulty.BLACK_METAL:
+			return 1.25
+		return 1.0
 
 	## Set night mode active state for testing (Issue #825).
 	func set_night_mode_active(active: bool) -> void:
@@ -109,6 +129,8 @@ class MockDifficultyManager:
 				base_delay = 0.2
 			Difficulty.POWER_FANTASY:
 				base_delay = 0.8
+			Difficulty.BLACK_METAL:
+				base_delay = 0.3
 			_:
 				base_delay = 0.6
 		# Issue #825: In night mode, enemies react 30% slower
@@ -234,6 +256,7 @@ func test_get_difficulty_name_for_specific_difficulty() -> void:
 	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.NORMAL), "Normal")
 	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.HARD), "Hard")
 	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.POWER_FANTASY), "Power Fantasy")
+	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.BLACK_METAL), "Black Metal")
 
 
 # ============================================================================
@@ -441,3 +464,117 @@ func test_night_mode_normal_delay_is_30_percent_longer() -> void:
 
 	assert_almost_eq(night_delay / base_delay, 1.3, 0.001,
 		"Night mode delay should be exactly 30%% longer than base delay")
+
+
+# ============================================================================
+# Black Metal Mode Tests (Issue #958)
+# ============================================================================
+
+
+func test_set_difficulty_to_black_metal() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+
+	assert_eq(manager.current_difficulty, MockDifficultyManager.Difficulty.BLACK_METAL,
+		"Difficulty should be BLACK_METAL after setting")
+	assert_true(manager.is_black_metal_mode(), "is_black_metal_mode() should return true")
+	assert_false(manager.is_normal_mode(), "is_normal_mode() should return false")
+	assert_false(manager.is_easy_mode(), "is_easy_mode() should return false")
+	assert_false(manager.is_hard_mode(), "is_hard_mode() should return false")
+	assert_false(manager.is_power_fantasy_mode(), "is_power_fantasy_mode() should return false")
+
+
+func test_get_difficulty_name_black_metal() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+
+	assert_eq(manager.get_difficulty_name(), "Black Metal",
+		"Black Metal difficulty name should be 'Black Metal'")
+
+
+func test_max_ammo_black_metal_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+
+	assert_eq(manager.get_max_ammo(), 90,
+		"Black Metal mode should have 90 max ammo (same as normal)")
+
+
+func test_distraction_attack_disabled_in_black_metal_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+
+	assert_false(manager.is_distraction_attack_enabled(),
+		"Distraction attack should be disabled in Black Metal mode")
+
+
+func test_detection_delay_black_metal_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+
+	assert_eq(manager.get_detection_delay(), 0.3,
+		"Black Metal mode should have 0.3s detection delay (faster than normal)")
+
+
+func test_hp_multiplier_normal_mode_is_one() -> void:
+	# Default is NORMAL
+	assert_almost_eq(manager.get_hp_multiplier(), 1.0, 0.001,
+		"Normal mode HP multiplier should be 1.0 (no change)")
+
+
+func test_hp_multiplier_black_metal_is_0_75() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+
+	assert_almost_eq(manager.get_hp_multiplier(), 0.75, 0.001,
+		"Black Metal mode HP multiplier should be 0.75 (25%% less HP)")
+
+
+func test_hp_multiplier_power_fantasy_mode_is_one() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_almost_eq(manager.get_hp_multiplier(), 1.0, 0.001,
+		"Power Fantasy mode HP multiplier should be 1.0 (health handled separately)")
+
+
+func test_player_speed_multiplier_normal_mode_is_one() -> void:
+	# Default is NORMAL
+	assert_almost_eq(manager.get_player_speed_multiplier(), 1.0, 0.001,
+		"Normal mode speed multiplier should be 1.0 (no change)")
+
+
+func test_player_speed_multiplier_black_metal_is_1_25() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+
+	assert_almost_eq(manager.get_player_speed_multiplier(), 1.25, 0.001,
+		"Black Metal mode speed multiplier should be 1.25 (25%% faster)")
+
+
+func test_black_metal_hp_reduction_calculation() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+	var hp_mult := manager.get_hp_multiplier()
+
+	# Verify 25% less HP: base 4 HP -> floor(4 * 0.75) = 3
+	var base_hp := 4
+	var expected_hp := maxi(1, int(base_hp * hp_mult))
+	assert_eq(expected_hp, 3,
+		"With 4 base HP and 0.75 multiplier, expected 3 HP in Black Metal mode")
+
+
+func test_black_metal_hp_never_below_one() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+	var hp_mult := manager.get_hp_multiplier()
+
+	# Even if base HP is 1, result should be at least 1
+	var base_hp := 1
+	var result_hp := maxi(1, int(base_hp * hp_mult))
+	assert_ge(result_hp, 1, "HP should never go below 1 in Black Metal mode")
+
+
+func test_black_metal_is_not_active_in_normal_mode() -> void:
+	# Default is NORMAL
+	assert_false(manager.is_black_metal_mode(),
+		"is_black_metal_mode() should return false in Normal mode")
+
+
+func test_black_metal_mode_detection_delay_with_night_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.BLACK_METAL)
+	manager.set_night_mode_active(true)
+
+	var expected := 0.3 * MockDifficultyManager.NIGHT_MODE_REACTION_DELAY_MULTIPLIER
+	assert_almost_eq(manager.get_detection_delay(), expected, 0.001,
+		"Night mode black metal should have 30%% longer detection delay")

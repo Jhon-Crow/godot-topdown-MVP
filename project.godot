@@ -30,12 +30,14 @@ SoundSettings="*res://scripts/autoload/sound_settings.gd"
 CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
 GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
 PowerFantasyEffectsManager="*res://scripts/autoload/power_fantasy_effects_manager.gd"
+BlackMetalEffectsManager="*res://scripts/autoload/black_metal_effects_manager.gd"
 ProgressManager="*res://scripts/autoload/progress_manager.gd"
 ReplayManager="*res://Scripts/Autoload/ReplayManager.cs"
 ActiveItemManager="*res://scripts/autoload/active_item_manager.gd"
 FlashbangPlayerEffectsManager="*res://scripts/autoload/flashbang_player_effects_manager.gd"
 ProjectilePoolManager="*res://scripts/autoload/projectile_pool_manager.gd"
 PersistManager="*res://scripts/autoload/persist_manager.gd"
+UnlockManager="*res://scripts/autoload/unlock_manager.gd"
 
 [application]
 

@@ -286,6 +286,28 @@ autowrap_mode = 2
 [node name="HSeparator12" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="RicochetPointsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RicochetPointsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/RicochetPointsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ricochet Points"
+
+[node name="RicochetPointsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/RicochetPointsContainer"]
+layout_mode = 2
+
+[node name="RicochetPointsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, ricochet chance is increased by 20%
+at angles where ricochet is possible (green ray).
+Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator13" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

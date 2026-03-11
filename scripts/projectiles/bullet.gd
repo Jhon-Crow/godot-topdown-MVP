@@ -619,6 +619,8 @@ func _calculate_impact_angle(surface_normal: Vector2) -> float:
 ## - 0-15°: ~100% (grazing shots always ricochet)
 ## - 45°: ~80% (moderate angles have good ricochet chance)
 ## - 90°: ~10% (perpendicular shots rarely ricochet)
+## When Ricochet Points experimental setting is enabled (Issue #975),
+## probability is increased by 20% at angles where ricochet is possible.
 func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	var max_angle: float
 	var base_probability: float
@@ -642,7 +644,16 @@ func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	# Power of 2.17 creates a curve matching real-world ballistics
 	var power_factor := pow(normalized_angle, 2.17)
 	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
-	return base_probability * angle_factor
+	var probability := base_probability * angle_factor
+
+	# Issue #975: Ricochet Points experimental setting boosts ricochet chance by 20%
+	# at angles where ricochet is possible (same condition as green trajectory ray).
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_ricochet_points_enabled"):
+		if experimental_settings.is_ricochet_points_enabled():
+			probability = minf(probability + 0.2, 1.0)
+
+	return probability
 
 
 ## Performs the ricochet: updates direction, speed, and damage.
