@@ -17,6 +17,7 @@ var _blood_decal_scene: PackedScene = null
 var _bullet_hole_scene: PackedScene = null
 var _muzzle_flash_scene: PackedScene = null
 var _flashbang_effect_scene: PackedScene = null
+var _explosion_scorch_mark_scene: PackedScene = null
 
 ## Default effect scale for calibers without explicit setting.
 const DEFAULT_EFFECT_SCALE: float = 1.0
@@ -233,6 +234,18 @@ func _preload_effect_scenes() -> void:
 		# Flashbang effect is optional - don't warn, just log in debug mode
 		if _debug_effects:
 			print("[ImpactEffectsManager] FlashbangEffect scene not found (optional)")
+
+	# Issue #1005: Load explosion scorch mark scene
+	var scorch_mark_path := "res://scenes/effects/ExplosionScorchMark.tscn"
+	if ResourceLoader.exists(scorch_mark_path):
+		_explosion_scorch_mark_scene = load(scorch_mark_path)
+		loaded_scenes.append("ExplosionScorchMark")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded ExplosionScorchMark scene")
+	else:
+		# Scorch mark is optional - don't warn, just log in debug mode
+		if _debug_effects:
+			print("[ImpactEffectsManager] ExplosionScorchMark scene not found (optional)")
 
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
@@ -869,12 +882,13 @@ func clear_penetration_holes() -> void:
 		print("[ImpactEffectsManager] All penetration holes cleared")
 
 
-## Clears all persistent effects (blood decals, bullet holes, and penetration holes).
+## Clears all persistent effects (blood decals, bullet holes, penetration holes, and scorch marks).
 ## Call this on scene transitions.
 func clear_all_persistent_effects() -> void:
 	clear_blood_decals()
 	clear_bullet_holes()
 	clear_penetration_holes()
+	clear_scorch_marks()
 
 
 ## Called when the scene tree changes. Detects scene transitions and clears stale references.
@@ -886,6 +900,7 @@ func _on_tree_changed() -> void:
 		_blood_decals.clear()
 		_bullet_holes.clear()
 		_penetration_holes.clear()
+		_scorch_marks.clear()
 		_last_scene = current_scene
 
 
@@ -1316,5 +1331,62 @@ func _create_radial_gradient_texture(radius: int) -> GradientTexture2D:
 	texture.height = radius * 2
 
 	return texture
+
+
+# =============================================================================
+# Explosion Scorch Marks (Issue #1005)
+# =============================================================================
+
+
+## Active scorch marks for cleanup management.
+var _scorch_marks: Array = []
+
+
+## Spawns an explosion scorch mark on the floor at the given position.
+## Scorch marks persist as visual evidence of grenade explosions.
+## @param position: World position where the grenade exploded.
+## @param scorch_radius: Radius of the scorch mark in pixels.
+## @param scorch_alpha: Opacity of the scorch mark (0.0 to 1.0).
+## @param grenade_type: Type of grenade for logging ("flashbang", "frag", "defensive").
+func spawn_explosion_scorch_mark(position: Vector2, scorch_radius: float, scorch_alpha: float, grenade_type: String) -> void:
+	if _debug_effects:
+		print("[ImpactEffectsManager] spawn_explosion_scorch_mark at ", position, " radius=", scorch_radius, " alpha=", scorch_alpha, " type=", grenade_type)
+
+	if _explosion_scorch_mark_scene == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ExplosionScorchMark scene not loaded, skipping")
+		return
+
+	var scorch_mark: Node = _explosion_scorch_mark_scene.instantiate()
+	if scorch_mark == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ERROR: Failed to instantiate scorch mark")
+		return
+
+	# Configure scorch mark properties
+	scorch_mark.global_position = position
+	scorch_mark.scorch_radius = scorch_radius
+	scorch_mark.scorch_alpha = scorch_alpha
+	scorch_mark.grenade_type = grenade_type
+
+	# Add to scene
+	_add_effect_to_scene(scorch_mark)
+
+	# Track for cleanup management
+	_scorch_marks.append(scorch_mark)
+
+	_log_info("Spawned %s scorch mark at %s (radius: %.1f, alpha: %.2f)" % [
+		grenade_type, str(position), scorch_radius, scorch_alpha])
+
+
+## Clears all scorch marks from the scene.
+## Call this on scene transitions or when cleaning up.
+func clear_scorch_marks() -> void:
+	for mark in _scorch_marks:
+		if mark and is_instance_valid(mark):
+			mark.queue_free()
+	_scorch_marks.clear()
+	if _debug_effects:
+		print("[ImpactEffectsManager] All scorch marks cleared")
 
 
