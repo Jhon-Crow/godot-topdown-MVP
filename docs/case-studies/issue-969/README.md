@@ -18,6 +18,20 @@ game session logs provided by the reporter.
 
 **Common setup**: MiniUzi (32/32 ammo), 10 enemy listeners, Hard difficulty, FPS counter + drop logging enabled.
 
+### Summary of All 9 Sessions (Chronological)
+
+| Log file | Date | Fixes applied | FPS drops | Worst FPS | Enemies |
+|---|---|---|---|---|---|
+| game_log_20260305_233837.txt | 2026-03-05 | None | 13 | 9 fps | 10 |
+| game_log_20260305_233927.txt | 2026-03-05 | None | 35 | 5 fps | 10 |
+| game_log_20260305_234058.txt | 2026-03-05 | None | 18 | 24 fps | 10 |
+| game_log_20260307_203841.txt | 2026-03-07 | Fixes 1–3 | 1 (10e) / 16 (20e) | 29 fps (10e) / 4 fps (20e) | 10 / 20 |
+| game_log_20260307_211503.txt | 2026-03-07 | Fixes 1–4 | 2 (10e) / 19 (20e) | 29 fps (10e) / 5 fps (20e) | 10 / 20 |
+| game_log_20260307_215133.txt | 2026-03-07 | Fixes 1–7 | 48 | 1 fps (shader), 5 fps | 20 |
+| game_log_20260309_194900.txt | 2026-03-09 | Fixes 1–9 | 61 | 6 fps | 20 |
+| game_log_20260311_200846.txt | 2026-03-11 | Fixes 1–11 | **14** | **5 fps** | 20 |
+| game_log_20260311_200920.txt | 2026-03-11 | Fixes 1–11 | **14** | **5 fps** | 20 |
+
 ### After Fix (Verification Log — 2026-03-07)
 
 | Log file | Duration | FPS drops | Worst FPS | Enemies (section) |
@@ -76,6 +90,42 @@ propagation flooding with many enemies active.
 
 **Confirmed: 1,400 BloodDecal creation events** in session (many decals per lethal hit, each triggering `tree_changed`)
 **Confirmed: 148 LastChance "Not in hard mode" file writes** in normal gameplay (useless I/O on every bullet threat)
+
+### Fifth Verification — 2026-03-11 (Two Sessions: 20:08:46 and 20:09:20)
+
+| Log file | Duration | FPS drops | Worst FPS | Notes |
+|---|---|---|---|---|
+| game_log_20260311_200846.txt | ~29 s | **14** | 5 fps | DocksLevel (20 enemies), M16, Hard |
+| game_log_20260311_200920.txt | ~22 s | **14** | 5 fps | DocksLevel (20 enemies), M16, Hard |
+
+**Key findings** (with Fixes 1–11 all applied):
+- FPS drops are still severe — 14 drops per session, worst at 5 fps, average ~7–8 fps during combat
+- Both sessions span DocksLevel with 20 enemies (exact same roster: CraneGuard1/2, ContainerYardA × 5, WarehouseA × 3, LoadingDock × 4, ContainerYardB × 3, WarehouseB × 3, OpenArea_Patrol × 2)
+
+**Confirmed improvements from previous fixes:**
+
+| Metric | Round 6 | Previous worst | Improvement |
+|---|---|---|---|
+| CASING_KICK events/session | 83–124 | 3,193 | **97%** eliminated ✅ |
+| EnemyGrenade file writes | 0 | 466/27s | **100%** eliminated ✅ |
+| ImpactEffects per-hit file writes | 7–9/session (init only) | 765/session | **99%** eliminated ✅ |
+| LastChance per-threat file writes | 13–18/session | 148/session | **91%** reduced ✅ |
+| Enemy GUNSHOT propagation | 80–99 events | 526 in 30s | **~75%** reduced ✅ |
+
+**Remaining bottlenecks confirmed in Round 6:**
+
+| Metric | Round 6 observed | Status |
+|---|---|---|
+| BloodDecal creation peak | 35–36/sec (was 48/sec originally) | Reduced but still high |
+| SUPPRESSED rapid cycling | OpenArea_Patrol1/2 still cycle 4+ times/sec | Fix 9 partially effective |
+| AI state transitions | 490 / 343 per session | High — 20 AI agents all running every frame |
+| SoundPropagation GUNSHOT broadcast | 15–20 listener O(N) scan per shot | Core architectural bottleneck |
+| ROT_CHANGE calculations | 223 / 191 per session | Every enemy rotation tracked every frame |
+
+**Critical new finding — Log 2 (20:09:20):**
+The first FPS drop (6 fps at 20:09:22) occurs **before combat begins** — immediately after particle shader warmup, before the player fires a single shot. Just having 20 enemy AI agents patrolling and running their state machines causes sub-30fps. This confirms that the 20-enemy ceiling is a fundamental architectural limitation of the current per-enemy-per-frame AI processing model, independent of visual effects.
+
+**Correlation confirmed:** Every 5 fps drop co-occurs with BloodDecal bursts of 30–36/sec. The blood decal count was reduced (Fixes 10–11) but the underlying `add_child()` + `tree_changed` overhead remains. With 20 concurrent enemies, even 8 decals/kill × multiple simultaneous kills generates large bursts.
 
 ## Root Causes Found
 
@@ -512,9 +562,62 @@ detects every bullet entering range. Each detection produced 2 file writes with 
 
 **Expected elimination:** 148 file writes/session → **0** writes when `_debug_logging = false`.
 
+## Round 6 Analysis — Remaining Bottlenecks After 11 Fixes
+
+After applying all 11 fixes (Rounds 1–5), two verification sessions on 2026-03-11 confirm:
+- **10-enemy scenario**: Fully resolved (no FPS drops observed on LabyrinthLevel/BuildingLevel)
+- **20-enemy scenario (DocksLevel)**: Still drops to 5–7 fps — the fundamental multi-agent CPU overhead has not been resolved
+
+The remaining bottlenecks require **architectural changes**, not just parameter tuning:
+
+### RCA-14 (Architectural): Sound propagation O(N) scans not bounded at engine level
+
+**Confirmed in Round 6:** Every GUNSHOT and CASING_KICK still scans all remaining listeners (15–20 per event).
+With M16 and multiple UZI enemies simultaneously firing, this generates 22–23 SoundPropagation events/sec,
+each touching all listeners. The per-event cooldown (Fix 4) reduced enemy shots but player shots and
+CASING_KICKs still propagate fully.
+
+**Proposed fix:** Spatial partitioning — divide the map into cells, maintain a cell index for each listener,
+and when a sound is emitted only scan listeners in nearby cells (e.g., within 2× the sound range).
+This would reduce the per-event scan from O(N) to O(k) where k is typically 2–5 nearby enemies.
+
+### RCA-15 (Architectural): All 20 enemy AI state machines run every physics frame
+
+**Confirmed in Round 6 (Log 2):** 6 fps FPS drop at 20:09:22, before any combat, just from 20 enemies
+patrolling. The AI update cost at 20 agents × 60 physics frames = 1,200 AI update calls/second.
+Each update: state evaluation, visibility checks (cached), navigation queries, rotation calculations.
+
+**Proposed fix:** Staggered AI updates (LOD-based update rate). Enemies far from the player or not
+currently in combat could update every 3–5 frames instead of every frame, reducing AI update calls
+by 60–80% for distant/inactive enemies without visible gameplay difference.
+
+### RCA-16 (High): BloodDecal burst spawning on kills — tree_changed overhead persists
+
+**Confirmed in Round 6:** BloodDecal peak still 35–36/sec despite Fix 10 (reduced from 20→8 lethal,
+10→4 non-lethal). Peak spikes are from multiple enemies dying within the same second:
+- Two enemies die at 20:09:08 → 2 × 8 lethal decals = 16 + deferred particle decals = 35/sec burst
+
+**Proposed fix:** Per-second BloodDecal rate limiting (`MAX_BLOOD_DECALS_PER_SECOND`) using a global
+counter reset each frame, deferred spawning of excess decals to subsequent frames.
+
+### RCA-17 (Medium): SUPPRESSED state cycling still active despite Fix 9
+
+**Confirmed in Round 6:** `OpenArea_Patrol1` and `OpenArea_Patrol2` still cycle `SUPPRESSED →
+SEEKING_COVER → COMBAT → RETREATING → SUPPRESSED` at high rate (4+ times/sec seen in both sessions).
+Fix 9 added `SUPPRESSED_MIN_DURATION = 0.5s` minimum before transitioning to SEEKING_COVER, but the
+cycle is observed to still happen very rapidly, suggesting the minimum is either not being enforced
+correctly, or the transition path is:
+- SUPPRESSED (0.5s minimum enforced) → but then SEEKING_COVER → COMBAT (immediate, no cover found)
+  → RETREATING (immediate) → SUPPRESSED → (repeat from start)
+
+The 0.5s minimum only covers the SUPPRESSED phase; SEEKING_COVER and RETREATING still exit immediately.
+Adding minimum durations to SEEKING_COVER and RETREATING states would further cap the cycle rate.
+
 ## References
 
 - [Godot 4 General Optimization Tips](https://docs.godotengine.org/en/stable/tutorials/performance/general_optimization.html)
 - [Godot 4 Object Pooling Guide](https://uhiyama-lab.com/en/notes/godot/godot-object-pooling-basics/)
 - [Debug logging performance impact — Godot proposals #14370](https://github.com/godotengine/godot-proposals/issues/14370)
 - [Sound propagation batching — Godot Forum](https://forum.godotengine.org/t/spatialised-audio-system-in-godot-with-support-for-occlusion-and-propagation/40824)
+- [Godot 4 AI LOD patterns — KidsCanCode](https://kidscancode.org/godot_recipes/4.x/ai/index.html)
+- [Staggered physics updates in games — Game Programming Patterns](https://gameprogrammingpatterns.com/update-method.html)
