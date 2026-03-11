@@ -82,11 +82,33 @@ The 20% opacity outline in v4 was still too visible on large text like "PAUSED".
 - Removed `outline_color` property (no longer needed with size=0)
 - Set `Label/constants/outline_size = 0` in `neon_button_theme.tres` and removed `Label/colors/font_outline_color`
 
+### v6 Fix: Replace Beon Stencil Font with Comfortaa Bold
+
+**Owner feedback (v6)**: "у больших букв всё ещё некрасивая белая обводка" (large letters still have ugly white outline) — see `images/owner_complaint_white_outline.png`.
+
+**Root cause** (finally identified in v6): The problem was NOT in the outline settings but in the **font itself**. Beon is a *stencil/tube-style display font* that has intentional cuts/gaps through every letter stroke by design (visible as horizontal lines dividing the letter bodies). This is Beon's artistic choice to resemble bent neon glass tubes.
+
+At small sizes these gaps are imperceptible, which is why the owner said "small font looks good." At large sizes (48px+ titles), the gaps become clearly visible and create the appearance of multiple concentric white outlines around each letter.
+
+The glow shader then amplifies this by creating bright edges around each visible gap in the font.
+
+**Diagnosis method**: Rendering Beon and Comfortaa side-by-side confirms: Beon has stencil cuts, Comfortaa is fully solid.
+
+**Changes in v6**:
+- Add `assets/fonts/neon/Comfortaa-Bold.ttf` — solid rounded font (Google Fonts, SIL OFL)
+- Add `assets/fonts/neon/Comfortaa-OFL-LICENSE.txt` — license file
+- Update `neon_label_settings.tres` to use `Comfortaa-Bold.ttf`
+- Update `neon_button_theme.tres` to use `Comfortaa-Bold.ttf`
+
+Result: Clean solid rounded letters with smooth pink/magenta outer glow, no ring artifacts.
+
 ## Files Created/Modified
 
 ### New Files
-- `assets/fonts/neon/Beon-Regular.ttf` - Neon-style font
-- `assets/fonts/neon/OFL-LICENSE.txt` - Font license
+- `assets/fonts/neon/Beon-Regular.ttf` - Original neon tube-style font (retained for reference)
+- `assets/fonts/neon/OFL-LICENSE.txt` - Beon font license
+- `assets/fonts/neon/Comfortaa-Bold.ttf` - Solid rounded neon font (v6 replacement)
+- `assets/fonts/neon/Comfortaa-OFL-LICENSE.txt` - Comfortaa license
 - `resources/themes/neon_label_settings.tres` - LabelSettings for neon text
 - `resources/themes/neon_glow.gdshader` - Custom multi-layer glow shader
 - `resources/themes/neon_glow_material.tres` - ShaderMaterial
