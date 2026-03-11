@@ -2241,12 +2241,19 @@ func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
 ## Bug fix round 4: updates the TUTORIAL_HINT_BOLT_CYCLE hint to highlight the current reload step.
+## Issue #983: when state=0 (NotReloading), reload is complete — dismiss hint and advance tutorial.
 ## ShotgunReloadState: 0=NotReloading, 1=WaitingToOpen, 2=Loading, 3=WaitingToClose
 func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if _tutorial_step != TutorialStep.RELOAD:
 		return
 
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+		return
+
+	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state == 0:
+		print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
+		_on_tutorial_reload_completed()
 		return
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]

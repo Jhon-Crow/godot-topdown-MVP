@@ -219,7 +219,18 @@ class MockTutorialLevel:
 			_active_hints[HINT_BOLT_CYCLE] = _build_shotgun_pump_hint_bbcode(state)
 
 	## Called when shotgun reload state changes (Fix 4th#2).
+	## Issue #983 Fix 1: state=0 (NotReloading) means reload completed — dismiss hint and advance.
 	func on_shotgun_reload_state_changed(state: int) -> void:
+		if state == 0:
+			# Reload fully complete — dismiss hint and advance tutorial
+			_dismiss_hint(HINT_BOLT_CYCLE)
+			if not _has_reloaded:
+				_has_reloaded = true
+				if _has_thrown_grenade:
+					advance_to_step(TutorialStep.COMPLETED)
+				else:
+					advance_to_step(TutorialStep.THROW_GRENADE)
+			return
 		if _active_hints.has(HINT_BOLT_CYCLE):
 			_active_hints[HINT_BOLT_CYCLE] = _build_shotgun_full_reload_hint_bbcode(state)
 
@@ -1749,6 +1760,109 @@ func test_grenade_hint_shown_when_has_grenades() -> void:
 
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_GRENADE),
 		"Grenade hint shown when player has grenades (Fix 3rd#9)")
+
+
+# ============================================================================
+# Issue #983 Bug Fix Tests
+# ============================================================================
+
+
+func test_shotgun_hint_dismissed_via_reload_state_not_reload_completed() -> void:
+	## Issue #983 Fix 1: Shotgun hint is dismissed when ReloadStateChanged(0) fires,
+	## NOT via on_reload_completed (which is never emitted for shotgun).
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 0
+	tutorial._grenade_count = 0
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()   # 1st shot: reveals pump hint
+	tutorial.on_weapon_fired()   # 2nd shot: reveals full reload hint
+
+	# Simulate full reload sequence: open(1) → loading(2) → close(3) → done(0)
+	tutorial.on_shotgun_reload_state_changed(1)
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Hint still visible during reload (state=1)")
+	tutorial.on_shotgun_reload_state_changed(2)
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Hint still visible while loading shells (state=2)")
+	tutorial.on_shotgun_reload_state_changed(3)
+	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Hint still visible waiting to close bolt (state=3)")
+
+	# Reload complete: state=0 should dismiss hint
+	tutorial.on_shotgun_reload_state_changed(0)
+
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Issue #983 Fix 1: Shotgun bolt-cycle hint dismissed when ReloadStateChanged(0)")
+
+
+func test_shotgun_hint_not_reset_to_first_step_on_reload_complete() -> void:
+	## Issue #983 Fix 1: When reload completes (state=0), hint must NOT reset to
+	## show the first step [ПКМ↑ открыть] highlighted in red.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 0
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	# Simulate full reload and completion
+	tutorial.on_shotgun_reload_state_changed(1)
+	tutorial.on_shotgun_reload_state_changed(2)
+	tutorial.on_shotgun_reload_state_changed(3)
+	tutorial.on_shotgun_reload_state_changed(0)
+
+	# Hint must be gone — not showing "ПКМ↑ открыть" highlighted red again
+	assert_false(tutorial.is_hint_active(MockTutorialLevel.HINT_BOLT_CYCLE),
+		"Issue #983 Fix 1: Hint is gone after reload complete — not reset to first step")
+
+
+func test_shotgun_tutorial_advances_to_grenade_on_reload_complete() -> void:
+	## Issue #983 Fix 1: Tutorial advances to THROW_GRENADE after shotgun reload completes.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 0
+	tutorial._grenade_count = 3
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	tutorial.on_shotgun_reload_state_changed(0)  # Reload complete
+
+	assert_eq(tutorial.get_current_step(), MockTutorialLevel.TutorialStep.THROW_GRENADE,
+		"Issue #983 Fix 1: Tutorial advances to THROW_GRENADE after shotgun reload completes")
+
+
+func test_shotgun_shells_to_load_uses_shells_in_tube() -> void:
+	## Issue #983 Fix 2: _get_shotgun_shells_to_load (via _build_shotgun_full_reload_hint_bbcode)
+	## uses ShellsInTube / TubeMagazineCapacity, not CurrentAmmo / MaxAmmo.
+	## In the mock, these are _shotgun_current_ammo and _shotgun_capacity.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 6  # 6 shells loaded, 2 empty slots
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()  # Full reload hint appears
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_BOLT_CYCLE, "")
+	assert_true(hint_text.contains("x2"),
+		"Issue #983 Fix 2: Shotgun hint shows x2 when 6 shells already loaded (capacity 8)")
+	assert_false(hint_text.contains("x8"),
+		"Issue #983 Fix 2: Shotgun hint does NOT show x8 when only 2 shells needed")
+
+
+func test_shotgun_shells_to_load_zero_when_full() -> void:
+	## Issue #983 Fix 2: When tube is full, shells_to_load = 0.
+	tutorial._has_shotgun = true
+	tutorial._shotgun_capacity = 8
+	tutorial._shotgun_current_ammo = 8  # Fully loaded
+	tutorial.set_initial_step_based_on_weapon(false)
+	tutorial.on_weapon_fired()
+	tutorial.on_weapon_fired()
+
+	var hint_text: String = tutorial._active_hints.get(MockTutorialLevel.HINT_BOLT_CYCLE, "")
+	assert_true(hint_text.contains("x0"),
+		"Issue #983 Fix 2: Shotgun hint shows x0 when tube is full")
 
 
 # ============================================================================

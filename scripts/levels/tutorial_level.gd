@@ -1032,14 +1032,16 @@ func _build_shotgun_reload_hint_bbcode() -> String:
 
 
 ## Return the number of shells the shotgun still needs to fill up to capacity (Bug fix #7).
+## Issue #983 Fix 2: use ShellsInTube and TubeMagazineCapacity (the actual shotgun properties)
+##   instead of CurrentAmmo/MaxAmmo which are always null/0 for the shotgun.
 func _get_shotgun_shells_to_load() -> int:
 	if _shotgun == null:
 		return 8  # Default fallback
-	var current_ammo = _shotgun.get("CurrentAmmo")
-	var max_ammo = _shotgun.get("MaxAmmo")
-	if current_ammo == null or max_ammo == null:
+	var shells_in_tube = _shotgun.get("ShellsInTube")
+	var tube_capacity = _shotgun.get("TubeMagazineCapacity")
+	if shells_in_tube == null or tube_capacity == null:
 		return 8
-	return int(max_ammo) - int(current_ammo)
+	return int(tube_capacity) - int(shells_in_tube)
 
 
 ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
@@ -1101,12 +1103,27 @@ func _build_shotgun_pump_hint_bbcode(state: int) -> String:
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
 ## Bug fix round 4: updates the HINT_BOLT_CYCLE hint to highlight the current reload step.
+## Issue #983 Fix 1: when state=0 (NotReloading), the reload is complete — dismiss hint
+##   and advance tutorial instead of resetting the hint text to the first step.
 ## ShotgunReloadState: 0=NotReloading, 1=WaitingToOpen, 2=Loading, 3=WaitingToClose
 func _on_shotgun_reload_state_changed(new_state: int) -> void:
 	if _current_step != TutorialStep.RELOAD:
 		return
 
 	if not _hint_labels.has(HINT_BOLT_CYCLE):
+		return
+
+	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state == 0:
+		_dismiss_hint(HINT_BOLT_CYCLE)
+		_shotgun_full_reload_active = false
+		if not _has_reloaded:
+			_has_reloaded = true
+			print("Tutorial: Shotgun reload completed via ReloadStateChanged(0)")
+			if _has_thrown_grenade:
+				_advance_to_step(TutorialStep.COMPLETED)
+			else:
+				_advance_to_step(TutorialStep.THROW_GRENADE)
 		return
 
 	var label: RichTextLabel = _hint_labels[HINT_BOLT_CYCLE]
