@@ -220,15 +220,16 @@ func _on_delete_saves_pressed() -> void:
 
 
 func _on_unlock_table_pressed() -> void:
-	# Show the unlock table overlay
+	# Show the unlock table overlay with up-to-date data
 	if unlock_table_menu:
-		unlock_table_menu.visible = true
+		unlock_table_menu.refresh()
+		unlock_table_menu.show()
 
 
 func _on_unlock_table_back_pressed() -> void:
 	# Hide the unlock table overlay and return to experimental menu
 	if unlock_table_menu:
-		unlock_table_menu.visible = false
+		unlock_table_menu.hide()
 
 
 func _on_back_pressed() -> void:

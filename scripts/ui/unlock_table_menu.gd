@@ -10,6 +10,9 @@ extends CanvasLayer
 ## Signal emitted when the back button is pressed.
 signal back_pressed
 
+## Reference to the table content container (populated in _build_ui).
+var _table_vbox: VBoxContainer = null
+
 ## Level display names mapped from scene paths.
 ## Must stay in sync with LevelsMenu.LEVELS and UnlockManager.UNLOCK_CONDITIONS.
 const LEVEL_NAMES: Dictionary = {
@@ -38,6 +41,18 @@ const RANK_COLORS: Dictionary = {
 func _ready() -> void:
 	_build_ui()
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+## Rebuild the table to reflect the latest unlock state.
+## Call this each time the menu is shown so data stays current.
+func refresh() -> void:
+	if _table_vbox == null:
+		return
+	for child in _table_vbox.get_children():
+		child.queue_free()
+	# Wait one frame for queue_free to process, then rebuild
+	await get_tree().process_frame
+	_build_table(_table_vbox)
 
 
 ## Build the complete UI layout programmatically.
@@ -123,13 +138,13 @@ func _build_ui() -> void:
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	main_vbox.add_child(scroll)
 
-	var table_vbox := VBoxContainer.new()
-	table_vbox.layout_mode = 2
-	table_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	table_vbox.add_theme_constant_override("separation", 4)
-	scroll.add_child(table_vbox)
+	_table_vbox = VBoxContainer.new()
+	_table_vbox.layout_mode = 2
+	_table_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_table_vbox.add_theme_constant_override("separation", 4)
+	scroll.add_child(_table_vbox)
 
-	_build_table(table_vbox)
+	_build_table(_table_vbox)
 
 	# Bottom buttons
 	var bottom_sep := HSeparator.new()
