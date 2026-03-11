@@ -69,6 +69,7 @@ func _ready() -> void:
 		_material.set_shader_parameter("red_threshold", 0.15)
 		_material.set_shader_parameter("red_boost", 1.8)
 		_material.set_shader_parameter("fire_threshold", 0.25)
+		_material.set_shader_parameter("bright_flash_threshold", 0.85)  # Issue #985: preserve weapon flashes
 		_material.set_shader_parameter("contrast", 1.5)
 		_filter_rect.material = _material
 		_log("Black Metal shader loaded (B&W+red, hint_screen_texture approach)")

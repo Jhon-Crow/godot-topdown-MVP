@@ -7,6 +7,7 @@ shader_type canvas_item;
 // Rules:
 //   - Red-dominant pixels stay vivid red (blood, health indicators)
 //   - Warm/fiery pixels (orange, yellow) stay vivid (explosions, muzzle flashes, bullets)
+//   - Bright warm pixels (weapon flash cores, explosion centers) stay original
 //   - Everything else is converted to high-contrast black-and-white
 //
 // WHITE SCREEN FIX (Issue #958):
@@ -14,6 +15,15 @@ shader_type canvas_item;
 //   before going live. On scene transitions, it defers activation by 3+ frames to ensure
 //   the framebuffer is fully populated before hint_screen_texture is read.
 //   This is the same warmup pattern used by hit_effects_manager and last_chance_effects_manager.
+//
+// WEAPON FLASH FIX (Issue #985, v2):
+//   Fire/explosion colors were turning red because orange pixels like (1.0, 0.7, 0.2) were
+//   classified as is_red (r - max(g,b) = 0.3 > threshold), and the previous (1-is_red) guard
+//   prevented them from being caught by is_fire.
+//   Fix: distinguish orange/yellow fire from pure red by requiring g >= 0.30 for fire detection.
+//   Blood/health indicators have very low green (g < 0.2), while fire/explosion particles
+//   always have significant green (orange/yellow = moderate-to-high g).
+//   For bright flashes, use warm_bias (r+g >= b*1.5) without the red exclusion guard.
 //
 // Uses hint_screen_texture for fullscreen post-processing via a ColorRect overlay.
 // Uses textureLod for gl_compatibility renderer support.
@@ -30,6 +40,10 @@ uniform float red_boost : hint_range(1.0, 3.0) = 1.8;
 
 // Minimum "warmth" (red+green combined vs blue) to classify as fire/explosion.
 uniform float fire_threshold : hint_range(0.0, 1.0) = 0.25;
+
+// Minimum brightness to classify as bright warm pixel (weapon flashes, explosion centers).
+// Pixels above this luminance with any warm bias are preserved as original color.
+uniform float bright_flash_threshold : hint_range(0.5, 1.0) = 0.85;
 
 // Contrast boost applied to the grayscale channel (higher = darker blacks/brighter whites).
 uniform float contrast : hint_range(0.5, 3.0) = 1.5;
@@ -54,20 +68,34 @@ void fragment() {
 	float red_dominance = original.r - max(original.g, original.b);
 	float is_red = step(red_threshold, red_dominance) * step(0.1, original.r);
 
-	// Detect warm/fiery pixels: high red+green relative to blue (orange, yellow)
+	// Detect warm/fiery pixels: high red+green relative to blue (orange, yellow).
+	// Issue #985 v2: Use step(0.30, original.g) instead of (1-is_red) to distinguish
+	// orange/yellow fire (moderate-to-high green) from pure red blood (very low green).
+	// Orange (1.0, 0.7, 0.2): g=0.7 >= 0.30, warmth=0.65 >= 0.25 → is_fire=1 (preserved)
+	// Dark orange edge (0.8, 0.3, 0.1): g=0.3 >= 0.30 → is_fire=1 (preserved)
+	// Red blood (0.8, 0.1, 0.1): g=0.1 < 0.30 → is_fire=0 (stays vivid red)
 	float warmth = (original.r + original.g) * 0.5 - original.b;
-	float is_fire = step(fire_threshold, warmth) * step(0.2, original.r) * (1.0 - is_red);
+	float is_fire = step(fire_threshold, warmth) * step(0.30, original.g) * step(0.2, original.r);
+
+	// Issue #985 v2: Detect bright warm pixels (weapon flash centers, explosion cores).
+	// Use warm_bias (r+g >= b*1.5) without the (1-is_red) exclusion so that bright
+	// orange/yellow explosion centers are preserved even when r is the dominant channel.
+	float warm_bias = step(original.b * 1.5, original.r + original.g);  // r+g >= b*1.5
+	float is_bright_flash = step(bright_flash_threshold, lum) * warm_bias;
+
+	// Combine fire detection: either standard warmth OR bright flash
+	float is_fire_or_flash = max(is_fire, is_bright_flash);
 
 	// Build final color:
 	// - Red pixels: vivid red
-	// - Fire/explosion pixels: keep original color
+	// - Fire/explosion/flash pixels: keep original color
 	// - Everything else: high-contrast B&W
 	vec3 red_color = vec3(min(original.r * red_boost, 1.0), gray * 0.15, gray * 0.15);
 	vec3 bw_color = vec3(gray);
 
 	vec3 result = bw_color;
 	result = mix(result, red_color, is_red);
-	result = mix(result, original.rgb, is_fire);
+	result = mix(result, original.rgb, is_fire_or_flash);
 
 	// Apply intensity: 0.0 = original scene (invisible pass-through), 1.0 = full B&W+red effect.
 	// This allows safe warmup (intensity=0 → no visual change even if screen_texture is white).
