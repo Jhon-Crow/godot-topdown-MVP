@@ -87,13 +87,13 @@ class MockHomingChargeManager:
 	var homing_active: bool = false
 
 	## Remaining charges.
-	var homing_charges: int = 6
+	var homing_charges: int = 2
 
 	## Max charges per battle.
-	const MAX_CHARGES: int = 6
+	const MAX_CHARGES: int = 2
 
 	## Duration per activation.
-	const DURATION: float = 1.0
+	const DURATION: float = 1.2
 
 	## Remaining timer.
 	var homing_timer: float = 0.0
@@ -300,20 +300,20 @@ func test_charge_manager_default_not_equipped() -> void:
 
 func test_charge_manager_default_charges() -> void:
 	var mgr := MockHomingChargeManager.new()
-	assert_eq(mgr.homing_charges, 6,
-		"Should start with 6 charges")
+	assert_eq(mgr.homing_charges, 2,
+		"Should start with 2 charges")
 
 
 func test_charge_manager_max_charges() -> void:
 	var mgr := MockHomingChargeManager.new()
-	assert_eq(mgr.MAX_CHARGES, 6,
-		"Max charges should be 6")
+	assert_eq(mgr.MAX_CHARGES, 2,
+		"Max charges should be 2")
 
 
 func test_charge_manager_duration() -> void:
 	var mgr := MockHomingChargeManager.new()
-	assert_eq(mgr.DURATION, 1.0,
-		"Activation duration should be 1 second")
+	assert_eq(mgr.DURATION, 1.2,
+		"Activation duration should be 1.2 seconds")
 
 
 func test_activate_fails_when_not_equipped() -> void:
@@ -335,7 +335,7 @@ func test_activate_decrements_charge() -> void:
 	var mgr := MockHomingChargeManager.new()
 	mgr.homing_equipped = true
 	mgr.activate()
-	assert_eq(mgr.homing_charges, 5,
+	assert_eq(mgr.homing_charges, 1,
 		"Should decrement charge on activation")
 
 
@@ -343,7 +343,7 @@ func test_activate_sets_timer() -> void:
 	var mgr := MockHomingChargeManager.new()
 	mgr.homing_equipped = true
 	mgr.activate()
-	assert_eq(mgr.homing_timer, 1.0,
+	assert_eq(mgr.homing_timer, 1.2,
 		"Timer should be set to duration on activation")
 
 
@@ -353,7 +353,7 @@ func test_activate_emits_signal() -> void:
 	mgr.activate()
 	assert_eq(mgr.activated_count, 1,
 		"Activation signal should be emitted")
-	assert_eq(mgr.last_charges_emitted, 5,
+	assert_eq(mgr.last_charges_emitted, 1,
 		"Charge change signal should report remaining charges")
 
 
@@ -363,7 +363,7 @@ func test_cannot_activate_when_already_active() -> void:
 	mgr.activate()
 	var result := mgr.activate()
 	assert_false(result, "Should not activate while already active")
-	assert_eq(mgr.homing_charges, 5,
+	assert_eq(mgr.homing_charges, 1,
 		"Charge should not be decremented on failed activation")
 
 
@@ -380,8 +380,8 @@ func test_timer_expires_deactivates() -> void:
 	mgr.homing_equipped = true
 	mgr.activate()
 
-	# Simulate 1 second passing
-	mgr.update(1.0)
+	# Simulate 1.2 seconds passing (full duration)
+	mgr.update(1.2)
 
 	assert_false(mgr.homing_active,
 		"Should deactivate after timer expires")
@@ -394,27 +394,27 @@ func test_timer_partial_update() -> void:
 	mgr.homing_equipped = true
 	mgr.activate()
 
-	# Simulate 0.5 seconds (half duration)
+	# Simulate 0.5 seconds (partial duration)
 	mgr.update(0.5)
 
 	assert_true(mgr.homing_active,
 		"Should still be active at 0.5 seconds")
-	assert_almost_eq(mgr.homing_timer, 0.5, 0.001,
-		"Timer should be at 0.5 seconds remaining")
+	assert_almost_eq(mgr.homing_timer, 0.7, 0.001,
+		"Timer should be at 0.7 seconds remaining")
 
 
-func test_use_all_six_charges() -> void:
+func test_use_all_two_charges() -> void:
 	var mgr := MockHomingChargeManager.new()
 	mgr.homing_equipped = true
 
-	for i in range(6):
+	for i in range(2):
 		assert_true(mgr.activate(), "Activation %d should succeed" % (i + 1))
-		mgr.update(1.1)  # Let it expire
+		mgr.update(1.3)  # Let it expire
 
 	assert_eq(mgr.homing_charges, 0,
-		"All 6 charges should be used")
+		"All 2 charges should be used")
 	assert_false(mgr.activate(),
-		"7th activation should fail (no charges)")
+		"3rd activation should fail (no charges)")
 
 
 func test_update_does_nothing_when_inactive() -> void:
@@ -436,13 +436,13 @@ func test_reactivate_after_expiry() -> void:
 
 	# First activation
 	mgr.activate()
-	mgr.update(1.1)  # Let it expire
+	mgr.update(1.3)  # Let it expire
 
 	# Second activation
 	var result := mgr.activate()
 	assert_true(result, "Should be able to reactivate after expiry")
-	assert_eq(mgr.homing_charges, 4,
-		"Should have 4 charges remaining after 2 activations")
+	assert_eq(mgr.homing_charges, 0,
+		"Should have 0 charges remaining after 2 activations")
 
 
 # ============================================================================
@@ -505,7 +505,7 @@ func test_bullet_keeps_homing_after_charge_expires() -> void:
 	bullet.enable_homing()
 
 	# Charge expires
-	mgr.update(1.1)
+	mgr.update(1.3)
 
 	# Bullet should still home (it was already fired with homing)
 	assert_true(bullet.homing_enabled,

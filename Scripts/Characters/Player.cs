@@ -697,19 +697,19 @@ public partial class Player : BaseCharacter
     private bool _homingActive = false;
 
     /// <summary>
-    /// Remaining homing charges (6 per battle).
+    /// Remaining homing charges (2 per battle).
     /// </summary>
-    private int _homingCharges = 6;
+    private int _homingCharges = 2;
 
     /// <summary>
     /// Maximum homing charges per battle.
     /// </summary>
-    private const int MaxHomingCharges = 6;
+    private const int MaxHomingCharges = 2;
 
     /// <summary>
     /// Duration of homing effect per activation in seconds.
     /// </summary>
-    private const float HomingDuration = 1.0f;
+    private const float HomingDuration = 1.2f;
 
     /// <summary>
     /// Timer tracking remaining homing effect duration.
