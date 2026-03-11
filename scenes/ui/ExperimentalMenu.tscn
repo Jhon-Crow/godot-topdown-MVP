@@ -310,6 +310,28 @@ Experimental settings are preserved."
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="HSeparator13" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="UnlockTableContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="UnlockTableLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "View Unlock Table"
+
+[node name="UnlockTableButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer"]
+layout_mode = 2
+text = "Open"
+
+[node name="UnlockTableDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Shows which items are unlocked by completing
+which levels at what rank."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "FOV enabled: Enemies see in 100 degree cone"
