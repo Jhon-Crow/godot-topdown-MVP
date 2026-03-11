@@ -17,7 +17,8 @@ enum ActiveItemType {
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
-	RICOCHET_POINTS    # Ricochet Points - passive: ricochet chance +30% at valid angles (Issue #1004)
+	RICOCHET_POINTS,   # Ricochet Points - passive: ricochet chance +30% at valid angles (Issue #1004)
+	LOUDSPEAKER        # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
 }
 
 ## Currently selected active item type.
@@ -40,7 +41,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
 	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
-	ActiveItemType.RICOCHET_POINTS: true       # No unlock condition — freely available from start (Issue #1004)
+	ActiveItemType.RICOCHET_POINTS: true,      # No unlock condition — freely available from start (Issue #1004)
+	ActiveItemType.LOUDSPEAKER: true           # No unlock condition — freely available from start (Issue #959)
 }
 
 ## Active item data for UI and selection.
@@ -105,6 +107,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Ricochet Points",
 		"icon_path": "res://assets/sprites/weapons/ricochet_points_icon.png",
 		"description": "Ricochet Points — passive: ricochet chance is increased by 30% at angles where ricochet is possible (green ray)."
+	},
+	ActiveItemType.LOUDSPEAKER: {
+		"name": "Loudspeaker",
+		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
+		"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
 	}
 }
 
@@ -239,6 +247,11 @@ func has_laser_sight() -> bool:
 ## Check if ricochet points is currently equipped (Issue #1004).
 func has_ricochet_points() -> bool:
 	return current_active_item == ActiveItemType.RICOCHET_POINTS
+
+
+## Check if loudspeaker is currently equipped (Issue #959).
+func has_loudspeaker() -> bool:
+	return current_active_item == ActiveItemType.LOUDSPEAKER
 
 
 ## Get the laser sight color (purple).

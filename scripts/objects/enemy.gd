@@ -13,7 +13,8 @@ enum AIState {
 	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
 	ASSAULT,    ## Coordinated multi-enemy assault (rush player after 5s wait)
 	SEARCHING,  ## Methodically searching area where player was last seen (Issue #322)
-	EVADING_GRENADE  ## Fleeing from grenade danger zone (Issue #407)
+	EVADING_GRENADE,  ## Fleeing from grenade danger zone (Issue #407)
+	PACIFIST    ## Refuses to fight, hides in cover (Issue #959: Loudspeaker effect)
 }
 
 ## Retreat behavior modes based on damage taken.
@@ -102,6 +103,7 @@ signal reload_finished  ## Reload finished
 signal ammo_depleted  ## All ammo depleted
 signal death_animation_completed  ## Death animation done
 signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade thrown (Issue #363)
+signal became_pacifist  ## Enemy became pacifist (Issue #959: counts as killed for level completion)
 
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
@@ -343,6 +345,13 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
+
+## [Pacifism - Issue #959] Loudspeaker effect state tracking
+var _is_pacifist: bool = false  ## Whether this enemy is in permanent pacifist state
+var _pacifist_attacker: Node2D = null  ## Who damaged the pacifist (for retaliation)
+var _pacifist_retaliation_timer: float = 0.0  ## Timer for temporary retaliation mode
+var _is_immune_to_pacifism: bool = false  ## Level 6 feature: one enemy per map is immune
+const PACIFIST_RETALIATION_DURATION: float = 3.0  ## How long pacifist retaliates after being hit
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -810,6 +819,17 @@ func _physics_process(delta: float) -> void:
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
 		_flashbang_status.update(delta)
+
+	# Issue #959: Update pacifist retaliation timer
+	if _is_pacifist and _pacifist_retaliation_timer > 0.0:
+		_pacifist_retaliation_timer -= delta
+		if _pacifist_retaliation_timer <= 0.0:
+			# Retaliation over, return to pacifist state
+			_pacifist_retaliation_timer = 0.0
+			_pacifist_attacker = null
+			if _current_state != AIState.PACIFIST:
+				_log_to_file("[#959] Pacifist retaliation ended, returning to PACIFIST state")
+				_transition_to_pacifist(false)  # Don't emit signal again, already counted as pacifist
 
 	# Update shoot cooldown timer
 	_shoot_timer += delta
@@ -1300,6 +1320,7 @@ func _process_ai_state(delta: float) -> void:
 		AIState.ASSAULT: _process_assault_state(delta)
 		AIState.SEARCHING: _process_searching_state(delta)
 		AIState.EVADING_GRENADE: _process_evading_grenade_state(delta)
+		AIState.PACIFIST: _process_pacifist_state(delta)
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
 		_log_debug("State changed: %s -> %s" % [AIState.keys()[previous_state], AIState.keys()[_current_state]])
@@ -2350,7 +2371,45 @@ func _return_from_grenade_evasion() -> void:
 		AIState.PURSUING: _transition_to_pursuing()
 		AIState.ASSAULT: _transition_to_assault()
 		AIState.SEARCHING: _transition_to_searching(global_position)
+		AIState.PACIFIST: _transition_to_pacifist(false)  # Issue #959 - don't emit signal again
 		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
+
+
+## Process PACIFIST state - hide in cover, don't shoot (Issue #959).
+func _process_pacifist_state(delta: float) -> void:
+	# Pacifists don't engage in combat voluntarily
+	# They just move to cover and stay there
+
+	# If in retaliation mode, the state would have been changed to COMBAT
+	# so if we're here, we're in passive pacifist mode
+
+	# Find cover if we don't have it
+	if not _has_valid_cover:
+		_find_cover_position()
+		if _has_valid_cover:
+			velocity = Vector2.ZERO
+			# Move to cover
+			var direction := (_cover_position - global_position).normalized()
+			if global_position.distance_to(_cover_position) > 20.0:
+				if has_method("_apply_wall_avoidance"):
+					direction = _apply_wall_avoidance(direction)
+				velocity = direction * move_speed
+			else:
+				velocity = Vector2.ZERO
+		else:
+			# No cover found, stay in place
+			velocity = Vector2.ZERO
+	else:
+		# Already have cover, move to it or stay
+		var distance_to_cover := global_position.distance_to(_cover_position)
+		if distance_to_cover > 20.0:
+			var direction := (_cover_position - global_position).normalized()
+			if has_method("_apply_wall_avoidance"):
+				direction = _apply_wall_avoidance(direction)
+			velocity = direction * move_speed
+		else:
+			# At cover position, stay still
+			velocity = Vector2.ZERO
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
@@ -2694,6 +2753,99 @@ func _transition_to_retreating() -> void:
 
 	# Find cover position for retreating
 	_find_cover_position()
+
+
+## Transition to PACIFIST state (Issue #959: Loudspeaker effect).
+## Enemy refuses to fight, moves to cover and stays there.
+## @param emit_signal: Whether to emit became_pacifist signal (true for first transition, false for return from retaliation)
+func _transition_to_pacifist(emit_signal: bool = true) -> void:
+	if _is_immune_to_pacifism:
+		_log_to_file("Cannot become pacifist - enemy is immune")
+		return
+
+	var was_pacifist := _is_pacifist
+	_current_state = AIState.PACIFIST
+	_is_pacifist = true
+	_has_left_idle = true
+	_pacifist_attacker = null
+	_pacifist_retaliation_timer = 0.0
+
+	# Stop shooting
+	velocity = Vector2.ZERO
+
+	_log_to_file("Transitioned to PACIFIST state")
+
+	# Emit signal only on first transition (not when returning from retaliation)
+	if emit_signal and not was_pacifist:
+		became_pacifist.emit()
+
+
+## Make this enemy a pacifist via loudspeaker effect.
+## @param hostility_chance: Chance (0.0-1.0) that other enemies will be hostile to this pacifist.
+## Returns true if the enemy became a pacifist.
+func apply_pacifism(hostility_chance: float = 0.5) -> bool:
+	if _is_immune_to_pacifism:
+		return false
+	if _is_pacifist:
+		return false  # Already pacifist
+	if not _is_alive:
+		return false
+
+	_transition_to_pacifist()
+
+	# Notify other enemies about this new pacifist (they may become hostile)
+	_notify_enemies_of_new_pacifist(hostility_chance)
+
+	return true
+
+
+## Check if this enemy was already attacked by the player (wounded/suppressed).
+## Loudspeaker only affects enemies not yet engaged by the player.
+func was_attacked_by_player() -> bool:
+	# Check if enemy has taken damage or been suppressed
+	return _hits_taken_in_encounter > 0 or _in_alarm_mode
+
+
+## Check if this enemy is in pacifist state.
+func is_pacifist() -> bool:
+	return _is_pacifist
+
+
+## Check if this enemy is immune to pacifism (level 6 special enemy).
+func is_immune_to_pacifism() -> bool:
+	return _is_immune_to_pacifism
+
+
+## Set immunity to pacifism (for level 6 special enemy).
+func set_immune_to_pacifism(immune: bool) -> void:
+	_is_immune_to_pacifism = immune
+	if immune:
+		_log_to_file("Enemy marked as immune to pacifism")
+
+
+## Notify other enemies about a new pacifist (they may become hostile).
+func _notify_enemies_of_new_pacifist(hostility_chance: float) -> void:
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e == self or not e.has_method("on_new_pacifist_created"):
+			continue
+		if not e.has_method("is_alive") or not e.is_alive():
+			continue
+		e.on_new_pacifist_created(self, hostility_chance)
+
+
+## Called when another enemy becomes a pacifist.
+## @param pacifist_enemy: The enemy that became a pacifist.
+## @param hostility_chance: Chance (0.0-1.0) to be hostile to this pacifist.
+func on_new_pacifist_created(pacifist_enemy: Node2D, hostility_chance: float) -> void:
+	if _is_pacifist:
+		return  # Pacifists don't target other pacifists
+
+	# Roll for hostility toward this pacifist
+	# (Hostility is determined at creation time and stored per pacifist)
+	# For simplicity, we don't track per-pacifist relations yet - just use global chance
+	# Future: could add Dictionary[enemy_id] -> bool for per-enemy hostility
+	pass  # Hostility targeting will be implemented in Stage 6
+
 
 ## Check if PLAYER can see ENEMY (inverse of _can_see_player). Checks center + corners.
 func _is_visible_from_player() -> bool:
@@ -4162,6 +4314,18 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
+		# Issue #959: Pacifist retaliation - temporarily attack the attacker
+		if _is_pacifist and _current_state == AIState.PACIFIST:
+			_pacifist_retaliation_timer = PACIFIST_RETALIATION_DURATION
+			_pacifist_attacker = _player  # Assume player is attacker for now
+			var est_pos := global_position + attacker_direction * 300.0
+			_last_known_player_position = est_pos
+			if _memory:
+				_memory.update_position(est_pos, 0.8)
+				_memory_reset_confusion_timer = 0.0
+			_log_to_file("[#959] Pacifist hit - retaliating for %.1fs" % PACIFIST_RETALIATION_DURATION)
+			_transition_to_combat()
+			return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
 		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos

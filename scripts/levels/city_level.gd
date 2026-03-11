@@ -324,6 +324,9 @@ func _setup_enemy_tracking() -> void:
 				child.died_with_info.connect(_on_enemy_died_with_info)
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
+		# Issue #959: Connect to pacifist signal - pacifists count as killed for level completion
+		if child.has_signal("became_pacifist"):
+			child.became_pacifist.connect(_on_enemy_became_pacifist)
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
@@ -408,6 +411,18 @@ func _on_enemy_died() -> void:
 		GameManager.register_kill()
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! City cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
+## Issue #959: Called when an enemy becomes a pacifist via loudspeaker.
+## Pacifists count as "killed" for level completion purposes.
+func _on_enemy_became_pacifist() -> void:
+	_current_enemy_count -= 1
+	_update_enemy_count_label()
+	print("[CityLevel] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0:
+		print("All enemies eliminated or pacified! City cleared!")
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
