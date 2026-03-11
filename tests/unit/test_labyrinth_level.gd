@@ -52,6 +52,10 @@ extends GutTest
 ##   labyrinth_level.gd. AmmoChanged fires only on full reload completion; CartridgeInserted
 ##   fires for each cartridge inserted (Issue #626). Without it the counter froze mid-reload.
 ##   Fix: connect CartridgeInserted to _on_revolver_cartridge_inserted in labyrinth_level.gd.
+##
+## Issue #998:
+## Scope RMB hint shown from the very start for sniper rifle on Laboratory level.
+## Dismissed when player activates scope (ScopeStateChanged signal connected).
 
 
 # ============================================================================
@@ -73,6 +77,7 @@ class MockLabyrinthTutorial:
 	const TUTORIAL_HINT_HAMMER_COCK := "hammer_cock"
 	const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
 	const TUTORIAL_HINT_GRENADE_LAUNCHER := "grenade_launcher"  ## Fix 3rd#10
+	const TUTORIAL_HINT_SCOPE := "scope"  ## Issue #998
 
 	## Fix 3rd#1: Hint spacing increased to 60px.
 	const TUTORIAL_HINT_SPACING: float = 60.0
@@ -83,6 +88,7 @@ class MockLabyrinthTutorial:
 	const TUTORIAL_HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)
 	const TUTORIAL_HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)
 	const TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)
+	const TUTORIAL_HINT_COLOR_SCOPE := Color(0.3, 0.9, 1.0, 1.0)  ## Issue #998
 
 	var _tutorial_step: TutorialStep = TutorialStep.RELOAD
 	var _tutorial_has_reloaded: bool = false
@@ -107,6 +113,8 @@ class MockLabyrinthTutorial:
 	## Bug fix #4: bolt-cycle hint revealed after 1st shot.
 	var _tutorial_bolt_cycle_hint_revealed: bool = false
 	var _tutorial_sniper_bolt_cycled: bool = false
+	## Issue #998: scope used tracking.
+	var _tutorial_scope_used: bool = false
 
 	## Active hints: hint_key -> hint_text (simulates visible labels).
 	var _active_hints: Dictionary = {}
@@ -143,6 +151,8 @@ class MockLabyrinthTutorial:
 				return TUTORIAL_HINT_COLOR_HAMMER_COCK
 			TUTORIAL_HINT_GRENADE_LAUNCHER:
 				return TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER  ## Fix 3rd#10
+			TUTORIAL_HINT_SCOPE:
+				return TUTORIAL_HINT_COLOR_SCOPE  ## Issue #998
 			_:
 				return Color(1.0, 1.0, 0.3, 1.0)
 
@@ -274,12 +284,16 @@ class MockLabyrinthTutorial:
 			_add_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 3))
 		# Fix 3rd#5: grenade hint shown AFTER reload disappears, not simultaneously.
 
-	## Simulate _setup_tutorial_hints(): sets step, shows hammer-cock for revolver (Bug fix #3).
+	## Simulate _setup_tutorial_hints(): sets step, shows hammer-cock for revolver (Bug fix #3)
+	## and scope hint for sniper rifle (Issue #998).
 	func setup_tutorial_hints() -> void:
 		_tutorial_step = TutorialStep.RELOAD
 		# Bug fix #3: Revolver hammer-cock hint shown immediately on weapon pickup
 		if _tutorial_has_revolver:
 			_add_hint(TUTORIAL_HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок")
+		# Issue #998: Scope hint shown from the very start for sniper rifle
+		if _tutorial_has_sniper_rifle:
+			_add_hint(TUTORIAL_HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику")
 
 	## Simulate _on_tutorial_weapon_fired() (Issue #945).
 	## Bug fix #4: bolt-cycle hint (sniper/shotgun) shown after 1st shot.
@@ -398,6 +412,14 @@ class MockLabyrinthTutorial:
 	## Simulate _on_tutorial_hammer_cocked() (Issue #808).
 	func on_tutorial_hammer_cocked() -> void:
 		_dismiss_hint(TUTORIAL_HINT_HAMMER_COCK)
+
+	## Simulate _on_tutorial_scope_state_changed() (Issue #998).
+	## Dismisses scope hint when player uses scope for the first time.
+	func on_tutorial_scope_state_changed(is_active: bool) -> void:
+		if not is_active or _tutorial_scope_used:
+			return
+		_tutorial_scope_used = true
+		_dismiss_hint(TUTORIAL_HINT_SCOPE)
 
 	func _dismiss_all_hints() -> void:
 		_active_hints.clear()
@@ -1073,3 +1095,95 @@ func test_grenade_launcher_hint_has_correct_color() -> void:
 	assert_eq(lab.get_hint_color(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE_LAUNCHER),
 		MockLabyrinthTutorial.TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER,
 		"AK GL grenade launcher hint should use orange-red color (Fix 3rd#10)")
+
+
+# ============================================================================
+# Issue #998: Scope RMB hint shown from the very start for sniper rifle (Lab level)
+# ============================================================================
+
+
+func test_lab_sniper_scope_hint_shown_from_start() -> void:
+	## Issue #998: Scope hint appears immediately when sniper rifle is equipped on Lab level.
+	var sniper_lab := MockLabyrinthTutorial.new()
+	sniper_lab._tutorial_has_sniper_rifle = true
+	sniper_lab.setup_tutorial_hints()
+
+	assert_true(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		"Scope RMB hint must appear from the very start for sniper rifle on Lab level (Issue #998)")
+	assert_eq(sniper_lab.get_step(), MockLabyrinthTutorial.TutorialStep.RELOAD,
+		"Tutorial starts at RELOAD step with scope hint visible (Issue #998)")
+
+
+func test_lab_no_scope_hint_without_sniper() -> void:
+	## Issue #998: Scope hint must NOT appear for non-sniper weapons.
+	## Default setup_tutorial_hints() is called in before_each with no sniper.
+	assert_false(lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		"Scope hint must NOT appear without sniper rifle (Issue #998)")
+
+
+func test_lab_sniper_scope_hint_dismissed_when_scope_used() -> void:
+	## Issue #998: Scope hint is dismissed when player activates scope.
+	var sniper_lab := MockLabyrinthTutorial.new()
+	sniper_lab._tutorial_has_sniper_rifle = true
+	sniper_lab.setup_tutorial_hints()
+
+	assert_true(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		"Scope hint visible from start (Issue #998)")
+
+	sniper_lab.on_tutorial_scope_state_changed(true)
+
+	assert_false(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		"Scope hint dismissed after player uses scope (Issue #998)")
+
+
+func test_lab_sniper_scope_hint_not_dismissed_on_scope_deactivate() -> void:
+	## Issue #998: Scope hint should only be dismissed when scope is ACTIVATED (not deactivated).
+	var sniper_lab := MockLabyrinthTutorial.new()
+	sniper_lab._tutorial_has_sniper_rifle = true
+	sniper_lab.setup_tutorial_hints()
+
+	sniper_lab.on_tutorial_scope_state_changed(false)  # Deactivate (should not dismiss hint)
+
+	assert_true(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		"Scope hint stays when scope is deactivated (only dismissed on activation, Issue #998)")
+
+
+func test_lab_sniper_scope_hint_dismissed_only_once() -> void:
+	## Issue #998: Scope hint dismissed only once; second activation does not cause issues.
+	var sniper_lab := MockLabyrinthTutorial.new()
+	sniper_lab._tutorial_has_sniper_rifle = true
+	sniper_lab.setup_tutorial_hints()
+
+	sniper_lab.on_tutorial_scope_state_changed(true)   # First use — dismisses hint
+	sniper_lab.on_tutorial_scope_state_changed(false)
+	sniper_lab.on_tutorial_scope_state_changed(true)   # Second use — hint already gone
+
+	assert_false(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		"Scope hint stays dismissed after multiple scope uses (Issue #998)")
+	assert_true(sniper_lab._tutorial_scope_used,
+		"Scope used flag persists after first use (Issue #998)")
+
+
+func test_lab_sniper_scope_hint_color_is_cyan() -> void:
+	## Issue #998: Scope hint uses cyan color on Lab level.
+	var sniper_lab := MockLabyrinthTutorial.new()
+	sniper_lab._tutorial_has_sniper_rifle = true
+	sniper_lab.setup_tutorial_hints()
+
+	assert_eq(sniper_lab.get_hint_color(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		MockLabyrinthTutorial.TUTORIAL_HINT_COLOR_SCOPE,
+		"Scope hint should use cyan color on Lab level (Issue #998)")
+
+
+func test_lab_sniper_scope_hint_coexists_with_reload_hint() -> void:
+	## Issue #998: Scope hint shown alongside reload hint after 2 shots.
+	var sniper_lab := MockLabyrinthTutorial.new()
+	sniper_lab._tutorial_has_sniper_rifle = true
+	sniper_lab.setup_tutorial_hints()
+	sniper_lab.on_tutorial_weapon_fired()
+	sniper_lab.on_tutorial_weapon_fired()  # Triggers reload hint
+
+	assert_true(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_SCOPE),
+		"Scope hint still visible after 2 shots if not used yet (Issue #998)")
+	assert_true(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
+		"Reload hint also visible after 2 shots (Issue #998)")
