@@ -96,6 +96,53 @@ Standard BBCode `[s]` tag applies strikethrough instantly - there is no built-in
    - Register the effect with RichTextLabel
    - Use custom BBCode tag like `[anim_strike]` instead of `[s]`
 
+## Implemented Solution (Session 3)
+
+After receiving additional feedback from the owner:
+> - анимированное зачёркивание должно быть вместо каждого зачёркивания (сейчас выглядит некрасиво - зачёркивается уже зачёркнутое)
+> - то есть зачёркивание должно продлеваться после выполненного действия
+> - так же анимированное зачёркивание сейчас работает не на все строки
+> - зачёркивающая линия слишком непрозрачная
+
+Translation:
+- Animated strikethrough should replace EVERY strikethrough (currently looks ugly - already struck text gets struck again)
+- The strikethrough should EXTEND after each completed action
+- Animated strikethrough doesn't work on ALL hint lines
+- The strikethrough line is too opaque
+
+### Final Implementation
+
+**Approach: Persistent Line2D with Progressive Extension**
+
+Instead of using BBCode `[s]` tags, we now use a persistent Line2D overlay attached to each hint:
+
+1. **Line2D Creation**: Each hint gets a Line2D child when created via `_add_hint()`
+2. **Progressive Extension**: As each step completes, `_extend_hint_strikethrough()` animates the Line2D from its current position to the new target position
+3. **Visual Styling**: Line2D is semi-transparent (0.6 opacity) and thin (1.5px width) to match the subtle appearance of standard strikethrough
+4. **Dismissal Animation**: When the hint is dismissed, the Line2D extends to 100% width before the label fades out
+
+### Key Changes
+
+| Before | After |
+|--------|-------|
+| BBCode `[s]` tags for instant strikethrough | Line2D overlay for animated strikethrough |
+| Strikethrough applied per-step via BBCode | Progressive Line2D extension via tweens |
+| Solid grey `[s]` appearance | Semi-transparent Line2D (0.6 opacity, 1.5px) |
+| Double strikethrough on multi-step hints | Single progressive strikethrough line |
+
+### New Functions Added
+
+- `_extend_hint_strikethrough(hint_key, target_progress)` - Animates Line2D extension
+- `_hint_strike_lines: Dictionary` - Tracks Line2D nodes per hint
+- `_hint_strike_progress: Dictionary` - Tracks current strikethrough progress (0.0-1.0)
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `scripts/levels/tutorial_level.gd` | Replaced BBCode [s] with Line2D, added progressive extension |
+| `scripts/levels/labyrinth_level.gd` | Same changes applied |
+
 ## References
 
 - [BBCode in RichTextLabel - Godot Docs](https://docs.godotengine.org/en/stable/tutorials/ui/bbcode_in_richtextlabel.html)
