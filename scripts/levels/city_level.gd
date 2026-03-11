@@ -409,7 +409,40 @@ func _on_enemy_died() -> void:
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! City cleared!")
 		_level_cleared = true
+		_show_zone_clear_message()
 		call_deferred("_activate_exit_zone")
+
+
+## Show "Zone Clear" message in the center of the screen for 2 seconds (Issue #957).
+func _show_zone_clear_message() -> void:
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return
+
+	var zone_clear_label := Label.new()
+	zone_clear_label.name = "ZoneClearLabel"
+	zone_clear_label.text = "ЗОНА ЧИСТА"
+	zone_clear_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	zone_clear_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	zone_clear_label.add_theme_font_size_override("font_size", 64)
+	zone_clear_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	zone_clear_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	zone_clear_label.add_theme_constant_override("shadow_offset_x", 3)
+	zone_clear_label.add_theme_constant_override("shadow_offset_y", 3)
+	zone_clear_label.set_anchors_preset(Control.PRESET_CENTER)
+	zone_clear_label.offset_left = -300
+	zone_clear_label.offset_right = 300
+	zone_clear_label.offset_top = -50
+	zone_clear_label.offset_bottom = 50
+	ui.add_child(zone_clear_label)
+
+	# Fade in animation
+	zone_clear_label.modulate = Color(1, 1, 1, 0)
+	var tween := create_tween()
+	tween.tween_property(zone_clear_label, "modulate:a", 1.0, 0.2)
+	tween.tween_interval(1.6)
+	tween.tween_property(zone_clear_label, "modulate:a", 0.0, 0.2)
+	tween.tween_callback(zone_clear_label.queue_free)
 
 
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:

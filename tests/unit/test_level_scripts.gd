@@ -516,6 +516,12 @@ class MockCityLevel extends MockLevelBase:
 	## Whether the score screen is currently shown.
 	var _score_shown: bool = false
 
+	## Whether the zone clear message has been shown (Issue #957).
+	var _zone_clear_message_shown: bool = false
+
+	## The zone clear message text (Issue #957).
+	var zone_clear_message_text: String = "ЗОНА ЧИСТА"
+
 	## Level ordering (city is last in sequence).
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -530,6 +536,7 @@ class MockCityLevel extends MockLevelBase:
 		for i in range(default_enemy_count):
 			enemies.append("CityEnemy%d" % (i + 1))
 		setup_enemy_tracking(enemies)
+		_zone_clear_message_shown = false
 
 	## Get rank color — must match city_level.gd _get_rank_color.
 	func get_rank_color(rank: String) -> Color:
@@ -559,6 +566,20 @@ class MockCityLevel extends MockLevelBase:
 					return _level_paths[i + 1]
 				return ""
 		return ""
+
+	## Override on_enemy_died to trigger zone clear message (Issue #957).
+	func on_enemy_died() -> void:
+		super.on_enemy_died()
+		if _current_enemy_count <= 0 and _level_cleared:
+			_show_zone_clear_message()
+
+	## Show "Zone Clear" message in the center of the screen for 2 seconds (Issue #957).
+	func _show_zone_clear_message() -> void:
+		_zone_clear_message_shown = true
+
+	## Check if zone clear message was shown (Issue #957).
+	func was_zone_clear_message_shown() -> bool:
+		return _zone_clear_message_shown
 
 
 var building_level: MockBuildingLevel
@@ -2155,3 +2176,42 @@ func test_city_level_after_castle_level() -> void:
 
 	assert_eq(next, "res://scenes/levels/CityLevel.tscn",
 		"Next level after CastleLevel should be CityLevel")
+
+
+# ============================================================================
+# CityLevel Zone Clear Message Tests (Issue #957: "Зона чиста" message)
+# ============================================================================
+
+
+func test_city_level_zone_clear_message_not_shown_initially() -> void:
+	city_level.initialize()
+
+	assert_false(city_level.was_zone_clear_message_shown(),
+		"Zone clear message should not be shown before any enemies die")
+
+
+func test_city_level_zone_clear_message_not_shown_with_enemies_remaining() -> void:
+	city_level.initialize()
+
+	# Kill some but not all enemies
+	for i in range(5):
+		city_level.on_enemy_died()
+
+	assert_false(city_level.was_zone_clear_message_shown(),
+		"Zone clear message should not be shown while enemies remain")
+
+
+func test_city_level_zone_clear_message_shown_when_all_enemies_dead() -> void:
+	city_level.initialize()
+
+	# Kill all enemies
+	for i in range(8):
+		city_level.on_enemy_died()
+
+	assert_true(city_level.was_zone_clear_message_shown(),
+		"Zone clear message should be shown when all enemies are eliminated")
+
+
+func test_city_level_zone_clear_message_text_is_russian() -> void:
+	assert_eq(city_level.zone_clear_message_text, "ЗОНА ЧИСТА",
+		"Zone clear message should be in Russian: 'ЗОНА ЧИСТА'")

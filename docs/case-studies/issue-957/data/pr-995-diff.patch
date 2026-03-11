@@ -1,0 +1,491 @@
+diff --git a/Scripts/Components/LevelInitFallback.cs b/Scripts/Components/LevelInitFallback.cs
+index 16ab32721..b8b944c46 100644
+--- a/Scripts/Components/LevelInitFallback.cs
++++ b/Scripts/Components/LevelInitFallback.cs
+@@ -760,6 +760,8 @@ private void ShowScoreScreen(Godot.Collections.Dictionary scoreData)
+             var scoreScreen = new Node();
+             scoreScreen.SetScript(animatedScoreScreenScript);
+             parent.AddChild(scoreScreen);
++            // Connect animation_completed so buttons appear after the animation finishes
++            scoreScreen.Connect("animation_completed", new Callable(this, MethodName.OnScoreAnimationCompleted));
+             if (scoreScreen.HasMethod("show_animated_score"))
+             {
+                 scoreScreen.Call("show_animated_score", ui, scoreData);
+@@ -795,6 +797,69 @@ private void ShowVictoryMessage()
+         ui.AddChild(victoryLabel);
+     }
+ 
++    /// <summary>
++    /// Called when the animated score screen finishes all animations.
++    /// Adds navigation buttons (Restart, Level Select) to the score screen container.
++    /// </summary>
++    private void OnScoreAnimationCompleted(GodotObject containerObj)
++    {
++        _scoreShown = true;
++
++        if (containerObj is not Node containerNode) return;
++
++        var spacer = new Control();
++        spacer.CustomMinimumSize = new Vector2(0, 10);
++        containerNode.AddChild(spacer);
++
++        var buttonsContainer = new VBoxContainer();
++        buttonsContainer.Name = "ButtonsContainer";
++        buttonsContainer.Alignment = BoxContainer.AlignmentMode.Center;
++        buttonsContainer.AddThemeConstantOverride("separation", 10);
++        containerNode.AddChild(buttonsContainer);
++
++        var restartButton = new Button();
++        restartButton.Name = "RestartButton";
++        restartButton.Text = "↻ Restart (Q)";
++        restartButton.CustomMinimumSize = new Vector2(200, 40);
++        restartButton.AddThemeFontSizeOverride("font_size", 18);
++        restartButton.Pressed += OnRestartPressed;
++        buttonsContainer.AddChild(restartButton);
++
++        var levelSelectButton = new Button();
++        levelSelectButton.Name = "LevelSelectButton";
++        levelSelectButton.Text = "☰ Level Select";
++        levelSelectButton.CustomMinimumSize = new Vector2(200, 40);
++        levelSelectButton.AddThemeFontSizeOverride("font_size", 18);
++        levelSelectButton.Pressed += OnLevelSelectPressed;
++        buttonsContainer.AddChild(levelSelectButton);
++
++        Input.SetMouseMode(Input.MouseModeEnum.Confined);
++        restartButton.GrabFocus();
++    }
++
++    private void OnRestartPressed()
++    {
++        var gameManager = GetNodeOrNull("/root/GameManager");
++        if (gameManager != null && gameManager.HasMethod("restart_scene"))
++            gameManager.Call("restart_scene");
++        else
++            GetTree().ReloadCurrentScene();
++    }
++
++    private void OnLevelSelectPressed()
++    {
++        var levelsMenuScript = GD.Load<Script>("res://scripts/ui/levels_menu.gd");
++        if (levelsMenuScript != null)
++        {
++            var levelsMenu = new CanvasLayer();
++            levelsMenu.SetScript(levelsMenuScript);
++            levelsMenu.Layer = 100;
++            GetTree().Root.AddChild(levelsMenu);
++            if (levelsMenu.HasSignal("back_pressed"))
++                levelsMenu.Connect("back_pressed", new Callable(levelsMenu, "queue_free"));
++        }
++    }
++
+     private void ShowDeathMessage()
+     {
+         var parent = GetParent();
+diff --git a/scripts/levels/city_level.gd b/scripts/levels/city_level.gd
+index 939e8432e..2a8b42434 100644
+--- a/scripts/levels/city_level.gd
++++ b/scripts/levels/city_level.gd
+@@ -643,7 +643,55 @@ func _show_score_screen(score_data: Dictionary) -> void:
+ 		score_screen.animation_completed.connect(_on_score_animation_completed)
+ 		score_screen.show_animated_score(ui, score_data)
+ 	else:
+-		_show_victory_message()
++		_show_fallback_score_screen(ui, score_data)
++
++
++## Fallback score screen if animated component is not available.
++func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
++	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
++	var _font_loaded := gothic_font != null
++
++	var background := ColorRect.new()
++	background.name = "ScoreBackground"
++	background.color = Color(0.0, 0.0, 0.0, 0.7)
++	background.set_anchors_preset(Control.PRESET_FULL_RECT)
++	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
++	ui.add_child(background)
++
++	var container := VBoxContainer.new()
++	container.name = "ScoreContainer"
++	container.set_anchors_preset(Control.PRESET_CENTER)
++	container.offset_left = -300
++	container.offset_right = 300
++	container.offset_top = -200
++	container.offset_bottom = 200
++	container.add_theme_constant_override("separation", 8)
++	ui.add_child(container)
++
++	var title_label := Label.new()
++	title_label.text = "CITY CLEARED!"
++	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
++	title_label.add_theme_font_size_override("font_size", 42)
++	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
++	container.add_child(title_label)
++
++	var rank_label := Label.new()
++	rank_label.text = "RANK: %s" % score_data.rank
++	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
++	rank_label.add_theme_font_size_override("font_size", 64)
++	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
++	if _font_loaded:
++		rank_label.add_theme_font_override("font", gothic_font)
++	container.add_child(rank_label)
++
++	var total_label := Label.new()
++	total_label.text = "TOTAL SCORE: %d" % score_data.total_score
++	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
++	total_label.add_theme_font_size_override("font_size", 32)
++	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
++	container.add_child(total_label)
++
++	_add_score_screen_buttons(container)
+ 
+ 
+ func _on_score_animation_completed(container: VBoxContainer) -> void:
+@@ -688,19 +736,28 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
+ 	level_select_button.pressed.connect(_on_level_select_pressed)
+ 	buttons_container.add_child(level_select_button)
+ 
+-	var replay_button := Button.new()
+-	replay_button.name = "ReplayButton"
+-	replay_button.text = "▶ Watch Replay (W)"
+-	replay_button.custom_minimum_size = Vector2(200, 40)
+-	replay_button.add_theme_font_size_override("font_size", 18)
+-	var replay_manager: Node = _get_or_create_replay_manager()
+-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+-	if has_replay_data:
+-		replay_button.pressed.connect(_on_watch_replay_pressed)
+-	else:
+-		replay_button.disabled = true
+-		replay_button.text = "▶ Watch Replay (W) - no data"
+-	buttons_container.add_child(replay_button)
++	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
++	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
++	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
++
++	if replay_enabled:
++		var replay_button := Button.new()
++		replay_button.name = "ReplayButton"
++		replay_button.text = "▶ Watch Replay (W)"
++		replay_button.custom_minimum_size = Vector2(200, 40)
++		replay_button.add_theme_font_size_override("font_size", 18)
++
++		var replay_manager: Node = _get_or_create_replay_manager()
++		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
++
++		if has_replay_data:
++			replay_button.pressed.connect(_on_watch_replay_pressed)
++		else:
++			replay_button.disabled = true
++			replay_button.text = "▶ Watch Replay (W) - no data"
++			replay_button.tooltip_text = "Replay recording was not available for this session"
++
++		buttons_container.add_child(replay_button)
+ 
+ 	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+ 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+@@ -903,6 +960,27 @@ func _get_next_level_path() -> String:
+ 	return ""
+ 
+ 
++## Get the color for a given rank.
++func _get_rank_color(rank: String) -> Color:
++	match rank:
++		"S":
++			return Color(1.0, 0.84, 0.0, 1.0)
++		"A+":
++			return Color(0.0, 1.0, 0.5, 1.0)
++		"A":
++			return Color(0.2, 0.8, 0.2, 1.0)
++		"B":
++			return Color(0.3, 0.7, 1.0, 1.0)
++		"C":
++			return Color(1.0, 1.0, 1.0, 1.0)
++		"D":
++			return Color(1.0, 0.6, 0.2, 1.0)
++		"F":
++			return Color(1.0, 0.2, 0.2, 1.0)
++		_:
++			return Color(1.0, 1.0, 1.0, 1.0)
++
++
+ func _disable_player_controls() -> void:
+ 	if _player == null or not is_instance_valid(_player):
+ 		return
+diff --git a/tests/unit/test_level_scripts.gd b/tests/unit/test_level_scripts.gd
+index 4a5eac322..94120d901 100644
+--- a/tests/unit/test_level_scripts.gd
++++ b/tests/unit/test_level_scripts.gd
+@@ -502,11 +502,71 @@ class MockLabyrinthLevel extends MockLevelBase:
+ 		setup_tutorial_hints()
+ 
+ 
++## Mock CityLevel for Testing (Issue #957: level clear message not displayed).
++class MockCityLevel extends MockLevelBase:
++	var level_name: String = "CityLevel"
++
++	## Map dimensions (~6000x5000 playable area).
++	var map_width: int = 6000
++	var map_height: int = 5000
++
++	## Default enemy count for city level (8 enemies).
++	var default_enemy_count: int = 8
++
++	## Whether the score screen is currently shown.
++	var _score_shown: bool = false
++
++	## Level ordering (city is last in sequence).
++	var _level_paths: Array[String] = [
++		"res://scenes/levels/BuildingLevel.tscn",
++		"res://scenes/levels/TestTier.tscn",
++		"res://scenes/levels/CastleLevel.tscn",
++		"res://scenes/levels/CityLevel.tscn",
++	]
++
++	## Initialize with default enemy configuration.
++	func initialize() -> void:
++		var enemies: Array = []
++		for i in range(default_enemy_count):
++			enemies.append("CityEnemy%d" % (i + 1))
++		setup_enemy_tracking(enemies)
++
++	## Get rank color — must match city_level.gd _get_rank_color.
++	func get_rank_color(rank: String) -> Color:
++		match rank:
++			"S":
++				return Color(1.0, 0.84, 0.0, 1.0)
++			"A+":
++				return Color(0.0, 1.0, 0.5, 1.0)
++			"A":
++				return Color(0.2, 0.8, 0.2, 1.0)
++			"B":
++				return Color(0.3, 0.7, 1.0, 1.0)
++			"C":
++				return Color(1.0, 1.0, 1.0, 1.0)
++			"D":
++				return Color(1.0, 0.6, 0.2, 1.0)
++			"F":
++				return Color(1.0, 0.2, 0.2, 1.0)
++			_:
++				return Color(1.0, 1.0, 1.0, 1.0)
++
++	## Get the next level path.
++	func get_next_level_path(current_scene_path: String) -> String:
++		for i in range(_level_paths.size()):
++			if _level_paths[i] == current_scene_path:
++				if i + 1 < _level_paths.size():
++					return _level_paths[i + 1]
++				return ""
++		return ""
++
++
+ var building_level: MockBuildingLevel
+ var castle_level: MockCastleLevel
+ var test_tier: MockTestTier
+ var beach_level: MockBeachLevel
+ var labyrinth_level: MockLabyrinthLevel
++var city_level: MockCityLevel
+ 
+ 
+ func before_each() -> void:
+@@ -515,6 +575,7 @@ func before_each() -> void:
+ 	test_tier = MockTestTier.new()
+ 	beach_level = MockBeachLevel.new()
+ 	labyrinth_level = MockLabyrinthLevel.new()
++	city_level = MockCityLevel.new()
+ 
+ 
+ func after_each() -> void:
+@@ -523,6 +584,7 @@ func after_each() -> void:
+ 	test_tier = null
+ 	beach_level = null
+ 	labyrinth_level = null
++	city_level = null
+ 
+ 
+ # ============================================================================
+@@ -1912,3 +1974,184 @@ func test_labyrinth_thresholds_descending_order() -> void:
+ 	assert_true(t["B"] > t["C"], "B threshold must be greater than C")
+ 	assert_true(t["C"] > t["D"], "C threshold must be greater than D")
+ 	assert_true(t["D"] > t["F"], "D threshold must be greater than F")
++
++
++# ============================================================================
++# CityLevel Default Configuration Tests (Issue #957: level clear message fix)
++# ============================================================================
++
++
++func test_city_level_name() -> void:
++	assert_eq(city_level.level_name, "CityLevel",
++		"City level name should be CityLevel")
++
++
++func test_city_level_map_dimensions() -> void:
++	assert_eq(city_level.map_width, 6000,
++		"City map width should be 6000")
++	assert_eq(city_level.map_height, 5000,
++		"City map height should be 5000")
++
++
++func test_city_level_default_enemy_count() -> void:
++	assert_eq(city_level.default_enemy_count, 8,
++		"City level should have 8 enemies by default")
++
++
++func test_city_level_initial_state() -> void:
++	assert_eq(city_level._initial_enemy_count, 0,
++		"Initial enemy count should be 0 before setup")
++	assert_eq(city_level._current_enemy_count, 0,
++		"Current enemy count should be 0 before setup")
++	assert_false(city_level._game_over_shown,
++		"Game over should not be shown initially")
++	assert_false(city_level._level_cleared,
++		"Level should not be cleared initially")
++	assert_false(city_level._level_completed,
++		"Level should not be completed initially")
++
++
++# ============================================================================
++# CityLevel Enemy Tracking Tests (Issue #957)
++# ============================================================================
++
++
++func test_city_level_initialize_sets_enemy_count() -> void:
++	city_level.initialize()
++
++	assert_eq(city_level._initial_enemy_count, 8,
++		"Should track 8 enemies after initialization")
++	assert_eq(city_level._current_enemy_count, 8,
++		"Current enemy count should match initial count")
++
++
++func test_city_level_enemy_died_decrements_count() -> void:
++	city_level.initialize()
++	city_level.on_enemy_died()
++
++	assert_eq(city_level._current_enemy_count, 7,
++		"Current enemy count should decrease by 1")
++	assert_eq(city_level._kills, 1,
++		"Kill count should increment by 1")
++
++
++func test_city_level_all_enemies_killed_clears_level() -> void:
++	city_level.initialize()
++
++	for i in range(8):
++		city_level.on_enemy_died()
++
++	assert_eq(city_level._current_enemy_count, 0,
++		"Current enemy count should be 0 after all killed")
++	assert_eq(city_level._kills, 8,
++		"Kill count should match initial enemy count")
++	assert_true(city_level._level_cleared,
++		"Level should be marked as cleared when all enemies are dead")
++	assert_true(city_level.exit_zone_activated,
++		"Exit zone should be activated after last enemy killed")
++
++
++func test_city_level_not_cleared_with_enemies_remaining() -> void:
++	city_level.initialize()
++
++	for i in range(7):
++		city_level.on_enemy_died()
++
++	assert_false(city_level._level_cleared,
++		"Level should NOT be cleared with 1 enemy remaining")
++	assert_false(city_level.exit_zone_activated,
++		"Exit zone should NOT be activated with enemies remaining")
++
++
++# ============================================================================
++# CityLevel Level Completion Tests (Issue #957)
++# ============================================================================
++
++
++func test_city_level_exit_triggers_score_screen() -> void:
++	city_level.initialize()
++
++	for i in range(8):
++		city_level.on_enemy_died()
++
++	city_level.on_player_reached_exit()
++
++	assert_true(city_level._level_completed,
++		"Level should be marked as completed when player reaches exit")
++	assert_true(city_level.score_screen_shown,
++		"Score screen should be shown when player reaches exit after clearing")
++
++
++func test_city_level_exit_without_clearing_does_nothing() -> void:
++	city_level.initialize()
++
++	# Player reaches exit WITHOUT killing all enemies
++	city_level.on_player_reached_exit()
++
++	assert_false(city_level._level_completed,
++		"Level should NOT be completed if not cleared")
++	assert_false(city_level.score_screen_shown,
++		"Score screen should NOT be shown if level not cleared")
++
++
++func test_city_level_no_duplicate_completions() -> void:
++	city_level.initialize()
++
++	for i in range(8):
++		city_level.on_enemy_died()
++
++	city_level.on_player_reached_exit()
++	var first_completed := city_level._level_completed
++
++	# Second call should be no-op
++	city_level.score_screen_shown = false
++	city_level.on_player_reached_exit()
++
++	assert_true(first_completed,
++		"First completion should succeed")
++	assert_false(city_level.score_screen_shown,
++		"Second completion call should not re-show score screen")
++
++
++# ============================================================================
++# CityLevel Rank Color Tests (Issue #957: _get_rank_color was missing)
++# ============================================================================
++
++
++func test_city_level_rank_color_s_is_gold() -> void:
++	var color := city_level.get_rank_color("S")
++	assert_eq(color, Color(1.0, 0.84, 0.0, 1.0),
++		"City level S rank should be gold")
++
++
++func test_city_level_rank_color_f_is_red() -> void:
++	var color := city_level.get_rank_color("F")
++	assert_eq(color, Color(1.0, 0.2, 0.2, 1.0),
++		"City level F rank should be red")
++
++
++func test_city_level_rank_colors_match_other_levels() -> void:
++	for rank in ["S", "A+", "A", "B", "C", "D", "F"]:
++		var city_color := city_level.get_rank_color(rank)
++		var building_color := building_level.get_rank_color(rank)
++		assert_eq(city_color, building_color,
++			"City and Building rank color should match for rank %s" % rank)
++
++
++# ============================================================================
++# CityLevel Next Level Path Tests (Issue #957)
++# ============================================================================
++
++
++func test_city_level_is_last_in_ordering() -> void:
++	var next := city_level.get_next_level_path("res://scenes/levels/CityLevel.tscn")
++
++	assert_eq(next, "",
++		"CityLevel should be the last in its sequence (no next level)")
++
++
++func test_city_level_after_castle_level() -> void:
++	var next := city_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
++
++	assert_eq(next, "res://scenes/levels/CityLevel.tscn",
++		"Next level after CastleLevel should be CityLevel")

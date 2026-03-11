@@ -1,0 +1,20 @@
+1cf1a9a4 Revert "Initial commit with task details"
+5344ce1d fix: add missing fallback score screen and rank color to city_level.gd (Issue #957)
+cb26cbf3 Initial commit with task details
+8b583292 Merge pull request #946 from konard/issue-945-2a1f269473d3
+eb786ce2 Merge pull request #931 from konard/issue-930-7fbc0cfbc9ad
+d0997848 Merge pull request #987 from konard/issue-985-c8d4adb310ff
+7eb7e027 Fix AK/Revolver tutorial hints and counters missing on Labyrinth map (Issue #945)
+b602ca40 fix: correct orange fire vs red blood classification in Black Metal shader (Issue #985 v2)
+514be3ec fix: force field bubble visual — translucent interior fill (Issue #930)
+adeb07ad Revert "Initial commit with task details"
+373ce1d3 fix: add C# getter methods for GDScript force field interop (Issue #930)
+bf68ea7a fix: preserve weapon flashes and disable last chance in Black Metal (Issue #985)
+4c679670 Initial commit with task details
+b14c26ad Merge remote-tracking branch 'origin/main' into issue-930-7fbc0cfbc9ad
+273872c9 Merge pull request #963 from konard/issue-958-74b37d4ff3f2
+b36114c4 fix: restore hint_screen_texture with warmup+3-frame delay to fix white screen (Issue #958)
+1624625b merge: update from main + new logs + case study analysis (Issue #930)
+01581e3f fix: rewrite Black Metal shader as overlay (no hint_screen_texture) to fix white screen
+59cec3ed Merge remote-tracking branch 'origin/main' into issue-958-74b37d4ff3f2
+11a624df Fix 4 tutorial hint bugs from owner review round 5 (Issue #945)
