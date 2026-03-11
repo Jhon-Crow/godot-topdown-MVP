@@ -24,6 +24,8 @@ signal back_pressed
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
+@onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
+@onready var unlock_table_menu: CanvasLayer = $UnlockTableMenu
 
 
 func _ready() -> void:
@@ -41,7 +43,12 @@ func _ready() -> void:
 	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
 	ricochet_points_checkbox.toggled.connect(_on_ricochet_points_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
+	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	back_button.pressed.connect(_on_back_pressed)
+
+	# Connect UnlockTableMenu back signal
+	if unlock_table_menu:
+		unlock_table_menu.back_pressed.connect(_on_unlock_table_back_pressed)
 
 	# Update UI based on current settings
 	_update_ui()
@@ -210,6 +217,18 @@ func _on_delete_saves_pressed() -> void:
 	if persist_manager and persist_manager.has_method("clear_all_saves"):
 		persist_manager.clear_all_saves()
 	status_label.text = "Saves deleted. Game reset to first-launch state."
+
+
+func _on_unlock_table_pressed() -> void:
+	# Show the unlock table overlay
+	if unlock_table_menu:
+		unlock_table_menu.visible = true
+
+
+func _on_unlock_table_back_pressed() -> void:
+	# Hide the unlock table overlay and return to experimental menu
+	if unlock_table_menu:
+		unlock_table_menu.visible = false
 
 
 func _on_back_pressed() -> void:
