@@ -12,6 +12,10 @@ signal back_pressed
 ## Signal emitted when a weapon is selected.
 signal weapon_selected(weapon_id: String)
 
+## Signal emitted when Apply is pressed from score screen context (Issue #1006).
+## The armory should close without restarting the level.
+signal apply_pressed_from_score_screen
+
 ## Path to weapon case icon used for locked/closed weapons.
 const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
 
@@ -144,6 +148,11 @@ var _active_item_manager: Node = null
 
 ## Reference to UnlockManager autoload.
 var _unlock_manager: Node = null
+
+## Whether the armory was opened from the score screen (Issue #1006).
+## When true, pressing Apply should hide the armory and return to score screen
+## instead of restarting the level.
+var opened_from_score_screen: bool = false
 
 ## Cached weapon resource data.
 var _weapon_resources: Dictionary = {}
@@ -1083,9 +1092,14 @@ func _on_apply_pressed() -> void:
 			_active_item_manager.set_active_item(_pending_active_item_type, false)
 		active_item_changed = true
 
-	# Restart the level to apply changes
+	# Apply changes: either restart level or return to score screen (Issue #1006)
 	if weapon_changed or grenade_changed or active_item_changed:
-		if GameManager:
+		if opened_from_score_screen:
+			# Issue #1006: When opened from score screen, hide armory and return
+			# to score screen instead of restarting the level.
+			apply_pressed_from_score_screen.emit()
+			queue_free()
+		elif GameManager:
 			get_tree().paused = false
 			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 			GameManager.restart_scene()

@@ -1667,6 +1667,8 @@ func _on_armory_button_pressed() -> void:
 	if armory_menu_scene:
 		var armory_menu = armory_menu_scene.instantiate()
 		armory_menu.layer = 100  # On top of everything
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
 		# Connect back button to close the overlay
 		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
