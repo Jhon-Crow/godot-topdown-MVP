@@ -21,6 +21,7 @@ signal back_pressed
 @onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
 @onready var all_weapons_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer/AllWeaponsUnlockedCheckbox
 @onready var ricochet_points_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/RicochetPointsContainer/RicochetPointsCheckbox
+@onready var weapon_hints_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WeaponHintsContainer/WeaponHintsOption
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
@@ -40,6 +41,8 @@ func _ready() -> void:
 	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
 	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
 	ricochet_points_checkbox.toggled.connect(_on_ricochet_points_toggled)
+	_setup_weapon_hints_option()
+	weapon_hints_option.item_selected.connect(_on_weapon_hints_selected)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
@@ -74,6 +77,12 @@ func _update_ui() -> void:
 	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
 	all_weapons_unlocked_checkbox.button_pressed = experimental_settings.is_all_weapons_unlocked()
 	ricochet_points_checkbox.button_pressed = experimental_settings.is_ricochet_points_enabled()
+
+	# Update weapon hints option
+	var weapon_hints_settings: Node = get_node_or_null("/root/WeaponHintsSettings")
+	if weapon_hints_settings:
+		var current_mode: int = weapon_hints_settings.get_hint_mode()
+		weapon_hints_option.select(current_mode)
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -217,4 +226,29 @@ func _on_back_pressed() -> void:
 
 
 func _on_settings_changed() -> void:
+	_update_ui()
+
+
+## Setup the weapon hints option button with items.
+func _setup_weapon_hints_option() -> void:
+	weapon_hints_option.clear()
+	weapon_hints_option.add_item("Always", 0)
+	weapon_hints_option.add_item("First time only", 1)
+	weapon_hints_option.add_item("Never", 2)
+
+	# Select current mode from settings
+	var weapon_hints_settings: Node = get_node_or_null("/root/WeaponHintsSettings")
+	if weapon_hints_settings:
+		var current_mode: int = weapon_hints_settings.get_hint_mode()
+		weapon_hints_option.select(current_mode)
+	else:
+		# Default to "First time only" if settings not available
+		weapon_hints_option.select(1)
+
+
+## Called when weapon hints option is changed.
+func _on_weapon_hints_selected(index: int) -> void:
+	var weapon_hints_settings: Node = get_node_or_null("/root/WeaponHintsSettings")
+	if weapon_hints_settings:
+		weapon_hints_settings.set_hint_mode(index)
 	_update_ui()

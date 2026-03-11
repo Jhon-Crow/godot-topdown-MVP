@@ -68,6 +68,9 @@ var _replay_manager: Node = null
 ## Reference to the combo label.
 var _combo_label: Label = null
 
+## Weapon hints component instance (Issue #809).
+var _weapon_hints_component: Node = null
+
 
 ## Gets the ReplayManager autoload node.
 ## The ReplayManager is now a C# autoload that works reliably in exported builds,
@@ -128,6 +131,9 @@ func _ready() -> void:
 
 	# Start replay recording
 	_start_replay_recording()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
 
 
 func _process(_delta: float) -> void:
@@ -241,6 +247,33 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
 	print("[TestTier] Realistic visibility component added to player")
+
+
+## Setup weapon hints component (Issue #809).
+## Shows weapon-specific tutorial hints when player uses a new weapon.
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var ui: Control = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		push_warning("[TestTier] UI node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[TestTier] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	# Setup the component with player and UI references
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, ui)
+		print("[TestTier] Weapon hints component added and setup")
 
 
 ## Setup tracking for the player.

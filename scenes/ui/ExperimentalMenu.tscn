@@ -308,6 +308,28 @@ autowrap_mode = 2
 [node name="HSeparator13" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="WeaponHintsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WeaponHintsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WeaponHintsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Weapon Hints"
+
+[node name="WeaponHintsOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WeaponHintsContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+
+[node name="WeaponHintsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Show weapon tutorial hints on level start:
+Always / First time only / Never"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator14" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
