@@ -221,7 +221,7 @@ class MockLevelsMenu:
 		}
 	]
 
-	const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+	const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
 
 	## Number of columns in the level grid (4 cards wide).
 	const GRID_COLUMNS: int = 4
@@ -874,6 +874,38 @@ func test_completing_level_with_any_rank_unlocks_next() -> void:
 	levels_menu.set_level_progress("Labyrinth", "Normal", "F", 50)
 	assert_true(levels_menu.is_level_unlocked(1),
 		"Even an F rank completion of Labyrinth should unlock Building Level")
+
+
+# ============================================================================
+# Black Metal Difficulty Unlock Tests (Issue #984 regression)
+# ============================================================================
+# These tests cover the bug where "Black Metal" was missing from the difficulty
+# list in is_level_completed_any_difficulty, causing levels to remain locked
+# even after they were completed on Black Metal mode.
+
+
+func test_black_metal_completion_unlocks_next_level() -> void:
+	# Regression test: completing Labyrinth on Black Metal must unlock Building Level
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Black Metal", "A", 12369)
+	assert_true(levels_menu.is_level_unlocked(1),
+		"Building Level should unlock after completing Labyrinth on Black Metal (regression: Issue #984)")
+
+
+func test_black_metal_completion_recognized_by_any_difficulty_check() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Black Metal", "F", 0)
+	assert_true(levels_menu.is_level_completed_any_difficulty("Labyrinth"),
+		"is_level_completed_any_difficulty should return true for Black Metal completion")
+
+
+func test_only_black_metal_progress_still_unlocks_level() -> void:
+	# Ensure we don't depend on having Easy/Normal/Hard/Power Fantasy completions
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Black Metal", "S", 20000)
+	# Building Level should unlock even if only Black Metal was played
+	assert_true(levels_menu.is_level_unlocked(1),
+		"Level should unlock with only Black Metal completion — no other difficulty needed")
 
 
 # ============================================================================

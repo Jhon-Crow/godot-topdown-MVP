@@ -91,6 +91,13 @@ func get_difficulty_name() -> String:
 			return "Unknown"
 
 
+## Get the names of all available difficulty modes.
+## Use this as the single source of truth whenever iterating over all difficulties.
+## @return: Array of all difficulty name strings in ascending order.
+func get_all_difficulty_names() -> Array[String]:
+	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+
+
 ## Get the display name for a specific difficulty level.
 func get_difficulty_name_for(difficulty: Difficulty) -> String:
 	match difficulty:

@@ -92,8 +92,8 @@ const LEVELS: Array[Dictionary] = [
 	}
 ]
 
-## Difficulty names in display order.
-const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+## Difficulty names in display order (must match DifficultyManager.get_all_difficulty_names()).
+const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
 
 ## Card dimensions.
 const CARD_WIDTH: float = 220.0

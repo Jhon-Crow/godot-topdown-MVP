@@ -114,8 +114,7 @@ func is_level_completed(level_path: String, difficulty_name: String) -> bool:
 ## @param level_path: The scene file path of the level.
 ## @return: True if the level has been completed at least once on any difficulty.
 func is_level_completed_any_difficulty(level_path: String) -> bool:
-	var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
-	for difficulty_name in difficulties:
+	for difficulty_name in _get_all_difficulty_names():
 		if is_level_completed(level_path, difficulty_name):
 			return true
 	return false
@@ -127,12 +126,22 @@ func is_level_completed_any_difficulty(level_path: String) -> bool:
 ##          Only includes difficulties where the level has been completed.
 func get_progress_for_all_difficulties(level_path: String) -> Dictionary:
 	var result: Dictionary = {}
-	var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
-	for difficulty_name in difficulties:
+	for difficulty_name in _get_all_difficulty_names():
 		var rank: String = get_best_rank(level_path, difficulty_name)
 		if not rank.is_empty():
 			result[difficulty_name] = rank
 	return result
+
+
+## Get all available difficulty names from DifficultyManager (with static fallback).
+## Uses DifficultyManager as the single source of truth so new difficulties are
+## automatically picked up without needing to update this file.
+func _get_all_difficulty_names() -> Array[String]:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("get_all_difficulty_names"):
+		return difficulty_manager.get_all_difficulty_names()
+	# Static fallback — must stay in sync with DifficultyManager.Difficulty enum.
+	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
 
 
 ## Get all progress data (for display purposes).

@@ -81,8 +81,7 @@ func _get_best_rank_any_difficulty(level_path: String) -> String:
 		return ""
 
 	var best_rank: String = ""
-	var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
-	for difficulty_name in difficulties:
+	for difficulty_name in _get_all_difficulty_names():
 		var rank: String = progress_manager.get_best_rank(level_path, difficulty_name)
 		if not rank.is_empty() and _is_rank_better(rank, best_rank):
 			best_rank = rank
@@ -267,6 +266,17 @@ func _reset_condition_gated_items() -> void:
 ## the player must still hold LMB on the gold slot to permanently unlock them.
 func _reset_and_apply_all_unlocks() -> void:
 	_reset_condition_gated_items()
+
+
+## Get all available difficulty names from DifficultyManager (with static fallback).
+## Uses DifficultyManager as the single source of truth so new difficulties are
+## automatically picked up without needing to update this file.
+func _get_all_difficulty_names() -> Array[String]:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("get_all_difficulty_names"):
+		return difficulty_manager.get_all_difficulty_names()
+	# Static fallback — must stay in sync with DifficultyManager.Difficulty enum.
+	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
 
 
 ## Log a message to the file logger if available.
