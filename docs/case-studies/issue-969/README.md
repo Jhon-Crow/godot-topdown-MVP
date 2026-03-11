@@ -61,6 +61,22 @@ propagation flooding with many enemies active.
 - EnemyGrenade log writes: 0 (Fix 5 working)
 - Per-frame visibility cache: working (Fix 6)
 
+### Fourth Verification Log — 2026-03-09 (19:49:00)
+
+| Log file | Duration | FPS drops | Worst FPS | Notes |
+|---|---|---|---|---|
+| game_log_20260309_194900.txt | ~103 s | **61** | 6 fps | DocksLevel + LabyrinthLevel (20 enemies) |
+
+**Key findings** (with Fixes 1–9 applied):
+- Still 61 drops ranging from 6 fps to 29 fps — fixes 8–9 not yet applied when this log was recorded
+- CASING_KICK: 98 events (low, throttle working) ✅
+- EnemyGrenade log writes: 0 ✅
+- SUPPRESSED cycling: fix applied, minimum duration enforced ✅
+- **New root causes identified**: RCA-12, RCA-13 (see below)
+
+**Confirmed: 1,400 BloodDecal creation events** in session (many decals per lethal hit, each triggering `tree_changed`)
+**Confirmed: 148 LastChance "Not in hard mode" file writes** in normal gameplay (useless I/O on every bullet threat)
+
 ## Root Causes Found
 
 ### RCA-1 (Critical): `_debug_penetration = true` by default in `bullet.gd`
@@ -247,6 +263,33 @@ With Fix 7 (COVER_SEARCH_COOLDOWN = 0.3s), the cover search itself was throttled
 still forced `_transition_to_seeking_cover()` immediately when SUPPRESSED with `_is_visible_from_player() == true`.
 The SUPPRESSED state itself had no minimum duration, so it exited in under one physics frame.
 
+### RCA-12 (High, from fourth verification): Blood decal count too high — tree_changed flood
+
+**File:** `scripts/autoload/impact_effects_manager.gd`, function `_spawn_blood_decals_at_particle_landing()`
+**Severity:** High — each lethal hit spawned **20 blood decals** (non-lethal: 10). Every `add_child(decal)`
+fires `SceneTree.tree_changed` signal, which is caught by every manager that tracks scene changes
+(ImpactEffectsManager, PenultimateHitEffectsManager, LastChanceEffectsManager, CinemaEffectsManager, etc.).
+
+**Evidence from fourth verification log:**
+- **1,400 BloodDecal creation events** logged in 103-second session
+- Peak blood decal spawn bursts correlated with every enemy kill (8–20 decals added at once)
+- At 8 hits/sec with M16: up to **160 `add_child()` calls/sec** → 160 `tree_changed` callbacks/sec
+- Each `tree_changed` callback checks scene name — with 4+ managers listening, this is **640+ callbacks/sec**
+
+### RCA-13 (Medium, from fourth verification): LastChanceEffectsManager logs on every bullet threat
+
+**File:** `scripts/autoload/last_chance_effects_manager.gd`, function processing `threat_detected` signal
+**Severity:** Medium — the `LastChanceEffectsManager` logged to FileLogger on **every bullet entering
+the ThreatSphere**, even when the effect is unavailable (Normal difficulty, not in hard mode):
+- "Threat detected: @Area2D@N" — 1 write/bullet-threat
+- "Not in hard mode - effect disabled" — 1 write/bullet-threat
+- (or) "Cannot trigger effect" — 1 write/bullet-threat
+
+**Evidence from fourth verification log:**
+- **148 LastChance "Threat detected" + "Not in hard mode" events** in 103-second session
+- All 148 writes were useless: the effect was never triggered (Normal difficulty)
+- These writes occurred throughout the entire session, adding constant file I/O overhead
+
 ## Quantitative Impact
 
 ### Before Fix (original log2 — 10 enemies)
@@ -294,6 +337,16 @@ The SUPPRESSED state itself had no minimum duration, so it exited in under one p
 |---|---|---|
 | ImpactEffects file writes per hit | **0** (was 4–5 per hit) | **100%** eliminated (debug_effects = false) |
 | Enemy SUPPRESSED cycling rate | **max 2/sec** (was 4–6/sec) | **>50%** reduction (0.5s minimum duration) |
+
+### After Fixes 10–11 (from fourth verification — 20 enemies, DocksLevel)
+
+| Issue | Events/session | Expected reduction |
+|---|---|---|
+| Blood decal count per kill | **8 lethal / 4 non-lethal** (was 20/10) | **60%** fewer `tree_changed` callbacks |
+| LastChance file writes per threat | **0** (was 148/session) | **100%** eliminated (debug_logging = false) |
+
+**Combined expected result**: ~60% reduction in `tree_changed` overhead from blood effects, plus
+elimination of 148 useless file writes per session from LastChance threat detection.
 
 ## Solutions Implemented
 
@@ -430,6 +483,34 @@ With a 0.5s minimum, cycling is capped at 2 full cycles/second maximum per enemy
 
 **Expected reduction:** OpenArea_Patrol2 was cycling 4–6 times/second → max 2 times/second = **>50% reduction** in
 state-driven raycast load for open-terrain enemies.
+
+### Fix 10 (from fourth verification): Reduce blood decal count per hit
+
+**File:** `scripts/autoload/impact_effects_manager.gd`, constants `BLOOD_DECALS_PER_LETHAL_HIT` and `BLOOD_DECALS_PER_NONLETHAL_HIT`
+
+Reduced blood decal count from 20/10 to **8 (lethal) and 4 (non-lethal)**. This directly reduces
+the number of `add_child()` calls, and therefore the number of `tree_changed` signal fires.
+
+**Rationale:** Each decal triggers `SceneTree.tree_changed` which invokes callbacks in all scene
+change listeners (4+ managers). At the original 20 lethal decals: one kill triggers 20 decals ×
+4+ listeners = 80+ callbacks in a single frame. With 8 decals: 8 × 4 = 32 callbacks — a 60%
+reduction. Blood visual quality is preserved with 8 decals per lethal hit (visually similar).
+
+**Expected reduction:** ~60% fewer `tree_changed` callbacks per kill → ~60% less CPU overhead
+from blood-death events.
+
+### Fix 11 (from fourth verification): Gate LastChanceEffectsManager per-threat logging behind debug flag
+
+**File:** `scripts/autoload/last_chance_effects_manager.gd`, `_debug_logging` flag
+
+Added `_debug_logging = false` flag. All per-bullet-threat log messages ("Threat detected",
+"Not in hard mode - effect disabled", "Cannot trigger effect") are now gated behind this flag.
+
+**Rationale:** In Normal difficulty, the LastChance effect is disabled, but the ThreatSphere still
+detects every bullet entering range. Each detection produced 2 file writes with zero benefit. With
+148 such events in a 103-second session at Normal difficulty, this was pure overhead.
+
+**Expected elimination:** 148 file writes/session → **0** writes when `_debug_logging = false`.
 
 ## References
 
