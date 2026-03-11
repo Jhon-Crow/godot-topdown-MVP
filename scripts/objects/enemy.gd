@@ -1356,11 +1356,13 @@ func _process_combat_state(delta: float) -> void:
 			tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed); return
 	# Check suppression (ignore during vulnerability pursuit)
+	# RCA-19: Add minimum combat duration before retreating to prevent rapid COMBAT→RETREATING cycling
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
-		_combat_exposed = false
-		_combat_approaching = false
-		_seeking_clear_shot = false
-		_transition_to_retreating()
+		if _combat_state_timer >= 0.15:  # Brief minimum (0.15s) to prevent instant cycling
+			_combat_exposed = false
+			_combat_approaching = false
+			_seeking_clear_shot = false
+			_transition_to_retreating()
 		return
 
 	# NOTE: ASSAULT state transition removed per issue #169
@@ -1588,9 +1590,11 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			return
 
 	# Check if we're already hidden from the player (the main goal)
+	# RCA-19: Only transition after minimum duration to prevent rapid cycling
 	if not _is_visible_from_player():
-		_transition_to_in_cover()
-		_log_debug("Hidden from player, entering cover state")
+		if time_in_state >= SEEKING_COVER_MIN_DURATION:
+			_transition_to_in_cover()
+			_log_debug("Hidden from player, entering cover state")
 		return
 
 	# Move towards cover
@@ -1652,10 +1656,12 @@ func _process_in_cover_state(delta: float) -> void:
 				return  # Stay in cover while firing burst
 
 		# Burst complete or not in alarm mode, seek new cover
-		_log_debug("Player flanked our cover position, seeking new cover")
-		_has_valid_cover = false  # Invalidate current cover
-		_cover_burst_pending = false
-		_transition_to_seeking_cover()
+		# RCA-19: Check minimum duration before transitioning to prevent rapid cycling
+		if time_in_state >= IN_COVER_MIN_DURATION:
+			_log_debug("Player flanked our cover position, seeking new cover")
+			_has_valid_cover = false  # Invalidate current cover
+			_cover_burst_pending = false
+			_transition_to_seeking_cover()
 		return
 
 	# NOTE: ASSAULT state transition removed per issue #169
@@ -1667,6 +1673,9 @@ func _process_in_cover_state(delta: float) -> void:
 		var target_close := _is_target_close()
 		var can_hit := _can_hit_target_from_current_position()
 		if can_see_target:
+			# RCA-19: Check minimum duration before transitioning to COMBAT
+			if time_in_state < IN_COVER_MIN_DURATION:
+				return
 			if target_close:  # Target is close - engage in combat
 				_log_debug("Target is close, transitioning to COMBAT")
 				_transition_to_combat()
@@ -1805,9 +1814,11 @@ func _process_suppressed_state(delta: float) -> void:
 			_shoot()
 			_shoot_timer = 0.0
 
-	# If no longer under fire, exit suppression
+	# If no longer under fire, exit suppression (with minimum duration check)
+	# RCA-19: Apply minimum duration to prevent rapid cycling
 	if not _under_fire:
-		_transition_to_in_cover()
+		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time >= SUPPRESSED_MIN_DURATION:
+			_transition_to_in_cover()
 
 ## Process RETREATING state - moving to cover with behavior based on damage taken.
 func _process_retreating_state(delta: float) -> void:
@@ -1821,11 +1832,13 @@ func _process_retreating_state(delta: float) -> void:
 			return
 
 	# Check if we've reached cover and are hidden from player
+	# RCA-19: Add minimum duration check even for successful cover reach
 	if not _is_visible_from_player():
-		_log_debug("Reached cover during retreat")
-		# Reset encounter hits when successfully reaching cover
-		_hits_taken_in_encounter = 0
-		_transition_to_in_cover()
+		if time_in_state >= RETREATING_MIN_DURATION:
+			_log_debug("Reached cover during retreat")
+			# Reset encounter hits when successfully reaching cover
+			_hits_taken_in_encounter = 0
+			_transition_to_in_cover()
 		return
 
 	# Calculate direction to cover
@@ -4770,7 +4783,6 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 	return _nav_agent.distance_to_target()
 
 # Status Effects (Blindness, Stun) - delegated to FlashbangStatusComponent (Issue #328)
-
 func _setup_flashbang_status() -> void:
 	_flashbang_status = FlashbangStatusComponent.new()
 	_flashbang_status.name = "FlashbangStatusComponent"
@@ -4792,7 +4804,6 @@ func _on_stunned_changed(stunned: bool) -> void:
 
 func set_blinded(blinded: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_blinded(blinded)
-
 func set_stunned(stunned: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_stunned(stunned)
 func is_blinded() -> bool: return _is_blinded
@@ -4839,15 +4850,12 @@ func _update_grenade_triggers(delta: float) -> void:
 
 func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_gunshot(position)
-
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_vulnerable_sound(position, _can_see_player)
-
 ## Issue #712: Grenade throw facing - set direction before throw, clear after throw completes.
 func _on_grenade_face_throw_direction(target_direction: Vector2) -> void:
 	if target_direction == Vector2.ZERO: return
 	_grenade_throw_facing_direction = target_direction; _is_facing_for_grenade_throw = true
-
 func _on_grenade_component_thrown(_grenade: Node, _target_position: Vector2) -> void:
 	_grenade_throw_facing_direction = Vector2.ZERO; _is_facing_for_grenade_throw = false
 
@@ -4882,8 +4890,7 @@ func _can_see_position(pos: Vector2) -> bool:
 	_raycast.target_position = pos - global_position
 	_raycast.force_raycast_update()
 	var result := not _raycast.is_colliding()
-	_raycast.target_position = orig
-	return result
+	_raycast.target_position = orig; return result
 func _update_grenade_world_state() -> void:
 	if _grenade_component == null:
 		_goap_world_state["has_grenades"] = false; _goap_world_state["grenades_remaining"] = 0
@@ -4910,7 +4917,6 @@ func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw
 	return result
 
 # Grenade Avoidance (Issue #407) - uses GrenadeAvoidanceComponent
-
 func _setup_grenade_avoidance() -> void:
 	_grenade_avoidance = GrenadeAvoidanceComponent.new()
 	_grenade_avoidance.name = "GrenadeAvoidance"
@@ -4960,7 +4966,6 @@ func _should_wait_for_nearby_grenadier() -> bool:
 		if ally.get("_current_state") == AIState.PURSUING: _start_waiting_for_grenadier(3.0); return true
 	return false
 func is_blocking_passage_grenade() -> bool: return _grenade_component is GrenadierGrenadeComponent and (_grenade_component as GrenadierGrenadeComponent).is_blocking_passage()
-
 ## Setup machete melee component (Issue #579).
 func _setup_machete_component() -> void:
 	if not _is_melee_weapon: return
@@ -4986,12 +4991,9 @@ func _connect_casing_pusher_signals() -> void:
 		_casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
 	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
 		_casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
-
 func _on_casing_pusher_body_entered(body: Node2D) -> void:
 	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings:
 		_overlapping_casings.append(body)
-
 func _on_casing_pusher_body_exited(body: Node2D) -> void:
 	if body is RigidBody2D:
-		var idx := _overlapping_casings.find(body)
-		if idx >= 0: _overlapping_casings.remove_at(idx)
+		var idx := _overlapping_casings.find(body); if idx >= 0: _overlapping_casings.remove_at(idx)

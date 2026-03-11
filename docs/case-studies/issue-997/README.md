@@ -155,6 +155,35 @@ var _in_cover_entry_time: float = -999.0
 - Prevents FPS drops during level loading by loading scenes asynchronously
 - Falls back to synchronous loading if threaded loading fails
 
+### Fix 16: Comprehensive State Transition Minimum Duration Enforcement (RCA-19)
+
+**Root Cause Analysis from `game_log_20260312_005238.txt`:**
+
+Despite the minimum duration constants being added, rapid state cycling was still occurring because many transitions bypassed the checks:
+
+```
+[00:52:49] OpenArea_Patrol2: SUPPRESSED -> SEEKING_COVER
+[00:52:49] OpenArea_Patrol2: SEEKING_COVER -> COMBAT      ← instant (bypassed check)
+[00:52:49] OpenArea_Patrol2: COMBAT -> RETREATING         ← instant (no check)
+[00:52:49] OpenArea_Patrol2: RETREATING -> SUPPRESSED     ← instant (bypassed check)
+```
+
+**Bypass Paths Fixed:**
+
+| Transition | Previous Behavior | Fix Applied |
+|---|---|---|
+| COMBAT → RETREATING | Instant when `_under_fire` | Added 0.15s minimum `_combat_state_timer` check |
+| SEEKING_COVER → IN_COVER | Instant when hidden | Added `SEEKING_COVER_MIN_DURATION` check |
+| IN_COVER → SEEKING_COVER | Instant when flanked | Added `IN_COVER_MIN_DURATION` check |
+| IN_COVER → COMBAT | Instant when target close | Added `IN_COVER_MIN_DURATION` check |
+| SUPPRESSED → IN_COVER | Instant when not under fire | Added `SUPPRESSED_MIN_DURATION` check |
+| RETREATING → IN_COVER | Instant when reached cover | Added `RETREATING_MIN_DURATION` check |
+
+**Expected Impact:**
+- All state transitions now respect minimum durations
+- Complete cycle minimum: **1.4+ seconds** (was instant through bypass paths)
+- Prevents the 4+ cycles/second pattern seen in logs
+
 ## Remaining Architectural Issues (Not Addressed in This PR)
 
 ### RCA-14: Sound Propagation O(N) Scans
@@ -179,9 +208,9 @@ The fundamental overhead of 20 AI state machines updating at 60fps remains. Requ
 
 | File | Change |
 |---|---|
-| `scripts/objects/enemy.gd` | Added SEEKING_COVER_MIN_DURATION, RETREATING_MIN_DURATION, IN_COVER_MIN_DURATION with entry time tracking (Fix 12, 14) |
+| `scripts/objects/enemy.gd` | Added SEEKING_COVER_MIN_DURATION, RETREATING_MIN_DURATION, IN_COVER_MIN_DURATION with entry time tracking (Fix 12, 14); Enforced min durations on all bypass paths (Fix 16 - RCA-19) |
 | `scripts/autoload/impact_effects_manager.gd` | Added MAX_BLOOD_DECALS_PER_SECOND rate limiting (Fix 13) |
-| `scripts/autoload/scene_loader.gd` | New autoload for background level loading with loading screen (Fix 15) |
+| `scripts/autoload/scene_loader.gd` | New autoload for background level loading with loading screen (Fix 15); Updated logging to use FileLogger |
 | `scripts/ui/levels_menu.gd` | Use SceneLoader for level transitions (Fix 15) |
 | `scripts/autoload/persist_manager.gd` | Use SceneLoader for startup navigation (Fix 15) |
 | `project.godot` | Added SceneLoader to autoload list |
