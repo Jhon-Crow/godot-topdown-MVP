@@ -974,7 +974,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Next Level button (Issue #568) - Castle is the last level, so no next level
+	# Next Level button (Issue #568) - Castle leads to Double Corridor next
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -1099,6 +1099,10 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):
