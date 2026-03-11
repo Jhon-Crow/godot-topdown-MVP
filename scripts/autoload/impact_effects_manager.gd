@@ -44,6 +44,15 @@ const WALL_COLLISION_LAYER: int = 4
 ## Set to 0 to disable cleanup limit.
 const MAX_BULLET_HOLES: int = 0
 
+## Number of blood decals spawned per lethal hit (Issue #969 optimization).
+## Reduced from 20 to 8 to limit file-write and node-add overhead at high fire rates.
+## Each decal add triggers SceneTree.tree_changed, causing scene-change checks in all managers.
+const BLOOD_DECALS_PER_LETHAL_HIT: int = 8
+
+## Number of blood decals spawned per non-lethal hit (Issue #969 optimization).
+## Reduced from 10 to 4 to limit overhead at high fire rates.
+const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 4
+
 ## Active blood decals for cleanup management.
 var _blood_decals = []
 
@@ -319,9 +328,9 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 	# Start emitting
 	effect.emitting = true
 
-	# Spawn many small blood decals that simulate where particles land
-	# Number of decals based on hit intensity and lethality
-	var num_decals := 20 if is_lethal else 10
+	# Spawn small blood decals that simulate where particles land
+	# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
+	var num_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
 	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
 	# Check for nearby walls and spawn wall splatters

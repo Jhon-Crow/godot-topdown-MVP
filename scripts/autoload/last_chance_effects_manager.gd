@@ -122,6 +122,10 @@ var replay_mode: bool = false
 ## The time when the fade-out started (in real time seconds).
 var _fade_out_start_time: float = 0.0
 
+## Enable/disable verbose debug logging (Issue #969 optimization).
+## When false, per-threat-check messages are suppressed to prevent file write spam.
+var _debug_logging: bool = false
+
 
 func _ready() -> void:
 	# Connect to scene tree changes to find player and reset effects on scene reload
@@ -194,13 +198,21 @@ func _process(delta: float) -> void:
 			_end_last_chance_effect()
 
 
-## Log a message with the LastChance prefix.
+## Log a message with the LastChance prefix (always written).
 func _log(message: String) -> void:
 	var logger: Node = get_node_or_null("/root/FileLogger")
 	if logger and logger.has_method("log_info"):
 		logger.log_info("[LastChance] " + message)
 	else:
 		print("[LastChance] " + message)
+
+
+## Log a verbose/per-event message (Issue #969: only written when _debug_logging is true).
+## Use for high-frequency checks like per-bullet threat evaluations.
+func _log_verbose(message: String) -> void:
+	if not _debug_logging:
+		return
+	_log(message)
 
 
 ## Find and connect to the player and their threat sphere.
@@ -313,11 +325,12 @@ func trigger_grenade_last_chance(duration_seconds: float) -> void:
 
 ## Called when a threat is detected by the player's threat sphere.
 func _on_threat_detected(bullet: Area2D) -> void:
-	_log("Threat detected: %s" % bullet.name)
+	# Issue #969: gate per-bullet threat logs to prevent file write spam
+	_log_verbose("Threat detected: %s" % bullet.name)
 
 	# Check if we can trigger the effect
 	if not _can_trigger_effect():
-		_log("Cannot trigger effect - conditions not met")
+		_log_verbose("Cannot trigger effect - conditions not met")
 		return
 
 	_log("Triggering last chance effect!")
@@ -328,33 +341,34 @@ func _on_threat_detected(bullet: Area2D) -> void:
 func _can_trigger_effect() -> bool:
 	# Effect already used this life?
 	if _effect_used:
-		_log("Effect already used this life")
+		_log_verbose("Effect already used this life")
 		return false
 
 	# Effect already active?
 	if _is_effect_active:
-		_log("Effect already active")
+		_log_verbose("Effect already active")
 		return false
 
 	# Only trigger in hard mode
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null:
-		_log("DifficultyManager not found")
+		_log_verbose("DifficultyManager not found")
 		return false
 
 	if not difficulty_manager.is_hard_mode():
-		_log("Not in hard mode - effect disabled")
+		# Issue #969: this check fires on every incoming bullet in non-hard mode — gate it
+		_log_verbose("Not in hard mode - effect disabled")
 		return false
 
 	# Check player health (1 HP or less)
 	if _player == null:
-		_log("Player not found")
+		_log_verbose("Player not found")
 		return false
 
 	# Use cached health value from Damaged/health_changed signals
 	# This is more reliable than trying to access C# HealthComponent properties from GDScript
 	if _player_current_health > 1.0 or _player_current_health <= 0.0:
-		_log("Player health is %.1f - effect requires exactly 1 HP or less but alive" % _player_current_health)
+		_log_verbose("Player health is %.1f - effect requires exactly 1 HP or less but alive" % _player_current_health)
 		return false
 
 	return true
