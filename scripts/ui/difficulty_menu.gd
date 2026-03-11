@@ -102,7 +102,8 @@ func _update_button_states() -> void:
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
 	# Use uppercase for Black Metal because the gothic font only has uppercase glyphs (Issue #1014)
-	black_metal_button.text = "BLACK METAL (SELECTED)" if is_black_metal else "BLACK METAL"
+	# Use dash instead of parentheses since the gothic font doesn't have those characters (Issue #1020)
+	black_metal_button.text = "BLACK METAL - SELECTED" if is_black_metal else "BLACK METAL"
 
 	# Update night mode checkbox
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
@@ -293,6 +294,7 @@ func _sample_gradient(t: float) -> Color:
 
 
 ## Sets up the Black Metal button with gothic font styling (Issue #1014).
+## Issue #1020: Increased font size, added black background.
 func _setup_black_metal_button() -> void:
 	if _gothic_font != null:
 		black_metal_button.add_theme_font_override("font", _gothic_font)
@@ -301,3 +303,33 @@ func _setup_black_metal_button() -> void:
 		black_metal_button.add_theme_color_override("font_hover_color", Color(1.0, 0.9, 0.9))
 		black_metal_button.add_theme_color_override("font_pressed_color", Color(0.7, 0.6, 0.6))
 		black_metal_button.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.5))
+		# Increase font size for better visibility (Issue #1020)
+		black_metal_button.add_theme_font_size_override("font_size", 24)
+
+	# Add black background to the Black Metal button (Issue #1020)
+	var black_style := StyleBoxFlat.new()
+	black_style.bg_color = Color(0.05, 0.05, 0.05)  # Near-black background
+	black_style.set_corner_radius_all(4)
+	black_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("normal", black_style)
+
+	# Create hover style with slightly lighter background
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(0.12, 0.12, 0.12)
+	hover_style.set_corner_radius_all(4)
+	hover_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("hover", hover_style)
+
+	# Create pressed style with darker background
+	var pressed_style := StyleBoxFlat.new()
+	pressed_style.bg_color = Color(0.02, 0.02, 0.02)
+	pressed_style.set_corner_radius_all(4)
+	pressed_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("pressed", pressed_style)
+
+	# Create disabled style for when Black Metal is selected
+	var disabled_style := StyleBoxFlat.new()
+	disabled_style.bg_color = Color(0.08, 0.08, 0.08)
+	disabled_style.set_corner_radius_all(4)
+	disabled_style.set_content_margin_all(8)
+	black_metal_button.add_theme_stylebox_override("disabled", disabled_style)
