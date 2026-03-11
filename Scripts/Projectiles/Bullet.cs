@@ -542,6 +542,44 @@ public partial class Bullet : Area2D
         ShooterPosition = position;
     }
 
+    // ===========================================================================
+    // Getter methods for GDScript interop (Issue #930)
+    //
+    // GDScript's .get("property_name") does NOT work reliably with C# [Export]
+    // properties. Instead, we expose explicit getter methods that GDScript can
+    // call via .Call("get_direction") or .Call("GetDirection").
+    // ===========================================================================
+
+    /// <summary>
+    /// Gets the bullet's travel direction (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public Vector2 get_direction() => Direction;
+
+    /// <summary>
+    /// Gets the bullet's speed (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public float get_speed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public ulong get_shooter_id() => ShooterId;
+
+    /// <summary>
+    /// Gets the bullet's travel direction (PascalCase alias, Issue #930).
+    /// </summary>
+    public Vector2 GetDirection() => Direction;
+
+    /// <summary>
+    /// Gets the bullet's speed (PascalCase alias, Issue #930).
+    /// </summary>
+    public float GetSpeed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (PascalCase alias, Issue #930).
+    /// </summary>
+    public ulong GetShooterId() => ShooterId;
+
     /// <summary>
     /// Called when the bullet hits a static body (wall or obstacle).
     /// </summary>

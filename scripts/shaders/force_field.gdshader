@@ -1,15 +1,17 @@
 shader_type canvas_item;
 
-// Force field bubble shader (Issue #906)
+// Force field bubble shader (Issue #906, #930)
 // Creates a translucent glowing bubble/sphere visualization around the player.
-// The effect mimics a soap bubble: mostly transparent center, bright glowing rim,
-// with subtle iridescent color shifts and a gentle pulse animation.
+// The effect mimics a force bubble: semi-transparent interior (frosted glass),
+// bright glowing rim, iridescent color shifts, and a gentle pulse animation.
 
 uniform float time_offset = 0.0;
 uniform vec4 field_color : source_color = vec4(0.4, 0.7, 1.0, 0.85);
 uniform float pulse_speed = 1.5;
 // Reduced from 2.0 to 1.4 for softer bubble rim (Issue #912)
 uniform float glow_intensity = 1.4;
+// Interior fill opacity — keeps interior semi-transparent like frosted glass (Issue #930)
+uniform float fill_opacity = 0.20;
 
 void fragment() {
 	// Distance from center: 0.0 at center, ~0.5 at edge of 256x256 texture
@@ -48,13 +50,15 @@ void fragment() {
 	vec3 tint_b = vec3(0.8, 0.6, 1.0);   // Lavender
 	vec3 iridescent_tint = mix(tint_a, tint_b, shimmer * 0.35);
 
-	// ---- No interior glow — pure bubble look ----
-	// Interior is fully transparent (Issue #912): only the rim is visible.
-	// Removing inner_glow entirely ensures no dark/blue fill inside the circle.
+	// ---- Interior fill (translucent bubble look — Issue #930) ----
+	// Soft fill that gives the interior a frosted-glass / bubble appearance.
+	// (1 - pow(r, 2.5)) is highest at center and fades to 0 near the rim,
+	// creating a gentle translucent interior visible through the shield.
+	float fill = (1.0 - pow(r, 2.5)) * fill_opacity;
 
 	// ---- Combined alpha ----
-	// Rim-only effect: completely transparent center with bright glowing edge
-	float combined = rim * glow_intensity * pulse;
+	// Rim + interior fill: bright edge with translucent interior bubble
+	float combined = rim * glow_intensity * pulse + fill;
 	combined = clamp(combined, 0.0, 1.0);
 
 	// Smooth edge fade to avoid hard cutoff

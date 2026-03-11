@@ -1,5 +1,5 @@
 extends Node2D
-## Force field effect controller (Issue #676, #906, #912, #932).
+## Force field effect controller (Issue #676, #906, #912, #930, #932).
 ##
 ## Creates a glowing energy bubble shield around the player that traps projectiles.
 ## Activated by holding Space key with a depletable 8-second charge.
@@ -124,10 +124,12 @@ func _setup_area2d() -> void:
 	FileLogger.info("[ForceFieldEffect] Area2D setup with radius %.0fpx" % FIELD_RADIUS)
 
 
-## Set up the shield visual (bubble sprite with ring texture).
-## Uses a programmatic ring texture as the primary visual so it works in exported
+## Set up the shield visual (bubble sprite with translucent-fill texture).
+## Uses a programmatic bubble texture as the primary visual so it works in exported
 ## games without relying on runtime shader compilation.
-## The shader is applied as an optional enhancement when available.
+## The shader is applied as an optional enhancement for animated pulse/shimmer effects.
+## The base texture already shows a true bubble (semi-transparent interior + glowing rim)
+## matching the force bubble look required by Issue #930.
 func _setup_shield_visual() -> void:
 	_shield_sprite = Sprite2D.new()
 	_shield_sprite.name = "ShieldVisual"
@@ -135,10 +137,10 @@ func _setup_shield_visual() -> void:
 	_shield_sprite.z_index = 10  # Draw above player
 	add_child(_shield_sprite)
 
-	# Always use the ring texture as the primary visual.
+	# Always use the bubble texture as the primary visual.
 	# This works reliably in both editor and exported games (no shader compilation needed).
-	# The ring texture already looks like a translucent blue bubble — transparent center,
-	# blue glowing rim — matching the "soap bubble" aesthetic required by Issue #906.
+	# The bubble texture has a semi-transparent interior (frosted-glass look) + bright glowing
+	# rim — matching the "force bubble" aesthetic required by Issues #906 and #930.
 	_shield_sprite.texture = _create_ring_texture()
 
 	# Optionally load and apply shader as enhancement (e.g. pulse animation, iridescence).
@@ -164,27 +166,40 @@ func _create_white_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(image)
 
 
-## Fallback: create a ring (donut) texture for when the shader is unavailable.
-## The ring is fully transparent in the center and at the outside, with a bright
-## blue rim at ~84–100% radius — giving the same bubble look without shader support.
+## Create a bubble texture — translucent interior + bright glowing rim (Issue #930).
+## Used as the primary visual so the force field looks like a force bubble
+## (not just a ring outline) even without shader support in exported games.
+##
+## The texture has:
+## - Transparent exterior (outside the circle)
+## - Semi-transparent interior fill (alpha ~0.15) for frosted-glass bubble look
+## - Bright blue rim at ~84–100% radius (bell curve alpha, peak ~0.9)
 func _create_ring_texture() -> ImageTexture:
 	var size := 256
 	var center := Vector2(size * 0.5, size * 0.5)
-	var outer_r := size * 0.5       # 128px
-	var rim_start := outer_r * 0.84  # inner edge of visible ring
+	var outer_r := size * 0.5        # 128px
+	var rim_start := outer_r * 0.84  # inner edge of bright rim
+	var fill_color := Color(0.4, 0.7, 1.0)  # Base blue color
 
 	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
 
 	for y in range(size):
 		for x in range(size):
 			var dist := Vector2(x, y).distance_to(center)
-			if dist > outer_r or dist < rim_start:
+			if dist > outer_r:
+				# Outside the circle — fully transparent
 				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			elif dist >= rim_start:
+				# Bright rim: bell curve alpha, peak 0.9
+				var t := (dist - rim_start) / (outer_r - rim_start)  # 0→1
+				var alpha := sin(t * PI) * 0.9
+				image.set_pixel(x, y, Color(fill_color.r, fill_color.g, fill_color.b, alpha))
 			else:
-				# Alpha strongest at the mid-rim, fading to edges
-				var t := (dist - rim_start) / (outer_r - rim_start)  # 0 at rim_start, 1 at edge
-				var alpha := sin(t * PI) * 0.9  # bell curve, peak alpha 0.9
-				image.set_pixel(x, y, Color(0.4, 0.7, 1.0, alpha))
+				# Interior fill: soft translucent bubble interior (Issue #930)
+				# Alpha ramps up from 0 at center to ~0.15 near the rim, like frosted glass.
+				var r := dist / outer_r  # normalized 0→1
+				var alpha := pow(r, 1.5) * 0.15
+				image.set_pixel(x, y, Color(fill_color.r, fill_color.g, fill_color.b, alpha))
 
 	return ImageTexture.create_from_image(image)
 
