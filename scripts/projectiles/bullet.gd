@@ -642,12 +642,12 @@ func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
 	var probability := base_probability * angle_factor
 
-	# Issue #975: Ricochet Points experimental setting boosts ricochet chance by 20%
+	# Issue #1004: Ricochet Points active item boosts ricochet chance by 30%
 	# at angles where ricochet is possible (same condition as green trajectory ray).
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	if experimental_settings and experimental_settings.has_method("is_ricochet_points_enabled"):
-		if experimental_settings.is_ricochet_points_enabled():
-			probability = minf(probability + 0.2, 1.0)
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("has_ricochet_points"):
+		if active_item_manager.has_ricochet_points():
+			probability = minf(probability + 0.3, 1.0)
 
 	return probability
 
