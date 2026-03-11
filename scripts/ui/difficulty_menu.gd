@@ -101,7 +101,8 @@ func _update_button_states() -> void:
 	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
-	black_metal_button.text = "Black Metal (Selected)" if is_black_metal else "Black Metal"
+	# Use uppercase for Black Metal because the gothic font only has uppercase glyphs (Issue #1014)
+	black_metal_button.text = "BLACK METAL (SELECTED)" if is_black_metal else "BLACK METAL"
 
 	# Update night mode checkbox
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
@@ -199,19 +200,21 @@ func _setup_power_fantasy_button() -> void:
 	# Hide the button's default text - we'll use a RichTextLabel overlay
 	power_fantasy_button.text = ""
 
+	# Create a CenterContainer to vertically center the RichTextLabel
+	var center_container := CenterContainer.new()
+	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	# Create RichTextLabel for gradient text
 	_power_fantasy_label = RichTextLabel.new()
 	_power_fantasy_label.bbcode_enabled = true
-	_power_fantasy_label.fit_content = true
 	_power_fantasy_label.scroll_active = false
 	_power_fantasy_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_power_fantasy_label.fit_content = true
+	_power_fantasy_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 
-	# Center the label within the button
-	_power_fantasy_label.set_anchors_preset(Control.PRESET_CENTER)
-	_power_fantasy_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_power_fantasy_label.grow_vertical = Control.GROW_DIRECTION_BOTH
-
-	power_fantasy_button.add_child(_power_fantasy_label)
+	center_container.add_child(_power_fantasy_label)
+	power_fantasy_button.add_child(center_container)
 
 	# Apply initial gradient text
 	_update_power_fantasy_text(false)

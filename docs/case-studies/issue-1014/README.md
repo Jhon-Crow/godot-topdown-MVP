@@ -6,70 +6,128 @@ The difficulty selection menu needs visual enhancements for two specific difficu
 1. **Power Fantasy** - Text should display with a bright gradient (from first letter to last)
 2. **Black Metal** - Text should use a Black metal style font with an appropriate dark color
 
-## Technical Analysis
+## Timeline of Events
 
-### Current Implementation
-- Difficulty menu is in `scenes/ui/DifficultyMenu.tscn`
-- Button logic is in `scripts/ui/difficulty_menu.gd`
-- Standard Godot Button nodes are used with plain text
+### Initial Implementation (2026-03-11T20:31 - 2026-03-11T20:39)
 
-### Godot 4 Capabilities
+1. AI solution draft was created with the following approach:
+   - Power Fantasy: RichTextLabel with per-character BBCode color tags for gradient effect
+   - Black Metal: Gothic bitmap font applied via `add_theme_font_override()`
 
-#### Gradient Text Options
-1. **RichTextLabel with BBCode** - Supports `[rainbow]` effect but it cycles colors over time
-2. **Per-character coloring** - Can use `[color=#RRGGBB]` tags per character
-3. **Custom RichTextEffect** - Can create shader-based gradient effects
-4. **Label with shader** - Apply a gradient shader to a Label node
+2. Implementation was committed with:
+   - Gradient colors: Cyan → Purple → Magenta → Orange → Yellow
+   - Gothic font loaded from `assets/fonts/gothic_bitmap.fnt`
+   - RichTextLabel positioned with `PRESET_CENTER` anchor
 
-For a static gradient from first letter to last, we need either:
-- Per-character color BBCode tags
-- A gradient shader applied to the button/label
+### User Feedback (2026-03-11T20:55)
 
-#### Black Metal Font
-The project already has `assets/fonts/gothic_bitmap.fnt` which is a gothic-style bitmap font that fits the Black Metal aesthetic.
+User reported: "оба шрифта отображаются не правильно" (both fonts display incorrectly)
 
-## Solution Design
+Screenshot showed:
+- **Black Metal**: Displayed as boxes `▯▯▯▯▯ ▯▯▯▯▯` (missing character glyphs)
+- **Power Fantasy**: Gradient appeared as vertical line of colored dots (layout issue)
 
-### Power Fantasy Button
-Use a custom shader or RichTextLabel to create a bright gradient effect:
-- Colors: Vibrant rainbow/neon gradient (e.g., from cyan to magenta to yellow)
-- Implementation: Create a GradientLabel control that applies per-character colors
+## Root Cause Analysis
 
-### Black Metal Button
-- Use the existing `gothic_bitmap.fnt` font
-- Color: Dark gray with slight red tint (#4A3030) or white on dark for contrast
-- The gothic bitmap font already has the characteristic Black Metal letter styling
+### Issue 1: Black Metal Font Shows Boxes
 
-## Implementation Approach
+**Symptom:** The text "Black Metal" renders as rectangular boxes (▯) instead of gothic letters.
 
-1. Create a custom scene component for styled difficulty buttons
-2. Modify `difficulty_menu.gd` to apply special styling to Power Fantasy and Black Metal buttons
-3. Use RichTextLabel for Power Fantasy with per-character gradient coloring
-4. Apply gothic_bitmap font to Black Metal button
+**Root Cause:** The `gothic_bitmap.fnt` font has a **limited character set**:
+- Uppercase letters A-Z (Unicode 65-90) ✅
+- Numbers 0-9 (Unicode 48-57) ✅
+- Special characters: `:` `&` `?` `!` `-` `+` `x` ` ` ✅
+- **Lowercase letters a-z (Unicode 97-122) ❌ NOT INCLUDED**
 
-## Resources
+The text "Black Metal" contains lowercase letters (`l`, `a`, `c`, `k`, `e`, `t`) which are not present in the font, causing Godot to display fallback boxes.
 
-### Existing Project Assets
-- `assets/fonts/gothic_bitmap.fnt` - Gothic style bitmap font
-- `assets/fonts/gothic_bitmap.png` - Font texture atlas
+**Evidence from `gothic_bitmap.fnt`:**
+```
+chars count=44
+char id=65    # A
+char id=66    # B
+...
+char id=90    # Z
+char id=48    # 0
+...
+char id=57    # 9
+char id=120   # x (lowercase, special case - scaled from X)
+# NO entries for id=97-122 (a-z)
+```
 
-### Godot Documentation
-- BBCode in RichTextLabel: https://docs.godotengine.org/en/stable/tutorials/ui/bbcode_in_richtextlabel.html
-- Font resources: https://docs.godotengine.org/en/stable/classes/class_font.html
+**Solution:** Convert button text to uppercase: `"BLACK METAL"` instead of `"Black Metal"`
 
-## Color Palette
+### Issue 2: Power Fantasy Gradient Shows as Dots
 
-### Power Fantasy Gradient
-- Start: #00FFFF (Cyan)
-- Middle: #FF00FF (Magenta)
-- End: #FFFF00 (Yellow)
+**Symptom:** Gradient colors appear as a vertical line of dots in the center of the screen, not as gradient-colored text.
 
-Alternative vibrant gradient:
-- Start: #FF6B6B (Coral Red)
-- Middle: #FFE66D (Yellow)
-- End: #4ECDC4 (Teal)
+**Root Cause:** The RichTextLabel setup had incorrect positioning:
 
-### Black Metal
-- Primary: #C0C0C0 (Silver/Light Gray) - for visibility
-- Background: Dark, or use with outline
-- The gothic font style already conveys the Black Metal aesthetic
+```gdscript
+# Original problematic code:
+_power_fantasy_label.set_anchors_preset(Control.PRESET_CENTER)  # Only centers anchor point
+_power_fantasy_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+_power_fantasy_label.grow_vertical = Control.GROW_DIRECTION_BOTH
+_power_fantasy_label.fit_content = true  # Fits to text size
+```
+
+With `fit_content = true` and `PRESET_CENTER`, the label collapses to fit its content but doesn't properly expand within the button's area. The `[center]` BBCode tag centers text horizontally within the label's width, but if the label itself has zero or minimal width, each character renders on its own line vertically.
+
+**Solution:** Use a `CenterContainer` to properly center the RichTextLabel within the button:
+
+```gdscript
+var center_container := CenterContainer.new()
+center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+center_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+_power_fantasy_label = RichTextLabel.new()
+_power_fantasy_label.fit_content = true  # Now works correctly within CenterContainer
+_power_fantasy_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+
+center_container.add_child(_power_fantasy_label)
+power_fantasy_button.add_child(center_container)
+```
+
+## Technical Details
+
+### Godot 4 RichTextLabel Limitations
+
+1. **No vertical alignment in BBCode**: The `[center]` tag only aligns horizontally. Vertical centering requires container nodes or anchors.
+
+2. **fit_content behavior**: When enabled, the label sizes to fit its content. Combined with wrong anchor presets, this can cause the label to collapse to minimal size.
+
+3. **Reference**: [Godot Proposals #6674](https://github.com/godotengine/godot-proposals/issues/6674) - Add vertical alignment option to RichTextLabel
+
+### BMFont Character Set Requirements
+
+The BMFont format (`.fnt`) requires explicit character definitions. Characters not defined in the file will render as replacement characters (boxes).
+
+**Reference**: [Godot Documentation - Using Fonts](https://docs.godotengine.org/en/stable/tutorials/ui/gui_using_fonts.html)
+
+## Solution Summary
+
+| Issue | Root Cause | Fix |
+|-------|------------|-----|
+| Black Metal boxes | Gothic font missing lowercase letters | Use uppercase text: `"BLACK METAL"` |
+| Gradient dots | RichTextLabel positioning collapsed | Wrap in CenterContainer with PRESET_FULL_RECT |
+
+## Lessons Learned
+
+1. **Always verify font character coverage** when using custom bitmap fonts. Check the `.fnt` file for which characters are actually defined.
+
+2. **Test UI layouts visually** before declaring implementation complete. Layout issues often only become apparent at runtime.
+
+3. **RichTextLabel centering requires containers** - BBCode `[center]` only handles horizontal alignment within the label's bounds.
+
+4. **Anchor presets matter** - `PRESET_CENTER` positions the anchor point at center but doesn't fill the parent; use `PRESET_FULL_RECT` for filling containers.
+
+## Files Changed
+
+- `scripts/ui/difficulty_menu.gd` - Fixed RichTextLabel positioning and uppercase text
+
+## References
+
+- [Godot BBCode in RichTextLabel](https://docs.godotengine.org/en/stable/tutorials/ui/bbcode_in_richtextlabel.html)
+- [Godot Using Fonts](https://docs.godotengine.org/en/stable/tutorials/ui/gui_using_fonts.html)
+- [BMFont Character Set Issues (GitHub)](https://github.com/godotengine/godot/issues/74200)
+- [Vertical Alignment Proposal](https://github.com/godotengine/godot-proposals/issues/6674)
