@@ -152,6 +152,11 @@ var _max_health: int = 0  ## Max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
 var _shoot_timer: float = 0.0  ## Time since last shot
+## Issue #969: throttle constants/trackers — prevent raycast floods with 20+ active enemies
+const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
+const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
+const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
+var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
 var _is_reloading: bool = false  ## Currently reloading
@@ -447,13 +452,11 @@ func _ready() -> void:
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 
-## Initialize health with random value between min and max.
-## In Black Metal mode (Issue #958), enemy health is reduced by 25%.
+## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
-	# Black Metal mode: apply HP multiplier (0.75 = 25% less HP)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	if difficulty_manager and difficulty_manager.has_method("get_hp_multiplier"):
+	if difficulty_manager and difficulty_manager.has_method("get_hp_multiplier"):  # #958: Black Metal HP mult
 		var hp_mult: float = difficulty_manager.get_hp_multiplier()
 		_max_health = maxi(1, int(_max_health * hp_mult))
 	_current_health = _max_health
@@ -1787,6 +1790,8 @@ func _process_suppressed_state(delta: float) -> void:
 						_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0
 				return  # Stay suppressed while firing burst
 
+		# Issue #969 RCA-11: minimum stay prevents SUPPRESSED→SEEKING_COVER rapid cycle
+		if Time.get_ticks_msec() / 1000.0 - _suppressed_entry_time < SUPPRESSED_MIN_DURATION: return
 		# Burst complete or can't see player, seek new cover
 		_log_debug("Player flanked our cover position while suppressed, seeking new cover")
 		_has_valid_cover = false  # Invalidate current cover
@@ -2402,10 +2407,12 @@ func _shoot_with_inaccuracy() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
-	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
+	# Emit gunshot sound (alerts other enemies); Issue #969: throttled
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
+	var _now := Time.get_ticks_msec() / 1000.0
+	if sound_propagation and sound_propagation.has_method("emit_sound") and _now - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
 		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+		_last_gunshot_propagation_time = _now
 	_play_delayed_shell_sound()
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
@@ -2461,11 +2468,12 @@ func _shoot_burst_shot() -> void:
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
 
-	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
-	# Uses weapon_loudness to determine propagation range
+	# Emit gunshot sound for in-game sound propagation (Issue #969: throttled per-enemy)
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
+	var _now2 := Time.get_ticks_msec() / 1000.0
+	if sound_propagation and sound_propagation.has_method("emit_sound") and _now2 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
 		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+		_last_gunshot_propagation_time = _now2
 
 	_play_delayed_shell_sound()
 
@@ -2596,11 +2604,8 @@ func _is_flank_target_reachable() -> bool:
 ## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
-	# Enter alarm mode when suppressed
-	_in_alarm_mode = true
-
+	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
+	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
 ## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
 	_current_state = AIState.PURSUING
@@ -2695,20 +2700,16 @@ func _transition_to_retreating() -> void:
 	# Find cover position for retreating
 	_find_cover_position()
 
-## Check if PLAYER can see ENEMY (inverse of _can_see_player). Checks center + corners.
+## Check if PLAYER can see ENEMY. Checks center + corners. Issue #969: per-frame cached.
 func _is_visible_from_player() -> bool:
-	if _player == null:
-		return false
-
-	# Check visibility to multiple points on the enemy body
-	# This accounts for the enemy's size - corners can stick out from cover
-	var check_points := _get_enemy_check_points(global_position)
-
-	for point in check_points:
-		if _is_point_visible_from_player(point):
-			return true
-
-	return false
+	if _player == null: return false
+	var current_frame := Engine.get_physics_frames()  # Issue #969: per-frame cache
+	if current_frame == _visible_from_player_cache_frame: return _cached_visible_from_player
+	var is_visible := false
+	for point in _get_enemy_check_points(global_position):
+		if _is_point_visible_from_player(point): is_visible = true; break
+	_cached_visible_from_player = is_visible; _visible_from_player_cache_frame = current_frame
+	return is_visible
 
 ## Get center + 4 corner points on enemy body for visibility testing.
 func _get_enemy_check_points(center: Vector2) -> Array[Vector2]:
@@ -2882,10 +2883,7 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 		return false
 	return true
 
-## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
-## [#954 v3] Uses intersect_point() at muzzle (detects muzzle-inside-wall even when enemy
-## center is inside collider — raycasts silently miss this case in Godot) plus center→muzzle
-## raycast to catch walls between center and muzzle.
+## Check if bullet spawn point is clear. [#954 v3] Uses intersect_point() at muzzle + center→muzzle raycast.
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 	var world_2d := get_world_2d()
 	if world_2d == null: return true
@@ -3217,13 +3215,16 @@ func _find_cover_closest_to_player() -> void:
 		# Fall back to normal cover finding
 		_find_cover_position()
 
-## Find a valid cover position relative to the player.
-## The cover position must be hidden from the player's line of sight.
-## Enhanced: Now validates that the cover position is reachable (no walls blocking path).
+## Find cover position hidden from player (validates reachability). Issue #969: throttled.
 func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
+
+	# Issue #969: throttle 16-raycast cover search
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
+	_last_cover_search_time = current_time
 
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
@@ -3846,7 +3847,10 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
-	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	var _now3 := Time.get_ticks_msec() / 1000.0
+	if sp and sp.has_method("emit_sound") and _now3 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+		_last_gunshot_propagation_time = _now3
 	_play_delayed_shell_sound()
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
