@@ -448,8 +448,8 @@ func add_grenades(count: int) -> void:
 func _log(msg: String) -> void:
 	if debug_logging:
 		print("[EnemyGrenadeComponent] %s" % msg)
-	if _logger and _logger.has_method("log_info"):
-		_logger.log_info("[EnemyGrenade] %s" % msg)
+		if _logger and _logger.has_method("log_info"):
+			_logger.log_info("[EnemyGrenade] %s" % msg)
 
 
 ## FIX for Issue #432: Attach C# GrenadeTimer component via autoload helper.

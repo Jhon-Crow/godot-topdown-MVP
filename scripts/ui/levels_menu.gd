@@ -500,9 +500,6 @@ func _on_card_gui_input(event: InputEvent, level_path: String) -> void:
 
 ## Load the selected level.
 func _on_level_selected(level_path: String) -> void:
-	# Unpause the game before changing scene
-	get_tree().paused = false
-
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 
@@ -511,12 +508,17 @@ func _on_level_selected(level_path: String) -> void:
 	if persist_manager and persist_manager.has_method("save_last_level"):
 		persist_manager.save_last_level(level_path)
 
-	# Change to the selected level
-	var error := get_tree().change_scene_to_file(level_path)
-	if error != OK:
-		get_tree().paused = true
-		# Show cursor again for menu interaction if error
-		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+	# Issue #997: Use SceneLoader for background loading with loading screen
+	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
+	if scene_loader and scene_loader.has_method("load_level"):
+		scene_loader.load_level(level_path)
+	else:
+		# Fallback to direct loading if SceneLoader not available
+		get_tree().paused = false
+		var error := get_tree().change_scene_to_file(level_path)
+		if error != OK:
+			get_tree().paused = true
+			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
 func _on_back_pressed() -> void:
