@@ -1102,7 +1102,7 @@ func _on_armory_button_pressed() -> void:
 		_log_to_file("ERROR: Could not load armory menu scene")
 
 
-## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
+## Get the next level path based on the level ordering from LevelsMenu (Issue #568, Issue #762).
 ## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
 	var current_scene_path: String = ""
