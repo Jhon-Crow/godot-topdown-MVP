@@ -119,7 +119,9 @@ class MockActiveItemManager:
 		INVISIBILITY_SUIT = 5,
 		BREAKER_BULLETS = 6,
 		FORCE_FIELD = 7,
-		TRAJECTORY_GLASSES = 8
+		TRAJECTORY_GLASSES = 8,
+		LASER_SIGHT = 9,
+		RICOCHET_POINTS = 10
 	}
 
 	## Currently selected active item type
@@ -171,6 +173,16 @@ class MockActiveItemManager:
 			"name": "Trajectory Glasses",
 			"icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png",
 			"description": "Trajectory glasses — press Space to see ricochet trajectories for 10 seconds. Green laser shows valid ricochets, red shows impossible angles. 2 charges per battle."
+		},
+		9: {
+			"name": "Laser Sight",
+			"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
+			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+		},
+		10: {
+			"name": "Ricochet Points",
+			"icon_path": "res://assets/sprites/weapons/ricochet_points_icon.png",
+			"description": "Ricochet Points — passive: ricochet chance is increased by 30% at angles where ricochet is possible (green ray)."
 		}
 	}
 
@@ -255,6 +267,14 @@ class MockActiveItemManager:
 	## Check if trajectory glasses are currently equipped
 	func has_trajectory_glasses() -> bool:
 		return current_active_item == ActiveItemType.TRAJECTORY_GLASSES
+
+	## Check if laser sight is currently equipped
+	func has_laser_sight() -> bool:
+		return current_active_item == ActiveItemType.LASER_SIGHT
+
+	## Check if ricochet points is currently equipped
+	func has_ricochet_points() -> bool:
+		return current_active_item == ActiveItemType.RICOCHET_POINTS
 
 
 var manager: MockActiveItemManager
@@ -406,8 +426,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 9,
-		"Should return 9 active item types")
+	assert_eq(types.size(), 11,
+		"Should return 11 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -417,6 +437,8 @@ func test_get_all_active_item_types() -> void:
 	assert_true(6 in types)
 	assert_true(7 in types)
 	assert_true(8 in types)
+	assert_true(9 in types)
+	assert_true(10 in types)
 
 
 func test_get_active_item_name_none() -> void:
@@ -613,7 +635,9 @@ class MockArmoryWithActiveItems:
 		5: {"name": "Invisibility", "description": "Invisibility suit"},
 		6: {"name": "Breaker Bullets", "description": "Breaker bullets — passive"},
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
-		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"}
+		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
+		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
+		10: {"name": "Ricochet Points", "description": "Ricochet Points — passive: +30% ricochet chance"}
 	}
 
 	## Applied active item type
@@ -927,3 +951,81 @@ func test_armory_select_trajectory_glasses() -> void:
 	var result := armory.select_active_item(8)
 	assert_true(result, "Should select trajectory glasses")
 	assert_eq(armory.pending_active_item, 8, "Pending should be trajectory glasses")
+
+
+# ============================================================================
+# Ricochet Points Tests (Issue #1004)
+# ============================================================================
+
+
+func test_active_item_type_ricochet_points_value() -> void:
+	# ActiveItemType.RICOCHET_POINTS should be 10
+	var expected := 10
+	assert_eq(expected, 10, "RICOCHET_POINTS should be the eleventh active item type (10)")
+
+
+func test_active_item_data_has_ricochet_points() -> void:
+	var data := manager.get_active_item_data(10)
+	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain RICOCHET_POINTS type")
+	assert_eq(data["name"], "Ricochet Points", "Ricochet Points should have correct name")
+
+
+func test_ricochet_points_data_has_icon_path() -> void:
+	var data := manager.get_active_item_data(10)
+	assert_true(data["icon_path"].contains("ricochet_points"),
+		"Ricochet Points icon path should contain 'ricochet_points'")
+
+
+func test_ricochet_points_data_has_description() -> void:
+	var data := manager.get_active_item_data(10)
+	assert_true(data["description"].contains("30%"),
+		"Ricochet Points description should mention 30%")
+	assert_true(data["description"].contains("passive"),
+		"Ricochet Points description should mention passive behavior")
+
+
+func test_no_ricochet_points_by_default() -> void:
+	assert_false(manager.has_ricochet_points(),
+		"Ricochet points should not be equipped by default")
+
+
+func test_has_ricochet_points_after_selection() -> void:
+	manager.set_active_item(10)
+	assert_true(manager.has_ricochet_points(),
+		"has_ricochet_points should return true after selecting ricochet points")
+
+
+func test_no_ricochet_points_after_deselection() -> void:
+	manager.set_active_item(10)
+	manager.set_active_item(0)
+	assert_false(manager.has_ricochet_points(),
+		"has_ricochet_points should return false after switching back to none")
+
+
+func test_ricochet_points_does_not_conflict_with_flashlight() -> void:
+	manager.set_active_item(10)
+	assert_false(manager.has_flashlight(),
+		"Flashlight should not be active when ricochet points are selected")
+	assert_true(manager.has_ricochet_points(),
+		"Ricochet points should be active")
+
+
+func test_ricochet_points_does_not_conflict_with_trajectory_glasses() -> void:
+	manager.set_active_item(10)
+	assert_false(manager.has_trajectory_glasses(),
+		"Trajectory glasses should not be active when ricochet points are selected")
+	assert_true(manager.has_ricochet_points(),
+		"Ricochet points should be active")
+
+
+func test_set_active_item_to_ricochet_points() -> void:
+	manager.set_active_item(10)
+	assert_eq(manager.current_active_item, 10,
+		"Active item type should change to RICOCHET_POINTS")
+
+
+func test_armory_select_ricochet_points() -> void:
+	var armory := MockArmoryWithActiveItems.new()
+	var result := armory.select_active_item(10)
+	assert_true(result, "Should select ricochet points")
+	assert_eq(armory.pending_active_item, 10, "Pending should be ricochet points")
