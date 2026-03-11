@@ -632,6 +632,10 @@ func _setup_player_tracking() -> void:
 				# Bug fix round 5: connect ReloadStateChanged to update revolver reload hint step-by-step.
 				if weapon.has_signal("ReloadStateChanged"):
 					weapon.ReloadStateChanged.connect(_on_tutorial_revolver_reload_state_changed)
+				# Bug fix round 6: connect CartridgeInserted for real-time ammo counter during cylinder reload.
+				# AmmoChanged fires only when the full reload completes; CartridgeInserted fires per cartridge.
+				if weapon.has_signal("CartridgeInserted"):
+					weapon.CartridgeInserted.connect(_on_revolver_cartridge_inserted)
 			"MakarovPM":
 				_tutorial_has_makarov_pm = true
 			"AssaultRifle":
@@ -1351,12 +1355,23 @@ func _setup_selected_weapon() -> void:
 	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
 
 	if selected_weapon_id != "makarov_pm":
+		# Bug fix round 6: include ak_gl and revolver so the early-return check applies.
+		# Without these entries the check was always skipped for AKGL/Revolver, causing
+		# _setup_selected_weapon() to add a second, duplicate weapon node even though
+		# the C# Player._Ready() had already added the correct one via
+		# ApplySelectedWeaponFromGameManager(). Godot auto-renamed the duplicate (e.g.
+		# "AKGL2"), so _setup_player_tracking() then connected all signals (AmmoChanged,
+		# Fired, etc.) to the first (unused) AKGL while the player actually fired the
+		# duplicate. This caused tutorial hint shot-counters and ammo labels to never
+		# update, making tutorial lines invisible and the counter broken for both weapons.
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
-			"m16": "AssaultRifle"
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -1883,6 +1898,19 @@ func _on_tutorial_revolver_reload_state_changed(new_state: int) -> void:
 	if is_instance_valid(label):
 		label.text = new_text
 	print("[LabyrinthLevel] Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
+
+
+## Called when the revolver has a cartridge inserted during cylinder reload (Bug fix round 6).
+## Updates the ammo counter in real time as each cartridge is loaded, mirroring tutorial_level.gd.
+## AmmoChanged only fires at reload completion; CartridgeInserted fires per cartridge (Issue #626).
+func _on_revolver_cartridge_inserted(_loaded: int, _capacity: int) -> void:
+	if _player == null:
+		return
+	var revolver = _player.get_node_or_null("Revolver")
+	if revolver == null:
+		return
+	if revolver.get("CurrentAmmo") != null and revolver.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(revolver.CurrentAmmo, revolver.ReserveAmmo)
 
 
 ## Called on tutorial reload completion (Issue #808).

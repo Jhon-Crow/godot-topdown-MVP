@@ -35,6 +35,23 @@ extends GutTest
 ##            tutorial; magazine reload (R→F→R) via on_tutorial_reload_completed advances it.
 ## Fix 4th#4: Lab map grenade tutorial appears — use GetCurrentGrenades() not get("GrenadeCount").
 ## Fix 4th#5: AK GL hint uses GrenadeAvailable (bool) instead of GrenadeLauncherAmmo (missing).
+##
+## Bug fixes (sixth review round, Issue #945):
+## Fix R6-1: AK GL and Revolver tutorial lines now appear on Labyrinth map.
+##   Root cause: _setup_selected_weapon() weapon_names dict was missing "ak_gl" and "revolver"
+##   entries, so the early-return check for "already equipped by C# Player" never triggered.
+##   C# Player._Ready() calls ApplySelectedWeaponFromGameManager() which adds the correct weapon
+##   BEFORE the GDScript level's _ready() runs.  Without the check, _setup_selected_weapon()
+##   added a second, duplicate node (Godot auto-renamed it "AKGL2"/"Revolver2").
+##   _setup_player_tracking() then connected all signals (AmmoChanged, Fired, etc.) to the
+##   first, idle node, while the player actually fired the duplicate.  Result: shot-counter
+##   never incremented, tutorial hints never appeared, ammo counter never updated.
+##   Fix: add "ak_gl": "AKGL" and "revolver": "Revolver" to weapon_names in labyrinth_level.gd.
+## Fix R6-2: Revolver ammo counter now updates live during cylinder reload on Labyrinth map.
+##   Root cause: CartridgeInserted signal was connected in tutorial_level.gd but NOT in
+##   labyrinth_level.gd. AmmoChanged fires only on full reload completion; CartridgeInserted
+##   fires for each cartridge inserted (Issue #626). Without it the counter froze mid-reload.
+##   Fix: connect CartridgeInserted to _on_revolver_cartridge_inserted in labyrinth_level.gd.
 
 
 # ============================================================================

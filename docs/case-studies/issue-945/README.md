@@ -279,8 +279,71 @@ Owner `Jhon-Crow` posted 10 new bugs after the second session. All were fixed in
 
 ---
 
+---
+
+## Sixth Review Round — Root Cause Analysis of AK/Revolver Tutorial Lines Missing on Labyrinth Map
+
+### Symptom
+
+After round 5, @Jhon-Crow reported:
+> "строки обучения для револьвера и АК не появляются на карте Лабиринт, так же у них сломался счётчик."
+> (Tutorial lines for Revolver and AK do not appear on the Labyrinth map; their counters are also broken.)
+
+### Timeline Reconstruction
+
+1. **Round 4 fix (commit `280d48aa`)**: Added AKGL and Revolver weapon-setup code to `labyrinth_level.gd`'s `_setup_selected_weapon()` function. The function already had an early-return guard for M16, Shotgun, etc. to avoid double-equipping when the C# Player had already set up the weapon; however the guard's `weapon_names` dictionary did **not** include `"ak_gl"` or `"revolver"`.
+
+2. **Round 5 fix (commit `11a624df`)**: Fixed AKGL's SWITCH_FIRE_MODE stuck-step in `tutorial_level.gd`, and added `ReloadStateChanged` connection for Revolver. **Did not fix the duplicate-weapon issue** — owner still reported missing tutorial lines.
+
+### Root Cause
+
+#### Godot C#/GDScript _ready() execution order
+
+In Godot 4 the C# `Player` node is a child of the `LabyrinthLevel` scene. Children's `_ready()` runs **before** the parent's `_ready()`. Therefore:
+
+1. **`Player.cs _Ready()`** executes first:
+   - Calls `ApplySelectedWeaponFromGameManager()`.
+   - That method correctly swaps the default MakarovPM for AKGL/Revolver using `RemoveChild()` + `AddChild()`.
+   - Sets `CurrentWeapon` to the newly created node (e.g. the `AKGL` instance).
+
+2. **`labyrinth_level.gd _ready()`** executes second:
+   - Calls `_setup_player_tracking()` → `_setup_selected_weapon()`.
+   - Because `"ak_gl"` was **not** in `weapon_names`, the "already equipped by C# Player" early-return check was **skipped**.
+   - The function instantiated a **second** AKGL, added it to the player with `_player.add_child(akgl)`.
+   - Godot auto-renamed the duplicate to `"AKGL@2"` (or similar) to avoid name collisions.
+   - `_player.EquipWeapon(akgl)` then updated `CurrentWeapon` to point to this duplicate.
+
+3. **Back in `_setup_player_tracking()`**, `get_node_or_null("AKGL")` returned the **first** AKGL (the one created by C# Player, with the canonical name `"AKGL"`).
+   - All tutorial signals (`Fired`, `AmmoChanged`, etc.) were connected to this **idle first node**.
+   - The player actually fired using the **duplicate second node** (`CurrentWeapon`).
+   - Since the duplicate emitted no connected signals, the shot counter never incremented, tutorial hints never appeared, and the ammo counter never updated.
+
+#### Why only AKGL and Revolver were affected
+
+All other weapons (Shotgun, MiniUzi, SilencedPistol, SniperRifle, AssaultRifle) were listed in `weapon_names`, so the early-return check worked for them. AKGL and Revolver were added to `_setup_selected_weapon()` in round 4 but were **accidentally omitted** from the `weapon_names` guard dictionary.
+
+### Fix Applied (Round 6)
+
+**File: `scripts/levels/labyrinth_level.gd`**
+
+1. **Added `"ak_gl": "AKGL"` and `"revolver": "Revolver"` to `weapon_names`** in `_setup_selected_weapon()`.
+   Now the early-return check fires for all seven weapon types, preventing duplicate nodes.
+
+2. **Added `CartridgeInserted` signal connection** for Revolver (in the `"Revolver"` branch of the `match weapon.name:` block in `_setup_player_tracking()`).
+   `tutorial_level.gd` already had this; `labyrinth_level.gd` was missing it. Without it the ammo counter froze mid-reload (cartridges loaded one-by-one) because `AmmoChanged` fires only at full-reload completion, not per cartridge.
+
+3. **Added `_on_revolver_cartridge_inserted()` handler** to `labyrinth_level.gd`, mirroring the handler in `tutorial_level.gd`.
+
+**File: `tests/unit/test_labyrinth_level.gd`**
+
+- Updated header to document round 6 fixes and root cause.
+
+---
+
 ## Possible Future Improvements
 
 - Refactor tutorial hint logic into a shared autoload or base class to avoid duplicating the same system in each level script.
 - Add integration tests that run in a real Godot scene to verify visual positioning (currently unit tests use mock objects and cannot test `label.position`).
 - Consider making hint colors configurable via a resource/theme rather than hardcoded constants.
+- Add a shared helper for `_setup_selected_weapon()` so all level scripts stay in sync when new weapons are added.
+- Add a unit test that verifies the `weapon_names` dictionary includes all selectable weapons (prevents silent regressions like this round 6 bug).
