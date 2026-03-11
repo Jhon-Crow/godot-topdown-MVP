@@ -1598,18 +1598,44 @@ func _dismiss_hint(hint_key: String) -> void:
 		_animate_hint_strikethrough_and_fade(hint_key, label)
 
 
-## Issue #944: Apply strikethrough to the entire hint text, then fade out.
+## Issue #944: Apply animated strikethrough to the entire hint text, then fade out.
+## The strikethrough line animates from left to right before the text fades out.
 ## Used for single-action hints (fire mode, scope, hammer cock, etc.).
 func _animate_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel) -> void:
-	# Get the current text and wrap in strikethrough BBCode
-	var current_text: String = label.text
-	# Remove any existing BBCode colors and wrap entire text in strikethrough
-	var strikethrough_text := "[s]" + current_text + "[/s]"
-	label.text = strikethrough_text
+	# Create a Line2D for the animated strikethrough effect
+	var strike_line := Line2D.new()
+	strike_line.name = "StrikeLine_" + hint_key
+	strike_line.width = 2.0
+	strike_line.default_color = Color(0.8, 0.8, 0.8, 1.0)  # Light grey line
+	strike_line.z_index = 1  # Draw on top of the text
 
-	# Wait for strikethrough to be visible, then fade out
+	# Position the line at the vertical center of the label
+	# The label's content height is approximately the font size
+	var label_height := 20.0  # normal_font_size from _add_hint
+	var line_y := label_height * 0.5
+
+	# Start with a point at the left edge, end point will be animated
+	strike_line.add_point(Vector2(0, line_y))
+	strike_line.add_point(Vector2(0, line_y))  # Start with 0 width
+
+	label.add_child(strike_line)
+
+	# Get the approximate width of the text content
+	# RichTextLabel content width is approximately custom_minimum_size.x
+	var text_width: float = label.custom_minimum_size.x
+	if text_width <= 0:
+		text_width = 300.0  # Default width
+
+	# Animate the line from left to right
 	var tween := create_tween()
-	tween.tween_interval(HINT_STRIKETHROUGH_DURATION)
+	tween.tween_method(
+		func(progress: float):
+			if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
+				strike_line.set_point_position(1, Vector2(text_width * progress, line_y)),
+		0.0, 1.0, HINT_STRIKETHROUGH_DURATION
+	).set_ease(Tween.EASE_OUT)
+
+	# After strikethrough animation completes, fade out the whole label
 	tween.tween_property(label, "modulate:a", 0.0, HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
 	tween.tween_callback(_finalize_hint_dismiss.bind(hint_key, label))
 

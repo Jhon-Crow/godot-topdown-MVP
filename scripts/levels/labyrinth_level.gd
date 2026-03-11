@@ -155,6 +155,17 @@ const TUTORIAL_HINT_SCOPE := "scope"  ## Sniper scope RMB hint (Issue #998)
 ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
 const TUTORIAL_HINT_SPACING: float = 60.0
 
+## Issue #944: Animation timing constants for hint fade-in, strikethrough, and fade-out.
+const TUTORIAL_HINT_FADE_IN_DURATION := 0.3
+const TUTORIAL_HINT_STRIKETHROUGH_DURATION := 0.4
+const TUTORIAL_HINT_FADE_OUT_DURATION := 0.3
+
+## Issue #944: Tracks hints currently being animated (prevents double-dismiss).
+var _tutorial_animating_hints: Dictionary = {}
+
+## Issue #944: Tracks multi-step hints that already showed per-step strikethrough.
+var _tutorial_hint_is_multistep_completed: Dictionary = {}
+
 ## Number of shots fired (Issue #945: reload hint appears after 2 shots).
 var _tutorial_shots_fired: int = 0
 
@@ -1835,9 +1846,11 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
 			1:
-				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][s][R][/s][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
-				return "[color=#888888][R] [R][/color] Перезарядись"
+				# Issue #944: Mark as multi-step completed when all steps done
+				_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_RELOAD] = true
+				return "[color=#888888][s][R] [R][/s][/color] Перезарядись"
 	else:
 		# Standard 3-step reload: R -> F -> R
 		# step=0 → next is R; step=1 → next is F; step=2 → next is R (final); step=3 → done
@@ -1845,11 +1858,13 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
 			1:
-				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#888888][s][R][/s][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
 			2:
-				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][s][R] [F][/s][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
-				return "[color=#888888][R] [F] [R][/color] Перезарядись"
+				# Issue #944: Mark as multi-step completed when all steps done
+				_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_RELOAD] = true
+				return "[color=#888888][s][R] [F] [R][/s][/color] Перезарядись"
 
 
 ## Get the unique color for a tutorial hint by its key (Issue #945).
@@ -2070,14 +2085,19 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 
 
 ## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
+## Issue #944: Adds strikethrough for completed steps.
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
 		1:
-			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
+			return "[color=#888888][s][G+ПКМ вправо][/s][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
+		2:
+			return "[color=#888888][s][G+ПКМ вправо] [G+ПКМ→отпусти G][/s][/color] [color=#ff4444][ПКМ бросок][/color]"
 		_:
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
+			# Issue #944: Mark as multi-step completed when all steps done
+			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_GRENADE] = true
+			return "[color=#888888][s][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/s][/color]"
 
 
 ## Update the grenade hint step based on current input (Bug fix round 5).
@@ -2156,16 +2176,25 @@ func _tutorial_ak_gl_has_round_loaded() -> bool:
 
 ## Build BBCode for sniper bolt-cycle hint showing 4-step sequence (Bug fix #4).
 ## Bug fix #3: highlights the NEXT step in red based on last completed step.
+## Issue #944: Adds strikethrough for completed steps.
 func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
 	const STEPS := ["←", "↓", "↑", "→"]
 	var parts: PackedStringArray = []
 	for i in range(STEPS.size()):
 		if i < step:
-			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+			# Issue #944: Completed step - grey with strikethrough
+			parts.append("[color=#888888][s][%s][/s][/color]" % STEPS[i])
 		elif i == step:
+			# Current step - red highlight
 			parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
 		else:
+			# Future step - grey
 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+
+	# Issue #944: Mark as multi-step completed when all 4 steps done
+	if step >= STEPS.size():
+		_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_BOLT_CYCLE] = true
+
 	return " ".join(parts) + " Передёрни затвор"
 
 
@@ -2178,31 +2207,37 @@ func _build_tutorial_shotgun_reload_hint_bbcode() -> String:
 ## Build BBCode for shotgun full-reload hint with step-based highlighting (Bug fix round 4).
 ## Mirrors _build_shotgun_full_reload_hint_bbcode() from tutorial_level.gd.
 ## state=0/1: highlight open-bolt; state=2: highlight load-shells; state=3: highlight close-bolt.
+## Issue #944: Adds strikethrough for completed steps.
 func _build_tutorial_shotgun_full_reload_hint_bbcode(state: int) -> String:
 	var shells_needed: int = _get_tutorial_shotgun_shells_to_load()
 	match state:
 		0, 1:  # Not reloading or waiting to open
 			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
 		2:  # Loading shells
-			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][s][ПКМ↑ открыть][/s][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
 		3:  # Waiting to close
-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
+			return "[color=#888888][s][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/s][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
 		_:
-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+			# Issue #944: Mark as multi-step completed when all steps done
+			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_BOLT_CYCLE] = true
+			return "[color=#888888][s][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/s][/color]" % shells_needed
 
 
 ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
 ## Mirrors _build_revolver_reload_hint_bbcode() from tutorial_level.gd.
+## Issue #944: Adds strikethrough for completed steps.
 func _build_tutorial_revolver_reload_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 		1:
-			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
+			return "[color=#888888][s][R открыть][/s][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
 		2:
-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
+			return "[color=#888888][s][R открыть] [ПКМ↑ патрон] [скролл][/s][/color] [color=#ff4444][R закрыть][/color]"
 		_:
-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+			# Issue #944: Mark as multi-step completed when all steps done
+			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_RELOAD] = true
+			return "[color=#888888][s][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/s][/color]"
 
 
 ## Called when the shotgun's action state changes (pump-action between shots).
@@ -2229,14 +2264,17 @@ func _on_tutorial_shotgun_action_state_changed(new_state: int) -> void:
 
 ## Build BBCode for the shotgun between-shots pump hint (Bug fix round 4).
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
+## Issue #944: Adds strikethrough for completed steps.
 func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
 	match state:
 		1:  # NeedsPumpUp
 			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
 		2:  # NeedsPumpDown
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][s][ПКМ↑][/s][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
 		_:
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
+			# Issue #944: Mark as multi-step completed when all steps done
+			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_BOLT_CYCLE] = true
+			return "[color=#888888][s][ПКМ↑] [ПКМ↓][/s][/color] Передёрни затвор"
 
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
@@ -2288,10 +2326,12 @@ func _dismiss_all_tutorial_hints() -> void:
 
 ## Create and register a tutorial hint RichTextLabel with BBCode support.
 ## Issue #945: Uses RichTextLabel for BBCode color support (per-hint unique colors + red key highlights).
+## Issue #944: Adds fade-in animation when new hints appear.
 func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	if _tutorial_hints.has(hint_key):
-		# Already exists - just update text
-		_tutorial_hints[hint_key].text = text
+		# Already exists - just update text (don't animate)
+		if not _tutorial_animating_hints.has(hint_key):
+			_tutorial_hints[hint_key].text = text
 		return
 
 	var label := RichTextLabel.new()
@@ -2309,6 +2349,9 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	label.fit_content = true
 	label.scroll_active = false
 
+	# Issue #944: Start transparent for fade-in animation
+	label.modulate.a = 0.0
+
 	canvas_layer.add_child(label)
 	_tutorial_hints[hint_key] = label
 
@@ -2319,22 +2362,105 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	label.custom_minimum_size = Vector2(300, 30)
 	label.position = screen_pos + Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)
 
+	# Issue #944: Animate fade-in
+	var tween := create_tween()
+	tween.tween_property(label, "modulate:a", 1.0, TUTORIAL_HINT_FADE_IN_DURATION).set_ease(Tween.EASE_OUT)
+
 	print("[LabyrinthLevel] Tutorial hint added '%s': %s" % [hint_key, text])
 
 
 ## Remove a tutorial hint label by key.
+## Issue #944: Adds strikethrough animation before fade-out for completed actions.
+## For multi-step actions that already showed per-step strikethrough, skips the strikethrough
+## and just fades out.
 func _dismiss_tutorial_hint(hint_key: String) -> void:
 	if not _tutorial_hints.has(hint_key):
 		return
 
+	# Issue #944: Prevent double-dismiss while animating
+	if _tutorial_animating_hints.has(hint_key):
+		return
+
 	var label: RichTextLabel = _tutorial_hints[hint_key]
-	if is_instance_valid(label):
-		# Hide immediately so it does not overlap new hints during the same frame
-		# before queue_free() is processed.
-		label.visible = false
-		label.queue_free()
+	if not is_instance_valid(label):
+		_tutorial_hints.erase(hint_key)
+		return
+
+	# Mark as animating to prevent updates during animation
+	_tutorial_animating_hints[hint_key] = true
+
+	# Issue #944: Check if this is a multi-step hint that already showed per-step strikethrough.
+	# If so, skip the full strikethrough and just fade out.
+	var skip_strikethrough := _tutorial_hint_is_multistep_completed.get(hint_key, false)
+	_tutorial_hint_is_multistep_completed.erase(hint_key)
+
+	if skip_strikethrough:
+		# Multi-step action completed - just fade out without additional strikethrough
+		print("[LabyrinthLevel] Dismissing hint '%s' (multi-step, fade only)" % hint_key)
+		_animate_tutorial_hint_fade_out(hint_key, label)
+	else:
+		# Single action completed - show strikethrough, then fade out
+		print("[LabyrinthLevel] Dismissing hint '%s' (with strikethrough animation)" % hint_key)
+		_animate_tutorial_hint_strikethrough_and_fade(hint_key, label)
+
+
+## Issue #944: Apply animated strikethrough to the entire hint text, then fade out.
+## The strikethrough line animates from left to right before the text fades out.
+## Used for single-action hints (fire mode, scope, hammer cock, etc.).
+func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel) -> void:
+	# Create a Line2D for the animated strikethrough effect
+	var strike_line := Line2D.new()
+	strike_line.name = "StrikeLine_" + hint_key
+	strike_line.width = 2.0
+	strike_line.default_color = Color(0.8, 0.8, 0.8, 1.0)  # Light grey line
+	strike_line.z_index = 1  # Draw on top of the text
+
+	# Position the line at the vertical center of the label
+	# The label's content height is approximately the font size
+	var label_height := 20.0  # normal_font_size from _add_tutorial_hint
+	var line_y := label_height * 0.5
+
+	# Start with a point at the left edge, end point will be animated
+	strike_line.add_point(Vector2(0, line_y))
+	strike_line.add_point(Vector2(0, line_y))  # Start with 0 width
+
+	label.add_child(strike_line)
+
+	# Get the approximate width of the text content
+	# RichTextLabel content width is approximately custom_minimum_size.x
+	var text_width: float = label.custom_minimum_size.x
+	if text_width <= 0:
+		text_width = 300.0  # Default width
+
+	# Animate the line from left to right
+	var tween := create_tween()
+	tween.tween_method(
+		func(progress: float):
+			if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
+				strike_line.set_point_position(1, Vector2(text_width * progress, line_y)),
+		0.0, 1.0, TUTORIAL_HINT_STRIKETHROUGH_DURATION
+	).set_ease(Tween.EASE_OUT)
+
+	# After strikethrough animation completes, fade out the whole label
+	tween.tween_property(label, "modulate:a", 0.0, TUTORIAL_HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_finalize_tutorial_hint_dismiss.bind(hint_key, label))
+
+
+## Issue #944: Fade out the hint without adding strikethrough.
+## Used for multi-step hints that already showed per-step strikethrough.
+func _animate_tutorial_hint_fade_out(hint_key: String, label: RichTextLabel) -> void:
+	var tween := create_tween()
+	tween.tween_property(label, "modulate:a", 0.0, TUTORIAL_HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_finalize_tutorial_hint_dismiss.bind(hint_key, label))
+
+
+## Issue #944: Finalize hint dismissal after animation completes.
+func _finalize_tutorial_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
+	_tutorial_animating_hints.erase(hint_key)
 	_tutorial_hints.erase(hint_key)
-	print("[LabyrinthLevel] Tutorial hint dismissed: %s" % hint_key)
+	if is_instance_valid(label):
+		label.queue_free()
+	print("[LabyrinthLevel] Hint '%s' dismissed (animation complete)" % hint_key)
 
 
 ## Update tutorial hint positions to float above the player.
