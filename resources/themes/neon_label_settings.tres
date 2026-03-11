@@ -1,6 +1,6 @@
 [gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://c3qneonlabel01"]
 
-[ext_resource type="FontFile" uid="uid://c3qneonfont01" path="res://assets/fonts/neon/Beon-Regular.ttf" id="1_font"]
+[ext_resource type="FontFile" uid="uid://c3qneonfont01" path="res://assets/fonts/neon/Comfortaa-Bold.ttf" id="1_font"]
 
 [resource]
 font = ExtResource("1_font")
