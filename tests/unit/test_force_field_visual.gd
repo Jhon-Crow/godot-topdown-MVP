@@ -95,7 +95,7 @@ class MockForceFieldEffect:
 
 	## Simulate the _create_ring_texture() pixel calculation for a single pixel.
 	## Returns the alpha value that would be set at normalized distance r (0.0 to 1.0).
-	## This is a direct port of the GDScript logic for unit testing.
+	## This is a direct port of the GDScript logic for unit testing (Issue #930).
 	func compute_pixel_alpha(r_normalized: float) -> float:
 		# r_normalized: 0.0 = center, 1.0 = outer edge
 		var rim_start_norm := 0.84  # rim starts at 84% radius
@@ -107,11 +107,9 @@ class MockForceFieldEffect:
 			var t := (r_normalized - rim_start_norm) / (1.0 - rim_start_norm)
 			return sin(t * PI) * 0.9
 		else:
-			# Interior fill: soft translucent bubble interior
-			var fill_alpha := pow(r_normalized, 1.5) * 0.18
-			var inner_t := abs(r_normalized - 0.60) / 0.30
-			var inner_ring_alpha := pow(1.0 - clamp(inner_t, 0.0, 1.0), 3.0) * 0.10
-			return clamp(fill_alpha + inner_ring_alpha, 0.0, 0.22)
+			# Interior fill: soft translucent bubble interior (Issue #930)
+			# Alpha ramps up from 0 at center to ~0.15 near the rim, like frosted glass.
+			return pow(r_normalized, 1.5) * 0.15
 
 
 var effect: MockForceFieldEffect
@@ -337,20 +335,18 @@ func test_interior_fill_stays_low_opacity() -> void:
 	# Interior should be semi-transparent (low alpha), not opaque
 	var alpha_center := effect.compute_pixel_alpha(0.0)
 	var alpha_mid := effect.compute_pixel_alpha(0.5)
-	assert_lt(alpha_center, 0.22,
-		"Center alpha should be below 0.22 (translucent, not opaque)")
-	assert_lt(alpha_mid, 0.22,
-		"Mid-radius alpha should be below 0.22 (translucent, not opaque)")
+	assert_lt(alpha_center, 0.15,
+		"Center alpha should be below 0.15 (translucent, not opaque)")
+	assert_lt(alpha_mid, 0.15,
+		"Mid-radius alpha should be below 0.15 (translucent, not opaque)")
 
 
-func test_inner_secondary_ring_at_60_percent() -> void:
-	# There should be a secondary ring near 60% radius for extra depth
-	var alpha_60 := effect.compute_pixel_alpha(0.60)
+func test_interior_fill_increases_toward_rim() -> void:
+	# Interior fill ramps up toward the rim (pow(r, 1.5) * 0.15) — frosted glass bubble effect
 	var alpha_30 := effect.compute_pixel_alpha(0.30)
-	# The 60% radius point should have higher alpha than points farther from it
-	# (due to the secondary inner ring feature)
+	var alpha_60 := effect.compute_pixel_alpha(0.60)
 	assert_gt(alpha_60, alpha_30,
-		"60% radius should have higher alpha than 30% radius due to inner ring")
+		"60% radius should have higher alpha than 30% (fill ramps toward rim)")
 
 
 func test_rim_start_at_84_percent() -> void:

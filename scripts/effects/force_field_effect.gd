@@ -129,7 +129,7 @@ func _setup_area2d() -> void:
 ## games without relying on runtime shader compilation.
 ## The shader is applied as an optional enhancement for animated pulse/shimmer effects.
 ## The base texture already shows a true bubble (semi-transparent interior + glowing rim)
-## matching the force bubble look required by Issue #906 and #930.
+## matching the force bubble look required by Issue #930.
 func _setup_shield_visual() -> void:
 	_shield_sprite = Sprite2D.new()
 	_shield_sprite.name = "ShieldVisual"
@@ -158,6 +158,14 @@ func _setup_shield_visual() -> void:
 		FileLogger.info("[ForceFieldEffect] WARNING: Shader not found: %s — ring texture only" % SHADER_PATH)
 
 
+## Create a plain white 256x256 texture.
+## The shader controls all colors/alpha — the texture just provides UV coordinates.
+func _create_white_texture() -> ImageTexture:
+	var image := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	image.fill(Color(1.0, 1.0, 1.0, 1.0))
+	return ImageTexture.create_from_image(image)
+
+
 ## Create a bubble texture — translucent interior + bright glowing rim (Issue #930).
 ## Used as the primary visual so the force field looks like a force bubble
 ## (not just a ring outline) even without shader support in exported games.
@@ -165,7 +173,6 @@ func _setup_shield_visual() -> void:
 ## The texture has:
 ## - Transparent exterior (outside the circle)
 ## - Semi-transparent interior fill (alpha ~0.15) for frosted-glass bubble look
-## - A subtle inner secondary ring at ~60% radius
 ## - Bright blue rim at ~84–100% radius (bell curve alpha, peak ~0.9)
 func _create_ring_texture() -> ImageTexture:
 	var size := 256
@@ -189,24 +196,15 @@ func _create_ring_texture() -> ImageTexture:
 				image.set_pixel(x, y, Color(fill_color.r, fill_color.g, fill_color.b, alpha))
 			else:
 				# Interior fill: soft translucent bubble interior (Issue #930)
-				# Alpha is low (frosted glass) — just enough to see the field exists.
+				# Alpha ramps up from 0 at center to ~0.15 near the rim, like frosted glass.
 				var r := dist / outer_r  # normalized 0→1
-				# Primary soft fill: increases toward rim, creating "thicker glass near edge"
-				var fill_alpha := (pow(r, 1.5)) * 0.18
-				# Secondary inner ring at ~60% radius for extra depth
-				var inner_t := abs(r - 0.60) / 0.30
-				var inner_ring_alpha := (1.0 - clamp(inner_t, 0.0, 1.0))
-				inner_ring_alpha = pow(inner_ring_alpha, 3.0) * 0.10
-				var alpha := clamp(fill_alpha + inner_ring_alpha, 0.0, 0.22)
+				var alpha := pow(r, 1.5) * 0.15
 				image.set_pixel(x, y, Color(fill_color.r, fill_color.g, fill_color.b, alpha))
 
 	return ImageTexture.create_from_image(image)
 
 
 ## Activate the force field.
-## Includes lazy initialization guard for C#/GDScript interop robustness (Issue #930):
-## In exported Godot 4 builds, _ready() may be skipped when AddChild() is called from C#.
-## See: https://godotforums.org/d/24315 and Godot GitHub #75352
 func activate() -> bool:
 	if is_active:
 		return false  # Already active
@@ -214,15 +212,6 @@ func activate() -> bool:
 	if remaining_charge <= 0.0:
 		FileLogger.info("[ForceFieldEffect] No charge remaining")
 		return false
-
-	# Lazy init: if _ready() was not called (C#/GDScript interop failure in exported builds),
-	# set up the Area2D and visual now so the force field is functional.
-	if _area2d == null:
-		FileLogger.info("[ForceFieldEffect] WARNING: _ready() was not called — lazy initializing Area2D (C#/GDScript interop issue)")
-		_setup_area2d()
-	if _shield_sprite == null:
-		FileLogger.info("[ForceFieldEffect] WARNING: _ready() was not called — lazy initializing visual (C#/GDScript interop issue)")
-		_setup_shield_visual()
 
 	is_active = true
 	_set_field_active(true)
@@ -378,82 +367,48 @@ func _on_body_entered(body: Node2D) -> void:
 
 
 # ===========================================================================
-# C#/GDScript-compatible property helpers (Issue #930, #932)
+# C#/GDScript-compatible property helpers (Issue #932)
 #
 # Problem: GDScript .get("direction") works for:
 #   - GDScript variables ("direction" snake_case var in bullet.gd)
 #   - Properties explicitly written with Set("direction", ...) from C#
 # But NOT for C# [Export] properties set via direct C# property assignment
-#   (e.g. csBullet.Direction = v in BaseWeapon.cs). The .get() method
-#   returns null even for [Export] properties in Godot 4 C#.
+#   (e.g. csBullet.Direction = v in BaseWeapon.cs), which are stored under
+#   the PascalCase name and require .get("Direction").
 #
-# Solution (Issue #930): Try property access first, then fall back to calling
-# explicit getter methods (get_direction, get_speed, get_shooter_id) added
-# to Bullet.cs and ShotgunPellet.cs. These methods reliably work from GDScript.
+# Solution: try snake_case first (GDScript), fall back to PascalCase (C#).
+# This is the same pattern used in enemy.gd _spawn_projectile().
 # ===========================================================================
 
 ## Read the direction property from a projectile.
-## Priority order:
-##   1. GDScript property "direction" (snake_case var in bullet.gd)
-##   2. Explicit getter method "get_direction" (C# Bullet/ShotgunPellet)
-##   3. Explicit getter method "GetDirection" (C# PascalCase alias)
-##   4. Direct property "Direction" (fallback for edge cases)
+## Tries "direction" (GDScript bullets / pellets set via Set()) first,
+## then "Direction" (C# Bullet/ShotgunPellet set via direct C# property assignment).
 func _get_direction(projectile: Node2D):
-	# 1. Try GDScript property (snake_case)
 	var d = projectile.get("direction")
 	if d != null:
 		return d
-	# 2. Try C# getter method (snake_case, added in Issue #930)
-	if projectile.has_method("get_direction"):
-		return projectile.call("get_direction")
-	# 3. Try C# getter method (PascalCase alias)
-	if projectile.has_method("GetDirection"):
-		return projectile.call("GetDirection")
-	# 4. Fallback to PascalCase property (unlikely to work but try anyway)
 	return projectile.get("Direction")
 
 
-## Read the speed property from a projectile.
-## Priority order:
-##   1. GDScript property "speed" (snake_case @export in bullet.gd)
-##   2. Explicit getter method "get_speed" (C# Bullet/ShotgunPellet)
-##   3. Explicit getter method "GetSpeed" (C# PascalCase alias)
-##   4. Direct property "Speed" (fallback for edge cases)
+## Read the speed property from a projectile (snake_case → PascalCase fallback).
 func _get_speed(projectile: Node2D):
-	# 1. Try GDScript property (snake_case)
 	var s = projectile.get("speed")
 	if s != null:
 		return s
-	# 2. Try C# getter method (snake_case, added in Issue #930)
-	if projectile.has_method("get_speed"):
-		return projectile.call("get_speed")
-	# 3. Try C# getter method (PascalCase alias)
-	if projectile.has_method("GetSpeed"):
-		return projectile.call("GetSpeed")
-	# 4. Fallback to PascalCase property (unlikely to work but try anyway)
 	return projectile.get("Speed")
 
 
-## Read the shooter ID from a projectile.
+## Read the shooter ID from a projectile (snake_case → PascalCase → source_id fallback).
 ## GDScript bullets: "shooter_id" (snake_case int var, default -1)
-## C# Bullet/ShotgunPellet: get_shooter_id() or GetShooterId() method
+## C# Bullet/ShotgunPellet: "ShooterId" (PascalCase ulong [Export], default 0)
 ## Shrapnel: "source_id" (snake_case int var)
 func _get_shooter_id(projectile: Node2D):
-	# 1. Try GDScript property (snake_case)
 	var id = projectile.get("shooter_id")
 	if id != null:
 		return id
-	# 2. Try C# getter method (snake_case, added in Issue #930)
-	if projectile.has_method("get_shooter_id"):
-		return projectile.call("get_shooter_id")
-	# 3. Try C# getter method (PascalCase alias)
-	if projectile.has_method("GetShooterId"):
-		return projectile.call("GetShooterId")
-	# 4. Fallback to PascalCase property
 	id = projectile.get("ShooterId")
 	if id != null:
 		return id
-	# 5. Try shrapnel's source_id
 	return projectile.get("source_id")
 
 
