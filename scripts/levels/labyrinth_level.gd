@@ -163,8 +163,13 @@ const TUTORIAL_HINT_FADE_OUT_DURATION := 0.3
 ## Issue #944: Tracks hints currently being animated (prevents double-dismiss).
 var _tutorial_animating_hints: Dictionary = {}
 
-## Issue #944: Tracks multi-step hints that already showed per-step strikethrough.
-var _tutorial_hint_is_multistep_completed: Dictionary = {}
+## Issue #944: Track Line2D strikethrough nodes for each hint (hint_key -> Line2D).
+## Each hint has a persistent Line2D that animates progressively as steps complete.
+var _tutorial_hint_strike_lines: Dictionary = {}
+
+## Issue #944: Track current strikethrough progress for each hint (hint_key -> float 0.0-1.0).
+## Progress increases as each step completes; used to animate Line2D extension.
+var _tutorial_hint_strike_progress: Dictionary = {}
 
 ## Number of shots fired (Issue #945: reload hint appears after 2 shots).
 var _tutorial_shots_fired: int = 0
@@ -1834,6 +1839,7 @@ func _on_tutorial_reload_sequence_progress(step: int, total: int) -> void:
 ## Bug fix #2: `step` is the LAST COMPLETED step (0 = nothing done yet, 1 = first press done, etc.).
 ##   So we highlight step+1 as the next action to perform.
 ## Bug fix #5: Revolver and shotgun use separate hint builders.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 	# Guard: shotgun uses static/ActionState-based hints
 	if _tutorial_has_shotgun:
@@ -1846,11 +1852,13 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
 			1:
-				return "[color=#888888][s][R][/s][/color] [color=#ff4444][R][/color] Перезарядись"
+				# Step 1 completed: extend strikethrough to 25%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.25)
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
-				# Issue #944: Mark as multi-step completed when all steps done
-				_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_RELOAD] = true
-				return "[color=#888888][s][R] [R][/s][/color] Перезарядись"
+				# All steps done: extend strikethrough to cover both [R] keys (~50%)
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
+				return "[color=#888888][R] [R][/color] Перезарядись"
 	else:
 		# Standard 3-step reload: R -> F -> R
 		# step=0 → next is R; step=1 → next is F; step=2 → next is R (final); step=3 → done
@@ -1858,13 +1866,17 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 			0:
 				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
 			1:
-				return "[color=#888888][s][R][/s][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+				# Step 1 completed: extend strikethrough to ~17%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.17)
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
 			2:
-				return "[color=#888888][s][R] [F][/s][/color] [color=#ff4444][R][/color] Перезарядись"
+				# Step 2 completed: extend strikethrough to ~33%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.33)
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
 			_:
-				# Issue #944: Mark as multi-step completed when all steps done
-				_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_RELOAD] = true
-				return "[color=#888888][s][R] [F] [R][/s][/color] Перезарядись"
+				# All steps done: extend strikethrough to ~50%
+				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
+				return "[color=#888888][R] [F] [R][/color] Перезарядись"
 
 
 ## Get the unique color for a tutorial hint by its key (Issue #945).
@@ -2085,19 +2097,23 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 
 
 ## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
-## Issue #944: Adds strikethrough for completed steps.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
 		1:
-			return "[color=#888888][s][G+ПКМ вправо][/s][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
+			# First step completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
+			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
 		2:
-			return "[color=#888888][s][G+ПКМ вправо] [G+ПКМ→отпусти G][/s][/color] [color=#ff4444][ПКМ бросок][/color]"
+			# First two steps completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
+			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
 		_:
-			# Issue #944: Mark as multi-step completed when all steps done
-			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_GRENADE] = true
-			return "[color=#888888][s][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/s][/color]"
+			# All steps done
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
+			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/color]"
 
 
 ## Update the grenade hint step based on current input (Bug fix round 5).
@@ -2176,14 +2192,14 @@ func _tutorial_ak_gl_has_round_loaded() -> bool:
 
 ## Build BBCode for sniper bolt-cycle hint showing 4-step sequence (Bug fix #4).
 ## Bug fix #3: highlights the NEXT step in red based on last completed step.
-## Issue #944: Adds strikethrough for completed steps.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
 	const STEPS := ["←", "↓", "↑", "→"]
 	var parts: PackedStringArray = []
 	for i in range(STEPS.size()):
 		if i < step:
-			# Issue #944: Completed step - grey with strikethrough
-			parts.append("[color=#888888][s][%s][/s][/color]" % STEPS[i])
+			# Completed step: grey (strikethrough animated via Line2D)
+			parts.append("[color=#888888][%s][/color]" % STEPS[i])
 		elif i == step:
 			# Current step - red highlight
 			parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
@@ -2191,9 +2207,11 @@ func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
 			# Future step - grey
 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
 
-	# Issue #944: Mark as multi-step completed when all 4 steps done
-	if step >= STEPS.size():
-		_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_BOLT_CYCLE] = true
+	# Extend strikethrough progressively based on completed steps
+	# Each step is ~12.5% of the total hint width (4 steps + text = ~50% for keys)
+	if step > 0:
+		var progress := float(step) * 0.125  # 12.5% per step
+		_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, progress)
 
 	return " ".join(parts) + " Передёрни затвор"
 
@@ -2207,37 +2225,43 @@ func _build_tutorial_shotgun_reload_hint_bbcode() -> String:
 ## Build BBCode for shotgun full-reload hint with step-based highlighting (Bug fix round 4).
 ## Mirrors _build_shotgun_full_reload_hint_bbcode() from tutorial_level.gd.
 ## state=0/1: highlight open-bolt; state=2: highlight load-shells; state=3: highlight close-bolt.
-## Issue #944: Adds strikethrough for completed steps.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_shotgun_full_reload_hint_bbcode(state: int) -> String:
 	var shells_needed: int = _get_tutorial_shotgun_shells_to_load()
 	match state:
 		0, 1:  # Not reloading or waiting to open
 			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
-		2:  # Loading shells
-			return "[color=#888888][s][ПКМ↑ открыть][/s][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
-		3:  # Waiting to close
-			return "[color=#888888][s][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/s][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
+		2:  # Loading shells (open is completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.25)
+			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
+		3:  # Waiting to close (open and loading completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.55)
+			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
 		_:
-			# Issue #944: Mark as multi-step completed when all steps done
-			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_BOLT_CYCLE] = true
-			return "[color=#888888][s][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/s][/color]" % shells_needed
+			# All steps completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.8)
+			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
 
 
 ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
 ## Mirrors _build_revolver_reload_hint_bbcode() from tutorial_level.gd.
-## Issue #944: Adds strikethrough for completed steps.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_revolver_reload_hint_bbcode(step: int) -> String:
 	match step:
 		0:
 			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 		1:
-			return "[color=#888888][s][R открыть][/s][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
+			# Cylinder opened: next is insert cartridges (open is completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.15)
+			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
 		2:
-			return "[color=#888888][s][R открыть] [ПКМ↑ патрон] [скролл][/s][/color] [color=#ff4444][R закрыть][/color]"
+			# Scrolled (cylinder rotated): next is close cylinder (open and insert completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.55)
+			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
 		_:
-			# Issue #944: Mark as multi-step completed when all steps done
-			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_RELOAD] = true
-			return "[color=#888888][s][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/s][/color]"
+			# All steps done
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.75)
+			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
 
 
 ## Called when the shotgun's action state changes (pump-action between shots).
@@ -2264,17 +2288,18 @@ func _on_tutorial_shotgun_action_state_changed(new_state: int) -> void:
 
 ## Build BBCode for the shotgun between-shots pump hint (Bug fix round 4).
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
-## Issue #944: Adds strikethrough for completed steps.
+## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
 	match state:
-		1:  # NeedsPumpUp
+		1:  # NeedsPumpUp (nothing completed yet)
 			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
-		2:  # NeedsPumpDown
-			return "[color=#888888][s][ПКМ↑][/s][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+		2:  # NeedsPumpDown (pump-up completed)
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.2)
+			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
 		_:
-			# Issue #944: Mark as multi-step completed when all steps done
-			_tutorial_hint_is_multistep_completed[TUTORIAL_HINT_BOLT_CYCLE] = true
-			return "[color=#888888][s][ПКМ↑] [ПКМ↓][/s][/color] Передёрни затвор"
+			# Both completed
+			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.4)
+			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
 
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
@@ -2326,7 +2351,7 @@ func _dismiss_all_tutorial_hints() -> void:
 
 ## Create and register a tutorial hint RichTextLabel with BBCode support.
 ## Issue #945: Uses RichTextLabel for BBCode color support (per-hint unique colors + red key highlights).
-## Issue #944: Adds fade-in animation when new hints appear.
+## Issue #944: Adds fade-in animation when new hints appear + creates Line2D for progressive strikethrough.
 func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	if _tutorial_hints.has(hint_key):
 		# Already exists - just update text (don't animate)
@@ -2355,6 +2380,24 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	canvas_layer.add_child(label)
 	_tutorial_hints[hint_key] = label
 
+	# Issue #944: Create Line2D for progressive animated strikethrough.
+	# The line is attached to the label and extends progressively as steps complete.
+	var strike_line := Line2D.new()
+	strike_line.name = "StrikeLine_" + hint_key
+	strike_line.width = 1.5  # Thinner line to match BBCode strikethrough appearance
+	# Semi-transparent to match subtle BBCode strikethrough (grey at 60% opacity)
+	strike_line.default_color = Color(0.6, 0.6, 0.6, 0.6)
+	strike_line.z_index = 1  # Draw on top of the text
+
+	# Position at vertical center of label (font size ~20, center ~10)
+	var line_y := 10.0
+	strike_line.add_point(Vector2(0, line_y))
+	strike_line.add_point(Vector2(0, line_y))  # Start with 0 width
+
+	label.add_child(strike_line)
+	_tutorial_hint_strike_lines[hint_key] = strike_line
+	_tutorial_hint_strike_progress[hint_key] = 0.0
+
 	# Position immediately
 	var index := _tutorial_hints.size() - 1
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
@@ -2369,10 +2412,46 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	print("[LabyrinthLevel] Tutorial hint added '%s': %s" % [hint_key, text])
 
 
+## Issue #944: Animate the strikethrough line to extend progressively as steps complete.
+## target_progress: 0.0-1.0 representing how much of the hint text should be struck through.
+## This is called when a step within a multi-step action completes.
+func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: float) -> void:
+	if not _tutorial_hint_strike_lines.has(hint_key):
+		return
+
+	var strike_line: Line2D = _tutorial_hint_strike_lines[hint_key]
+	if not is_instance_valid(strike_line):
+		return
+
+	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
+	if target_progress <= current_progress:
+		return  # Already at or past this progress
+
+	# Get the text width to calculate pixel position
+	var text_width := 300.0  # Default, matches custom_minimum_size.x
+	if _tutorial_hints.has(hint_key):
+		var label: RichTextLabel = _tutorial_hints[hint_key]
+		if is_instance_valid(label) and label.custom_minimum_size.x > 0:
+			text_width = label.custom_minimum_size.x
+
+	var line_y := 10.0  # Vertical center of text
+
+	# Animate the line extension from current position to new position
+	var tween := create_tween()
+	tween.tween_method(
+		func(progress: float):
+			if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
+				strike_line.set_point_position(1, Vector2(text_width * progress, line_y)),
+		current_progress, target_progress, TUTORIAL_HINT_STRIKETHROUGH_DURATION * 0.5
+	).set_ease(Tween.EASE_OUT)
+
+	_tutorial_hint_strike_progress[hint_key] = target_progress
+	print("[LabyrinthLevel] Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
+
+
 ## Remove a tutorial hint label by key.
-## Issue #944: Adds strikethrough animation before fade-out for completed actions.
-## For multi-step actions that already showed per-step strikethrough, skips the strikethrough
-## and just fades out.
+## Issue #944: Extends strikethrough to 100% before fade-out for all hints.
+## Uses the persistent Line2D attached to the hint (created in _add_tutorial_hint).
 func _dismiss_tutorial_hint(hint_key: String) -> void:
 	if not _tutorial_hints.has(hint_key):
 		return
@@ -2389,67 +2468,38 @@ func _dismiss_tutorial_hint(hint_key: String) -> void:
 	# Mark as animating to prevent updates during animation
 	_tutorial_animating_hints[hint_key] = true
 
-	# Issue #944: Check if this is a multi-step hint that already showed per-step strikethrough.
-	# If so, skip the full strikethrough and just fade out.
-	var skip_strikethrough := _tutorial_hint_is_multistep_completed.get(hint_key, false)
-	_tutorial_hint_is_multistep_completed.erase(hint_key)
-
-	if skip_strikethrough:
-		# Multi-step action completed - just fade out without additional strikethrough
-		print("[LabyrinthLevel] Dismissing hint '%s' (multi-step, fade only)" % hint_key)
-		_animate_tutorial_hint_fade_out(hint_key, label)
-	else:
-		# Single action completed - show strikethrough, then fade out
-		print("[LabyrinthLevel] Dismissing hint '%s' (with strikethrough animation)" % hint_key)
-		_animate_tutorial_hint_strikethrough_and_fade(hint_key, label)
+	print("[LabyrinthLevel] Dismissing hint '%s' (with strikethrough animation)" % hint_key)
+	_animate_tutorial_hint_strikethrough_and_fade(hint_key, label)
 
 
-## Issue #944: Apply animated strikethrough to the entire hint text, then fade out.
-## The strikethrough line animates from left to right before the text fades out.
-## Used for single-action hints (fire mode, scope, hammer cock, etc.).
+## Issue #944: Extend the existing Line2D strikethrough to 100% and then fade out.
+## Uses the persistent Line2D that was created with the hint in _add_tutorial_hint.
 func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel) -> void:
-	# Create a Line2D for the animated strikethrough effect
-	var strike_line := Line2D.new()
-	strike_line.name = "StrikeLine_" + hint_key
-	strike_line.width = 2.0
-	strike_line.default_color = Color(0.8, 0.8, 0.8, 1.0)  # Light grey line
-	strike_line.z_index = 1  # Draw on top of the text
+	# Get the existing strike line attached to this hint
+	var strike_line: Line2D = null
+	if _tutorial_hint_strike_lines.has(hint_key):
+		strike_line = _tutorial_hint_strike_lines[hint_key]
 
-	# Position the line at the vertical center of the label
-	# The label's content height is approximately the font size
-	var label_height := 20.0  # normal_font_size from _add_tutorial_hint
-	var line_y := label_height * 0.5
-
-	# Start with a point at the left edge, end point will be animated
-	strike_line.add_point(Vector2(0, line_y))
-	strike_line.add_point(Vector2(0, line_y))  # Start with 0 width
-
-	label.add_child(strike_line)
-
-	# Get the approximate width of the text content
-	# RichTextLabel content width is approximately custom_minimum_size.x
+	# Get the text width
 	var text_width: float = label.custom_minimum_size.x
 	if text_width <= 0:
 		text_width = 300.0  # Default width
 
-	# Animate the line from left to right
+	var line_y := 10.0  # Vertical center
+	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
+
+	# Animate the line from current position to full width (100%)
 	var tween := create_tween()
-	tween.tween_method(
-		func(progress: float):
-			if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
-				strike_line.set_point_position(1, Vector2(text_width * progress, line_y)),
-		0.0, 1.0, TUTORIAL_HINT_STRIKETHROUGH_DURATION
-	).set_ease(Tween.EASE_OUT)
+
+	if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
+		tween.tween_method(
+			func(progress: float):
+				if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
+					strike_line.set_point_position(1, Vector2(text_width * progress, line_y)),
+			current_progress, 1.0, TUTORIAL_HINT_STRIKETHROUGH_DURATION
+		).set_ease(Tween.EASE_OUT)
 
 	# After strikethrough animation completes, fade out the whole label
-	tween.tween_property(label, "modulate:a", 0.0, TUTORIAL_HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
-	tween.tween_callback(_finalize_tutorial_hint_dismiss.bind(hint_key, label))
-
-
-## Issue #944: Fade out the hint without adding strikethrough.
-## Used for multi-step hints that already showed per-step strikethrough.
-func _animate_tutorial_hint_fade_out(hint_key: String, label: RichTextLabel) -> void:
-	var tween := create_tween()
 	tween.tween_property(label, "modulate:a", 0.0, TUTORIAL_HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
 	tween.tween_callback(_finalize_tutorial_hint_dismiss.bind(hint_key, label))
 
@@ -2458,6 +2508,8 @@ func _animate_tutorial_hint_fade_out(hint_key: String, label: RichTextLabel) -> 
 func _finalize_tutorial_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_tutorial_animating_hints.erase(hint_key)
 	_tutorial_hints.erase(hint_key)
+	_tutorial_hint_strike_lines.erase(hint_key)
+	_tutorial_hint_strike_progress.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
 	print("[LabyrinthLevel] Hint '%s' dismissed (animation complete)" % hint_key)
