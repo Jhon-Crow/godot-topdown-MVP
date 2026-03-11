@@ -622,6 +622,36 @@ color = Color(0.3, 0.25, 0.18, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom3"]
 shape = SubResource("RectangleShape2D_cover_large")
 
+[node name="CoverBottom4" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2850, 1950)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverBottom4"]
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
+color = Color(0.3, 0.25, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom4"]
+shape = SubResource("RectangleShape2D_cover_large")
+
+[node name="CoverBottom5" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(3150, 1950)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverBottom5"]
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
+color = Color(0.3, 0.25, 0.18, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverBottom5"]
+shape = SubResource("RectangleShape2D_cover_large")
+
 [node name="PatrolZones" type="Node2D" parent="Environment"]
 
 [node name="PatrolZoneLeft" type="ColorRect" parent="Environment/PatrolZones"]
