@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://b4exp3r1m3nt4l"]
+[gd_scene load_steps=2 format=3 uid="uid://b4exp3r1m3nt4l"]
 
 [ext_resource type="Script" path="res://scripts/ui/experimental_menu.gd" id="1_experimental"]
-[ext_resource type="PackedScene" path="res://scenes/ui/UnlockTableMenu.tscn" id="2_unlocktable"]
 
 [node name="ExperimentalMenu" type="CanvasLayer"]
 layer = 101
@@ -361,6 +360,3 @@ custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Back"
-
-[node name="UnlockTableMenu" parent="." instance=ExtResource("2_unlocktable")]
-visible = false

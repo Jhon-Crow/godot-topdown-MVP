@@ -25,7 +25,12 @@ signal back_pressed
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
-@onready var unlock_table_menu: CanvasLayer = $UnlockTableMenu
+
+## Reference to the unlock table menu scene.
+var unlock_table_menu_scene: PackedScene = preload("res://scenes/ui/UnlockTableMenu.tscn")
+
+## The instantiated unlock table menu (created on first use, like other submenus).
+var unlock_table_menu: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -46,9 +51,8 @@ func _ready() -> void:
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
-	# Connect UnlockTableMenu back signal
-	if unlock_table_menu:
-		unlock_table_menu.back_pressed.connect(_on_unlock_table_back_pressed)
+	# Note: unlock_table_menu is instantiated on first use (see _on_unlock_table_pressed)
+	# This avoids nested CanvasLayer visibility issues in Godot 4.
 
 	# Update UI based on current settings
 	_update_ui()
@@ -220,8 +224,15 @@ func _on_delete_saves_pressed() -> void:
 
 
 func _on_unlock_table_pressed() -> void:
-	# Show the unlock table overlay with up-to-date data
-	if unlock_table_menu:
+	# Instantiate unlock table menu on first use (same pattern as PauseMenu submenus)
+	# This avoids nested CanvasLayer visibility issues in Godot 4.
+	if unlock_table_menu == null:
+		unlock_table_menu = unlock_table_menu_scene.instantiate()
+		unlock_table_menu.back_pressed.connect(_on_unlock_table_back_pressed)
+		# Add as sibling to this CanvasLayer's parent (not as child) to avoid nesting
+		get_parent().add_child(unlock_table_menu)
+	else:
+		# Refresh and show existing instance
 		unlock_table_menu.refresh()
 		unlock_table_menu.show()
 
