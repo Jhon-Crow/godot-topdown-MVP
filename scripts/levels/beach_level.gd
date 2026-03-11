@@ -893,6 +893,7 @@ func _get_rank_color(rank: String) -> Color:
 
 ## Get the next level path for level progression.
 func _get_next_level_path() -> String:
+	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
