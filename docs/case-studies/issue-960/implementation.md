@@ -102,6 +102,28 @@ The glow shader then amplifies this by creating bright edges around each visible
 
 Result: Clean solid rounded letters with smooth pink/magenta outer glow, no ring artifacts.
 
+### v7 Fix: Remove Shader Material from Title Labels
+
+**Owner feedback (v7)**: "вообще убери обводку с букв заголовка раздела" (completely remove the outline from section title letters) — see `images/owner-feedback-v7-still-outline.png`.
+
+Despite replacing the font in v6, the owner's screenshot at `images/owner-feedback-v7-still-outline.png` showed the "PAUSED" text STILL had visible multi-ring "outlines". The Comfortaa Bold font is confirmed solid (no stencil cuts), yet the visual effect persisted.
+
+**Root cause** (v7): The issue was the **neon_glow shader itself**. The shader samples the texture at multiple radii to create inner and outer glow layers. When these layers are composited, they create visible concentric rings at each sampling distance (r=1, r=2 for inner glow; r=2, r=4, r=6, r=8 for outer glow). At large font sizes, these discrete sampling rings become visible as "outline" artifacts around the text.
+
+**Solution**: Completely remove the `material = ExtResource(...)` (neon_glow shader) from all TitleLabel nodes. The text will rely solely on the `shadow_size = 16` and `shadow_color` from `neon_label_settings.tres` for a soft single-layer glow effect — clean text without multi-ring artifacts.
+
+**Changes in v7**:
+- Remove `material = ExtResource("3_neon_glow")` from `scenes/ui/PauseMenu.tscn` TitleLabel
+- Remove `material = ExtResource("4_neon_glow")` from `scenes/ui/ControlsMenu.tscn` TitleLabel
+- Remove `material = ExtResource("4_neon_glow")` from `scenes/ui/DifficultyMenu.tscn` TitleLabel
+- Remove `material = ExtResource("4_neon_glow")` from `scenes/ui/SoundMenu.tscn` TitleLabel
+- Remove `material = ExtResource("4_neon_glow")` from `scenes/ui/ExperimentalMenu.tscn` TitleLabel
+- Remove `material = ExtResource("3_neon_glow")` from `scenes/main/Main.tscn` TitleLabel
+- Clean up unused `ext_resource` references for `neon_glow_material.tres`
+- Reduce `load_steps` count in scene files accordingly
+
+**Result**: Title text now displays with simple pink/magenta color and soft shadow glow only — no shader-created rings or outlines visible at any size.
+
 ## Files Created/Modified
 
 ### New Files

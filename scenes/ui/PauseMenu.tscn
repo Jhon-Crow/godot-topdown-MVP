@@ -1,8 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://dxqmk8f3nw5pe"]
+[gd_scene load_steps=4 format=3 uid="uid://dxqmk8f3nw5pe"]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pause"]
 [ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
-[ext_resource type="Material" uid="uid://c3qneonglow01" path="res://resources/themes/neon_glow_material.tres" id="3_neon_glow"]
 [ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="4_neon_theme"]
 
 [node name="PauseMenu" type="CanvasLayer"]
@@ -43,7 +42,6 @@ grow_vertical = 2
 theme_override_constants/separation = 20
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/VBoxContainer"]
-material = ExtResource("3_neon_glow")
 layout_mode = 2
 text = "PAUSED"
 label_settings = ExtResource("2_neon_label")
