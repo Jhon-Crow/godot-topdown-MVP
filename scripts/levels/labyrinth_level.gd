@@ -89,6 +89,8 @@ var _replay_manager: Node = null
 ## shotgun reload count, hammer-cock persistence, grenade check, AK GL hint.
 ## Bug fixes (Issue #991): AK GL hint no longer overlaps grenade hint (sequential flow via
 ## GrenadeFired signal); GL hint is dismissed when launcher fires.
+## Bug fix (Issue #998): Scope RMB hint shown from the very start for sniper rifle;
+## dismissed when player activates scope (ScopeStateChanged signal connected).
 ## ============================================================
 
 ## Tutorial hint labels: hint_key -> RichTextLabel node (Issue #945: was Label).
@@ -137,6 +139,9 @@ var _tutorial_sniper_rifle: Node = null
 ## Whether the sniper bolt has been cycled (for reload step tracking).
 var _tutorial_sniper_bolt_cycled: bool = false
 
+## Whether the scope has been used (for sniper scope training, Issue #998).
+var _tutorial_scope_used: bool = false
+
 ## Hint keys (same as tutorial_level.gd).
 const TUTORIAL_HINT_RELOAD := "reload"
 const TUTORIAL_HINT_GRENADE := "grenade"
@@ -144,6 +149,7 @@ const TUTORIAL_HINT_HAMMER_COCK := "hammer_cock"
 const TUTORIAL_HINT_BOLT_CYCLE := "bolt_cycle"
 const TUTORIAL_HINT_GRENADE_LAUNCHER := "grenade_launcher"  ## AK GL underbarrel (Bug fix #10)
 const TUTORIAL_HINT_FIRE_MODE := "fire_mode"  ## M16 fire-mode switch [B] (Bug fix round 5)
+const TUTORIAL_HINT_SCOPE := "scope"  ## Sniper scope RMB hint (Issue #998)
 
 ## Vertical spacing between stacked tutorial hints (pixels).
 ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
@@ -177,6 +183,7 @@ const TUTORIAL_HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)         ## Pu
 const TUTORIAL_HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)         ## Yellow — hammer cock
 const TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)    ## Red-orange — AK GL
 const TUTORIAL_HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)           ## Cyan — fire mode switch (Bug fix round 5)
+const TUTORIAL_HINT_COLOR_SCOPE := Color(0.3, 0.9, 1.0, 1.0)               ## Cyan — scope aiming (Issue #998)
 
 
 ## Gets the ReplayManager autoload node.
@@ -626,6 +633,9 @@ func _setup_player_tracking() -> void:
 				_tutorial_sniper_rifle = weapon  # Bug fix #3: reference for bolt step hints
 				if weapon.has_signal("BoltStepChanged"):
 					weapon.BoltStepChanged.connect(_on_tutorial_sniper_bolt_step_changed)
+				# Issue #998: Connect scope state signal to dismiss scope hint when player uses scope.
+				if weapon.has_signal("ScopeStateChanged"):
+					weapon.ScopeStateChanged.connect(_on_tutorial_scope_state_changed)
 			"Revolver":
 				_tutorial_has_revolver = true
 				# Connect to HammerCocked signal to dismiss hammer hint (Issue #808)
@@ -1661,6 +1671,10 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):
@@ -1709,6 +1723,11 @@ func _setup_tutorial_hints() -> void:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
 			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
+	# Issue #998: Show scope hint from the very start for sniper rifle.
+	if _tutorial_has_sniper_rifle:
+		var canvas_layer := get_node_or_null("CanvasLayer")
+		if canvas_layer:
+			_add_tutorial_hint(TUTORIAL_HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
 
 
 ## Called when player's weapon fires a shot (Issue #945).
@@ -1846,6 +1865,8 @@ func _get_tutorial_hint_color(hint_key: String) -> Color:
 			return TUTORIAL_HINT_COLOR_GRENADE_LAUNCHER
 		TUTORIAL_HINT_FIRE_MODE:
 			return TUTORIAL_HINT_COLOR_FIRE_MODE  # Bug fix round 5
+		TUTORIAL_HINT_SCOPE:
+			return TUTORIAL_HINT_COLOR_SCOPE  # Issue #998
 		_:
 			return Color(1.0, 1.0, 0.3, 1.0)  # Default yellow fallback
 
@@ -1908,6 +1929,16 @@ func _on_tutorial_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 ## Called when revolver hammer is cocked — dismisses hammer hint (Issue #808).
 func _on_tutorial_hammer_cocked() -> void:
 	_dismiss_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK)
+
+
+## Called when scope state changes (activated/deactivated).
+## Dismisses the scope hint when the player uses the scope for the first time (Issue #998).
+func _on_tutorial_scope_state_changed(is_active: bool) -> void:
+	if not is_active or _tutorial_scope_used:
+		return
+	_tutorial_scope_used = true
+	print("[LabyrinthLevel] Scope used — dismissing scope hint")
+	_dismiss_tutorial_hint(TUTORIAL_HINT_SCOPE)
 
 
 ## Called when player switches fire mode (M16 final training hint, Bug fix round 5).
@@ -2208,12 +2239,19 @@ func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
 ## Bug fix round 4: updates the TUTORIAL_HINT_BOLT_CYCLE hint to highlight the current reload step.
+## Issue #983: when state=0 (NotReloading), reload is complete — dismiss hint and advance tutorial.
 ## ShotgunReloadState: 0=NotReloading, 1=WaitingToOpen, 2=Loading, 3=WaitingToClose
 func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if _tutorial_step != TutorialStep.RELOAD:
 		return
 
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+		return
+
+	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state == 0:
+		print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
+		_on_tutorial_reload_completed()
 		return
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]

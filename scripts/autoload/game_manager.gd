@@ -155,8 +155,11 @@ func on_player_death() -> void:
 
 
 ## Restarts the current scene.
+## Resets mouse mode to hidden before reloading so the cursor does not persist
+## from the score screen (Issue #905).
 func restart_scene() -> void:
 	_reset_stats()
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	get_tree().reload_current_scene()
 
 

@@ -42,6 +42,11 @@ extends Node2D
 ##   hint appears only AFTER the GL fires (sequential, not simultaneous).
 ## Fix #991-2: AK GL hint is now dismissed when the launcher fires (GrenadeFired signal connected).
 ##
+## Bug fix (Issue #998):
+## Fix #998: Scope RMB hint is shown from the very start when player has sniper rifle (not only
+##   after the reload step). Scope hint is dismissed as soon as player activates scope; if scope
+##   was used before completing reload, SCOPE_TRAINING step is skipped automatically.
+##
 ## On this tutorial level, grenades are infinite so player can practice.
 ## Floating key prompts appear near the player until the action is completed.
 
@@ -1146,16 +1151,18 @@ func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
 
 ## Called when scope state changes (activated/deactivated).
 ## Completes the scope training step when scope is used.
+## Issue #998: Also dismisses the scope hint if the player uses the scope early (during RELOAD).
 func _on_scope_state_changed(is_active: bool) -> void:
-	if _current_step != TutorialStep.SCOPE_TRAINING:
+	if not is_active or _scope_used:
 		return
 
-	# Scope training completes when the player activates the scope
-	if is_active and not _scope_used:
-		_scope_used = true
-		print("Tutorial: Scope used - scope training complete")
-		# Dismiss scope hint only; grenade hint remains
-		_dismiss_hint(HINT_SCOPE)
+	_scope_used = true
+	print("Tutorial: Scope used - scope training complete")
+	# Dismiss scope hint
+	_dismiss_hint(HINT_SCOPE)
+	# Only advance to THROW_GRENADE if we are currently in the SCOPE_TRAINING step.
+	# If scope is used early (during RELOAD), the step advancement happens later via _on_player_reload_completed().
+	if _current_step == TutorialStep.SCOPE_TRAINING:
 		_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
@@ -1176,9 +1183,14 @@ func _on_player_reload_completed() -> void:
 			_shotgun_full_reload_active = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 4: sniper uses scope training after magazine reload.
+		# Issue #998: If scope was already used early (hint shown from start), skip SCOPE_TRAINING.
 		if _has_sniper_rifle:
-			_advance_to_step(TutorialStep.SCOPE_TRAINING)
-			return
+			if _scope_used:
+				# Player already used scope early — skip SCOPE_TRAINING, go to next step.
+				print("Tutorial: Scope already used — skipping SCOPE_TRAINING step")
+			else:
+				_advance_to_step(TutorialStep.SCOPE_TRAINING)
+				return
 		# Bug fix round 5: M16 [B] hint shown AFTER grenade training (not right after reload).
 		# Set a flag so the hint is added when the grenade step completes.
 		if _has_assault_rifle and not _has_ak_gl:
@@ -1347,6 +1359,9 @@ func _setup_initial_hints() -> void:
 			# Bug fix #3: Revolver hammer-cock hint is shown from the very start (on weapon pickup).
 			if _has_revolver:
 				_add_hint(HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
+			# Issue #998: Scope hint is shown from the very start for sniper rifle.
+			if _has_sniper_rifle:
+				_add_hint(HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
 
 
 ## Show hints appropriate for the given step.
