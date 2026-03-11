@@ -87,8 +87,6 @@ var _replay_manager: Node = null
 ## Issue #945: RichTextLabel with BBCode colors, red NEXT-button highlight, 2-shot reload delay.
 ## Bug fixes (3rd review round): spacing, bolt-cycle timing, sniper sequence, grenade ordering,
 ## shotgun reload count, hammer-cock persistence, grenade check, AK GL hint.
-## Bug fixes (Issue #991): AK GL hint no longer overlaps grenade hint (sequential flow via
-## GrenadeFired signal); GL hint is dismissed when launcher fires.
 ## ============================================================
 
 ## Tutorial hint labels: hint_key -> RichTextLabel node (Issue #945: was Label).
@@ -649,12 +647,6 @@ func _setup_player_tracking() -> void:
 				_tutorial_has_ak_gl = true  # Bug fix #10
 				_tutorial_assault_rifle = weapon  # Bug fix #10: reference for GL ammo check
 				# Note: AKGL does NOT have FireModeChanged — no connection needed.
-				# Issue #991 fix: connect GrenadeFired to dismiss GL hint and show grenade hint
-				# sequentially. Without this the GL hint never disappears after firing, and both
-				# GL hint + grenade hint appear simultaneously causing overlap.
-				if weapon.has_signal("GrenadeFired"):
-					weapon.GrenadeFired.connect(_on_tutorial_grenade_launcher_fired)
-					print("[LabyrinthLevel] Connected to GrenadeFired signal (AKGL)")
 	else:
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
@@ -1980,14 +1972,10 @@ func _on_tutorial_reload_completed() -> void:
 		# Bug fix round 5: M16 fire-mode [B] hint should appear after grenade, not now.
 		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
 			_tutorial_m16_needs_fire_mode_hint = true
-		# Issue #991 fix: AK GL shows underbarrel grenade launcher hint after reload (if round
-		# loaded), then waits for the GrenadeFired signal before advancing to THROW_GRENADE.
-		# This prevents the GL hint and grenade hint from appearing simultaneously (overlap bug).
+		# Bug fix #10: AK GL shows underbarrel grenade launcher hint after reload (if round loaded).
 		if _tutorial_has_ak_gl and canvas_layer and _tutorial_ak_gl_has_round_loaded():
 			_add_tutorial_hint(TUTORIAL_HINT_GRENADE_LAUNCHER,
 				"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом", canvas_layer)
-			# Do NOT advance to THROW_GRENADE yet — wait for GL to fire (_on_tutorial_grenade_launcher_fired).
-			return
 		if _tutorial_has_thrown_grenade:
 			_tutorial_step = TutorialStep.COMPLETED
 			_dismiss_all_tutorial_hints()
@@ -2007,33 +1995,6 @@ func _on_tutorial_reload_completed() -> void:
 				print("[LabyrinthLevel] Player has no grenades — skipping grenade hint")
 				_tutorial_step = TutorialStep.COMPLETED
 				_dismiss_all_tutorial_hints()
-
-
-## Called when the AK GL underbarrel grenade launcher fires (Issue #991).
-## Dismisses the GL hint (which was lingering) and then advances to THROW_GRENADE step
-## so that the grenade hint appears AFTER the GL hint disappears (no overlap).
-func _on_tutorial_grenade_launcher_fired() -> void:
-	# Dismiss GL hint now that the launcher has been fired
-	_dismiss_tutorial_hint(TUTORIAL_HINT_GRENADE_LAUNCHER)
-	print("[LabyrinthLevel] Grenade launcher fired — GL hint dismissed")
-	# Now advance to grenade throw step (shows grenade hint after GL hint is gone)
-	if _tutorial_has_thrown_grenade:
-		_tutorial_step = TutorialStep.COMPLETED
-		_dismiss_all_tutorial_hints()
-	else:
-		_tutorial_step = TutorialStep.THROW_GRENADE
-		var canvas_layer := get_node_or_null("CanvasLayer")
-		if _tutorial_player_has_grenades():
-			if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-				_tutorial_grenade_hint_step = 0
-				_tutorial_grenade_g_was_held = false
-				_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
-					_build_tutorial_grenade_hint_bbcode(0),
-					canvas_layer)
-		else:
-			print("[LabyrinthLevel] Player has no grenades — skipping grenade hint")
-			_tutorial_step = TutorialStep.COMPLETED
-			_dismiss_all_tutorial_hints()
 
 
 ## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).

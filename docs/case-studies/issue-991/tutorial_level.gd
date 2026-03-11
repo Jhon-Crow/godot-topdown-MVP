@@ -37,11 +37,6 @@ extends Node2D
 ## Fix R5-4b: Revolver ReloadStateChanged connected for step-by-step hint update.
 ## Fix R5-4c: Revolver AmmoChanged double-connection removed from _setup_ammo_tracking.
 ##
-## Bug fixes (Issue #991):
-## Fix #991-1: AK GL hint no longer overlaps grenade hint — GL hint appears on reload, grenade
-##   hint appears only AFTER the GL fires (sequential, not simultaneous).
-## Fix #991-2: AK GL hint is now dismissed when the launcher fires (GrenadeFired signal connected).
-##
 ## On this tutorial level, grenades are infinite so player can practice.
 ## Floating key prompts appear near the player until the action is completed.
 
@@ -581,13 +576,6 @@ func _connect_player_signals() -> void:
 			_player.ReloadCompleted.connect(_on_player_reload_completed)
 		elif _player.has_signal("reload_completed"):
 			_player.reload_completed.connect(_on_player_reload_completed)
-
-		# Issue #991 fix: connect GrenadeFired to dismiss GL hint and show grenade hint sequentially.
-		# Without this connection the GL hint never disappears after the player fires the launcher,
-		# and both GL hint + grenade hint would appear simultaneously (causing overlap).
-		if akgl.has_signal("GrenadeFired"):
-			akgl.GrenadeFired.connect(_on_grenade_launcher_fired)
-			print("Tutorial: Connected to GrenadeFired signal (AKGL)")
 
 		# Connect to fire mode changed signal from AKGL
 		if akgl.has_signal("FireModeChanged"):
@@ -1166,33 +1154,15 @@ func _on_player_reload_completed() -> void:
 		# Set a flag so the hint is added when the grenade step completes.
 		if _has_assault_rifle and not _has_ak_gl:
 			_m16_needs_fire_mode_hint = true
-		# Issue #991 fix: AK GL shows underbarrel grenade launcher hint after reload (if round
-		# loaded), then waits for the GrenadeFired signal before advancing to THROW_GRENADE.
-		# This prevents the GL hint and grenade hint from appearing simultaneously (overlap bug).
+		# Bug fix #10: AK GL shows underbarrel grenade launcher hint after reload (if round loaded).
 		if _has_ak_gl and canvas_layer and _ak_gl_has_round_loaded():
 			_add_hint(HINT_GRENADE_LAUNCHER,
 				"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом", canvas_layer)
-			# Do NOT advance to THROW_GRENADE yet — wait for GL to fire (_on_grenade_launcher_fired).
-			return
 		# If grenade was already thrown, go to COMPLETED; otherwise wait for grenade
 		if _has_thrown_grenade:
 			_advance_to_step(TutorialStep.COMPLETED)
 		else:
 			_advance_to_step(TutorialStep.THROW_GRENADE)
-
-
-## Called when the AK GL underbarrel grenade launcher fires (Issue #991).
-## Dismisses the GL hint (which was lingering) and then advances to THROW_GRENADE step
-## so that the grenade hint appears AFTER the GL hint disappears (no overlap).
-func _on_grenade_launcher_fired() -> void:
-	# Dismiss GL hint now that the launcher has been fired
-	_dismiss_hint(HINT_GRENADE_LAUNCHER)
-	print("Tutorial: Grenade launcher fired — GL hint dismissed")
-	# Now advance to grenade throw step (shows grenade hint after GL hint is gone)
-	if _has_thrown_grenade:
-		_advance_to_step(TutorialStep.COMPLETED)
-	else:
-		_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
 ## Called when the revolver hammer is cocked (RMB press or LMB fire).
