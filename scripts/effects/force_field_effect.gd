@@ -412,6 +412,33 @@ func _get_shooter_id(projectile: Node2D):
 	return projectile.get("source_id")
 
 
+## Clear the tracer trail of a trapped projectile to remove the frozen-tail artifact (Issue #982).
+##
+## When a bullet or shrapnel is frozen by the force field its _physics_process stops,
+## so _update_trail() / _update_smoky_trail() are never called again.  The Line2D child
+## node (top_level=true) keeps the last world-space points that were recorded, leaving
+## a visible "tail" hanging in space at the bullet's stopping position.
+##
+## Supports both GDScript projectiles (snake_case "_trail", "_position_history") and
+## C# projectiles (PascalCase "_trail" or "Trail" child node).
+func _clear_projectile_trail(projectile: Node2D) -> void:
+	# Try GDScript-style: read "_position_history" array and clear it.
+	var history = projectile.get("_position_history")
+	if history != null:
+		projectile.set("_position_history", [])
+
+	# Try GDScript-style: read "_trail" node reference and clear its points.
+	var trail_node = projectile.get("_trail")
+	if trail_node != null and trail_node is Line2D:
+		(trail_node as Line2D).clear_points()
+		return
+
+	# Fallback: look for a child node named "Trail" (works for both GDScript and C# scenes).
+	var trail_child: Node = projectile.get_node_or_null("Trail")
+	if trail_child != null and trail_child is Line2D:
+		(trail_child as Line2D).clear_points()
+
+
 ## Snap a projectile to the force field boundary ring and record its boundary angle.
 ## Moves the projectile to the surface of the field (at FIELD_RADIUS distance from center)
 ## so that all trapped projectiles visually hover at the field edge — like time stopped.
@@ -494,6 +521,12 @@ func _trap_bullet(bullet: Node2D) -> void:
 	bullet.set_physics_process(false)
 	bullet.set_process(false)
 
+	# Clear the tracer trail so it does not remain as a visual artifact (Issue #982).
+	# The trail Line2D uses top_level=true and stores absolute world positions.
+	# When physics stops, _update_trail() is no longer called, leaving the last
+	# drawn trail frozen at the stopping point. Clearing trail + history fixes this.
+	_clear_projectile_trail(bullet)
+
 	# Snap to field boundary so bullets visually stick to the edge of the shield
 	# (like time stopped — bullets frozen at the field boundary ring, Issue #932).
 	_snap_to_boundary(bullet)
@@ -533,6 +566,12 @@ func _trap_shrapnel(shrapnel: Node2D) -> void:
 	# Freeze shrapnel movement
 	shrapnel.set_physics_process(false)
 	shrapnel.set_process(false)
+
+	# Clear the tracer trail so it does not remain as a visual artifact (Issue #982).
+	# Same fix as for bullets: the trail Line2D keeps world-space points from
+	# _update_trail() / _update_smoky_trail() after physics is stopped, leaving
+	# a frozen "tail" at the stopping position. Clearing it removes this artifact.
+	_clear_projectile_trail(shrapnel)
 
 	# Snap to field boundary so shrapnel visually sticks to the edge of the shield
 	# (like time stopped — shrapnel frozen at the field boundary ring, Issue #932).
