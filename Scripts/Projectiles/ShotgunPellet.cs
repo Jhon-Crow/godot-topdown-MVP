@@ -586,6 +586,44 @@ public partial class ShotgunPellet : Area2D
         UpdateRotation();
     }
 
+    // ===========================================================================
+    // Getter methods for GDScript interop (Issue #930)
+    //
+    // GDScript's .get("property_name") does NOT work reliably with C# [Export]
+    // properties. Instead, we expose explicit getter methods that GDScript can
+    // call via .Call("get_direction") or .Call("GetDirection").
+    // ===========================================================================
+
+    /// <summary>
+    /// Gets the pellet's travel direction (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public Vector2 get_direction() => Direction;
+
+    /// <summary>
+    /// Gets the pellet's speed (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public float get_speed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public ulong get_shooter_id() => ShooterId;
+
+    /// <summary>
+    /// Gets the pellet's travel direction (PascalCase alias, Issue #930).
+    /// </summary>
+    public Vector2 GetDirection() => Direction;
+
+    /// <summary>
+    /// Gets the pellet's speed (PascalCase alias, Issue #930).
+    /// </summary>
+    public float GetSpeed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (PascalCase alias, Issue #930).
+    /// </summary>
+    public ulong GetShooterId() => ShooterId;
+
     /// <summary>
     /// Called when the pellet hits a static body (wall or obstacle).
     /// Pellets cannot penetrate - they either ricochet or stop.

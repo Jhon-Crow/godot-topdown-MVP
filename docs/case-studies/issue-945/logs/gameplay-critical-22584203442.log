@@ -1,0 +1,630 @@
+Validate Critical Gameplay Systems	Set up job	﻿2026-03-02T16:00:54.5911863Z Current runner version: '2.331.0'
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5936074Z ##[group]Runner Image Provisioner
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5936958Z Hosted Compute Agent
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5937510Z Version: 20260213.493
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5938105Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5938746Z Build Date: 2026-02-13T00:28:41Z
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5939490Z Worker ID: {6860b0cd-d656-4ad6-9110-141445e3523b}
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5940160Z Azure Region: westus
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5940684Z ##[endgroup]
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5942522Z ##[group]Operating System
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5943100Z Ubuntu
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5943734Z 24.04.3
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5944301Z LTS
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5944805Z ##[endgroup]
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5945274Z ##[group]Runner Image
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5945900Z Image: ubuntu-24.04
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5946374Z Version: 20260224.36.1
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5947415Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260224.36/images/ubuntu/Ubuntu2404-Readme.md
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5949176Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260224.36
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5950071Z ##[endgroup]
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5951209Z ##[group]GITHUB_TOKEN Permissions
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5953170Z Contents: read
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5954030Z Metadata: read
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5954603Z Packages: read
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5955070Z ##[endgroup]
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5957090Z Secret source: Actions
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.5957782Z Prepare workflow directory
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.6275487Z Prepare all required actions
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:54.6312654Z Getting action download info
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:55.0888860Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Validate Critical Gameplay Systems	Set up job	2026-03-02T16:00:55.3067618Z Complete job name: Validate Critical Gameplay Systems
+Validate Critical Gameplay Systems	Checkout	﻿2026-03-02T16:00:55.3876682Z ##[group]Run actions/checkout@v4
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3877515Z with:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3877966Z   ref: 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3878536Z   fetch-depth: 0
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3878982Z   repository: Jhon-Crow/godot-topdown-MVP
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3879641Z   token: ***
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3880020Z   ssh-strict: true
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3880406Z   ssh-user: git
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3880809Z   persist-credentials: true
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3881247Z   clean: true
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3881646Z   sparse-checkout-cone-mode: true
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3882132Z   fetch-tags: false
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3882544Z   show-progress: true
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3882949Z   lfs: false
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3883541Z   submodules: false
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3883963Z   set-safe-directory: true
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.3884652Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.4963569Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.4965350Z ##[group]Getting Git version info
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.4966142Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.4967219Z [command]/usr/bin/git version
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5047989Z git version 2.53.0
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5073115Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5087249Z Temporarily overriding HOME='/home/runner/work/_temp/2ff221e6-9c8b-430c-968b-7a29bee53784' before making global git config changes
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5092416Z Adding repository directory to the temporary git global config as a safe directory
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5094008Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5153702Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5156819Z ##[group]Initializing the repository
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5160881Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5328483Z hint: Using 'master' as the name for the initial branch. This default branch name
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5329962Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5330910Z hint: to use in all of your new repositories, which will suppress this warning,
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5332501Z hint: call:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5333133Z hint:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5334141Z hint: 	git config --global init.defaultBranch <name>
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5335195Z hint:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5336162Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5337544Z hint: 'development'. The just-created branch can be renamed via this command:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5338282Z hint:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5338660Z hint: 	git branch -m <name>
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5339106Z hint:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5339701Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5340854Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5347492Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5382212Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5383514Z ##[group]Disabling automatic garbage collection
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5386293Z [command]/usr/bin/git config --local gc.auto 0
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5414912Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5415591Z ##[group]Setting up auth
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5421342Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5451728Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5797669Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.5827845Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.6065981Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.6095863Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.6327919Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.6361987Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.6362940Z ##[group]Fetching the repository
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:00:55.6370831Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.5364671Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.5365845Z  * [new branch]        backup     -> origin/backup
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.5368218Z  * [new branch]        develop    -> origin/develop
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.5368929Z  * [new branch]        main       -> origin/main
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.5412121Z [command]/usr/bin/git rev-parse --verify --quiet 66add97f3a6e32bea493f3f8aa6f9af4efb2f064^{object}
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.5450968Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9201135Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9203938Z  * branch              66add97f3a6e32bea493f3f8aa6f9af4efb2f064 -> FETCH_HEAD
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9226698Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9227449Z ##[group]Determining the checkout info
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9228518Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9235338Z [command]/usr/bin/git sparse-checkout disable
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9276135Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9305469Z ##[group]Checking out the ref
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:31.9311623Z [command]/usr/bin/git checkout --progress --force 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8811299Z Note: switching to '66add97f3a6e32bea493f3f8aa6f9af4efb2f064'.
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8814098Z 
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8814490Z You are in 'detached HEAD' state. You can look around, make experimental
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8815871Z changes and commit them, and you can discard any commits you make in this
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8816780Z state without impacting any branches by switching back to a branch.
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8817415Z 
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8817782Z If you want to create a new branch to retain commits you create, you may
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8818603Z do so (now or later) by using -c with the switch command. Example:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8819063Z 
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8819195Z   git switch -c <new-branch-name>
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8819396Z 
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8819529Z Or undo this operation with:
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8819713Z 
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8819811Z   git switch -
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8819975Z 
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8820275Z Turn off this advice by setting config variable advice.detachedHead to false
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8820663Z 
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8821004Z HEAD is now at 66add97f Fix hint overlap and update Lab level to match tutorial hint format (Issue #945)
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8899405Z ##[endgroup]
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8943881Z [command]/usr/bin/git log -1 --format=%H
+Validate Critical Gameplay Systems	Checkout	2026-03-02T16:01:32.8967877Z 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Validate Critical Gameplay Systems	Check for critical file modifications	﻿2026-03-02T16:01:32.9166491Z ##[group]Run echo "Checking for modifications to critical gameplay files..."
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9167147Z [36;1mecho "Checking for modifications to critical gameplay files..."[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9167543Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9167828Z [36;1m# Get list of changed files (vs base branch or previous commit)[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9168229Z [36;1mif [ "pull_request_target" = "pull_request" ]; then[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9168602Z [36;1m  BASE_SHA="a2dfa5bc77629a07eb967d861a0ae0870f67dcd9"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9168972Z [36;1m  HEAD_SHA="66add97f3a6e32bea493f3f8aa6f9af4efb2f064"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9169271Z [36;1melse[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9169509Z [36;1m  # For push events, compare with previous commit[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9169861Z [36;1m  BASE_SHA="94b6ca28fc39072b593d5e8812dcfce550933067"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9170231Z [36;1m  HEAD_SHA="a2dfa5bc77629a07eb967d861a0ae0870f67dcd9"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9170507Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9170667Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9170937Z [36;1m# Handle case where BASE_SHA might be empty (first push)[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9171395Z [36;1mif [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9171841Z [36;1m  echo "First push or no base - checking all files"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9172176Z [36;1m  CHANGED_FILES=$(git ls-files)[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9172415Z [36;1melse[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9172747Z [36;1m  CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" 2>/dev/null || git ls-files)[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9173155Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9173583Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9173816Z [36;1mecho "Changed files:"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9174045Z [36;1mecho "$CHANGED_FILES"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9174260Z [36;1mecho ""[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9174436Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9174659Z [36;1m# Define critical files that often break gameplay[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9174970Z [36;1mCRITICAL_PATTERNS=([0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9175206Z [36;1m  "scripts/objects/enemy.gd"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9175449Z [36;1m  "scripts/ai/"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9175678Z [36;1m  "scripts/characters/player.gd"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9175975Z [36;1m  "scripts/components/health_component.gd"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9176280Z [36;1m  "scripts/components/vision_component.gd"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9176554Z [36;1m  "scripts/autoload/"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9176774Z [36;1m  "scripts/projectiles/"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9176997Z [36;1m)[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9177176Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9177334Z [36;1mCRITICAL_CHANGES=0[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9177591Z [36;1mfor pattern in "${CRITICAL_PATTERNS[@]}"; do[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9177919Z [36;1m  if echo "$CHANGED_FILES" | grep -q "$pattern"; then[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9178500Z [36;1m    echo "::warning::Critical gameplay file modified: $pattern"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9178867Z [36;1m    CRITICAL_CHANGES=$((CRITICAL_CHANGES + 1))[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9179132Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9179305Z [36;1mdone[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9179458Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9179705Z [36;1mecho "critical_changes=$CRITICAL_CHANGES" >> $GITHUB_OUTPUT[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9180014Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9180201Z [36;1mif [ "$CRITICAL_CHANGES" -gt 0 ]; then[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9180451Z [36;1m  echo ""[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9180645Z [36;1m  echo "=== IMPORTANT ==="[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9180918Z [36;1m  echo "Critical gameplay files were modified."[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9181239Z [36;1m  echo "Please ensure thorough testing of:"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9181628Z [36;1m  echo "  - Enemy AI behavior (movement, combat, state transitions)"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9181985Z [36;1m  echo "  - Damage/health system"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9182255Z [36;1m  echo "  - Player controls"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9182530Z [36;1m  echo "  - Game counters (enemy count, ammo)"[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9182797Z [36;1m  echo "================="[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9183190Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9236889Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9237175Z ##[endgroup]
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9324560Z Checking for modifications to critical gameplay files...
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9352488Z Changed files:
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9352893Z scripts/levels/tutorial_level.gd
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9353431Z tests/unit/test_tutorial_level.gd
+Validate Critical Gameplay Systems	Check for critical file modifications	2026-03-02T16:01:32.9353748Z 
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	﻿2026-03-02T16:01:32.9519676Z ##[group]Run echo "Checking enemy.gd state machine integrity..."
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9520177Z [36;1mecho "Checking enemy.gd state machine integrity..."[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9520483Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9520704Z [36;1mif [ ! -f "scripts/objects/enemy.gd" ]; then[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9521063Z [36;1m  echo "::warning::Enemy script not found - skipping check"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9521400Z [36;1m  exit 0[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9521578Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9521735Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9521891Z [36;1merrors=0[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9522052Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9522292Z [36;1m# Check that AIState enum exists and has required states[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9522834Z [36;1mREQUIRED_STATES=("IDLE" "COMBAT" "SEEKING_COVER" "IN_COVER" "FLANKING" "SUPPRESSED" "RETREATING" "PURSUING")[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9523469Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9523662Z [36;1mfor state in "${REQUIRED_STATES[@]}"; do[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9524002Z [36;1m  if ! grep -q "^\s*${state}" scripts/objects/enemy.gd; then[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9524402Z [36;1m    echo "::error::Missing required AIState: $state"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9524705Z [36;1m    errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9524925Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9525090Z [36;1mdone[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9525254Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9525456Z [36;1m# Check for critical methods that must exist[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9525738Z [36;1mREQUIRED_METHODS=([0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9525944Z [36;1m  "_ready"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9526137Z [36;1m  "_physics_process"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9526336Z [36;1m  "on_hit"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9526515Z [36;1m  "_on_death"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9526715Z [36;1m  "_check_player_visibility"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9526940Z [36;1m)[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9527091Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9527281Z [36;1mfor method in "${REQUIRED_METHODS[@]}"; do[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9527644Z [36;1m  if ! grep -qE "^func\s+${method}\s*\(" scripts/objects/enemy.gd; then[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9528080Z [36;1m    echo "::error::Missing required method in enemy.gd: $method"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9528412Z [36;1m    errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9528629Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9528791Z [36;1mdone[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9528944Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9529142Z [36;1m# Check for critical variable declarations[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9529620Z [36;1mREQUIRED_VARS=([0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9529815Z [36;1m  "_is_alive"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9530011Z [36;1m  "_current_health"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9530217Z [36;1m  "_current_state"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9530428Z [36;1m  "_player"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9530613Z [36;1m  "_can_see_player"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9530811Z [36;1m)[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9530963Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9531145Z [36;1mfor var in "${REQUIRED_VARS[@]}"; do[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9531469Z [36;1m  if ! grep -q "var\s\+${var}" scripts/objects/enemy.gd; then[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9531865Z [36;1m    echo "::error::Missing required variable in enemy.gd: $var"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9532189Z [36;1m    errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9532406Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9532569Z [36;1mdone[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9532720Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9532886Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9533116Z [36;1m  echo ""[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9533493Z [36;1m  echo "::error::Found $errors critical issues in enemy.gd"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9533894Z [36;1m  echo "These issues could cause enemies to stop functioning!"[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9534210Z [36;1m  exit 1[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9534381Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9534538Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9534759Z [36;1mecho "Enemy state machine structure validated."[0m
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9582342Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9582606Z ##[endgroup]
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9647446Z Checking enemy.gd state machine integrity...
+Validate Critical Gameplay Systems	Validate enemy.gd state machine integrity	2026-03-02T16:01:32.9925181Z Enemy state machine structure validated.
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	﻿2026-03-02T16:01:32.9958857Z ##[group]Run echo "Checking for dangerous code patterns..."
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9959317Z [36;1mecho "Checking for dangerous code patterns..."[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9959609Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9959778Z [36;1mwarnings=0[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9959959Z [36;1merrors=0[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9960141Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9960352Z [36;1mif [ -f "scripts/objects/enemy.gd" ]; then[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9960775Z [36;1m  # Check for early returns in _physics_process that might skip all behavior[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9961238Z [36;1m  # Pattern: return early without checking _is_alive first[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9961811Z [36;1m  if grep -n "^func _physics_process" -A 5 scripts/objects/enemy.gd | grep -qE "^\s+return\s*$" | head -1; then[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9962374Z [36;1m    # This is a simplified check - real issues need context[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9962858Z [36;1m    echo "::notice::_physics_process has early return - verify _is_alive check is present"[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9963467Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9963643Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9963886Z [36;1m  # Check for direct state assignment without signal emission[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9964269Z [36;1m  # (State changes should emit signal for debugging)[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9964886Z [36;1m  if grep -nE "_current_state\s*=\s*AIState\." scripts/objects/enemy.gd | grep -v "emit_signal" | grep -v "state_changed" | head -5; then[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9965640Z [36;1m    echo "::notice::Direct state assignment found - consider using set_state() for signal emission"[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9966081Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9966243Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9966449Z [36;1m  # Check for potentially infinite loops[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9966800Z [36;1m  if grep -nE "while\s+true\s*:" scripts/objects/enemy.gd; then[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9967275Z [36;1m    echo "::warning::Infinite while loop detected - ensure break condition exists"[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9967678Z [36;1m    warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9967922Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9968086Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9968287Z [36;1m  # Check for division by zero possibilities[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9969117Z [36;1m  if grep -nE "/\s*_max_health" scripts/objects/enemy.gd | grep -v "if.*_max_health" | grep -v "_max_health\s*>\s*0" | grep -v "_max_health\s*!=\s*0"; then[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9970076Z [36;1m    echo "::notice::Division by _max_health - verify zero check exists"[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9970435Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9970603Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9970757Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9970989Z [36;1m# Check for autoload direct access without null checks[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9971306Z [36;1mwhile IFS= read -r file; do[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9971649Z [36;1m  if grep -qE "^[^#]*(GameManager|AudioManager)\.[a-zA-Z]" "$file"; then[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9972108Z [36;1m    if ! grep -qE "get_node_or_null.*/(GameManager|AudioManager)" "$file"; then[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9972595Z [36;1m      echo "::notice file=$file::Direct autoload access without null check"[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9972954Z [36;1m    fi[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9973120Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9973565Z [36;1mdone < <(find scripts -name "*.gd" -type f 2>/dev/null | grep -v "test_")[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9973931Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:32.9974198Z [36;1mecho "Dangerous pattern check completed. ($warnings warnings)"[0m
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0022424Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0022683Z ##[endgroup]
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0087672Z Checking for dangerous code patterns...
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0133043Z ##[notice]_physics_process has early return - verify _is_alive check is present
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0142397Z 616:			_pre_evasion_state = _current_state; _current_state = AIState.EVADING_GRENADE
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0142860Z 2446:	_current_state = AIState.IDLE
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0143129Z 2453:	_current_state = AIState.COMBAT
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0143986Z 2465:	_current_state = AIState.SEEKING_COVER
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0144275Z 2472:	_current_state = AIState.IN_COVER
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0145320Z ##[notice]Direct state assignment found - consider using set_state() for signal emission
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0676671Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0705292Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0736096Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0767392Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0797812Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0828160Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0858858Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.0888914Z ##[notice]Direct autoload access without null check
+Validate Critical Gameplay Systems	Check for dangerous patterns in enemy code	2026-03-02T16:01:33.1795304Z Dangerous pattern check completed. (0 warnings)
+Validate Critical Gameplay Systems	Validate health component integrity	﻿2026-03-02T16:01:33.1839731Z ##[group]Run echo "Checking health component structure..."
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1840191Z [36;1mecho "Checking health component structure..."[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1840485Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1840743Z [36;1mif [ ! -f "scripts/components/health_component.gd" ]; then[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1841138Z [36;1m  echo "::notice::health_component.gd not found - skipping"[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1841477Z [36;1m  exit 0[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1841646Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1841808Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1841961Z [36;1merrors=0[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1842129Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1842299Z [36;1m# Check for required signals[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1842599Z [36;1mREQUIRED_SIGNALS=("hit" "died" "health_changed")[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1842927Z [36;1mfor sig in "${REQUIRED_SIGNALS[@]}"; do[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1844359Z [36;1m  if ! grep -qE "^signal\s+${sig}" scripts/components/health_component.gd; then[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1844882Z [36;1m    echo "::warning::Missing expected signal in health_component.gd: $sig"[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1845282Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1845453Z [36;1mdone[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1845611Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1845813Z [36;1m# Check for take_damage or similar method[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1846292Z [36;1mif ! grep -qE "^func\s+(take_damage|on_hit|receive_damage)" scripts/components/health_component.gd; then[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1847054Z [36;1m  echo "::error::Missing damage receiving method in health_component.gd"[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1847420Z [36;1m  errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1847635Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1847796Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1847961Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1848254Z [36;1m  echo "::error::Health component validation failed"[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1848539Z [36;1m  exit 1[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1848708Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1848861Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1849069Z [36;1mecho "Health component structure validated."[0m
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1900199Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1900459Z ##[endgroup]
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.1965863Z Checking health component structure...
+Validate Critical Gameplay Systems	Validate health component integrity	2026-03-02T16:01:33.2021695Z Health component structure validated.
+Validate Critical Gameplay Systems	Check for counter/state reset issues	﻿2026-03-02T16:01:33.2123144Z ##[group]Run echo "Checking for potential counter/state issues..."
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2123909Z [36;1mecho "Checking for potential counter/state issues..."[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2124225Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2124392Z [36;1mwarnings=0[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2124567Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2124769Z [36;1m# Check that enemy death properly signals[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2125082Z [36;1mif [ -f "scripts/objects/enemy.gd" ]; then[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2125371Z [36;1m  # Verify _die() emits the died signal[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2125829Z [36;1m  if ! grep -A 10 "^func _die" scripts/objects/enemy.gd | grep -qE "(died|emit_signal.*died)"; then[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2126395Z [36;1m    echo "::warning::_die() may not emit 'died' signal - could break enemy counting"[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2126787Z [36;1m    warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2127021Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2127182Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2127338Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2127603Z [36;1m# Check autoload files for proper signal connections[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2127928Z [36;1mif [ -d "scripts/autoload" ]; then[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2128205Z [36;1m  for file in scripts/autoload/*.gd; do[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2128480Z [36;1m    if [ -f "$file" ]; then[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2128738Z [36;1m      # Check for enemy counting patterns[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2129083Z [36;1m      if grep -q "enemy" "$file" && grep -q "count" "$file"; then[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2129455Z [36;1m        if ! grep -qE "(connect|disconnect)" "$file"; then[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2129911Z [36;1m          echo "::notice file=$file::Contains enemy count logic - verify signal connections"[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2130311Z [36;1m        fi[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2130486Z [36;1m      fi[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2130654Z [36;1m    fi[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2130814Z [36;1m  done[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2130976Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2131128Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2131377Z [36;1mecho "Counter/state check completed. ($warnings warnings)"[0m
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2177673Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2177929Z ##[endgroup]
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2242375Z Checking for potential counter/state issues...
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2261451Z ##[warning]_die() may not emit 'died' signal - could break enemy counting
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2328071Z ##[notice]Contains enemy count logic - verify signal connections
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2383571Z ##[notice]Contains enemy count logic - verify signal connections
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2737894Z ##[notice]Contains enemy count logic - verify signal connections
+Validate Critical Gameplay Systems	Check for counter/state reset issues	2026-03-02T16:01:33.2825734Z Counter/state check completed. (1 warnings)
+Validate Critical Gameplay Systems	Run GDScript syntax validation	﻿2026-03-02T16:01:33.2859714Z ##[group]Run echo "Validating GDScript syntax..."
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2860137Z [36;1mecho "Validating GDScript syntax..."[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2860417Z [36;1m[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2860589Z [36;1merrors=0[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2860768Z [36;1m[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2860999Z [36;1m# Check for obvious syntax errors in critical files[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2861591Z [36;1mwhile IFS= read -r file; do[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2861926Z [36;1m  # Check for mismatched parentheses (basic check)[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2862303Z [36;1m  open_parens=$(grep -o "(" "$file" | wc -l)[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2862647Z [36;1m  close_parens=$(grep -o ")" "$file" | wc -l)[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2862999Z [36;1m  if [ "$open_parens" != "$close_parens" ]; then[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2863795Z [36;1m    echo "::warning file=$file::Possible mismatched parentheses ($open_parens open, $close_parens close)"[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2864325Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2864509Z [36;1m[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2864739Z [36;1m  # Check for mismatched brackets[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2865072Z [36;1m  open_brackets=$(grep -o "\[" "$file" | wc -l)[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2865429Z [36;1m  close_brackets=$(grep -o "\]" "$file" | wc -l)[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2865798Z [36;1m  if [ "$open_brackets" != "$close_brackets" ]; then[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2866379Z [36;1m    echo "::warning file=$file::Possible mismatched brackets ($open_brackets open, $close_brackets close)"[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2866907Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2867088Z [36;1m[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2867316Z [36;1m  # Check for common typos in critical keywords[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2867757Z [36;1m  if grep -nE "\bextedns\b|\bretunr\b|\bfucn\b|\bsiganl\b" "$file"; then[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2868243Z [36;1m    echo "::error file=$file::Common typo detected in keywords"[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2868615Z [36;1m    errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2868859Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2869135Z [36;1mdone < <(find scripts -name "*.gd" -type f 2>/dev/null)[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2869482Z [36;1m[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2869668Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2869980Z [36;1m  echo "::error::Found $errors syntax issues"[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2870277Z [36;1m  exit 1[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2870478Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2870652Z [36;1m[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2870881Z [36;1mecho "GDScript syntax validation completed."[0m
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2919128Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2919387Z ##[endgroup]
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:33.2984093Z Validating GDScript syntax...
+Validate Critical Gameplay Systems	Run GDScript syntax validation	2026-03-02T16:01:34.2921307Z GDScript syntax validation completed.
+Validate Critical Gameplay Systems	Check for scene-script consistency	﻿2026-03-02T16:01:34.2957866Z ##[group]Run echo "Checking scene-script references..."
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2958328Z [36;1mecho "Checking scene-script references..."[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2958608Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2958778Z [36;1mwarnings=0[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2958951Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2959164Z [36;1m# Find all .tscn files that reference scripts[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2959453Z [36;1mwhile IFS= read -r scene; do[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2959738Z [36;1m  # Extract script references from scene[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2960177Z [36;1m  scripts=$(grep -oE 'script\s*=.*res://[^"]+\.gd' "$scene" | sed 's/.*res:\/\///' | sed 's/".*//')[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2960580Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2960750Z [36;1m  for script in $scripts; do[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2960992Z [36;1m    if [ ! -f "$script" ]; then[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2961339Z [36;1m      echo "::error file=$scene::References non-existent script: $script"[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2961696Z [36;1m      warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2961956Z [36;1m    fi[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2962124Z [36;1m  done[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2962359Z [36;1mdone < <(find scenes -name "*.tscn" -type f 2>/dev/null)[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2962660Z [36;1m[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2962832Z [36;1mif [ "$warnings" -gt 0 ]; then[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2963160Z [36;1m  echo "::warning::Found $warnings missing script references"[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2964184Z [36;1melse[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2964415Z [36;1m  echo "All scene-script references valid."[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.2964681Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.3015114Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.3015533Z ##[endgroup]
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.3081641Z Checking scene-script references...
+Validate Critical Gameplay Systems	Check for scene-script consistency	2026-03-02T16:01:34.4836266Z All scene-script references valid.
+Validate Critical Gameplay Systems	Validate C# entity implementations	﻿2026-03-02T16:01:34.4869940Z ##[group]Run echo "Checking C# entity implementations for required patterns..."
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4870631Z [36;1mecho "Checking C# entity implementations for required patterns..."[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4871156Z [36;1mecho "See issue #328 and PR #327 for context on dual-language validation."[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4871529Z [36;1mecho ""[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4871700Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4871858Z [36;1merrors=0[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4872026Z [36;1mwarnings=0[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4872202Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4872367Z [36;1m# Check C# Enemy.cs if it exists[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4872655Z [36;1mif [ -f "Scripts/Objects/Enemy.cs" ]; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4872973Z [36;1m  echo "Validating C# Enemy implementation..."[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4873480Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4873691Z [36;1m  # Check for IDamageable implementation[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4874036Z [36;1m  if ! grep -q "IDamageable" "Scripts/Objects/Enemy.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4874588Z [36;1m    echo "::warning file=Scripts/Objects/Enemy.cs::C# Enemy should implement IDamageable interface"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4875048Z [36;1m    warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4875274Z [36;1m  else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4875486Z [36;1m    echo "  ✓ Implements IDamageable"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4875743Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4875901Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4876082Z [36;1m  # Check for required damage methods[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4876479Z [36;1m  if ! grep -qE "(public|override).*TakeDamage" "Scripts/Objects/Enemy.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4877043Z [36;1m    echo "::error file=Scripts/Objects/Enemy.cs::Missing TakeDamage method in C# Enemy"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4877463Z [36;1m    errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4877688Z [36;1m  else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4877893Z [36;1m    echo "  ✓ Has TakeDamage method"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4878132Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4878290Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4878512Z [36;1m  # Check for on_hit method (for GDScript interop)[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4878877Z [36;1m  if ! grep -q "on_hit\(\)" "Scripts/Objects/Enemy.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4879408Z [36;1m    echo "::warning file=Scripts/Objects/Enemy.cs::Missing on_hit() method for GDScript interoperability"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4879893Z [36;1m    warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4880130Z [36;1m  else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4880365Z [36;1m    echo "  ✓ Has on_hit() method for GDScript interop"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4880670Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4880836Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4881004Z [36;1m  # Check for Died signal[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4881376Z [36;1m  if ! grep -q "DiedEventHandler\|signal.*Died" "Scripts/Objects/Enemy.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4881975Z [36;1m    echo "::error file=Scripts/Objects/Enemy.cs::Missing Died signal - required for enemy counting"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4882427Z [36;1m    errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4882647Z [36;1m  else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4882829Z [36;1m    echo "  ✓ Has Died signal"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4883052Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4883361Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4883638Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4883952Z [36;1m# Check C# Player.cs if it exists[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4884295Z [36;1mif [ -f "Scripts/Characters/Player.cs" ]; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4884584Z [36;1m  echo ""[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4884828Z [36;1m  echo "Validating C# Player implementation..."[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4885098Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4885272Z [36;1m  # Check for TakeDamage method[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4885721Z [36;1m  if ! grep -qE "(public|override).*TakeDamage" "Scripts/Characters/Player.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4886308Z [36;1m    echo "::error file=Scripts/Characters/Player.cs::Missing TakeDamage method in C# Player"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4886941Z [36;1m    errors=$((errors + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4887165Z [36;1m  else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4887513Z [36;1m    echo "  ✓ Has TakeDamage method"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4887748Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4887905Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4888164Z [36;1m  # Check for invincibility check in TakeDamage (added in PR #327)[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4888598Z [36;1m  if grep -q "TakeDamage" "Scripts/Characters/Player.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4889096Z [36;1m    if ! grep -q "_invincibilityEnabled\|invincibility" "Scripts/Characters/Player.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4889786Z [36;1m      echo "::warning file=Scripts/Characters/Player.cs::TakeDamage may not check invincibility mode (see PR #327)"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4890300Z [36;1m      warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4890529Z [36;1m    else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4890733Z [36;1m      echo "  ✓ Has invincibility check"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4890987Z [36;1m    fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4891149Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4891301Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4891460Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4891651Z [36;1m# Check C# HealthComponent if it exists[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4891992Z [36;1mif [ -f "Scripts/Components/HealthComponent.cs" ]; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4892309Z [36;1m  echo ""[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4892522Z [36;1m  echo "Validating C# HealthComponent..."[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4892785Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4892952Z [36;1m  # Check for required signals[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4893646Z [36;1m  if ! grep -q "DiedEventHandler\|signal.*Died" "Scripts/Components/HealthComponent.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4894249Z [36;1m    echo "::warning file=Scripts/Components/HealthComponent.cs::Missing Died signal"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4894676Z [36;1m    warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4894906Z [36;1m  else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4895089Z [36;1m    echo "  ✓ Has Died signal"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4895317Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4895475Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4895898Z [36;1m  if ! grep -q "HealthChangedEventHandler\|signal.*HealthChanged" "Scripts/Components/HealthComponent.cs"; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4896605Z [36;1m    echo "::warning file=Scripts/Components/HealthComponent.cs::Missing HealthChanged signal"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4897051Z [36;1m    warnings=$((warnings + 1))[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4897279Z [36;1m  else[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4897468Z [36;1m    echo "  ✓ Has HealthChanged signal"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4897717Z [36;1m  fi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4897871Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4898023Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4898169Z [36;1mecho ""[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4898350Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4898676Z [36;1m  echo "::error::Found $errors critical issues in C# implementations"[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4899015Z [36;1m  exit 1[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4899188Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4899335Z [36;1m[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4899499Z [36;1mif [ "$warnings" -gt 0 ]; then[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4899801Z [36;1m  echo "Found $warnings warnings in C# implementations."[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4900113Z [36;1melse[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4900363Z [36;1m  echo "All C# entity implementations validated successfully."[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4900682Z [36;1mfi[0m
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4969849Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.4970244Z ##[endgroup]
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5064478Z Checking C# entity implementations for required patterns...
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5065346Z See issue #328 and PR #327 for context on dual-language validation.
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5065803Z 
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5066278Z Validating C# Enemy implementation...
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5086299Z   ✓ Implements IDamageable
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5106805Z   ✓ Has TakeDamage method
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5115008Z   ✓ Has on_hit() method for GDScript interop
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5135136Z   ✓ Has Died signal
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5135591Z 
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5136072Z Validating C# Player implementation...
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5152232Z   ✓ Has TakeDamage method
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5181603Z   ✓ Has invincibility check
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5182050Z 
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5182507Z Validating C# HealthComponent...
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5201714Z   ✓ Has Died signal
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5217385Z   ✓ Has HealthChanged signal
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5217845Z 
+Validate Critical Gameplay Systems	Validate C# entity implementations	2026-03-02T16:01:34.5218409Z All C# entity implementations validated successfully.
+Validate Critical Gameplay Systems	Summary	﻿2026-03-02T16:01:34.5246832Z ##[group]Run echo "=== Gameplay Critical Systems Validation Complete ==="
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5247350Z [36;1mecho "=== Gameplay Critical Systems Validation Complete ==="[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5247681Z [36;1mecho ""[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5247871Z [36;1mecho "Checks performed:"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5248166Z [36;1mecho "  ✓ Critical file modification detection"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5248489Z [36;1mecho "  ✓ Enemy state machine integrity"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5248831Z [36;1mecho "  ✓ Dangerous code pattern detection"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5249134Z [36;1mecho "  ✓ Health component validation"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5249442Z [36;1mecho "  ✓ Counter/state reset issue detection"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5249748Z [36;1mecho "  ✓ GDScript syntax validation"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5250025Z [36;1mecho "  ✓ Scene-script consistency"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5250340Z [36;1mecho "  ✓ C# entity implementations (Issue #328)"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5250629Z [36;1mecho ""[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5250909Z [36;1mecho "This workflow protects against issues like:"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5251271Z [36;1mecho "  - PR #104, #296: Enemy AI completely broken"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5251593Z [36;1mecho "  - PR #127: Game counters broken"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5251866Z [36;1mecho "  - PR #155: Game crashes"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5252153Z [36;1mecho "  - PR #157: Enemy vision/detection broken"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5252523Z [36;1mecho "  - PR #327: Dual-language implementation inconsistency"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5252853Z [36;1mecho ""[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5253075Z [36;1mecho "All critical gameplay systems validated!"[0m
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5303628Z shell: /usr/bin/bash -e {0}
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5303884Z ##[endgroup]
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5371504Z === Gameplay Critical Systems Validation Complete ===
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5371944Z 
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5372086Z Checks performed:
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5372479Z   ✓ Critical file modification detection
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5372780Z   ✓ Enemy state machine integrity
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5373083Z   ✓ Dangerous code pattern detection
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5373639Z   ✓ Health component validation
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5374101Z   ✓ Counter/state reset issue detection
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5374438Z   ✓ GDScript syntax validation
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5374701Z   ✓ Scene-script consistency
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5374980Z   ✓ C# entity implementations (Issue #328)
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5375210Z 
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5375411Z This workflow protects against issues like:
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5375942Z   - PR #104, #296: Enemy AI completely broken
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5376429Z   - PR #127: Game counters broken
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5376821Z   - PR #155: Game crashes
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5377188Z   - PR #157: Enemy vision/detection broken
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5377616Z   - PR #327: Dual-language implementation inconsistency
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5377835Z 
+Validate Critical Gameplay Systems	Summary	2026-03-02T16:01:34.5377935Z All critical gameplay systems validated!
+Validate Critical Gameplay Systems	Post Checkout	﻿2026-03-02T16:01:34.5457535Z Post job cleanup.
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6409057Z [command]/usr/bin/git version
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6453660Z git version 2.53.0
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6496753Z Temporarily overriding HOME='/home/runner/work/_temp/ee817413-19ed-4d39-a56e-987ebe9559a1' before making global git config changes
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6498066Z Adding repository directory to the temporary git global config as a safe directory
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6501965Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6536816Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6569518Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6813828Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6836417Z http.https://github.com/.extraheader
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6848873Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.6879722Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.7116724Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Validate Critical Gameplay Systems	Post Checkout	2026-03-02T16:01:34.7148825Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Validate Critical Gameplay Systems	Complete job	﻿2026-03-02T16:01:34.7508044Z Cleaning up orphan processes

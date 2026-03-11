@@ -212,9 +212,14 @@ class MockBuildingLevel extends MockLevelBase:
 
 	## Level ordering (matching LevelsMenu.LEVELS).
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -262,9 +267,14 @@ class MockCastleLevel extends MockLevelBase:
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -316,9 +326,14 @@ class MockTestTier extends MockLevelBase:
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -365,10 +380,14 @@ class MockBeachLevel extends MockLevelBase:
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -1384,7 +1403,7 @@ func test_all_levels_track_accuracy_consistently() -> void:
 # ============================================================================
 
 
-func test_level_order_building_to_testtier_to_castle() -> void:
+func test_level_order_building_to_testtier_to_castle_to_revolver() -> void:
 	var first := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
 	assert_eq(first, "res://scenes/levels/TestTier.tscn",
 		"BuildingLevel -> TestTier")
@@ -1394,8 +1413,8 @@ func test_level_order_building_to_testtier_to_castle() -> void:
 		"TestTier -> CastleLevel")
 
 	var third := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
-	assert_eq(third, "",
-		"CastleLevel is the last level (no next)")
+	assert_eq(third, "res://scenes/levels/RevolverLevel.tscn",
+		"CastleLevel -> Double Corridor (RevolverLevel) — Issue #952")
 
 
 # ============================================================================

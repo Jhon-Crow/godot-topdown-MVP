@@ -1,0 +1,371 @@
+Check Architecture Best Practices	Set up job	﻿2026-03-02T16:00:54.2349622Z Current runner version: '2.331.0'
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2376417Z ##[group]Runner Image Provisioner
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2377219Z Hosted Compute Agent
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2377767Z Version: 20260213.493
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2378372Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2379007Z Build Date: 2026-02-13T00:28:41Z
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2379569Z Worker ID: {3f089e9c-c8ee-427a-829d-d0c4e7dd1719}
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2380222Z Azure Region: northcentralus
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2380726Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2382658Z ##[group]Operating System
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2383251Z Ubuntu
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2383684Z 24.04.3
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2384069Z LTS
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2384506Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2384967Z ##[group]Runner Image
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2385442Z Image: ubuntu-24.04
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2385961Z Version: 20260224.36.1
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2386830Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260224.36/images/ubuntu/Ubuntu2404-Readme.md
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2388287Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260224.36
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2389091Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2390060Z ##[group]GITHUB_TOKEN Permissions
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2392383Z Contents: read
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2392863Z Metadata: read
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2393317Z Packages: read
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2393795Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2395836Z Secret source: Actions
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2396679Z Prepare workflow directory
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2720791Z Prepare all required actions
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.2760912Z Getting action download info
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.5778854Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Check Architecture Best Practices	Set up job	2026-03-02T16:00:54.7810316Z Complete job name: Check Architecture Best Practices
+Check Architecture Best Practices	Checkout	﻿2026-03-02T16:00:54.8462732Z ##[group]Run actions/checkout@v4
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8463634Z with:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8464168Z   ref: 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8464809Z   repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8465542Z   token: ***
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8465983Z   ssh-strict: true
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8466422Z   ssh-user: git
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8466852Z   persist-credentials: true
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8467368Z   clean: true
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8467782Z   sparse-checkout-cone-mode: true
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8468295Z   fetch-depth: 1
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8468712Z   fetch-tags: false
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8469366Z   show-progress: true
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8469843Z   lfs: false
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8470237Z   submodules: false
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8470694Z   set-safe-directory: true
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.8471398Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9505220Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9507624Z ##[group]Getting Git version info
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9508514Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9509707Z [command]/usr/bin/git version
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9573762Z git version 2.53.0
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9596767Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9610119Z Temporarily overriding HOME='/home/runner/work/_temp/40e6a679-ec5c-4998-a71e-7e9b053da946' before making global git config changes
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9611913Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9615154Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9651095Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9654515Z ##[group]Initializing the repository
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9658409Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9735616Z hint: Using 'master' as the name for the initial branch. This default branch name
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9737234Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9738174Z hint: to use in all of your new repositories, which will suppress this warning,
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9739251Z hint: call:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9739656Z hint:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9740183Z hint: 	git config --global init.defaultBranch <name>
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9740792Z hint:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9741343Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9742560Z hint: 'development'. The just-created branch can be renamed via this command:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9743608Z hint:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9743990Z hint: 	git branch -m <name>
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9744451Z hint:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9745017Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9746016Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9748808Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9780859Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9781891Z ##[group]Disabling automatic garbage collection
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9784933Z [command]/usr/bin/git config --local gc.auto 0
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9810845Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9811702Z ##[group]Setting up auth
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9817062Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:54.9842654Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0128025Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0153828Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0340277Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0367507Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0554339Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0704046Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0705239Z ##[group]Fetching the repository
+Check Architecture Best Practices	Checkout	2026-03-02T16:00:55.0706255Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7142558Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7146255Z  * branch            66add97f3a6e32bea493f3f8aa6f9af4efb2f064 -> FETCH_HEAD
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7172347Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7173648Z ##[group]Determining the checkout info
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7175100Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7180658Z [command]/usr/bin/git sparse-checkout disable
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7225020Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7255331Z ##[group]Checking out the ref
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:00.7260951Z [command]/usr/bin/git checkout --progress --force 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6576402Z Note: switching to '66add97f3a6e32bea493f3f8aa6f9af4efb2f064'.
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6577265Z 
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6577739Z You are in 'detached HEAD' state. You can look around, make experimental
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6578797Z changes and commit them, and you can discard any commits you make in this
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6579865Z state without impacting any branches by switching back to a branch.
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6580476Z 
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6580931Z If you want to create a new branch to retain commits you create, you may
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6582060Z do so (now or later) by using -c with the switch command. Example:
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6582674Z 
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6582926Z   git switch -c <new-branch-name>
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6583313Z 
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6583847Z Or undo this operation with:
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6584250Z 
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6584469Z   git switch -
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6584807Z 
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6585286Z Turn off this advice by setting config variable advice.detachedHead to false
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6585935Z 
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6586578Z HEAD is now at 66add97 Fix hint overlap and update Lab level to match tutorial hint format (Issue #945)
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6618003Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6654366Z [command]/usr/bin/git log -1 --format=%H
+Check Architecture Best Practices	Checkout	2026-03-02T16:01:01.6677161Z 66add97f3a6e32bea493f3f8aa6f9af4efb2f064
+Check Architecture Best Practices	Check script line counts	﻿2026-03-02T16:01:01.6841911Z ##[group]Run echo "Checking GDScript file sizes..."
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6842625Z [36;1mecho "Checking GDScript file sizes..."[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6843153Z [36;1m# Current limits - these will be reduced as refactoring progresses[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6843664Z [36;1m# Target: MAX_LINES=800, WARN_LINES=500[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6844217Z [36;1m# Current: Higher limits to allow existing large scripts while encouraging refactoring[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6844866Z [36;1mMAX_LINES=5000  # Will be reduced to 800 as refactoring progresses[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6845435Z [36;1mWARN_LINES=800  # Warns for scripts that should be considered for refactoring[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6846063Z [36;1mCRITICAL_THRESHOLD=4500  # 90% of MAX_LINES - pre-emptive warning (Issue #328)[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6846534Z [36;1merrors=0[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6846812Z [36;1mwarnings=0[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6847095Z [36;1mcritical_warnings=0[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6847397Z [36;1mlarge_scripts=0[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6847706Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6848016Z [36;1m# Find all GDScript files (excluding addons and tests)[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6848419Z [36;1mwhile IFS= read -r file; do[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6848736Z [36;1m  lines=$(wc -l < "$file")[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6849080Z [36;1m  if [ "$lines" -gt "$MAX_LINES" ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6849624Z [36;1m    echo "::error file=$file::Script exceeds $MAX_LINES lines ($lines lines). Refactoring required."[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6850170Z [36;1m    errors=$((errors + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6850533Z [36;1m  elif [ "$lines" -gt "$CRITICAL_THRESHOLD" ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6850979Z [36;1m    # Pre-emptive warning at 90% of MAX_LINES (Issue #328)[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6851400Z [36;1m    remaining=$((MAX_LINES - lines))[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6852193Z [36;1m    echo "::warning file=$file::CRITICAL: Script has $lines lines (only $remaining lines remaining before limit). Immediate refactoring recommended!"[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6852960Z [36;1m    critical_warnings=$((critical_warnings + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6853336Z [36;1m    warnings=$((warnings + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6853700Z [36;1m  elif [ "$lines" -gt "$WARN_LINES" ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6854500Z [36;1m    echo "::warning file=$file::Script has $lines lines (warning threshold: $WARN_LINES). Consider splitting into components using the patterns in scripts/components/."[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6855307Z [36;1m    warnings=$((warnings + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6855755Z [36;1m  fi[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6856014Z [36;1m  if [ "$lines" -gt 500 ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6856372Z [36;1m    large_scripts=$((large_scripts + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6856711Z [36;1m  fi[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6857069Z [36;1mdone < <(find scripts -name "*.gd" -type f 2>/dev/null)[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6857455Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6857735Z [36;1mecho "errors=$errors" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6858144Z [36;1mecho "warnings=$warnings" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6858613Z [36;1mecho "critical_warnings=$critical_warnings" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6859130Z [36;1mecho "large_scripts=$large_scripts" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6859500Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6859753Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6860150Z [36;1m  echo "Found $errors script(s) exceeding line limit."[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6860738Z [36;1m  exit 1[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6860997Z [36;1mfi[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6861226Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6861914Z [36;1mecho "All scripts within size limits. ($warnings warnings, $critical_warnings critical, $large_scripts scripts over 500 lines)"[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6862567Z [36;1mecho ""[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6862859Z [36;1mif [ "$critical_warnings" -gt 0 ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6863821Z [36;1m  echo "⚠️  ATTENTION: $critical_warnings script(s) are approaching the line limit!"[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6864540Z [36;1m  echo "   These scripts should be prioritized for refactoring to avoid CI failures."[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6865346Z [36;1m  echo "   See PR #323 for an example of CI failure due to exceeding line limit."[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6865792Z [36;1mfi[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6866143Z [36;1mecho ""[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6866676Z [36;1mecho "Note: Gradual refactoring is encouraged. See scripts/components/ for reusable component patterns."[0m
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6900408Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6900828Z ##[endgroup]
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.6971986Z Checking GDScript file sizes...
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7317182Z ##[warning]Script has 1654 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7343703Z ##[warning]Script has 946 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7444261Z ##[warning]Script has 1777 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7459541Z ##[warning]Script has 1038 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7474710Z ##[warning]Script has 1483 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7493313Z ##[warning]Script has 1137 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7508364Z ##[warning]Script has 1134 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7523402Z ##[warning]Script has 1139 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7538568Z ##[warning]Script has 1348 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7553511Z ##[warning]Script has 1688 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7568470Z ##[warning]Script has 888 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7673340Z ##[warning]Script has 1725 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7974300Z ##[warning]CRITICAL: Script has 4999 lines (only 1 lines remaining before limit). Immediate refactoring recommended!
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.7989535Z ##[warning]Script has 3937 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8091029Z ##[warning]Script has 1278 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8168179Z ##[warning]Script has 1350 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8183594Z ##[warning]Script has 1388 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8243283Z ##[warning]Script has 1013 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8499652Z All scripts within size limits. (18 warnings, 1 critical, 26 scripts over 500 lines)
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8500566Z 
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8501182Z ⚠️  ATTENTION: 1 script(s) are approaching the line limit!
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8502299Z    These scripts should be prioritized for refactoring to avoid CI failures.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8503207Z    See PR #323 for an example of CI failure due to exceeding line limit.
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8503510Z 
+Check Architecture Best Practices	Check script line counts	2026-03-02T16:01:01.8503844Z Note: Gradual refactoring is encouraged. See scripts/components/ for reusable component patterns.
+Check Architecture Best Practices	Check for class_name declarations	﻿2026-03-02T16:01:01.8635788Z ##[group]Run echo "Checking component files have class_name..."
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8636417Z [36;1mecho "Checking component files have class_name..."[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8636800Z [36;1merrors=0[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8637050Z [36;1m[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8637303Z [36;1m# Check components folder[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8637675Z [36;1mif [ -d "scripts/components" ]; then[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8638055Z [36;1m  for file in scripts/components/*.gd; do[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8638421Z [36;1m    if [ -f "$file" ]; then[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8638777Z [36;1m      if ! grep -q "^class_name" "$file"; then[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8639264Z [36;1m        echo "::error file=$file::Component script missing class_name declaration"[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8639737Z [36;1m        errors=$((errors + 1))[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8640049Z [36;1m      fi[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8640285Z [36;1m    fi[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8640524Z [36;1m  done[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8640756Z [36;1mfi[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8641031Z [36;1m[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8641282Z [36;1m# Check AI states folder[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8641609Z [36;1mif [ -d "scripts/ai/states" ]; then[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8642112Z [36;1m  for file in scripts/ai/states/*.gd; do[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8642480Z [36;1m    if [ -f "$file" ]; then[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8642842Z [36;1m      if ! grep -q "^class_name" "$file"; then[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8643326Z [36;1m        echo "::error file=$file::AI state script missing class_name declaration"[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8643795Z [36;1m        errors=$((errors + 1))[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8644135Z [36;1m      fi[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8644401Z [36;1m    fi[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8644666Z [36;1m  done[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8644918Z [36;1mfi[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8645183Z [36;1m[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8645456Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8645878Z [36;1m  echo "Found $errors files missing class_name declarations."[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8646304Z [36;1m  exit 1[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8646574Z [36;1mfi[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8646829Z [36;1m[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8647182Z [36;1mecho "All component/state files have class_name declarations."[0m
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8675828Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8676259Z ##[endgroup]
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8723651Z Checking component files have class_name...
+Check Architecture Best Practices	Check for class_name declarations	2026-03-02T16:01:01.8963882Z All component/state files have class_name declarations.
+Check Architecture Best Practices	Check folder structure	﻿2026-03-02T16:01:01.8998483Z ##[group]Run echo "Checking project folder structure..."
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.8999037Z [36;1mecho "Checking project folder structure..."[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.8999419Z [36;1mrequired_dirs=([0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.8999759Z [36;1m  "scripts/autoload"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9000081Z [36;1m  "scripts/ai"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9000395Z [36;1m  "scripts/characters"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9000719Z [36;1m  "scripts/objects"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9001028Z [36;1m  "scripts/ui"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9001343Z [36;1m  "scenes/characters"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9001669Z [36;1m  "scenes/levels"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9002474Z [36;1m  "scenes/objects"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9002790Z [36;1m  "scenes/ui"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9003077Z [36;1m)[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9003330Z [36;1m[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9003590Z [36;1merrors=0[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9004032Z [36;1mfor dir in "${required_dirs[@]}"; do[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9004400Z [36;1m  if [ ! -d "$dir" ]; then[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9004836Z [36;1m    echo "::error::Required directory '$dir' not found"[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9005247Z [36;1m    errors=$((errors + 1))[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9005557Z [36;1m  fi[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9005820Z [36;1mdone[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9006072Z [36;1m[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9006341Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9006739Z [36;1m  echo "Found $errors missing required directories."[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9007127Z [36;1m  exit 1[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9007398Z [36;1mfi[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9007652Z [36;1m[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9007955Z [36;1mecho "All required directories present."[0m
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9036861Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9037255Z ##[endgroup]
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9085046Z Checking project folder structure...
+Check Architecture Best Practices	Check folder structure	2026-03-02T16:01:01.9086151Z All required directories present.
+Check Architecture Best Practices	Check snake_case naming	﻿2026-03-02T16:01:01.9121277Z ##[group]Run echo "Checking snake_case naming convention for GDScript files..."
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9122289Z [36;1mecho "Checking snake_case naming convention for GDScript files..."[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9122751Z [36;1merrors=0[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9123026Z [36;1m[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9123394Z [36;1m# Check GDScript files use snake_case (lowercase with underscores)[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9123883Z [36;1mwhile IFS= read -r file; do[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9124257Z [36;1m  basename=$(basename "$file" .gd)[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9124656Z [36;1m  # Check if filename contains uppercase letters[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9125072Z [36;1m  if [[ "$basename" =~ [A-Z] ]]; then[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9125619Z [36;1m    echo "::error file=$file::GDScript filename should be snake_case (lowercase with underscores)"[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9126175Z [36;1m    errors=$((errors + 1))[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9126494Z [36;1m  fi[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9126878Z [36;1mdone < <(find scripts -name "*.gd" -type f 2>/dev/null)[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9127308Z [36;1m[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9127578Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9127974Z [36;1m  echo "Found $errors files with incorrect naming."[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9128361Z [36;1m  exit 1[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9128628Z [36;1mfi[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9128878Z [36;1m[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9129202Z [36;1mecho "All GDScript files use snake_case naming."[0m
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9156844Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9157233Z ##[endgroup]
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:01.9202692Z Checking snake_case naming convention for GDScript files...
+Check Architecture Best Practices	Check snake_case naming	2026-03-02T16:01:02.0194484Z All GDScript files use snake_case naming.
+Check Architecture Best Practices	Check for direct singleton access patterns	﻿2026-03-02T16:01:02.0230505Z ##[group]Run echo "Checking for potential tight coupling with autoloads..."
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0231183Z [36;1mecho "Checking for potential tight coupling with autoloads..."[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0231631Z [36;1mwarnings=0[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0232132Z [36;1m[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0232509Z [36;1m# Look for potential issues (direct global access without null check)[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0232998Z [36;1mwhile IFS= read -r file; do[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0233422Z [36;1m  # Check for patterns that might indicate tight coupling[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0233870Z [36;1m  # This is a soft warning, not an error[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0234390Z [36;1m  if grep -qE "^[^#]*\b(GameManager|AudioManager|InputSettings)\.[a-z]" "$file"; then[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0234922Z [36;1m    # Check if the same file has null checks[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0235478Z [36;1m    if ! grep -qE "get_node_or_null.*/(GameManager|AudioManager|InputSettings)" "$file"; then[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0236214Z [36;1m      echo "::warning file=$file::Consider using get_node_or_null for autoload access to improve robustness"[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0236826Z [36;1m      warnings=$((warnings + 1))[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0237161Z [36;1m    fi[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0237560Z [36;1m  fi[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0237904Z [36;1mdone < <(find scripts -name "*.gd" -type f 2>/dev/null)[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0238298Z [36;1m[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0238680Z [36;1mecho "Found $warnings potential coupling warnings (non-blocking)."[0m
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0267198Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0267579Z ##[endgroup]
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0317111Z Checking for potential tight coupling with autoloads...
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0621387Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0747406Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0774253Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0800040Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0826267Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0850555Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0874007Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0900155Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0925081Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.0949360Z ##[warning]Consider using get_node_or_null for autoload access to improve robustness
+Check Architecture Best Practices	Check for direct singleton access patterns	2026-03-02T16:01:02.1770340Z Found 10 potential coupling warnings (non-blocking).
+Check Architecture Best Practices	Summary	﻿2026-03-02T16:01:02.1803265Z ##[group]Run echo "=== Architecture Check Complete ==="
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1803710Z [36;1mecho "=== Architecture Check Complete ==="[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1804009Z [36;1mecho ""[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1804230Z [36;1mecho "Checks performed:"[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1804609Z [36;1mecho "  ✓ Script line counts (max 5000, critical at 4500, warn at 800)"[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1805059Z [36;1mecho "  ✓ class_name declarations for components"[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1805387Z [36;1mecho "  ✓ Required folder structure"[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1805698Z [36;1mecho "  ✓ snake_case naming convention"[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1806006Z [36;1mecho "  ✓ Autoload coupling patterns"[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1806284Z [36;1mecho ""[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1806644Z [36;1mecho "Note: Scripts approaching the line limit (>4500 lines) trigger critical warnings."[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1807201Z [36;1mecho "This helps prevent CI failures like those seen in PR #323 (Issue #328)."[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1807585Z [36;1mecho ""[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1807867Z [36;1mecho "All critical checks passed!"[0m
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1836541Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1836860Z ##[endgroup]
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1883838Z === Architecture Check Complete ===
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1884310Z 
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1884509Z Checks performed:
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1885356Z   ✓ Script line counts (max 5000, critical at 4500, warn at 800)
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1886228Z   ✓ class_name declarations for components
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1886774Z   ✓ Required folder structure
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1887111Z   ✓ snake_case naming convention
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1887410Z   ✓ Autoload coupling patterns
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1887582Z 
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1887831Z Note: Scripts approaching the line limit (>4500 lines) trigger critical warnings.
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1888346Z This helps prevent CI failures like those seen in PR #323 (Issue #328).
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1888612Z 
+Check Architecture Best Practices	Summary	2026-03-02T16:01:02.1888722Z All critical checks passed!
+Check Architecture Best Practices	Post Checkout	﻿2026-03-02T16:01:02.1975012Z Post job cleanup.
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.2896230Z [command]/usr/bin/git version
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.2940002Z git version 2.53.0
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.2986184Z Temporarily overriding HOME='/home/runner/work/_temp/7304c737-a8d3-49f0-8020-5dd0d5ff9df7' before making global git config changes
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.2987596Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.2993828Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3029087Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3061954Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3266387Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3288201Z http.https://github.com/.extraheader
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3299239Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3328065Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3515800Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	Post Checkout	2026-03-02T16:01:02.3543650Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	Complete job	﻿2026-03-02T16:01:02.3841344Z Cleaning up orphan processes

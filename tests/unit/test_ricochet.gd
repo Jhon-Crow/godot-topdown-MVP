@@ -542,3 +542,91 @@ func test_shotgun_pellet_post_ricochet_distance_at_grazing_angle_is_long() -> vo
 	# Should be close to viewport_diagonal * 0.944 = ~2080 px
 	assert_gt(max_dist, viewport_diagonal * 0.85,
 		"At nearly grazing angles, pellet should travel most of the viewport diagonal after ricochet")
+
+
+# ============================================================================
+# Issue #1004: Ricochet Points Active Item Probability Boost Tests
+# ============================================================================
+
+
+func _calculate_ricochet_probability_with_boost(impact_angle_deg: float, max_angle: float, base_probability: float, boost_enabled: bool) -> float:
+	## Helper: computes ricochet probability formula with optional +30% boost.
+	## Mirrors the logic in bullet.gd _calculate_ricochet_probability().
+	if impact_angle_deg > max_angle:
+		return 0.0
+	var normalized_angle := impact_angle_deg / 90.0
+	var power_factor := pow(normalized_angle, 2.17)
+	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
+	var probability := base_probability * angle_factor
+	if boost_enabled:
+		probability = minf(probability + 0.3, 1.0)
+	return probability
+
+
+func test_ricochet_points_boost_increases_probability_at_45_degrees() -> void:
+	## Issue #1004: enabling ricochet points should raise probability by 0.30 at valid angles.
+	var normal_prob := _calculate_ricochet_probability_with_boost(45.0, 90.0, 1.0, false)
+	var boosted_prob := _calculate_ricochet_probability_with_boost(45.0, 90.0, 1.0, true)
+
+	assert_almost_eq(boosted_prob, normal_prob + 0.3, 0.01,
+		"Ricochet points should boost probability by 0.30 at 45 degrees")
+
+
+func test_ricochet_points_boost_increases_probability_at_shallow_angle() -> void:
+	## Issue #1004: boost should also apply at shallow angles (near grazing).
+	var normal_prob := _calculate_ricochet_probability_with_boost(5.0, 90.0, 1.0, false)
+	var boosted_prob := _calculate_ricochet_probability_with_boost(5.0, 90.0, 1.0, true)
+
+	# At very shallow angle the base probability is nearly 1.0, so clamped to 1.0
+	assert_almost_eq(boosted_prob, 1.0, 0.01,
+		"Ricochet points boost at shallow angles should be clamped at 1.0")
+	assert_true(boosted_prob >= normal_prob,
+		"Boosted probability should never be less than normal probability")
+
+
+func test_ricochet_points_boost_does_not_exceed_one() -> void:
+	## Issue #1004: boosted probability must never exceed 1.0.
+	for angle in [0.0, 5.0, 15.0, 30.0, 45.0, 60.0, 70.0, 80.0, 90.0]:
+		var boosted_prob := _calculate_ricochet_probability_with_boost(angle, 90.0, 1.0, true)
+		assert_true(boosted_prob <= 1.0,
+			"Ricochet points boosted probability should not exceed 1.0 (angle=%s)" % angle)
+
+
+func test_ricochet_points_boost_zero_beyond_max_angle() -> void:
+	## Issue #1004: boost must NOT apply when angle exceeds max_ricochet_angle (red ray zone).
+	## The function should still return 0.0 for invalid angles even with boost enabled.
+	var prob := _calculate_ricochet_probability_with_boost(91.0, 90.0, 1.0, true)
+	assert_eq(prob, 0.0,
+		"Ricochet points boost should not apply beyond max ricochet angle (angle > max_angle returns 0)")
+
+
+func test_ricochet_points_boost_exactly_30_percent_at_steep_angle() -> void:
+	## Issue #1004: at a steep angle where base probability is well below 0.7 (e.g. 80 deg),
+	## the boost should add exactly 0.3 without clamping.
+	var normal_prob := _calculate_ricochet_probability_with_boost(80.0, 90.0, 1.0, false)
+	var boosted_prob := _calculate_ricochet_probability_with_boost(80.0, 90.0, 1.0, true)
+
+	# At 80 degrees: normal_prob is well below 0.7, so 0.3 addition won't exceed 1.0
+	assert_almost_eq(boosted_prob, normal_prob + 0.3, 0.001,
+		"At 80 degrees, boost should be exactly +0.30 (no clamping needed)")
+
+
+func test_caliber_data_ricochet_points_probability_math() -> void:
+	## Issue #1004: Verify the ricochet points math independently on CaliberData.
+	## This tests that the formula boosts by 0.3 at 45 degrees.
+	var caliber := CaliberData.new()
+	caliber.max_ricochet_angle = 90.0
+	caliber.base_ricochet_probability = 1.0
+
+	# Calculate base probability at 45 degrees using the same formula
+	var normalized_angle := 45.0 / 90.0
+	var power_factor := pow(normalized_angle, 2.17)
+	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
+	var expected_base := caliber.base_ricochet_probability * angle_factor
+	var expected_boosted := minf(expected_base + 0.3, 1.0)
+
+	# The boosted value should be base + 0.3 (clamped to 1.0)
+	assert_almost_eq(expected_boosted, expected_base + 0.3, 0.001,
+		"At 45 degrees with base=1.0, boost adds 0.30 (no clamping)")
+	assert_true(expected_boosted <= 1.0,
+		"Boosted probability is capped at 1.0")

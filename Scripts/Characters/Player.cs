@@ -697,19 +697,19 @@ public partial class Player : BaseCharacter
     private bool _homingActive = false;
 
     /// <summary>
-    /// Remaining homing charges (6 per battle).
+    /// Remaining homing charges (2 per battle).
     /// </summary>
-    private int _homingCharges = 6;
+    private int _homingCharges = 2;
 
     /// <summary>
     /// Maximum homing charges per battle.
     /// </summary>
-    private const int MaxHomingCharges = 6;
+    private const int MaxHomingCharges = 2;
 
     /// <summary>
     /// Duration of homing effect per activation in seconds.
     /// </summary>
-    private const float HomingDuration = 1.0f;
+    private const float HomingDuration = 1.2f;
 
     /// <summary>
     /// Timer tracking remaining homing effect duration.
@@ -844,9 +844,10 @@ public partial class Player : BaseCharacter
         // Configure health based on difficulty
         if (HealthComponent != null)
         {
-            // Check if Power Fantasy mode is active for special health configuration
+            // Check difficulty mode for special health configuration
             var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
             bool isPowerFantasy = difficultyManager != null && (bool)difficultyManager.Call("is_power_fantasy_mode");
+            bool isBlackMetal = difficultyManager != null && difficultyManager.HasMethod("is_black_metal_mode") && (bool)difficultyManager.Call("is_black_metal_mode");
 
             if (isPowerFantasy)
             {
@@ -856,6 +857,25 @@ public partial class Player : BaseCharacter
                 HealthComponent.InitialHealth = 10;
                 HealthComponent.InitializeHealth();
                 GD.Print($"[Player] {Name}: Power Fantasy mode - spawned with {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth} HP");
+            }
+            else if (isBlackMetal)
+            {
+                // Black Metal mode: 25% less HP (Issue #958)
+                // Base range 2-4 HP reduced by 0.75 multiplier -> 1-3 HP
+                float hpMult = difficultyManager != null && difficultyManager.HasMethod("get_hp_multiplier")
+                    ? (float)difficultyManager.Call("get_hp_multiplier")
+                    : 0.75f;
+                HealthComponent.UseRandomHealth = true;
+                HealthComponent.MinRandomHealth = Mathf.Max(1, (int)(2 * hpMult));
+                HealthComponent.MaxRandomHealth = Mathf.Max(1, (int)(4 * hpMult));
+                HealthComponent.InitializeHealth();
+                GD.Print($"[Player] {Name}: Black Metal mode - spawned with {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth} HP (25% less)");
+                // Also apply 25% speed boost (Issue #958)
+                float speedMult = difficultyManager != null && difficultyManager.HasMethod("get_player_speed_multiplier")
+                    ? (float)difficultyManager.Call("get_player_speed_multiplier")
+                    : 1.25f;
+                MaxSpeed *= speedMult;
+                GD.Print($"[Player] {Name}: Black Metal mode - speed set to {MaxSpeed} (25% faster)");
             }
             else
             {

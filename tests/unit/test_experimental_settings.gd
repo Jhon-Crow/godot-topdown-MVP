@@ -14,6 +14,7 @@ class MockExperimentalSettings:
 	## Whether FOV (Field of View) limitation for enemies is enabled.
 	var fov_enabled: bool = false
 
+
 	## Whether complex grenade throwing is enabled.
 	var complex_grenade_throwing: bool = false
 
@@ -34,6 +35,9 @@ class MockExperimentalSettings:
 
 	## Whether enemy flashlight blinding is enabled (Issue #903).
 	var enemy_flashlight_blinding_enabled: bool = false
+
+	## Whether all weapons are unlocked (Issue #882).
+	var all_weapons_unlocked: bool = false
 
 	## Signal tracking
 	var settings_changed_emitted: int = 0
@@ -129,6 +133,17 @@ class MockExperimentalSettings:
 	func is_enemy_flashlight_blinding_enabled() -> bool:
 		return enemy_flashlight_blinding_enabled
 
+	## Set all weapons unlocked enabled/disabled (Issue #882).
+	func set_all_weapons_unlocked(enabled: bool) -> void:
+		if all_weapons_unlocked != enabled:
+			all_weapons_unlocked = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if all weapons unlocked is enabled (Issue #882).
+	func is_all_weapons_unlocked() -> bool:
+		return all_weapons_unlocked
+
 	## Save settings (simulated).
 	func _save_settings() -> void:
 		_saved_settings["fov_enabled"] = fov_enabled
@@ -139,6 +154,7 @@ class MockExperimentalSettings:
 		_saved_settings["realistic_visibility_enabled"] = realistic_visibility_enabled
 		_saved_settings["logging_enabled"] = logging_enabled
 		_saved_settings["enemy_flashlight_blinding_enabled"] = enemy_flashlight_blinding_enabled
+		_saved_settings["all_weapons_unlocked"] = all_weapons_unlocked
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
@@ -174,6 +190,10 @@ class MockExperimentalSettings:
 			enemy_flashlight_blinding_enabled = _saved_settings["enemy_flashlight_blinding_enabled"]
 		else:
 			enemy_flashlight_blinding_enabled = false
+		if _saved_settings.has("all_weapons_unlocked"):
+			all_weapons_unlocked = _saved_settings["all_weapons_unlocked"]
+		else:
+			all_weapons_unlocked = false
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
@@ -185,6 +205,7 @@ class MockExperimentalSettings:
 		realistic_visibility_enabled = false
 		logging_enabled = true
 		enemy_flashlight_blinding_enabled = false
+		all_weapons_unlocked = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
 
@@ -1051,3 +1072,109 @@ func test_save_and_load_enemy_flashlight_blinding_enabled() -> void:
 
 	assert_true(settings.is_enemy_flashlight_blinding_enabled(),
 		"Enemy flashlight blinding enabled state should survive reload")
+
+
+# ============================================================================
+# All Weapons Unlocked Setting Tests (Issue #882)
+# ============================================================================
+
+
+func test_default_all_weapons_unlocked_disabled() -> void:
+	assert_false(settings.all_weapons_unlocked,
+		"All weapons unlocked should be disabled by default")
+
+
+func test_is_all_weapons_unlocked_returns_false_by_default() -> void:
+	assert_false(settings.is_all_weapons_unlocked(),
+		"is_all_weapons_unlocked should return false by default")
+
+
+func test_set_all_weapons_unlocked_true() -> void:
+	settings.set_all_weapons_unlocked(true)
+
+	assert_true(settings.all_weapons_unlocked,
+		"All weapons unlocked should be enabled after set_all_weapons_unlocked(true)")
+
+
+func test_set_all_weapons_unlocked_false() -> void:
+	settings.all_weapons_unlocked = true
+	settings.set_all_weapons_unlocked(false)
+
+	assert_false(settings.all_weapons_unlocked,
+		"All weapons unlocked should be disabled after set_all_weapons_unlocked(false)")
+
+
+func test_set_all_weapons_unlocked_emits_signal() -> void:
+	settings.set_all_weapons_unlocked(true)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when enabling all weapons unlocked")
+
+
+func test_set_all_weapons_unlocked_no_signal_if_same_value() -> void:
+	settings.all_weapons_unlocked = false
+	settings.settings_changed_emitted = 0
+
+	settings.set_all_weapons_unlocked(false)  # Same value
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if all weapons unlocked value unchanged")
+
+
+func test_set_all_weapons_unlocked_saves_settings() -> void:
+	settings.set_all_weapons_unlocked(true)
+
+	assert_true(settings._saved_settings.has("all_weapons_unlocked"),
+		"Settings should contain all_weapons_unlocked")
+	assert_true(settings._saved_settings["all_weapons_unlocked"],
+		"Saved value should match enabled state")
+
+
+func test_load_settings_restores_all_weapons_unlocked() -> void:
+	settings._saved_settings["all_weapons_unlocked"] = true
+	settings._load_settings()
+
+	assert_true(settings.all_weapons_unlocked,
+		"Load should restore saved all weapons unlocked setting")
+
+
+func test_load_settings_all_weapons_unlocked_defaults_to_false() -> void:
+	settings.all_weapons_unlocked = true
+	settings._saved_settings.clear()
+	settings._load_settings()
+
+	assert_false(settings.all_weapons_unlocked,
+		"Load should default all weapons unlocked to false when no saved settings")
+
+
+func test_reset_clears_all_weapons_unlocked() -> void:
+	settings.set_all_weapons_unlocked(true)
+	settings.reset_to_defaults()
+
+	assert_false(settings.all_weapons_unlocked,
+		"Reset should disable all weapons unlocked")
+
+
+func test_all_weapons_unlocked_independent_of_other_settings() -> void:
+	settings.set_all_weapons_unlocked(true)
+	assert_true(settings.is_all_weapons_unlocked(), "All weapons unlocked should be enabled")
+	assert_false(settings.is_fov_enabled(), "FOV should still be disabled (default)")
+	assert_false(settings.is_complex_grenade_throwing(), "Grenades should still be disabled")
+	assert_false(settings.is_ai_prediction_enabled(), "AI prediction should still be disabled")
+	assert_false(settings.is_debug_mode_enabled(), "Debug mode should still be disabled")
+	assert_false(settings.is_invincibility_enabled(), "Invincibility should still be disabled")
+	assert_false(settings.is_realistic_visibility_enabled(), "Realistic visibility should still be disabled")
+	assert_false(settings.is_enemy_flashlight_blinding_enabled(), "Enemy flashlight blinding should still be disabled")
+
+
+func test_save_and_load_all_weapons_unlocked_enabled() -> void:
+	settings.set_all_weapons_unlocked(true)
+
+	# Reset in-memory state
+	settings.all_weapons_unlocked = false
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_true(settings.is_all_weapons_unlocked(),
+		"All weapons unlocked enabled state should survive reload")
