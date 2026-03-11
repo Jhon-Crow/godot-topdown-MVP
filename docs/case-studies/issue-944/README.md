@@ -143,6 +143,84 @@ Instead of using BBCode `[s]` tags, we now use a persistent Line2D overlay attac
 | `scripts/levels/tutorial_level.gd` | Replaced BBCode [s] with Line2D, added progressive extension |
 | `scripts/levels/labyrinth_level.gd` | Same changes applied |
 
+## Session 4: Multi-line Support and Positioning Fixes
+
+After Session 3, the owner provided additional feedback (comment #4042518360):
+
+> 1. анимация выглядит хорошо, но черта слишком высоко (должна быть по центру строки)
+> 2. если обучение состоит из 2 и более строк (как на скриншоте) должны зачёркиваться все строки по очереди (сейчас только верхняя)
+> 3. некоторые действия зачёркиваются не полностью
+
+Translation:
+1. Animation looks good, but the line is too high (should be centered on the text line)
+2. If tutorial consists of 2+ lines, ALL lines should be struck through sequentially (currently only the top one)
+3. Some actions are not fully struck through
+
+### Root Cause Analysis (Session 4)
+
+**Issue 1: Line positioned too high**
+- `line_y := 10.0` was hardcoded, assuming font size ~20 with center at ~10
+- However, Line2D position is relative to label origin, and baseline/center varies
+- Fix: Calculate vertical center based on font metrics (~55% of line height for proper center)
+
+**Issue 2: Only top line struck through**
+- The code assumed single-line text with just 2 Line2D points
+- Multi-line text (e.g., "Передёрни затвор" wrapping to second line) needs multiple line segments
+- Fix: Detect line count via `get_content_height()` and create 2 points per line
+
+**Issue 3: Incomplete strikethrough**
+- Using `custom_minimum_size.x` (300) as width, but actual text content width may differ
+- Fix: Use `get_content_width()` for actual rendered text width
+
+### Technical Solution (Session 4)
+
+**Multi-line Strikethrough Architecture:**
+
+1. **Line Count Detection**: After label is added to scene tree, use `call_deferred()` to calculate:
+   ```gdscript
+   var content_height := label.get_content_height()
+   var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+   ```
+
+2. **Line2D Point Setup**: Create 2 points per line (start and end):
+   ```gdscript
+   for line_idx in range(line_count):
+       var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+       strike_line.add_point(Vector2(0, line_y))  # Start point
+       strike_line.add_point(Vector2(0, line_y))  # End point (animated)
+   ```
+
+3. **Progress Distribution**: Progress 0.0-1.0 spans all lines:
+   - 2 lines: progress 0.5 = line 1 fully struck, line 2 not started
+   - 2 lines: progress 0.75 = line 1 fully struck, line 2 at 50%
+
+4. **Per-line Progress Calculation**:
+   ```gdscript
+   var line_start_progress := float(line_idx) / line_count
+   var line_end_progress := float(line_idx + 1) / line_count
+   var line_progress := clamp((progress - line_start_progress) / (line_end_progress - line_start_progress), 0.0, 1.0)
+   ```
+
+### New Data Structures
+
+| Variable | Type | Purpose |
+|----------|------|---------|
+| `_hint_line_counts` | Dictionary (String -> int) | Tracks line count per hint |
+
+### New Functions Added
+
+| Function | Purpose |
+|----------|---------|
+| `_setup_strikethrough_lines()` | Deferred setup of Line2D points after layout |
+| `_update_strikethrough_points()` | Update all Line2D segments based on progress |
+
+### Constants Used
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `LINE_HEIGHT` | 26.0 | Font size (20) + default line spacing |
+| Vertical center | `LINE_HEIGHT * 0.55` | Proper center accounting for baseline |
+
 ## References
 
 - [BBCode in RichTextLabel - Godot Docs](https://docs.godotengine.org/en/stable/tutorials/ui/bbcode_in_richtextlabel.html)

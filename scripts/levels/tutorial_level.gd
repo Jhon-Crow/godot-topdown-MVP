@@ -167,6 +167,10 @@ var _hint_strike_lines: Dictionary = {}
 ## Progress increases as each step completes; used to animate Line2D extension.
 var _hint_strike_progress: Dictionary = {}
 
+## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
+## Multi-line hints need multiple Line2D segments, one per line.
+var _hint_line_counts: Dictionary = {}
+
 ## Number of shots fired by the player (Issue #945: reload hint appears after 2 shots).
 var _shots_fired: int = 0
 
@@ -1572,23 +1576,22 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	canvas_layer.add_child(label)
 	_hint_labels[hint_key] = label
 
-	# Issue #944: Create Line2D for progressive animated strikethrough.
-	# The line is attached to the label and extends progressively as steps complete.
+	# Issue #944 Session 4: Create Line2D for progressive animated strikethrough.
+	# The line supports multi-line text with proper vertical centering per line.
 	var strike_line := Line2D.new()
 	strike_line.name = "StrikeLine_" + hint_key
 	strike_line.width = 1.5  # Thinner line to match BBCode strikethrough appearance
 	# Semi-transparent to match subtle BBCode strikethrough (grey at 60% opacity)
 	strike_line.default_color = Color(0.6, 0.6, 0.6, 0.6)
 	strike_line.z_index = 1  # Draw on top of the text
-
-	# Position at vertical center of label (font size ~20, center ~10)
-	var line_y := 10.0
-	strike_line.add_point(Vector2(0, line_y))
-	strike_line.add_point(Vector2(0, line_y))  # Start with 0 width
-
 	label.add_child(strike_line)
 	_hint_strike_lines[hint_key] = strike_line
 	_hint_strike_progress[hint_key] = 0.0
+
+	# Session 4: Calculate line count and set up Line2D points after layout.
+	# Font size 20 with default line spacing gives ~26px per line.
+	# We need to wait a frame for RichTextLabel to calculate its content size.
+	_setup_strikethrough_lines.call_deferred(hint_key, label, strike_line)
 
 	print("Tutorial: Added hint '%s': %s" % [hint_key, text])
 
@@ -1600,9 +1603,43 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	tween.tween_property(label, "modulate:a", 1.0, HINT_FADE_IN_DURATION).set_ease(Tween.EASE_OUT)
 
 
-## Issue #944: Animate the strikethrough line to extend progressively as steps complete.
+## Issue #944 Session 4: Set up Line2D points for strikethrough after label layout is ready.
+## Calculates proper vertical center for each text line and sets up initial (hidden) points.
+func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel, strike_line: Line2D) -> void:
+	if not is_instance_valid(label) or not is_instance_valid(strike_line):
+		return
+
+	# Get font metrics. Font size is 20, typical line height with spacing is ~26px.
+	const FONT_SIZE := 20.0
+	const LINE_HEIGHT := 26.0  # Font size + default line spacing
+
+	# Calculate number of lines based on content height vs line height.
+	# Use get_content_height() for actual rendered height.
+	var content_height := label.get_content_height()
+	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+	_hint_line_counts[hint_key] = line_count
+
+	# Get actual content width for proper strikethrough coverage.
+	var content_width := label.get_content_width()
+	if content_width <= 0:
+		content_width = label.custom_minimum_size.x
+
+	# Clear existing points and set up 2 points per line (start and end of each line).
+	strike_line.clear_points()
+
+	for line_idx in range(line_count):
+		# Vertical center of each line: baseline is at ~70% of line height, center at ~55%.
+		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		# Add start and end points for this line (both at x=0 initially, hidden).
+		strike_line.add_point(Vector2(0, line_y))
+		strike_line.add_point(Vector2(0, line_y))
+
+	print("Tutorial: Setup strikethrough for '%s': %d lines, width=%d" % [hint_key, line_count, int(content_width)])
+
+
+## Issue #944 Session 4: Animate the strikethrough line to extend progressively as steps complete.
 ## target_progress: 0.0-1.0 representing how much of the hint text should be struck through.
-## This is called when a step within a multi-step action completes.
+## For multi-line text, progress spans all lines (e.g., 2 lines: 0.5 = line 1 fully struck).
 func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> void:
 	if not _hint_strike_lines.has(hint_key):
 		return
@@ -1615,26 +1652,67 @@ func _extend_hint_strikethrough(hint_key: String, target_progress: float) -> voi
 	if target_progress <= current_progress:
 		return  # Already at or past this progress
 
-	# Get the text width to calculate pixel position
+	# Get the text width to calculate pixel position.
 	var text_width := 300.0  # Default, matches custom_minimum_size.x
 	if _hint_labels.has(hint_key):
 		var label: RichTextLabel = _hint_labels[hint_key]
-		if is_instance_valid(label) and label.custom_minimum_size.x > 0:
-			text_width = label.custom_minimum_size.x
+		if is_instance_valid(label):
+			var content_width := label.get_content_width()
+			if content_width > 0:
+				text_width = content_width
+			elif label.custom_minimum_size.x > 0:
+				text_width = label.custom_minimum_size.x
 
-	var line_y := 10.0  # Vertical center of text
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+	var point_count := strike_line.get_point_count()
+	if point_count < 2:
+		return  # Not yet initialized
 
-	# Animate the line extension from current position to new position
+	# Animate the line extension from current position to new position.
 	var tween := create_tween()
 	tween.tween_method(
 		func(progress: float):
-			if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
-				strike_line.set_point_position(1, Vector2(text_width * progress, line_y)),
+			if not is_instance_valid(strike_line):
+				return
+			_update_strikethrough_points(strike_line, line_count, text_width, progress),
 		current_progress, target_progress, HINT_STRIKETHROUGH_DURATION * 0.5
 	).set_ease(Tween.EASE_OUT)
 
 	_hint_strike_progress[hint_key] = target_progress
 	print("Tutorial: Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
+
+
+## Issue #944 Session 4: Update Line2D point positions for multi-line strikethrough.
+## progress: 0.0-1.0 overall progress across all lines.
+func _update_strikethrough_points(strike_line: Line2D, line_count: int, text_width: float, progress: float) -> void:
+	const LINE_HEIGHT := 26.0
+
+	for line_idx in range(line_count):
+		var point_start_idx := line_idx * 2
+		var point_end_idx := point_start_idx + 1
+		if point_end_idx >= strike_line.get_point_count():
+			break
+
+		# Calculate how much of this line should be struck through.
+		# Each line represents 1/line_count of total progress.
+		var line_start_progress := float(line_idx) / line_count
+		var line_end_progress := float(line_idx + 1) / line_count
+
+		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		var line_progress: float
+
+		if progress <= line_start_progress:
+			# This line hasn't started yet
+			line_progress = 0.0
+		elif progress >= line_end_progress:
+			# This line is fully completed
+			line_progress = 1.0
+		else:
+			# This line is partially completed
+			line_progress = (progress - line_start_progress) / (line_end_progress - line_start_progress)
+
+		# Update the end point of this line segment.
+		strike_line.set_point_position(point_end_idx, Vector2(text_width * line_progress, line_y))
 
 
 ## Dismiss (remove) a single hint by key, leaving other hints visible.
@@ -1660,20 +1738,23 @@ func _dismiss_hint(hint_key: String) -> void:
 	_animate_hint_strikethrough_and_fade(hint_key, label)
 
 
-## Issue #944: Extend the existing Line2D strikethrough to 100% and then fade out.
+## Issue #944 Session 4: Extend the existing Line2D strikethrough to 100% and then fade out.
 ## Uses the persistent Line2D that was created with the hint in _add_hint.
+## Supports multi-line text by animating all line segments.
 func _animate_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel) -> void:
 	# Get the existing strike line attached to this hint
 	var strike_line: Line2D = null
 	if _hint_strike_lines.has(hint_key):
 		strike_line = _hint_strike_lines[hint_key]
 
-	# Get the text width
-	var text_width: float = label.custom_minimum_size.x
+	# Get the text width using actual content width.
+	var text_width: float = label.get_content_width()
+	if text_width <= 0:
+		text_width = label.custom_minimum_size.x
 	if text_width <= 0:
 		text_width = 300.0  # Default width
 
-	var line_y := 10.0  # Vertical center
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
 	var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
 
 	# Animate the line from current position to full width (100%)
@@ -1682,8 +1763,9 @@ func _animate_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel
 	if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
 		tween.tween_method(
 			func(progress: float):
-				if is_instance_valid(strike_line) and strike_line.get_point_count() >= 2:
-					strike_line.set_point_position(1, Vector2(text_width * progress, line_y)),
+				if not is_instance_valid(strike_line):
+					return
+				_update_strikethrough_points(strike_line, line_count, text_width, progress),
 			current_progress, 1.0, HINT_STRIKETHROUGH_DURATION
 		).set_ease(Tween.EASE_OUT)
 
@@ -1692,12 +1774,13 @@ func _animate_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel
 	tween.tween_callback(_finalize_hint_dismiss.bind(hint_key, label))
 
 
-## Issue #944: Finalize hint dismissal after animation completes.
+## Issue #944 Session 4: Finalize hint dismissal after animation completes.
 func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_animating_hints.erase(hint_key)
 	_hint_labels.erase(hint_key)
 	_hint_strike_lines.erase(hint_key)
 	_hint_strike_progress.erase(hint_key)
+	_hint_line_counts.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
 	print("Tutorial: Hint '%s' dismissed (animation complete)" % hint_key)
