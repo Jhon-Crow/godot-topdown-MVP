@@ -502,11 +502,71 @@ class MockLabyrinthLevel extends MockLevelBase:
 		setup_tutorial_hints()
 
 
+## Mock CityLevel for Testing (Issue #957: level clear message not displayed).
+class MockCityLevel extends MockLevelBase:
+	var level_name: String = "CityLevel"
+
+	## Map dimensions (~6000x5000 playable area).
+	var map_width: int = 6000
+	var map_height: int = 5000
+
+	## Default enemy count for city level (8 enemies).
+	var default_enemy_count: int = 8
+
+	## Whether the score screen is currently shown.
+	var _score_shown: bool = false
+
+	## Level ordering (city is last in sequence).
+	var _level_paths: Array[String] = [
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+	]
+
+	## Initialize with default enemy configuration.
+	func initialize() -> void:
+		var enemies: Array = []
+		for i in range(default_enemy_count):
+			enemies.append("CityEnemy%d" % (i + 1))
+		setup_enemy_tracking(enemies)
+
+	## Get rank color — must match city_level.gd _get_rank_color.
+	func get_rank_color(rank: String) -> Color:
+		match rank:
+			"S":
+				return Color(1.0, 0.84, 0.0, 1.0)
+			"A+":
+				return Color(0.0, 1.0, 0.5, 1.0)
+			"A":
+				return Color(0.2, 0.8, 0.2, 1.0)
+			"B":
+				return Color(0.3, 0.7, 1.0, 1.0)
+			"C":
+				return Color(1.0, 1.0, 1.0, 1.0)
+			"D":
+				return Color(1.0, 0.6, 0.2, 1.0)
+			"F":
+				return Color(1.0, 0.2, 0.2, 1.0)
+			_:
+				return Color(1.0, 1.0, 1.0, 1.0)
+
+	## Get the next level path.
+	func get_next_level_path(current_scene_path: String) -> String:
+		for i in range(_level_paths.size()):
+			if _level_paths[i] == current_scene_path:
+				if i + 1 < _level_paths.size():
+					return _level_paths[i + 1]
+				return ""
+		return ""
+
+
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
 var test_tier: MockTestTier
 var beach_level: MockBeachLevel
 var labyrinth_level: MockLabyrinthLevel
+var city_level: MockCityLevel
 
 
 func before_each() -> void:
@@ -515,6 +575,7 @@ func before_each() -> void:
 	test_tier = MockTestTier.new()
 	beach_level = MockBeachLevel.new()
 	labyrinth_level = MockLabyrinthLevel.new()
+	city_level = MockCityLevel.new()
 
 
 func after_each() -> void:
@@ -523,6 +584,7 @@ func after_each() -> void:
 	test_tier = null
 	beach_level = null
 	labyrinth_level = null
+	city_level = null
 
 
 # ============================================================================
@@ -1912,3 +1974,184 @@ func test_labyrinth_thresholds_descending_order() -> void:
 	assert_true(t["B"] > t["C"], "B threshold must be greater than C")
 	assert_true(t["C"] > t["D"], "C threshold must be greater than D")
 	assert_true(t["D"] > t["F"], "D threshold must be greater than F")
+
+
+# ============================================================================
+# CityLevel Default Configuration Tests (Issue #957: level clear message fix)
+# ============================================================================
+
+
+func test_city_level_name() -> void:
+	assert_eq(city_level.level_name, "CityLevel",
+		"City level name should be CityLevel")
+
+
+func test_city_level_map_dimensions() -> void:
+	assert_eq(city_level.map_width, 6000,
+		"City map width should be 6000")
+	assert_eq(city_level.map_height, 5000,
+		"City map height should be 5000")
+
+
+func test_city_level_default_enemy_count() -> void:
+	assert_eq(city_level.default_enemy_count, 8,
+		"City level should have 8 enemies by default")
+
+
+func test_city_level_initial_state() -> void:
+	assert_eq(city_level._initial_enemy_count, 0,
+		"Initial enemy count should be 0 before setup")
+	assert_eq(city_level._current_enemy_count, 0,
+		"Current enemy count should be 0 before setup")
+	assert_false(city_level._game_over_shown,
+		"Game over should not be shown initially")
+	assert_false(city_level._level_cleared,
+		"Level should not be cleared initially")
+	assert_false(city_level._level_completed,
+		"Level should not be completed initially")
+
+
+# ============================================================================
+# CityLevel Enemy Tracking Tests (Issue #957)
+# ============================================================================
+
+
+func test_city_level_initialize_sets_enemy_count() -> void:
+	city_level.initialize()
+
+	assert_eq(city_level._initial_enemy_count, 8,
+		"Should track 8 enemies after initialization")
+	assert_eq(city_level._current_enemy_count, 8,
+		"Current enemy count should match initial count")
+
+
+func test_city_level_enemy_died_decrements_count() -> void:
+	city_level.initialize()
+	city_level.on_enemy_died()
+
+	assert_eq(city_level._current_enemy_count, 7,
+		"Current enemy count should decrease by 1")
+	assert_eq(city_level._kills, 1,
+		"Kill count should increment by 1")
+
+
+func test_city_level_all_enemies_killed_clears_level() -> void:
+	city_level.initialize()
+
+	for i in range(8):
+		city_level.on_enemy_died()
+
+	assert_eq(city_level._current_enemy_count, 0,
+		"Current enemy count should be 0 after all killed")
+	assert_eq(city_level._kills, 8,
+		"Kill count should match initial enemy count")
+	assert_true(city_level._level_cleared,
+		"Level should be marked as cleared when all enemies are dead")
+	assert_true(city_level.exit_zone_activated,
+		"Exit zone should be activated after last enemy killed")
+
+
+func test_city_level_not_cleared_with_enemies_remaining() -> void:
+	city_level.initialize()
+
+	for i in range(7):
+		city_level.on_enemy_died()
+
+	assert_false(city_level._level_cleared,
+		"Level should NOT be cleared with 1 enemy remaining")
+	assert_false(city_level.exit_zone_activated,
+		"Exit zone should NOT be activated with enemies remaining")
+
+
+# ============================================================================
+# CityLevel Level Completion Tests (Issue #957)
+# ============================================================================
+
+
+func test_city_level_exit_triggers_score_screen() -> void:
+	city_level.initialize()
+
+	for i in range(8):
+		city_level.on_enemy_died()
+
+	city_level.on_player_reached_exit()
+
+	assert_true(city_level._level_completed,
+		"Level should be marked as completed when player reaches exit")
+	assert_true(city_level.score_screen_shown,
+		"Score screen should be shown when player reaches exit after clearing")
+
+
+func test_city_level_exit_without_clearing_does_nothing() -> void:
+	city_level.initialize()
+
+	# Player reaches exit WITHOUT killing all enemies
+	city_level.on_player_reached_exit()
+
+	assert_false(city_level._level_completed,
+		"Level should NOT be completed if not cleared")
+	assert_false(city_level.score_screen_shown,
+		"Score screen should NOT be shown if level not cleared")
+
+
+func test_city_level_no_duplicate_completions() -> void:
+	city_level.initialize()
+
+	for i in range(8):
+		city_level.on_enemy_died()
+
+	city_level.on_player_reached_exit()
+	var first_completed := city_level._level_completed
+
+	# Second call should be no-op
+	city_level.score_screen_shown = false
+	city_level.on_player_reached_exit()
+
+	assert_true(first_completed,
+		"First completion should succeed")
+	assert_false(city_level.score_screen_shown,
+		"Second completion call should not re-show score screen")
+
+
+# ============================================================================
+# CityLevel Rank Color Tests (Issue #957: _get_rank_color was missing)
+# ============================================================================
+
+
+func test_city_level_rank_color_s_is_gold() -> void:
+	var color := city_level.get_rank_color("S")
+	assert_eq(color, Color(1.0, 0.84, 0.0, 1.0),
+		"City level S rank should be gold")
+
+
+func test_city_level_rank_color_f_is_red() -> void:
+	var color := city_level.get_rank_color("F")
+	assert_eq(color, Color(1.0, 0.2, 0.2, 1.0),
+		"City level F rank should be red")
+
+
+func test_city_level_rank_colors_match_other_levels() -> void:
+	for rank in ["S", "A+", "A", "B", "C", "D", "F"]:
+		var city_color := city_level.get_rank_color(rank)
+		var building_color := building_level.get_rank_color(rank)
+		assert_eq(city_color, building_color,
+			"City and Building rank color should match for rank %s" % rank)
+
+
+# ============================================================================
+# CityLevel Next Level Path Tests (Issue #957)
+# ============================================================================
+
+
+func test_city_level_is_last_in_ordering() -> void:
+	var next := city_level.get_next_level_path("res://scenes/levels/CityLevel.tscn")
+
+	assert_eq(next, "",
+		"CityLevel should be the last in its sequence (no next level)")
+
+
+func test_city_level_after_castle_level() -> void:
+	var next := city_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
+
+	assert_eq(next, "res://scenes/levels/CityLevel.tscn",
+		"Next level after CastleLevel should be CityLevel")

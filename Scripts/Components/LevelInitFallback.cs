@@ -760,6 +760,8 @@ public partial class LevelInitFallback : Node
             var scoreScreen = new Node();
             scoreScreen.SetScript(animatedScoreScreenScript);
             parent.AddChild(scoreScreen);
+            // Connect animation_completed so buttons appear after the animation finishes
+            scoreScreen.Connect("animation_completed", new Callable(this, MethodName.OnScoreAnimationCompleted));
             if (scoreScreen.HasMethod("show_animated_score"))
             {
                 scoreScreen.Call("show_animated_score", ui, scoreData);
@@ -793,6 +795,69 @@ public partial class LevelInitFallback : Node
         victoryLabel.OffsetTop = -80;
         victoryLabel.OffsetBottom = -30;
         ui.AddChild(victoryLabel);
+    }
+
+    /// <summary>
+    /// Called when the animated score screen finishes all animations.
+    /// Adds navigation buttons (Restart, Level Select) to the score screen container.
+    /// </summary>
+    private void OnScoreAnimationCompleted(GodotObject containerObj)
+    {
+        _scoreShown = true;
+
+        if (containerObj is not Node containerNode) return;
+
+        var spacer = new Control();
+        spacer.CustomMinimumSize = new Vector2(0, 10);
+        containerNode.AddChild(spacer);
+
+        var buttonsContainer = new VBoxContainer();
+        buttonsContainer.Name = "ButtonsContainer";
+        buttonsContainer.Alignment = BoxContainer.AlignmentMode.Center;
+        buttonsContainer.AddThemeConstantOverride("separation", 10);
+        containerNode.AddChild(buttonsContainer);
+
+        var restartButton = new Button();
+        restartButton.Name = "RestartButton";
+        restartButton.Text = "↻ Restart (Q)";
+        restartButton.CustomMinimumSize = new Vector2(200, 40);
+        restartButton.AddThemeFontSizeOverride("font_size", 18);
+        restartButton.Pressed += OnRestartPressed;
+        buttonsContainer.AddChild(restartButton);
+
+        var levelSelectButton = new Button();
+        levelSelectButton.Name = "LevelSelectButton";
+        levelSelectButton.Text = "☰ Level Select";
+        levelSelectButton.CustomMinimumSize = new Vector2(200, 40);
+        levelSelectButton.AddThemeFontSizeOverride("font_size", 18);
+        levelSelectButton.Pressed += OnLevelSelectPressed;
+        buttonsContainer.AddChild(levelSelectButton);
+
+        Input.SetMouseMode(Input.MouseModeEnum.Confined);
+        restartButton.GrabFocus();
+    }
+
+    private void OnRestartPressed()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager != null && gameManager.HasMethod("restart_scene"))
+            gameManager.Call("restart_scene");
+        else
+            GetTree().ReloadCurrentScene();
+    }
+
+    private void OnLevelSelectPressed()
+    {
+        var levelsMenuScript = GD.Load<Script>("res://scripts/ui/levels_menu.gd");
+        if (levelsMenuScript != null)
+        {
+            var levelsMenu = new CanvasLayer();
+            levelsMenu.SetScript(levelsMenuScript);
+            levelsMenu.Layer = 100;
+            GetTree().Root.AddChild(levelsMenu);
+            if (levelsMenu.HasSignal("back_pressed"))
+                levelsMenu.Connect("back_pressed", new Callable(levelsMenu, "queue_free"));
+        }
     }
 
     private void ShowDeathMessage()

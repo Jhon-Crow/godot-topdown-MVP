@@ -643,7 +643,55 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		score_screen.animation_completed.connect(_on_score_animation_completed)
 		score_screen.show_animated_score(ui, score_data)
 	else:
-		_show_victory_message()
+		_show_fallback_score_screen(ui, score_data)
+
+
+## Fallback score screen if animated component is not available.
+func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
+	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
+	var _font_loaded := gothic_font != null
+
+	var background := ColorRect.new()
+	background.name = "ScoreBackground"
+	background.color = Color(0.0, 0.0, 0.0, 0.7)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(background)
+
+	var container := VBoxContainer.new()
+	container.name = "ScoreContainer"
+	container.set_anchors_preset(Control.PRESET_CENTER)
+	container.offset_left = -300
+	container.offset_right = 300
+	container.offset_top = -200
+	container.offset_bottom = 200
+	container.add_theme_constant_override("separation", 8)
+	ui.add_child(container)
+
+	var title_label := Label.new()
+	title_label.text = "CITY CLEARED!"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 42)
+	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	container.add_child(title_label)
+
+	var rank_label := Label.new()
+	rank_label.text = "RANK: %s" % score_data.rank
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rank_label.add_theme_font_size_override("font_size", 64)
+	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
+	if _font_loaded:
+		rank_label.add_theme_font_override("font", gothic_font)
+	container.add_child(rank_label)
+
+	var total_label := Label.new()
+	total_label.text = "TOTAL SCORE: %d" % score_data.total_score
+	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_label.add_theme_font_size_override("font_size", 32)
+	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	container.add_child(total_label)
+
+	_add_score_screen_buttons(container)
 
 
 func _on_score_animation_completed(container: VBoxContainer) -> void:
@@ -688,19 +736,28 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
-	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-	buttons_container.add_child(replay_button)
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
+
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
+
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+
+		buttons_container.add_child(replay_button)
 
 	# Armory button (Issue #897: shown highlighted when items are available to unlock)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
@@ -901,6 +958,27 @@ func _get_next_level_path() -> String:
 				return level_paths[i + 1]
 			return ""
 	return ""
+
+
+## Get the color for a given rank.
+func _get_rank_color(rank: String) -> Color:
+	match rank:
+		"S":
+			return Color(1.0, 0.84, 0.0, 1.0)
+		"A+":
+			return Color(0.0, 1.0, 0.5, 1.0)
+		"A":
+			return Color(0.2, 0.8, 0.2, 1.0)
+		"B":
+			return Color(0.3, 0.7, 1.0, 1.0)
+		"C":
+			return Color(1.0, 1.0, 1.0, 1.0)
+		"D":
+			return Color(1.0, 0.6, 0.2, 1.0)
+		"F":
+			return Color(1.0, 0.2, 0.2, 1.0)
+		_:
+			return Color(1.0, 1.0, 1.0, 1.0)
 
 
 func _disable_player_controls() -> void:
