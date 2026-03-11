@@ -391,6 +391,26 @@ namespace GodotTopdown.Scripts.Projectiles
             if (HasExploded)
                 return;
 
+            // FIX for Issue #886: When a Frag/VOG grenade hits a solid body, BOTH the GDScript
+            // handler (frag_grenade._on_body_entered → GrenadeBase._explode) and this C# handler
+            // (GrenadeTimer.OnBodyEntered → Explode) receive the same body_entered signal.
+            // GDScript fires first (connected in _ready() before C# _Ready()), setting
+            // _has_exploded=true. C# has a separate HasExploded bool that is still false.
+            // Without this guard, C# would spawn a second set of shrapnel, apply damage twice,
+            // and call QueueFree() a second time — causing the lag spike at explosion moment.
+            // Solution: call GDScript's has_exploded() method (more reliable than Get("_has_exploded")
+            // in exported builds — non-@export GDScript properties may not be accessible via Get()
+            // in release exports, but methods are always accessible via Call()).
+            if (_grenadeBody != null && Type == GrenadeType.Frag)
+            {
+                if (_grenadeBody.HasMethod("has_exploded") && _grenadeBody.Call("has_exploded").AsBool())
+                {
+                    LogToFile($"[GrenadeTimer] GDScript already handled {Type} explosion - skipping C# duplicate (Issue #886)");
+                    HasExploded = true; // Sync C# state to prevent future triggers
+                    return;
+                }
+            }
+
             HasExploded = true;
 
             if (_grenadeBody == null)
@@ -398,6 +418,21 @@ namespace GodotTopdown.Scripts.Projectiles
 
             Vector2 explosionPosition = _grenadeBody.GlobalPosition;
             LogToFile($"[GrenadeTimer] {Type} grenade activated at {explosionPosition}!");
+
+            // FIX for Issue #886: Trigger Power Fantasy time-freeze effect from C# path.
+            // GrenadeBase._explode() already calls on_grenade_exploded() in GDScript, but if C#
+            // somehow runs first (race condition) or GDScript _explode() is unavailable (export
+            // builds where GDScript execution is unreliable), the PF effect must still trigger.
+            // on_grenade_exploded() internally checks is_power_fantasy_mode(), so calling it
+            // twice is safe — the second call is a no-op if PF effect is already active.
+            if (Type == GrenadeType.Frag || Type == GrenadeType.Flashbang)
+            {
+                var pfManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+                if (pfManager != null && pfManager.HasMethod("on_grenade_exploded"))
+                {
+                    pfManager.Call("on_grenade_exploded");
+                }
+            }
 
             // Apply explosion effects based on type
             if (Type == GrenadeType.Frag)
@@ -695,12 +730,12 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Spawn visual explosion effect using PointLight2D with shadow_enabled for wall occlusion.
+        /// Spawn visual explosion effect using PointLight2D.
         /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
         /// the explosion effect directly in C# to ensure it always works.
-        /// FIX for Issue #469: Flashbang uses shadow-enabled PointLight2D so flash doesn't pass through walls.
-        /// FIX for Issue #470: Frag grenade uses PointLight2D with shadow_enabled=true to automatically
-        /// respect wall geometry through Godot's native 2D lighting/shadow system.
+        /// FIX for Issue #724: Shadows are DISABLED on PointLight2D because shadow rendering
+        /// causes severe FPS drops (4 draw lists per light + 4 × lights × occluders).
+        /// Brief explosion flashes (0.3-0.4s) don't need accurate shadow casting anyway.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
@@ -717,8 +752,8 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Loads and instantiates the FlashbangEffect.tscn scene directly from C#.
-        /// FIX for Issue #469: Uses shadow-enabled PointLight2D so flash doesn't pass through walls.
         /// FIX for Issue #432: Bypasses GDScript Call() which fails silently in exports.
+        /// FIX for Issue #724: FlashbangEffect.tscn now has shadow_enabled=false for performance.
         /// </summary>
         private void SpawnFlashbangEffectScene(Vector2 position)
         {
@@ -754,12 +789,12 @@ namespace GodotTopdown.Scripts.Projectiles
             // Add to the current scene
             GetTree().CurrentScene?.AddChild(effect);
 
-            LogToFile($"[GrenadeTimer] Spawned shadow-enabled flashbang effect at {position} (radius: {EffectRadius})");
+            LogToFile($"[GrenadeTimer] Spawned flashbang effect at {position} (radius: {EffectRadius})");
         }
 
         /// <summary>
         /// Spawn frag grenade explosion flash using ExplosionFlash.tscn.
-        /// FIX for Issue #470: Uses PointLight2D with shadow_enabled=true for wall occlusion.
+        /// FIX for Issue #724: Shadows are disabled on PointLight2D for performance.
         /// </summary>
         private void SpawnFragExplosionFlash(Vector2 position)
         {
@@ -779,7 +814,7 @@ namespace GodotTopdown.Scripts.Projectiles
                     flashNode.Set("effect_radius", EffectRadius);
 
                     GetTree().CurrentScene.AddChild(flash);
-                    LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position} (shadow-based wall occlusion)");
+                    LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position}");
                     return;
                 }
             }
@@ -792,20 +827,21 @@ namespace GodotTopdown.Scripts.Projectiles
         /// <summary>
         /// Fallback explosion flash using PointLight2D directly.
         /// Used when ExplosionFlash.tscn cannot be loaded.
-        /// Uses shadow_enabled=true to respect wall geometry.
+        /// FIX for Issue #724: Shadows are DISABLED because shadow-enabled PointLight2D
+        /// causes severe FPS drops (4 draw lists per light + 4 × lights × occluders).
+        /// Brief explosion flashes (0.3-0.4s) don't need accurate shadow casting.
         /// </summary>
         private void CreateFallbackExplosionFlash(Vector2 position)
         {
-            // Create PointLight2D with shadow enabled for wall occlusion
+            // Create PointLight2D WITHOUT shadows for performance (Issue #724)
             var light = new PointLight2D();
             light.GlobalPosition = position;
             light.ZIndex = 10;
 
-            // Enable shadows so light respects wall geometry
-            light.ShadowEnabled = true;
-            light.ShadowColor = new Color(0, 0, 0, 0.9f);
-            light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
-            light.ShadowFilterSmooth = 6.0f;
+            // FIX Issue #724: Shadows DISABLED - they cause severe FPS drops
+            // Shadow rendering creates 4 draw lists per light + 4 × lights × occluders
+            // Brief explosion flashes don't need accurate shadow casting
+            light.ShadowEnabled = false;
 
             // Create gradient texture for the light
             light.Texture = CreateLightGradientTexture();

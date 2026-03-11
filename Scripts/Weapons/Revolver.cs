@@ -53,6 +53,16 @@ public enum RevolverReloadState
 public partial class Revolver : BaseWeapon
 {
     /// <summary>
+    /// Number of chambers in the cylinder.
+    /// Exported as a separate property so it is set directly via the scene file
+    /// and does not depend on WeaponData resource deserialization (Issue #950).
+    /// WeaponData.MagazineSize mirrors this value for information purposes,
+    /// but the authoritative cylinder size comes from this exported property.
+    /// </summary>
+    [Export]
+    public int CylinderSize { get; set; } = 5;
+
+    /// <summary>
     /// Minimum drag distance to register a gesture (in pixels).
     /// Same threshold as shotgun for consistent feel.
     /// </summary>
@@ -63,6 +73,26 @@ public partial class Revolver : BaseWeapon
     /// Reference to the Sprite2D node for the weapon visual.
     /// </summary>
     private Sprite2D? _weaponSprite;
+
+    /// <summary>
+    /// Reference to the Line2D node for the laser sight (Power Fantasy mode only).
+    /// </summary>
+    private Line2D? _laserSight;
+
+    /// <summary>
+    /// Glow effect for the laser sight (aura + endpoint glow).
+    /// </summary>
+    private LaserGlowEffect? _laserGlow;
+
+    /// <summary>
+    /// Whether the laser sight is enabled (true only in Power Fantasy mode).
+    /// </summary>
+    private bool _laserSightEnabled = false;
+
+    /// <summary>
+    /// Color of the laser sight (blue in Power Fantasy mode).
+    /// </summary>
+    private Color _laserSightColor = new Color(0.0f, 0.5f, 1.0f, 0.6f);
 
     /// <summary>
     /// Current aim direction based on mouse position.
@@ -273,7 +303,7 @@ public partial class Revolver : BaseWeapon
             GD.Print("[Revolver] No RevolverSprite node (visual model not yet added)");
         }
 
-        int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
+        int cylinderCapacity = CylinderCapacity;
 
         // Issue #668: Initialize per-chamber tracking array.
         // Chambers start based on CurrentAmmo (empty drum support - Issue #716).
@@ -286,8 +316,74 @@ public partial class Revolver : BaseWeapon
 
         GD.Print($"[Revolver] RSh-12 initialized - heavy revolver ready, cylinder capacity={cylinderCapacity}");
 
+        // Check for Power Fantasy mode - enable blue laser sight (Issue #864)
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
+            if (shouldForceBlueLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
+                _laserSightColor = blueColorVariant.AsColor();
+                CreateLaserSight();
+                GD.Print($"[Revolver] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                _laserSightColor = purpleColorVariant.AsColor();
+                if (GetNodeOrNull<Line2D>("LaserSight") == null)
+                    CreateLaserSight();
+                GD.Print($"[Revolver] Laser Sight active item: purple laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
         // Issue #691: Setup cylinder HUD using CallDeferred so the scene tree is fully ready
         CallDeferred(MethodName.SetupCylinderHUD);
+    }
+
+    /// <summary>
+    /// Initializes magazine inventory using CylinderSize as the authoritative magazine size
+    /// instead of WeaponData.MagazineSize (Issue #950).
+    ///
+    /// Root cause: In Godot 4.3 release builds, C# [GlobalClass] resource properties
+    /// (such as WeaponData.MagazineSize in RevolverData.tres) may not be deserialized
+    /// correctly from .tres files. When this happens, the C# class default value is
+    /// used (MagazineSize = 30 from WeaponData.cs), causing the revolver to initialize
+    /// with 30-bullet "magazines" instead of the correct 5-round cylinders.
+    ///
+    /// The fix uses the exported CylinderSize property (set to 5 in Revolver.tscn),
+    /// which is a direct Godot [Export] property and is always deserialized correctly.
+    /// </summary>
+    protected override void InitializeMagazinesWithDifficulty()
+    {
+        int magazineCount = StartingMagazineCount;
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
+            int ammoMultiplier = multiplierResult.AsInt32();
+            if (ammoMultiplier > 1)
+            {
+                magazineCount *= ammoMultiplier;
+                GD.Print($"[Revolver] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} cylinders)");
+            }
+        }
+
+        int cylinderSize = CylinderSize;
+        GD.Print($"[Revolver] Initializing cylinder magazines: count={magazineCount}, cylinderSize={cylinderSize} (from CylinderSize export, not WeaponData)");
+
+        MagazineInventory.Initialize(magazineCount, cylinderSize, fillAllMagazines: true);
+        EmitMagazinesChanged();
     }
 
     /// <summary>
@@ -381,6 +477,12 @@ public partial class Revolver : BaseWeapon
 
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
+
+        // Update laser sight (Power Fantasy mode, Issue #864)
+        if (_laserSightEnabled && _laserSight != null)
+        {
+            UpdateLaserSight();
+        }
 
         // Handle RMB drag gestures for cartridge insertion (Issue #626)
         HandleDragGestures();
@@ -1011,12 +1113,88 @@ public partial class Revolver : BaseWeapon
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
 
+    #region Power Fantasy Laser Sight (Issue #864)
+
+    /// <summary>
+    /// Creates the laser sight Line2D programmatically (Power Fantasy mode only).
+    /// </summary>
+    private void CreateLaserSight()
+    {
+        _laserSight = new Line2D
+        {
+            Name = "LaserSight",
+            Width = 2.0f,
+            DefaultColor = _laserSightColor,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round
+        };
+
+        _laserSight.AddPoint(Vector2.Zero);
+        _laserSight.AddPoint(Vector2.Right * 500.0f);
+
+        AddChild(_laserSight);
+
+        // Create glow effect (aura + endpoint glow)
+        _laserGlow = new LaserGlowEffect();
+        _laserGlow.Create(this, _laserSightColor);
+    }
+
+    /// <summary>
+    /// Updates the laser sight visualization (Power Fantasy mode only).
+    /// The laser shows where bullets will go, accounting for current recoil.
+    /// </summary>
+    private void UpdateLaserSight()
+    {
+        if (_laserSight == null)
+        {
+            return;
+        }
+
+        // Apply recoil offset to aim direction for laser visualization
+        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+
+        // Calculate maximum laser length based on viewport size
+        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser
+        Vector2 endPoint = laserDirection * maxLaserLength;
+
+        // Raycast to find obstacles
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState != null)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(
+                GlobalPosition,
+                GlobalPosition + endPoint,
+                4 // Collision mask for obstacles
+            );
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                Vector2 hitPosition = (Vector2)result["position"];
+                endPoint = hitPosition - GlobalPosition;
+            }
+        }
+
+        // Update the laser sight line points (in local coordinates)
+        _laserSight.SetPointPosition(0, Vector2.Zero);
+        _laserSight.SetPointPosition(1, endPoint);
+
+        // Sync glow effect with laser
+        _laserGlow?.Update(Vector2.Zero, endPoint);
+    }
+
+    #endregion
+
     #region Multi-Step Cylinder Reload (Issue #626)
 
     /// <summary>
     /// Gets the cylinder capacity (number of chambers in the revolver).
+    /// Uses the exported CylinderSize property as the authoritative source (Issue #950).
     /// </summary>
-    public int CylinderCapacity => WeaponData?.MagazineSize ?? 5;
+    public int CylinderCapacity => CylinderSize;
 
     /// <summary>
     /// Whether the cylinder can be opened for reloading.
@@ -1390,6 +1568,11 @@ public partial class Revolver : BaseWeapon
             _cylinderUI.QueueFree();
             _cylinderUI = null;
         }
+
+        // Clean up laser glow effect when revolver is removed (Issue #864)
+        _laserGlow?.Cleanup();
+        _laserGlow = null;
+
         base._ExitTree();
     }
 }

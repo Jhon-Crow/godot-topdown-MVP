@@ -1,0 +1,64 @@
+=== LOG STATISTICS ===
+Total lines: 217290
+
+=== MESSAGE COUNTS BY COMPONENT ===
+ 155793 [INFO]
+  61497 [ENEMY]
+  59439 [SoundPropagation]
+  29250 [EnemyGrenade]
+  21251 [Bullet]
+  12425 [BloodDecal]
+   7700 [LastChance]
+   7110 [ImpactEffects]
+   5087 [Grenadier]
+   3836 [Enemy1]
+   3456 [Enemy2]
+   3289 [Enemy3]
+   3240 [Enemy7]
+   2946 [LoadingDock_Rifle2]
+   2856 [LoadingDock_UZI]
+   2766 [Enemy4]
+   2733 [ContainerYardA_Rifle2]
+   2702 [Player]
+   2701 [LoadingDock_Rifle1]
+   2616 [ReplayManager]
+   2582 [ContainerYardA_Rifle1]
+   1812 [Enemy6]
+   1711 [ContainerYardA_Shotgun]
+   1502 [OpenArea_Patrol2]
+   1376 [PatrolEnemy1]
+   1368 [OpenArea_Patrol1]
+   1259 [PatrolEnemy2]
+   1136 [ContainerYardB_Rifle]
+   1118 [LoadingDock_Machete]
+   1073 [WarehouseA_UZI2]
+
+=== ENEMY GRENADE MESSAGES ===
+  10621 [EnemyGrenade] Unsafe throw distance (200 < 275 safe distance, blast=225, margin=50) - skipping throw
+    304 [EnemyGrenade] Initialized: 1 grenades
+    223 [EnemyGrenade] Throw path blocked to (1701.115, 1083.704)
+    217 [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (682.0022, 917.9586) - skipping throw
+    184 [EnemyGrenade] Unsafe throw distance (227 < 275 safe distance, blast=225, margin=50) - skipping throw
+    163 [EnemyGrenade] Throw path blocked to (685.6316, 2889.341)
+    163 [EnemyGrenade] Throw path blocked for Offensive to (2003.525, 642.6401)
+    156 [EnemyGrenade] Throw path blocked for Offensive to (1327.089, 167.6988)
+    152 [EnemyGrenade] Unsafe throw distance (122 < 275 safe distance, blast=225, margin=50) - skipping throw
+    150 [EnemyGrenade] Unsafe throw distance (267 < 275 safe distance, blast=225, margin=50) - skipping throw
+    135 [EnemyGrenade] Throw path blocked for Offensive to (1721.903, 162.5443)
+    124 [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (2287.271, 1837.947) - skipping throw
+    116 [EnemyGrenade] Throw path blocked to (1577.606, 1097.892)
+    114 [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (2243.856, 1709.34) - skipping throw
+    114 [EnemyGrenade] Target (2243.856, 1709.34) not in enemy FOV - skipping throw
+    113 [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (975.7827, 494.9482) - skipping throw
+    112 [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
+    109 [EnemyGrenade] Throw path blocked to (3411.786, 849.8954)
+    105 [EnemyGrenade] Throw path blocked to (1615.407, 1117.991)
+     99 [EnemyGrenade] Unsafe throw distance (96 < 275 safe distance, blast=225, margin=50) - skipping throw
+
+=== SOUND PROPAGATION NO-OP EVENTS ===
+Events with notified=0,out_of_range=0: 6437
+Total Sound result events: 29095
+
+=== BLOOD DECALS ===
+Total blood decals created: 12425
+Total ImpactEffects messages: 7110

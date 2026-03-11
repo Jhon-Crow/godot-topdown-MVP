@@ -49,11 +49,14 @@ public abstract partial class BaseWeapon : Node2D
 
     /// <summary>
     /// Current ammunition in the magazine.
+    /// Exported so GDScript can read it via weapon.get("CurrentAmmo") (Issue #950).
+    /// The setter is only called internally from C# code.
     /// </summary>
+    [Export]
     public int CurrentAmmo
     {
         get => MagazineInventory.CurrentMagazine?.CurrentAmmo ?? 0;
-        protected set
+        set
         {
             if (MagazineInventory.CurrentMagazine != null)
             {
@@ -65,14 +68,17 @@ public abstract partial class BaseWeapon : Node2D
     /// <summary>
     /// Total reserve ammunition across all spare magazines.
     /// Note: This now represents total ammo in spare magazines, not a simple counter.
+    /// Exported so GDScript can read it via weapon.get("ReserveAmmo") (Issue #950).
+    /// The setter is kept for backward compatibility but is a no-op.
     /// </summary>
+    [Export]
     public int ReserveAmmo
     {
         get => MagazineInventory.TotalSpareAmmo;
-        protected set
+        set
         {
-            // This setter is kept for backward compatibility but does nothing
-            // The reserve ammo is now calculated from individual magazines
+            // This setter is kept for backward compatibility but does nothing.
+            // Reserve ammo is calculated from individual magazines.
         }
     }
 
@@ -149,10 +155,34 @@ public abstract partial class BaseWeapon : Node2D
 
     public override void _Ready()
     {
-        if (WeaponData != null)
+        // Diagnostic logging for Issue #765 (weapon data corruption after restart)
+        GD.Print($"[BaseWeapon] _Ready() called for weapon: {Name}");
+        GD.Print($"[BaseWeapon]   WeaponData: {(WeaponData != null ? "Present" : "NULL")}");
+
+        // Issue #765 Fix: Validate WeaponData and provide clear error if missing
+        if (WeaponData == null)
         {
-            InitializeMagazinesWithDifficulty();
+            GD.PrintErr($"[BaseWeapon] CRITICAL ERROR: WeaponData is NULL for weapon {Name}!");
+            GD.PrintErr($"[BaseWeapon] This weapon will not function correctly. Check that:");
+            GD.PrintErr($"[BaseWeapon]   1. The weapon scene (.tscn) has WeaponData resource assigned");
+            GD.PrintErr($"[BaseWeapon]   2. The .tres file exists and is not corrupted");
+            GD.PrintErr($"[BaseWeapon]   3. Scene reload hasn't cleared the resource reference");
+            // Don't initialize if WeaponData is missing - prevents using wrong defaults
+            return;
         }
+
+        // Log weapon data for diagnostics
+        GD.Print($"[BaseWeapon]   WeaponData.Name: {WeaponData.Name}");
+        GD.Print($"[BaseWeapon]   WeaponData.MagazineSize: {WeaponData.MagazineSize}");
+        GD.Print($"[BaseWeapon]   WeaponData.Caliber: {(WeaponData.Caliber != null ? "Present" : "NULL")}");
+        if (WeaponData.Caliber != null)
+        {
+            var caliberName = WeaponData.Caliber.Get("caliber_name");
+            GD.Print($"[BaseWeapon]   Caliber.caliber_name: {caliberName}");
+        }
+        GD.Print($"[BaseWeapon]   WeaponData resource path: {WeaponData.ResourcePath}");
+
+        InitializeMagazinesWithDifficulty();
 
         // Connect to difficulty_changed signal to re-initialize ammo when difficulty changes
         var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
@@ -168,7 +198,11 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     protected virtual void InitializeMagazinesWithDifficulty()
     {
-        if (WeaponData == null) return;
+        if (WeaponData == null)
+        {
+            GD.PrintErr($"[BaseWeapon] InitializeMagazinesWithDifficulty: WeaponData is NULL for {Name}! Cannot initialize.");
+            return;
+        }
 
         int magazineCount = StartingMagazineCount;
         var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
@@ -182,6 +216,11 @@ public abstract partial class BaseWeapon : Node2D
                 GD.Print($"[BaseWeapon] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} magazines)");
             }
         }
+
+        // Diagnostic logging for Issue #765
+        GD.Print($"[BaseWeapon] Initializing magazines for {Name}:");
+        GD.Print($"[BaseWeapon]   Magazine count: {magazineCount}");
+        GD.Print($"[BaseWeapon]   Magazine size: {WeaponData.MagazineSize}");
 
         // Initialize magazine inventory with the starting magazines
         MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
@@ -396,47 +435,63 @@ public abstract partial class BaseWeapon : Node2D
         var bullet = BulletScene.Instantiate<Node2D>();
         bullet.GlobalPosition = spawnPosition;
 
-        // Set bullet properties - try both PascalCase (C#) and snake_case (GDScript)
-        // C# bullets use PascalCase (Direction, Speed, ShooterId, ShooterPosition)
-        // GDScript bullets use snake_case (direction, speed, shooter_id, shooter_position)
-        if (bullet.HasMethod("SetDirection"))
+        // Set bullet properties BEFORE AddChild() so _ready() sees correct values.
+        // Issue #781: Node.Set() silently fails for non-@export GDScript properties.
+        // C# bullets support direct property access; GDScript bullets use Call() setter methods.
+        if (bullet is CSharpBullet csBulletDirect)
         {
-            bullet.Call("SetDirection", direction);
+            // C# bullet: direct property assignment
+            csBulletDirect.Direction = direction;
+            if (WeaponData != null)
+            {
+                csBulletDirect.Speed = WeaponData.BulletSpeed;
+                csBulletDirect.Damage = WeaponData.Damage;
+                // Pass caliber data so Bullet.cs reads correct ricochet parameters (Issue #915)
+                csBulletDirect.CaliberData = WeaponData.Caliber;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                csBulletDirect.ShooterId = owner.GetInstanceId();
+            }
+            csBulletDirect.ShooterPosition = GlobalPosition;
+        }
+        else if (bullet is GodotTopDownTemplate.Projectiles.ShotgunPellet pelletDirect)
+        {
+            // ShotgunPellet (C#): direct property assignment
+            pelletDirect.Direction = direction;
+            if (WeaponData != null)
+            {
+                pelletDirect.Speed = WeaponData.BulletSpeed;
+                pelletDirect.Damage = WeaponData.Damage;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                pelletDirect.ShooterId = owner.GetInstanceId();
+            }
+            // Note: ShotgunPellet does not have ShooterPosition property
         }
         else
         {
-            // Try PascalCase first (C# Bullet.cs), then snake_case (GDScript bullet.gd)
-            bullet.Set("Direction", direction);
-            bullet.Set("direction", direction);
+            // GDScript bullet: use Call() setter methods (Issue #781).
+            // These methods exist in bullet.gd and work before AddChild().
+            bullet.Call("set_direction", direction);
+            if (WeaponData != null)
+            {
+                bullet.Call("set_speed", WeaponData.BulletSpeed);
+                bullet.Call("set_damage", WeaponData.Damage);
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bullet.Call("set_shooter_id", (long)owner.GetInstanceId());
+            }
+            bullet.Call("set_shooter_position", GlobalPosition);
         }
-
-        // Set bullet speed and damage from weapon data
-        if (WeaponData != null)
-        {
-            // Try both cases for compatibility with C# and GDScript bullets
-            bullet.Set("Speed", WeaponData.BulletSpeed);
-            bullet.Set("speed", WeaponData.BulletSpeed);
-            // Set damage - critical for weapons with custom damage values
-            bullet.Set("Damage", WeaponData.Damage);
-            bullet.Set("damage", WeaponData.Damage);
-        }
-
-        // Set shooter ID to prevent self-damage
-        // The shooter is the owner of the weapon (parent node)
-        var owner = GetParent();
-        if (owner != null)
-        {
-            // Try both cases for compatibility with C# and GDScript bullets
-            bullet.Set("ShooterId", owner.GetInstanceId());
-            bullet.Set("shooter_id", owner.GetInstanceId());
-        }
-
-        // Set shooter position for distance-based penetration calculations
-        // Try both cases for compatibility with C# and GDScript bullets
-        bullet.Set("ShooterPosition", GlobalPosition);
-        bullet.Set("shooter_position", GlobalPosition);
 
         // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        // Must be set BEFORE AddChild() so _ready() can load the shrapnel scene.
         if (IsBreakerBulletActive)
         {
             if (bullet is CSharpBullet csBulletBreaker)
@@ -449,8 +504,23 @@ public abstract partial class BaseWeapon : Node2D
             }
             else
             {
-                // GDScript bullet — set via property name
-                bullet.Set("is_breaker_bullet", true);
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_is_breaker_bullet", true);
+            }
+        }
+
+        // Set enemy penetration flag if weapon penetrates enemies (Issue #829)
+        // This is used by the RSh-12 revolver - bullets pass through enemies
+        if (WeaponData != null && WeaponData.PenetratesEnemies)
+        {
+            if (bullet is CSharpBullet csBulletPenetrate)
+            {
+                csBulletPenetrate.PenetratesEnemies = true;
+            }
+            else
+            {
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_penetrates_enemies", true);
             }
         }
 
@@ -509,6 +579,17 @@ public abstract partial class BaseWeapon : Node2D
         if (CasingScene == null)
         {
             return;
+        }
+
+        // Diagnostic logging for Issue #765 (verify caliber data is correct)
+        if (caliber != null)
+        {
+            var caliberName = caliber.Get("caliber_name");
+            GD.Print($"[BaseWeapon] Spawning casing for {Name} with caliber: {caliberName}");
+        }
+        else
+        {
+            GD.PrintErr($"[BaseWeapon] WARNING: Spawning casing for {Name} with NULL caliber!");
         }
 
         // Calculate casing spawn position (near the weapon, slightly offset)
@@ -794,5 +875,61 @@ public abstract partial class BaseWeapon : Node2D
         EmitMagazinesChanged();
 
         GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
+    }
+
+    // =========================================================================
+    // Caliber Data Accessors (Issue #935)
+    // These C# methods expose caliber properties to GDScript callers.
+    //
+    // Root cause of Issue #935 (v3 analysis):
+    // All previous approaches (duck-typing .get(), "as CaliberData" cast, and
+    // reading WeaponData.Caliber.Get() from C#) returned 90.0 (the GDScript
+    // script default) instead of the serialized .tres value (70.0).
+    //
+    // This happens because in Godot 4.3, calling .Get() from C# on a GDScript-
+    // backed Resource returns the GDScript script-level default, not the
+    // deserialized .tres property value.
+    //
+    // Fix: Store caliber ricochet parameters directly in WeaponData.cs as C#
+    // [Export] properties (CaliberCanRicochet, CaliberMaxRicochetAngle,
+    // CaliberMaxRicochets). Being native C# properties on a C# resource, they
+    // are always read correctly from .tres files with no GDScript interop.
+    // The corresponding weapon .tres files are updated to set the correct values.
+    // =========================================================================
+
+    /// <summary>
+    /// Returns the maximum ricochet angle in degrees for this weapon's caliber.
+    /// Returns 90.0 (default) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to correctly color ricochet segments.
+    /// </summary>
+    public float GetCaliberMaxRicochetAngle()
+    {
+        if (WeaponData == null)
+            return 90.0f;
+        return WeaponData.CaliberMaxRicochetAngle;
+    }
+
+    /// <summary>
+    /// Returns the maximum number of ricochets allowed for this weapon's caliber.
+    /// Returns -1 (unlimited) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to determine bounce limit.
+    /// </summary>
+    public int GetCaliberMaxRicochets()
+    {
+        if (WeaponData == null)
+            return -1;
+        return WeaponData.CaliberMaxRicochets;
+    }
+
+    /// <summary>
+    /// Returns whether this weapon's caliber can ricochet.
+    /// Returns true (default) if no weapon data is set.
+    /// Called by trajectory_glasses_effect.gd to check ricochet capability.
+    /// </summary>
+    public bool GetCaliberCanRicochet()
+    {
+        if (WeaponData == null)
+            return true;
+        return WeaponData.CaliberCanRicochet;
     }
 }

@@ -41,12 +41,16 @@ public partial class ShotgunPellet : Area2D
 
     /// <summary>
     /// Direction the pellet travels (set by the shooter).
+    /// Exported so GDScript force field can check "direction" in pellet (Issue #912).
     /// </summary>
+    [Export]
     public Vector2 Direction { get; set; } = Vector2.Right;
 
     /// <summary>
     /// Instance ID of the node that shot this pellet.
+    /// Exported so GDScript force field can check "shooter_id" in pellet (Issue #912).
     /// </summary>
+    [Export]
     public ulong ShooterId { get; set; } = 0;
 
     /// <summary>
@@ -582,6 +586,44 @@ public partial class ShotgunPellet : Area2D
         UpdateRotation();
     }
 
+    // ===========================================================================
+    // Getter methods for GDScript interop (Issue #930)
+    //
+    // GDScript's .get("property_name") does NOT work reliably with C# [Export]
+    // properties. Instead, we expose explicit getter methods that GDScript can
+    // call via .Call("get_direction") or .Call("GetDirection").
+    // ===========================================================================
+
+    /// <summary>
+    /// Gets the pellet's travel direction (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public Vector2 get_direction() => Direction;
+
+    /// <summary>
+    /// Gets the pellet's speed (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public float get_speed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public ulong get_shooter_id() => ShooterId;
+
+    /// <summary>
+    /// Gets the pellet's travel direction (PascalCase alias, Issue #930).
+    /// </summary>
+    public Vector2 GetDirection() => Direction;
+
+    /// <summary>
+    /// Gets the pellet's speed (PascalCase alias, Issue #930).
+    /// </summary>
+    public float GetSpeed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (PascalCase alias, Issue #930).
+    /// </summary>
+    public ulong GetShooterId() => ShooterId;
+
     /// <summary>
     /// Called when the pellet hits a static body (wall or obstacle).
     /// Pellets cannot penetrate - they either ricochet or stop.
@@ -651,11 +693,37 @@ public partial class ShotgunPellet : Area2D
     }
 
     /// <summary>
+    /// Checks if the given area belongs to an active force field (Issue #912).
+    /// See Bullet.cs for full explanation.
+    /// </summary>
+    private static bool IsForceFieldArea(Area2D area)
+    {
+        if (area.Name.ToString().Contains("ForceField", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        var parent = area.GetParent();
+        if (parent != null && parent.HasMethod("is_protecting"))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Called when the pellet hits another area (like a target or enemy).
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
         GD.Print($"[ShotgunPellet]: Hit {area.Name} (damage: {Damage * _damageMultiplier})");
+
+        // Issue #912: If this area belongs to the force field, let the force field
+        // GDScript handle trapping the pellet. Do NOT destroy this pellet here.
+        if (IsForceFieldArea(area))
+        {
+            GD.Print($"[ShotgunPellet]: Entering force field area — letting force field handle this pellet");
+            return;
+        }
 
         // Check if this is the shooter's HitArea
         var parent = area.GetParent();
@@ -906,9 +974,13 @@ public partial class ShotgunPellet : Area2D
         _hasRicocheted = true;
         _distanceSinceRicochet = 0.0f;
 
-        float angleFactor = 1.0f - (impactAngleDeg / MaxRicochetAngle);
+        // Normalize against 90 degrees (same as Bullet.cs) so that the travel distance
+        // is based on physical impact steepness rather than pellet's narrow angle limit.
+        // Using MaxRicochetAngle (35°) caused the factor to collapse too quickly:
+        // at 30° impact the pellet would survive only ~84ms, appearing to vanish instantly (Issue #908).
+        float angleFactor = 1.0f - (impactAngleDeg / 90.0f);
         angleFactor = Mathf.Clamp(angleFactor, 0.1f, 1.0f);
-        _maxPostRicochetDistance = _viewportDiagonal * angleFactor * 0.5f; // Shorter post-ricochet distance for pellets
+        _maxPostRicochetDistance = _viewportDiagonal * angleFactor;
 
         // Clear trail history
         _positionHistory.Clear();

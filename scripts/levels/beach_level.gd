@@ -178,6 +178,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AKGL")
 	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -647,6 +649,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
+		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
@@ -833,6 +837,30 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	else:
 		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
+
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
@@ -925,9 +953,28 @@ func _on_next_level_pressed(level_path: String) -> void:
 func _on_level_select_pressed() -> void:
 	_log_to_file("Level Select button pressed")
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-	var error := get_tree().change_scene_to_file("res://scenes/ui/LevelsMenu.tscn")
-	if error != OK:
-		_log_to_file("ERROR: Failed to load level select")
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100
+		get_tree().root.add_child(levels_menu)
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load levels menu script")
+
+
+## Called when the Armory button is pressed on the score screen (Issue #897).
+func _on_armory_button_pressed() -> void:
+	_log_to_file("Armory button pressed from score screen")
+	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
+	if armory_menu_scene:
+		var armory_menu = armory_menu_scene.instantiate()
+		armory_menu.layer = 100
+		get_tree().root.add_child(armory_menu)
+		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load armory menu scene")
 
 
 ## Setup the weapon based on GameManager's selected weapon.
@@ -949,7 +996,8 @@ func _setup_selected_weapon() -> void:
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
 			"m16": "AssaultRifle",
-			"ak_gl": "AKGL"
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -1072,6 +1120,25 @@ func _setup_selected_weapon() -> void:
 			_log_to_file("AK + GL equipped successfully")
 		else:
 			push_error("[BeachLevel] Failed to load AKGL scene!")
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			_log_to_file("RSh-12 Revolver equipped successfully")
+		else:
+			push_error("[BeachLevel] Failed to load Revolver scene!")
 	else:
 		# For Makarov PM, it's already in the scene
 		var makarov = _player.get_node_or_null("MakarovPM")

@@ -201,6 +201,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AKGL")
 	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
@@ -251,6 +253,38 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+
+
+## Configure weapon ammo for Docks level - 2x ammo for all weapons except SilencedPistol (Issue #866).
+func _configure_docks_weapon_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	# SilencedPistol uses enemy-count-based ammo instead (handled by _configure_silenced_pistol_ammo)
+	if weapon.name == "SilencedPistol":
+		return
+
+	# Get the default starting magazine count (usually 4)
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	# Double the magazine count for Docks level
+	var docks_magazines: int = starting_magazines * 2
+
+	# Use ReinitializeMagazines to set the new magazine count
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(docks_magazines, true)
+		_log_to_file("Doubled ammo for %s: %d magazines (was %d)" % [weapon.name, docks_magazines, starting_magazines])
+
+		# Update UI to reflect new ammo counts
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+	else:
+		push_warning("[DocksLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
 
 
 func _configure_makarov_pm_ammo(weapon: Node) -> void:
@@ -620,6 +654,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AKGL")
 		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
+		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
@@ -792,6 +828,30 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 	buttons_container.add_child(replay_button)
 
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
+
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 	if next_level_path != "":
@@ -877,9 +937,28 @@ func _on_next_level_pressed(level_path: String) -> void:
 func _on_level_select_pressed() -> void:
 	_log_to_file("Level Select button pressed")
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-	var error := get_tree().change_scene_to_file("res://scenes/ui/LevelsMenu.tscn")
-	if error != OK:
-		_log_to_file("ERROR: Failed to load level select")
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100
+		get_tree().root.add_child(levels_menu)
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load levels menu script")
+
+
+## Called when the Armory button is pressed on the score screen (Issue #897).
+func _on_armory_button_pressed() -> void:
+	_log_to_file("Armory button pressed from score screen")
+	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
+	if armory_menu_scene:
+		var armory_menu = armory_menu_scene.instantiate()
+		armory_menu.layer = 100
+		get_tree().root.add_child(armory_menu)
+		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load armory menu scene")
 
 
 func _setup_selected_weapon() -> void:
@@ -899,13 +978,16 @@ func _setup_selected_weapon() -> void:
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
 			"m16": "AssaultRifle",
-			"ak_gl": "AKGL"
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
 				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				# Still apply Docks-specific ammo configuration (Issue #866)
+				_configure_docks_weapon_ammo(existing_weapon)
 				return
 
 	if selected_weapon_id == "shotgun":
@@ -923,6 +1005,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(shotgun)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = shotgun
+
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(shotgun)
 
 			_log_to_file("Shotgun equipped successfully")
 		else:
@@ -942,6 +1027,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(mini_uzi)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
+
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(mini_uzi)
 
 			_log_to_file("Mini UZI equipped successfully")
 		else:
@@ -981,6 +1069,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = sniper
 
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(sniper)
+
 			_log_to_file("ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("[DocksLevel] Failed to load SniperRifle scene!")
@@ -999,6 +1090,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(m16)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = m16
+
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(m16)
 
 			_log_to_file("M16 Assault Rifle equipped successfully")
 		else:
@@ -1019,9 +1113,31 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
 
+			# Configure 2x ammo for Docks level (Issue #866)
+			_configure_docks_weapon_ammo(akgl)
+
 			_log_to_file("AK + GL equipped successfully")
 		else:
 			push_error("[DocksLevel] Failed to load AKGL scene!")
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			_log_to_file("RSh-12 Revolver equipped successfully")
+		else:
+			push_error("[DocksLevel] Failed to load Revolver scene!")
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov and _player.get("CurrentWeapon") == null:

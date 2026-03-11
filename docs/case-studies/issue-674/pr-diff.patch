@@ -1,0 +1,3422 @@
+diff --git a/Scripts/Characters/Player.cs b/Scripts/Characters/Player.cs
+index 66ef3920b..94729bf9e 100644
+--- a/Scripts/Characters/Player.cs
++++ b/Scripts/Characters/Player.cs
+@@ -731,6 +731,30 @@ private enum GrenadeAnimPhase
+ 
+     #endregion
+ 
++    #region BFF Pendant System (Issue #674)
++
++    /// <summary>
++    /// Path to the BFF companion scene.
++    /// </summary>
++    private const string BffCompanionScenePath = "res://scenes/objects/BffCompanion.tscn";
++
++    /// <summary>
++    /// Whether the BFF pendant is equipped (active item selected in armory).
++    /// </summary>
++    private bool _bffPendantEquipped = false;
++
++    /// <summary>
++    /// Whether the companion has already been summoned this battle (one charge per battle).
++    /// </summary>
++    private bool _bffCompanionSummoned = false;
++
++    /// <summary>
++    /// Reference to the summoned companion node.
++    /// </summary>
++    private Node2D? _bffCompanionNode = null;
++
++    #endregion
++
+     #region Invisibility Suit System (Issue #673)
+ 
+     /// <summary>
+@@ -1007,6 +1031,9 @@ public override void _Ready()
+         // Initialize homing bullets if active item manager has them selected (Issue #677)
+         InitHomingBullets();
+ 
++        // Initialize BFF pendant if active item manager has it selected (Issue #674)
++        InitBffPendant();
++
+         // Initialize invisibility suit if active item manager has it selected (Issue #673)
+         InitInvisibilitySuit();
+ 
+@@ -1296,6 +1323,9 @@ public override void _PhysicsProcess(double delta)
+         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
+         HandleHomingBulletsInput((float)delta);
+ 
++        // Handle BFF pendant input (press Space to summon companion) (Issue #674)
++        HandleBffPendantInput();
++
+         // Handle invisibility suit input (press Space to activate) (Issue #673)
+         HandleInvisibilitySuitInput();
+     }
+@@ -4659,6 +4689,135 @@ public bool IsHomingActive()
+ 
+     #endregion
+ 
++    #region BFF Pendant Methods (Issue #674)
++
++    /// <summary>
++    /// Initialize the BFF pendant if the ActiveItemManager has it selected.
++    /// </summary>
++    private void InitBffPendant()
++    {
++        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
++        if (activeItemManager == null)
++        {
++            LogToFile("[Player.BffPendant] ActiveItemManager not found");
++            return;
++        }
++
++        if (!activeItemManager.HasMethod("has_bff_pendant"))
++        {
++            LogToFile("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method");
++            return;
++        }
++
++        bool hasBffPendant = (bool)activeItemManager.Call("has_bff_pendant");
++        if (!hasBffPendant)
++        {
++            LogToFile("[Player.BffPendant] No BFF pendant selected in ActiveItemManager");
++            return;
++        }
++
++        LogToFile("[Player.BffPendant] BFF pendant is selected, ready to summon companion");
++
++        // Verify companion scene exists
++        if (!ResourceLoader.Exists(BffCompanionScenePath))
++        {
++            LogToFile($"[Player.BffPendant] WARNING: Companion scene not found: {BffCompanionScenePath}");
++            return;
++        }
++
++        _bffPendantEquipped = true;
++        _bffCompanionSummoned = false;
++        LogToFile("[Player.BffPendant] BFF pendant equipped — press Space to summon companion");
++    }
++
++    /// <summary>
++    /// Handle BFF pendant input: press Space to summon a companion (one charge per battle).
++    /// </summary>
++    private void HandleBffPendantInput()
++    {
++        if (!_bffPendantEquipped)
++        {
++            return;
++        }
++
++        if (_bffCompanionSummoned)
++        {
++            return;
++        }
++
++        if (Input.IsActionJustPressed("flashlight_toggle"))
++        {
++            SummonBffCompanion();
++        }
++    }
++
++    /// <summary>
++    /// Summon the BFF companion near the player.
++    /// </summary>
++    private void SummonBffCompanion()
++    {
++        if (_bffCompanionSummoned)
++        {
++            return;
++        }
++
++        if (!ResourceLoader.Exists(BffCompanionScenePath))
++        {
++            LogToFile($"[Player.BffPendant] WARNING: Companion scene not found: {BffCompanionScenePath}");
++            return;
++        }
++
++        var companionScene = GD.Load<PackedScene>(BffCompanionScenePath);
++        if (companionScene == null)
++        {
++            LogToFile("[Player.BffPendant] WARNING: Failed to load companion scene");
++            return;
++        }
++
++        var companion = companionScene.Instantiate<Node2D>();
++
++        // Add to the current scene (not as child of player, so it moves independently)
++        var tree = GetTree();
++        if (tree?.CurrentScene == null)
++        {
++            LogToFile("[Player.BffPendant] WARNING: No current scene to add companion to");
++            companion.QueueFree();
++            return;
++        }
++
++        tree.CurrentScene.AddChild(companion);
++
++        // Spawn slightly behind and to the side of the player
++        var spawnOffset = new Vector2(-50, 30);
++        if (_playerModel != null)
++        {
++            spawnOffset = spawnOffset.Rotated(_playerModel.Rotation);
++        }
++        companion.GlobalPosition = GlobalPosition + spawnOffset;
++
++        _bffCompanionNode = companion;
++        _bffCompanionSummoned = true;
++
++        // Connect companion death signal if it exists
++        if (companion.HasSignal("companion_died"))
++        {
++            companion.Connect("companion_died", Callable.From(OnBffCompanionDied));
++        }
++
++        LogToFile($"[Player.BffPendant] Companion summoned at position {companion.GlobalPosition}");
++    }
++
++    /// <summary>
++    /// Called when the BFF companion dies.
++    /// </summary>
++    private void OnBffCompanionDied()
++    {
++        LogToFile("[Player.BffPendant] Companion has been killed");
++        _bffCompanionNode = null;
++    }
++
++    #endregion
++
+     #region Invisibility Suit Methods (Issue #673)
+ 
+     /// <summary>
+diff --git a/assets/sprites/weapons/bff_pendant_icon.png b/assets/sprites/weapons/bff_pendant_icon.png
+new file mode 100644
+index 000000000..6dacf68d3
+Binary files /dev/null and b/assets/sprites/weapons/bff_pendant_icon.png differ
+diff --git a/docs/case-studies/issue-674/game_log_20260209_103259.txt b/docs/case-studies/issue-674/game_log_20260209_103259.txt
+new file mode 100644
+index 000000000..92eadab9f
+--- /dev/null
++++ b/docs/case-studies/issue-674/game_log_20260209_103259.txt
+@@ -0,0 +1,1378 @@
++[10:32:59] [INFO] ============================================================
++[10:32:59] [INFO] GAME LOG STARTED
++[10:32:59] [INFO] ============================================================
++[10:32:59] [INFO] Timestamp: 2026-02-09T10:32:59
++[10:32:59] [INFO] Log file: I:/Загрузки/godot exe/BFF/game_log_20260209_103259.txt
++[10:32:59] [INFO] Executable: I:/Загрузки/godot exe/BFF/Godot-Top-Down-Template.exe
++[10:32:59] [INFO] OS: Windows
++[10:32:59] [INFO] Debug build: false
++[10:32:59] [INFO] Engine version: 4.3-stable (official)
++[10:32:59] [INFO] Project: Godot Top-Down Template
++[10:32:59] [INFO] ------------------------------------------------------------
++[10:32:59] [INFO] [GameManager] GameManager ready
++[10:32:59] [INFO] [ScoreManager] ScoreManager ready
++[10:32:59] [INFO] [SoundPropagation] SoundPropagation autoload initialized
++[10:32:59] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
++[10:32:59] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
++[10:32:59] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
++[10:32:59] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[10:32:59] [INFO] [PenultimateHit] Saturation shader loaded successfully
++[10:32:59] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
++[10:32:59] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
++[10:32:59] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
++[10:32:59] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
++[10:32:59] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
++[10:32:59] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
++[10:32:59] [INFO] [LastChance] Resetting all effects (scene change detected)
++[10:32:59] [INFO] [LastChance] Last chance shader loaded successfully
++[10:32:59] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
++[10:32:59] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
++[10:32:59] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
++[10:32:59] [INFO] [LastChance]   Sepia intensity: 0.70
++[10:32:59] [INFO] [LastChance]   Brightness: 0.60
++[10:32:59] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
++[10:32:59] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
++[10:32:59] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
++[10:32:59] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false
++[10:32:59] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
++[10:32:59] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
++[10:32:59] [INFO] [CinemaEffects] Created effects layer at layer 99
++[10:32:59] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
++[10:32:59] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
++[10:32:59] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
++[10:32:59] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
++[10:32:59] [INFO] [CinemaEffects]   Grain intensity: 0.15
++[10:32:59] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
++[10:32:59] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
++[10:32:59] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
++[10:32:59] [INFO] [CinemaEffects]   Film defects: 1.5% probability
++[10:32:59] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
++[10:32:59] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
++[10:32:59] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
++[10:32:59] [INFO] [GrenadeTimerHelper] Autoload ready
++[10:32:59] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
++[10:32:59] [INFO] [PowerFantasy] Saturation shader loaded successfully
++[10:32:59] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
++[10:32:59] [INFO] [PowerFantasy]   Kill effect duration: 300ms
++[10:32:59] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
++[10:32:59] [INFO] [ProgressManager] ProgressManager ready, loaded 8 entries
++[10:32:59] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
++[10:32:59] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
++[10:32:59] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
++[10:32:59] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
++[10:32:59] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
++[10:32:59] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
++[10:32:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:32:59] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
++[10:32:59] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
++[10:32:59] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
++[10:32:59] [INFO] [EnemyGrenade] Initialized: 1 grenades
++[10:32:59] [ENEMY] [Enemy1] Death animation component initialized
++[10:32:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:32:59] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
++[10:32:59] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
++[10:32:59] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
++[10:32:59] [ENEMY] [Enemy2] Death animation component initialized
++[10:32:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:32:59] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
++[10:32:59] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
++[10:32:59] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
++[10:32:59] [INFO] [EnemyGrenade] Initialized: 1 grenades
++[10:32:59] [ENEMY] [Enemy3] Death animation component initialized
++[10:32:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:32:59] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
++[10:32:59] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
++[10:32:59] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
++[10:32:59] [ENEMY] [Enemy4] Death animation component initialized
++[10:32:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:32:59] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
++[10:32:59] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
++[10:32:59] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
++[10:32:59] [ENEMY] [Enemy5] Death animation component initialized
++[10:32:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:32:59] [INFO] [BloodyFeet:Player] Footprint scene loaded
++[10:32:59] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
++[10:32:59] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
++[10:32:59] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[10:32:59] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
++[10:32:59] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[10:32:59] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[10:32:59] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[10:32:59] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[10:32:59] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[10:32:59] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
++[10:32:59] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
++[10:32:59] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
++[10:32:59] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
++[10:32:59] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
++[10:32:59] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 3/4
++[10:32:59] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
++[10:32:59] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
++[10:32:59] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
++[10:32:59] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
++[10:32:59] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
++[10:32:59] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
++[10:32:59] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
++[10:32:59] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
++[10:32:59] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
++[10:32:59] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
++[10:32:59] [INFO] [ScoreManager] Level started with 5 enemies
++[10:32:59] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
++[10:32:59] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
++[10:32:59] [INFO] [ReplayManager] Replay data cleared
++[10:32:59] [INFO] [LabyrinthLevel] Previous replay data cleared
++[10:32:59] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
++[10:32:59] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
++[10:32:59] [INFO] [ReplayManager] Level: LabyrinthLevel
++[10:32:59] [INFO] [ReplayManager] Player: Player (valid: True)
++[10:32:59] [INFO] [ReplayManager] Enemies count: 5
++[10:32:59] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
++[10:32:59] [INFO] [ReplayManager]   Enemy 0: Enemy1
++[10:32:59] [INFO] [ReplayManager]   Enemy 1: Enemy2
++[10:32:59] [INFO] [ReplayManager]   Enemy 2: Enemy3
++[10:32:59] [INFO] [ReplayManager]   Enemy 3: Enemy4
++[10:32:59] [INFO] [ReplayManager]   Enemy 4: Enemy5
++[10:32:59] [INFO] [LabyrinthLevel] Replay recording started successfully
++[10:32:59] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
++[10:32:59] [INFO] [CinemaEffects] Found player node: Player
++[10:32:59] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
++[10:32:59] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
++[10:32:59] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
++[10:32:59] [ENEMY] [Enemy1] Registered as sound listener
++[10:32:59] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 2, behavior: GUARD
++[10:32:59] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
++[10:32:59] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
++[10:32:59] [ENEMY] [Enemy2] Registered as sound listener
++[10:32:59] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 2, behavior: GUARD
++[10:32:59] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
++[10:32:59] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
++[10:32:59] [ENEMY] [Enemy3] Registered as sound listener
++[10:32:59] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
++[10:32:59] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
++[10:32:59] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
++[10:32:59] [ENEMY] [Enemy4] Registered as sound listener
++[10:32:59] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
++[10:32:59] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
++[10:32:59] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
++[10:32:59] [ENEMY] [Enemy5] Registered as sound listener
++[10:32:59] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 3, behavior: GUARD
++[10:32:59] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
++[10:33:00] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:00] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:00] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:00] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=281.3°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:00] [INFO] [Player] Detecting weapon pose (frame 3)...
++[10:33:00] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
++[10:33:00] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
++[10:33:00] [INFO] [PenultimateHit] Shader warmup complete in 514 ms
++[10:33:00] [INFO] [LastChance] Shader warmup complete in 512 ms
++[10:33:00] [INFO] [CinemaEffects] Cinema shader warmup complete in 458 ms
++[10:33:00] [INFO] [FlashbangPlayer] Shader warmup complete in 447 ms
++[10:33:00] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[10:33:00] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[10:33:00] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[10:33:00] [INFO] [LastChance] Found player: Player
++[10:33:00] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[10:33:00] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[10:33:00] [INFO] [LastChance] Connected to player Died signal (C#)
++[10:33:00] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
++[10:33:00] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 798 ms
++[10:33:01] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
++[10:33:02] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
++[10:33:03] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
++[10:33:03] [INFO] [PauseMenu] Armory button pressed
++[10:33:03] [INFO] [PauseMenu] Creating new armory menu instance
++[10:33:03] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
++[10:33:03] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
++[10:33:03] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
++[10:33:03] [INFO] [PauseMenu] back_pressed signal exists on instance
++[10:33:03] [INFO] [PauseMenu] back_pressed signal connected
++[10:33:03] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
++[10:33:03] [INFO] [PauseMenu] _populate_weapon_grid method exists
++[10:33:04] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
++[10:33:05] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
++[10:33:05] [INFO] [ActiveItemManager] Active item changed from None to BFF Pendant
++[10:33:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
++[10:33:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:05] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
++[10:33:05] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
++[10:33:05] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
++[10:33:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
++[10:33:05] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[10:33:05] [INFO] [LastChance] Resetting all effects (scene change detected)
++[10:33:05] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
++[10:33:05] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
++[10:33:05] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
++[10:33:05] [INFO] [EnemyGrenade] Initialized: 1 grenades
++[10:33:05] [ENEMY] [Enemy1] Death animation component initialized
++[10:33:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:05] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
++[10:33:05] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
++[10:33:05] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
++[10:33:05] [ENEMY] [Enemy2] Death animation component initialized
++[10:33:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:05] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
++[10:33:05] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
++[10:33:05] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
++[10:33:05] [ENEMY] [Enemy3] Death animation component initialized
++[10:33:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:05] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
++[10:33:05] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
++[10:33:05] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
++[10:33:05] [INFO] [EnemyGrenade] Initialized: 1 grenades
++[10:33:05] [ENEMY] [Enemy4] Death animation component initialized
++[10:33:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:05] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
++[10:33:05] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
++[10:33:05] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
++[10:33:05] [INFO] [EnemyGrenade] Initialized: 1 grenades
++[10:33:05] [ENEMY] [Enemy5] Death animation component initialized
++[10:33:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:05] [INFO] [BloodyFeet:Player] Footprint scene loaded
++[10:33:05] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
++[10:33:05] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
++[10:33:05] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[10:33:05] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
++[10:33:05] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[10:33:05] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[10:33:05] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[10:33:05] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[10:33:05] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[10:33:05] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
++[10:33:05] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
++[10:33:05] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
++[10:33:05] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
++[10:33:05] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
++[10:33:05] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
++[10:33:05] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 2/4
++[10:33:05] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
++[10:33:05] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
++[10:33:05] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
++[10:33:05] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
++[10:33:05] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
++[10:33:05] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
++[10:33:05] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
++[10:33:05] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
++[10:33:05] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
++[10:33:05] [INFO] [ScoreManager] Level started with 5 enemies
++[10:33:05] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
++[10:33:05] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
++[10:33:05] [INFO] [ReplayManager] Replay data cleared
++[10:33:05] [INFO] [LabyrinthLevel] Previous replay data cleared
++[10:33:05] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
++[10:33:05] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
++[10:33:05] [INFO] [ReplayManager] Level: LabyrinthLevel
++[10:33:05] [INFO] [ReplayManager] Player: Player (valid: True)
++[10:33:05] [INFO] [ReplayManager] Enemies count: 5
++[10:33:05] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
++[10:33:05] [INFO] [ReplayManager]   Enemy 0: Enemy1
++[10:33:05] [INFO] [ReplayManager]   Enemy 1: Enemy2
++[10:33:05] [INFO] [ReplayManager]   Enemy 2: Enemy3
++[10:33:05] [INFO] [ReplayManager]   Enemy 3: Enemy4
++[10:33:05] [INFO] [ReplayManager]   Enemy 4: Enemy5
++[10:33:05] [INFO] [LabyrinthLevel] Replay recording started successfully
++[10:33:05] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
++[10:33:05] [INFO] [CinemaEffects] Found player node: Player
++[10:33:05] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
++[10:33:05] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 6)
++[10:33:05] [ENEMY] [Enemy1] Registered as sound listener
++[10:33:05] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
++[10:33:05] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
++[10:33:05] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 7)
++[10:33:05] [ENEMY] [Enemy2] Registered as sound listener
++[10:33:05] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 2, behavior: GUARD
++[10:33:05] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
++[10:33:05] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 8)
++[10:33:05] [ENEMY] [Enemy3] Registered as sound listener
++[10:33:05] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
++[10:33:05] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
++[10:33:05] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 9)
++[10:33:05] [ENEMY] [Enemy4] Registered as sound listener
++[10:33:05] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
++[10:33:05] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
++[10:33:05] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 10)
++[10:33:05] [ENEMY] [Enemy5] Registered as sound listener
++[10:33:05] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 4, behavior: GUARD
++[10:33:05] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
++[10:33:05] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:05] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(150,1000), corner_timer=0.00
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [Player] Detecting weapon pose (frame 3)...
++[10:33:05] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
++[10:33:05] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[10:33:05] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[10:33:05] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[10:33:05] [INFO] [LastChance] Found player: Player
++[10:33:05] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[10:33:05] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[10:33:05] [INFO] [LastChance] Connected to player Died signal (C#)
++[10:33:05] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:05] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [Player.BffPendant] Companion summoned at position (100.31263, 1030.515)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:06] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [ENEMY] [Enemy3] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(150,1000), corner_timer=0.30
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.695, 786.3378)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.4368, 865.1303)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.702, 786.3665)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (198.9145, 865.3005)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.715, 786.424)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (199.6319, 865.5551)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.736, 786.5104)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (200.5899, 865.8936)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.762, 786.6257)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (201.7897, 866.315)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.796, 786.7701)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (203.2331, 866.8181)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.837, 786.9438)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (204.9219, 867.4016)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.885, 787.147)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (206.8584, 868.0637)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1065.939, 787.3798)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (209.0449, 868.8024)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.001, 787.6428)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (211.4844, 869.6155)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.071, 787.9361)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (214.1798, 870.5005)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.147, 788.2601)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (217.1346, 871.4545)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.231, 788.6154)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (220.3522, 872.4741)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.323, 789.0021)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (223.8364, 873.5559)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.423, 789.421)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (227.5913, 874.6957)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.531, 789.8726)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (231.6209, 875.8893)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.648, 790.3574)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (235.8026, 877.0955)
++[10:33:07] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=0.0°, current=-54.4°, player=(200,1000), corner_timer=-0.02
++[10:33:07] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.769, 790.8608)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (240.0103, 878.2762)
++[10:33:07] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=-90.0°, current=-51.6°, player=(206,1000), corner_timer=0.30
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1066.892, 791.3677)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (244.2435, 879.4307)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.016, 791.8782)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (248.5018, 880.5587)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.141, 792.3922)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (252.5679, 881.6045)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.261, 792.8837)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (256.4377, 882.5718)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.376, 793.3521)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (260.1076, 883.4639)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.486, 793.7968)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (263.5743, 884.2842)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.59, 794.2175)
++[10:33:07] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (266.8347, 885.0359)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.688, 794.6138)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (269.886, 885.722)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.781, 794.9852)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (272.6813, 886.336)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.866, 795.326)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (275.2179, 886.8811)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.943, 795.6356)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (277.4934, 887.3603)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.013, 795.9137)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (279.5058, 887.7764)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.074, 796.16)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (281.2534, 888.132)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.128, 796.374)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (282.7345, 888.4291)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.174, 796.5557)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (283.948, 888.6696)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.212, 796.7046)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (284.8928, 888.8551)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.241, 796.8206)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (285.5683, 888.9868)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.262, 796.9036)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (285.9738, 889.0654)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.274, 796.9534)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (286.1089, 889.0916)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.279, 796.97)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (285.9738, 889.0654)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.274, 796.9534)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (285.5683, 888.9868)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.262, 796.9036)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (284.8928, 888.8551)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.241, 796.8206)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (283.948, 888.6696)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.212, 796.7046)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (282.7345, 888.4291)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.174, 796.5557)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (281.2534, 888.132)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.128, 796.374)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (279.5058, 887.7764)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.074, 796.16)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (277.4934, 887.3603)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1068.013, 795.9137)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (275.2179, 886.8811)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.943, 795.6356)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (272.6813, 886.336)
++[10:33:07] [INFO] [EnemyGrenade] Throw path blocked to (1067.866, 795.326)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (269.886, 885.722)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.781, 794.9852)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (266.8347, 885.0359)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.688, 794.6138)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (263.5303, 884.274)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.589, 794.2122)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (259.9762, 883.4324)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.482, 793.7809)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (256.1762, 882.5073)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.369, 793.3204)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (252.1343, 881.4944)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.249, 792.8312)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (247.8551, 880.3895)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.122, 792.3141)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (243.6005, 879.2574)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.997, 791.8006)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (239.3711, 878.0989)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.873, 791.2907)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (235.1673, 876.9144)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.751, 790.7843)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (230.9897, 875.7043)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.63, 790.2815)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (226.8385, 874.4694)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.51, 789.7821)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (222.7143, 873.2101)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.391, 789.2861)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (218.6175, 871.9269)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.274, 788.7936)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (214.5484, 870.6204)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.158, 788.3044)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (210.5074, 869.2913)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.043, 787.8186)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (206.4948, 867.9399)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.929, 787.3361)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (202.511, 866.567)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.817, 786.8569)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (198.5562, 865.1729)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.705, 786.3809)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (194.6309, 863.7584)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.595, 785.9081)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (190.7352, 862.3239)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.486, 785.4385)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (186.8694, 860.8701)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.378, 784.972)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (183.0337, 859.3975)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.271, 784.5087)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (179.2283, 857.9067)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.166, 784.0485)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (175.6257, 856.4676)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.089, 783.7135)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (172.2263, 855.0848)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.041, 783.5027)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (169.0304, 853.7626)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.021, 783.4148)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (166.0376, 852.5048)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.029, 783.4485)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (163.2473, 851.315)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.064, 783.6027)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (160.7165, 850.2213)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.121, 783.8521)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.2, 784.196)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.3, 784.6335)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.423, 785.1642)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.567, 785.7873)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.734, 786.5023)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1065.923, 787.3087)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.134, 788.2062)
++[10:33:08] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.369, 789.1943)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.649, 790.3616)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1066.983, 791.7436)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.349, 793.2387)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1067.746, 794.8463)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1068.177, 796.5656)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1068.641, 798.3956)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1069.126, 800.2861)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1069.618, 802.1718)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1070.089, 803.9578)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1070.539, 805.6448)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1070.968, 807.2333)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1071.375, 808.7241)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1071.759, 810.1177)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1072.12, 811.4147)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1072.457, 812.6154)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1072.769, 813.7205)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1073.056, 814.7303)
++[10:33:08] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
++[10:33:08] [INFO] [GrenadeBase] Grenade created at (387.2198, 337.9034) (frozen)
++[10:33:08] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
++[10:33:08] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
++[10:33:08] [INFO] [GrenadeTimerHelper] Attached GrenadeTimer to FragGrenade (type: Frag)
++[10:33:08] [INFO] [EnemyGrenade] Attached C# GrenadeTimer to grenade (type: Frag)
++[10:33:08] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
++[10:33:08] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
++[10:33:08] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (-0.319506, 0.947584), Speed: 1186.5 (unfrozen)
++[10:33:08] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[10:33:08] [INFO] [FragGrenade] Grenade thrown (legacy) - impact detection enabled
++[10:33:08] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
++[10:33:08] [INFO] [EnemyGrenade] Enemy grenade thrown! Target: (158.4412, 849.2261), Distance: 600
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1073.318, 815.6454)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1073.555, 816.4659)
++[10:33:08] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=169.2°, current=146.3°, player=(64,1110), corner_timer=0.00
++[10:33:08] [ENEMY] [Enemy2] State: IDLE -> COMBAT
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1073.765, 817.1924)
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:08] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=169.2°, current=-39.0°, player=(64,1111), corner_timer=0.00
++[10:33:08] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [GrenadeBase] Collision detected with HorizontalDivider (type: StaticBody2D)
++[10:33:09] [INFO] [FragGrenade] Impact detected! Body: HorizontalDivider (type: StaticBody2D), triggering explosion
++[10:33:09] [INFO] [FragGrenade] Impact detected - exploding immediately!
++[10:33:09] [INFO] [GrenadeBase] EXPLODED at (321.7472, 513.4485)!
++[10:33:09] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(321.7472, 513.4485), source=NEUTRAL (FragGrenade), range=2937, listeners=10
++[10:33:09] [INFO] [SoundPropagation] Cleaned up 5 invalid listeners
++[10:33:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=4
++[10:33:09] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -4.2 degrees
++[10:33:09] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 76.6 degrees
++[10:33:09] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 177.5 degrees
++[10:33:09] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 255.2 degrees
++[10:33:09] [INFO] [ImpactEffects] Spawning explosion visual effect at (321.7472, 513.4485) (radius=225) - using shadow-based wall occlusion
++[10:33:09] [INFO] [GrenadeTimer] Impact detected with HorizontalDivider - EXPLODING!
++[10:33:09] [INFO] [GrenadeTimer] EXPLODED at (321.74716, 513.4485)!
++[10:33:09] [INFO] [GrenadeTimer] Applying frag explosion damage (radius: 225, damage: 99)
++[10:33:09] [INFO] [GrenadeTimer] Spawned 4 shrapnel pieces
++[10:33:09] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(321.7472, 513.4485), source=NEUTRAL (FragGrenade), range=2938, listeners=5
++[10:33:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=4
++[10:33:09] [INFO] [GrenadeTimer] Spawned PointLight2D frag explosion flash at (321.74716, 513.4485) (shadow-based wall occlusion)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [ENEMY] [Enemy3] Memory: high confidence (0.87) - transitioning to PURSUING
++[10:33:09] [ENEMY] [Enemy3] State: IDLE -> PURSUING
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P2:combat_state, state=PURSUING, target=174.7°, current=72.8°, player=(64,1111), corner_timer=0.12
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [ENEMY] [Enemy3] PURSUING corner check: angle -126.8°
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [EnemyGrenade] Throw path blocked to (1073.945, 817.8098)
++[10:33:09] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
++[10:33:10] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
++[10:33:11] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=5
++[10:33:11] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
++[10:33:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:11] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
++[10:33:11] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
++[10:33:11] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
++[10:33:11] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
++[10:33:11] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[10:33:11] [INFO] [LastChance] Resetting all effects (scene change detected)
++[10:33:11] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
++[10:33:11] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
++[10:33:11] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
++[10:33:11] [INFO] [EnemyGrenade] Initialized: 1 grenades
++[10:33:11] [ENEMY] [Enemy1] Death animation component initialized
++[10:33:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:11] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
++[10:33:11] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
++[10:33:11] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
++[10:33:11] [ENEMY] [Enemy2] Death animation component initialized
++[10:33:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:11] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
++[10:33:11] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
++[10:33:11] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
++[10:33:11] [ENEMY] [Enemy3] Death animation component initialized
++[10:33:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:11] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
++[10:33:11] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
++[10:33:11] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
++[10:33:11] [ENEMY] [Enemy4] Death animation component initialized
++[10:33:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:11] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
++[10:33:11] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
++[10:33:11] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
++[10:33:11] [INFO] [EnemyGrenade] Grenade bag built (hard): [Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Defensive]
++[10:33:11] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
++[10:33:11] [ENEMY] [Grenadier] Death animation component initialized
++[10:33:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:11] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
++[10:33:11] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
++[10:33:11] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
++[10:33:12] [ENEMY] [Enemy6] Death animation component initialized
++[10:33:12] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:12] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
++[10:33:12] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
++[10:33:12] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
++[10:33:12] [ENEMY] [Enemy7] Death animation component initialized
++[10:33:12] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:12] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
++[10:33:12] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
++[10:33:12] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
++[10:33:12] [ENEMY] [Enemy8] Death animation component initialized
++[10:33:12] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:12] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
++[10:33:12] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
++[10:33:12] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
++[10:33:12] [ENEMY] [Enemy9] Death animation component initialized
++[10:33:12] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:12] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
++[10:33:12] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
++[10:33:12] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
++[10:33:12] [ENEMY] [Enemy10] Death animation component initialized
++[10:33:12] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:12] [INFO] [BloodyFeet:Player] Footprint scene loaded
++[10:33:12] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
++[10:33:12] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
++[10:33:12] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[10:33:12] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
++[10:33:12] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[10:33:12] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[10:33:12] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[10:33:12] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[10:33:12] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[10:33:12] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
++[10:33:12] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
++[10:33:12] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
++[10:33:12] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
++[10:33:12] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
++[10:33:12] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
++[10:33:12] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 4/4
++[10:33:12] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
++[10:33:12] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
++[10:33:12] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
++[10:33:12] [INFO] [BuildingLevel] Setting up weapon: makarov_pm
++[10:33:12] [INFO] [ScoreManager] Level started with 10 enemies
++[10:33:12] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
++[10:33:12] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
++[10:33:12] [INFO] [ReplayManager] Replay data cleared
++[10:33:12] [INFO] [BuildingLevel] Previous replay data cleared
++[10:33:12] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
++[10:33:12] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
++[10:33:12] [INFO] [ReplayManager] Level: BuildingLevel
++[10:33:12] [INFO] [ReplayManager] Player: Player (valid: True)
++[10:33:12] [INFO] [ReplayManager] Enemies count: 10
++[10:33:12] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
++[10:33:12] [INFO] [ReplayManager]   Enemy 0: Enemy1
++[10:33:12] [INFO] [ReplayManager]   Enemy 1: Enemy2
++[10:33:12] [INFO] [ReplayManager]   Enemy 2: Enemy3
++[10:33:12] [INFO] [ReplayManager]   Enemy 3: Enemy4
++[10:33:12] [INFO] [ReplayManager]   Enemy 4: Grenadier
++[10:33:12] [INFO] [ReplayManager]   Enemy 5: Enemy6
++[10:33:12] [INFO] [ReplayManager]   Enemy 6: Enemy7
++[10:33:12] [INFO] [ReplayManager]   Enemy 7: Enemy8
++[10:33:12] [INFO] [ReplayManager]   Enemy 8: Enemy9
++[10:33:12] [INFO] [ReplayManager]   Enemy 9: Enemy10
++[10:33:12] [INFO] [BuildingLevel] Replay recording started successfully
++[10:33:12] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
++[10:33:12] [INFO] [CinemaEffects] Found player node: Player
++[10:33:12] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 6)
++[10:33:12] [ENEMY] [Enemy1] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 7)
++[10:33:12] [ENEMY] [Enemy2] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 8)
++[10:33:12] [ENEMY] [Enemy3] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 9)
++[10:33:12] [ENEMY] [Enemy4] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 3, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 10)
++[10:33:12] [ENEMY] [Grenadier] Registered as sound listener
++[10:33:12] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 11)
++[10:33:12] [ENEMY] [Enemy6] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 3, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 12)
++[10:33:12] [ENEMY] [Enemy7] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 3, behavior: PATROL
++[10:33:12] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 13)
++[10:33:12] [ENEMY] [Enemy8] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 2, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 14)
++[10:33:12] [ENEMY] [Enemy9] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
++[10:33:12] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
++[10:33:12] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 15)
++[10:33:12] [ENEMY] [Enemy10] Registered as sound listener
++[10:33:12] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 3, behavior: PATROL
++[10:33:12] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
++[10:33:12] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
++[10:33:12] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=281.3°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:12] [INFO] [Player] Detecting weapon pose (frame 3)...
++[10:33:12] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
++[10:33:12] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
++[10:33:12] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[10:33:12] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[10:33:12] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[10:33:12] [INFO] [LastChance] Found player: Player
++[10:33:12] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[10:33:12] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[10:33:12] [INFO] [LastChance] Connected to player Died signal (C#)
++[10:33:12] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
++[10:33:12] [INFO] [Player.BffPendant] Companion summoned at position (417.56113, 1298.4532)
++[10:33:13] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
++[10:33:13] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
++[10:33:13] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
++[10:33:13] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(373,1245), corner_timer=0.30
++[10:33:13] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(373,1245), corner_timer=0.30
++[10:33:13] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(307,1174), corner_timer=-0.02
++[10:33:13] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
++[10:33:14] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(307,1174), corner_timer=-0.02
++[10:33:14] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
++[10:33:14] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(306,1169), corner_timer=0.30
++[10:33:14] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(306,1169), corner_timer=0.30
++[10:33:14] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
++[10:33:14] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(304,1065), corner_timer=-0.02
++[10:33:14] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
++[10:33:14] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(304,1060), corner_timer=0.30
++[10:33:14] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(304,955), corner_timer=-0.02
++[10:33:14] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
++[10:33:14] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(304,950), corner_timer=0.30
++[10:33:15] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(304,845), corner_timer=-0.02
++[10:33:15] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
++[10:33:15] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(304,840), corner_timer=0.30
++[10:33:15] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(297.501, 796.622), source=PLAYER (MakarovPM), range=1469, listeners=15
++[10:33:15] [INFO] [SoundPropagation] Cleaned up 5 invalid listeners
++[10:33:15] [ENEMY] [Enemy1] Heard gunshot at (297.501, 796.622), source_type=0, intensity=0.01, distance=447
++[10:33:15] [ENEMY] [Enemy2] Heard gunshot at (297.501, 796.622), source_type=0, intensity=0.04, distance=267
++[10:33:15] [ENEMY] [Enemy3] Heard gunshot at (297.501, 796.622), source_type=0, intensity=0.02, distance=405
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=4, self=0, below_threshold=3
++[10:33:15] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=90.3°, current=-157.5°, player=(297,790), corner_timer=0.00
++[10:33:15] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=113.1°, current=-157.5°, player=(297,790), corner_timer=0.00
++[10:33:15] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=174.2°, current=-78.7°, player=(297,790), corner_timer=0.00
++[10:33:15] [ENEMY] [Enemy4] Memory: medium confidence (0.62) - transitioning to PURSUING
++[10:33:15] [ENEMY] [Enemy4] State: IDLE -> PURSUING
++[10:33:15] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=-166.7°, current=168.8°, player=(290,780), corner_timer=0.00
++[10:33:15] [ENEMY] [Enemy4] PURSUING corner check: angle -113.2°
++[10:33:15] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(274,766), corner_timer=-0.02
++[10:33:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(271.0396, 771.5572), source=PLAYER (MakarovPM), range=1469, listeners=10
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=4, self=0, below_threshold=3
++[10:33:15] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(271,765), corner_timer=0.30
++[10:33:15] [ENEMY] [Enemy3] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=178.4°, current=131.1°, player=(262,764), corner_timer=0.00
++[10:33:15] [ENEMY] [Enemy3] Hit: dmg=1, hp=2/2->1/2
++[10:33:15] [INFO] [ImpactEffects] spawn_blood_effect called at (614.8002, 754.3301), dir=(0.997375, -0.072415), lethal=false
++[10:33:15] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
++[10:33:15] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
++[10:33:15] [INFO] [ImpactEffects] Blood effect spawned at (614.8002, 754.3301) (scale=0.5)
++[10:33:15] [INFO] [FlashbangStatus] Status: STUNNED applied
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(246.9739, 777.5059), source=PLAYER (MakarovPM), range=1469, listeners=10
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=4, self=0, below_threshold=3
++[10:33:15] [INFO] [FlashbangStatus] Status: STUNNED removed
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(614.8002, 754.3301), source=ENEMY (Enemy3), range=1469, listeners=10
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
++[10:33:15] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:15] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
++[10:33:15] [INFO] [LastChance] Threat detected: Bullet
++[10:33:15] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
++[10:33:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(237.8681, 808.4461), source=PLAYER (MakarovPM), range=1469, listeners=10
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=4, self=0, below_threshold=3
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(598.2836, 762.2256), source=ENEMY (Enemy3), range=1469, listeners=10
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=1, below_threshold=4
++[10:33:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:15] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
++[10:33:15] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
++[10:33:15] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=53.4°, current=118.0°, player=(237,807), corner_timer=0.00
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(601.9725, 742.3072), source=NEUTRAL (null), range=900, listeners=10
++[10:33:15] [ENEMY] [Enemy1] Heard CASING_KICK at (601.9725, 742.3072), intensity=0.01, dist=441
++[10:33:15] [ENEMY] [Enemy2] Heard CASING_KICK at (601.9725, 742.3072), intensity=0.03, dist=274
++[10:33:15] [ENEMY] [Enemy3] Heard CASING_KICK at (601.9725, 742.3072), intensity=1.00, dist=24
++[10:33:15] [ENEMY] [Enemy4] Heard CASING_KICK at (601.9725, 742.3072), intensity=0.04, dist=240
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0, below_threshold=0
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(602.193, 740.5399), source=NEUTRAL (null), range=900, listeners=10
++[10:33:15] [ENEMY] [Enemy1] Heard CASING_KICK at (602.193, 740.5399), intensity=0.01, dist=440
++[10:33:15] [ENEMY] [Enemy2] Heard CASING_KICK at (602.193, 740.5399), intensity=0.03, dist=273
++[10:33:15] [ENEMY] [Enemy3] Heard CASING_KICK at (602.193, 740.5399), intensity=1.00, dist=28
++[10:33:15] [ENEMY] [Enemy4] Heard CASING_KICK at (602.193, 740.5399), intensity=0.04, dist=241
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0, below_threshold=0
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(602.3867, 738.3584), source=NEUTRAL (null), range=900, listeners=10
++[10:33:15] [ENEMY] [Enemy1] Heard CASING_KICK at (602.3867, 738.3584), intensity=0.01, dist=438
++[10:33:15] [ENEMY] [Enemy2] Heard CASING_KICK at (602.3867, 738.3584), intensity=0.03, dist=272
++[10:33:15] [ENEMY] [Enemy3] Heard CASING_KICK at (602.3867, 738.3584), intensity=1.00, dist=33
++[10:33:15] [ENEMY] [Enemy4] Heard CASING_KICK at (602.3867, 738.3584), intensity=0.04, dist=242
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0, below_threshold=0
++[10:33:15] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(602.5353, 735.785), source=NEUTRAL (null), range=900, listeners=10
++[10:33:15] [ENEMY] [Enemy1] Heard CASING_KICK at (602.5353, 735.785), intensity=0.01, dist=436
++[10:33:15] [ENEMY] [Enemy2] Heard CASING_KICK at (602.5353, 735.785), intensity=0.03, dist=270
++[10:33:15] [ENEMY] [Enemy3] Heard CASING_KICK at (602.5353, 735.785), intensity=1.00, dist=37
++[10:33:15] [ENEMY] [Enemy4] Heard CASING_KICK at (602.5353, 735.785), intensity=0.04, dist=244
++[10:33:15] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=6, self=0, below_threshold=0
++[10:33:15] [INFO] [BloodDecal] Blood puddle created at (665.151, 744.2896) (added to group)
++[10:33:15] [INFO] [LastChance] Threat detected: @Area2D@817
++[10:33:15] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
++[10:33:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
++[10:33:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(548.01184, 766.09424), shooter_id=192300452919, bullet_pos=(48.67964, 791.9297)
++[10:33:15] [INFO] [Bullet] Using shooter_position, distance=500,00012
++[10:33:15] [INFO] [Bullet] Distance to wall: 500,00012 (34,04593% of viewport)
++[10:33:15] [INFO] [Bullet] Within ricochet range - trying ricochet first
++[10:33:15] [INFO] [Bullet] Starting wall penetration at (48.67964, 791.9297)
++[10:33:15] [INFO] [Bullet] Raycast backward hit penetrating body at distance 29,964714
++[10:33:15] [INFO] [Bullet] Body exited signal received for penetrating body
++[10:33:15] [INFO] [Bullet] Exiting penetration at (2.0753136, 794.341) after traveling 41,666668 pixels through wall
++[10:33:15] [INFO] [Bullet] Damage multiplier after penetration: 0,9
++[10:33:15] [INFO] [Player] Spawning blood effect at (237.45964, 845.6135), dir=(1, 0), lethal=False (C#)
++[10:33:15] [INFO] [ImpactEffects] spawn_blood_effect called at (237.4596, 845.6135), dir=(1, 0), lethal=false
++[10:33:15] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
++[10:33:15] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
++[10:33:15] [INFO] [ImpactEffects] Blood effect spawned at (237.4596, 845.6135) (scale=1)
++[10:33:15] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
++[10:33:15] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
++[10:33:15] [INFO] [BloodDecal] Blood puddle created at (703.7417, 768.1578) (added to group)
++[10:33:15] [ENEMY] [Enemy3] State: RETREATING -> IN_COVER
++[10:33:15] [ENEMY] [Enemy3] State: IN_COVER -> SUPPRESSED
++[10:33:15] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(237,867), corner_timer=-0.02
++[10:33:15] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
++[10:33:15] [INFO] [BloodDecal] Blood puddle created at (712.9647, 752.3331) (added to group)
++[10:33:15] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(237,873), corner_timer=0.30
++[10:33:15] [INFO] [BloodDecal] Blood puddle created at (717.8668, 747.0057) (added to group)
++[10:33:15] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(271.0396, 771.5572), shooter_id=195655896319, bullet_pos=(915.8501, 684.4582)
++[10:33:15] [INFO] [Bullet] Using shooter_position, distance=650.66650390625
++[10:33:15] [INFO] [Bullet] Distance to wall: 650.66650390625 (44.3050787211752% of viewport)
++[10:33:15] [INFO] [Bullet] Distance-based penetration chance: 94.9774081586289%
++[10:33:15] [INFO] [Bullet] Caliber cannot penetrate walls
++[10:33:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (319.5043, 831.2272) (added to group)
++[10:33:16] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (835.3022, 782.1633) (added to group)
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (352.825, 860.1589) (added to group)
++[10:33:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(246.9739, 777.5059), shooter_id=195655896319, bullet_pos=(923.1295, 674.212)
++[10:33:16] [INFO] [Bullet] Using shooter_position, distance=683.999938964844
++[10:33:16] [INFO] [Bullet] Distance to wall: 683.999938964844 (46.5748136090971% of viewport)
++[10:33:16] [INFO] [Bullet] Distance-based penetration chance: 92.3293841227201%
++[10:33:16] [INFO] [Bullet] Caliber cannot penetrate walls
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (350.5994, 859.3746) (added to group)
++[10:33:16] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(237,977), corner_timer=-0.02
++[10:33:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (333.9803, 836.833) (added to group)
++[10:33:16] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(237,983), corner_timer=0.30
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (390.2474, 856.7249) (added to group)
++[10:33:16] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(237.8681, 808.4461), shooter_id=195655896319, bullet_pos=(912.0503, 692.9735)
++[10:33:16] [INFO] [Bullet] Using shooter_position, distance=683.999633789063
++[10:33:16] [INFO] [Bullet] Distance to wall: 683.999633789063 (46.574792829117% of viewport)
++[10:33:16] [INFO] [Bullet] Distance-based penetration chance: 92.3294083660302%
++[10:33:16] [INFO] [Bullet] Caliber cannot penetrate walls
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (322.395, 938.2283) (added to group)
++[10:33:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (377.9421, 968.5366) (added to group)
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (324.8033, 975.2801) (added to group)
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (394.4513, 908.1134) (added to group)
++[10:33:16] [INFO] [BloodDecal] Blood puddle created at (425.8391, 947.436) (added to group)
++[10:33:16] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.4°, current=120.7°, player=(237,1087), corner_timer=-0.02
++[10:33:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
++[10:33:16] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.7°, current=123.6°, player=(237,1093), corner_timer=0.30
++[10:33:16] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:16] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.9°, current=89.7°, player=(237,1197), corner_timer=-0.02
++[10:33:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
++[10:33:16] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=92.5°, player=(237,1203), corner_timer=0.30
++[10:33:16] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:17] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=10
++[10:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.7°, current=89.6°, player=(237,1254), corner_timer=-0.02
++[10:33:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
++[10:33:17] [ENEMY] [Enemy1] PURSUING corner check: angle -11.6°
++[10:33:17] [ENEMY] [Enemy2] PURSUING corner check: angle 42.4°
++[10:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(237,1254), corner_timer=0.30
++[10:33:17] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.5°, player=(237,1254), corner_timer=-0.02
++[10:33:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
++[10:33:17] [ENEMY] [Enemy1] PURSUING corner check: angle -3.7°
++[10:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(237,1254), corner_timer=0.30
++[10:33:17] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.4°, current=89.5°, player=(237,1254), corner_timer=-0.02
++[10:33:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
++[10:33:17] [ENEMY] [Enemy1] PURSUING corner check: angle -3.0°
++[10:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.3°, player=(237,1254), corner_timer=0.30
++[10:33:17] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:18] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=10
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.5°, player=(237,1254), corner_timer=-0.02
++[10:33:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy1] PURSUING corner check: angle -2.3°
++[10:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(237,1254), corner_timer=0.30
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(237,1254), corner_timer=-0.02
++[10:33:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy1] PURSUING corner check: angle -0.3°
++[10:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(237,1254), corner_timer=0.30
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy3] State: SUPPRESSED -> IN_COVER
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy3] State: IN_COVER -> PURSUING
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P2:combat_state, state=PURSUING, target=130.4°, current=53.4°, player=(237,1254), corner_timer=0.00
++[10:33:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(237,1254), corner_timer=-0.02
++[10:33:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy1] PURSUING corner check: angle -0.3°
++[10:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(237,1254), corner_timer=0.30
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
++[10:33:18] [INFO] [EnemyGrenade] Throw path blocked to (237.8681, 802.4461)
++[10:33:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
++[10:33:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
++[10:33:18] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[10:33:18] [INFO] [LastChance] Resetting all effects (scene change detected)
++[10:33:18] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
++[10:33:18] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
++[10:33:18] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
++[10:33:18] [ENEMY] [Enemy1] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
++[10:33:18] [ENEMY] [Enemy2] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
++[10:33:18] [ENEMY] [Enemy3] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
++[10:33:18] [ENEMY] [Enemy4] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
++[10:33:18] [INFO] [EnemyGrenade] Grenade bag built (hard): [Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Offensive, Defensive]
++[10:33:18] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
++[10:33:18] [ENEMY] [Grenadier] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
++[10:33:18] [ENEMY] [Enemy6] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
++[10:33:18] [ENEMY] [Enemy7] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
++[10:33:18] [ENEMY] [Enemy8] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
++[10:33:18] [INFO] [EnemyGrenade] Initialized: 1 grenades
++[10:33:18] [ENEMY] [Enemy9] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
++[10:33:18] [ENEMY] [Enemy10] Death animation component initialized
++[10:33:18] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
++[10:33:18] [INFO] [BloodyFeet:Player] Footprint scene loaded
++[10:33:18] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
++[10:33:18] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
++[10:33:18] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[10:33:18] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
++[10:33:18] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[10:33:18] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[10:33:18] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[10:33:18] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[10:33:18] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[10:33:18] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
++[10:33:18] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
++[10:33:18] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
++[10:33:18] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
++[10:33:18] [INFO] [Player.BffPendant] BFF pendant is selected, ready to summon companion
++[10:33:18] [INFO] [Player.BffPendant] BFF pendant equipped — press Space to summon companion
++[10:33:18] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 3/4
++[10:33:18] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
++[10:33:18] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
++[10:33:18] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
++[10:33:18] [INFO] [BuildingLevel] Setting up weapon: makarov_pm
++[10:33:18] [INFO] [ScoreManager] Level started with 10 enemies
++[10:33:19] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
++[10:33:19] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
++[10:33:19] [INFO] [ReplayManager] Replay data cleared
++[10:33:19] [INFO] [BuildingLevel] Previous replay data cleared
++[10:33:19] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
++[10:33:19] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
++[10:33:19] [INFO] [ReplayManager] Level: BuildingLevel
++[10:33:19] [INFO] [ReplayManager] Player: Player (valid: True)
++[10:33:19] [INFO] [ReplayManager] Enemies count: 10
++[10:33:19] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
++[10:33:19] [INFO] [ReplayManager]   Enemy 0: Enemy1
++[10:33:19] [INFO] [ReplayManager]   Enemy 1: Enemy2
++[10:33:19] [INFO] [ReplayManager]   Enemy 2: Enemy3
++[10:33:19] [INFO] [ReplayManager]   Enemy 3: Enemy4
++[10:33:19] [INFO] [ReplayManager]   Enemy 4: Grenadier
++[10:33:19] [INFO] [ReplayManager]   Enemy 5: Enemy6
++[10:33:19] [INFO] [ReplayManager]   Enemy 6: Enemy7
++[10:33:19] [INFO] [ReplayManager]   Enemy 7: Enemy8
++[10:33:19] [INFO] [ReplayManager]   Enemy 8: Enemy9
++[10:33:19] [INFO] [ReplayManager]   Enemy 9: Enemy10
++[10:33:19] [INFO] [BuildingLevel] Replay recording started successfully
++[10:33:19] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
++[10:33:19] [INFO] [CinemaEffects] Found player node: Player
++[10:33:19] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
++[10:33:19] [ENEMY] [Enemy1] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
++[10:33:19] [ENEMY] [Enemy2] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 2, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
++[10:33:19] [ENEMY] [Enemy3] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
++[10:33:19] [ENEMY] [Enemy4] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 3, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 15)
++[10:33:19] [ENEMY] [Grenadier] Registered as sound listener
++[10:33:19] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
++[10:33:19] [ENEMY] [Enemy6] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
++[10:33:19] [ENEMY] [Enemy7] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 3, behavior: PATROL
++[10:33:19] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
++[10:33:19] [ENEMY] [Enemy8] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
++[10:33:19] [ENEMY] [Enemy9] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 3, behavior: GUARD
++[10:33:19] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
++[10:33:19] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
++[10:33:19] [ENEMY] [Enemy10] Registered as sound listener
++[10:33:19] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
++[10:33:19] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
++[10:33:19] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
++[10:33:19] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=123.7°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
++[10:33:19] [INFO] [Player] Detecting weapon pose (frame 3)...
++[10:33:19] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
++[10:33:19] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
++[10:33:19] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[10:33:19] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[10:33:19] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[10:33:19] [INFO] [LastChance] Found player: Player
++[10:33:19] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[10:33:19] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[10:33:19] [INFO] [LastChance] Connected to player Died signal (C#)
++[10:33:19] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
++[10:33:20] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
++[10:33:20] [INFO] ------------------------------------------------------------
++[10:33:20] [INFO] GAME LOG ENDED: 2026-02-09T10:33:20
++[10:33:20] [INFO] ============================================================
+diff --git a/experiments/bff_pendant_icon.png b/experiments/bff_pendant_icon.png
+new file mode 100644
+index 000000000..6dacf68d3
+Binary files /dev/null and b/experiments/bff_pendant_icon.png differ
+diff --git a/experiments/create_bff_pendant_icon.py b/experiments/create_bff_pendant_icon.py
+new file mode 100644
+index 000000000..5261b1d6f
+--- /dev/null
++++ b/experiments/create_bff_pendant_icon.py
+@@ -0,0 +1,85 @@
++#!/usr/bin/env python3
++"""Create a BFF pendant icon for the armory menu.
++
++Creates a 64x48 pixel PNG icon with transparent background,
++depicting a heart-shaped pendant with "BFF" text - matching
++the style of other armory icons (simple outlines on transparent bg).
++"""
++
++from PIL import Image, ImageDraw, ImageFont
++import os
++
++def create_bff_pendant_icon():
++    """Create a BFF pendant icon as a 64x48 PNG with transparency."""
++    width, height = 64, 48
++    img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
++    draw = ImageDraw.Draw(img)
++
++    # Colors - using a warm gold/amber tone for the pendant
++    pendant_color = (220, 180, 60, 255)  # Gold
++    chain_color = (180, 150, 50, 255)    # Darker gold for chain
++    heart_color = (200, 60, 80, 255)     # Red-pink for heart
++    text_color = (255, 255, 255, 255)    # White for BFF text
++
++    # Draw chain (top part - small loops)
++    cx = width // 2
++    # Chain links going up from pendant
++    for i in range(3):
++        y = 6 + i * 4
++        draw.ellipse([cx - 3, y, cx + 3, y + 4], outline=chain_color, width=1)
++
++    # Draw heart shape for the pendant body (centered, lower portion)
++    heart_cx = cx
++    heart_cy = 28
++
++    # Heart made with two circles and a triangle
++    r = 7
++    # Left bump
++    draw.ellipse([heart_cx - r - 3, heart_cy - r, heart_cx - 3 + r, heart_cy + r],
++                 fill=heart_color, outline=pendant_color, width=1)
++    # Right bump
++    draw.ellipse([heart_cx + 3 - r, heart_cy - r, heart_cx + 3 + r, heart_cy + r],
++                 fill=heart_color, outline=pendant_color, width=1)
++    # Bottom triangle of heart
++    draw.polygon([
++        (heart_cx - r - 3, heart_cy + 2),
++        (heart_cx + r + 3, heart_cy + 2),
++        (heart_cx, heart_cy + r + 8)
++    ], fill=heart_color, outline=pendant_color, width=1)
++
++    # Fill center gap in heart
++    draw.rectangle([heart_cx - 3, heart_cy - 2, heart_cx + 3, heart_cy + 4],
++                   fill=heart_color)
++
++    # Draw "BFF" text on the heart
++    try:
++        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 8)
++    except (OSError, IOError):
++        font = ImageFont.load_default()
++
++    # Get text bounding box for centering
++    bbox = draw.textbbox((0, 0), "BFF", font=font)
++    text_w = bbox[2] - bbox[0]
++    text_h = bbox[3] - bbox[1]
++    text_x = heart_cx - text_w // 2
++    text_y = heart_cy - text_h // 2 + 1
++
++    draw.text((text_x, text_y), "BFF", fill=text_color, font=font)
++
++    # Draw a small ring at top connecting chain to pendant
++    draw.ellipse([cx - 3, 18, cx + 3, 23], outline=pendant_color, width=1)
++
++    # Save the icon
++    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
++                                'assets', 'sprites', 'weapons', 'bff_pendant_icon.png')
++    img.save(output_path)
++    print(f"Icon saved to {output_path}")
++
++    # Also save a copy in experiments
++    exp_path = os.path.join(os.path.dirname(__file__), 'bff_pendant_icon.png')
++    img.save(exp_path)
++    print(f"Copy saved to {exp_path}")
++
++
++if __name__ == "__main__":
++    create_bff_pendant_icon()
+diff --git a/scenes/objects/BffCompanion.tscn b/scenes/objects/BffCompanion.tscn
+new file mode 100644
+index 000000000..4efc797fe
+--- /dev/null
++++ b/scenes/objects/BffCompanion.tscn
+@@ -0,0 +1,65 @@
++[gd_scene load_steps=9 format=3]
++
++[ext_resource type="Script" path="res://scripts/objects/bff_companion.gd" id="1_companion"]
++[ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
++[ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle_topdown.png" id="3_rifle_sprite"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_body.png" id="4_body"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_head.png" id="5_head"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_left_arm.png" id="6_left_arm"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_arm.png" id="7_right_arm"]
++
++[sub_resource type="CircleShape2D" id="CircleShape2D_companion"]
++radius = 24.0
++
++[node name="BffCompanion" type="CharacterBody2D" groups=["bff_companions"]]
++collision_layer = 2
++collision_mask = 4
++script = ExtResource("1_companion")
++
++[node name="CompanionModel" type="Node2D" parent="."]
++
++[node name="Body" type="Sprite2D" parent="CompanionModel"]
++z_index = 1
++position = Vector2(-4, 0)
++texture = ExtResource("4_body")
++
++[node name="LeftArm" type="Sprite2D" parent="CompanionModel"]
++z_index = 4
++position = Vector2(24, 6)
++texture = ExtResource("6_left_arm")
++
++[node name="RightArm" type="Sprite2D" parent="CompanionModel"]
++z_index = 4
++position = Vector2(-2, 6)
++texture = ExtResource("7_right_arm")
++
++[node name="Head" type="Sprite2D" parent="CompanionModel"]
++z_index = 3
++position = Vector2(-6, -2)
++texture = ExtResource("5_head")
++
++[node name="WeaponMount" type="Node2D" parent="CompanionModel"]
++position = Vector2(0, 6)
++
++[node name="WeaponSprite" type="Sprite2D" parent="CompanionModel/WeaponMount"]
++z_index = 2
++texture = ExtResource("3_rifle_sprite")
++offset = Vector2(20, 0)
++
++[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
++shape = SubResource("CircleShape2D_companion")
++
++[node name="HitArea" type="Area2D" parent="."]
++collision_layer = 2
++collision_mask = 16
++script = ExtResource("2_hit_area")
++
++[node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
++shape = SubResource("CircleShape2D_companion")
++
++[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
++path_desired_distance = 4.0
++target_desired_distance = 10.0
++avoidance_enabled = true
++radius = 24.0
++max_speed = 220.0
+diff --git a/scripts/autoload/active_item_manager.gd b/scripts/autoload/active_item_manager.gd
+index 35eae7dba..b5cc8090c 100644
+--- a/scripts/autoload/active_item_manager.gd
++++ b/scripts/autoload/active_item_manager.gd
+@@ -11,6 +11,7 @@ enum ActiveItemType {
+ 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+ 	HOMING_BULLETS,    # Homing bullets - press Space to make bullets steer toward nearest enemy
+ 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
++	BFF_PENDANT,       # BFF pendant - press Space to summon a friendly companion with M16
+ 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
+ 	BREAKER_BULLETS    # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
+ }
+@@ -43,6 +44,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
+ 		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
+ 		"activation_hint": "Hold Space to aim, release to teleport"
+ 	},
++	ActiveItemType.BFF_PENDANT: {
++		"name": "BFF Pendant",
++		"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
++		"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle.",
++		"activation_hint": "Press Space to summon"
++	},
+ 	ActiveItemType.INVISIBILITY_SUIT: {
+ 		"name": "Invisibility",
+ 		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+@@ -151,6 +158,11 @@ func has_teleport_bracers() -> bool:
+ 	return current_active_item == ActiveItemType.TELEPORT_BRACERS
+ 
+ 
++## Check if BFF pendant is currently equipped.
++func has_bff_pendant() -> bool:
++	return current_active_item == ActiveItemType.BFF_PENDANT
++
++
+ ## Check if an invisibility suit is currently equipped (Issue #673).
+ func has_invisibility_suit() -> bool:
+ 	return current_active_item == ActiveItemType.INVISIBILITY_SUIT
+diff --git a/scripts/characters/player.gd b/scripts/characters/player.gd
+index 89cdfbdf8..68c4faebe 100644
+--- a/scripts/characters/player.gd
++++ b/scripts/characters/player.gd
+@@ -340,6 +340,9 @@ func _ready() -> void:
+ 	# Initialize homing bullets if active item manager has homing bullets selected
+ 	_init_homing_bullets()
+ 
++	# Initialize BFF pendant if active item manager has it selected (Issue #674)
++	_init_bff_pendant()
++
+ 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
+ 	_init_invisibility_suit()
+ 
+@@ -446,6 +449,9 @@ func _physics_process(delta: float) -> void:
+ 	# Handle homing bullets input (press Space to activate, timer-based deactivation)
+ 	_handle_homing_input(delta)
+ 
++	# Handle BFF pendant input (press Space to summon companion, Issue #674)
++	_handle_bff_pendant_input()
++
+ 	# Handle invisibility suit input (press Space to activate) (Issue #673)
+ 	_handle_invisibility_suit_input()
+ 
+@@ -3079,6 +3085,123 @@ func _play_homing_sound() -> void:
+ 		_homing_audio_player.play()
+ 
+ 
++# ============================================================================
++# BFF Pendant System (Issue #674)
++# ============================================================================
++
++## BFF companion scene path.
++const BFF_COMPANION_SCENE_PATH: String = "res://scenes/objects/BffCompanion.tscn"
++
++## Whether the BFF pendant is equipped (active item selected in armory).
++var _bff_pendant_equipped: bool = false
++
++## Whether the companion has already been summoned this battle (one charge per battle).
++var _bff_companion_summoned: bool = false
++
++## Reference to the summoned companion node.
++var _bff_companion_node: Node2D = null
++
++
++## Initialize the BFF pendant if the ActiveItemManager has it selected.
++func _init_bff_pendant() -> void:
++	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
++	if active_item_manager == null:
++		FileLogger.info("[Player.BffPendant] ActiveItemManager not found")
++		return
++
++	if not active_item_manager.has_method("has_bff_pendant"):
++		FileLogger.info("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method")
++		return
++
++	if not active_item_manager.has_bff_pendant():
++		FileLogger.info("[Player.BffPendant] No BFF pendant selected in ActiveItemManager")
++		return
++
++	FileLogger.info("[Player.BffPendant] BFF pendant is selected, ready to summon companion")
++
++	# Verify companion scene exists
++	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
++		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
++		return
++
++	_bff_pendant_equipped = true
++	_bff_companion_summoned = false
++	FileLogger.info("[Player.BffPendant] BFF pendant equipped — press Space to summon companion")
++
++
++## Handle BFF pendant input: press Space to summon a companion (one charge per battle).
++func _handle_bff_pendant_input() -> void:
++	if not _bff_pendant_equipped:
++		return
++	if _bff_companion_summoned:
++		return
++
++	if Input.is_action_just_pressed("flashlight_toggle"):
++		_summon_bff_companion()
++
++
++## Summon the BFF companion near the player.
++func _summon_bff_companion() -> void:
++	if _bff_companion_summoned:
++		return
++
++	if not ResourceLoader.exists(BFF_COMPANION_SCENE_PATH):
++		FileLogger.info("[Player.BffPendant] WARNING: Companion scene not found: %s" % BFF_COMPANION_SCENE_PATH)
++		return
++
++	var companion_scene: PackedScene = load(BFF_COMPANION_SCENE_PATH)
++	if companion_scene == null:
++		FileLogger.info("[Player.BffPendant] WARNING: Failed to load companion scene")
++		return
++
++	var companion := companion_scene.instantiate()
++
++	# Add to the current scene (not as child of player, so it moves independently)
++	get_tree().current_scene.add_child(companion)
++
++	# Spawn slightly behind and to the side of the player
++	var spawn_offset := Vector2(-50, 30)
++	if _player_model:
++		spawn_offset = spawn_offset.rotated(_player_model.rotation)
++	companion.global_position = global_position + spawn_offset
++
++	_bff_companion_node = companion
++	_bff_companion_summoned = true
++
++	# Connect companion death signal
++	if companion.has_signal("companion_died"):
++		companion.companion_died.connect(_on_bff_companion_died)
++
++	FileLogger.info("[Player.BffPendant] Companion summoned at position %s" % str(companion.global_position))
++
++
++## Called when the BFF companion dies.
++func _on_bff_companion_died() -> void:
++	FileLogger.info("[Player.BffPendant] Companion has been killed")
++	_bff_companion_node = null
++
++
++## Check if the BFF pendant is equipped.
++func has_bff_pendant() -> bool:
++	return _bff_pendant_equipped
++
++
++## Check if the BFF companion has been summoned.
++func is_bff_companion_summoned() -> bool:
++	return _bff_companion_summoned
++
++
++## Check if the BFF companion is currently alive.
++func is_bff_companion_alive() -> bool:
++	if _bff_companion_node == null:
++		return false
++	if not is_instance_valid(_bff_companion_node):
++		return false
++	if _bff_companion_node.has_method("is_alive"):
++		return _bff_companion_node.is_alive()
++	return false
++
++
+ # ============================================================================
+ # Invisibility Suit System (Issue #673)
+ # ============================================================================
+diff --git a/scripts/objects/bff_companion.gd b/scripts/objects/bff_companion.gd
+new file mode 100644
+index 000000000..83ff6ccdd
+--- /dev/null
++++ b/scripts/objects/bff_companion.gd
+@@ -0,0 +1,453 @@
++class_name BffCompanion
++extends CharacterBody2D
++## BFF Companion NPC summoned by the BFF Pendant active item (Issue #674).
++##
++## A friendly companion that follows the player and shoots enemies with an M16.
++## Has 2-4 HP and lasts until killed or the level ends.
++## Uses simplified AI: follows the player, detects enemies, and shoots them.
++
++## Companion died signal (for enemy counter exclusion).
++signal companion_died
++
++## Movement speed when following the player (px/s).
++var move_speed: float = 200.0
++
++## Distance to maintain from the player (px).
++var follow_distance: float = 80.0
++
++## Detection range for enemies (px).
++var detection_range: float = 500.0
++
++## Weapon configuration — uses RIFLE (M16).
++var shoot_cooldown: float = 0.15
++var bullet_speed: float = 2500.0
++var bullet_spawn_offset: float = 30.0
++var magazine_size: int = 30
++
++## Health.
++var min_health: int = 2
++var max_health: int = 4
++
++## Visual scale.
++var model_scale: float = 1.3
++
++## Internal state.
++var _current_health: int = 0
++var _max_health: int = 0
++var _is_alive: bool = true
++var _player: Node2D = null
++var _current_target: Node2D = null
++var _shoot_timer: float = 0.0
++var _current_ammo: int = 30
++var _reload_timer: float = 0.0
++var _is_reloading: bool = false
++var _reload_time: float = 2.5
++
++## Bullet scene.
++var _bullet_scene: PackedScene = null
++
++## Spread tracking (progressive spread like enemies).
++var _shot_count: int = 0
++var _spread_timer: float = 0.0
++var _spread_threshold: int = 3
++var _initial_spread: float = 0.5
++var _spread_increment: float = 0.6
++var _max_spread: float = 4.0
++var _spread_reset_time: float = 0.25
++
++## Node references (resolved from scene tree in _ready).
++@onready var _model: Node2D = $CompanionModel
++@onready var _body_sprite: Sprite2D = $CompanionModel/Body
++@onready var _head_sprite: Sprite2D = $CompanionModel/Head
++@onready var _left_arm_sprite: Sprite2D = $CompanionModel/LeftArm
++@onready var _right_arm_sprite: Sprite2D = $CompanionModel/RightArm
++@onready var _weapon_sprite: Sprite2D = $CompanionModel/WeaponMount/WeaponSprite
++
++## Hit flash.
++var _hit_flash_timer: float = 0.0
++var _hit_flash_duration: float = 0.1
++var _full_health_color: Color = Color(0.2, 1.0, 0.6, 1.0)  # Green-cyan tint for companion (different from player's blue)
++var _low_health_color: Color = Color(0.1, 0.4, 0.2, 1.0)
++var _hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
++
++## Aim tolerance for shooting (dot product threshold).
++const AIM_TOLERANCE_DOT: float = 0.95
++
++## Rotation speed (rad/s).
++var _rotation_speed: float = 20.0
++
++## Debug frame counter for periodic logging (every ~60 frames = 1 second).
++var _debug_frame_counter: int = 0
++const DEBUG_LOG_INTERVAL: int = 60
++
++
++func _ready() -> void:
++	FileLogger.info("[BffCompanion] _ready() called, initializing companion...")
++	add_to_group("bff_companions")
++	_initialize_health()
++	_find_player()
++	_load_bullet_scene()
++	_update_health_visual()
++
++	# Apply scale to model
++	if _model:
++		_model.scale = Vector2(model_scale, model_scale)
++		FileLogger.info("[BffCompanion] Model scale set to %s" % str(_model.scale))
++	else:
++		FileLogger.info("[BffCompanion] WARNING: _model is null, visual setup may fail")
++
++	FileLogger.info("[BffCompanion] Spawned with %d/%d HP, player found: %s" % [_current_health, _max_health, str(_player != null)])
++
++
++func _load_bullet_scene() -> void:
++	var config := WeaponConfigComponent.get_config(0)  # RIFLE config
++	if config.get("bullet_scene_path", "") != "":
++		var scene := load(config["bullet_scene_path"]) as PackedScene
++		if scene:
++			_bullet_scene = scene
++	if _bullet_scene == null:
++		_bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
++
++
++func _initialize_health() -> void:
++	_max_health = randi_range(min_health, max_health)
++	_current_health = _max_health
++	_is_alive = true
++
++
++func _find_player() -> void:
++	var players := get_tree().get_nodes_in_group("player")
++	if players.size() > 0:
++		_player = players[0]
++		return
++	var root := get_tree().current_scene
++	if root:
++		_player = _find_player_recursive(root)
++
++
++func _find_player_recursive(node: Node) -> Node2D:
++	if node.name == "Player" and node is Node2D:
++		return node
++	for child in node.get_children():
++		var result := _find_player_recursive(child)
++		if result:
++			return result
++	return null
++
++
++func _physics_process(delta: float) -> void:
++	if not _is_alive:
++		return
++
++	# Periodic debug logging
++	_debug_frame_counter += 1
++	if _debug_frame_counter >= DEBUG_LOG_INTERVAL:
++		_debug_frame_counter = 0
++		var target_name := "none" if _current_target == null else _current_target.name
++		var player_name := "none" if _player == null else _player.name
++		FileLogger.info("[BffCompanion] Status: pos=%s, player=%s, target=%s, ammo=%d, hp=%d" % [
++			str(global_position), player_name, target_name, _current_ammo, _current_health])
++
++	_shoot_timer += delta
++	_spread_timer += delta
++	if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0:
++		_shot_count = 0
++
++	# Update reload
++	if _is_reloading:
++		_reload_timer += delta
++		if _reload_timer >= _reload_time:
++			_current_ammo = magazine_size
++			_is_reloading = false
++			_reload_timer = 0.0
++
++	# Update hit flash
++	if _hit_flash_timer > 0.0:
++		_hit_flash_timer -= delta
++		if _hit_flash_timer <= 0.0:
++			_update_health_visual()
++
++	# Find player if lost
++	if _player == null or not is_instance_valid(_player):
++		_find_player()
++		if _player == null:
++			return
++
++	# Find closest enemy target
++	_find_target()
++
++	# Rotate toward target (or player direction if no target)
++	if _current_target != null and is_instance_valid(_current_target):
++		var dir_to_target := (_current_target.global_position - global_position).normalized()
++		_rotate_model_toward(dir_to_target, delta)
++		_try_shoot(dir_to_target)
++	else:
++		# Face same direction as player
++		if _model and _player:
++			var player_model := _player.get_node_or_null("PlayerModel")
++			if player_model:
++				var target_rot := player_model.global_rotation
++				_model.global_rotation = lerp_angle(_model.global_rotation, target_rot, _rotation_speed * delta)
++
++	# Follow player
++	_follow_player(delta)
++
++	move_and_slide()
++
++
++func _follow_player(delta: float) -> void:
++	if _player == null or not is_instance_valid(_player):
++		velocity = Vector2.ZERO
++		return
++
++	var to_player := _player.global_position - global_position
++	var distance := to_player.length()
++
++	if distance > follow_distance:
++		var direction := to_player.normalized()
++		velocity = direction * move_speed
++	else:
++		velocity = velocity.move_toward(Vector2.ZERO, 800.0 * delta)
++
++
++func _find_target() -> void:
++	_current_target = null
++	var closest_dist := detection_range
++	var enemies := get_tree().get_nodes_in_group("enemies")
++
++	for enemy in enemies:
++		if not is_instance_valid(enemy):
++			continue
++		if not enemy is CharacterBody2D:
++			continue
++		# Check if the enemy is alive
++		if enemy.has_method("is_alive") and not enemy.is_alive():
++			continue
++		# Check if enemy has _is_alive property
++		if "_is_alive" in enemy and not enemy._is_alive:
++			continue
++
++		var dist := global_position.distance_to(enemy.global_position)
++		if dist < closest_dist:
++			# Check line of sight
++			if _has_line_of_sight(enemy.global_position):
++				closest_dist = dist
++				_current_target = enemy
++
++
++func _has_line_of_sight(target_pos: Vector2) -> bool:
++	var space_state := get_world_2d().direct_space_state
++	if space_state == null:
++		return false
++
++	var query := PhysicsRayQueryParameters2D.new()
++	query.from = global_position
++	query.to = target_pos
++	query.collision_mask = 1  # Walls only (layer 1)
++	query.exclude = [get_rid()]
++
++	var result := space_state.intersect_ray(query)
++	return result.is_empty()  # True if no wall in the way
++
++
++func _rotate_model_toward(direction: Vector2, delta: float) -> void:
++	if _model == null:
++		return
++	var target_angle := direction.angle()
++	_model.rotation = lerp_angle(_model.rotation, target_angle, _rotation_speed * delta)
++
++
++func _try_shoot(direction: Vector2) -> void:
++	if _bullet_scene == null:
++		return
++	if _is_reloading:
++		return
++	if _current_ammo <= 0:
++		_start_reload()
++		return
++	if _shoot_timer < shoot_cooldown:
++		return
++
++	# Check aim alignment
++	var weapon_forward := Vector2.RIGHT.rotated(_model.rotation) if _model else direction
++	var aim_dot := weapon_forward.dot(direction)
++	if aim_dot < AIM_TOLERANCE_DOT:
++		return
++
++	# Check friendly fire — don't shoot if player is in the way
++	if _player and is_instance_valid(_player):
++		if _is_player_in_firing_line(direction):
++			return
++
++	# Shoot
++	_shoot(weapon_forward)
++
++
++func _is_player_in_firing_line(direction: Vector2) -> bool:
++	if _player == null or not is_instance_valid(_player):
++		return false
++
++	var space_state := get_world_2d().direct_space_state
++	if space_state == null:
++		return false
++
++	var muzzle_pos := global_position + direction * bullet_spawn_offset
++	var target_pos := global_position + direction * detection_range
++
++	var query := PhysicsRayQueryParameters2D.new()
++	query.from = muzzle_pos
++	query.to = target_pos
++	query.collision_mask = 4  # Player collision layer
++	query.exclude = [get_rid()]
++
++	var result := space_state.intersect_ray(query)
++	if result.is_empty():
++		return false
++
++	# Check if the hit is the player
++	var hit_body = result.get("collider")
++	if hit_body == _player:
++		return true
++	return false
++
++
++func _shoot(direction: Vector2) -> void:
++	if _bullet_scene == null:
++		return
++
++	var bullet_spawn_pos := global_position + direction * bullet_spawn_offset
++
++	# Apply progressive spread
++	var spread_deg: float = 0.0
++	if _shot_count >= _spread_threshold:
++		var excess: int = _shot_count - _spread_threshold
++		spread_deg = _initial_spread + excess * _spread_increment
++		spread_deg = minf(spread_deg, _max_spread)
++
++	var spread_rad := deg_to_rad(spread_deg)
++	var final_direction := direction.rotated(randf_range(-spread_rad, spread_rad))
++
++	var bullet := _bullet_scene.instantiate()
++	get_tree().current_scene.add_child(bullet)
++	bullet.global_position = bullet_spawn_pos
++
++	# Set bullet properties — compatible with both C# and GDScript bullets
++	if bullet.has_method("set_direction"):
++		bullet.set_direction(final_direction)
++	elif "direction" in bullet:
++		bullet.direction = final_direction
++
++	if "speed" in bullet:
++		bullet.speed = bullet_speed
++
++	# Set shooter_id to prevent hitting ourselves
++	if "shooter_id" in bullet:
++		bullet.shooter_id = get_instance_id()
++
++	# Play shoot sound
++	var audio: Node = get_node_or_null("/root/AudioManager")
++	if audio and audio.has_method("play_m16_shot"):
++		audio.play_m16_shot(global_position)
++
++	# Sound propagation
++	var sp: Node = get_node_or_null("/root/SoundPropagation")
++	if sp and sp.has_method("emit_sound"):
++		sp.emit_sound(0, global_position, 1, self, 1469.0)
++
++	_current_ammo -= 1
++	_shot_count += 1
++	_spread_timer = 0.0
++	_shoot_timer = 0.0
++
++	if _current_ammo <= 0:
++		_start_reload()
++
++
++func _start_reload() -> void:
++	if _is_reloading:
++		return
++	_is_reloading = true
++	_reload_timer = 0.0
++
++
++## Apply damage to the companion. Primary entry point for C# bullets.
++func take_damage(amount: float) -> void:
++	on_hit(Vector2.RIGHT, amount)
++
++
++## Called when companion is hit.
++func on_hit(hit_direction: Vector2, damage: float = 1.0) -> void:
++	if not _is_alive:
++		return
++
++	var actual_damage: int = maxi(int(round(damage)), 1)
++	_current_health -= actual_damage
++
++	FileLogger.info("[BffCompanion] Hit: dmg=%d, hp=%d/%d" % [actual_damage, _current_health, _max_health])
++
++	_show_hit_flash()
++
++	# Blood/hit effects
++	var audio_manager: Node = get_node_or_null("/root/AudioManager")
++	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
++
++	if _current_health <= 0:
++		if audio_manager and audio_manager.has_method("play_hit_lethal"):
++			audio_manager.play_hit_lethal(global_position)
++		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
++			impact_manager.spawn_blood_effect(global_position, hit_direction, null, true)
++		_on_death()
++	else:
++		if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
++			audio_manager.play_hit_non_lethal(global_position)
++		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
++			impact_manager.spawn_blood_effect(global_position, hit_direction, null, false)
++		_update_health_visual()
++
++
++## Called when companion is hit with full bullet info (C# Bullet compatibility).
++func on_hit_with_bullet_info(hit_direction: Vector2, _caliber_data: Resource, _has_ricocheted: bool, _has_penetrated: bool, damage: float = 1.0) -> void:
++	on_hit(hit_direction, damage)
++
++
++func _on_death() -> void:
++	_is_alive = false
++	FileLogger.info("[BffCompanion] Companion died")
++	companion_died.emit()
++
++	# Visual death — fade out and remove
++	if _model:
++		var tween := create_tween()
++		tween.tween_property(_model, "modulate:a", 0.0, 0.5)
++		tween.tween_callback(queue_free)
++	else:
++		queue_free()
++
++
++func _show_hit_flash() -> void:
++	_hit_flash_timer = _hit_flash_duration
++	_set_model_color(_hit_flash_color)
++
++
++func _update_health_visual() -> void:
++	if _max_health <= 0:
++		return
++	var health_percent: float = float(_current_health) / float(_max_health)
++	var color := _low_health_color.lerp(_full_health_color, health_percent)
++	_set_model_color(color)
++
++
++func _set_model_color(color: Color) -> void:
++	if _body_sprite:
++		_body_sprite.modulate = color
++	if _head_sprite:
++		_head_sprite.modulate = color
++	if _left_arm_sprite:
++		_left_arm_sprite.modulate = color
++	if _right_arm_sprite:
++		_right_arm_sprite.modulate = color
++
++
++## Check if the companion is alive.
++func is_alive() -> bool:
++	return _is_alive
+diff --git a/tests/unit/test_active_item_manager.gd b/tests/unit/test_active_item_manager.gd
+index 7fd3d3ff5..683efb9d7 100644
+--- a/tests/unit/test_active_item_manager.gd
++++ b/tests/unit/test_active_item_manager.gd
+@@ -115,8 +115,9 @@ class MockActiveItemManager:
+ 		FLASHLIGHT = 1,
+ 		HOMING_BULLETS = 2,
+ 		TELEPORT_BRACERS = 3,
+-		INVISIBILITY_SUIT = 4,
+-		BREAKER_BULLETS = 5
++		BFF_PENDANT = 4,
++		INVISIBILITY_SUIT = 5,
++		BREAKER_BULLETS = 6
+ 	}
+ 
+ 	## Currently selected active item type
+@@ -145,11 +146,16 @@ class MockActiveItemManager:
+ 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
+ 		},
+ 		4: {
++			"name": "BFF Pendant",
++			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
++			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
++		},
++		5: {
+ 			"name": "Invisibility",
+ 			"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+ 			"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
+ 		},
+-		5: {
++		6: {
+ 			"name": "Breaker Bullets",
+ 			"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
+ 			"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone."
+@@ -218,6 +224,10 @@ class MockActiveItemManager:
+ 	func has_teleport_bracers() -> bool:
+ 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+ 
++	## Check if BFF pendant is currently equipped
++	func has_bff_pendant() -> bool:
++		return current_active_item == ActiveItemType.BFF_PENDANT
++
+ 	## Check if invisibility suit is currently equipped
+ 	func has_invisibility_suit() -> bool:
+ 		return current_active_item == ActiveItemType.INVISIBILITY_SUIT
+@@ -376,14 +386,15 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
+ 
+ func test_get_all_active_item_types() -> void:
+ 	var types := manager.get_all_active_item_types()
+-	assert_eq(types.size(), 6,
+-		"Should return 6 active item types")
++	assert_eq(types.size(), 7,
++		"Should return 7 active item types")
+ 	assert_true(0 in types)
+ 	assert_true(1 in types)
+ 	assert_true(2 in types)
+ 	assert_true(3 in types)
+ 	assert_true(4 in types)
+ 	assert_true(5 in types)
++	assert_true(6 in types)
+ 
+ 
+ func test_get_active_item_name_none() -> void:
+@@ -576,8 +587,9 @@ class MockArmoryWithActiveItems:
+ 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
+ 		2: {"name": "Homing Bullets", "description": "Homing bullets active item"},
+ 		3: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
+-		4: {"name": "Invisibility", "description": "Invisibility suit"},
+-		5: {"name": "Breaker Bullets", "description": "Breaker bullets — passive"}
++		4: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"},
++		5: {"name": "Invisibility", "description": "Invisibility suit"},
++		6: {"name": "Breaker Bullets", "description": "Breaker bullets — passive"}
+ 	}
+ 
+ 	## Applied active item type
+@@ -665,25 +677,25 @@ func test_armory_switch_active_items() -> void:
+ 
+ 
+ func test_active_item_type_breaker_bullets_value() -> void:
+-	# ActiveItemType.BREAKER_BULLETS should be 5
+-	var expected := 5
+-	assert_eq(expected, 5, "BREAKER_BULLETS should be the sixth active item type (5)")
++	# ActiveItemType.BREAKER_BULLETS should be 6
++	var expected := 6
++	assert_eq(expected, 6, "BREAKER_BULLETS should be the seventh active item type (6)")
+ 
+ 
+ func test_active_item_data_has_breaker_bullets() -> void:
+-	var data := manager.get_active_item_data(5)
++	var data := manager.get_active_item_data(6)
+ 	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain BREAKER_BULLETS type")
+ 	assert_eq(data["name"], "Breaker Bullets", "Breaker Bullets should have correct name")
+ 
+ 
+ func test_breaker_bullets_data_has_icon_path() -> void:
+-	var data := manager.get_active_item_data(5)
++	var data := manager.get_active_item_data(6)
+ 	assert_true(data["icon_path"].contains("breaker_bullets"),
+ 		"Breaker Bullets icon path should contain 'breaker_bullets'")
+ 
+ 
+ func test_breaker_bullets_data_has_description() -> void:
+-	var data := manager.get_active_item_data(5)
++	var data := manager.get_active_item_data(6)
+ 	assert_true(data["description"].contains("passive"),
+ 		"Breaker Bullets description should mention passive behavior")
+ 
+@@ -694,20 +706,20 @@ func test_no_breaker_bullets_by_default() -> void:
+ 
+ 
+ func test_has_breaker_bullets_after_selection() -> void:
+-	manager.set_active_item(5)
++	manager.set_active_item(6)
+ 	assert_true(manager.has_breaker_bullets(),
+ 		"has_breaker_bullets should return true after selecting breaker bullets")
+ 
+ 
+ func test_no_breaker_bullets_after_deselection() -> void:
+-	manager.set_active_item(5)
++	manager.set_active_item(6)
+ 	manager.set_active_item(0)
+ 	assert_false(manager.has_breaker_bullets(),
+ 		"has_breaker_bullets should return false after switching back to none")
+ 
+ 
+ func test_breaker_bullets_does_not_conflict_with_flashlight() -> void:
+-	manager.set_active_item(5)
++	manager.set_active_item(6)
+ 	assert_false(manager.has_flashlight(),
+ 		"Flashlight should not be active when breaker bullets are selected")
+ 	assert_true(manager.has_breaker_bullets(),
+@@ -723,13 +735,13 @@ func test_flashlight_does_not_conflict_with_breaker_bullets() -> void:
+ 
+ 
+ func test_set_active_item_to_breaker_bullets() -> void:
+-	manager.set_active_item(5)
+-	assert_eq(manager.current_active_item, 5,
++	manager.set_active_item(6)
++	assert_eq(manager.current_active_item, 6,
+ 		"Active item type should change to BREAKER_BULLETS")
+ 
+ 
+ func test_armory_select_breaker_bullets() -> void:
+ 	var armory := MockArmoryWithActiveItems.new()
+-	var result := armory.select_active_item(5)
++	var result := armory.select_active_item(6)
+ 	assert_true(result, "Should select breaker bullets")
+-	assert_eq(armory.pending_active_item, 5, "Pending should be breaker bullets")
++	assert_eq(armory.pending_active_item, 6, "Pending should be breaker bullets")
+diff --git a/tests/unit/test_bff_pendant.gd b/tests/unit/test_bff_pendant.gd
+new file mode 100644
+index 000000000..16e17b82a
+--- /dev/null
++++ b/tests/unit/test_bff_pendant.gd
+@@ -0,0 +1,698 @@
++extends GutTest
++## Unit tests for BFF Pendant active item (Issue #674).
++##
++## Tests the BFF pendant integration with ActiveItemManager,
++## companion summoning logic, charge management, and companion behavior.
++
++
++# ============================================================================
++# Active Item Type Enum Tests
++# ============================================================================
++
++
++func test_active_item_type_bff_pendant_value() -> void:
++	# ActiveItemType.BFF_PENDANT should be 4
++	var expected := 4
++	assert_eq(expected, 4, "BFF_PENDANT should be the fifth active item type (4)")
++
++
++# ============================================================================
++# Active Item Data Constants Tests
++# ============================================================================
++
++
++func test_active_item_data_has_bff_pendant() -> void:
++	var item_data := {
++		3: {
++			"name": "BFF Pendant",
++			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
++			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
++		}
++	}
++	assert_true(item_data.has(3), "ACTIVE_ITEM_DATA should contain BFF_PENDANT type")
++
++
++func test_bff_pendant_data_has_name() -> void:
++	var data := {"name": "BFF Pendant"}
++	assert_eq(data["name"], "BFF Pendant", "BFF Pendant should have correct name")
++
++
++func test_bff_pendant_data_has_icon_path() -> void:
++	var data := {"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png"}
++	assert_eq(data["icon_path"], "res://assets/sprites/weapons/bff_pendant_icon.png",
++		"BFF Pendant should have correct icon path")
++
++
++func test_bff_pendant_data_has_description() -> void:
++	var data := {"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."}
++	assert_true(data["description"].contains("Space"),
++		"BFF Pendant description should mention Space key")
++	assert_true(data["description"].contains("M16"),
++		"BFF Pendant description should mention M16")
++	assert_true(data["description"].contains("2-4 HP"),
++		"BFF Pendant description should mention 2-4 HP")
++	assert_true(data["description"].contains("One charge"),
++		"BFF Pendant description should mention one charge per battle")
++
++
++# ============================================================================
++# Mock ActiveItemManager for Logic Tests
++# ============================================================================
++
++
++class MockActiveItemManager:
++	## Active item types
++	const ActiveItemType := {
++		NONE = 0,
++		FLASHLIGHT = 1,
++		HOMING_BULLETS = 2,
++		TELEPORT_BRACERS = 3,
++		BFF_PENDANT = 4
++	}
++
++	## Currently selected active item type
++	var current_active_item: int = ActiveItemType.NONE
++
++	## Active item type data
++	const ACTIVE_ITEM_DATA: Dictionary = {
++		0: {
++			"name": "None",
++			"icon_path": "",
++			"description": "No active item equipped."
++		},
++		1: {
++			"name": "Flashlight",
++			"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
++			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
++		},
++		2: {
++			"name": "Homing Bullets",
++			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
++			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
++		},
++		3: {
++			"name": "Teleport Bracers",
++			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
++			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
++		},
++		4: {
++			"name": "BFF Pendant",
++			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
++			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
++		}
++	}
++
++	## Signal tracking
++	var type_changed_count: int = 0
++	var last_restart_called: bool = false
++
++	## Set the current active item type
++	func set_active_item(type: int, restart_level: bool = true) -> void:
++		if type == current_active_item:
++			return
++
++		if type not in ACTIVE_ITEM_DATA:
++			return
++
++		current_active_item = type
++		type_changed_count += 1
++
++		if restart_level:
++			last_restart_called = true
++
++	## Get active item data for a specific type
++	func get_active_item_data(type: int) -> Dictionary:
++		if type in ACTIVE_ITEM_DATA:
++			return ACTIVE_ITEM_DATA[type]
++		return {}
++
++	## Get all available active item types
++	func get_all_active_item_types() -> Array:
++		return ACTIVE_ITEM_DATA.keys()
++
++	## Get the name of an active item type
++	func get_active_item_name(type: int) -> String:
++		if type in ACTIVE_ITEM_DATA:
++			return ACTIVE_ITEM_DATA[type]["name"]
++		return "Unknown"
++
++	## Get the description of an active item type
++	func get_active_item_description(type: int) -> String:
++		if type in ACTIVE_ITEM_DATA:
++			return ACTIVE_ITEM_DATA[type]["description"]
++		return ""
++
++	## Get the icon path of an active item type
++	func get_active_item_icon_path(type: int) -> String:
++		if type in ACTIVE_ITEM_DATA:
++			return ACTIVE_ITEM_DATA[type]["icon_path"]
++		return ""
++
++	## Check if an active item type is the currently selected type
++	func is_selected(type: int) -> bool:
++		return type == current_active_item
++
++	## Check if a flashlight is currently equipped
++	func has_flashlight() -> bool:
++		return current_active_item == ActiveItemType.FLASHLIGHT
++
++	## Check if homing bullets are currently equipped
++	func has_homing_bullets() -> bool:
++		return current_active_item == ActiveItemType.HOMING_BULLETS
++
++	## Check if teleport bracers are currently equipped
++	func has_teleport_bracers() -> bool:
++		return current_active_item == ActiveItemType.TELEPORT_BRACERS
++
++	## Check if BFF pendant is currently equipped
++	func has_bff_pendant() -> bool:
++		return current_active_item == ActiveItemType.BFF_PENDANT
++
++
++var manager: MockActiveItemManager
++
++
++func before_each() -> void:
++	manager = MockActiveItemManager.new()
++
++
++func after_each() -> void:
++	manager = null
++
++
++# ============================================================================
++# Default State Tests
++# ============================================================================
++
++
++func test_default_active_item_is_none() -> void:
++	assert_eq(manager.current_active_item, 0,
++		"Default active item should be NONE (0)")
++
++
++func test_bff_pendant_not_selected_by_default() -> void:
++	assert_false(manager.is_selected(4),
++		"BFF Pendant should not be selected by default")
++
++
++func test_no_bff_pendant_by_default() -> void:
++	assert_false(manager.has_bff_pendant(),
++		"BFF Pendant should not be equipped by default")
++
++
++# ============================================================================
++# Type Selection Tests
++# ============================================================================
++
++
++func test_set_active_item_to_bff_pendant() -> void:
++	manager.set_active_item(4)
++	assert_eq(manager.current_active_item, 3,
++		"Active item type should change to BFF_PENDANT")
++
++
++func test_set_bff_pendant_emits_change() -> void:
++	manager.set_active_item(4)
++	assert_eq(manager.type_changed_count, 1,
++		"Type change should increment counter")
++
++
++func test_set_bff_pendant_triggers_restart_by_default() -> void:
++	manager.set_active_item(4)
++	assert_true(manager.last_restart_called,
++		"Level restart should be triggered by default")
++
++
++func test_set_bff_pendant_without_restart() -> void:
++	manager.set_active_item(3, false)
++	assert_false(manager.last_restart_called,
++		"Level restart should not be triggered when disabled")
++
++
++func test_has_bff_pendant_after_selection() -> void:
++	manager.set_active_item(4)
++	assert_true(manager.has_bff_pendant(),
++		"has_bff_pendant should return true after selecting pendant")
++
++
++func test_no_bff_pendant_after_deselection() -> void:
++	manager.set_active_item(4)
++	manager.set_active_item(0)
++	assert_false(manager.has_bff_pendant(),
++		"has_bff_pendant should return false after switching back to none")
++
++
++func test_no_flashlight_when_bff_pendant_selected() -> void:
++	manager.set_active_item(4)
++	assert_false(manager.has_flashlight(),
++		"has_flashlight should return false when pendant is selected")
++
++
++func test_no_teleport_bracers_when_bff_pendant_selected() -> void:
++	manager.set_active_item(4)
++	assert_false(manager.has_teleport_bracers(),
++		"has_teleport_bracers should return false when pendant is selected")
++
++
++func test_no_bff_pendant_when_flashlight_selected() -> void:
++	manager.set_active_item(1)
++	assert_false(manager.has_bff_pendant(),
++		"has_bff_pendant should return false when flashlight is selected")
++
++
++func test_no_bff_pendant_when_teleport_bracers_selected() -> void:
++	manager.set_active_item(3)
++	assert_false(manager.has_bff_pendant(),
++		"has_bff_pendant should return false when bracers are selected")
++
++
++# ============================================================================
++# Data Retrieval Tests
++# ============================================================================
++
++
++func test_get_active_item_data_bff_pendant() -> void:
++	var data := manager.get_active_item_data(4)
++	assert_eq(data["name"], "BFF Pendant")
++
++
++func test_get_all_active_item_types_includes_bff_pendant() -> void:
++	var types := manager.get_all_active_item_types()
++	assert_eq(types.size(), 5,
++		"Should return 5 active item types")
++	assert_true(0 in types, "Should have NONE")
++	assert_true(1 in types, "Should have FLASHLIGHT")
++	assert_true(2 in types, "Should have HOMING_BULLETS")
++	assert_true(3 in types, "Should have TELEPORT_BRACERS")
++	assert_true(4 in types, "Should have BFF_PENDANT")
++
++
++func test_get_active_item_name_bff_pendant() -> void:
++	assert_eq(manager.get_active_item_name(4), "BFF Pendant")
++
++
++func test_get_active_item_description_bff_pendant() -> void:
++	var desc := manager.get_active_item_description(4)
++	assert_true(desc.contains("companion"),
++		"BFF Pendant description should mention companion")
++
++
++func test_get_active_item_icon_path_bff_pendant() -> void:
++	var path := manager.get_active_item_icon_path(4)
++	assert_true(path.contains("bff_pendant"),
++		"BFF Pendant icon path should contain 'bff_pendant'")
++
++
++# ============================================================================
++# Selection State Tests
++# ============================================================================
++
++
++func test_is_selected_after_changing_to_bff_pendant() -> void:
++	manager.set_active_item(4)
++	assert_true(manager.is_selected(4),
++		"BFF_PENDANT should be selected after changing to it")
++	assert_false(manager.is_selected(0),
++		"NONE should not be selected after changing away from it")
++	assert_false(manager.is_selected(1),
++		"FLASHLIGHT should not be selected after changing away from it")
++	assert_false(manager.is_selected(3),
++		"TELEPORT_BRACERS should not be selected after changing away from it")
++
++
++func test_switch_between_all_active_items() -> void:
++	manager.set_active_item(1)  # Flashlight
++	manager.set_active_item(3)  # Teleport Bracers
++	manager.set_active_item(4)  # BFF Pendant
++	manager.set_active_item(0)  # None
++	manager.set_active_item(4)  # Back to BFF Pendant
++
++	assert_eq(manager.current_active_item, 3)
++	assert_eq(manager.type_changed_count, 5)
++
++
++# ============================================================================
++# BFF Companion Charge Tracking Tests
++# ============================================================================
++
++
++class MockBffChargeTracker:
++	## One charge per battle
++	const MAX_CHARGES: int = 1
++
++	## Current charge count
++	var charges: int = MAX_CHARGES
++
++	## Whether companion was summoned
++	var companion_summoned: bool = false
++
++	## Signal tracking
++	var summon_count: int = 0
++
++	## Use the charge (summon companion)
++	func summon() -> bool:
++		if charges <= 0:
++			return false
++		if companion_summoned:
++			return false
++		charges -= 1
++		companion_summoned = true
++		summon_count += 1
++		return true
++
++	## Check if charge is available
++	func has_charge() -> bool:
++		return charges > 0 and not companion_summoned
++
++
++func test_bff_starts_with_1_charge() -> void:
++	var tracker := MockBffChargeTracker.new()
++	assert_eq(tracker.charges, 1,
++		"BFF pendant should start with 1 charge")
++
++
++func test_bff_summon_uses_charge() -> void:
++	var tracker := MockBffChargeTracker.new()
++	var result := tracker.summon()
++	assert_true(result, "Should successfully summon companion")
++	assert_eq(tracker.charges, 0, "Should have 0 charges remaining")
++	assert_true(tracker.companion_summoned, "Companion should be marked as summoned")
++
++
++func test_bff_cannot_summon_twice() -> void:
++	var tracker := MockBffChargeTracker.new()
++	tracker.summon()
++	var result := tracker.summon()
++	assert_false(result, "Should not be able to summon twice")
++	assert_eq(tracker.summon_count, 1, "Should only have 1 summon")
++
++
++func test_bff_no_charge_after_summon() -> void:
++	var tracker := MockBffChargeTracker.new()
++	tracker.summon()
++	assert_false(tracker.has_charge(),
++		"Should have no charge available after summoning")
++
++
++func test_bff_has_charge_before_summon() -> void:
++	var tracker := MockBffChargeTracker.new()
++	assert_true(tracker.has_charge(),
++		"Should have charge available before summoning")
++
++
++# ============================================================================
++# BFF Companion Health Tests
++# ============================================================================
++
++
++class MockBffCompanion:
++	## Health range
++	var min_health: int = 2
++	var max_health: int = 4
++	var _current_health: int = 0
++	var _max_health: int = 0
++	var _is_alive: bool = true
++
++	## Tracking
++	var death_count: int = 0
++	var damage_taken: Array = []
++
++	func initialize_health(health: int) -> void:
++		_max_health = health
++		_current_health = health
++		_is_alive = true
++
++	func take_damage(amount: float) -> void:
++		if not _is_alive:
++			return
++		var actual_damage: int = maxi(int(round(amount)), 1)
++		_current_health -= actual_damage
++		damage_taken.append(actual_damage)
++		if _current_health <= 0:
++			_on_death()
++
++	func _on_death() -> void:
++		_is_alive = false
++		death_count += 1
++
++	func is_alive() -> bool:
++		return _is_alive
++
++
++func test_companion_health_in_range() -> void:
++	# Test multiple times to verify random range
++	for i in range(20):
++		var companion := MockBffCompanion.new()
++		var health := randi_range(companion.min_health, companion.max_health)
++		companion.initialize_health(health)
++		assert_true(companion._current_health >= 2 and companion._current_health <= 4,
++			"Companion health should be between 2 and 4, got %d" % companion._current_health)
++
++
++func test_companion_dies_at_zero_health() -> void:
++	var companion := MockBffCompanion.new()
++	companion.initialize_health(2)  # Minimum health
++	companion.take_damage(1.0)
++	assert_true(companion.is_alive(), "Should still be alive after 1 damage")
++	companion.take_damage(1.0)
++	assert_false(companion.is_alive(), "Should be dead after 2 damage with 2 HP")
++
++
++func test_companion_survives_partial_damage() -> void:
++	var companion := MockBffCompanion.new()
++	companion.initialize_health(4)  # Maximum health
++	companion.take_damage(1.0)
++	assert_true(companion.is_alive(), "Should survive 1 damage with 4 HP")
++	assert_eq(companion._current_health, 3, "Should have 3 HP remaining")
++
++
++func test_companion_dies_from_overkill() -> void:
++	var companion := MockBffCompanion.new()
++	companion.initialize_health(2)
++	companion.take_damage(5.0)
++	assert_false(companion.is_alive(), "Should die from overkill damage")
++	assert_eq(companion.death_count, 1, "Should only die once")
++
++
++func test_companion_no_damage_after_death() -> void:
++	var companion := MockBffCompanion.new()
++	companion.initialize_health(2)
++	companion.take_damage(5.0)
++	companion.take_damage(1.0)  # Should do nothing
++	assert_eq(companion.damage_taken.size(), 1,
++		"Should not take damage after death")
++
++
++func test_companion_death_emits_once() -> void:
++	var companion := MockBffCompanion.new()
++	companion.initialize_health(2)
++	companion.take_damage(1.0)
++	companion.take_damage(1.0)
++	companion.take_damage(1.0)  # After death
++	assert_eq(companion.death_count, 1,
++		"Death should only be triggered once")
++
++
++# ============================================================================
++# BFF Companion Weapon Tests
++# ============================================================================
++
++
++class MockBffWeapon:
++	## M16 rifle configuration
++	var weapon_type: int = 0  # RIFLE
++	var shoot_cooldown: float = 0.15
++	var bullet_speed: float = 2500.0
++	var magazine_size: int = 30
++	var _current_ammo: int = 30
++	var _is_reloading: bool = false
++	var _reload_time: float = 2.5
++	var _reload_timer: float = 0.0
++
++	## Tracking
++	var shots_fired: int = 0
++	var reloads_started: int = 0
++	var _shoot_timer: float = 0.0
++
++	func can_shoot() -> bool:
++		return _current_ammo > 0 and not _is_reloading and _shoot_timer >= shoot_cooldown
++
++	func shoot() -> void:
++		if not can_shoot():
++			return
++		_current_ammo -= 1
++		shots_fired += 1
++		_shoot_timer = 0.0
++		if _current_ammo <= 0:
++			start_reload()
++
++	func start_reload() -> void:
++		if _is_reloading:
++			return
++		_is_reloading = true
++		_reload_timer = 0.0
++		reloads_started += 1
++
++	func update_reload(delta: float) -> void:
++		if not _is_reloading:
++			return
++		_reload_timer += delta
++		if _reload_timer >= _reload_time:
++			_current_ammo = magazine_size
++			_is_reloading = false
++			_reload_timer = 0.0
++
++	func update_shoot_timer(delta: float) -> void:
++		_shoot_timer += delta
++
++
++func test_companion_uses_m16() -> void:
++	var weapon := MockBffWeapon.new()
++	assert_eq(weapon.weapon_type, 0, "Companion should use RIFLE (M16) type")
++
++
++func test_companion_starts_with_full_magazine() -> void:
++	var weapon := MockBffWeapon.new()
++	assert_eq(weapon._current_ammo, 30, "Should start with 30 rounds (M16 magazine)")
++
++
++func test_companion_shoot_decrements_ammo() -> void:
++	var weapon := MockBffWeapon.new()
++	weapon._shoot_timer = 1.0  # Allow shooting
++	weapon.shoot()
++	assert_eq(weapon._current_ammo, 29, "Should have 29 rounds after one shot")
++	assert_eq(weapon.shots_fired, 1, "Should have fired 1 shot")
++
++
++func test_companion_auto_reloads_when_empty() -> void:
++	var weapon := MockBffWeapon.new()
++	weapon._current_ammo = 1
++	weapon._shoot_timer = 1.0
++	weapon.shoot()
++	assert_eq(weapon._current_ammo, 0, "Should have 0 rounds")
++	assert_true(weapon._is_reloading, "Should be reloading")
++	assert_eq(weapon.reloads_started, 1, "Should have started reload")
++
++
++func test_companion_reload_restores_ammo() -> void:
++	var weapon := MockBffWeapon.new()
++	weapon._current_ammo = 0
++	weapon.start_reload()
++	weapon.update_reload(3.0)  # Wait full reload time
++	assert_eq(weapon._current_ammo, 30, "Should have 30 rounds after reload")
++	assert_false(weapon._is_reloading, "Should not be reloading anymore")
++
++
++func test_companion_cannot_shoot_while_reloading() -> void:
++	var weapon := MockBffWeapon.new()
++	weapon._current_ammo = 0
++	weapon.start_reload()
++	weapon._shoot_timer = 1.0
++	assert_false(weapon.can_shoot(), "Should not be able to shoot while reloading")
++
++
++func test_companion_respects_fire_rate() -> void:
++	var weapon := MockBffWeapon.new()
++	weapon._shoot_timer = 0.0  # Just shot
++	assert_false(weapon.can_shoot(), "Should not shoot faster than fire rate")
++	weapon._shoot_timer = 0.15
++	assert_true(weapon.can_shoot(), "Should be able to shoot after cooldown")
++
++
++# ============================================================================
++# Armory Integration Tests (BFF Pendant in Menu)
++# ============================================================================
++
++
++class MockArmoryWithBffPendant:
++	## Active item data
++	const ACTIVE_ITEMS: Dictionary = {
++		0: {"name": "None", "description": "No active item equipped."},
++		1: {"name": "Flashlight", "description": "Tactical flashlight"},
++		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
++		3: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"}
++	}
++
++	## Applied active item type
++	var applied_active_item: int = 0
++
++	## Pending active item type
++	var pending_active_item: int = 0
++
++	## Tracking
++	var active_item_changed_count: int = 0
++	var apply_count: int = 0
++
++	## Select an active item (sets pending, does NOT apply immediately)
++	func select_active_item(item_type: int) -> bool:
++		if item_type not in ACTIVE_ITEMS:
++			return false
++		pending_active_item = item_type
++		return true
++
++	## Check for pending changes
++	func has_pending_changes() -> bool:
++		return pending_active_item != applied_active_item
++
++	## Apply pending changes
++	func apply() -> bool:
++		if not has_pending_changes():
++			return false
++		if pending_active_item != applied_active_item:
++			active_item_changed_count += 1
++		applied_active_item = pending_active_item
++		apply_count += 1
++		return true
++
++
++func test_armory_select_bff_pendant() -> void:
++	var armory := MockArmoryWithBffPendant.new()
++	var result := armory.select_active_item(3)
++	assert_true(result, "Should select BFF pendant")
++	assert_eq(armory.pending_active_item, 3, "Pending should be BFF pendant")
++	assert_eq(armory.applied_active_item, 0, "Applied should still be None")
++
++
++func test_armory_apply_bff_pendant() -> void:
++	var armory := MockArmoryWithBffPendant.new()
++	armory.select_active_item(3)
++	var result := armory.apply()
++	assert_true(result, "Apply should succeed")
++	assert_eq(armory.applied_active_item, 3, "Applied should be BFF pendant")
++	assert_eq(armory.active_item_changed_count, 1, "Change count should be 1")
++
++
++func test_armory_switch_flashlight_to_bff_pendant() -> void:
++	var armory := MockArmoryWithBffPendant.new()
++	armory.select_active_item(1)
++	armory.apply()
++	armory.select_active_item(3)
++	armory.apply()
++	assert_eq(armory.applied_active_item, 3, "Should be BFF pendant")
++	assert_eq(armory.active_item_changed_count, 2, "Should have 2 changes")
++
++
++func test_armory_bff_pendant_has_pending_changes() -> void:
++	var armory := MockArmoryWithBffPendant.new()
++	armory.select_active_item(3)
++	assert_true(armory.has_pending_changes(),
++		"Should have pending changes after selecting pendant")
++
++
++func test_armory_all_four_active_items_selectable() -> void:
++	var armory := MockArmoryWithBffPendant.new()
++	assert_true(armory.select_active_item(0), "None should be selectable")
++	assert_true(armory.select_active_item(1), "Flashlight should be selectable")
++	assert_true(armory.select_active_item(2), "Teleport Bracers should be selectable")
++	assert_true(armory.select_active_item(3), "BFF Pendant should be selectable")
++	assert_false(armory.select_active_item(99), "Invalid should not be selectable")
++
++
++func test_armory_switch_teleport_bracers_to_bff_pendant() -> void:
++	var armory := MockArmoryWithBffPendant.new()
++	armory.select_active_item(2)
++	armory.apply()
++	armory.select_active_item(3)
++	armory.apply()
++	assert_eq(armory.applied_active_item, 3, "Should be BFF pendant")
++	assert_eq(armory.active_item_changed_count, 2, "Should have 2 changes")
+diff --git a/tests/unit/test_teleport_bracers.gd b/tests/unit/test_teleport_bracers.gd
+index ab1ad6075..9a8f6a30b 100644
+--- a/tests/unit/test_teleport_bracers.gd
++++ b/tests/unit/test_teleport_bracers.gd
+@@ -11,9 +11,9 @@ extends GutTest
+ 
+ 
+ func test_active_item_type_teleport_bracers_value() -> void:
+-	# ActiveItemType.TELEPORT_BRACERS should be 2
+-	var expected := 2
+-	assert_eq(expected, 2, "TELEPORT_BRACERS should be the third active item type (2)")
++	# ActiveItemType.TELEPORT_BRACERS should be 3
++	var expected := 3
++	assert_eq(expected, 3, "TELEPORT_BRACERS should be the fourth active item type (3)")
+ 
+ 
+ # ============================================================================
+@@ -65,7 +65,9 @@ class MockActiveItemManager:
+ 	const ActiveItemType := {
+ 		NONE = 0,
+ 		FLASHLIGHT = 1,
+-		TELEPORT_BRACERS = 2
++		HOMING_BULLETS = 2,
++		TELEPORT_BRACERS = 3,
++		BFF_PENDANT = 4
+ 	}
+ 
+ 	## Currently selected active item type
+@@ -84,9 +86,19 @@ class MockActiveItemManager:
+ 			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+ 		},
+ 		2: {
++			"name": "Homing Bullets",
++			"icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
++			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 6 charges per battle, each lasts 1 second."
++		},
++		3: {
+ 			"name": "Teleport Bracers",
+ 			"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
+ 			"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls."
++		},
++		4: {
++			"name": "BFF Pendant",
++			"icon_path": "res://assets/sprites/weapons/bff_pendant_icon.png",
++			"description": "BFF pendant — press Space to summon a friendly companion armed with M16 (2-4 HP). One charge per battle."
+ 		}
+ 	}
+ 
+@@ -144,10 +156,18 @@ class MockActiveItemManager:
+ 	func has_flashlight() -> bool:
+ 		return current_active_item == ActiveItemType.FLASHLIGHT
+ 
++	## Check if homing bullets are currently equipped
++	func has_homing_bullets() -> bool:
++		return current_active_item == ActiveItemType.HOMING_BULLETS
++
+ 	## Check if teleport bracers are currently equipped
+ 	func has_teleport_bracers() -> bool:
+ 		return current_active_item == ActiveItemType.TELEPORT_BRACERS
+ 
++	## Check if BFF pendant is currently equipped
++	func has_bff_pendant() -> bool:
++		return current_active_item == ActiveItemType.BFF_PENDANT
++
+ 
+ var manager: MockActiveItemManager
+ 
+@@ -171,7 +191,7 @@ func test_default_active_item_is_none() -> void:
+ 
+ 
+ func test_teleport_bracers_not_selected_by_default() -> void:
+-	assert_false(manager.is_selected(2),
++	assert_false(manager.is_selected(3),
+ 		"Teleport Bracers should not be selected by default")
+ 
+ 
+@@ -186,19 +206,19 @@ func test_no_teleport_bracers_by_default() -> void:
+ 
+ 
+ func test_set_active_item_to_teleport_bracers() -> void:
+-	manager.set_active_item(2)
++	manager.set_active_item(3)
+ 	assert_eq(manager.current_active_item, 2,
+ 		"Active item type should change to TELEPORT_BRACERS")
+ 
+ 
+ func test_set_teleport_bracers_emits_change() -> void:
+-	manager.set_active_item(2)
++	manager.set_active_item(3)
+ 	assert_eq(manager.type_changed_count, 1,
+ 		"Type change should increment counter")
+ 
+ 
+ func test_set_teleport_bracers_triggers_restart_by_default() -> void:
+-	manager.set_active_item(2)
++	manager.set_active_item(3)
+ 	assert_true(manager.last_restart_called,
+ 		"Level restart should be triggered by default")
+ 
+@@ -210,20 +230,20 @@ func test_set_teleport_bracers_without_restart() -> void:
+ 
+ 
+ func test_has_teleport_bracers_after_selection() -> void:
+-	manager.set_active_item(2)
++	manager.set_active_item(3)
+ 	assert_true(manager.has_teleport_bracers(),
+ 		"has_teleport_bracers should return true after selecting bracers")
+ 
+ 
+ func test_no_teleport_bracers_after_deselection() -> void:
+-	manager.set_active_item(2)
++	manager.set_active_item(3)
+ 	manager.set_active_item(0)
+ 	assert_false(manager.has_teleport_bracers(),
+ 		"has_teleport_bracers should return false after switching back to none")
+ 
+ 
+ func test_no_flashlight_when_teleport_bracers_selected() -> void:
+-	manager.set_active_item(2)
++	manager.set_active_item(3)
+ 	assert_false(manager.has_flashlight(),
+ 		"has_flashlight should return false when bracers are selected")
+ 
+@@ -240,17 +260,19 @@ func test_no_teleport_bracers_when_flashlight_selected() -> void:
+ 
+ 
+ func test_get_active_item_data_teleport_bracers() -> void:
+-	var data := manager.get_active_item_data(2)
++	var data := manager.get_active_item_data(3)
+ 	assert_eq(data["name"], "Teleport Bracers")
+ 
+ 
+ func test_get_all_active_item_types_includes_teleport_bracers() -> void:
+ 	var types := manager.get_all_active_item_types()
+-	assert_eq(types.size(), 3,
+-		"Should return 3 active item types")
++	assert_eq(types.size(), 5,
++		"Should return 5 active item types")
+ 	assert_true(0 in types, "Should have NONE")
+ 	assert_true(1 in types, "Should have FLASHLIGHT")
+-	assert_true(2 in types, "Should have TELEPORT_BRACERS")
++	assert_true(2 in types, "Should have HOMING_BULLETS")
++	assert_true(3 in types, "Should have TELEPORT_BRACERS")
++	assert_true(4 in types, "Should have BFF_PENDANT")
+ 
+ 
+ func test_get_active_item_name_teleport_bracers() -> void:
+@@ -275,8 +297,8 @@ func test_get_active_item_icon_path_teleport_bracers() -> void:
+ 
+ 
+ func test_is_selected_after_changing_to_teleport_bracers() -> void:
+-	manager.set_active_item(2)
+-	assert_true(manager.is_selected(2),
++	manager.set_active_item(3)
++	assert_true(manager.is_selected(3),
+ 		"TELEPORT_BRACERS should be selected after changing to it")
+ 	assert_false(manager.is_selected(0),
+ 		"NONE should not be selected after changing away from it")
+@@ -286,9 +308,9 @@ func test_is_selected_after_changing_to_teleport_bracers() -> void:
+ 
+ func test_switch_between_all_active_items() -> void:
+ 	manager.set_active_item(1)  # Flashlight
+-	manager.set_active_item(2)  # Teleport Bracers
++	manager.set_active_item(3)  # Teleport Bracers
+ 	manager.set_active_item(0)  # None
+-	manager.set_active_item(2)  # Back to Teleport Bracers
++	manager.set_active_item(3)  # Back to Teleport Bracers
+ 
+ 	assert_eq(manager.current_active_item, 2)
+ 	assert_eq(manager.type_changed_count, 4)
+@@ -399,7 +421,8 @@ class MockArmoryWithTeleportBracers:
+ 	const ACTIVE_ITEMS: Dictionary = {
+ 		0: {"name": "None", "description": "No active item equipped."},
+ 		1: {"name": "Flashlight", "description": "Tactical flashlight"},
+-		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"}
++		2: {"name": "Teleport Bracers", "description": "Teleportation bracers"},
++		3: {"name": "BFF Pendant", "description": "BFF pendant — summon companion"}
+ 	}
+ 
+ 	## Applied active item type

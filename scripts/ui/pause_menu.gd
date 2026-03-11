@@ -15,6 +15,7 @@ extends CanvasLayer
 @onready var armory_button: Button = $MenuContainer/VBoxContainer/ArmoryButton
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var training_button: Button = $MenuContainer/VBoxContainer/TrainingButton
+@onready var sound_button: Button = $MenuContainer/VBoxContainer/SoundButton
 @onready var experimental_button: Button = $MenuContainer/VBoxContainer/ExperimentalButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
@@ -33,6 +34,9 @@ var _experimental_menu: CanvasLayer = null
 ## The instantiated armory menu.
 var _armory_menu: CanvasLayer = null
 
+## The instantiated sound menu.
+var _sound_menu: CanvasLayer = null
+
 ## Reference to the difficulty menu scene.
 @export var difficulty_menu_scene: PackedScene
 
@@ -44,6 +48,9 @@ var _armory_menu: CanvasLayer = null
 
 ## Reference to the armory menu scene.
 @export var armory_menu_scene: PackedScene
+
+## Reference to the sound menu scene.
+@export var sound_menu_scene: PackedScene
 
 
 func _ready() -> void:
@@ -58,8 +65,12 @@ func _ready() -> void:
 	armory_button.pressed.connect(_on_armory_pressed)
 	levels_button.pressed.connect(_on_levels_pressed)
 	training_button.pressed.connect(_on_training_pressed)
+	sound_button.pressed.connect(_on_sound_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
+
+	# Highlight armory button if there are available unlocks
+	_refresh_armory_button_highlight()
 
 	# Preload controls menu if not set
 	if controls_menu_scene == null:
@@ -80,6 +91,10 @@ func _ready() -> void:
 	# Preload armory menu if not set
 	if armory_menu_scene == null:
 		armory_menu_scene = preload("res://scenes/ui/ArmoryMenu.tscn")
+
+	# Preload sound menu if not set
+	if sound_menu_scene == null:
+		sound_menu_scene = preload("res://scenes/ui/SoundMenu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -113,9 +128,14 @@ func pause_game() -> void:
 		_experimental_menu.hide()
 	if _armory_menu and _armory_menu.visible:
 		_armory_menu.hide()
+	if _sound_menu and _sound_menu.visible:
+		_sound_menu.hide()
 
 	# Ensure main menu container is visible
 	menu_container.show()
+
+	# Refresh armory highlight each time the menu opens
+	_refresh_armory_button_highlight()
 
 	show()
 	resume_button.grab_focus()
@@ -147,6 +167,10 @@ func resume_game() -> void:
 	# Also close armory menu if open
 	if _armory_menu and _armory_menu.visible:
 		_armory_menu.hide()
+
+	# Also close sound menu if open
+	if _sound_menu and _sound_menu.visible:
+		_sound_menu.hide()
 
 
 func _on_resume_pressed() -> void:
@@ -236,6 +260,8 @@ func _on_armory_back() -> void:
 	if _armory_menu:
 		_armory_menu.hide()
 	menu_container.show()
+	# Refresh highlight in case the player just unlocked an item
+	_refresh_armory_button_highlight()
 	armory_button.grab_focus()
 
 
@@ -260,6 +286,26 @@ func _on_levels_back() -> void:
 		_levels_menu.hide()
 	menu_container.show()
 	levels_button.grab_focus()
+
+
+func _on_sound_pressed() -> void:
+	# Hide main menu, show sound menu
+	menu_container.hide()
+
+	if _sound_menu == null:
+		_sound_menu = sound_menu_scene.instantiate()
+		_sound_menu.back_pressed.connect(_on_sound_back)
+		add_child(_sound_menu)
+	else:
+		_sound_menu.show()
+
+
+func _on_sound_back() -> void:
+	# Show main menu again
+	if _sound_menu:
+		_sound_menu.hide()
+	menu_container.show()
+	sound_button.grab_focus()
 
 
 func _on_experimental_pressed() -> void:
@@ -301,3 +347,32 @@ func _on_training_pressed() -> void:
 func _on_quit_pressed() -> void:
 	get_tree().paused = false
 	get_tree().quit()
+
+
+## Refresh the armory button highlight to indicate if there are items available to unlock.
+## The button turns gold when the player has earned the right to unlock an item in the armory
+## but has not yet done so. The highlight disappears once all available items are opened.
+func _refresh_armory_button_highlight() -> void:
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock"):
+		return
+
+	if unlock_manager.has_any_available_unlock():
+		# Highlight armory button in gold to draw attention to unlockable items
+		var highlight_style := StyleBoxFlat.new()
+		highlight_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		highlight_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		highlight_style.border_width_left = 2
+		highlight_style.border_width_right = 2
+		highlight_style.border_width_top = 2
+		highlight_style.border_width_bottom = 2
+		highlight_style.corner_radius_top_left = 4
+		highlight_style.corner_radius_top_right = 4
+		highlight_style.corner_radius_bottom_left = 4
+		highlight_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", highlight_style)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+	else:
+		# Remove highlight — no available unlocks
+		armory_button.remove_theme_stylebox_override("normal")
+		armory_button.remove_theme_color_override("font_color")

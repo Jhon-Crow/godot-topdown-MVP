@@ -1,11 +1,12 @@
 extends CanvasLayer
 ## Difficulty selection menu.
 ##
-## Allows the player to select between Power Fantasy, Easy, Normal, and Hard difficulty modes.
+## Allows the player to select between Power Fantasy, Easy, Normal, Hard, and Black Metal modes.
 ## Power Fantasy mode: 10 HP, 3x ammo, reduced recoil, blue laser sights, special effects
 ## Easy mode: Longer enemy reaction delay - enemies take more time to shoot after spotting player
 ## Normal mode: Classic game behavior
 ## Hard mode: Enemies react when player looks away, reduced ammo
+## Black Metal mode: 25% less HP, 25% faster movement, black-and-white-red visual filter (Issue #958)
 ## Also includes a Night Mode toggle right under the Difficulty title.
 
 ## Signal emitted when the back button is pressed.
@@ -17,6 +18,7 @@ signal back_pressed
 @onready var easy_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EasyButton
 @onready var normal_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NormalButton
 @onready var hard_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/HardButton
+@onready var black_metal_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BlackMetalButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
 
@@ -28,6 +30,7 @@ func _ready() -> void:
 	easy_button.pressed.connect(_on_easy_pressed)
 	normal_button.pressed.connect(_on_normal_pressed)
 	hard_button.pressed.connect(_on_hard_pressed)
+	black_metal_button.pressed.connect(_on_black_metal_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update button states based on current difficulty
@@ -56,18 +59,21 @@ func _update_button_states() -> void:
 	var is_normal: bool = difficulty_manager.is_normal_mode()
 	var is_hard: bool = difficulty_manager.is_hard_mode()
 	var is_power_fantasy: bool = difficulty_manager.is_power_fantasy_mode()
+	var is_black_metal: bool = difficulty_manager.is_black_metal_mode()
 
 	# Highlight current difficulty - disable the selected button
 	power_fantasy_button.disabled = is_power_fantasy
 	easy_button.disabled = is_easy
 	normal_button.disabled = is_normal
 	hard_button.disabled = is_hard
+	black_metal_button.disabled = is_black_metal
 
 	# Update button text to show selection
 	power_fantasy_button.text = "Power Fantasy (Selected)" if is_power_fantasy else "Power Fantasy"
 	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
+	black_metal_button.text = "Black Metal (Selected)" if is_black_metal else "Black Metal"
 
 	# Update night mode checkbox
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
@@ -82,6 +88,8 @@ func _update_button_states() -> void:
 		status_text = "Easy mode: Enemies react slower"
 	elif is_hard:
 		status_text = "Hard mode: Enemies react when you look away"
+	elif is_black_metal:
+		status_text = "Black Metal: 25% less HP, 25% faster, B&W filter"
 	else:
 		status_text = "Normal mode: Classic gameplay"
 
@@ -123,6 +131,13 @@ func _on_hard_pressed() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.HARD)
+	_update_button_states()
+
+
+func _on_black_metal_pressed() -> void:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.BLACK_METAL)
 	_update_button_states()
 
 

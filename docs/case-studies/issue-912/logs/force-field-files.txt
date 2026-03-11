@@ -1,0 +1,20 @@
+=== GD FILES ===
+/tmp/gh-issue-solver-1772316262436/scripts/effects/force_field_effect.gd
+/tmp/gh-issue-solver-1772316262436/scripts/autoload/active_item_manager.gd
+/tmp/gh-issue-solver-1772316262436/scripts/characters/player.gd
+/tmp/gh-issue-solver-1772316262436/scripts/projectiles/shrapnel.gd
+/tmp/gh-issue-solver-1772316262436/scripts/projectiles/bullet.gd
+/tmp/gh-issue-solver-1772316262436/tests/unit/test_active_item_manager.gd
+=== CS FILES ===
+/tmp/gh-issue-solver-1772316262436/Scripts/Projectiles/Bullet.cs
+/tmp/gh-issue-solver-1772316262436/Scripts/Projectiles/ShotgunPellet.cs
+/tmp/gh-issue-solver-1772316262436/Scripts/Characters/Player.cs
+=== GDSHADER FILES ===
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/last_chance.gdshader
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/motion_trail.gdshader
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/cinema_film.gdshader
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/ghost_replay.gdshader
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/saturation.gdshader
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/force_field.gdshader
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/invisibility_cloak.gdshader
+/tmp/gh-issue-solver-1772316262436/scripts/shaders/flashbang_player.gdshader

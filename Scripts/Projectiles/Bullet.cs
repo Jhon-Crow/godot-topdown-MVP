@@ -71,40 +71,61 @@ public partial class Bullet : Area2D
     public ulong ShooterId { get; set; } = 0;
 
     // =========================================================================
-    // Ricochet Configuration (5.45x39mm defaults, matching GDScript bullet)
+    // Ricochet Configuration (read from CaliberData when available)
     // =========================================================================
 
     /// <summary>
-    /// Maximum number of ricochets allowed. -1 = unlimited.
+    /// Caliber data resource for this bullet (set by the weapon that fires it).
+    /// When set, overrides the hardcoded ricochet/penetration constants below.
+    /// Exported to allow setting via Node.Set() with snake_case name "caliber_data".
     /// </summary>
-    private const int MaxRicochets = -1;
+    [Export]
+    public Resource? CaliberData { get; set; }
 
     /// <summary>
-    /// Maximum angle (degrees) from surface at which ricochet is possible.
-    /// Set to 90 to allow ricochets at all angles with varying probability.
+    /// Default maximum number of ricochets allowed. -1 = unlimited.
+    /// Overridden by CaliberData.max_ricochets when caliber is set.
     /// </summary>
-    private const float MaxRicochetAngle = 90.0f;
+    private const int DefaultMaxRicochets = -1;
 
     /// <summary>
-    /// Base probability of ricochet at optimal (grazing) angle.
+    /// Default maximum angle (degrees) from surface at which ricochet is possible.
+    /// Overridden by CaliberData.max_ricochet_angle when caliber is set.
     /// </summary>
-    private const float BaseRicochetProbability = 1.0f;
+    private const float DefaultMaxRicochetAngle = 90.0f;
 
     /// <summary>
-    /// Velocity retention factor after ricochet (0-1).
+    /// Default base probability of ricochet at optimal (grazing) angle.
+    /// Overridden by CaliberData.base_ricochet_probability when caliber is set.
+    /// </summary>
+    private const float DefaultBaseRicochetProbability = 1.0f;
+
+    /// <summary>
+    /// Default velocity retention factor after ricochet (0-1).
     /// Higher values mean less speed loss. 0.85 = 85% speed retained.
+    /// Overridden by CaliberData.velocity_retention when caliber is set.
     /// </summary>
-    private const float VelocityRetention = 0.85f;
+    private const float DefaultVelocityRetention = 0.85f;
 
     /// <summary>
-    /// Damage multiplier after each ricochet.
+    /// Default damage multiplier after each ricochet.
+    /// Overridden by CaliberData.ricochet_damage_multiplier when caliber is set.
     /// </summary>
-    private const float RicochetDamageMultiplier = 0.5f;
+    private const float DefaultRicochetDamageMultiplier = 0.5f;
 
     /// <summary>
-    /// Random angle deviation (degrees) for ricochet direction.
+    /// Default random angle deviation (degrees) for ricochet direction.
+    /// Overridden by CaliberData.ricochet_angle_deviation when caliber is set.
     /// </summary>
-    private const float RicochetAngleDeviation = 10.0f;
+    private const float DefaultRicochetAngleDeviation = 10.0f;
+
+    // Instance fields populated from CaliberData in _Ready() (or defaults if no caliber set)
+    private int MaxRicochets = DefaultMaxRicochets;
+    private float MaxRicochetAngle = DefaultMaxRicochetAngle;
+    private float BaseRicochetProbability = DefaultBaseRicochetProbability;
+    private float VelocityRetention = DefaultVelocityRetention;
+    private float RicochetDamageMultiplier = DefaultRicochetDamageMultiplier;
+    private float RicochetAngleDeviation = DefaultRicochetAngleDeviation;
 
     /// <summary>
     /// Current damage multiplier (decreases with each ricochet).
@@ -229,6 +250,31 @@ public partial class Bullet : Area2D
     public bool IsBreakerBullet { get; set; } = false;
 
     /// <summary>
+    /// Whether this bullet penetrates through enemies (Issue #829).
+    /// When true, the bullet deals damage to enemies but continues flying through them.
+    /// Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+    /// Set via Node.Set("penetrates_enemies", true) by BaseWeapon.SpawnBullet().
+    /// </summary>
+    [Export]
+    public bool PenetratesEnemies { get; set; } = false;
+
+    /// <summary>
+    /// Set of enemy bodies this bullet has already dealt damage to (Issue #829).
+    /// Prevents the bullet from re-applying damage when OnAreaEntered fires multiple times
+    /// for the same enemy (e.g., multiple hit areas or re-entry signals).
+    /// NOTE: Only populated by OnAreaEntered AFTER damage is dealt.
+    /// </summary>
+    private readonly System.Collections.Generic.HashSet<Node2D> _penetratedEnemyBodies = new();
+
+    /// <summary>
+    /// Set of enemy CharacterBody2D nodes the bullet has already passed through (Issue #829).
+    /// Used exclusively in OnBodyEntered to suppress physics re-entry signals.
+    /// Kept separate from _penetratedEnemyBodies so that OnAreaEntered can still
+    /// deal damage even after OnBodyEntered has already allowed the bullet through.
+    /// </summary>
+    private readonly System.Collections.Generic.HashSet<Node2D> _passedThroughEnemyBodies = new();
+
+    /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
@@ -264,6 +310,9 @@ public partial class Bullet : Area2D
             Damage = BulletData.Damage;
         }
 
+        // Apply caliber data if available (overrides hardcoded ricochet constants)
+        ApplyCaliberData();
+
         // Connect to collision signals
         BodyEntered += OnBodyEntered;
         BodyExited += OnBodyExited;
@@ -287,6 +336,53 @@ public partial class Bullet : Area2D
 
         // Set initial rotation based on direction
         UpdateRotation();
+    }
+
+    /// <summary>
+    /// Reads ricochet and penetration parameters from CaliberData if set.
+    /// This aligns C# Bullet behavior with GDScript bullet.gd which also reads from caliber.
+    /// Called in _Ready() after CaliberData is set by the spawning weapon.
+    /// </summary>
+    private void ApplyCaliberData()
+    {
+        if (CaliberData == null)
+            return;
+
+        // Read max_ricochet_angle from caliber (controls trajectory glasses AND actual bullet)
+        if (CaliberData.Get("max_ricochet_angle").VariantType != Variant.Type.Nil)
+        {
+            MaxRicochetAngle = CaliberData.Get("max_ricochet_angle").AsSingle();
+        }
+
+        // Read max_ricochets from caliber (-1 = unlimited)
+        if (CaliberData.Get("max_ricochets").VariantType != Variant.Type.Nil)
+        {
+            MaxRicochets = CaliberData.Get("max_ricochets").AsInt32();
+        }
+
+        // Read base_ricochet_probability from caliber
+        if (CaliberData.Get("base_ricochet_probability").VariantType != Variant.Type.Nil)
+        {
+            BaseRicochetProbability = CaliberData.Get("base_ricochet_probability").AsSingle();
+        }
+
+        // Read velocity_retention from caliber
+        if (CaliberData.Get("velocity_retention").VariantType != Variant.Type.Nil)
+        {
+            VelocityRetention = CaliberData.Get("velocity_retention").AsSingle();
+        }
+
+        // Read ricochet_damage_multiplier from caliber
+        if (CaliberData.Get("ricochet_damage_multiplier").VariantType != Variant.Type.Nil)
+        {
+            RicochetDamageMultiplier = CaliberData.Get("ricochet_damage_multiplier").AsSingle();
+        }
+
+        // Read ricochet_angle_deviation from caliber
+        if (CaliberData.Get("ricochet_angle_deviation").VariantType != Variant.Type.Nil)
+        {
+            RicochetAngleDeviation = CaliberData.Get("ricochet_angle_deviation").AsSingle();
+        }
     }
 
     /// <summary>
@@ -446,6 +542,44 @@ public partial class Bullet : Area2D
         ShooterPosition = position;
     }
 
+    // ===========================================================================
+    // Getter methods for GDScript interop (Issue #930)
+    //
+    // GDScript's .get("property_name") does NOT work reliably with C# [Export]
+    // properties. Instead, we expose explicit getter methods that GDScript can
+    // call via .Call("get_direction") or .Call("GetDirection").
+    // ===========================================================================
+
+    /// <summary>
+    /// Gets the bullet's travel direction (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public Vector2 get_direction() => Direction;
+
+    /// <summary>
+    /// Gets the bullet's speed (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public float get_speed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public ulong get_shooter_id() => ShooterId;
+
+    /// <summary>
+    /// Gets the bullet's travel direction (PascalCase alias, Issue #930).
+    /// </summary>
+    public Vector2 GetDirection() => Direction;
+
+    /// <summary>
+    /// Gets the bullet's speed (PascalCase alias, Issue #930).
+    /// </summary>
+    public float GetSpeed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (PascalCase alias, Issue #930).
+    /// </summary>
+    public ulong GetShooterId() => ShooterId;
+
     /// <summary>
     /// Called when the bullet hits a static body (wall or obstacle).
     /// </summary>
@@ -465,6 +599,25 @@ public partial class Bullet : Area2D
             if (!isAlive)
             {
                 return; // Pass through dead entities
+            }
+        }
+
+        // Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
+        // allow the bullet to pass through without being destroyed.
+        // The OnAreaEntered handler takes care of dealing damage via the enemy's HitArea.
+        // We track which enemy bodies we've already passed through (body-level) to suppress
+        // physics re-entry signals, using a SEPARATE set from _penetratedEnemyBodies so that
+        // OnAreaEntered can still deal damage on first entry.
+        if (PenetratesEnemies && body.HasMethod("is_alive"))
+        {
+            var isAlive = body.Call("is_alive").AsBool();
+            if (isAlive)
+            {
+                if (_passedThroughEnemyBodies.Add(body))
+                {
+                    GD.Print($"[Bullet]: Penetrating through enemy CharacterBody2D {body.Name}, bullet continues flying");
+                }
+                return; // Don't destroy the bullet - it passes through the enemy body
             }
         }
 
@@ -585,11 +738,46 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
+    /// Checks if the given area belongs to an active force field (Issue #912).
+    /// When the force field Area2D overlaps this bullet, the force field GDScript
+    /// handles trapping the bullet. The bullet must NOT call QueueFree() in this case —
+    /// doing so would immediately destroy the bullet before the force field can hold it.
+    /// Detection strategy: check area name "ForceFieldArea" or parent's is_protecting() method.
+    /// </summary>
+    private static bool IsForceFieldArea(Area2D area)
+    {
+        // Primary check: area node name set in force_field_effect.gd _setup_area2d()
+        if (area.Name.ToString().Contains("ForceField", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Secondary check: parent node is the ForceFieldEffect which has is_protecting()
+        var parent = area.GetParent();
+        if (parent != null && parent.HasMethod("is_protecting"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Called when the bullet hits another area (like a target or enemy).
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
         GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
+
+        // Issue #912: If this area belongs to the force field, let the force field
+        // GDScript handle trapping the bullet. Do NOT destroy this bullet here —
+        // the force field's _on_projectile_entered will call set_physics_process(false)
+        // and store a reference to this bullet for later release.
+        if (IsForceFieldArea(area))
+        {
+            GD.Print($"[Bullet]: Entering force field area — letting force field handle this bullet");
+            return;
+        }
 
         // Check if this is a HitArea - if so, check against parent's instance ID
         // This prevents the shooter from damaging themselves with direct shots
@@ -628,6 +816,16 @@ public partial class Bullet : Area2D
             {
                 GD.Print($"[Bullet]: Passing through dead entity {parent.Name}");
                 return; // Pass through dead entities
+            }
+        }
+
+        // Issue #829: When penetrating enemies, only deal damage to each enemy once per pass-through.
+        // Guard against future re-entries (e.g., multiple hit areas on the same enemy).
+        if (PenetratesEnemies && parent is Node2D parentNode2D)
+        {
+            if (_penetratedEnemyBodies.Contains(parentNode2D))
+            {
+                return; // Already dealt damage to this enemy during this pass-through
             }
         }
 
@@ -678,6 +876,20 @@ public partial class Bullet : Area2D
         }
 
         EmitSignal(SignalName.Hit, area);
+
+        // Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
+        // This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+        if (hitEnemy && PenetratesEnemies)
+        {
+            GD.Print($"[Bullet]: Penetrating through enemy, bullet continues flying");
+            // Track the enemy so we don't re-apply damage on subsequent area_entered calls
+            if (parent is Node2D parentNode2DTrack)
+            {
+                _penetratedEnemyBodies.Add(parentNode2DTrack);
+            }
+            return; // Don't destroy the bullet - it passes through
+        }
+
         QueueFree();
     }
 
@@ -903,6 +1115,8 @@ public partial class Bullet : Area2D
     /// - 0-15°: ~100% (grazing shots always ricochet)
     /// - 45°: ~80% (moderate angles have good ricochet chance)
     /// - 90°: ~10% (perpendicular shots rarely ricochet)
+    /// When Ricochet Points experimental setting is enabled (Issue #975),
+    /// probability is increased by 20% at angles where ricochet is possible.
     /// </summary>
     /// <param name="impactAngleDeg">Impact angle in degrees.</param>
     /// <returns>Probability of ricochet (0.0 to 1.0).</returns>
@@ -922,7 +1136,21 @@ public partial class Bullet : Area2D
         // Power of 2.17 creates a curve matching real-world ballistics
         float powerFactor = Mathf.Pow(normalizedAngle, 2.17f);
         float angleFactor = (1.0f - powerFactor) * 0.9f + 0.1f;
-        return BaseRicochetProbability * angleFactor;
+        float probability = BaseRicochetProbability * angleFactor;
+
+        // Issue #975: Ricochet Points experimental setting boosts ricochet chance by 20%
+        // at angles where ricochet is possible (same condition as green trajectory ray).
+        var experimentalSettings = GetNodeOrNull("/root/ExperimentalSettings");
+        if (experimentalSettings != null && experimentalSettings.HasMethod("is_ricochet_points_enabled"))
+        {
+            bool ricochetPointsEnabled = experimentalSettings.Call("is_ricochet_points_enabled").AsBool();
+            if (ricochetPointsEnabled)
+            {
+                probability = Mathf.Min(probability + 0.2f, 1.0f);
+            }
+        }
+
+        return probability;
     }
 
     /// <summary>

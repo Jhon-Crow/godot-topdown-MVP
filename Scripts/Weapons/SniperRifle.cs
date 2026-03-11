@@ -198,6 +198,42 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private const int MaxWallPenetrations = 2;
 
+    // =========================================================================
+    // Time-Freeze Shot Deferral (Issue #977)
+    // =========================================================================
+
+    /// <summary>
+    /// Holds data for a sniper hitscan shot that was deferred during time freeze (Issue #977).
+    /// When the player fires the sniper rifle during stopped time, the damage is deferred
+    /// until time unfreezes. The tracer stays frozen visually until then.
+    /// </summary>
+    private struct PendingSniperShot
+    {
+        /// <summary>The weapon's global position at the time of firing.</summary>
+        public Vector2 Origin;
+        /// <summary>The spread direction after recoil was applied.</summary>
+        public Vector2 Direction;
+        /// <summary>True if a breaker bullet was active at the time of firing.</summary>
+        public bool IsBreaker;
+        /// <summary>True if homing redirected the shot direction.</summary>
+        public bool HomingRedirected;
+        /// <summary>The original (pre-homing) direction, used for the curved tracer.</summary>
+        public Vector2 OriginalDirection;
+        /// <summary>The tracer Line2D to start fading when damage is applied.</summary>
+        public Line2D? Tracer;
+    }
+
+    /// <summary>
+    /// Sniper shots queued during stopped time, to be applied when time unfreezes.
+    /// </summary>
+    private readonly List<PendingSniperShot> _pendingSniperShots = new();
+
+    /// <summary>
+    /// Whether time-stop (LastChanceEffectsManager) was active last frame.
+    /// Used to detect the moment time unfreezes so we can flush pending shots.
+    /// </summary>
+    private bool _wasTimeStopActive = false;
+
     public override void _Ready()
     {
         base._Ready();
@@ -237,6 +273,22 @@ public partial class SniperRifle : BaseWeapon
             }
         }
 
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                _laserSightColor = purpleColorVariant.AsColor();
+                if (GetNodeOrNull<Line2D>("LaserSight") == null)
+                    CreateLaserSight();
+                GD.Print($"[SniperRifle] Laser Sight active item: purple laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
         GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}");
     }
 
@@ -253,6 +305,15 @@ public partial class SniperRifle : BaseWeapon
     public override void _Process(double delta)
     {
         base._Process(delta);
+
+        // Issue #977: Detect when time-stop ends and flush any pending sniper shots.
+        // The sniper rifle fires during freeze but damage is deferred until unfreeze.
+        bool isTimeStopActive = IsTimeStopActive();
+        if (_wasTimeStopActive && !isTimeStopActive && _pendingSniperShots.Count > 0)
+        {
+            FlushPendingSniperShots();
+        }
+        _wasTimeStopActive = isTimeStopActive;
 
         // Update time since last shot for recoil recovery
         _timeSinceLastShot += (float)delta;
@@ -565,14 +626,15 @@ public partial class SniperRifle : BaseWeapon
             var query = PhysicsRayQueryParameters2D.Create(
                 GlobalPosition,
                 GlobalPosition + endPoint,
-                4 // Collision mask for obstacles
+                6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
             );
 
             var result = spaceState.IntersectRay(query);
             if (result.Count > 0)
             {
+                // Extend 4px into the hit body so the laser visually penetrates the surface
                 Vector2 hitPosition = (Vector2)result["position"];
-                endPoint = hitPosition - GlobalPosition;
+                endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
             }
         }
 
@@ -652,19 +714,6 @@ public partial class SniperRifle : BaseWeapon
 
         if (result)
         {
-            Vector2 bulletEndPoint;
-
-            // Breaker bullets: detonate 60px before the first wall on the hitscan path (Issue #678)
-            if (IsBreakerBulletActive)
-            {
-                bulletEndPoint = PerformBreakerHitscan(GlobalPosition, spreadDirection);
-            }
-            else
-            {
-                // Normal hitscan - instant raycast damage along bullet path
-                bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
-            }
-
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
             _hasCasingToEject = true;
@@ -680,25 +729,393 @@ public partial class SniperRifle : BaseWeapon
             // Trigger heavy screen shake
             TriggerScreenShake(spreadDirection);
 
-            // Spawn smoky tracer trail limited to the bullet's actual path
-            // When homing redirected the shot, draw a curved trail (Issue #709)
-            if (homingRedirected)
+            // Issue #977: During time-stop, defer hitscan damage until time unfreezes.
+            // The tracer is spawned immediately (frozen, not fading) so the player can see
+            // where the shot will travel. Damage is applied when time resumes.
+            if (IsTimeStopActive())
             {
-                SpawnCurvedSmokyTracer(GlobalPosition, originalDirection, bulletEndPoint);
+                // Compute bullet path without applying damage (dry-run for tracer endpoint)
+                Vector2 bulletEndPoint = IsBreakerBulletActive
+                    ? ComputeBreakerHitscanEndpoint(GlobalPosition, spreadDirection)
+                    : ComputeHitscanEndpoint(GlobalPosition, spreadDirection);
+
+                // Spawn the tracer but keep it frozen (do not start fading it yet)
+                Line2D? frozenTracer = SpawnFrozenTracer(GlobalPosition, spreadDirection,
+                    originalDirection, bulletEndPoint, homingRedirected);
+
+                // Queue the shot for execution when time unfreezes
+                _pendingSniperShots.Add(new PendingSniperShot
+                {
+                    Origin = GlobalPosition,
+                    Direction = spreadDirection,
+                    IsBreaker = IsBreakerBulletActive,
+                    HomingRedirected = homingRedirected,
+                    OriginalDirection = originalDirection,
+                    Tracer = frozenTracer,
+                });
+
+                GD.Print("[SniperRifle] Time frozen — sniper shot deferred until time unfreezes (Issue #977). Ammo remaining: " + CurrentAmmo);
             }
             else
             {
-                SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
+                Vector2 bulletEndPoint;
+
+                // Breaker bullets: detonate 60px before the first wall on the hitscan path (Issue #678)
+                if (IsBreakerBulletActive)
+                {
+                    bulletEndPoint = PerformBreakerHitscan(GlobalPosition, spreadDirection);
+                }
+                else
+                {
+                    // Normal hitscan - instant raycast damage along bullet path
+                    bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
+                }
+
+                // Spawn smoky tracer trail limited to the bullet's actual path
+                // When homing redirected the shot, draw a curved trail (Issue #709)
+                if (homingRedirected)
+                {
+                    SpawnCurvedSmokyTracer(GlobalPosition, originalDirection, bulletEndPoint);
+                }
+                else
+                {
+                    SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
+                }
+
+                GD.Print("[SniperRifle] FIRED (hitscan)! Bolt needs cycling. Ammo remaining: " + CurrentAmmo);
             }
 
-            // Spawn muzzle flash
+            // Spawn muzzle flash (always, regardless of time freeze)
             Vector2 muzzlePos = GlobalPosition + spreadDirection * BulletSpawnOffset;
             SpawnMuzzleFlash(muzzlePos, spreadDirection, WeaponData?.Caliber);
-
-            GD.Print("[SniperRifle] FIRED (hitscan)! Bolt needs cycling. Ammo remaining: " + CurrentAmmo);
         }
 
         return result;
+    }
+
+    // =========================================================================
+    // Time-Freeze Deferral Helpers (Issue #977)
+    // =========================================================================
+
+    /// <summary>
+    /// Checks if the LastChanceEffectsManager time-stop effect is currently active.
+    /// </summary>
+    private bool IsTimeStopActive()
+    {
+        var lastChanceManager = GetNodeOrNull("/root/LastChanceEffectsManager");
+        if (lastChanceManager == null || !lastChanceManager.HasMethod("is_effect_active"))
+            return false;
+        return lastChanceManager.Call("is_effect_active").AsBool();
+    }
+
+    /// <summary>
+    /// Executes all pending sniper shots that were deferred during time freeze.
+    /// Called when time-stop ends (detected in _Process).
+    /// </summary>
+    private void FlushPendingSniperShots()
+    {
+        GD.Print($"[SniperRifle] Time unfreeze detected — executing {_pendingSniperShots.Count} deferred sniper shot(s) (Issue #977)");
+        foreach (var shot in _pendingSniperShots)
+        {
+            ExecuteDeferredSniperShot(shot);
+        }
+        _pendingSniperShots.Clear();
+    }
+
+    /// <summary>
+    /// Executes a single deferred sniper shot: applies hitscan damage and starts tracer fade.
+    /// </summary>
+    private void ExecuteDeferredSniperShot(PendingSniperShot shot)
+    {
+        if (!IsInstanceValid(this))
+            return;
+
+        GD.Print($"[SniperRifle] Executing deferred sniper hitscan from {shot.Origin} dir {shot.Direction} (Issue #977)");
+
+        Vector2 bulletEndPoint;
+        if (shot.IsBreaker)
+        {
+            bulletEndPoint = PerformBreakerHitscan(shot.Origin, shot.Direction);
+        }
+        else
+        {
+            bulletEndPoint = PerformHitscan(shot.Origin, shot.Direction);
+        }
+
+        // Now start fading the frozen tracer (it becomes the visual of the shot resolving)
+        if (shot.Tracer != null && IsInstanceValid(shot.Tracer))
+        {
+            FadeOutTracer(shot.Tracer);
+        }
+
+        GD.Print($"[SniperRifle] Deferred sniper shot resolved at {bulletEndPoint} (Issue #977)");
+    }
+
+    /// <summary>
+    /// Computes the sniper bullet's endpoint along the hitscan path WITHOUT applying any damage.
+    /// Used during time-stop to determine the tracer endpoint for the frozen visual.
+    /// Mirrors PerformHitscan logic but skips the take_damage calls.
+    /// </summary>
+    private Vector2 ComputeHitscanEndpoint(Vector2 origin, Vector2 direction)
+    {
+        float maxRange = 5000.0f;
+        Vector2 startPos = origin + direction * BulletSpawnOffset;
+        Vector2 endPos = origin + direction * maxRange;
+        int wallsPenetrated = 0;
+        Vector2 bulletEndPoint = endPos;
+
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+            return bulletEndPoint;
+
+        var owner = GetParent();
+        ulong shooterId = owner?.GetInstanceId() ?? 0;
+
+        uint wallMask = 4;
+        uint enemyBodyMask = 2;
+        uint combinedMask = wallMask | enemyBodyMask;
+
+        Vector2 currentPos = startPos;
+        var excludeRids = new Godot.Collections.Array<Rid>();
+
+        for (int iteration = 0; iteration < 50; iteration++)
+        {
+            if (currentPos.DistanceTo(endPos) < 1.0f)
+                break;
+
+            var query = PhysicsRayQueryParameters2D.Create(currentPos, endPos, combinedMask);
+            query.Exclude = excludeRids;
+            query.HitFromInside = true;
+            query.CollideWithAreas = false;
+            query.CollideWithBodies = true;
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count == 0)
+                break;
+
+            var hitCollider = (Node2D)result["collider"];
+            var hitPosition = (Vector2)result["position"];
+            var hitRid = (Rid)result["rid"];
+
+            if (hitCollider.GetInstanceId() == shooterId)
+            {
+                excludeRids.Add(hitRid);
+                continue;
+            }
+
+            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            {
+                if (wallsPenetrated < MaxWallPenetrations)
+                {
+                    wallsPenetrated++;
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+                else
+                {
+                    bulletEndPoint = hitPosition;
+                    break;
+                }
+            }
+
+            if (hitCollider is CharacterBody2D)
+            {
+                // Pass through enemies (no damage in dry-run)
+                excludeRids.Add(hitRid);
+                currentPos = hitPosition + direction * 5.0f;
+                continue;
+            }
+
+            excludeRids.Add(hitRid);
+            currentPos = hitPosition + direction * 5.0f;
+        }
+
+        return bulletEndPoint;
+    }
+
+    /// <summary>
+    /// Computes the breaker hitscan endpoint WITHOUT spawning explosion or applying damage.
+    /// Used during time-stop to determine the frozen tracer endpoint.
+    /// Mirrors PerformBreakerHitscan path logic but skips side effects.
+    /// </summary>
+    private Vector2 ComputeBreakerHitscanEndpoint(Vector2 origin, Vector2 direction)
+    {
+        float maxRange = 5000.0f;
+        Vector2 startPos = origin + direction * BulletSpawnOffset;
+        Vector2 endPos = origin + direction * maxRange;
+
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+            return endPos;
+
+        var owner = GetParent();
+        ulong shooterId = owner?.GetInstanceId() ?? 0;
+
+        uint wallMask = 4;
+        uint enemyBodyMask = 2;
+        uint combinedMask = wallMask | enemyBodyMask;
+
+        Vector2 currentPos = startPos;
+        var excludeRids = new Godot.Collections.Array<Rid>();
+
+        for (int iteration = 0; iteration < 50; iteration++)
+        {
+            if (currentPos.DistanceTo(endPos) < 1.0f)
+                break;
+
+            var query = PhysicsRayQueryParameters2D.Create(currentPos, endPos, combinedMask);
+            query.Exclude = excludeRids;
+            query.HitFromInside = true;
+            query.CollideWithAreas = false;
+            query.CollideWithBodies = true;
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count == 0)
+                break;
+
+            var hitCollider = (Node2D)result["collider"];
+            var hitPosition = (Vector2)result["position"];
+            var hitRid = (Rid)result["rid"];
+
+            if (hitCollider.GetInstanceId() == shooterId)
+            {
+                excludeRids.Add(hitRid);
+                continue;
+            }
+
+            // Breaker: stop BreakerDetonationDistance before first wall
+            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            {
+                Vector2 detonationPoint = hitPosition - direction * BreakerDetonationDistance;
+                return detonationPoint;
+            }
+
+            if (hitCollider is CharacterBody2D)
+            {
+                // Pass through enemies in dry-run
+                excludeRids.Add(hitRid);
+                currentPos = hitPosition + direction * 5.0f;
+                continue;
+            }
+
+            excludeRids.Add(hitRid);
+            currentPos = hitPosition + direction * 5.0f;
+        }
+
+        return endPos;
+    }
+
+    /// <summary>
+    /// Spawns a sniper tracer without starting its fade-out animation.
+    /// Used during time freeze so the tracer stays visible until time unfreezes.
+    /// Returns the Line2D tracer node for later fade activation.
+    /// </summary>
+    private Line2D? SpawnFrozenTracer(Vector2 fromPosition, Vector2 direction,
+        Vector2 originalDirection, Vector2 bulletEndPoint, bool homingRedirected)
+    {
+        Line2D tracer;
+
+        if (homingRedirected)
+        {
+            tracer = CreateCurvedTracerNode(fromPosition, originalDirection, bulletEndPoint);
+        }
+        else
+        {
+            tracer = CreateStraightTracerNode(fromPosition, direction, bulletEndPoint);
+        }
+
+        GetTree().CurrentScene.AddChild(tracer);
+        GD.Print($"[SniperRifle] Frozen tracer spawned (time stop active, Issue #977): {tracer.Name}");
+
+        // Do NOT call FadeOutTracer — the tracer stays visible until time unfreezes
+        return tracer;
+    }
+
+    /// <summary>
+    /// Creates a straight Line2D tracer node (no scene attachment, no fade started).
+    /// Extracted from SpawnSmokyTracer for reuse by SpawnFrozenTracer.
+    /// </summary>
+    private Line2D CreateStraightTracerNode(Vector2 fromPosition, Vector2 direction, Vector2 bulletEndPoint)
+    {
+        var tracer = new Line2D
+        {
+            Name = "SniperTracer",
+            Width = 5.0f,
+            DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+            TopLevel = true,
+            Position = Vector2.Zero,
+            ZIndex = 10,
+        };
+
+        var widthCurve = new Curve();
+        widthCurve.AddPoint(new Vector2(0.0f, 1.0f));
+        widthCurve.AddPoint(new Vector2(0.3f, 0.8f));
+        widthCurve.AddPoint(new Vector2(1.0f, 0.3f));
+        tracer.WidthCurve = widthCurve;
+
+        var gradient = new Gradient();
+        gradient.SetColor(0, new Color(0.9f, 0.9f, 0.85f, 0.8f));
+        gradient.AddPoint(0.5f, new Color(0.7f, 0.7f, 0.65f, 0.5f));
+        gradient.SetColor(gradient.GetPointCount() - 1, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+        tracer.Gradient = gradient;
+
+        tracer.AddPoint(fromPosition + direction * BulletSpawnOffset);
+        tracer.AddPoint(bulletEndPoint);
+
+        return tracer;
+    }
+
+    /// <summary>
+    /// Creates a curved (Bezier) Line2D tracer node (no scene attachment, no fade started).
+    /// Extracted from SpawnCurvedSmokyTracer for reuse by SpawnFrozenTracer.
+    /// </summary>
+    private Line2D CreateCurvedTracerNode(Vector2 fromPosition, Vector2 originalDirection, Vector2 bulletEndPoint)
+    {
+        Vector2 startPos = fromPosition + originalDirection * BulletSpawnOffset;
+        Vector2 endPos = bulletEndPoint;
+
+        float totalDist = startPos.DistanceTo(endPos);
+        Vector2 controlPoint = startPos + originalDirection * (totalDist * 0.4f);
+
+        var tracer = new Line2D
+        {
+            Name = "SniperTracerCurved",
+            Width = 5.0f,
+            DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+            TopLevel = true,
+            Position = Vector2.Zero,
+            ZIndex = 10,
+        };
+
+        var widthCurve = new Curve();
+        widthCurve.AddPoint(new Vector2(0.0f, 1.0f));
+        widthCurve.AddPoint(new Vector2(0.3f, 0.8f));
+        widthCurve.AddPoint(new Vector2(1.0f, 0.3f));
+        tracer.WidthCurve = widthCurve;
+
+        var gradient = new Gradient();
+        gradient.SetColor(0, new Color(0.9f, 0.9f, 0.85f, 0.8f));
+        gradient.AddPoint(0.5f, new Color(0.7f, 0.7f, 0.65f, 0.5f));
+        gradient.SetColor(gradient.GetPointCount() - 1, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+        tracer.Gradient = gradient;
+
+        int segments = 16;
+        for (int i = 0; i <= segments; i++)
+        {
+            float t = (float)i / segments;
+            float oneMinusT = 1.0f - t;
+            Vector2 point = oneMinusT * oneMinusT * startPos
+                          + 2.0f * oneMinusT * t * controlPoint
+                          + t * t * endPos;
+            tracer.AddPoint(point);
+        }
+
+        return tracer;
     }
 
     // =========================================================================
@@ -1469,43 +1886,11 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private void SpawnSmokyTracer(Vector2 fromPosition, Vector2 direction, Vector2 bulletEndPoint)
     {
-        // Use the bullet's actual endpoint (limited by wall penetrations)
-        Vector2 endPosition = bulletEndPoint;
-
-        // Create the tracer as a Line2D with smoke-like appearance
-        var tracer = new Line2D
-        {
-            Name = "SniperTracer",
-            Width = 5.0f,
-            DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
-            BeginCapMode = Line2D.LineCapMode.Round,
-            EndCapMode = Line2D.LineCapMode.Round,
-            TopLevel = true,
-            Position = Vector2.Zero,
-            ZIndex = 10 // Above game elements to be visible
-        };
-
-        // Set up width curve - wider at start, tapers to narrower at end
-        var widthCurve = new Curve();
-        widthCurve.AddPoint(new Vector2(0.0f, 1.0f));
-        widthCurve.AddPoint(new Vector2(0.3f, 0.8f));
-        widthCurve.AddPoint(new Vector2(1.0f, 0.3f));
-        tracer.WidthCurve = widthCurve;
-
-        // Set up gradient - smoky white/gray that fades out
-        var gradient = new Gradient();
-        gradient.SetColor(0, new Color(0.9f, 0.9f, 0.85f, 0.8f));
-        gradient.AddPoint(0.5f, new Color(0.7f, 0.7f, 0.65f, 0.5f));
-        gradient.SetColor(gradient.GetPointCount() - 1, new Color(0.5f, 0.5f, 0.5f, 0.2f));
-        tracer.Gradient = gradient;
-
-        // Add the tracer line points (using global coordinates since TopLevel=true)
-        tracer.AddPoint(fromPosition + direction * BulletSpawnOffset);
-        tracer.AddPoint(endPosition);
+        var tracer = CreateStraightTracerNode(fromPosition, direction, bulletEndPoint);
 
         // Add to scene
         GetTree().CurrentScene.AddChild(tracer);
-        GD.Print($"[SniperRifle] Smoke tracer spawned: from={fromPosition + direction * BulletSpawnOffset} to={endPosition}, width={tracer.Width}");
+        GD.Print($"[SniperRifle] Smoke tracer spawned: from={fromPosition + direction * BulletSpawnOffset} to={bulletEndPoint}, width={tracer.Width}");
 
         // Start the fade-out animation
         FadeOutTracer(tracer);
@@ -1522,57 +1907,12 @@ public partial class SniperRifle : BaseWeapon
     /// <param name="bulletEndPoint">The actual endpoint where hitscan hit (enemy or max range).</param>
     private void SpawnCurvedSmokyTracer(Vector2 fromPosition, Vector2 originalDirection, Vector2 bulletEndPoint)
     {
+        var tracer = CreateCurvedTracerNode(fromPosition, originalDirection, bulletEndPoint);
+
         Vector2 startPos = fromPosition + originalDirection * BulletSpawnOffset;
-        Vector2 endPos = bulletEndPoint;
-
-        // Calculate control point for quadratic Bezier curve
-        // The control point is along the original firing direction at ~40% of the total distance
-        float totalDist = startPos.DistanceTo(endPos);
-        Vector2 controlPoint = startPos + originalDirection * (totalDist * 0.4f);
-
-        // Create the tracer as a Line2D with smoke-like appearance
-        var tracer = new Line2D
-        {
-            Name = "SniperTracerCurved",
-            Width = 5.0f,
-            DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
-            BeginCapMode = Line2D.LineCapMode.Round,
-            EndCapMode = Line2D.LineCapMode.Round,
-            TopLevel = true,
-            Position = Vector2.Zero,
-            ZIndex = 10
-        };
-
-        // Set up width curve - wider at start, tapers to narrower at end
-        var widthCurve = new Curve();
-        widthCurve.AddPoint(new Vector2(0.0f, 1.0f));
-        widthCurve.AddPoint(new Vector2(0.3f, 0.8f));
-        widthCurve.AddPoint(new Vector2(1.0f, 0.3f));
-        tracer.WidthCurve = widthCurve;
-
-        // Set up gradient - smoky white/gray that fades out
-        var gradient = new Gradient();
-        gradient.SetColor(0, new Color(0.9f, 0.9f, 0.85f, 0.8f));
-        gradient.AddPoint(0.5f, new Color(0.7f, 0.7f, 0.65f, 0.5f));
-        gradient.SetColor(gradient.GetPointCount() - 1, new Color(0.5f, 0.5f, 0.5f, 0.2f));
-        tracer.Gradient = gradient;
-
-        // Generate Bezier curve points for a smooth curved trail
-        int segments = 16;
-        for (int i = 0; i <= segments; i++)
-        {
-            float t = (float)i / segments;
-            // Quadratic Bezier: B(t) = (1-t)^2 * P0 + 2*(1-t)*t * P1 + t^2 * P2
-            float oneMinusT = 1.0f - t;
-            Vector2 point = oneMinusT * oneMinusT * startPos
-                          + 2.0f * oneMinusT * t * controlPoint
-                          + t * t * endPos;
-            tracer.AddPoint(point);
-        }
-
         // Add to scene
         GetTree().CurrentScene.AddChild(tracer);
-        GD.Print($"[SniperRifle] Curved smoke tracer spawned (homing): from={startPos} to={endPos}, {segments} segments");
+        GD.Print($"[SniperRifle] Curved smoke tracer spawned (homing): from={startPos} to={bulletEndPoint}, segments=16");
 
         // Start the fade-out animation
         FadeOutTracer(tracer);
