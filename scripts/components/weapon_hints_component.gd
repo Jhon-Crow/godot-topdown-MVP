@@ -48,37 +48,37 @@ const HINT_COLOR := Color(0.5, 0.9, 1.0, 1.0)
 
 ## Weapon hint definitions.
 ## Each weapon has an array of hint objects with "key" and "text" fields.
+## Issue #809: Uses same training strings format as Labyrinth level (labyrinth_level.gd).
+## Format: [color=#ff4444] for highlighted keys, Russian text only.
 const WEAPON_HINTS: Dictionary = {
 	"makarov_pm": [
-		{"key": "pm_reload", "text": "[color=yellow][R][/color] + [color=yellow][F][/color] + [color=yellow][R][/color] — перезарядка\n[R]+[F]+[R] — reload"}
+		{"key": "pm_reload", "text": "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"}
 	],
 	"m16": [
-		{"key": "m16_fire_mode", "text": "[color=yellow][B][/color] — переключение режима огня\n[B] — switch fire mode (auto/semi)"},
-		{"key": "m16_reload", "text": "[color=yellow][R][/color] + [color=yellow][F][/color] + [color=yellow][R][/color] — перезарядка\n[R]+[F]+[R] — reload"}
+		{"key": "m16_fire_mode", "text": "[color=#ff4444][B][/color] Переключи режим огня"},
+		{"key": "m16_reload", "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
 	],
 	"shotgun": [
-		{"key": "shotgun_pump", "text": "После выстрела: [color=yellow][ПКМ↑][/color] для перезарядки затвора\nAfter shot: [color=yellow][RMB↑][/color] to pump"},
-		{"key": "shotgun_reload", "text": "[color=yellow][ПКМ↑][/color] → [color=yellow][СКМ+ПКМ↓][/color] xN → [color=yellow][ПКМ↓][/color] — полная перезарядка\n[RMB↑] → [MMB+RMB↓] xN → [RMB↓] — full reload"}
+		{"key": "shotgun_pump", "text": "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"},
+		{"key": "shotgun_reload", "text": "[color=#ff4444][ПКМ↑][/color] [color=#888888][СКМ+ПКМ↓ xN] [ПКМ↓][/color] Перезарядись"}
 	],
 	"mini_uzi": [
-		{"key": "uzi_rate", "text": "Высокая скорострельность — экономьте патроны!\nHigh fire rate — conserve ammo!"},
-		{"key": "uzi_reload", "text": "[color=yellow][R][/color] + [color=yellow][F][/color] + [color=yellow][R][/color] — перезарядка\n[R]+[F]+[R] — reload"}
+		{"key": "uzi_reload", "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
 	],
 	"silenced_pistol": [
-		{"key": "silenced_stealth", "text": "Бесшумный — враги не услышат выстрелы\nSilenced — enemies won't hear shots"},
-		{"key": "silenced_reload", "text": "[color=yellow][R][/color] + [color=yellow][F][/color] + [color=yellow][R][/color] — перезарядка\n[R]+[F]+[R] — reload"}
+		{"key": "silenced_reload", "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
 	],
 	"sniper": [
-		{"key": "sniper_scope", "text": "[color=yellow][ПКМ][/color] — прицел (удержание)\n[color=yellow][RMB][/color] — scope (hold)"},
-		{"key": "sniper_bolt", "text": "[color=yellow][←][/color][color=yellow][↓][/color][color=yellow][↑][/color][color=yellow][→][/color] — перезарядка затвора\n[color=yellow][←][/color][color=yellow][↓][/color][color=yellow][↑][/color][color=yellow][→][/color] — bolt-action reload"}
+		{"key": "sniper_scope", "text": "[color=#ff4444][ПКМ][/color] Прицелься через оптику"},
+		{"key": "sniper_bolt", "text": "[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] Передёрни затвор"}
 	],
 	"revolver": [
-		{"key": "revolver_cylinder", "text": "[color=yellow][R][/color] — открыть барабан, [color=yellow][F][/color] xN — вставить патроны, [color=yellow][R][/color] — закрыть\n[R] — open cylinder, [F] xN — load rounds, [R] — close"},
-		{"key": "revolver_hammer", "text": "[color=yellow][СКМ][/color] — взвести курок для точного выстрела\n[color=yellow][MMB][/color] — cock hammer for accurate shot"}
+		{"key": "revolver_cylinder", "text": "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"},
+		{"key": "revolver_hammer", "text": "[color=#ff4444][ПКМ][/color] Взведи курок"}
 	],
 	"ak_gl": [
-		{"key": "akgl_launcher", "text": "[color=yellow][ПКМ][/color] — подствольный гранатомёт (когда заряжен)\n[color=yellow][RMB][/color] — underbarrel grenade launcher (when loaded)"},
-		{"key": "akgl_reload", "text": "[color=yellow][R][/color] + [color=yellow][F][/color] + [color=yellow][R][/color] — перезарядка магазина\n[R]+[F]+[R] — magazine reload"}
+		{"key": "akgl_launcher", "text": "[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом"},
+		{"key": "akgl_reload", "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
 	]
 }
 

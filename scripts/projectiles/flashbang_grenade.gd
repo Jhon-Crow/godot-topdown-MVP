@@ -44,6 +44,10 @@ func _on_explode() -> void:
 	# Spawn visual flash effect
 	_spawn_flash_effect()
 
+	# Issue #1005: Spawn scorch mark on floor
+	# Flashbang: small mark (size of grenade ~20px), almost invisible (alpha 0.15)
+	_spawn_scorch_mark(20.0, 0.15, "flashbang")
+
 
 ## Override explosion sound to play zone-specific flashbang sounds.
 ## Plays different sounds based on whether player is in the affected zone.
