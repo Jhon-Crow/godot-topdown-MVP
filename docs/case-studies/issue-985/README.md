@@ -8,23 +8,31 @@ Issue #985 reported two problems with the Black Metal difficulty mode:
 
 ## Root Cause Analysis
 
-### Problem 1: Weapon Flashes Being Filtered
+### Problem 1: Weapon Flashes Appearing as Red Circles (Two-Stage Bug)
 
-The Black Metal shader (`scripts/shaders/black_metal.gdshader`) uses a post-processing filter that converts most colors to high-contrast black-and-white while preserving:
-- Red-dominant pixels (blood, health indicators)
-- Warm/fiery pixels (orange, yellow explosions)
+The Black Metal shader (`scripts/shaders/black_metal.gdshader`) uses a post-processing filter.
 
-The shader's "fire detection" logic was:
-```glsl
-float warmth = (original.r + original.g) * 0.5 - original.b;
-float is_fire = step(fire_threshold, warmth) * step(0.2, original.r) * (1.0 - is_red);
-```
+#### Stage 1 (first attempt - partially fixed by PR #987 v1):
+The original fire detection `(1.0 - is_red)` guard was added to prevent red pixels from being classified as fire. A "bright flash" detection was added for near-white pixels.
 
-This failed to detect very bright/white-ish pixels that are common in:
-- Muzzle flash centers: `Color(1.0, 0.95, 0.9)` → warmth = 0.075 < 0.25 threshold
-- Flashbang explosions: `Color(1.0, 1.0, 0.9)` → warmth = 0.1 < 0.25 threshold
+#### Stage 2 (confirmed by game_log_20260309_194328.txt after v1 fix):
+Game log from 2026-03-09 19:43 confirmed flashes STILL appeared as red circles after v1.
 
-These bright pixels were converted to B&W, making flashes appear as solid circles instead of bright bursts.
+**Root cause (v2 analysis):** Orange/yellow explosion particle colors like `(1.0, 0.7, 0.2)` are classified as BOTH red AND fire-eligible:
+- `red_dominance = r - max(g, b) = 1.0 - 0.7 = 0.3 ≥ 0.15` → `is_red = 1`
+- `warmth = (1.0 + 0.7)*0.5 - 0.2 = 0.65 ≥ 0.25`
+
+But the `(1.0 - is_red)` guard in `is_fire` set it to 0 for these pixels, so they stayed as vivid red instead of being preserved as orange.
+
+**All actual explosion/muzzle flash colors affected:**
+| Color | RGB | Red dominance | Effect |
+|-------|-----|---------------|--------|
+| Muzzle flash particle (outer) | (0.9, 0.4, 0.1) | 0.5 | Turned red |
+| Frag explosion particle | (1.0, 0.7, 0.3) | 0.3 | Turned red |
+| Frag light | (1.0, 0.6, 0.2) | 0.4 | Turned red |
+| Muzzle flash light | (1.0, 0.8, 0.4) | 0.2 | Turned red |
+
+The key insight: orange = high green channel. Blood = very low green channel. The previous code treated all red-dominant pixels the same, but orange fire always has `g ≥ 0.35` while blood/damage has `g < 0.2`.
 
 ### Problem 2: Last Chance Effect in Black Metal
 
@@ -37,21 +45,23 @@ The code checked `difficulty_manager.is_hard_mode()` which returns `false` for B
 
 ## Solution
 
-### Fix 1: Enhanced Flash Detection in Shader
+### Fix 1 (v2): Correct Orange Fire vs Red Blood Detection in Shader
 
-Added a new detection path for bright warm pixels:
+Changed the fire detection from `(1.0 - is_red)` guard to a **green-channel check**:
 ```glsl
-// Detect bright warm pixels (weapon flash centers, explosion cores)
-float warm_bias = step(original.b * 1.5, original.r + original.g);  // r+g >= b*1.5
-float is_bright_flash = step(bright_flash_threshold, lum) * warm_bias * (1.0 - is_red);
+// v2: Use step(0.30, original.g) to distinguish orange fire (moderate-to-high green)
+// from pure red blood (very low green)
+float is_fire = step(fire_threshold, warmth) * step(0.30, original.g) * step(0.2, original.r);
 
-// Combine fire detection: either standard warmth OR bright flash
-float is_fire_or_flash = max(is_fire, is_bright_flash);
+// v2: Remove (1-is_red) from bright flash - use warm_bias alone
+float is_bright_flash = step(bright_flash_threshold, lum) * warm_bias;
 ```
 
-This preserves pixels that are:
-- Very bright (luminance >= 0.85)
-- Have a warm bias (red + green >= blue * 1.5)
+Why this works:
+- Orange fire `(1.0, 0.7, 0.2)`: `g = 0.7 ≥ 0.30` → `is_fire = 1` → preserved as original orange ✓
+- Dark orange edge `(0.8, 0.3, 0.1)`: `g = 0.3 ≥ 0.30` → `is_fire = 1` → preserved ✓
+- Red blood `(0.8, 0.1, 0.1)`: `g = 0.1 < 0.30` → `is_fire = 0` → stays vivid red ✓
+- Since `is_fire_or_flash` overrides `is_red` in the mixing, orange pixels are correctly preserved even when `is_red = 1`
 
 ### Fix 2: Explicit Black Metal Check for Last Chance
 
@@ -103,15 +113,26 @@ The filter affects everything below layer 97, including:
 | red_threshold | 0.15 | Minimum red dominance for "red" classification |
 | fire_threshold | 0.25 | Minimum warmth for standard fire detection |
 | bright_flash_threshold | 0.85 | Minimum luminance for bright flash detection |
+| green_fire_threshold | 0.30 | Minimum green channel to classify as orange/yellow fire (v2) |
 | warm_bias multiplier | 1.5 | Minimum r+g to b ratio for warm bias |
 
-### Example Color Classifications
+### Example Color Classifications (v2 shader)
 
-| Color | RGB | Classification |
-|-------|-----|----------------|
-| Muzzle flash particle | (1.0, 0.9, 0.5) | Fire (warmth = 0.45) |
-| Muzzle flash light | (1.0, 0.8, 0.4) | Fire (warmth = 0.5) |
-| Frag explosion | (1.0, 0.6, 0.2) | Fire (warmth = 0.6) |
-| Flashbang | (1.0, 0.95, 0.9) | Bright flash (lum = 0.97) |
-| Blood | (0.8, 0.1, 0.1) | Red (dominance = 0.7) |
-| Gray wall | (0.5, 0.5, 0.5) | B&W |
+| Color | RGB | is_red | is_fire (v2) | is_bright | Final |
+|-------|-----|--------|---------|-----------|-------|
+| Muzzle flash particle center | (1.0, 0.9, 0.5) | 1 (r-g=0.1) | 1 (g=0.9≥0.30) | - | Preserved (fire wins) |
+| Muzzle flash particle outer | (0.9, 0.4, 0.1) | 1 (r-g=0.5) | 1 (g=0.4≥0.30) | - | Preserved (fire wins) |
+| Muzzle flash particle edge | (0.8, 0.3, 0.1) | 1 (r-g=0.5) | 1 (g=0.3≥0.30) | - | Preserved (fire wins) |
+| Muzzle flash light | (1.0, 0.8, 0.4) | 1 | 1 (g=0.8≥0.30) | - | Preserved (fire wins) |
+| Frag explosion light | (1.0, 0.6, 0.2) | 1 | 1 (g=0.6≥0.30) | - | Preserved (fire wins) |
+| Flashbang | (1.0, 0.95, 0.9) | 0 | 0 (warmth=0.075) | 1 (lum=0.97) | Preserved |
+| Blood | (0.8, 0.1, 0.1) | 1 | 0 (g=0.1<0.30) | 0 | Vivid Red |
+| Health indicator red | (0.9, 0.1, 0.1) | 1 | 0 (g=0.1<0.30) | 0 | Vivid Red |
+| Gray wall | (0.5, 0.5, 0.5) | 0 | 0 | 0 | B&W |
+
+## Logs and Evidence
+
+- `game_log_20260309_194328.txt`: Game session log from 2026-03-09 showing:
+  - Line `[19:43:41] [LastChance] Black Metal mode - last chance effect disabled (Issue #985)` confirms last chance IS disabled (v1 fix worked for this)
+  - The log also shows "Black Metal shader loaded (B&W+red, hint_screen_texture approach)" which is the v1 shader version
+  - The visual bug (red circles) was confirmed by the owner after v1 - indicating the orange→red color misclassification was the remaining issue
