@@ -156,6 +156,9 @@ var _shoot_timer: float = 0.0  ## Time since last shot
 const ENEMY_GUNSHOT_PROPAGATION_COOLDOWN: float = 0.5; var _last_gunshot_propagation_time: float = -999.0
 const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -999.0
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
+## Issue #997 RCA-17: add minimum durations to ALL states in the cycling chain to fully prevent rapid state cycling
+const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## RCA-17: prevent immediate SEEKING_COVER→COMBAT
+const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## RCA-17: prevent immediate RETREATING→SUPPRESSED
 var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
@@ -1582,12 +1585,15 @@ func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector
 
 ## Process SEEKING_COVER state - moving to cover position.
 func _process_seeking_cover_state(_delta: float) -> void:
+	# Issue #997 RCA-17: minimum time in SEEKING_COVER before transitioning to COMBAT
+	var time_in_state := Time.get_ticks_msec() / 1000.0 - _seeking_cover_entry_time
 	if not _has_valid_cover:
 		# Try to find cover
 		_find_cover_position()
 		if not _has_valid_cover:
-			# No cover found, stay in combat
-			_transition_to_combat()
+			# No cover found, stay in combat — but only after minimum duration
+			if time_in_state >= SEEKING_COVER_MIN_DURATION:
+				_transition_to_combat()
 			return
 
 	# Check if we're already hidden from the player (the main goal)
@@ -1605,8 +1611,9 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			_has_valid_cover = false
 			_find_cover_position()
 			if not _has_valid_cover:
-				# No better cover found, stay in combat
-				_transition_to_combat()
+				# No better cover found, stay in combat — but only after minimum duration
+				if time_in_state >= SEEKING_COVER_MIN_DURATION:
+					_transition_to_combat()
 				return
 
 	# Use navigation-based pathfinding to move toward cover
@@ -1813,15 +1820,18 @@ func _process_suppressed_state(delta: float) -> void:
 
 ## Process RETREATING state - moving to cover with behavior based on damage taken.
 func _process_retreating_state(delta: float) -> void:
+	# Issue #997 RCA-17: minimum time in RETREATING before transitioning to SUPPRESSED
+	var time_in_state := Time.get_ticks_msec() / 1000.0 - _retreating_entry_time
 	if not _has_valid_cover:
 		# Try to find cover
 		_find_cover_position()
 		if not _has_valid_cover:
-			# No cover found, transition to combat or suppressed
-			if _under_fire:
-				_transition_to_suppressed()
-			else:
-				_transition_to_combat()
+			# No cover found, transition to combat or suppressed — but only after minimum duration
+			if time_in_state >= RETREATING_MIN_DURATION:
+				if _under_fire:
+					_transition_to_suppressed()
+				else:
+					_transition_to_combat()
 			return
 
 	# Check if we've reached cover and are hidden from player
@@ -1843,10 +1853,12 @@ func _process_retreating_state(delta: float) -> void:
 			_has_valid_cover = false
 			_find_cover_position()
 			if not _has_valid_cover:
-				if _under_fire:
-					_transition_to_suppressed()
-				else:
-					_transition_to_combat()
+				# Only transition after minimum duration (Issue #997 RCA-17)
+				if time_in_state >= RETREATING_MIN_DURATION:
+					if _under_fire:
+						_transition_to_suppressed()
+					else:
+						_transition_to_combat()
 			return
 
 	# Apply retreat behavior based on mode
@@ -2505,6 +2517,7 @@ func _transition_to_seeking_cover() -> void:
 	_current_state = AIState.SEEKING_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
+	_seeking_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
 	_find_cover_position()
 
 ## Transition to IN_COVER state.
@@ -2673,6 +2686,7 @@ func _transition_to_retreating() -> void:
 	_has_left_idle = true
 	# Enter alarm mode when retreating
 	_in_alarm_mode = true
+	_retreating_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
 
 	# Determine retreat mode based on hits taken
 	if _hits_taken_in_encounter == 0:

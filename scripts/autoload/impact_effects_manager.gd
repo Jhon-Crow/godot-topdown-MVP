@@ -53,6 +53,12 @@ const BLOOD_DECALS_PER_LETHAL_HIT: int = 8
 ## Reduced from 10 to 4 to limit overhead at high fire rates.
 const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 4
 
+## Issue #997 RCA-16: Per-second rate limiting for blood decals.
+## When multiple enemies die in the same second, limit total decals to prevent tree_changed floods.
+const MAX_BLOOD_DECALS_PER_SECOND: int = 20
+var _blood_decals_this_second: int = 0
+var _blood_decal_rate_limit_frame: int = -1
+
 ## Active blood decals for cleanup management.
 var _blood_decals = []
 
@@ -623,6 +629,18 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	if not result.is_empty():
 		# Wall detected between origin and landing - skip this decal
 		return
+
+	# Issue #997 RCA-16: rate limit blood decals per second to prevent tree_changed floods
+	var current_frame := Engine.get_physics_frames()
+	# Reset counter every ~60 frames (approximately 1 second at 60fps)
+	if current_frame - _blood_decal_rate_limit_frame >= 60:
+		_blood_decals_this_second = 0
+		_blood_decal_rate_limit_frame = current_frame
+
+	if _blood_decals_this_second >= MAX_BLOOD_DECALS_PER_SECOND:
+		# Rate limit exceeded, skip this decal
+		return
+	_blood_decals_this_second += 1
 
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
