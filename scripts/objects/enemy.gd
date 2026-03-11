@@ -452,13 +452,11 @@ func _ready() -> void:
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 
-## Initialize health with random value between min and max.
-## In Black Metal mode (Issue #958), enemy health is reduced by 25%.
+## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
 	_max_health = 2 if is_grenadier else randi_range(min_health, max_health)  # Issue #604: Grenadiers always 2 HP
-	# Black Metal mode: apply HP multiplier (0.75 = 25% less HP)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	if difficulty_manager and difficulty_manager.has_method("get_hp_multiplier"):
+	if difficulty_manager and difficulty_manager.has_method("get_hp_multiplier"):  # #958: Black Metal HP mult
 		var hp_mult: float = difficulty_manager.get_hp_multiplier()
 		_max_health = maxi(1, int(_max_health * hp_mult))
 	_current_health = _max_health
@@ -2885,10 +2883,7 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 		return false
 	return true
 
-## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
-## [#954 v3] Uses intersect_point() at muzzle (detects muzzle-inside-wall even when enemy
-## center is inside collider — raycasts silently miss this case in Godot) plus center→muzzle
-## raycast to catch walls between center and muzzle.
+## Check if bullet spawn point is clear. [#954 v3] Uses intersect_point() at muzzle + center→muzzle raycast.
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 	var world_2d := get_world_2d()
 	if world_2d == null: return true
