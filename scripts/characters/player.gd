@@ -3799,6 +3799,7 @@ func _handle_trajectory_glasses_input() -> void:
 ## Callback when trajectory glasses activates.
 ## Issue #974: Show segmented charge bar at moment of use.
 func _on_trajectory_activated(charges_remaining: int) -> void:
+	FileLogger.info("[Player.ProgressBar] Trajectory glasses activated callback - showing charge bar")
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
 		_trajectory_glasses_hud.set_active(true)
@@ -3863,6 +3864,7 @@ const CHARGE_BAR_HIDE_DELAY: float = 0.3
 func _init_active_item_progress_bar() -> void:
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager == null:
+		FileLogger.info("[Player.ProgressBar] ActiveItemManager not found - skipping initialization")
 		return
 
 	# Connect to homing bullets signals to show/hide progress bar on activation
@@ -3870,6 +3872,7 @@ func _init_active_item_progress_bar() -> void:
 		homing_activated.connect(_on_homing_activated_show_bar)
 		homing_deactivated.connect(_on_homing_deactivated_hide_bar)
 		homing_charges_changed.connect(_on_homing_charges_changed)
+		FileLogger.info("[Player.ProgressBar] Connected homing bullets signals for progress bar")
 
 	FileLogger.info("[Player.ProgressBar] Active item progress bar initialized (Issue #700)")
 
@@ -3882,12 +3885,14 @@ func _ensure_progress_bar_node() -> void:
 	_active_item_progress_bar = ActiveItemProgressBar.new()
 	_active_item_progress_bar.name = "ActiveItemProgressBar"
 	add_child(_active_item_progress_bar)
+	FileLogger.info("[Player.ProgressBar] Created ActiveItemProgressBar node")
 
 
 ## Show a segmented charge bar above the player.
 ## @param current_charges: Number of charges remaining.
 ## @param max_charges: Maximum number of charges.
 func _show_active_item_charge_bar(current_charges: int, max_charges: int) -> void:
+	FileLogger.info("[Player.ProgressBar] Showing segmented charge bar: %d/%d" % [current_charges, max_charges])
 	_ensure_progress_bar_node()
 	_active_item_progress_bar.show_bar(
 		ActiveItemProgressBar.DisplayMode.SEGMENTED,
@@ -3939,6 +3944,7 @@ func _update_charge_bar_timer(delta: float) -> void:
 ## with divisions to display remaining charges at the moment of use (Issue #974).
 ## Rule: Items with discrete charges show a segmented progress bar appearing on use.
 func _on_homing_activated_show_bar() -> void:
+	FileLogger.info("[Player.ProgressBar] Homing activated callback - showing charge bar")
 	# Issue #974: Show segmented charge bar (not continuous timer) to display
 	# remaining charges. The bar shows the current charge count after this activation.
 	_show_active_item_charge_bar(_homing_charges, HOMING_MAX_CHARGES)
@@ -3949,6 +3955,7 @@ func _on_homing_activated_show_bar() -> void:
 ## Called when homing bullets effect deactivates (timer expires).
 ## Hide the charge bar after a brief delay (Issue #974).
 func _on_homing_deactivated_hide_bar() -> void:
+	FileLogger.info("[Player.ProgressBar] Homing deactivated - scheduling charge bar hide")
 	# Issue #974: Set up auto-hide timer. The segmented charge bar was already
 	# shown on activation - now schedule it to hide after a brief delay.
 	_charge_bar_hide_pending = true
