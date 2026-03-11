@@ -1563,6 +1563,20 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
 
+			# Reduce AKGL ammunition by half for Building level (Issue #949)
+			# Same as M16: base_magazines = 2 gives 30+30 ammo instead of 30+90
+			# In Power Fantasy mode, apply ammo multiplier
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("BuildingLevel: Power Fantasy mode - AKGL magazines multiplied by %dx" % ammo_multiplier)
+			if akgl.has_method("ReinitializeMagazines"):
+				akgl.ReinitializeMagazines(base_magazines, true)
+				print("BuildingLevel: AKGL magazines reinitialized to %d" % base_magazines)
+
 			print("BuildingLevel: AK + GL equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load AKGL scene!")
