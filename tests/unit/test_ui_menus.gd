@@ -178,7 +178,16 @@ class MockDifficultyMenu:
 
 class MockLevelsMenu:
 	## Level data with card metadata (matches card-based levels_menu.gd).
+	## Labyrinth is index 0 and always unlocked; subsequent levels require completing the prior one.
 	const LEVELS: Array[Dictionary] = [
+		{
+			"name": "Labyrinth",
+			"name_ru": "Лабиринт",
+			"path": "res://scenes/levels/LabyrinthLevel.tscn",
+			"description": "Labyrinth of technical rooms with narrow corridors and enclosed spaces.",
+			"enemy_count": 5,
+			"map_size": "1920x1080"
+		},
 		{
 			"name": "Building Level",
 			"path": "res://scenes/levels/BuildingLevel.tscn",
@@ -229,6 +238,12 @@ class MockLevelsMenu:
 		for level in LEVELS:
 			names.append(level["name"])
 		return names
+
+	func get_level_index(name: String) -> int:
+		for i in range(LEVELS.size()):
+			if LEVELS[i]["name"] == name:
+				return i
+		return -1
 
 	func get_level_path(name: String) -> String:
 		for level in LEVELS:
@@ -282,6 +297,27 @@ class MockLevelsMenu:
 	func is_level_completed_on(level_name: String, difficulty: String) -> bool:
 		var path := get_level_path(level_name)
 		return (path + ":" + difficulty) in _progress
+
+	func is_level_completed_any_difficulty(level_name: String) -> bool:
+		for difficulty in DIFFICULTY_NAMES:
+			if is_level_completed_on(level_name, difficulty):
+				return true
+		return false
+
+	## Check whether a level at the given index is unlocked.
+	## Index 0 (Labyrinth) is always unlocked.
+	## All other levels require the previous level to be completed on any difficulty.
+	func is_level_unlocked(level_index: int) -> bool:
+		if level_index <= 0:
+			return true
+		var previous_name: String = LEVELS[level_index - 1]["name"]
+		return is_level_completed_any_difficulty(previous_name)
+
+	func is_level_unlocked_by_name(level_name: String) -> bool:
+		var idx := get_level_index(level_name)
+		if idx == -1:
+			return false
+		return is_level_unlocked(idx)
 
 
 # ============================================================================
@@ -664,8 +700,8 @@ func test_level_display_name_russian() -> void:
 		"Polygon should display as Полигон")
 	assert_eq(levels_menu.get_display_name("Castle"), "Замок",
 		"Castle should display as Замок")
-	assert_eq(levels_menu.get_display_name("Tutorial"), "Обучение",
-		"Tutorial should display as Обучение")
+	assert_eq(levels_menu.get_display_name("Labyrinth"), "Лабиринт",
+		"Labyrinth should display as Лабиринт")
 
 
 func test_level_display_name_fallback() -> void:
@@ -676,10 +712,10 @@ func test_level_display_name_fallback() -> void:
 
 func test_level_enemy_count() -> void:
 	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_enemy_count("Labyrinth"), 5)
 	assert_eq(levels_menu.get_enemy_count("Building Level"), 10)
 	assert_eq(levels_menu.get_enemy_count("Polygon"), 5)
 	assert_eq(levels_menu.get_enemy_count("Castle"), 15)
-	assert_eq(levels_menu.get_enemy_count("Tutorial"), 4)
 
 
 func test_level_has_description() -> void:
@@ -748,6 +784,96 @@ func test_levels_menu_grid_row_count() -> void:
 	# With 5 levels and 4 columns, we need ceil(5/4) = 2 rows
 	var expected_rows := ceili(float(level_count) / float(columns))
 	assert_eq(expected_rows, 2, "5 levels in 4 columns should produce 2 rows")
+
+
+# ============================================================================
+# Level Locking / Progression Tests (Issue #984)
+# ============================================================================
+
+
+func test_labyrinth_always_unlocked() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_true(levels_menu.is_level_unlocked(0),
+		"Labyrinth (index 0) should always be unlocked")
+
+
+func test_second_level_locked_without_progress() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_false(levels_menu.is_level_unlocked(1),
+		"Building Level should be locked when Labyrinth has not been completed")
+
+
+func test_second_level_unlocked_after_completing_labyrinth() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Normal", "F", 100)
+	assert_true(levels_menu.is_level_unlocked(1),
+		"Building Level should unlock after completing Labyrinth on any difficulty")
+
+
+func test_second_level_unlocks_on_any_difficulty() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Hard", "A", 9000)
+	assert_true(levels_menu.is_level_unlocked(1),
+		"Building Level should unlock when Labyrinth is completed on Hard")
+
+
+func test_third_level_locked_without_second_completed() -> void:
+	levels_menu = MockLevelsMenu.new()
+	# Labyrinth is done but Building Level is not
+	levels_menu.set_level_progress("Labyrinth", "Normal", "B", 5000)
+	assert_false(levels_menu.is_level_unlocked(2),
+		"Polygon should remain locked until Building Level is completed")
+
+
+func test_third_level_unlocked_after_completing_second() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Normal", "B", 5000)
+	levels_menu.set_level_progress("Building Level", "Easy", "C", 3000)
+	assert_true(levels_menu.is_level_unlocked(2),
+		"Polygon should unlock after completing Building Level")
+
+
+func test_completing_labyrinth_does_not_skip_unlock_chain() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Normal", "S", 20000)
+	# Only Labyrinth done — Polygon (index 2) still requires Building Level (index 1)
+	assert_false(levels_menu.is_level_unlocked(2),
+		"Polygon should not unlock just because Labyrinth is completed — chain must be sequential")
+
+
+func test_all_levels_locked_except_labyrinth_at_start() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_true(levels_menu.is_level_unlocked(0), "Labyrinth should be unlocked at start")
+	for i in range(1, levels_menu.LEVELS.size()):
+		assert_false(levels_menu.is_level_unlocked(i),
+			"Level at index %d should be locked at start" % i)
+
+
+func test_is_level_unlocked_by_name_labyrinth() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_true(levels_menu.is_level_unlocked_by_name("Labyrinth"),
+		"Labyrinth should be unlocked by name")
+
+
+func test_is_level_unlocked_by_name_building_locked() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_false(levels_menu.is_level_unlocked_by_name("Building Level"),
+		"Building Level should be locked by name before Labyrinth is completed")
+
+
+func test_is_level_unlocked_by_name_building_after_progress() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Labyrinth", "Normal", "D", 1000)
+	assert_true(levels_menu.is_level_unlocked_by_name("Building Level"),
+		"Building Level should unlock by name after completing Labyrinth")
+
+
+func test_completing_level_with_any_rank_unlocks_next() -> void:
+	levels_menu = MockLevelsMenu.new()
+	# Even an F rank counts as a completion for unlocking purposes
+	levels_menu.set_level_progress("Labyrinth", "Normal", "F", 50)
+	assert_true(levels_menu.is_level_unlocked(1),
+		"Even an F rank completion of Labyrinth should unlock Building Level")
 
 
 # ============================================================================

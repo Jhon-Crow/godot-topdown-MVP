@@ -109,6 +109,18 @@ func is_level_completed(level_path: String, difficulty_name: String) -> bool:
 	return key in _progress
 
 
+## Check if a level has been completed on any difficulty.
+## Used by LevelsMenu to determine whether the next level in the sequence should be unlocked.
+## @param level_path: The scene file path of the level.
+## @return: True if the level has been completed at least once on any difficulty.
+func is_level_completed_any_difficulty(level_path: String) -> bool:
+	var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+	for difficulty_name in difficulties:
+		if is_level_completed(level_path, difficulty_name):
+			return true
+	return false
+
+
 ## Get the best rank for a level across all difficulties.
 ## @param level_path: The scene file path of the level.
 ## @return: Dictionary with difficulty names as keys and rank strings as values.

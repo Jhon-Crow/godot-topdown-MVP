@@ -46,6 +46,13 @@ class MockProgressManager:
 		var key: String = _make_key(level_path, difficulty_name)
 		return key in _progress
 
+	func is_level_completed_any_difficulty(level_path: String) -> bool:
+		var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+		for difficulty_name in difficulties:
+			if is_level_completed(level_path, difficulty_name):
+				return true
+		return false
+
 	func get_progress_for_all_difficulties(level_path: String) -> Dictionary:
 		var result: Dictionary = {}
 		var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
@@ -374,3 +381,50 @@ func test_get_progress_for_all_difficulties_complete() -> void:
 	assert_eq(result["Normal"], "B")
 	assert_eq(result["Hard"], "D")
 	assert_eq(result["Power Fantasy"], "S")
+
+
+# ============================================================================
+# is_level_completed_any_difficulty Tests (Issue #984)
+# ============================================================================
+
+
+func test_is_level_completed_any_difficulty_false_when_no_progress() -> void:
+	assert_false(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should not be completed on any difficulty when there is no progress")
+
+
+func test_is_level_completed_any_difficulty_true_after_easy() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "F", 100)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Easy")
+
+
+func test_is_level_completed_any_difficulty_true_after_normal() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "B", 5000)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Normal")
+
+
+func test_is_level_completed_any_difficulty_true_after_hard() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Hard", "A", 9000)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Hard")
+
+
+func test_is_level_completed_any_difficulty_true_after_power_fantasy() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Power Fantasy", "S", 20000)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Power Fantasy")
+
+
+func test_is_level_completed_any_difficulty_does_not_affect_other_level() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "C", 3000)
+	assert_false(progress.is_level_completed_any_difficulty("res://scenes/levels/BuildingLevel.tscn"),
+		"Completing Labyrinth should not mark Building Level as completed")
+
+
+func test_is_level_completed_any_difficulty_with_f_rank_counts() -> void:
+	# Even an F rank means the level was completed — it still unlocks the next level
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F", 0)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"An F rank completion should still count for unlocking the next level")
