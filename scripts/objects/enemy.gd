@@ -158,6 +158,7 @@ const COVER_SEARCH_COOLDOWN: float = 0.3; var _last_cover_search_time: float = -
 const SUPPRESSED_MIN_DURATION: float = 0.5; var _suppressed_entry_time: float = -999.0  ## RCA-11: prevent SUPPRESSED→SEEKING_COVER cycling
 const SEEKING_COVER_MIN_DURATION: float = 0.3; var _seeking_cover_entry_time: float = -999.0  ## Issue #997 RCA-17
 const RETREATING_MIN_DURATION: float = 0.3; var _retreating_entry_time: float = -999.0  ## Issue #997 RCA-17
+const IN_COVER_MIN_DURATION: float = 0.3; var _in_cover_entry_time: float = -999.0  ## Issue #997 RCA-18: prevent instant IN_COVER→SUPPRESSED cycling
 var _cached_visible_from_player: bool = false; var _visible_from_player_cache_frame: int = -1
 var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
@@ -1622,10 +1623,12 @@ func _process_seeking_cover_state(_delta: float) -> void:
 ## Process IN_COVER state. Under fire->suppressed, close->COMBAT, far+can hit->stay and shoot, far+can't hit->PURSUING.
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
+	var time_in_state := Time.get_ticks_msec() / 1000.0 - _in_cover_entry_time  # Issue #997 RCA-18
 
-	# If still under fire, stay suppressed
+	# If still under fire, transition to suppressed (with minimum duration check)
 	if _under_fire:
-		_transition_to_suppressed()
+		if time_in_state >= IN_COVER_MIN_DURATION:  # RCA-18: prevent instant IN_COVER→SUPPRESSED
+			_transition_to_suppressed()
 		return
 
 	# Check if player has flanked us - if we're now visible from player's position,
@@ -2509,6 +2512,7 @@ func _transition_to_in_cover() -> void:
 	_current_state = AIState.IN_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
+	_in_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-18
 
 ## Check if flanking is available (not on cooldown from failures).
 func _can_attempt_flanking() -> bool:

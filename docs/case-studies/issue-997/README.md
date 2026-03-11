@@ -2,13 +2,15 @@
 
 ## Summary
 
-This issue continues the work from PR #980 (Issue #969) to fix FPS drops during shootouts with multiple enemies. The new log file (`game_log_20260311_212307.txt`) shows that despite the 11 fixes from PR #980, the 20-enemy DocksLevel scenario still experiences severe FPS drops (5-7 fps).
+This issue continues the work from PR #980 (Issue #969) to fix FPS drops during shootouts with multiple enemies. Despite the initial fixes from PR #980, the 20-enemy DocksLevel scenario still experiences severe FPS drops (5-7 fps).
 
-## Log Analyzed
+## Logs Analyzed
 
 | Log file | Duration | FPS drops | Worst FPS | Enemies |
 |---|---|---|---|---|
 | game_log_20260311_212307.txt | ~2 min | 42 | 1 fps (warmup) / 5 fps (combat) | 20 |
+| game_log_20260312_001311.txt | ~1 min | N/A | N/A | 20 |
+| game_log_20260312_001334.txt | ~2 min | 50+ | 5 fps (combat) | 20 |
 
 **Session details:**
 - Level: DocksLevel (20 enemies)
@@ -51,6 +53,20 @@ This means the cycle is still only throttled to ~2 cycles/second at best, but in
 ### BloodDecal Burst Spawning
 
 Despite Fix 10 reducing decals from 20→8 (lethal) and 10→4 (non-lethal), the log shows 650 BloodDecal events in ~2 minutes. When multiple enemies die in quick succession, decal bursts still overwhelm the `tree_changed` callback system.
+
+### Instant State Cycling Still Active (RCA-18)
+
+Analysis of `game_log_20260312_001334.txt` revealed that **instant IN_COVER→SUPPRESSED cycling** was still occurring despite the SEEKING_COVER and RETREATING minimum durations:
+
+**Example pattern from line 708-710:**
+```
+[00:13:44] [ContainerYardA_Shotgun] State: RETREATING -> IN_COVER
+[00:13:44] [ContainerYardA_Shotgun] State: IN_COVER -> SUPPRESSED
+```
+
+Both transitions happen in the same timestamp (00:13:44), indicating instant cycling with no minimum duration check.
+
+**Root Cause:** The `_transition_to_in_cover()` function didn't track entry time, and `_process_in_cover_state()` immediately transitioned to SUPPRESSED when `_under_fire` was true.
 
 ## Fixes Applied
 
@@ -101,6 +117,44 @@ var _blood_decal_rate_limit_frame: int = -1
 - Previous: 35-36 decals/second spikes → Now: **20 decals/second max**
 - Reduced `tree_changed` callback overhead by ~43% during kill streaks
 
+### Fix 14: Add IN_COVER Minimum Duration (RCA-18)
+
+**Files Modified:** `scripts/objects/enemy.gd`
+
+Added minimum duration tracking to IN_COVER state to prevent instant IN_COVER→SUPPRESSED cycling:
+
+```gdscript
+# New constant (line 161)
+const IN_COVER_MIN_DURATION: float = 0.3
+var _in_cover_entry_time: float = -999.0
+```
+
+**Changes:**
+- `_transition_to_in_cover()`: Now records entry time
+- `_process_in_cover_state()`: Checks minimum duration before transitioning to SUPPRESSED
+
+**Expected Impact:**
+- Complete state cycling minimum: SUPPRESSED(0.5s) + SEEKING_COVER(0.3s) + IN_COVER(0.3s) + RETREATING(0.3s) = **1.4 seconds minimum per full cycle**
+- Prevents instant IN_COVER→SUPPRESSED transitions
+
+### Fix 15: Background Level Loading with Loading Screen
+
+**User Request:** "может можно добавить загрузку после выбора уровня чтоб избавиться от просадок?"
+
+**Files Added:**
+- `scripts/autoload/scene_loader.gd` — New autoload for background level loading
+
+**Files Modified:**
+- `scripts/ui/levels_menu.gd` — Use SceneLoader instead of direct `change_scene_to_file`
+- `scripts/autoload/persist_manager.gd` — Use SceneLoader for startup level navigation
+- `project.godot` — Added SceneLoader to autoload list
+
+**Implementation:**
+- Uses `ResourceLoader.load_threaded_request()` for background loading
+- Displays a fade-to-black loading screen with progress bar
+- Prevents FPS drops during level loading by loading scenes asynchronously
+- Falls back to synchronous loading if threaded loading fails
+
 ## Remaining Architectural Issues (Not Addressed in This PR)
 
 ### RCA-14: Sound Propagation O(N) Scans
@@ -125,10 +179,14 @@ The fundamental overhead of 20 AI state machines updating at 60fps remains. Requ
 
 | File | Change |
 |---|---|
-| `scripts/objects/enemy.gd` | Added SEEKING_COVER_MIN_DURATION, RETREATING_MIN_DURATION with entry time tracking (Fix 12) |
+| `scripts/objects/enemy.gd` | Added SEEKING_COVER_MIN_DURATION, RETREATING_MIN_DURATION, IN_COVER_MIN_DURATION with entry time tracking (Fix 12, 14) |
 | `scripts/autoload/impact_effects_manager.gd` | Added MAX_BLOOD_DECALS_PER_SECOND rate limiting (Fix 13) |
+| `scripts/autoload/scene_loader.gd` | New autoload for background level loading with loading screen (Fix 15) |
+| `scripts/ui/levels_menu.gd` | Use SceneLoader for level transitions (Fix 15) |
+| `scripts/autoload/persist_manager.gd` | Use SceneLoader for startup navigation (Fix 15) |
+| `project.godot` | Added SceneLoader to autoload list |
 | `docs/case-studies/issue-997/README.md` | This documentation |
-| `docs/case-studies/issue-997/logs/game_log_20260311_212307.txt` | New log file from issue |
+| `docs/case-studies/issue-997/game_log_*.txt` | Log files from issue |
 
 ## References
 
