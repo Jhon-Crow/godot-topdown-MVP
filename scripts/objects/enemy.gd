@@ -296,13 +296,8 @@ const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
-
-## Maximum time to spend finding a clear shot before giving up (seconds).
-const CLEAR_SHOT_MAX_TIME: float = 3.0
-
-## Distance to move when exiting cover to find a clear shot.
-const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
-
+const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Max time to find clear shot (seconds)
+const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0  ## Distance to move when exiting cover to find clear shot
 ## --- Sound-Based Detection ---
 ## Last known sound source position (for investigation when player not visible).
 var _last_known_player_position: Vector2 = Vector2.ZERO
