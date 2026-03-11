@@ -21,6 +21,12 @@ The "View Unlock Table" button was added to the Experimental menu (PR #1003) but
 
 5. **Second bug report** (2026-03-11 23:07): Owner reports issue persists — "при нажатии на кнопку всё ещё не отображается таблица" (clicking the button still doesn't show the table). Attaches game log `game_log_20260311_230724.txt`.
 
+6. **Second fix attempt** (2026-03-11 20:17): Changed to instantiate dynamically and add via `get_parent().add_child()`. PR marked ready again.
+
+7. **Third bug report** (2026-03-11 20:37): Owner reports "кнопка не работает (ничего не отображается)" (button doesn't work, nothing is displayed). Requests checking both C# and GDScript code.
+
+8. **Third fix attempt** (2026-03-11): Identified that `get_parent()` returns `PauseMenu` (itself a CanvasLayer), so the nesting issue persisted. Changed to add menu to `get_tree().root` instead.
+
 ---
 
 ## Evidence
@@ -80,40 +86,40 @@ Looking at how `PauseMenu` handles its submenus (ArmoryMenu, LevelsMenu, etc.):
 
 ---
 
-## Fix (Second Attempt)
+## Fix Attempts
 
-### Changes to `scripts/ui/experimental_menu.gd`:
+### Second Attempt (FAILED)
 
-1. **Remove @onready reference** to embedded UnlockTableMenu
-2. **Add preload** for the scene file
-3. **Instantiate dynamically** on first button press (same pattern as other menus)
-4. **Add as sibling** via `get_parent().add_child()` to avoid nesting
+Changed the code to add `UnlockTableMenu` as a sibling via `get_parent().add_child()`. However, `get_parent()` returns `PauseMenu`, which is **also a CanvasLayer** — so the menu was still being added as a child of a CanvasLayer, triggering the same nesting issue.
+
+### Third Attempt (CURRENT FIX)
+
+The key insight is that **any CanvasLayer nesting causes visibility issues**. The fix is to add the menu to the **scene tree root** instead of any CanvasLayer.
+
+#### Changes to `scripts/ui/experimental_menu.gd`:
 
 ```gdscript
-## Reference to the unlock table menu scene.
-var unlock_table_menu_scene: PackedScene = preload("res://scenes/ui/UnlockTableMenu.tscn")
-
-## The instantiated unlock table menu (created on first use, like other submenus).
-var unlock_table_menu: CanvasLayer = null
-
 func _on_unlock_table_pressed() -> void:
-    # Instantiate unlock table menu on first use (same pattern as PauseMenu submenus)
-    # This avoids nested CanvasLayer visibility issues in Godot 4.
+    # Instantiate unlock table menu on first use.
+    # Add to /root to avoid nested CanvasLayer visibility issues in Godot 4.
+    # See: https://github.com/godotengine/godot/issues/84912
     if unlock_table_menu == null:
         unlock_table_menu = unlock_table_menu_scene.instantiate()
         unlock_table_menu.back_pressed.connect(_on_unlock_table_back_pressed)
-        # Add as sibling to this CanvasLayer's parent (not as child) to avoid nesting
-        get_parent().add_child(unlock_table_menu)
+        # Add to root node to avoid any CanvasLayer nesting issues
+        get_tree().root.add_child(unlock_table_menu)
+        # Explicitly show after adding to tree
+        unlock_table_menu.show()
     else:
         # Refresh and show existing instance
         unlock_table_menu.refresh()
         unlock_table_menu.show()
 ```
 
-### Changes to `scenes/ui/ExperimentalMenu.tscn`:
-
-1. **Remove** the embedded `UnlockTableMenu` instance
-2. **Remove** the `ext_resource` for UnlockTableMenu.tscn
+Key changes:
+1. **Add to `get_tree().root`** instead of `get_parent()` — this ensures the CanvasLayer is at the top level of the scene tree, not nested inside any other CanvasLayer
+2. **Explicit `show()` call** after instantiation — don't assume visibility defaults
+3. **Added debug logging** to track the issue via FileLogger
 
 ---
 

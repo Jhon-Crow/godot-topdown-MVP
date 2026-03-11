@@ -224,17 +224,26 @@ func _on_delete_saves_pressed() -> void:
 
 
 func _on_unlock_table_pressed() -> void:
-	# Instantiate unlock table menu on first use (same pattern as PauseMenu submenus)
-	# This avoids nested CanvasLayer visibility issues in Godot 4.
+	# Instantiate unlock table menu on first use.
+	# Add to /root to avoid nested CanvasLayer visibility issues in Godot 4.
+	# See: https://github.com/godotengine/godot/issues/84912
+	FileLogger.info("[ExperimentalMenu] Unlock table button pressed")
 	if unlock_table_menu == null:
+		FileLogger.info("[ExperimentalMenu] Creating new unlock table menu instance")
 		unlock_table_menu = unlock_table_menu_scene.instantiate()
 		unlock_table_menu.back_pressed.connect(_on_unlock_table_back_pressed)
-		# Add as sibling to this CanvasLayer's parent (not as child) to avoid nesting
-		get_parent().add_child(unlock_table_menu)
+		# Add to root node to avoid any CanvasLayer nesting issues
+		get_tree().root.add_child(unlock_table_menu)
+		FileLogger.info("[ExperimentalMenu] Unlock table menu added to tree at /root, layer: %d" % unlock_table_menu.layer)
+		# Explicitly show after adding to tree
+		unlock_table_menu.show()
+		FileLogger.info("[ExperimentalMenu] Unlock table menu show() called, visible: %s" % unlock_table_menu.visible)
 	else:
+		FileLogger.info("[ExperimentalMenu] Showing existing unlock table menu")
 		# Refresh and show existing instance
 		unlock_table_menu.refresh()
 		unlock_table_menu.show()
+		FileLogger.info("[ExperimentalMenu] Unlock table menu refreshed and shown, visible: %s" % unlock_table_menu.visible)
 
 
 func _on_unlock_table_back_pressed() -> void:

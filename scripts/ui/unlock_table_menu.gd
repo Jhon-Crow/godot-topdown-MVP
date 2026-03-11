@@ -39,8 +39,10 @@ const RANK_COLORS: Dictionary = {
 
 
 func _ready() -> void:
+	FileLogger.info("[UnlockTableMenu] _ready() called, building UI...")
 	_build_ui()
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	FileLogger.info("[UnlockTableMenu] UI built, layer: %d, visible: %s" % [layer, visible])
 
 
 ## Rebuild the table to reflect the latest unlock state.
