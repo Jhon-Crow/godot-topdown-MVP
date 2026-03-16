@@ -157,8 +157,6 @@ func on_player_death() -> void:
 ## Restarts the current scene.
 ## Resets mouse mode to hidden before reloading so the cursor does not persist
 ## from the score screen (Issue #905).
-## Issue #1027 Fix 21: Log restart events and use SceneLoader loading screen
-## when available, to prevent untracked instant restarts causing FPS spikes.
 func restart_scene() -> void:
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
@@ -167,12 +165,7 @@ func restart_scene() -> void:
 	if current_scene and current_scene.scene_file_path:
 		current_path = current_scene.scene_file_path
 	_log_to_file("restart_scene called, reloading: %s" % current_path)
-	# Issue #1027 Fix 21: Use SceneLoader for loading screen on restart
-	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
-	if scene_loader and scene_loader.has_method("load_level") and current_path != "":
-		scene_loader.load_level(current_path)
-	else:
-		get_tree().reload_current_scene()
+	get_tree().reload_current_scene()
 
 
 ## Sets the player reference.

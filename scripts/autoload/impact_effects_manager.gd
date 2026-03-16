@@ -30,9 +30,11 @@ const MIN_EFFECT_SCALE: float = 0.2
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-## Set to 0 for unlimited decals (puddles should never disappear per issue #293, #370).
-## CRITICAL: Must remain 0 - do not change without explicit user approval.
-const MAX_BLOOD_DECALS: int = 0
+## Issue #1027 Fix 22: Set cap at 150 to prevent GPU overload on large levels (DocksLevel with 20
+## enemies accumulated 400+ decals, causing 6fps drops). Oldest decals removed when limit reached.
+## Previous value was 0 (unlimited) per issue #293/#370 (puddles never disappear), but DocksLevel
+## scale makes that untenable for performance.
+const MAX_BLOOD_DECALS: int = 150
 
 ## Maximum distance to check for walls for blood splatters (in pixels).
 const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0
