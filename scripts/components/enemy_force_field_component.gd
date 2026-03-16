@@ -11,7 +11,7 @@ extends Node
 ## Duration the force field stays active (seconds).
 const DURATION: float = 4.0
 ## Recharge time after the force field deactivates (seconds).
-const RECHARGE_TIME: float = 10.0
+const RECHARGE_TIME: float = 5.0
 
 var _force_field_effect: Node2D = null  ## ForceFieldEffect instance
 var _active: bool = false  ## Force field currently active
