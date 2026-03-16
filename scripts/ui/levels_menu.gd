@@ -89,6 +89,16 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 		"enemy_count": 20,
 		"map_size": "5000x4000"
+	},
+	{
+		"name": "Roguelike",
+		"name_ru": "Рогалик",
+		"path": "res://scenes/levels/RoguelikeLevel.tscn",
+		"description": "Procedurally generated dungeon: random rooms, random weapons, random enemies — a new layout every run.",
+		"preview_color": Color(0.2, 0.1, 0.35, 1.0),
+		"preview_accent": Color(0.55, 0.3, 0.9, 1.0),
+		"enemy_count": 0,
+		"map_size": "3840x2160"
 	}
 ]
 
@@ -114,12 +124,17 @@ var _level_cards: Dictionary = {}
 
 ## Check whether a level at the given index in LEVELS is unlocked.
 ## The first level (Labyrinth) is always unlocked.
+## The Roguelike level is always unlocked (procedurally generated, no prerequisites).
 ## All other levels require the immediately preceding level to be completed on any difficulty.
 ## @param level_index: Index into the LEVELS array.
 ## @param progress_manager: The ProgressManager autoload node (may be null).
 ## @return: True if the level is available to play.
 func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
 	if level_index <= 0:
+		return true
+	# Roguelike level is always available — no prerequisites required.
+	var level_path: String = LEVELS[level_index]["path"]
+	if level_path == "res://scenes/levels/RoguelikeLevel.tscn":
 		return true
 	var previous_path: String = LEVELS[level_index - 1]["path"]
 	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):
