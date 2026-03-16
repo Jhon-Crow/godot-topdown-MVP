@@ -24,6 +24,9 @@ const PIP_FILLED_COLOR: Color = Color(0.0, 1.0, 0.5, 0.9)  # Greenish
 ## Color for empty (used) charge pips.
 const PIP_EMPTY_COLOR: Color = Color(0.3, 0.3, 0.3, 0.5)
 
+## How long (in seconds) to show the charge pips after activation before auto-hiding.
+const ACTIVATION_SHOW_DURATION: float = 0.4
+
 ## Current charges.
 var _charges: int = 2
 
@@ -32,6 +35,9 @@ var _max_charges: int = 2
 
 ## Reference to the trajectory glasses effect.
 var _effect: Node = null
+
+## Timer counting down auto-hide after activation (0 = not running).
+var _hide_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -56,21 +62,30 @@ func update_charges(current: int, maximum: int) -> void:
 
 
 ## Show/hide the HUD based on effect state.
+## When active=true, starts the 400 ms auto-hide timer.
 func set_active(active: bool) -> void:
-	visible = active
+	if active:
+		visible = true
+		_hide_timer = ACTIVATION_SHOW_DURATION
+	else:
+		visible = false
+		_hide_timer = 0.0
 	queue_redraw()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	# Keep position at offset above parent
 	position = Vector2(0.0, OFFSET_Y)
 
-	# Update visibility based on effect state
-	if _effect:
-		if _effect.is_active != visible:
-			visible = _effect.is_active
-		if visible:
-			queue_redraw()
+	# Auto-hide after activation duration expires
+	if _hide_timer > 0.0:
+		_hide_timer -= delta
+		if _hide_timer <= 0.0:
+			_hide_timer = 0.0
+			visible = false
+
+	if visible:
+		queue_redraw()
 
 
 func _draw() -> void:

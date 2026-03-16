@@ -493,3 +493,98 @@ func test_low_time_warning_constant_is_two_seconds() -> void:
 func test_warning_flash_frequency_constant() -> void:
 	assert_eq(effect.WARNING_FLASH_FREQUENCY, 3.0,
 		"WARNING_FLASH_FREQUENCY should be 3.0 Hz (matches force field pattern)")
+
+
+# ============================================================================
+# Charge Pip HUD Auto-Hide Tests (Issue #1049)
+# ============================================================================
+
+
+class MockTrajectoryGlassesHud:
+	## How long (in seconds) to show the charge pips after activation before auto-hiding.
+	const ACTIVATION_SHOW_DURATION: float = 0.4
+
+	## Whether the HUD is currently visible.
+	var visible: bool = false
+
+	## Timer counting down auto-hide after activation (0 = not running).
+	var _hide_timer: float = 0.0
+
+	## Show/hide the HUD. When active=true, starts the 400 ms auto-hide timer.
+	func set_active(active: bool) -> void:
+		if active:
+			visible = true
+			_hide_timer = ACTIVATION_SHOW_DURATION
+		else:
+			visible = false
+			_hide_timer = 0.0
+
+	## Simulate time passing (mirrors _process logic).
+	func update(delta: float) -> void:
+		if _hide_timer > 0.0:
+			_hide_timer -= delta
+			if _hide_timer <= 0.0:
+				_hide_timer = 0.0
+				visible = false
+
+
+var hud: MockTrajectoryGlassesHud
+
+
+func before_each_hud() -> void:
+	hud = MockTrajectoryGlassesHud.new()
+
+
+func test_hud_activation_show_duration_constant() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	assert_almost_eq(h.ACTIVATION_SHOW_DURATION, 0.4, 0.001,
+		"ACTIVATION_SHOW_DURATION should be 0.4 seconds (400 ms)")
+
+
+func test_hud_starts_hidden() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	assert_false(h.visible,
+		"Charge pip HUD should start hidden")
+
+
+func test_hud_visible_immediately_after_set_active() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	assert_true(h.visible,
+		"HUD should be visible immediately after set_active(true)")
+
+
+func test_hud_auto_hides_after_activation_duration() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.update(0.5)  # More than 0.4 s
+	assert_false(h.visible,
+		"HUD should auto-hide after ACTIVATION_SHOW_DURATION (400 ms)")
+
+
+func test_hud_still_visible_before_activation_duration_expires() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.update(0.2)  # Less than 0.4 s
+	assert_true(h.visible,
+		"HUD should still be visible before ACTIVATION_SHOW_DURATION expires")
+
+
+func test_hud_hidden_when_set_active_false() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.set_active(false)
+	assert_false(h.visible,
+		"HUD should become hidden immediately when set_active(false) is called")
+
+
+func test_hud_hide_timer_resets_on_deactivation() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.update(0.1)
+	h.set_active(false)
+	# Re-activate: timer should restart from full ACTIVATION_SHOW_DURATION
+	h.set_active(true)
+	h.update(0.2)  # Still within 0.4 s
+	assert_true(h.visible,
+		"After re-activation HUD hide timer should reset; HUD should still be visible")

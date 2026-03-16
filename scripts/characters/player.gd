@@ -3801,30 +3801,19 @@ func _handle_trajectory_glasses_input() -> void:
 
 
 ## Callback when trajectory glasses activates.
-## Shows combined progress bar with charge pips + timer (Issue #974).
+## Shows charge pips briefly (400 ms) via the HUD node; no progress bar (Issue #1049).
 func _on_trajectory_activated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
-	# Show combined progress bar (Issue #974)
-	_show_active_item_combined_bar(
-		charges_remaining,
-		_trajectory_glasses.MAX_CHARGES,
-		_trajectory_glasses.EFFECT_DURATION,
-		_trajectory_glasses.EFFECT_DURATION
-	)
-	# Also update legacy HUD if present
+	# Show charge pip HUD briefly — it auto-hides after ACTIVATION_SHOW_DURATION (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
-		_trajectory_glasses_hud.set_active(true)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+		_trajectory_glasses_hud.set_active(true)
 
 
 ## Callback when trajectory glasses deactivates.
 func _on_trajectory_deactivated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
-	# Show charge bar briefly then hide (Issue #974)
-	_show_active_item_charge_bar(charges_remaining, _trajectory_glasses.MAX_CHARGES)
-	_charge_bar_hide_pending = true
-	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
-	# Also update legacy HUD if present
+	# Hide charge pip HUD immediately on deactivation (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
 		_trajectory_glasses_hud.set_active(false)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
@@ -3961,16 +3950,11 @@ func _update_charge_bar_timer(delta: float) -> void:
 	if _homing_equipped and _homing_active:
 		_update_active_item_timer(_homing_timer)
 
-	# Update combined bar (charge pips + timer) while trajectory glasses is active (Issue #974)
-	if _trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses):
-		if _trajectory_glasses.is_active:
-			_update_active_item_timer(_trajectory_glasses.get_remaining_time())
+	# Trajectory glasses no longer use the ActiveItemProgressBar (Issue #1049).
+	# Their charge pips are shown by trajectory_glasses_hud which auto-hides after 400 ms.
 
-	# Handle charge bar auto-hide (300ms delay for charge-based items)
-	# Only hide if neither homing nor trajectory glasses is active
-	var any_active: bool = (_homing_equipped and _homing_active) or \
-		(_trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) and _trajectory_glasses.is_active)
-	if _charge_bar_hide_pending and not any_active:
+	# Handle charge bar auto-hide (300ms delay for charge-based items, e.g. homing bullets)
+	if _charge_bar_hide_pending and not (_homing_equipped and _homing_active):
 		_charge_bar_hide_timer -= delta
 		if _charge_bar_hide_timer <= 0.0:
 			_charge_bar_hide_pending = false
