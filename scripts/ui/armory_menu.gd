@@ -12,6 +12,10 @@ signal back_pressed
 ## Signal emitted when a weapon is selected.
 signal weapon_selected(weapon_id: String)
 
+## Signal emitted when Apply is pressed from score screen context (Issue #1006).
+## The armory should close without restarting the level.
+signal apply_pressed_from_score_screen
+
 ## Path to weapon case icon used for locked/closed weapons.
 const WEAPON_CASE_ICON_PATH: String = "res://assets/sprites/weapons/weapon_case_icon.png"
 
@@ -142,6 +146,14 @@ var _grenade_manager: Node = null
 ## Reference to ActiveItemManager autoload.
 var _active_item_manager: Node = null
 
+## Reference to UnlockManager autoload.
+var _unlock_manager: Node = null
+
+## Whether the armory was opened from the score screen (Issue #1006).
+## When true, pressing Apply should hide the armory and return to score screen
+## instead of restarting the level.
+var opened_from_score_screen: bool = false
+
 ## Cached weapon resource data.
 var _weapon_resources: Dictionary = {}
 
@@ -184,6 +196,9 @@ func _ready() -> void:
 
 	# Get ActiveItemManager reference
 	_active_item_manager = get_node_or_null("/root/ActiveItemManager")
+
+	# Get UnlockManager reference
+	_unlock_manager = get_node_or_null("/root/UnlockManager")
 
 	# Load weapon resource data
 	_load_weapon_resources()
@@ -290,12 +305,16 @@ func _build_ui() -> void:
 	main_vbox.add_theme_constant_override("separation", 8)
 	margin.add_child(main_vbox)
 
-	# Title
+	# Title with neon styling
 	var title := Label.new()
 	title.text = "ARMORY"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
+	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
+	if neon_label_settings:
+		title.label_settings = neon_label_settings
+	else:
+		title.add_theme_font_size_override("font_size", 22)
+		title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
 	main_vbox.add_child(title)
 
 	# Separator below title
@@ -500,7 +519,11 @@ func _build_right_area() -> VBoxContainer:
 		var is_unlocked: bool = false
 		if GameManager and GameManager.has_method("is_weapon_unlocked"):
 			is_unlocked = GameManager.is_weapon_unlocked(weapon_id)
-		var slot := _create_item_slot(weapon_id, weapon_data, false, is_unlocked)
+		# Check if unlock condition is met (for gold highlighting)
+		var condition_met: bool = false
+		if not is_unlocked and _unlock_manager and _unlock_manager.has_method("is_weapon_condition_met"):
+			condition_met = _unlock_manager.is_weapon_condition_met(weapon_id)
+		var slot := _create_item_slot(weapon_id, weapon_data, false, is_unlocked, condition_met)
 		_weapon_grid.add_child(slot)
 		_weapon_slots[weapon_id] = slot
 		if weapon_index >= max_visible_weapons:
@@ -544,13 +567,17 @@ func _build_right_area() -> VBoxContainer:
 			var is_unlocked: bool = false
 			if _grenade_manager.has_method("is_grenade_unlocked"):
 				is_unlocked = _grenade_manager.is_grenade_unlocked(grenade_type)
+			# Check if unlock condition is met (for gold highlighting)
+			var condition_met: bool = false
+			if not is_unlocked and _unlock_manager and _unlock_manager.has_method("is_grenade_condition_met"):
+				condition_met = _unlock_manager.is_grenade_condition_met(grenade_type)
 			var grenade_info := {
 				"name": gdata.get("name", "Unknown"),
 				"icon_path": gdata.get("icon_path", ""),
 				"description": gdata.get("description", ""),
 				"grenade_type": grenade_type
 			}
-			var slot := _create_item_slot(str(grenade_type), grenade_info, true, is_unlocked)
+			var slot := _create_item_slot(str(grenade_type), grenade_info, true, is_unlocked, condition_met)
 			_grenade_grid.add_child(slot)
 			_grenade_slots[grenade_type] = slot
 			if grenade_index >= max_visible_grenades:
@@ -594,13 +621,17 @@ func _build_right_area() -> VBoxContainer:
 			var is_unlocked: bool = false
 			if _active_item_manager.has_method("is_active_item_unlocked"):
 				is_unlocked = _active_item_manager.is_active_item_unlocked(item_type)
+			# Check if unlock condition is met (for gold highlighting)
+			var condition_met: bool = false
+			if not is_unlocked and _unlock_manager and _unlock_manager.has_method("is_active_item_condition_met"):
+				condition_met = _unlock_manager.is_active_item_condition_met(item_type)
 			var item_info := {
 				"name": adata.get("name", "Unknown"),
 				"icon_path": adata.get("icon_path", ""),
 				"description": adata.get("description", ""),
 				"active_item_type": item_type
 			}
-			var slot := _create_active_item_slot(str(item_type), item_info, item_type, is_unlocked)
+			var slot := _create_active_item_slot(str(item_type), item_info, item_type, is_unlocked, condition_met)
 			_active_item_grid.add_child(slot)
 			_active_item_slots[item_type] = slot
 			if active_item_index >= max_visible_active_items:
@@ -687,7 +718,9 @@ func _add_category_header(parent: VBoxContainer, text: String) -> void:
 
 ## Create an item slot (used for both weapons and grenades).
 ## Locked items show weapon case icon and hidden name for future animated opening.
-func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool, is_unlocked: bool) -> PanelContainer:
+## @param condition_met: If true and item is locked, highlights the slot in gold to indicate
+##                       the player has earned the right to unlock this item.
+func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool, is_unlocked: bool, condition_met: bool = false) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = item_id + "_slot"
 	slot.custom_minimum_size = Vector2(90, 80)
@@ -695,6 +728,8 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 	# Store metadata for click handling
 	slot.set_meta("item_id", item_id)
 	slot.set_meta("is_grenade", is_grenade)
+	slot.set_meta("is_unlocked", is_unlocked)
+	slot.set_meta("condition_met", condition_met)
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -756,22 +791,27 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
-	slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data, is_unlocked))
+	slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data, is_unlocked, condition_met))
 	if is_unlocked:
 		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	else:
 		# Locked items show pointing hand to indicate they can be unlocked
 		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
-	# Default style
-	_apply_default_style(slot)
+	# Apply style: gold if condition is met and item is locked, default otherwise
+	if not is_unlocked and condition_met:
+		_apply_condition_met_style(slot)
+	else:
+		_apply_default_style(slot)
 
 	return slot
 
 
 ## Create an active item slot (separate handler for active item clicks).
 ## Locked items show weapon case icon and hidden name for future animated opening.
-func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int, is_unlocked: bool) -> PanelContainer:
+## @param condition_met: If true and item is locked, highlights the slot in gold to indicate
+##                       the player has earned the right to unlock this item.
+func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int, is_unlocked: bool, condition_met: bool = false) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = "active_" + item_id + "_slot"
 	slot.custom_minimum_size = Vector2(90, 80)
@@ -779,6 +819,8 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	# Store metadata
 	slot.set_meta("item_id", item_id)
 	slot.set_meta("is_active_item", true)
+	slot.set_meta("is_unlocked", is_unlocked)
+	slot.set_meta("condition_met", condition_met)
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -843,17 +885,20 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
-	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type, is_unlocked))
+	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type, is_unlocked, condition_met))
 	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
-	# Default style
-	_apply_default_style(slot)
+	# Apply style: gold if condition is met and item is locked, default otherwise
+	if not is_unlocked and condition_met:
+		_apply_condition_met_style(slot)
+	else:
+		_apply_default_style(slot)
 
 	return slot
 
 
 ## Handle click on an active item slot.
-func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: int, is_unlocked: bool) -> void:
+func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: int, is_unlocked: bool, condition_met: bool = false) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if is_unlocked:
@@ -869,8 +914,8 @@ func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, ite
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
-			else:
-				# Locked item: start tracking LMB hold for unlocking
+			elif condition_met:
+				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
 					"start_time": Time.get_ticks_msec() / 1000.0,
 					"item_id": str(item_type),
@@ -921,10 +966,27 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 	slot.add_theme_stylebox_override("panel", selected_style)
 
 
+## Apply gold "condition met" style to a locked slot whose unlock condition has been satisfied.
+## This highlights items in gold to indicate the player can now unlock them.
+func _apply_condition_met_style(slot: PanelContainer) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.28, 0.22, 0.08, 0.85)
+	style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	slot.add_theme_stylebox_override("panel", style)
+
+
 ## Handle click on an item slot.
 ## Sets the pending selection (does NOT restart — user must press Apply).
-## For locked items, holding LMB unlocks the item.
-func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String, is_grenade: bool, item_data: Dictionary, is_unlocked: bool) -> void:
+## For locked items, holding LMB unlocks the item only if the unlock condition is met.
+func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String, is_grenade: bool, item_data: Dictionary, is_unlocked: bool, condition_met: bool = false) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if is_unlocked:
@@ -944,8 +1006,8 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 				_highlight_selected_items()
 				_update_loadout_panel()
 				_update_apply_button_state()
-			else:
-				# Locked item: start tracking LMB hold for unlocking
+			elif condition_met:
+				# Locked item with condition met: start tracking LMB hold for unlocking
 				_lmb_hold_tracking[slot] = {
 					"start_time": Time.get_ticks_msec() / 1000.0,
 					"item_id": item_id,
@@ -1034,27 +1096,51 @@ func _on_apply_pressed() -> void:
 			_active_item_manager.set_active_item(_pending_active_item_type, false)
 		active_item_changed = true
 
-	# Restart the level to apply changes
+	# Apply changes: either restart level or return to score screen (Issue #1006)
 	if weapon_changed or grenade_changed or active_item_changed:
-		if GameManager:
+		if opened_from_score_screen:
+			# Issue #1006: When opened from score screen, hide armory and return
+			# to score screen instead of restarting the level.
+			apply_pressed_from_score_screen.emit()
+			queue_free()
+		elif GameManager:
 			get_tree().paused = false
 			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 			GameManager.restart_scene()
 
 
 ## Highlight the currently selected (pending) weapon, grenade, and active item slots.
+## Preserves gold condition-met styling for locked slots whose unlock condition is met.
 func _highlight_selected_items() -> void:
-	# Reset all weapon slots to default
+	# Reset all weapon slots to default or condition-met gold
 	for wid in _weapon_slots:
-		_apply_default_style(_weapon_slots[wid])
+		var slot: PanelContainer = _weapon_slots[wid]
+		var slot_unlocked: bool = slot.get_meta("is_unlocked", true)
+		var slot_condition_met: bool = slot.get_meta("condition_met", false)
+		if not slot_unlocked and slot_condition_met:
+			_apply_condition_met_style(slot)
+		else:
+			_apply_default_style(slot)
 
-	# Reset all grenade slots to default
+	# Reset all grenade slots to default or condition-met gold
 	for gtype in _grenade_slots:
-		_apply_default_style(_grenade_slots[gtype])
+		var slot: PanelContainer = _grenade_slots[gtype]
+		var slot_unlocked: bool = slot.get_meta("is_unlocked", true)
+		var slot_condition_met: bool = slot.get_meta("condition_met", false)
+		if not slot_unlocked and slot_condition_met:
+			_apply_condition_met_style(slot)
+		else:
+			_apply_default_style(slot)
 
-	# Reset all active item slots to default
+	# Reset all active item slots to default or condition-met gold
 	for atype in _active_item_slots:
-		_apply_default_style(_active_item_slots[atype])
+		var slot: PanelContainer = _active_item_slots[atype]
+		var slot_unlocked: bool = slot.get_meta("is_unlocked", true)
+		var slot_condition_met: bool = slot.get_meta("condition_met", false)
+		if not slot_unlocked and slot_condition_met:
+			_apply_condition_met_style(slot)
+		else:
+			_apply_default_style(slot)
 
 	# Highlight pending weapon
 	if _pending_weapon_id in _weapon_slots:

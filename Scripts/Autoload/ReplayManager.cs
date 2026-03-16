@@ -1450,11 +1450,35 @@ namespace GodotTopDownTemplate.Autoload
                 _playerWeaponSpriteOffset = new Vector2(15, 0);
                 LogToFile("Detected player weapon: Silenced Pistol");
             }
+            else if (player.GetNodeOrNull("AssaultRifle") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(20, 0);
+                LogToFile("Detected player weapon: Assault Rifle (M16)");
+            }
+            else if (player.GetNodeOrNull("AKGL") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/ak_gl_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(20, 0);
+                LogToFile("Detected player weapon: AK-GL");
+            }
+            else if (player.GetNodeOrNull("Revolver") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/revolver_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(15, 0);
+                LogToFile("Detected player weapon: Revolver");
+            }
+            else if (player.GetNodeOrNull("MakarovPM") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/makarov_pm_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(15, 0);
+                LogToFile("Detected player weapon: Makarov PM");
+            }
             else
             {
                 _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
                 _playerWeaponSpriteOffset = new Vector2(20, 0);
-                LogToFile("Detected player weapon: Assault Rifle (default)");
+                LogToFile("Detected player weapon: Unknown (fallback to Assault Rifle)");
             }
         }
 

@@ -18,13 +18,14 @@ enum GrenadeType {
 var current_grenade_type: int = GrenadeType.FLASHBANG
 
 ## Unlocked grenades tracking.
-## By default, only FLASHBANG (stun grenade) is unlocked for debugging purposes.
-## Grenades can be unlocked by holding LMB on their case in the armory menu.
+## FLASHBANG is always unlocked (default grenade, explicitly stated in issue #894).
+## FRAG (Building D+) and DEFENSIVE (Beach S) have unlock conditions (Issue #1000).
+## Issue #894: "all unspecified items can be opened from the start"
 var unlocked_grenades: Dictionary = {
 	GrenadeType.FLASHBANG: true,
-	GrenadeType.FRAG: false,
-	GrenadeType.DEFENSIVE: false,
-	GrenadeType.AGGRESSION_GAS: false
+	GrenadeType.FRAG: false,         # Condition: Building D+ (Issue #1000 req.1)
+	GrenadeType.DEFENSIVE: false,    # Condition: Beach S (Issue #1000 req.6)
+	GrenadeType.AGGRESSION_GAS: true # No unlock condition — freely available from start
 }
 
 ## Grenade type data for UI and selection.
@@ -184,7 +185,13 @@ func is_selected(type: int) -> bool:
 ## Check if a grenade type is unlocked.
 ## @param grenade_type: The grenade type to check.
 ## @return: true if the grenade is unlocked, false otherwise.
+## Note: If all_weapons_unlocked is enabled in ExperimentalSettings, all grenades return true.
 func is_grenade_unlocked(grenade_type: int) -> bool:
+	# Check if all weapons are unlocked via experimental setting (Issue #882)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_all_weapons_unlocked"):
+		if experimental_settings.is_all_weapons_unlocked():
+			return true
 	return unlocked_grenades.get(grenade_type, false)
 
 

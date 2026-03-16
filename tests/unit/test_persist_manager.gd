@@ -1,0 +1,290 @@
+extends GutTest
+## Unit tests for PersistManager functionality.
+##
+## Tests persistence of game state: selected weapon, selected grenade,
+## selected active item, unlocked items, and last played level.
+## Issue #896: добавь persist (add persistence)
+
+
+# ============================================================================
+# Mock PersistManager — mirrors core testable logic without file I/O
+# ============================================================================
+
+class MockPersistManager:
+	## In-memory state storage (no file I/O).
+	var _state: Dictionary = {}
+
+	const DEFAULT_LEVEL := "res://scenes/levels/LabyrinthLevel.tscn"
+
+	# ---- Weapon ----
+
+	func save_selected_weapon(weapon_id: String) -> void:
+		_state["selected_weapon"] = weapon_id
+
+	func get_selected_weapon() -> String:
+		return _state.get("selected_weapon", "makarov_pm")
+
+	func save_unlocked_weapons(weapons: Dictionary) -> void:
+		_state["unlocked_weapons"] = weapons.duplicate()
+
+	func get_unlocked_weapons() -> Dictionary:
+		return _state.get("unlocked_weapons", {}).duplicate()
+
+	# ---- Grenade ----
+
+	func save_grenade_type(type: int) -> void:
+		_state["grenade_type"] = type
+
+	func get_grenade_type() -> int:
+		return _state.get("grenade_type", 0)
+
+	func save_unlocked_grenades(grenades: Dictionary) -> void:
+		_state["unlocked_grenades"] = grenades.duplicate()
+
+	func get_unlocked_grenades() -> Dictionary:
+		return _state.get("unlocked_grenades", {}).duplicate()
+
+	# ---- Active Item ----
+
+	func save_active_item(type: int) -> void:
+		_state["active_item"] = type
+
+	func get_active_item() -> int:
+		return _state.get("active_item", 0)
+
+	func save_unlocked_active_items(items: Dictionary) -> void:
+		_state["unlocked_active_items"] = items.duplicate()
+
+	func get_unlocked_active_items() -> Dictionary:
+		return _state.get("unlocked_active_items", {}).duplicate()
+
+	# ---- Level ----
+
+	func save_last_level(level_path: String) -> void:
+		_state["last_level"] = level_path
+
+	func get_last_level() -> String:
+		return _state.get("last_level", DEFAULT_LEVEL)
+
+	func has_saved_state() -> bool:
+		return "last_level" in _state
+
+	# ---- Reset ----
+
+	func clear() -> void:
+		_state.clear()
+
+
+var pm: MockPersistManager
+
+
+func before_each() -> void:
+	pm = MockPersistManager.new()
+
+
+func after_each() -> void:
+	pm = null
+
+
+# ============================================================================
+# Initial State Tests
+# ============================================================================
+
+
+func test_default_weapon_is_makarov() -> void:
+	assert_eq(pm.get_selected_weapon(), "makarov_pm", "Default weapon should be makarov_pm")
+
+
+func test_default_grenade_type_is_zero() -> void:
+	assert_eq(pm.get_grenade_type(), 0, "Default grenade type should be 0 (FLASHBANG)")
+
+
+func test_default_active_item_is_zero() -> void:
+	assert_eq(pm.get_active_item(), 0, "Default active item should be 0 (NONE)")
+
+
+func test_default_level_is_labyrinth() -> void:
+	assert_eq(pm.get_last_level(), "res://scenes/levels/LabyrinthLevel.tscn",
+		"Default last level should be LabyrinthLevel")
+
+
+func test_has_no_saved_state_initially() -> void:
+	assert_false(pm.has_saved_state(), "Should have no saved state initially")
+
+
+# ============================================================================
+# Weapon Persistence Tests
+# ============================================================================
+
+
+func test_save_and_restore_selected_weapon() -> void:
+	pm.save_selected_weapon("m16")
+	assert_eq(pm.get_selected_weapon(), "m16", "Should restore saved weapon ID")
+
+
+func test_save_and_restore_different_weapons() -> void:
+	for weapon_id in ["makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "revolver", "ak_gl"]:
+		pm.save_selected_weapon(weapon_id)
+		assert_eq(pm.get_selected_weapon(), weapon_id,
+			"Should correctly restore weapon: %s" % weapon_id)
+
+
+func test_save_unlocked_weapons_all_locked() -> void:
+	var weapons := {"makarov_pm": true, "m16": false, "shotgun": false}
+	pm.save_unlocked_weapons(weapons)
+	var restored := pm.get_unlocked_weapons()
+	assert_eq(restored["makarov_pm"], true, "makarov_pm should be unlocked")
+	assert_eq(restored["m16"], false, "m16 should be locked")
+	assert_eq(restored["shotgun"], false, "shotgun should be locked")
+
+
+func test_save_unlocked_weapons_multiple_unlocked() -> void:
+	var weapons := {"makarov_pm": true, "m16": true, "shotgun": true, "revolver": false}
+	pm.save_unlocked_weapons(weapons)
+	var restored := pm.get_unlocked_weapons()
+	assert_eq(restored["makarov_pm"], true, "makarov_pm should be unlocked")
+	assert_eq(restored["m16"], true, "m16 should be unlocked")
+	assert_eq(restored["shotgun"], true, "shotgun should be unlocked")
+	assert_eq(restored["revolver"], false, "revolver should be locked")
+
+
+func test_overwrite_weapon_selection() -> void:
+	pm.save_selected_weapon("m16")
+	pm.save_selected_weapon("shotgun")
+	assert_eq(pm.get_selected_weapon(), "shotgun", "Should use the most recent weapon")
+
+
+# ============================================================================
+# Grenade Persistence Tests
+# ============================================================================
+
+
+func test_save_and_restore_grenade_type() -> void:
+	pm.save_grenade_type(1)  # FRAG
+	assert_eq(pm.get_grenade_type(), 1, "Should restore saved grenade type")
+
+
+func test_save_unlocked_grenades() -> void:
+	var grenades := {0: true, 1: true, 2: false, 3: false}
+	pm.save_unlocked_grenades(grenades)
+	var restored := pm.get_unlocked_grenades()
+	assert_eq(restored[0], true, "FLASHBANG should be unlocked")
+	assert_eq(restored[1], true, "FRAG should be unlocked")
+	assert_eq(restored[2], false, "DEFENSIVE should be locked")
+	assert_eq(restored[3], false, "AGGRESSION_GAS should be locked")
+
+
+func test_grenade_type_zero_is_default() -> void:
+	assert_eq(pm.get_grenade_type(), 0, "Default grenade type should be 0 (FLASHBANG)")
+
+
+# ============================================================================
+# Active Item Persistence Tests
+# ============================================================================
+
+
+func test_save_and_restore_active_item() -> void:
+	pm.save_active_item(1)  # FLASHLIGHT
+	assert_eq(pm.get_active_item(), 1, "Should restore saved active item type")
+
+
+func test_save_unlocked_active_items() -> void:
+	var items := {0: true, 1: true, 2: false, 3: false, 4: false, 5: false}
+	pm.save_unlocked_active_items(items)
+	var restored := pm.get_unlocked_active_items()
+	assert_eq(restored[0], true, "NONE should be always available")
+	assert_eq(restored[1], true, "FLASHLIGHT should be unlocked")
+	assert_eq(restored[2], false, "HOMING_BULLETS should be locked")
+
+
+func test_active_item_zero_is_default() -> void:
+	assert_eq(pm.get_active_item(), 0, "Default active item should be 0 (NONE)")
+
+
+# ============================================================================
+# Level Persistence Tests
+# ============================================================================
+
+
+func test_save_and_restore_last_level() -> void:
+	pm.save_last_level("res://scenes/levels/BuildingLevel.tscn")
+	assert_eq(pm.get_last_level(), "res://scenes/levels/BuildingLevel.tscn",
+		"Should restore saved level path")
+
+
+func test_has_saved_state_after_saving_level() -> void:
+	pm.save_last_level("res://scenes/levels/CastleLevel.tscn")
+	assert_true(pm.has_saved_state(), "Should have saved state after saving level")
+
+
+func test_save_all_levels_correctly() -> void:
+	var levels := [
+		"res://scenes/levels/LabyrinthLevel.tscn",
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn"
+	]
+	for level_path in levels:
+		pm.save_last_level(level_path)
+		assert_eq(pm.get_last_level(), level_path,
+			"Should correctly save and restore level: %s" % level_path)
+
+
+func test_overwrite_last_level() -> void:
+	pm.save_last_level("res://scenes/levels/BeachLevel.tscn")
+	pm.save_last_level("res://scenes/levels/DocksLevel.tscn")
+	assert_eq(pm.get_last_level(), "res://scenes/levels/DocksLevel.tscn",
+		"Should use the most recently saved level")
+
+
+# ============================================================================
+# Full State Persistence Tests
+# ============================================================================
+
+
+func test_full_state_save_and_restore() -> void:
+	# Save a complete game state
+	pm.save_last_level("res://scenes/levels/CastleLevel.tscn")
+	pm.save_selected_weapon("shotgun")
+	pm.save_grenade_type(1)  # FRAG
+	pm.save_active_item(2)   # HOMING_BULLETS
+	pm.save_unlocked_weapons({"makarov_pm": true, "shotgun": true})
+	pm.save_unlocked_grenades({0: true, 1: true})
+	pm.save_unlocked_active_items({0: true, 2: true})
+
+	# Verify all state is restored
+	assert_eq(pm.get_last_level(), "res://scenes/levels/CastleLevel.tscn",
+		"Level should be restored")
+	assert_eq(pm.get_selected_weapon(), "shotgun",
+		"Weapon should be restored")
+	assert_eq(pm.get_grenade_type(), 1,
+		"Grenade type should be restored")
+	assert_eq(pm.get_active_item(), 2,
+		"Active item should be restored")
+
+	var weapons := pm.get_unlocked_weapons()
+	assert_eq(weapons["makarov_pm"], true, "makarov_pm should remain unlocked")
+	assert_eq(weapons["shotgun"], true, "shotgun should be unlocked after save")
+
+	var grenades := pm.get_unlocked_grenades()
+	assert_eq(grenades[0], true, "FLASHBANG should be unlocked")
+	assert_eq(grenades[1], true, "FRAG should be unlocked")
+
+	var items := pm.get_unlocked_active_items()
+	assert_eq(items[0], true, "NONE should be available")
+	assert_eq(items[2], true, "HOMING_BULLETS should be unlocked")
+
+
+func test_clear_resets_to_defaults() -> void:
+	pm.save_last_level("res://scenes/levels/BeachLevel.tscn")
+	pm.save_selected_weapon("m16")
+	pm.clear()
+
+	assert_false(pm.has_saved_state(), "Should have no state after clear")
+	assert_eq(pm.get_selected_weapon(), "makarov_pm",
+		"Weapon should reset to default after clear")
+	assert_eq(pm.get_last_level(), "res://scenes/levels/LabyrinthLevel.tscn",
+		"Level should reset to default after clear")

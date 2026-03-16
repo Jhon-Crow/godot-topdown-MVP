@@ -62,11 +62,22 @@ class MockGameManager:
 			return WEAPON_SCENES[selected_weapon]
 		return WEAPON_SCENES["m16"]
 
+	## Tracks last mouse mode set (simulates Input.set_mouse_mode).
+	var last_mouse_mode: int = -1
+
+	## Tracks whether scene reload was requested.
+	var scene_reload_requested: bool = false
+
 	func _reset_stats() -> void:
 		kills = 0
 		shots_fired = 0
 		hits_landed = 0
 		player_alive = true
+
+	func restart_scene() -> void:
+		_reset_stats()
+		last_mouse_mode = Input.MOUSE_MODE_CONFINED_HIDDEN
+		scene_reload_requested = true
 
 
 var manager: MockGameManager
@@ -341,3 +352,38 @@ func test_unknown_weapon_returns_default_scene_path() -> void:
 	var path := manager.get_selected_weapon_scene_path()
 
 	assert_eq(path, "res://scenes/weapons/csharp/AssaultRifle.tscn", "Should return M16 path as fallback")
+
+
+# ============================================================================
+# Restart Scene Cursor Reset Tests (Issue #905)
+# ============================================================================
+
+
+func test_restart_scene_resets_mouse_mode_to_confined_hidden() -> void:
+	## Issue #905: After clicking restart on score screen, cursor must disappear.
+	## The score screen sets MOUSE_MODE_CONFINED (visible cursor for button interaction).
+	## restart_scene() must restore MOUSE_MODE_CONFINED_HIDDEN before reloading.
+	manager.restart_scene()
+
+	assert_eq(manager.last_mouse_mode, Input.MOUSE_MODE_CONFINED_HIDDEN,
+		"restart_scene() must set mouse mode to MOUSE_MODE_CONFINED_HIDDEN so cursor disappears on restart")
+
+
+func test_restart_scene_resets_stats() -> void:
+	manager.kills = 10
+	manager.shots_fired = 50
+	manager.hits_landed = 30
+	manager.player_alive = false
+
+	manager.restart_scene()
+
+	assert_eq(manager.kills, 0, "kills should be reset to 0 on restart")
+	assert_eq(manager.shots_fired, 0, "shots_fired should be reset to 0 on restart")
+	assert_eq(manager.hits_landed, 0, "hits_landed should be reset to 0 on restart")
+	assert_true(manager.player_alive, "player_alive should be reset to true on restart")
+
+
+func test_restart_scene_triggers_scene_reload() -> void:
+	manager.restart_scene()
+
+	assert_true(manager.scene_reload_requested, "restart_scene() must trigger scene reload")

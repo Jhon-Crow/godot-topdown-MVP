@@ -1,0 +1,1060 @@
+[00:11:51] [INFO] ============================================================
+[00:11:51] [INFO] GAME LOG STARTED
+[00:11:51] [INFO] ============================================================
+[00:11:51] [INFO] Timestamp: 2026-03-06T00:11:51
+[00:11:51] [INFO] Log file: I:/Рабочий стол/godot old version game/100 (не проверенная)/game_log_20260306_001151.txt
+[00:11:51] [INFO] Executable: I:/Рабочий стол/godot old version game/100 (не проверенная)/Godot-Top-Down-Template.exe
+[00:11:51] [INFO] OS: Windows
+[00:11:51] [INFO] Debug build: false
+[00:11:51] [INFO] Engine version: 4.3-stable (official)
+[00:11:51] [INFO] Project: Godot Top-Down Template
+[00:11:51] [INFO] ------------------------------------------------------------
+[00:11:51] [INFO] [GameManager] GameManager ready
+[00:11:51] [INFO] [ScoreManager] ScoreManager ready
+[00:11:51] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[00:11:51] [INFO] [DifficultyManager] Loaded difficulty: Power Fantasy (value: 3)
+[00:11:51] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[00:11:51] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[00:11:51] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[00:11:51] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[00:11:51] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:11:51] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[00:11:51] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[00:11:51] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[00:11:51] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[00:11:51] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[00:11:51] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[00:11:51] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[00:11:51] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:11:51] [INFO] [LastChance] Last chance shader loaded successfully
+[00:11:51] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[00:11:51] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[00:11:51] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[00:11:51] [INFO] [LastChance]   Sepia intensity: 0.70
+[00:11:51] [INFO] [LastChance]   Brightness: 0.60
+[00:11:51] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[00:11:51] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[00:11:51] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[00:11:51] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[00:11:51] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true
+[00:11:51] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[00:11:51] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[00:11:51] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[00:11:51] [INFO] [CinemaEffects] Created effects layer at layer 99
+[00:11:51] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[00:11:51] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[00:11:51] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[00:11:51] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[00:11:51] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[00:11:51] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[00:11:51] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[00:11:51] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[00:11:51] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[00:11:51] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[00:11:51] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[00:11:51] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[00:11:51] [INFO] [GrenadeTimerHelper] Autoload ready
+[00:11:51] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:11:51] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[00:11:51] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[00:11:51] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[00:11:51] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[00:11:51] [INFO] [ProgressManager] ProgressManager ready, loaded 1 entries
+[00:11:51] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[00:11:51] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:11:51] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[00:11:51] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[00:11:51] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[00:11:51] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[00:11:51] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: m16
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: shotgun
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: mini_uzi
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: sniper
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: revolver
+[00:11:51] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[00:11:51] [INFO] [GameManager] Weapon selected: m16
+[00:11:51] [INFO] [PersistManager] Restored selected weapon: m16
+[00:11:51] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[00:11:51] [INFO] [PersistManager] Restored unlocked grenade type: 2
+[00:11:51] [INFO] [GrenadeManager] Grenade type changed from Flashbang to F-1 Grenade
+[00:11:51] [INFO] [PersistManager] Restored selected grenade type: 2
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 0
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 1
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 2
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 3
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 4
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 5
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 6
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 7
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 8
+[00:11:51] [INFO] [PersistManager] Restored unlocked active item type: 9
+[00:11:51] [INFO] [ActiveItemManager] Active item changed from None to Force Field
+[00:11:51] [INFO] [PersistManager] Restored selected active item type: 7
+[00:11:51] [INFO] [PersistManager] State loaded successfully
+[00:11:51] [INFO] [PersistManager] PersistManager ready
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:11:51] [ENEMY] [Enemy1] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:11:51] [ENEMY] [Enemy2] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:11:51] [ENEMY] [Enemy3] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:11:51] [ENEMY] [Enemy4] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[00:11:51] [ENEMY] [Enemy5] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:11:51] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[00:11:51] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:11:51] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+[00:11:51] [INFO] [Player.Weapon] Removed default MakarovPM
+[00:11:51] [INFO] [Player.Weapon] Equipped AssaultRifle (ammo: 30/30)
+[00:11:51] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:11:51] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:11:51] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:11:51] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:11:51] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:11:51] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:11:51] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:11:51] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:11:51] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[00:11:51] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:11:51] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:11:51] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:11:51] [INFO] [Player.ForceField] Force field is selected, initializing...
+[00:11:51] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[00:11:51] [INFO] [ForceFieldEffect] Shader loaded successfully (ring texture used as base)
+[00:11:51] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[00:11:51] [INFO] [Player.ForceField] Force field initialized successfully
+[00:11:51] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:11:51] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:11:51] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 10/10
+[00:11:51] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:11:51] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[00:11:51] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[00:11:51] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:11:51] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:11:51] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:11:51] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:11:51] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[00:11:51] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[00:11:51] [INFO] [LabyrinthLevel] Setting up weapon: m16
+[00:11:51] [INFO] [LabyrinthLevel] AssaultRifle already equipped by C# Player - skipping GDScript weapon swap
+[00:11:51] [INFO] [ScoreManager] Level started with 5 enemies
+[00:11:51] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[00:11:51] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[00:11:51] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[00:11:51] [INFO] [ReplayManager] Replay data cleared
+[00:11:51] [INFO] [LabyrinthLevel] Previous replay data cleared
+[00:11:51] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (M16)
+[00:11:51] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:11:51] [INFO] [ReplayManager] Level: LabyrinthLevel
+[00:11:51] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:11:51] [INFO] [ReplayManager] Enemies count: 5
+[00:11:51] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[00:11:51] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:11:51] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:11:51] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:11:51] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:11:51] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[00:11:51] [INFO] [LabyrinthLevel] Replay recording started successfully
+[00:11:51] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[00:11:51] [INFO] [CinemaEffects] Found player node: Player
+[00:11:51] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:11:51] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/BuildingLevel.tscn
+[00:11:51] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:11:51] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:11:51] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:11:51] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:11:51] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:11:51] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[00:11:51] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:11:51] [INFO] [PenultimateHit] Shader warmup complete in 736 ms
+[00:11:51] [INFO] [LastChance] Shader warmup complete in 735 ms
+[00:11:51] [INFO] [CinemaEffects] Cinema shader warmup complete in 656 ms
+[00:11:51] [INFO] [FlashbangPlayer] Shader warmup complete in 646 ms
+[00:11:51] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:11:51] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:11:51] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:11:51] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:11:51] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[00:11:51] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:11:51] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:11:51] [ENEMY] [Enemy1] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:11:51] [ENEMY] [Enemy2] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:11:51] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[00:11:51] [ENEMY] [Enemy3] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:11:51] [ENEMY] [Enemy4] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[00:11:51] [INFO] [EnemyGrenade] Grenade bag built (normal): [Flashbang, Flashbang, Flashbang, Offensive, Offensive, Offensive, Offensive, Offensive]
+[00:11:51] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
+[00:11:51] [ENEMY] [Grenadier] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[00:11:51] [ENEMY] [Enemy6] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[00:11:51] [ENEMY] [Enemy7] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[00:11:51] [ENEMY] [Enemy8] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[00:11:51] [ENEMY] [Enemy9] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[00:11:51] [ENEMY] [Enemy10] Death animation component initialized
+[00:11:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:51] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:11:51] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:11:51] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:11:51] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[00:11:51] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:11:51] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+[00:11:51] [INFO] [Player.Weapon] Removed default MakarovPM
+[00:11:51] [INFO] [Player.Weapon] Equipped AssaultRifle (ammo: 30/30)
+[00:11:51] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:11:51] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:11:51] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:11:51] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:11:51] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:11:51] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:11:51] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:11:51] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:11:51] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[00:11:51] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:11:51] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:11:51] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:11:51] [INFO] [Player.ForceField] Force field is selected, initializing...
+[00:11:51] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[00:11:51] [INFO] [ForceFieldEffect] Shader loaded successfully (ring texture used as base)
+[00:11:51] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[00:11:51] [INFO] [Player.ForceField] Force field initialized successfully
+[00:11:51] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:11:51] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:11:51] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 10/10
+[00:11:51] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:11:51] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[00:11:51] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[00:11:51] [INFO] [BuildingLevel] Setting up weapon: m16
+[00:11:51] [INFO] [BuildingLevel] AssaultRifle already equipped by C# Player - skipping GDScript weapon swap
+[00:11:51] [INFO] [ScoreManager] Level started with 10 enemies
+[00:11:51] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[00:11:51] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[00:11:51] [INFO] [ReplayManager] Replay data cleared
+[00:11:51] [INFO] [BuildingLevel] Previous replay data cleared
+[00:11:51] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (M16)
+[00:11:51] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:11:51] [INFO] [ReplayManager] Level: BuildingLevel
+[00:11:51] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:11:51] [INFO] [ReplayManager] Enemies count: 10
+[00:11:51] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[00:11:51] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:11:51] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:11:51] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:11:51] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:11:51] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[00:11:51] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[00:11:51] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[00:11:51] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[00:11:51] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[00:11:51] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[00:11:51] [INFO] [BuildingLevel] Replay recording started successfully
+[00:11:51] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:11:51] [INFO] [CinemaEffects] Found player node: Player
+[00:11:51] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[00:11:51] [ENEMY] [Enemy1] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 2, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[00:11:51] [ENEMY] [Enemy2] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 3, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[00:11:51] [ENEMY] [Enemy3] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[00:11:51] [ENEMY] [Enemy4] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 3, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[00:11:51] [ENEMY] [Grenadier] Registered as sound listener
+[00:11:51] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[00:11:51] [ENEMY] [Enemy6] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[00:11:51] [ENEMY] [Enemy7] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 4, behavior: PATROL
+[00:11:51] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[00:11:51] [ENEMY] [Enemy8] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[00:11:51] [ENEMY] [Enemy9] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 2, behavior: GUARD
+[00:11:51] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[00:11:51] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[00:11:51] [ENEMY] [Enemy10] Registered as sound listener
+[00:11:51] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[00:11:51] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:11:52] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[00:11:52] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=180.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=78.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:52] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:11:52] [INFO] [Player] Detected weapon: Rifle (default pose)
+[00:11:52] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[00:11:52] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:11:52] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:11:52] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:11:52] [INFO] [LastChance] Found player: Player
+[00:11:52] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:11:52] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:11:52] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:11:52] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:11:52] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 1331 ms
+[00:11:53] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[00:11:53] [INFO] [PauseMenu] Armory button pressed
+[00:11:53] [INFO] [PauseMenu] Creating new armory menu instance
+[00:11:53] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[00:11:53] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[00:11:53] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[00:11:53] [INFO] [PauseMenu] back_pressed signal exists on instance
+[00:11:53] [INFO] [PauseMenu] back_pressed signal connected
+[00:11:53] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[00:11:53] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[00:11:54] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[00:11:55] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[00:11:56] [INFO] [PersistManager] State saved to user://game_state.cfg
+[00:11:56] [INFO] [GameManager] Weapon selected: mini_uzi
+[00:11:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[00:11:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[00:11:56] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[00:11:56] [INFO] [LastChance] Resetting all effects (scene change detected)
+[00:11:56] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[00:11:56] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[00:11:56] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[00:11:56] [ENEMY] [Enemy1] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[00:11:56] [ENEMY] [Enemy2] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[00:11:56] [ENEMY] [Enemy3] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[00:11:56] [ENEMY] [Enemy4] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[00:11:56] [INFO] [EnemyGrenade] Grenade bag built (normal): [Flashbang, Flashbang, Flashbang, Offensive, Offensive, Offensive, Offensive, Offensive]
+[00:11:56] [INFO] [EnemyGrenade] Grenadier initialized: 8 grenades in bag
+[00:11:56] [ENEMY] [Grenadier] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[00:11:56] [ENEMY] [Enemy6] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[00:11:56] [ENEMY] [Enemy7] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[00:11:56] [ENEMY] [Enemy8] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[00:11:56] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[00:11:56] [ENEMY] [Enemy9] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[00:11:56] [ENEMY] [Enemy10] Death animation component initialized
+[00:11:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[00:11:56] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[00:11:56] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[00:11:56] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[00:11:56] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[00:11:56] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:11:56] [INFO] [Player.Weapon] GameManager weapon selection: mini_uzi (MiniUzi)
+[00:11:56] [INFO] [Player.Weapon] Removed default MakarovPM
+[00:11:56] [INFO] [Player.Weapon] Equipped MiniUzi (ammo: 32/32)
+[00:11:56] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[00:11:56] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[00:11:56] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[00:11:56] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[00:11:56] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[00:11:56] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[00:11:56] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[00:11:56] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[00:11:56] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[00:11:56] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[00:11:56] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[00:11:56] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[00:11:56] [INFO] [Player.ForceField] Force field is selected, initializing...
+[00:11:56] [INFO] [ForceFieldEffect] Area2D setup with radius 35px
+[00:11:56] [INFO] [ForceFieldEffect] Shader loaded successfully (ring texture used as base)
+[00:11:56] [INFO] [ForceFieldEffect] Initialized with 8.0s charge
+[00:11:56] [INFO] [Player.ForceField] Force field initialized successfully
+[00:11:56] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[00:11:56] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[00:11:56] [INFO] [Player] Ready! Ammo: 32/32, Grenades: 1/3, Health: 10/10
+[00:11:56] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:11:56] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Grenadier': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[00:11:56] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[00:11:56] [INFO] [BuildingLevel] Setting up weapon: mini_uzi
+[00:11:56] [INFO] [BuildingLevel] MiniUzi already equipped by C# Player - skipping GDScript weapon swap
+[00:11:56] [INFO] [ScoreManager] Level started with 10 enemies
+[00:11:56] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[00:11:56] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[00:11:56] [INFO] [ReplayManager] Replay data cleared
+[00:11:56] [INFO] [BuildingLevel] Previous replay data cleared
+[00:11:56] [INFO] [ReplayManager] Detected player weapon: Mini UZI
+[00:11:56] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[00:11:56] [INFO] [ReplayManager] Level: BuildingLevel
+[00:11:56] [INFO] [ReplayManager] Player: Player (valid: True)
+[00:11:56] [INFO] [ReplayManager] Enemies count: 10
+[00:11:56] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/mini_uzi_topdown.png
+[00:11:56] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[00:11:56] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[00:11:56] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[00:11:56] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[00:11:56] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[00:11:56] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[00:11:56] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[00:11:56] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[00:11:56] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[00:11:56] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[00:11:56] [INFO] [BuildingLevel] Replay recording started successfully
+[00:11:56] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[00:11:56] [INFO] [CinemaEffects] Found player node: Player
+[00:11:56] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[00:11:56] [ENEMY] [Enemy1] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[00:11:56] [ENEMY] [Enemy2] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 2, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[00:11:56] [ENEMY] [Enemy3] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[00:11:56] [ENEMY] [Enemy4] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 15)
+[00:11:56] [ENEMY] [Grenadier] Registered as sound listener
+[00:11:56] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[00:11:56] [ENEMY] [Enemy6] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[00:11:56] [ENEMY] [Enemy7] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy7] Spawned at (1600, 900), hp: 3, behavior: PATROL
+[00:11:56] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[00:11:56] [ENEMY] [Enemy8] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[00:11:56] [ENEMY] [Enemy9] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[00:11:56] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[00:11:56] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[00:11:56] [ENEMY] [Enemy10] Registered as sound listener
+[00:11:56] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 3, behavior: PATROL
+[00:11:56] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[00:11:56] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[00:11:56] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[00:11:56] [INFO] [Player] Detecting weapon pose (frame 3)...
+[00:11:56] [INFO] [Player] Detected weapon: Mini UZI (SMG pose)
+[00:11:56] [INFO] [Player] Applied SMG arm pose: Left=(14, 6), Right=(1, 6)
+[00:11:56] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[00:11:56] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[00:11:56] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[00:11:56] [INFO] [LastChance] Found player: Player
+[00:11:56] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[00:11:56] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[00:11:56] [INFO] [LastChance] Connected to player Died signal (C#)
+[00:11:56] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[00:11:56] [INFO] [ForceFieldEffect] Activated! Charge: 8.0s/8.0s
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=20
+[00:11:57] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.01, distance=495
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: Bullet9mm (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 1
+[00:11:57] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=135.0°, current=-101.3°, player=(450,1250), corner_timer=0.00
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.01, distance=485
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@862 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 2
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.01, distance=447
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@865 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 3
+[00:11:57] [ENEMY] [Enemy3] Memory: medium confidence (0.62) - transitioning to PURSUING
+[00:11:57] [ENEMY] [Enemy3] State: IDLE -> PURSUING
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=116.6°, current=-33.8°, player=(450,1250), corner_timer=0.00
+[00:11:57] [ENEMY] [Enemy3] PURSUING corner check: angle -129.3°
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.01, distance=432
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@868 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 4
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.01, distance=416
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@871 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 5
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.02, distance=398
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@874 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 6
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.01, distance=490
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.02, distance=378
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@877 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 7
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.01, distance=468
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.02, distance=358
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@880 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 8
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.01, distance=447
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.02, distance=344
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@882 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 9
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.01, distance=426
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.02, distance=332
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@885 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 10
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:57] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[00:11:57] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[00:11:57] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(450,1250), corner_timer=0.30
+[00:11:57] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(450,1250), corner_timer=0.30
+[00:11:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:57] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.02, distance=404
+[00:11:57] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.02, distance=320
+[00:11:57] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:57] [INFO] [ForceFieldEffect] Area entered: @Area2D@890 (script: res://scripts/projectiles/bullet.gd)
+[00:11:57] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 11
+[00:11:57] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:58] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.02, distance=383
+[00:11:58] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=313
+[00:11:58] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:58] [INFO] [ForceFieldEffect] Area entered: @Area2D@893 (script: res://scripts/projectiles/bullet.gd)
+[00:11:58] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 12
+[00:11:58] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:58] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.02, distance=362
+[00:11:58] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=313
+[00:11:58] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:58] [INFO] [ForceFieldEffect] Area entered: @Area2D@897 (script: res://scripts/projectiles/bullet.gd)
+[00:11:58] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 13
+[00:11:58] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:58] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(450,1250), corner_timer=-0.02
+[00:11:58] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[00:11:58] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(450,1250), corner_timer=-0.02
+[00:11:58] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[00:11:58] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(450,1250), corner_timer=0.30
+[00:11:58] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(450,1250), corner_timer=0.30
+[00:11:58] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -17.0°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -17.5°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -16.9°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -16.8°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -17.2°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -13.4°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -12.2°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -6.8°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -8.0°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -11.3°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -11.1°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -5.5°
+[00:11:58] [INFO] [ForceFieldEffect] Released projectile at angle -12.4°
+[00:11:58] [INFO] [ForceFieldEffect] Released 13 trapped projectiles
+[00:11:58] [INFO] [ForceFieldEffect] Deactivated. Charge remaining: 6.4s
+[00:11:58] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[00:11:58] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[00:11:58] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(450,1250), corner_timer=-0.02
+[00:11:58] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[00:11:58] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(450,1250), corner_timer=0.30
+[00:11:58] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(450,1250), corner_timer=-0.02
+[00:11:58] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[00:11:58] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(450,1250), corner_timer=0.30
+[00:11:59] [INFO] [ForceFieldEffect] Activated! Charge: 6.4s/8.0s
+[00:11:59] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(450,1250), corner_timer=-0.02
+[00:11:59] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[00:11:59] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(450,1250), corner_timer=0.30
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=308
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.02, distance=321
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@902 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 1
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=310
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=315
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@904 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 2
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=312
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=315
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1171.294, 1026.929)
+[00:11:59] [INFO] [Bullet] Using shooter_position, distance=755.000671386719
+[00:11:59] [INFO] [Bullet] Distance to wall: 755.000671386719 (51.4093840385371% of viewport)
+[00:11:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1170.091, 1023.078)
+[00:11:59] [INFO] [Bullet] Using shooter_position, distance=754.999877929688
+[00:11:59] [INFO] [Bullet] Distance to wall: 754.999877929688 (51.4093300105888% of viewport)
+[00:11:59] [INFO] [Bullet] Distance-based penetration chance: 86.6891149876464%
+[00:11:59] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@907 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 3
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1185.052, 1026.316)
+[00:11:59] [INFO] [Bullet] Using shooter_position, distance=768.333190917969
+[00:11:59] [INFO] [Bullet] Distance to wall: 768.333190917969 (52.3172198097615% of viewport)
+[00:11:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1184.874, 1025.732)
+[00:11:59] [INFO] [Bullet] Using shooter_position, distance=768.332763671875
+[00:11:59] [INFO] [Bullet] Distance to wall: 768.332763671875 (52.3171907177894% of viewport)
+[00:11:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1198.199, 1023.722)
+[00:11:59] [INFO] [Bullet] Using shooter_position, distance=781.666625976563
+[00:11:59] [INFO] [Bullet] Distance to wall: 781.666625976563 (53.2251179209263% of viewport)
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=315
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=306
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@914 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 4
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=309
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=306
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@917 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 5
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(450,1250), corner_timer=-0.02
+[00:11:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[00:11:59] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(450,1250), corner_timer=0.30
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=308
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=308
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@920 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 6
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=311
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=311
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@924 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 7
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=313
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=313
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@930 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 8
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:11:59] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=316
+[00:11:59] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=316
+[00:11:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:11:59] [INFO] [ForceFieldEffect] Area entered: @Area2D@937 (script: res://scripts/projectiles/bullet.gd)
+[00:11:59] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 9
+[00:11:59] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:11:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1534.754, 992.0516)
+[00:11:59] [INFO] [Bullet] Using shooter_position, distance=1115.00183105469
+[00:11:59] [INFO] [Bullet] Distance to wall: 1115.00183105469 (75.9225249840895% of viewport)
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -16.9°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -16.8°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -17.5°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -16.9°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -20.9°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -23.0°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -20.4°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -21.3°
+[00:11:59] [INFO] [ForceFieldEffect] Released projectile at angle -28.8°
+[00:11:59] [INFO] [ForceFieldEffect] Released 9 trapped projectiles
+[00:11:59] [INFO] [ForceFieldEffect] Deactivated. Charge remaining: 5.5s
+[00:11:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:00] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(450,1250), corner_timer=-0.02
+[00:12:00] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[00:12:00] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(450,1250), corner_timer=0.30
+[00:12:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:00] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[00:12:00] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[00:12:00] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[00:12:00] [INFO] [ForceFieldEffect] Activated! Charge: 5.5s/8.0s
+[00:12:00] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(450,1250), corner_timer=-0.02
+[00:12:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(866.4368, 1021.516)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=474.999389648438
+[00:12:00] [INFO] [Bullet] Distance to wall: 474.999389648438 (32.3435818880211% of viewport)
+[00:12:00] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[00:12:00] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:00] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(450,1250), corner_timer=0.30
+[00:12:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(985.506, 1022.912)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=581.666076660156
+[00:12:00] [INFO] [Bullet] Distance to wall: 581.666076660156 (39.606712749391% of viewport)
+[00:12:00] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[00:12:00] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1029.21, 1024.194)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=621.668640136719
+[00:12:00] [INFO] [Bullet] Distance to wall: 621.668640136719 (42.3305608547382% of viewport)
+[00:12:00] [INFO] [Bullet] Distance-based penetration chance: 97.2810123361388%
+[00:12:00] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1043.385, 1023.904)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=635.000671386719
+[00:12:00] [INFO] [Bullet] Distance to wall: 635.000671386719 (43.2383633779944% of viewport)
+[00:12:00] [INFO] [Bullet] Distance-based penetration chance: 96.2219093923398%
+[00:12:00] [INFO] [Bullet] Penetration failed (distance roll)
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1057.625, 1023.886)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=648.333068847656
+[00:12:00] [INFO] [Bullet] Distance to wall: 648.333068847656 (44.1461908372268% of viewport)
+[00:12:00] [INFO] [Bullet] Distance-based penetration chance: 95.1627773565687%
+[00:12:00] [INFO] [Bullet] Penetration failed (distance roll)
+[00:12:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:00] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=296
+[00:12:00] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=296
+[00:12:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:00] [INFO] [ForceFieldEffect] Area entered: @Area2D@949 (script: res://scripts/projectiles/bullet.gd)
+[00:12:00] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 1
+[00:12:00] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.4°, current=120.7°, player=(450,1250), corner_timer=-0.02
+[00:12:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[00:12:00] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1157.256, 1026.712)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=741.666381835938
+[00:12:00] [INFO] [Bullet] Distance to wall: 741.666381835938 (50.501427743428% of viewport)
+[00:12:00] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.7°, current=123.6°, player=(450,1250), corner_timer=0.30
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1185.152, 1026.647)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=768.332824707031
+[00:12:00] [INFO] [Bullet] Distance to wall: 768.332824707031 (52.3171948737854% of viewport)
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1185.12, 1026.534)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=768.334411621094
+[00:12:00] [INFO] [Bullet] Distance to wall: 768.334411621094 (52.317302929682% of viewport)
+[00:12:00] [INFO] [Bullet] Distance-based penetration chance: 85.6298132487044%
+[00:12:00] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:00] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=299
+[00:12:00] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=299
+[00:12:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1198.17, 1023.63)
+[00:12:00] [INFO] [Bullet] Using shooter_position, distance=781.666259765625
+[00:12:00] [INFO] [Bullet] Distance to wall: 781.666259765625 (53.2250929849502% of viewport)
+[00:12:00] [INFO] [ForceFieldEffect] Area entered: @Area2D@958 (script: res://scripts/projectiles/bullet.gd)
+[00:12:00] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 2
+[00:12:00] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:00] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=300
+[00:12:00] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=300
+[00:12:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:00] [INFO] [ForceFieldEffect] Area entered: @Area2D@963 (script: res://scripts/projectiles/bullet.gd)
+[00:12:00] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 3
+[00:12:00] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:01] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=298
+[00:12:01] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=298
+[00:12:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(2462.511, 1057.822)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=2021.66589355469
+[00:12:01] [INFO] [Bullet] Distance to wall: 2021.66589355469 (137.658948207915% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 22.4682103584171%
+[00:12:01] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:01] [INFO] [ForceFieldEffect] Area entered: @Area2D@968 (script: res://scripts/projectiles/bullet.gd)
+[00:12:01] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 4
+[00:12:01] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(2465.313, 967.6122)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=2035.00134277344
+[00:12:01] [INFO] [Bullet] Distance to wall: 2035.00134277344 (138.566983466948% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 22.2866033066103%
+[00:12:01] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(2470.84, 1010.35)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=2035.00073242188
+[00:12:01] [INFO] [Bullet] Distance to wall: 2035.00073242188 (138.566941906988% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 22.2866116186024%
+[00:12:01] [INFO] [Bullet] Penetration failed (distance roll)
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(2463.482, 806.8546)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=2061.67138671875
+[00:12:01] [INFO] [Bullet] Distance to wall: 2061.67138671875 (140.382995801071% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 21.9234008397858%
+[00:12:01] [INFO] [Bullet] Penetration failed (distance roll)
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(2473.361, 854.4109)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=2061.6689453125
+[00:12:01] [INFO] [Bullet] Distance to wall: 2061.6689453125 (140.38282956123% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 21.923434087754%
+[00:12:01] [INFO] [Bullet] Penetration failed (distance roll)
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(2471.993, 847.4923)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=2061.66674804688
+[00:12:01] [INFO] [Bullet] Distance to wall: 2061.66674804688 (140.382679945373% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 21.9234640109253%
+[00:12:01] [INFO] [Bullet] Penetration failed (distance roll)
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(2465.297, 815.2162)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=2061.6640625
+[00:12:01] [INFO] [Bullet] Distance to wall: 2061.6640625 (140.382497081548% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 21.9235005836903%
+[00:12:01] [INFO] [Bullet] Penetration failed (distance roll)
+[00:12:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:01] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=301
+[00:12:01] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=301
+[00:12:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:01] [INFO] [ForceFieldEffect] Area entered: @Area2D@986 (script: res://scripts/projectiles/bullet.gd)
+[00:12:01] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 5
+[00:12:01] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1700.36, 1198.511)
+[00:12:01] [INFO] [Bullet] Using shooter_position, distance=1251.41955566406
+[00:12:01] [INFO] [Bullet] Distance to wall: 1251.41955566406 (85.211458702818% of viewport)
+[00:12:01] [INFO] [Bullet] Distance-based penetration chance: 47.2532981800457%
+[00:12:01] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:01] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.9°, current=89.7°, player=(450,1250), corner_timer=-0.02
+[00:12:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[00:12:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:01] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=300
+[00:12:01] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=300
+[00:12:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:01] [INFO] [ForceFieldEffect] Area entered: @Area2D@991 (script: res://scripts/projectiles/bullet.gd)
+[00:12:01] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 6
+[00:12:01] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=92.5°, player=(450,1250), corner_timer=0.30
+[00:12:01] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:01] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=300
+[00:12:01] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=300
+[00:12:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:01] [INFO] [ForceFieldEffect] Area entered: Bullet9mm (script: res://scripts/projectiles/bullet.gd)
+[00:12:01] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 7
+[00:12:01] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:01] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=299
+[00:12:01] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=299
+[00:12:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:01] [INFO] [ForceFieldEffect] Area entered: @Area2D@999 (script: res://scripts/projectiles/bullet.gd)
+[00:12:01] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 8
+[00:12:01] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (MiniUzi), range=1469, listeners=10
+[00:12:01] [ENEMY] [Enemy3] Heard gunshot at (450, 1250), intensity=0.03, distance=298
+[00:12:01] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), intensity=0.03, distance=298
+[00:12:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=5
+[00:12:01] [INFO] [ForceFieldEffect] Area entered: @Area2D@1003 (script: res://scripts/projectiles/bullet.gd)
+[00:12:01] [INFO] [ForceFieldEffect] Bullet trapped (class=Area2D). Total trapped: 9
+[00:12:01] [INFO] [ForceFieldEffect] DIAGNOSTIC: Bullet survived trap — C# fix is active
+[00:12:01] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=10
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -16.9°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -17.4°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -16.1°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -17.7°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -18.3°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -21.4°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -20.3°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -15.4°
+[00:12:01] [INFO] [ForceFieldEffect] Released projectile at angle -22.3°
+[00:12:01] [INFO] [ForceFieldEffect] Released 9 trapped projectiles
+[00:12:01] [INFO] [ForceFieldEffect] Deactivated. Charge remaining: 4.5s
+[00:12:01] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.7°, current=89.6°, player=(450,1250), corner_timer=-0.02
+[00:12:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[00:12:01] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(450,1250), corner_timer=0.30
+[00:12:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:01] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.5°, player=(450,1250), corner_timer=-0.02
+[00:12:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[00:12:01] [WARN] [FPS] Drop detected: 29 fps (threshold: 30)
+[00:12:01] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(450,1250), corner_timer=0.30
+[00:12:01] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[00:12:01] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[00:12:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.4°, current=89.5°, player=(450,1250), corner_timer=-0.02
+[00:12:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[00:12:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.3°, player=(450,1250), corner_timer=0.30
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1000.415, 1024.021)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=594.998718261719
+[00:12:02] [INFO] [Bullet] Distance to wall: 594.998718261719 (40.5145568326075% of viewport)
+[00:12:02] [INFO] [Bullet] Distance-based penetration chance: 99.3996836952913%
+[00:12:02] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1028.976, 1023.602)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=621.666687011719
+[00:12:02] [INFO] [Bullet] Distance to wall: 621.666687011719 (42.3304278628655% of viewport)
+[00:12:02] [INFO] [Bullet] Distance-based penetration chance: 97.2811674933236%
+[00:12:02] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1058.056, 1025.05)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=648.332092285156
+[00:12:02] [INFO] [Bullet] Distance to wall: 648.332092285156 (44.1461243412905% of viewport)
+[00:12:02] [INFO] [Bullet] Distance-based penetration chance: 95.1628549351611%
+[00:12:02] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1128.903, 1025.688)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=715.000671386719
+[00:12:02] [INFO] [Bullet] Distance to wall: 715.000671386719 (48.6857104850229% of viewport)
+[00:12:02] [INFO] [Bullet] Distance-based penetration chance: 89.8666711008067%
+[00:12:02] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1156.747, 1025.11)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=741.665283203125
+[00:12:02] [INFO] [Bullet] Distance to wall: 741.665283203125 (50.5013529354996% of viewport)
+[00:12:02] [INFO] [Bullet] Distance-based penetration chance: 87.7484215752505%
+[00:12:02] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1170.451, 1024.219)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=755.000854492188
+[00:12:02] [INFO] [Bullet] Distance to wall: 755.000854492188 (51.4093965065251% of viewport)
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1185.12, 1026.534)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=768.334411621094
+[00:12:02] [INFO] [Bullet] Distance to wall: 768.334411621094 (52.317302929682% of viewport)
+[00:12:02] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=10
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1226.595, 1025.72)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=808.332641601563
+[00:12:02] [INFO] [Bullet] Distance to wall: 808.332641601563 (55.0408559593115% of viewport)
+[00:12:02] [INFO] [Bullet] Distance-based penetration chance: 82.4523347141366%
+[00:12:02] [INFO] [Bullet] Caliber cannot penetrate walls
+[00:12:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.5°, player=(450,1250), corner_timer=-0.02
+[00:12:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[00:12:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=-1, bullet_pos=(1267.947, 1024.983)
+[00:12:02] [INFO] [Bullet] Using shooter_position, distance=848.334167480469
+[00:12:02] [INFO] [Bullet] Distance to wall: 848.334167480469 (57.7646334127263% of viewport)
+[00:12:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[00:12:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:02] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(450,1250), corner_timer=-0.02
+[00:12:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[00:12:02] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[00:12:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[00:12:03] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(450,1250), corner_timer=-0.02
+[00:12:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[00:12:03] [INFO] ------------------------------------------------------------
+[00:12:03] [INFO] GAME LOG ENDED: 2026-03-06T00:12:03
+[00:12:03] [INFO] ============================================================

@@ -51,6 +51,32 @@ var replay_enabled: bool = false
 ## When disabled, no log file is created, which can improve performance (FPS).
 var logging_enabled: bool = true
 
+## Whether enemy flashlight blinding is enabled (Issue #903).
+## When enabled, enemy flashlights can blind the player in night mode.
+## When disabled (default), enemy flashlights only serve as a visual warning
+## without applying any blinding effect to the player.
+var enemy_flashlight_blinding_enabled: bool = false
+
+## Whether the on-screen FPS counter is shown (Issue #883).
+## When enabled, displays current FPS in the top-left corner of the screen.
+## When disabled (default), no FPS counter is shown.
+var fps_counter_enabled: bool = false
+
+## Whether FPS drop logging is enabled (Issue #883).
+## When enabled, logs a warning to the log file whenever FPS drops below 30.
+## When disabled (default), no FPS drop warnings are written.
+var fps_drop_logging_enabled: bool = false
+
+## Whether all weapons/grenades/items are unlocked (Issue #882).
+## When enabled, all weapons, grenades, and active items are available in the armory.
+## When disabled (default), only normally unlocked items are available.
+var all_weapons_unlocked: bool = false
+
+## Whether all maps are unlocked (Issue #1075).
+## When enabled, all levels are accessible regardless of completion progress.
+## When disabled (default), levels must be unlocked by completing the previous level.
+var all_maps_unlocked: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -62,7 +88,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked])
 
 
 ## Set FOV enabled/disabled.
@@ -181,6 +207,76 @@ func is_logging_enabled() -> bool:
 	return logging_enabled
 
 
+## Set enemy flashlight blinding enabled/disabled (Issue #903).
+func set_enemy_flashlight_blinding_enabled(enabled: bool) -> void:
+	if enemy_flashlight_blinding_enabled != enabled:
+		enemy_flashlight_blinding_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Enemy flashlight blinding %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if enemy flashlight blinding is enabled (Issue #903).
+func is_enemy_flashlight_blinding_enabled() -> bool:
+	return enemy_flashlight_blinding_enabled
+
+
+## Set FPS counter display enabled/disabled (Issue #883).
+func set_fps_counter_enabled(enabled: bool) -> void:
+	if fps_counter_enabled != enabled:
+		fps_counter_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("FPS counter %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if FPS counter display is enabled (Issue #883).
+func is_fps_counter_enabled() -> bool:
+	return fps_counter_enabled
+
+
+## Set FPS drop logging enabled/disabled (Issue #883).
+func set_fps_drop_logging_enabled(enabled: bool) -> void:
+	if fps_drop_logging_enabled != enabled:
+		fps_drop_logging_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("FPS drop logging %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if FPS drop logging is enabled (Issue #883).
+func is_fps_drop_logging_enabled() -> bool:
+	return fps_drop_logging_enabled
+
+
+## Set all weapons unlocked enabled/disabled (Issue #882).
+func set_all_weapons_unlocked(enabled: bool) -> void:
+	if all_weapons_unlocked != enabled:
+		all_weapons_unlocked = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("All weapons unlocked %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if all weapons unlocked is enabled (Issue #882).
+func is_all_weapons_unlocked() -> bool:
+	return all_weapons_unlocked
+
+
+## Set all maps unlocked enabled/disabled (Issue #1075).
+func set_all_maps_unlocked(enabled: bool) -> void:
+	if all_maps_unlocked != enabled:
+		all_maps_unlocked = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("All maps unlocked %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if all maps unlocked is enabled (Issue #1075).
+func is_all_maps_unlocked() -> bool:
+	return all_maps_unlocked
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -192,6 +288,11 @@ func _save_settings() -> void:
 	config.set_value("experimental", "realistic_visibility_enabled", realistic_visibility_enabled)
 	config.set_value("experimental", "replay_enabled", replay_enabled)
 	config.set_value("experimental", "logging_enabled", logging_enabled)
+	config.set_value("experimental", "enemy_flashlight_blinding_enabled", enemy_flashlight_blinding_enabled)
+	config.set_value("experimental", "fps_counter_enabled", fps_counter_enabled)
+	config.set_value("experimental", "fps_drop_logging_enabled", fps_drop_logging_enabled)
+	config.set_value("experimental", "all_weapons_unlocked", all_weapons_unlocked)
+	config.set_value("experimental", "all_maps_unlocked", all_maps_unlocked)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -210,6 +311,11 @@ func _load_settings() -> void:
 		realistic_visibility_enabled = config.get_value("experimental", "realistic_visibility_enabled", false)
 		replay_enabled = config.get_value("experimental", "replay_enabled", false)
 		logging_enabled = config.get_value("experimental", "logging_enabled", true)
+		enemy_flashlight_blinding_enabled = config.get_value("experimental", "enemy_flashlight_blinding_enabled", false)
+		fps_counter_enabled = config.get_value("experimental", "fps_counter_enabled", false)
+		fps_drop_logging_enabled = config.get_value("experimental", "fps_drop_logging_enabled", false)
+		all_weapons_unlocked = config.get_value("experimental", "all_weapons_unlocked", false)
+		all_maps_unlocked = config.get_value("experimental", "all_maps_unlocked", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -220,6 +326,11 @@ func _load_settings() -> void:
 		realistic_visibility_enabled = false
 		replay_enabled = false
 		logging_enabled = true
+		enemy_flashlight_blinding_enabled = false
+		fps_counter_enabled = false
+		fps_drop_logging_enabled = false
+		all_weapons_unlocked = false
+		all_maps_unlocked = false
 
 
 ## Log a message to the file logger if available.

@@ -1,0 +1,89 @@
+422:[01:32:13] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+492:[01:32:16] [INFO] [GrenadeTimer] Frag grenade activated at (724.34235, 641.1516)!
+7918:[01:33:43] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+8156:[01:33:50] [INFO] [GrenadeTimer] Frag grenade activated at (609.4555, 708.041)!
+10594:[01:34:01] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+10621:[01:34:03] [INFO] [GrenadeBase] EXPLODED at (711.8705, 1032.413)!
+10631:[01:34:03] [INFO] [GrenadeTimer] Impact detected with Room2_WallBottom - EXPLODING!
+10632:[01:34:03] [INFO] [GrenadeTimer] Frag grenade activated at (711.8705, 1032.4133)!
+10913:[01:34:04] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+10940:[01:34:05] [INFO] [GrenadeBase] EXPLODED at (701.9098, 1032.908)!
+10950:[01:34:05] [INFO] [GrenadeTimer] Impact detected with Room2_WallBottom - EXPLODING!
+10951:[01:34:05] [INFO] [GrenadeTimer] Frag grenade activated at (701.9098, 1032.9077)!
+11174:[01:34:07] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+11212:[01:34:09] [INFO] [GrenadeBase] EXPLODED at (496.1196, 791.3494)!
+11245:[01:34:09] [INFO] [GrenadeTimer] Impact detected with Room2_WallLeft - EXPLODING!
+11246:[01:34:09] [INFO] [GrenadeTimer] Frag grenade activated at (496.1196, 791.3494)!
+17007:[01:34:45] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+17051:[01:34:47] [INFO] [GrenadeTimer] Frag grenade activated at (633.5914, 609.3889)!
+17498:[01:34:51] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+17554:[01:34:55] [INFO] [GrenadeBase] EXPLODED at (656.2443, 660.1168)!
+17555:[01:34:55] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+19207:[01:35:17] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+19286:[01:35:21] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+19296:[01:35:21] [INFO] [GrenadeBase] EXPLODED at (1100.46, 1289.946)!
+19297:[01:35:21] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+19674:[01:35:27] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+19690:[01:35:27] [INFO] [GrenadeBase] EXPLODED at (1620.04, 986.2244)!
+19691:[01:35:27] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+20106:[01:35:31] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+20538:[01:35:36] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+20573:[01:35:38] [INFO] [GrenadeTimer] Frag grenade activated at (778.3334, 1244.1279)!
+20998:[01:35:44] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+21057:[01:35:48] [INFO] [GrenadeBase] EXPLODED at (647.2756, 656.0651)!
+21058:[01:35:48] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+21534:[01:35:53] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+21603:[01:35:57] [INFO] [GrenadeTimer] AggressionGas grenade activated at (512.2244, 757.86273)!
+22200:[01:36:09] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+22257:[01:36:13] [INFO] [GrenadeBase] EXPLODED at (449.7373, 780.4232)!
+22258:[01:36:13] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+24266:[01:36:24] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+24330:[01:36:28] [INFO] [GrenadeBase] EXPLODED at (656.9597, 689.6586)!
+24428:[01:36:28] [INFO] [GrenadeTimer] Flashbang grenade activated at (656.95966, 689.6586)!
+26271:[01:36:49] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+26291:[01:36:49] [INFO] [GrenadeBase] EXPLODED at (1357.628, 532.7167)!
+26928:[01:36:49] [INFO] [GrenadeTimer] Impact detected with Room3_WallLeft - EXPLODING!
+26929:[01:36:49] [INFO] [GrenadeTimer] Frag grenade activated at (1357.628, 532.71674)!
+30295:[01:36:56] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+31285:[01:36:58] [INFO] [GrenadeTimer] Frag grenade activated at (2104.7754, 408.64456)!
+32212:[01:37:07] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+32230:[01:37:07] [INFO] [GrenadeBase] EXPLODED at (1103.461, 1030.366)!
+32241:[01:37:07] [INFO] [GrenadeTimer] Impact detected with Corridor_WallBottom - EXPLODING!
+32242:[01:37:07] [INFO] [GrenadeTimer] Frag grenade activated at (1103.4613, 1030.3661)!
+32509:[01:37:09] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+32577:[01:37:13] [INFO] [GrenadeBase] EXPLODED at (638.6873, 673.1949)!
+32670:[01:37:13] [INFO] [GrenadeTimer] Flashbang grenade activated at (638.68726, 673.19495)!
+33767:[01:37:22] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+33850:[01:37:22] [INFO] [GrenadeBase] EXPLODED at (2446.482, 371.2762)!
+33861:[01:37:22] [INFO] [GrenadeTimer] Impact detected with WallRight - EXPLODING!
+33862:[01:37:22] [INFO] [GrenadeTimer] Frag grenade activated at (2446.482, 371.2762)!
+38369:[01:37:39] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+38527:[01:37:40] [INFO] [GrenadeBase] EXPLODED at (1106.114, 72.34602)!
+38582:[01:37:40] [INFO] [GrenadeTimer] Impact detected with WallTop - EXPLODING!
+38583:[01:37:40] [INFO] [GrenadeTimer] Frag grenade activated at (1106.1141, 72.34602)!
+39457:[01:37:49] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+39470:[01:37:49] [INFO] [GrenadeBase] EXPLODED at (557.2383, 666.3638)!
+39471:[01:37:49] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+39593:[01:37:49] [INFO] [GrenadeTimer] Impact detected with Enemy2 - EXPLODING!
+39594:[01:37:49] [INFO] [GrenadeTimer] Frag grenade activated at (557.23834, 666.36383)!
+40066:[01:37:54] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+40113:[01:37:57] [INFO] [GrenadeTimer] Frag grenade activated at (665.745, 635.97455)!
+40381:[01:37:59] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+40419:[01:38:01] [INFO] [GrenadeTimer] Frag grenade activated at (860.09875, 1402.9042)!
+40630:[01:38:02] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+40673:[01:38:04] [INFO] [GrenadeBase] EXPLODED at (583.476, 765.3641)!
+40674:[01:38:04] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+40789:[01:38:04] [INFO] [GrenadeTimer] Impact detected with Enemy3 - EXPLODING!
+40790:[01:38:04] [INFO] [GrenadeTimer] Frag grenade activated at (583.47595, 765.36414)!
+41045:[01:38:06] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+41079:[01:38:07] [INFO] [GrenadeTimer] Frag grenade activated at (694.36346, 1304.9489)!
+41311:[01:38:09] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+41322:[01:38:09] [INFO] [GrenadeBase] EXPLODED at (570.0801, 1376.776)!
+41323:[01:38:09] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+42003:[01:38:09] [INFO] [GrenadeTimer] Impact detected with LobbyDivider_Right - EXPLODING!
+42004:[01:38:09] [INFO] [GrenadeTimer] Frag grenade activated at (570.0801, 1376.7755)!
+44806:[01:38:12] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+44823:[01:38:13] [INFO] [GrenadeBase] EXPLODED at (629.4394, 733.7542)!
+44824:[01:38:13] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+45550:[01:38:13] [INFO] [GrenadeTimer] Impact detected with Enemy3 - EXPLODING!
+45551:[01:38:13] [INFO] [GrenadeTimer] Frag grenade activated at (629.4394, 733.7542)!

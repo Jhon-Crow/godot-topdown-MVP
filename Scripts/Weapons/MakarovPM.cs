@@ -124,6 +124,22 @@ public partial class MakarovPM : BaseWeapon
                 GD.Print($"[MakarovPM] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
             }
         }
+
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                _laserSightColor = purpleColorVariant.AsColor();
+                if (GetNodeOrNull<Line2D>("LaserSight") == null)
+                    CreateLaserSight();
+                GD.Print($"[MakarovPM] Laser Sight active item: purple laser sight enabled with color {_laserSightColor}");
+            }
+        }
     }
 
     public override void _Process(double delta)
@@ -571,14 +587,15 @@ public partial class MakarovPM : BaseWeapon
             var query = PhysicsRayQueryParameters2D.Create(
                 GlobalPosition,
                 GlobalPosition + endPoint,
-                4 // Collision mask for obstacles
+                6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
             );
 
             var result = spaceState.IntersectRay(query);
             if (result.Count > 0)
             {
+                // Extend 4px into the hit body so the laser visually penetrates the surface
                 Vector2 hitPosition = (Vector2)result["position"];
-                endPoint = hitPosition - GlobalPosition;
+                endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
             }
         }
 

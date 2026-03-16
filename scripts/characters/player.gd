@@ -201,14 +201,14 @@ var _homing_equipped: bool = false
 ## Whether homing bullets effect is currently active (bullets home toward enemies).
 var _homing_active: bool = false
 
-## Remaining homing charges (6 per battle).
-var _homing_charges: int = 6
+## Remaining homing charges (2 per battle).
+var _homing_charges: int = 2
 
 ## Maximum homing charges per battle.
-const HOMING_MAX_CHARGES: int = 6
+const HOMING_MAX_CHARGES: int = 2
 
 ## Duration of homing effect per activation in seconds.
-const HOMING_DURATION: float = 1.0
+const HOMING_DURATION: float = 1.2
 
 ## Timer tracking remaining homing effect duration.
 var _homing_timer: float = 0.0
@@ -216,8 +216,16 @@ var _homing_timer: float = 0.0
 ## Path to the homing bullets activation sound.
 const HOMING_SOUND_PATH: String = "res://assets/audio/homing_activation.wav"
 
+## Path to the homing bullets scanner looping ambient sound (Issue #890).
+## Plays quietly in a loop while the Homing Bullets item is equipped and active.
+const HOMING_SCANNER_LOOP_PATH: String = "res://assets/audio/homing_scanner_loop.wav"
+
 ## AudioStreamPlayer for homing activation sound.
 var _homing_audio_player: AudioStreamPlayer = null
+
+## AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+## Loops while homing bullets item is equipped (always-on ambient scanner).
+var _homing_scanner_player: AudioStreamPlayer = null
 
 
 func _ready() -> void:
@@ -253,6 +261,13 @@ func _ready() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager:
 		max_ammo = difficulty_manager.get_max_ammo()
+		# Black Metal mode: 25% less HP and 25% faster movement (Issue #958)
+		if difficulty_manager.has_method("get_hp_multiplier"):
+			var hp_mult: float = difficulty_manager.get_hp_multiplier()
+			max_health = maxi(1, int(max_health * hp_mult))
+		if difficulty_manager.has_method("get_player_speed_multiplier"):
+			var speed_mult: float = difficulty_manager.get_player_speed_multiplier()
+			max_speed = max_speed * speed_mult
 		# Connect to difficulty changes to update ammo limit mid-game
 		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
 			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
@@ -340,11 +355,20 @@ func _ready() -> void:
 	# Initialize homing bullets if active item manager has homing bullets selected
 	_init_homing_bullets()
 
+	# Initialize BFF pendant if active item manager has it selected (Issue #674)
+	_init_bff_pendant()
+
 	# Initialize invisibility suit if active item manager has it selected (Issue #673)
 	_init_invisibility_suit()
 
 	# Initialize breaker bullets if active item manager has breaker bullets selected (Issue #678)
 	_init_breaker_bullets()
+
+	# Initialize force field if active item manager has it selected (Issue #676)
+	_init_force_field()
+
+	# Initialize trajectory glasses if active item manager has trajectory glasses selected (Issue #744)
+	_init_trajectory_glasses()
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
@@ -449,11 +473,20 @@ func _physics_process(delta: float) -> void:
 	# Handle homing bullets input (press Space to activate, timer-based deactivation)
 	_handle_homing_input(delta)
 
+	# Handle BFF pendant input (press Space to summon companion, Issue #674)
+	_handle_bff_pendant_input()
+
 	# Update charge bar hide timer (auto-hide after 300ms for charge-based items)
 	_update_charge_bar_timer(delta)
 
 	# Handle invisibility suit input (press Space to activate) (Issue #673)
 	_handle_invisibility_suit_input()
+
+	# Handle force field input (hold Space to activate) (Issue #676)
+	_handle_force_field_input(delta)
+
+	# Handle trajectory glasses input (press Space to activate) (Issue #744)
+	_handle_trajectory_glasses_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -1010,6 +1043,11 @@ func on_hit() -> void:
 ## @param caliber_data: Caliber resource for effect scaling.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
+		return
+
+	# Check force field protection (Issue #676)
+	if is_force_field_active():
+		FileLogger.info("[Player] Hit blocked by force field")
 		return
 
 	# Check invincibility mode (F6 toggle)
@@ -2466,7 +2504,10 @@ func _on_debug_mode_toggled(enabled: bool) -> void:
 ## In complex mode: Only shows when debug mode is enabled (F7).
 ## For non-contact grenades (flashbang), shows wall bounces.
 func _draw() -> void:
-	# Determine if we should draw trajectory
+	# Draw trajectory glasses laser visualization (Issue #744)
+	_draw_trajectory_glasses()
+
+	# Determine if we should draw grenade trajectory
 	var is_simple_aiming := _grenade_state == GrenadeState.SIMPLE_AIMING
 	var is_complex_aiming := _grenade_state == GrenadeState.AIMING
 
@@ -2784,6 +2825,60 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: f
 		prev_point = next_point
 
 
+## Draw trajectory glasses laser visualization (Issue #744).
+## Called from _draw() - uses local player coordinates for reliable rendering.
+## Trajectory points are updated by TrajectoryGlassesEffect._process() via queue_redraw().
+func _draw_trajectory_glasses() -> void:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return
+	if not is_instance_valid(_trajectory_glasses):
+		return
+	if not _trajectory_glasses.is_active:
+		return
+
+	var points: Array[Vector2] = _trajectory_glasses.trajectory_local_points
+	if points.size() < 2:
+		return
+
+	# trajectory_invalid_start_index: -1 = all valid, >= 1 = index of terminal red point
+	var invalid_start: int = _trajectory_glasses.trajectory_invalid_start_index
+
+	var valid_color := Color(0.0, 1.0, 0.0, 0.8)   # Green
+	var invalid_color := Color(1.0, 0.0, 0.0, 0.8) # Red
+
+	# Last index of valid segments (green). If invalid_start >= 1, green runs to invalid_start-1.
+	var last_valid_end: int = (invalid_start - 1) if invalid_start >= 1 else (points.size() - 1)
+
+	# Draw glow for valid segments
+	for i in range(last_valid_end):
+		draw_line(points[i], points[i + 1], Color(0.0, 1.0, 0.0, 0.3), 6.0)
+
+	# Draw glow for terminal invalid segment
+	if invalid_start >= 1 and invalid_start < points.size():
+		draw_line(points[invalid_start - 1], points[invalid_start], Color(1.0, 0.0, 0.0, 0.3), 6.0)
+
+	# Draw main laser for valid segments (green)
+	for i in range(last_valid_end):
+		draw_line(points[i], points[i + 1], valid_color, 2.0)
+
+	# Draw main laser for terminal invalid segment (red)
+	if invalid_start >= 1 and invalid_start < points.size():
+		draw_line(points[invalid_start - 1], points[invalid_start], invalid_color, 2.0)
+
+	# Draw dot at start (bullet spawn point)
+	draw_circle(points[0], 3.0, valid_color)
+
+	# Draw small diamonds at valid bounce points (not at terminal red point)
+	var last_diamond: int = (invalid_start - 1) if invalid_start >= 1 else (points.size() - 1)
+	for i in range(1, last_diamond):
+		var s := 4.0
+		var p := points[i]
+		draw_line(p + Vector2(-s, 0), p + Vector2(0, -s), valid_color, 2.0)
+		draw_line(p + Vector2(0, -s), p + Vector2(s, 0), valid_color, 2.0)
+		draw_line(p + Vector2(s, 0), p + Vector2(0, s), valid_color, 2.0)
+		draw_line(p + Vector2(0, s), p + Vector2(-s, 0), valid_color, 2.0)
+
+
 ## Enable debug logging for casing pushing (Issue #392 debugging).
 const DEBUG_CASING_PUSHING: bool = false
 
@@ -3038,6 +3133,7 @@ func _handle_homing_input(delta: float) -> void:
 		if _homing_timer <= 0.0:
 			_homing_active = false
 			_homing_timer = 0.0
+			_stop_homing_scanner()
 			homing_deactivated.emit()
 			FileLogger.info("[Player.Homing] Homing effect expired, charges remaining: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
 
@@ -3048,6 +3144,7 @@ func _handle_homing_input(delta: float) -> void:
 			_homing_timer = HOMING_DURATION
 			_homing_charges -= 1
 			_play_homing_sound()
+			_start_homing_scanner()
 			homing_activated.emit()
 			homing_charges_changed.emit(_homing_charges, HOMING_MAX_CHARGES)
 			FileLogger.info("[Player.Homing] Homing activated! Duration: %ss, charges remaining: %d/%d" % [HOMING_DURATION, _homing_charges, HOMING_MAX_CHARGES])
@@ -3069,6 +3166,7 @@ func get_max_homing_charges() -> int:
 
 
 ## Set up the audio player for homing activation sound.
+## Also sets up the looping scanner ambient sound (Issue #890).
 func _setup_homing_audio() -> void:
 	if ResourceLoader.exists(HOMING_SOUND_PATH):
 		var stream = load(HOMING_SOUND_PATH)
@@ -3081,11 +3179,283 @@ func _setup_homing_audio() -> void:
 	else:
 		FileLogger.info("[Player.Homing] Homing activation sound not found: %s" % HOMING_SOUND_PATH)
 
+	# Set up the looping scanner ambient sound (Issue #890).
+	# This sound plays continuously while the Homing Bullets item is equipped.
+	if ResourceLoader.exists(HOMING_SCANNER_LOOP_PATH):
+		var scanner_stream = load(HOMING_SCANNER_LOOP_PATH)
+		if scanner_stream and scanner_stream is AudioStreamWAV:
+			# Enable seamless looping on the WAV stream.
+			# Also set loop endpoints — without loop_end, Godot defaults to 0
+			# which loops a zero-length region (silence after first play-through).
+			scanner_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			var bytes_per_sample: int = 2 if scanner_stream.format == AudioStreamWAV.FORMAT_16_BITS else 1
+			var channels: int = 2 if scanner_stream.stereo else 1
+			scanner_stream.loop_begin = 0
+			scanner_stream.loop_end = scanner_stream.data.size() / (bytes_per_sample * channels)
+			_homing_scanner_player = AudioStreamPlayer.new()
+			_homing_scanner_player.stream = scanner_stream
+			# 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+			_homing_scanner_player.volume_db = -27.5
+			add_child(_homing_scanner_player)
+			# Do NOT play here — scanner starts only when homing is activated (Issue #890).
+			FileLogger.info("[Player.Homing] Homing scanner loop ready (Issue #890)")
+	else:
+		FileLogger.info("[Player.Homing] Homing scanner loop sound not found: %s" % HOMING_SCANNER_LOOP_PATH)
+
 
 ## Play the homing activation sound.
 func _play_homing_sound() -> void:
 	if _homing_audio_player and is_instance_valid(_homing_audio_player):
 		_homing_audio_player.play()
+
+
+## Start the looping scanner sound. Called when homing is activated (Issue #890).
+func _start_homing_scanner() -> void:
+	if _homing_scanner_player and is_instance_valid(_homing_scanner_player) and not _homing_scanner_player.playing:
+		_homing_scanner_player.play()
+		FileLogger.info("[Player.Homing] Homing scanner loop started (Issue #890)")
+
+
+## Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+func _stop_homing_scanner() -> void:
+	if _homing_scanner_player and is_instance_valid(_homing_scanner_player) and _homing_scanner_player.playing:
+		_homing_scanner_player.stop()
+		FileLogger.info("[Player.Homing] Homing scanner loop stopped (Issue #890)")
+
+
+# ============================================================================
+# BFF Pendant System (Issue #674)
+# ============================================================================
+# User feedback: "просто добавь врага в постоянном aggressive состоянии"
+# Solution: Spawn an actual Enemy scene in permanent aggressive state that
+# targets other enemies (not the player). This reuses the proven enemy AI.
+
+## Enemy scene path for BFF companion (spawn actual enemy with aggressive AI).
+const BFF_ENEMY_SCENE_PATH: String = "res://scenes/objects/Enemy.tscn"
+
+## Whether the BFF pendant is equipped (active item selected in armory).
+var _bff_pendant_equipped: bool = false
+
+## Whether the companion has already been summoned this battle (one charge per battle).
+var _bff_companion_summoned: bool = false
+
+## Reference to the summoned companion node (actually an Enemy instance).
+var _bff_companion_node: Node2D = null
+
+
+## Initialize the BFF pendant if the ActiveItemManager has it selected.
+func _init_bff_pendant() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.BffPendant] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_bff_pendant"):
+		FileLogger.info("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method")
+		return
+
+	if not active_item_manager.has_bff_pendant():
+		FileLogger.info("[Player.BffPendant] No BFF pendant selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.BffPendant] BFF pendant is selected, ready to summon companion")
+
+	# Verify enemy scene exists (we spawn an actual enemy as companion)
+	if not ResourceLoader.exists(BFF_ENEMY_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Enemy scene not found: %s" % BFF_ENEMY_SCENE_PATH)
+		return
+
+	_bff_pendant_equipped = true
+	_bff_companion_summoned = false
+	FileLogger.info("[Player.BffPendant] BFF pendant equipped — press Space to summon companion")
+
+
+## Handle BFF pendant input: press Space to summon a companion (one charge per battle).
+func _handle_bff_pendant_input() -> void:
+	if not _bff_pendant_equipped:
+		return
+	if _bff_companion_summoned:
+		return
+
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		_summon_bff_companion()
+
+
+## Summon the BFF companion near the player.
+## Issue #674: Spawns an actual Enemy in permanent aggressive state.
+## User feedback: "копировать ии врага, но чтоб он был в состоянии agressive"
+func _summon_bff_companion() -> void:
+	if _bff_companion_summoned:
+		return
+
+	if not ResourceLoader.exists(BFF_ENEMY_SCENE_PATH):
+		FileLogger.info("[Player.BffPendant] WARNING: Enemy scene not found: %s" % BFF_ENEMY_SCENE_PATH)
+		return
+
+	var enemy_scene: PackedScene = load(BFF_ENEMY_SCENE_PATH)
+	if enemy_scene == null:
+		FileLogger.info("[Player.BffPendant] WARNING: Failed to load enemy scene")
+		return
+
+	var companion := enemy_scene.instantiate()
+
+	# Configure companion before adding to scene tree:
+	# - Set health range to 2-4 HP as per issue requirements
+	companion.min_health = 2
+	companion.max_health = 4
+
+	# Issue #926: BFF companion has 50% slower reaction speed than enemies.
+	# Multiply all reaction/detection delays by 1.5 (150% of normal = 50% slower).
+	const BFF_REACTION_MULTIPLIER: float = 1.5
+	companion.detection_delay = 0.2 * BFF_REACTION_MULTIPLIER       # 0.2s * 1.5 = 0.3s
+	companion.threat_reaction_delay = 0.2 * BFF_REACTION_MULTIPLIER  # 0.2s * 1.5 = 0.3s
+	companion.lead_prediction_delay = 0.3 * BFF_REACTION_MULTIPLIER  # 0.3s * 1.5 = 0.45s
+
+	# Add to the current scene
+	get_tree().current_scene.add_child(companion)
+
+	# Find a valid spawn position that is not inside a wall
+	var spawn_pos := _find_valid_companion_spawn_position()
+	companion.global_position = spawn_pos
+
+	# CRITICAL: Remove from "enemies" group so other enemies don't target it
+	# and so it doesn't count toward level enemy counter
+	companion.remove_from_group("enemies")
+
+	# Add to "bff_companions" group for identification
+	companion.add_to_group("bff_companions")
+
+	# Set companion name for logging
+	companion.name = "BffCompanion"
+
+	# Make companion permanently aggressive (uses AggressionComponent AI to attack enemies)
+	if companion.has_method("set_aggressive"):
+		companion.set_aggressive(true)
+		FileLogger.info("[Player.BffPendant] Companion set to aggressive state")
+
+	# Apply green-cyan tint to distinguish from regular enemies
+	_apply_companion_visual_tint(companion)
+
+	_bff_companion_node = companion
+	_bff_companion_summoned = true
+
+	# Connect companion death signal
+	if companion.has_signal("died"):
+		companion.died.connect(_on_bff_companion_died)
+
+	FileLogger.info("[Player.BffPendant] Companion spawned at %s (aggressive enemy)" % str(spawn_pos))
+
+
+## Apply a green-cyan tint to the companion to distinguish it from enemies.
+func _apply_companion_visual_tint(companion: Node2D) -> void:
+	var model := companion.get_node_or_null("EnemyModel")
+	if model == null:
+		return
+
+	# Green-cyan tint color for friendly companion
+	var tint := Color(0.3, 1.0, 0.7, 1.0)
+
+	for sprite_name in ["Body", "Head", "LeftArm", "RightArm"]:
+		var sprite := model.get_node_or_null(sprite_name)
+		if sprite is Sprite2D:
+			sprite.modulate = tint
+
+
+## Find a valid spawn position for the companion that is not inside a wall.
+## Tries multiple offsets around the player until a valid position is found.
+## Issue #674: Prevents companion from spawning inside/behind walls.
+func _find_valid_companion_spawn_position() -> Vector2:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		# Fallback if physics state unavailable
+		FileLogger.info("[Player.BffPendant] WARNING: Physics state unavailable, using default spawn")
+		return global_position + Vector2(-50, 30)
+
+	# Companion collision radius for overlap check
+	const COMPANION_RADIUS: float = 24.0
+
+	# List of offset directions to try (relative to player facing or default)
+	var base_rotation: float = _player_model.rotation if _player_model else 0.0
+	var offsets: Array[Vector2] = [
+		Vector2(-50, 30).rotated(base_rotation),   # Behind and to the side (preferred)
+		Vector2(-60, 0).rotated(base_rotation),    # Directly behind
+		Vector2(-50, -30).rotated(base_rotation),  # Behind and other side
+		Vector2(0, 50).rotated(base_rotation),     # To the right
+		Vector2(0, -50).rotated(base_rotation),    # To the left
+		Vector2(50, 30).rotated(base_rotation),    # In front and to the side
+		Vector2(50, -30).rotated(base_rotation),   # In front and other side
+		Vector2(-30, 0).rotated(base_rotation),    # Closer behind
+	]
+
+	for offset in offsets:
+		var test_pos := global_position + offset
+
+		# Check if position is valid (not inside wall, has clear path from player)
+		if _is_spawn_position_valid(space_state, test_pos, COMPANION_RADIUS):
+			FileLogger.info("[Player.BffPendant] Found valid spawn at offset %s" % str(offset))
+			return test_pos
+
+	# If all positions failed, spawn at player position (will push out via physics)
+	FileLogger.info("[Player.BffPendant] WARNING: No valid spawn position found, spawning at player")
+	return global_position
+
+
+## Check if a position is valid for spawning the companion.
+## Returns true if the position is not inside a wall and has line of sight from player.
+func _is_spawn_position_valid(space_state: PhysicsDirectSpaceState2D, pos: Vector2, radius: float) -> bool:
+	# First check: line of sight from player to spawn position
+	var los_query := PhysicsRayQueryParameters2D.new()
+	los_query.from = global_position
+	los_query.to = pos
+	los_query.collision_mask = 1  # Walls only (layer 1)
+	los_query.exclude = [get_rid()]
+
+	var los_result := space_state.intersect_ray(los_query)
+	if not los_result.is_empty():
+		# Wall between player and spawn position
+		return false
+
+	# Second check: circle overlap at spawn position (is position inside a wall?)
+	var circle_query := PhysicsShapeQueryParameters2D.new()
+	var circle_shape := CircleShape2D.new()
+	circle_shape.radius = radius
+	circle_query.shape = circle_shape
+	circle_query.transform = Transform2D(0.0, pos)
+	circle_query.collision_mask = 1  # Walls only (layer 1)
+
+	var overlap_result := space_state.intersect_shape(circle_query, 1)
+	if not overlap_result.is_empty():
+		# Position overlaps with wall
+		return false
+
+	return true
+
+
+## Called when the BFF companion dies.
+func _on_bff_companion_died() -> void:
+	FileLogger.info("[Player.BffPendant] Companion has been killed")
+	_bff_companion_node = null
+
+
+## Check if the BFF pendant is equipped.
+func has_bff_pendant() -> bool:
+	return _bff_pendant_equipped
+
+
+## Check if the BFF companion has been summoned.
+func is_bff_companion_summoned() -> bool:
+	return _bff_companion_summoned
+
+
+## Check if the BFF companion is currently alive.
+func is_bff_companion_alive() -> bool:
+	if _bff_companion_node == null:
+		return false
+	if not is_instance_valid(_bff_companion_node):
+		return false
+	if _bff_companion_node.has_method("is_alive"):
+		return _bff_companion_node.is_alive()
+	return false
 
 
 # ============================================================================
@@ -3244,11 +3614,237 @@ func _init_breaker_bullets() -> void:
 		return
 
 	if not active_item_manager.has_breaker_bullets():
-		FileLogger.info("[Player.BreakerBullets] Breaker bullets not selected")
+		FileLogger.info("[Player.BreakerBullets] No breaker bullets selected in ActiveItemManager")
 		return
 
 	_breaker_bullets_active = true
 	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+
+
+# ============================================================================
+# Force Field (Issue #676)
+# ============================================================================
+
+## Whether force field is equipped.
+var _force_field_equipped: bool = false
+
+## Reference to the force field effect node.
+var _force_field: Node2D = null
+
+
+## Initialize the force field if the ActiveItemManager has it selected.
+func _init_force_field() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.ForceField] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_force_field"):
+		FileLogger.info("[Player.ForceField] ActiveItemManager does not have has_force_field method")
+		return
+
+	if not active_item_manager.has_force_field():
+		FileLogger.info("[Player.ForceField] Force field not selected")
+		return
+
+	# Load the force field scene
+	var force_field_scene_path: String = "res://scenes/effects/ForceFieldEffect.tscn"
+	if not ResourceLoader.exists(force_field_scene_path):
+		FileLogger.info("[Player.ForceField] WARNING: ForceFieldEffect scene not found: %s" % force_field_scene_path)
+		return
+
+	var force_field_scene = load(force_field_scene_path)
+	if force_field_scene == null:
+		FileLogger.info("[Player.ForceField] WARNING: Failed to load ForceFieldEffect scene")
+		return
+
+	# Instantiate the force field effect
+	_force_field = force_field_scene.instantiate()
+	add_child(_force_field)
+	_force_field_equipped = true
+
+	FileLogger.info("[Player.ForceField] Force field initialized successfully")
+
+
+## Handle force field input: hold Space to activate, release to deactivate.
+func _handle_force_field_input(delta: float) -> void:
+	if not _force_field_equipped or _force_field == null:
+		return
+
+	# Hold Space to activate, release to deactivate
+	if Input.is_action_pressed("flashlight_toggle"):
+		if not _force_field.is_active:
+			_force_field.activate()
+	else:
+		if _force_field.is_active:
+			_force_field.deactivate()
+
+
+## Check if force field is currently protecting the player.
+func is_force_field_active() -> bool:
+	return _force_field_equipped and _force_field != null and _force_field.is_protecting()
+
+
+# ============================================================================
+# Trajectory Glasses (Issue #744)
+# ============================================================================
+
+
+## Preload the trajectory glasses effect script.
+const TrajectoryGlassesEffectScript = preload("res://scripts/effects/trajectory_glasses_effect.gd")
+
+## Preload the trajectory glasses HUD script.
+const TrajectoryGlassesHudScript = preload("res://scripts/ui/trajectory_glasses_hud.gd")
+
+## Whether trajectory glasses are equipped.
+var _trajectory_glasses_equipped: bool = false
+
+## Reference to the trajectory glasses effect node.
+var _trajectory_glasses: Node = null
+
+## Reference to the trajectory glasses HUD node.
+var _trajectory_glasses_hud: Node2D = null
+
+## Signal emitted when trajectory glasses state changes.
+signal trajectory_glasses_changed(is_active: bool, charges: int, max_charges: int)
+
+## Signal emitted when trajectory glasses charges change.
+signal trajectory_glasses_charges_changed(current: int, maximum: int)
+
+
+## Initialize the trajectory glasses if the ActiveItemManager has them selected.
+func _init_trajectory_glasses() -> void:
+	FileLogger.info("[Player.TrajectoryGlasses] Checking trajectory glasses...")
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.TrajectoryGlasses] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_trajectory_glasses"):
+		FileLogger.info("[Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method")
+		return
+
+	if not active_item_manager.has_trajectory_glasses():
+		FileLogger.info("[Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...")
+
+	# Create the trajectory glasses effect node
+	_trajectory_glasses = TrajectoryGlassesEffectScript.new()
+	_trajectory_glasses.name = "TrajectoryGlassesEffect"
+	add_child(_trajectory_glasses)
+
+	# Initialize with player reference
+	_trajectory_glasses.initialize(self)
+
+	# Try to get current weapon for aim direction
+	_update_trajectory_glasses_weapon()
+
+	# Connect signals for HUD updates
+	_trajectory_glasses.trajectory_activated.connect(_on_trajectory_activated)
+	_trajectory_glasses.trajectory_deactivated.connect(_on_trajectory_deactivated)
+	_trajectory_glasses.charges_changed.connect(_on_trajectory_charges_changed)
+
+	_trajectory_glasses_equipped = true
+	FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: %d" % _trajectory_glasses.charges)
+
+	# Create HUD overlay for displaying charges and timer
+	_trajectory_glasses_hud = TrajectoryGlassesHudScript.new()
+	_trajectory_glasses_hud.name = "TrajectoryGlassesHUD"
+	add_child(_trajectory_glasses_hud)
+	_trajectory_glasses_hud.initialize(_trajectory_glasses)
+
+	# Emit initial charges state for HUD
+	trajectory_glasses_charges_changed.emit(_trajectory_glasses.charges, _trajectory_glasses.MAX_CHARGES)
+
+
+## Update the weapon reference for trajectory glasses aim direction.
+func _update_trajectory_glasses_weapon() -> void:
+	if _trajectory_glasses == null:
+		return
+
+	# Try to find a weapon attached to the player
+	var weapon: Node2D = null
+
+	# Check for common weapon types
+	for weapon_name in ["AssaultRifle", "SilencedPistol", "MiniUzi", "Shotgun", "SniperRifle", "Revolver", "MakarovPM"]:
+		var found := get_node_or_null(weapon_name)
+		if found and found is Node2D:
+			weapon = found
+			break
+
+	if weapon:
+		_trajectory_glasses.set_weapon(weapon)
+
+
+## Handle trajectory glasses input: press Space to activate.
+func _handle_trajectory_glasses_input() -> void:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return
+
+	if not is_instance_valid(_trajectory_glasses):
+		return
+
+	# Activate on Space press (not hold — single press activates for full duration)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if not _trajectory_glasses.is_active:
+			# Update weapon reference before activation (in case player switched weapons)
+			_update_trajectory_glasses_weapon()
+			FileLogger.info("[Player.TrajectoryGlasses] Space pressed - activating (charges: %d)" % _trajectory_glasses.charges)
+			var activated := _trajectory_glasses.activate()
+			FileLogger.info("[Player.TrajectoryGlasses] Activation result: %s" % str(activated))
+
+
+## Callback when trajectory glasses activates.
+## Shows combined progress bar with charge pips + timer (Issue #974).
+func _on_trajectory_activated(charges_remaining: int) -> void:
+	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	# Show combined progress bar (Issue #974)
+	_show_active_item_combined_bar(
+		charges_remaining,
+		_trajectory_glasses.MAX_CHARGES,
+		_trajectory_glasses.EFFECT_DURATION,
+		_trajectory_glasses.EFFECT_DURATION
+	)
+	# Also update legacy HUD if present
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.set_active(true)
+		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+
+
+## Callback when trajectory glasses deactivates.
+func _on_trajectory_deactivated(charges_remaining: int) -> void:
+	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	# Show charge bar briefly then hide (Issue #974)
+	_show_active_item_charge_bar(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+	# Also update legacy HUD if present
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.set_active(false)
+		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+
+
+## Callback when trajectory glasses charges change.
+func _on_trajectory_charges_changed(current: int, maximum: int) -> void:
+	trajectory_glasses_charges_changed.emit(current, maximum)
+	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
+		_trajectory_glasses_hud.update_charges(current, maximum)
+
+
+## Check if trajectory glasses effect is currently active.
+func is_trajectory_glasses_active() -> bool:
+	if not _trajectory_glasses_equipped or _trajectory_glasses == null:
+		return false
+	if not is_instance_valid(_trajectory_glasses):
+		return false
+	return _trajectory_glasses.is_active
+
+
+## Get the trajectory glasses effect node (for HUD queries).
+func get_trajectory_glasses() -> Node:
+	return _trajectory_glasses
 
 
 # ============================================================================
@@ -3319,6 +3915,29 @@ func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void
 	)
 
 
+## Show a combined charge + timer bar above the player (Issue #974).
+## Used for items that have limited charges AND a duration per use.
+## @param charges_current: Number of charges remaining.
+## @param charges_maximum: Maximum number of charges.
+## @param time_remaining: Time remaining for current activation.
+## @param time_maximum: Maximum duration per activation.
+func _show_active_item_combined_bar(charges_current: int, charges_maximum: int, time_remaining: float, time_maximum: float) -> void:
+	_ensure_progress_bar_node()
+	_active_item_progress_bar.show_combined_bar(
+		charges_current,
+		charges_maximum,
+		time_remaining,
+		time_maximum
+	)
+
+
+## Update the timer value in combined mode.
+## @param time_remaining: New time remaining value.
+func _update_active_item_timer(time_remaining: float) -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		_active_item_progress_bar.update_timer(time_remaining)
+
+
 ## Update the progress bar value.
 ## @param current: New current value.
 func _update_active_item_bar(current: float) -> void:
@@ -3334,24 +3953,32 @@ func _hide_active_item_bar() -> void:
 
 ## Handle charge bar hide timer and active item timer bar updates.
 func _update_charge_bar_timer(delta: float) -> void:
-	# Update continuous timer bar while homing is active
+	# Update combined bar (charge pips + timer) while homing is active (Issue #974)
 	if _homing_equipped and _homing_active:
-		_show_active_item_timer_bar(_homing_timer, HOMING_DURATION)
+		_update_active_item_timer(_homing_timer)
+
+	# Update combined bar (charge pips + timer) while trajectory glasses is active (Issue #974)
+	if _trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses):
+		if _trajectory_glasses.is_active:
+			_update_active_item_timer(_trajectory_glasses.get_remaining_time())
 
 	# Handle charge bar auto-hide (300ms delay for charge-based items)
-	if _charge_bar_hide_pending and not _homing_active:
+	# Only hide if neither homing nor trajectory glasses is active
+	var any_active: bool = (_homing_equipped and _homing_active) or \
+		(_trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) and _trajectory_glasses.is_active)
+	if _charge_bar_hide_pending and not any_active:
 		_charge_bar_hide_timer -= delta
 		if _charge_bar_hide_timer <= 0.0:
 			_charge_bar_hide_pending = false
 			_hide_active_item_bar()
 
 
-## Called when homing bullets are activated - show the charge bar briefly,
-## then transition to continuous timer bar during active effect.
+## Called when homing bullets are activated - show combined charge+timer bar (Issue #974).
+## Shows charge pips (remaining uses) with a depleting timer bar below.
 func _on_homing_activated_show_bar() -> void:
-	# Show continuous timer bar during active effect
-	_show_active_item_timer_bar(HOMING_DURATION, HOMING_DURATION)
-	# Set up charge bar to show briefly after effect ends
+	# Show combined bar with charge pips AND timer (Issue #974)
+	_show_active_item_combined_bar(_homing_charges, HOMING_MAX_CHARGES, HOMING_DURATION, HOMING_DURATION)
+	# Set up to show charge bar briefly after effect ends
 	_charge_bar_hide_pending = true
 	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
 

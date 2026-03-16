@@ -9,15 +9,28 @@ extends CanvasLayer
 signal back_pressed
 
 ## Reference to UI elements.
-@onready var fov_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/FOVContainer/FOVCheckbox
-@onready var complex_grenade_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComplexGrenadeContainer/ComplexGrenadeCheckbox
-@onready var ai_prediction_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AIPredictionContainer/AIPredictionCheckbox
-@onready var debug_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DebugModeContainer/DebugModeCheckbox
-@onready var invincibility_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/InvincibilityContainer/InvincibilityCheckbox
-@onready var replay_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ReplayContainer/ReplayCheckbox
-@onready var logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/LoggingContainer/LoggingCheckbox
-@onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
-@onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
+@onready var fov_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FOVContainer/FOVCheckbox
+@onready var complex_grenade_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer/ComplexGrenadeCheckbox
+@onready var ai_prediction_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPredictionContainer/AIPredictionCheckbox
+@onready var debug_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer/DebugModeCheckbox
+@onready var invincibility_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer/InvincibilityCheckbox
+@onready var replay_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer/ReplayCheckbox
+@onready var logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer/LoggingCheckbox
+@onready var enemy_flashlight_blinding_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer/EnemyFlashlightBlindingCheckbox
+@onready var fps_counter_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer/FpsCounterCheckbox
+@onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
+@onready var all_weapons_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer/AllWeaponsUnlockedCheckbox
+@onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
+@onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
+@onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
+@onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
+@onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
+
+## Reference to the unlock table menu scene.
+var unlock_table_menu_scene: PackedScene = preload("res://scenes/ui/UnlockTableMenu.tscn")
+
+## The instantiated unlock table menu.
+var unlock_table_menu: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -29,6 +42,13 @@ func _ready() -> void:
 	invincibility_checkbox.toggled.connect(_on_invincibility_toggled)
 	replay_checkbox.toggled.connect(_on_replay_toggled)
 	logging_checkbox.toggled.connect(_on_logging_toggled)
+	enemy_flashlight_blinding_checkbox.toggled.connect(_on_enemy_flashlight_blinding_toggled)
+	fps_counter_checkbox.toggled.connect(_on_fps_counter_toggled)
+	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
+	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
+	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
+	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
+	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -57,6 +77,11 @@ func _update_ui() -> void:
 	invincibility_checkbox.button_pressed = experimental_settings.is_invincibility_enabled()
 	replay_checkbox.button_pressed = experimental_settings.is_replay_enabled()
 	logging_checkbox.button_pressed = experimental_settings.is_logging_enabled()
+	enemy_flashlight_blinding_checkbox.button_pressed = experimental_settings.is_enemy_flashlight_blinding_enabled()
+	fps_counter_checkbox.button_pressed = experimental_settings.is_fps_counter_enabled()
+	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
+	all_weapons_unlocked_checkbox.button_pressed = experimental_settings.is_all_weapons_unlocked()
+	all_maps_unlocked_checkbox.button_pressed = experimental_settings.is_all_maps_unlocked()
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -74,6 +99,16 @@ func _update_ui() -> void:
 		status_parts.append("Replay viewing")
 	if experimental_settings.is_logging_enabled():
 		status_parts.append("Log recording")
+	if experimental_settings.is_enemy_flashlight_blinding_enabled():
+		status_parts.append("Enemy flashlight blinding")
+	if experimental_settings.is_fps_counter_enabled():
+		status_parts.append("FPS counter")
+	if experimental_settings.is_fps_drop_logging_enabled():
+		status_parts.append("FPS drop logging")
+	if experimental_settings.is_all_weapons_unlocked():
+		status_parts.append("All weapons unlocked")
+	if experimental_settings.is_all_maps_unlocked():
+		status_parts.append("All maps unlocked")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -143,9 +178,89 @@ func _on_logging_toggled(enabled: bool) -> void:
 	_update_ui()
 
 
+func _on_enemy_flashlight_blinding_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_enemy_flashlight_blinding_enabled(enabled)
+	_update_ui()
+
+
+func _on_fps_counter_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_fps_counter_enabled(enabled)
+	_update_ui()
+
+
+func _on_fps_drop_logging_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_fps_drop_logging_enabled(enabled)
+	_update_ui()
+
+
+func _on_all_weapons_unlocked_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_all_weapons_unlocked(enabled)
+	_update_ui()
+
+
+func _on_all_maps_unlocked_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_all_maps_unlocked(enabled)
+	_update_ui()
+
+
+func _on_delete_saves_pressed() -> void:
+	var persist_manager: Node = get_node_or_null("/root/PersistManager")
+	if persist_manager and persist_manager.has_method("clear_all_saves"):
+		persist_manager.clear_all_saves()
+	status_label.text = "Saves deleted. Game reset to first-launch state."
+
+
+func _on_unlock_table_pressed() -> void:
+	# Instantiate unlock table menu on first use.
+	# IMPORTANT: Add to /root to avoid nested CanvasLayer visibility issues in Godot 4.
+	# When a CanvasLayer is instanced as a child of another CanvasLayer,
+	# visibility does not work correctly. See: https://github.com/godotengine/godot/issues/84912
+	_log("Unlock table button pressed")
+	if unlock_table_menu == null:
+		_log("Creating new unlock table menu instance")
+		unlock_table_menu = unlock_table_menu_scene.instantiate()
+		unlock_table_menu.back_pressed.connect(_on_unlock_table_back_pressed)
+		# Add to root node to avoid any CanvasLayer nesting issues
+		get_tree().root.add_child(unlock_table_menu)
+		_log("Unlock table menu added to /root, calling show()")
+		# Explicitly show after adding to tree
+		unlock_table_menu.show()
+	else:
+		_log("Showing existing unlock table menu")
+		# Refresh and show existing instance
+		if unlock_table_menu.has_method("refresh"):
+			unlock_table_menu.refresh()
+		unlock_table_menu.show()
+
+
+func _on_unlock_table_back_pressed() -> void:
+	_log("Unlock table back button pressed")
+	if unlock_table_menu:
+		unlock_table_menu.hide()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
 
 
 func _on_settings_changed() -> void:
 	_update_ui()
+
+
+## Log a message to the file logger if available.
+func _log(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[ExperimentalMenu] " + message)
+	else:
+		print("[ExperimentalMenu] " + message)

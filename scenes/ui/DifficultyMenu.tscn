@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://c5qmk2v3nw8df"]
+[gd_scene load_steps=4 format=3 uid="uid://c5qmk2v3nw8df"]
 
 [ext_resource type="Script" path="res://scripts/ui/difficulty_menu.gd" id="1_difficulty"]
+[ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
+[ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="3_neon_theme"]
 
 [node name="DifficultyMenu" type="CanvasLayer"]
 layer = 101
@@ -14,6 +16,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_neon_theme")
 
 [node name="PanelContainer" type="PanelContainer" parent="MenuContainer"]
 layout_mode = 1
@@ -23,9 +26,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -150.0
-offset_top = -230.0
+offset_top = -265.0
 offset_right = 150.0
-offset_bottom = 230.0
+offset_bottom = 265.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -43,6 +46,7 @@ theme_override_constants/separation = 15
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Difficulty"
+label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
 [node name="NightModeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
@@ -78,6 +82,11 @@ text = "Normal (Selected)"
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Hard"
+
+[node name="BlackMetalButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(260, 50)
+layout_mode = 2
+text = "Black Metal"
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 40)

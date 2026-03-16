@@ -100,7 +100,9 @@ var _penetrating_body: Node2D = null
 var _has_penetrated: bool = false
 
 ## Enable/disable debug logging for penetration calculations.
-var _debug_penetration: bool = true
+## Issue #969: Set to false by default — having this true in gameplay generates
+## hundreds of file I/O operations per second during shootouts, causing FPS drops.
+var _debug_penetration: bool = false
 
 ## Default penetration settings (used when caliber_data is not set).
 const DEFAULT_CAN_PENETRATE: bool = true
@@ -362,7 +364,8 @@ func _on_body_entered(body: Node2D) -> void:
 	if penetrates_enemies and body.has_method("is_alive") and body.is_alive():
 		if body not in _passed_through_enemy_bodies:
 			_passed_through_enemy_bodies.append(body)
-			print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
+			if _debug_penetration:
+				print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
 		return  # Don't destroy the bullet - it passes through the enemy body
 
 	# If we're currently penetrating the same body, ignore re-entry
@@ -453,6 +456,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and shooter_id == parent.get_instance_id() and not _has_ricocheted:
 			return  # Don't hit the shooter with direct shots
 
+		# Force field protection: Block damage if target has active force field (Issue #676)
+		if parent and parent.has_method("is_force_field_active"):
+			if parent.is_force_field_active():
+				return  # Bullet is reflected by force field, damage blocked
+
 		# Power Fantasy mode: Ricocheted bullets do NOT damage the player
 		if _has_ricocheted and parent and parent.is_in_group("player"):
 			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
@@ -499,7 +507,8 @@ func _on_area_entered(area: Area2D) -> void:
 		# Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
 		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
 		if penetrates_enemies:
-			print("[Bullet]: Penetrating through enemy, bullet continues flying")
+			if _debug_penetration:
+				print("[Bullet]: Penetrating through enemy, bullet continues flying")
 			# Track the enemy so we don't re-apply damage on subsequent area_entered calls
 			if parent != null and parent not in _penetrated_enemy_bodies:
 				_penetrated_enemy_bodies.append(parent)
@@ -610,6 +619,8 @@ func _calculate_impact_angle(surface_normal: Vector2) -> float:
 ## - 0-15°: ~100% (grazing shots always ricochet)
 ## - 45°: ~80% (moderate angles have good ricochet chance)
 ## - 90°: ~10% (perpendicular shots rarely ricochet)
+## When Ricochet Points experimental setting is enabled (Issue #975),
+## probability is increased by 20% at angles where ricochet is possible.
 func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	var max_angle: float
 	var base_probability: float
@@ -633,7 +644,16 @@ func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	# Power of 2.17 creates a curve matching real-world ballistics
 	var power_factor := pow(normalized_angle, 2.17)
 	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
-	return base_probability * angle_factor
+	var probability := base_probability * angle_factor
+
+	# Issue #1028: Trajectory Glasses passive effect boosts ricochet chance by 30%
+	# at angles where ricochet is possible (same condition as green trajectory ray).
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("has_trajectory_glasses"):
+		if active_item_manager.has_trajectory_glasses():
+			probability = minf(probability + 0.3, 1.0)
+
+	return probability
 
 
 ## Performs the ricochet: updates direction, speed, and damage.

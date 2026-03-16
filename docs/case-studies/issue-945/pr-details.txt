@@ -1,0 +1,42 @@
+title:	Fix tutorial training lines (Issue #945)
+state:	DRAFT
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	946
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/946
+additions:	618
+deletions:	46
+auto-merge:	disabled
+--
+## Summary
+
+Fixes #945 — updates tutorial training lines with three improvements:
+
+- **Reload hint shown after 2 shots**: The reload instruction line now appears only after the player fires 2 shots, so they naturally experience the need to reload before being told how.
+- **Unique colors per simultaneous hint**: Each simultaneously displayed hint uses a distinct color for easy visual differentiation — cyan for fire mode, green for reload, orange for grenade, purple for bolt cycle, yellow for hammer cock.
+- **Red highlight on NEXT button**: Switched from plain `Label` to `RichTextLabel` with BBCode. The button the player needs to press next is highlighted in red. For multi-step actions (e.g. R→F→R reload), the highlight dynamically advances as the player progresses — if R is already pressed, F turns red; after F, the final R turns red.
+
+## Implementation Details
+
+- `_shots_fired` counter tracks how many shots the player fires; `_reload_hint_revealed` flag gates the reload hint display
+- Connected to `Fired` signal on each weapon type to count shots
+- Connected to `ReloadSequenceProgress` signal from Player to update hint text dynamically
+- `_add_hint()` now creates `RichTextLabel` (BBCode enabled) instead of `Label`
+- Per-hint colors defined as constants `HINT_COLOR_*` for easy customization
+- All hint text uses BBCode `[color=#ff4444]...[/color]` for the next button and `[color=#888888]...[/color]` for already-done steps
+
+## Test plan
+
+- [x] Unit tests in `tests/unit/test_tutorial_level.gd` cover all three new behaviors
+- [x] Tests for delayed reload hint (0 shots → no hint, 1 shot → no hint, 2 shots → hint appears)
+- [x] Tests for shots during fire mode step counting toward the 2-shot threshold
+- [x] Tests verifying each hint type gets the correct unique color
+- [x] Tests verifying reload hint text contains red BBCode markup for the first step
+- [x] Tests verifying dynamic step highlight updates (step 1 = R red, step 2 = F red, step 3 = final R red)
+- [x] All existing Issue #808 tests updated to fire 2 shots before testing reload hints
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

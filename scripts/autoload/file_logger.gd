@@ -4,6 +4,9 @@ extends Node
 ## This logger automatically captures print output and errors,
 ## writing them to a log file for debugging exported builds.
 ## The log file is created in the same directory as the executable.
+##
+## Performance: writes are batched and flushed every FLUSH_INTERVAL seconds
+## (Issue #885). Error-level messages are flushed immediately.
 
 ## The log file handle.
 var _log_file: FileAccess = null
@@ -21,10 +24,30 @@ var _log_buffer = []
 ## Maximum buffer size before flush.
 const MAX_BUFFER_SIZE: int = 100
 
+## Write buffer: accumulates log lines between timed flushes (Issue #885).
+var _write_buffer: Array[String] = []
+
+## How often (in seconds) to flush buffered writes to disk (Issue #885).
+const FLUSH_INTERVAL: float = 1.0
+
+## Timer node that triggers periodic batch flush (Issue #885).
+var _flush_timer: Timer = null
+
 
 func _ready() -> void:
+	_setup_flush_timer()
 	_setup_log_file()
 	_log_startup_info()
+
+
+## Create and start the periodic flush timer (Issue #885).
+func _setup_flush_timer() -> void:
+	_flush_timer = Timer.new()
+	_flush_timer.wait_time = FLUSH_INTERVAL
+	_flush_timer.autostart = true
+	_flush_timer.one_shot = false
+	add_child(_flush_timer)
+	_flush_timer.timeout.connect(_flush_write_buffer)
 
 
 func _notification(what: int) -> void:
@@ -89,11 +112,14 @@ func _close_log_file() -> void:
 		log_info("-" .repeat(60))
 		log_info("GAME LOG ENDED: %s" % Time.get_datetime_string_from_system())
 		log_info("=" .repeat(60))
+		_flush_write_buffer()
 		_log_file.close()
 		_log_file = null
 
 
 ## Write a message to the log file with timestamp.
+## Writes are batched and flushed every FLUSH_INTERVAL seconds (Issue #885).
+## ERROR-level messages bypass the buffer and flush immediately.
 func _write_log(level: String, message: String) -> void:
 	if not _logging_enabled:
 		return
@@ -105,13 +131,27 @@ func _write_log(level: String, message: String) -> void:
 	print(log_line)
 
 	if _log_file != null:
-		_log_file.store_line(log_line)
-		_log_file.flush()
+		_write_buffer.append(log_line)
+		# Flush errors immediately so they are not lost on crash (Issue #885).
+		if level == "ERROR":
+			_flush_write_buffer()
 	else:
 		# Buffer messages if file not ready yet
 		_log_buffer.append(log_line)
 		if _log_buffer.size() > MAX_BUFFER_SIZE:
 			_log_buffer.pop_front()
+
+
+## Flush all buffered log lines to disk (Issue #885).
+## Called automatically by _flush_timer every FLUSH_INTERVAL seconds,
+## immediately for ERROR messages, and on file close.
+func _flush_write_buffer() -> void:
+	if _log_file == null or _write_buffer.is_empty():
+		return
+	for line in _write_buffer:
+		_log_file.store_line(line)
+	_write_buffer.clear()
+	_log_file.flush()
 
 
 ## Log an info message.

@@ -44,6 +44,8 @@ var _cooldown: float = 0.0
 var _is_throwing: bool = false
 var _enemy: CharacterBody2D = null
 var _logger: Node = null
+## Cache for blast radius to avoid repeated scene instantiation (Issue #886)
+var _blast_radius_cache: float = -1.0
 
 # Trigger 1: Suppression
 var _hidden_timer: float = 0.0
@@ -292,26 +294,32 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 	return true
 
 
-## Get grenade blast radius (Issue #375)
+## Get grenade blast radius (Issue #375).
+## Result is cached after first access to avoid repeated scene instantiation (Issue #886).
 func _get_blast_radius() -> float:
-	if grenade_scene == null:
-		return 225.0  # Default frag grenade radius
+	if _blast_radius_cache >= 0.0:
+		return _blast_radius_cache
 
-	# Try to instantiate grenade temporarily to query its radius
+	if grenade_scene == null:
+		_blast_radius_cache = 225.0  # Default frag grenade radius
+		return _blast_radius_cache
+
+	# Instantiate grenade once to read effect_radius, then cache the result
 	var temp_grenade = grenade_scene.instantiate()
 	if temp_grenade == null:
-		return 225.0  # Fallback
-
-	var radius := 225.0  # Default
+		_blast_radius_cache = 225.0  # Fallback
+		return _blast_radius_cache
 
 	# Check if grenade has effect_radius property
 	if temp_grenade.get("effect_radius") != null:
-		radius = temp_grenade.effect_radius
+		_blast_radius_cache = temp_grenade.effect_radius
+	else:
+		_blast_radius_cache = 225.0  # Default
 
 	# Clean up temporary instance
 	temp_grenade.queue_free()
 
-	return radius
+	return _blast_radius_cache
 
 
 func _path_clear(target: Vector2) -> bool:
@@ -440,8 +448,8 @@ func add_grenades(count: int) -> void:
 func _log(msg: String) -> void:
 	if debug_logging:
 		print("[EnemyGrenadeComponent] %s" % msg)
-	if _logger and _logger.has_method("log_info"):
-		_logger.log_info("[EnemyGrenade] %s" % msg)
+		if _logger and _logger.has_method("log_info"):
+			_logger.log_info("[EnemyGrenade] %s" % msg)
 
 
 ## FIX for Issue #432: Attach C# GrenadeTimer component via autoload helper.

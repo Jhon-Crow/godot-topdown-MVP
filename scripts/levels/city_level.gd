@@ -291,6 +291,8 @@ func _setup_player_tracking() -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+		# Configure silenced pistol ammo based on enemy count (Issue #949)
+		_configure_silenced_pistol_ammo(weapon)
 	else:
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
@@ -327,6 +329,26 @@ func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Configure silenced pistol ammo based on enemy count (Issue #949).
+## This ensures the pistol has exactly enough bullets for all enemies in the level.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	# Check if this is a silenced pistol
+	if weapon.name != "SilencedPistol":
+		return
+
+	# Call the ConfigureAmmoForEnemyCount method if it exists
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		print("[CityLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+
+		# Update the ammo display after configuration
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
 
 
 func _setup_debug_ui() -> void:
@@ -702,6 +724,30 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		replay_button.text = "▶ Watch Replay (W) - no data"
 	buttons_container.add_child(replay_button)
 
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
+
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 	if next_level_path != "":
 		buttons_container.get_node("NextLevelButton").grab_focus()
@@ -850,16 +896,33 @@ func _on_level_select_pressed() -> void:
 		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
 
 
+## Called when the Armory button is pressed on the score screen (Issue #897).
+func _on_armory_button_pressed() -> void:
+	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
+	if armory_menu_scene:
+		var armory_menu = armory_menu_scene.instantiate()
+		armory_menu.layer = 100
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
+		get_tree().root.add_child(armory_menu)
+		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+
+
 func _get_next_level_path() -> String:
 	var current_scene_path: String = ""
 	var current_scene: Node = get_tree().current_scene
 	if current_scene and current_scene.scene_file_path:
 		current_scene_path = current_scene.scene_file_path
+	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
 		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 	for i in range(level_paths.size()):
 		if level_paths[i] == current_scene_path:

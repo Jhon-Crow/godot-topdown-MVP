@@ -145,6 +145,19 @@ public partial class SilencedPistol : BaseWeapon
             GD.Print("[SilencedPistol] No PistolSprite node (visual model not yet added)");
         }
 
+        // Check for Laser Sight active item - overrides color to purple regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                LaserSightColor = purpleColorVariant.AsColor();
+                GD.Print($"[SilencedPistol] Laser Sight active item: laser color set to purple {LaserSightColor}");
+            }
+        }
+
         // Get or create the laser sight Line2D
         _laserSight = GetNodeOrNull<Line2D>("LaserSight");
 
@@ -341,16 +354,17 @@ public partial class SilencedPistol : BaseWeapon
         var query = PhysicsRayQueryParameters2D.Create(
             GlobalPosition,
             GlobalPosition + endPoint,
-            4 // Collision mask for obstacles (layer 3 = value 4)
+            6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
         );
 
         var result = spaceState.IntersectRay(query);
 
         if (result.Count > 0)
         {
-            // Hit an obstacle, shorten the laser
+            // Hit an obstacle or enemy, shorten the laser
+            // Extend 4px into the hit body so the laser visually penetrates the surface
             Vector2 hitPosition = (Vector2)result["position"];
-            endPoint = hitPosition - GlobalPosition;
+            endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
         }
 
         // Update the laser sight line points (in local coordinates)

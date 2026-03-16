@@ -142,6 +142,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and source_id == parent.get_instance_id():
 			return  # Don't hit the source
 
+		# Force field protection: Block damage if target has active force field (Issue #676)
+		if parent and parent.has_method("is_force_field_active"):
+			if parent.is_force_field_active():
+				return  # Shrapnel is reflected by force field, damage blocked
+
 		# Issue #692: When shrapnel comes from an enemy-thrown grenade (thrower_id >= 0),
 		# skip ALL enemies to prevent both self-damage and friendly fire.
 		if parent and thrower_id >= 0 and parent.is_in_group("enemies"):

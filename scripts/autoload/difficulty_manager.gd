@@ -12,7 +12,8 @@ enum Difficulty {
 	EASY,          ## Easy difficulty - longer enemy reaction delay
 	NORMAL,        ## Default difficulty - classic behavior
 	HARD,          ## Hard difficulty - enables distraction attack and reduced ammo
-	POWER_FANTASY  ## Power Fantasy mode - player has 10 HP, special abilities
+	POWER_FANTASY, ## Power Fantasy mode - player has 10 HP, special abilities
+	BLACK_METAL    ## Black Metal mode - 25% less HP, 25% faster movement, B&W+red visual filter
 }
 
 ## Signal emitted when difficulty changes.
@@ -33,7 +34,12 @@ func _ready() -> void:
 ## Set the game difficulty.
 func set_difficulty(difficulty: Difficulty) -> void:
 	if current_difficulty != difficulty:
+		var old_name := get_difficulty_name()
 		current_difficulty = difficulty
+		# FIX for Issue #886: Log difficulty changes so session logs show difficulty state
+		FileLogger.info("[DifficultyManager] Difficulty changed: %s -> %s" % [
+			old_name, get_difficulty_name()
+		])
 		difficulty_changed.emit(difficulty)
 		_save_settings()
 
@@ -63,6 +69,11 @@ func is_power_fantasy_mode() -> bool:
 	return current_difficulty == Difficulty.POWER_FANTASY
 
 
+## Check if the game is in black metal mode.
+func is_black_metal_mode() -> bool:
+	return current_difficulty == Difficulty.BLACK_METAL
+
+
 ## Get the display name of the current difficulty.
 func get_difficulty_name() -> String:
 	match current_difficulty:
@@ -74,8 +85,17 @@ func get_difficulty_name() -> String:
 			return "Hard"
 		Difficulty.POWER_FANTASY:
 			return "Power Fantasy"
+		Difficulty.BLACK_METAL:
+			return "Black Metal"
 		_:
 			return "Unknown"
+
+
+## Get the names of all available difficulty modes.
+## Use this as the single source of truth whenever iterating over all difficulties.
+## @return: Array of all difficulty name strings in ascending order.
+func get_all_difficulty_names() -> Array[String]:
+	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
 
 
 ## Get the display name for a specific difficulty level.
@@ -89,6 +109,8 @@ func get_difficulty_name_for(difficulty: Difficulty) -> String:
 			return "Hard"
 		Difficulty.POWER_FANTASY:
 			return "Power Fantasy"
+		Difficulty.BLACK_METAL:
+			return "Black Metal"
 		_:
 			return "Unknown"
 
@@ -97,6 +119,7 @@ func get_difficulty_name_for(difficulty: Difficulty) -> String:
 ## Easy/Normal: 90 bullets (3 magazines)
 ## Hard: 60 bullets (2 magazines)
 ## Power Fantasy: 270 bullets (9 magazines - 3x normal)
+## Black Metal: 90 bullets (same as normal)
 func get_max_ammo() -> int:
 	match current_difficulty:
 		Difficulty.EASY:
@@ -107,6 +130,8 @@ func get_max_ammo() -> int:
 			return 60
 		Difficulty.POWER_FANTASY:
 			return 270  # 3x normal ammo
+		Difficulty.BLACK_METAL:
+			return 90  # Same as normal
 		_:
 			return 90
 
@@ -127,6 +152,7 @@ const NIGHT_MODE_REACTION_DELAY_MULTIPLIER: float = 1.3  # 30% longer reaction t
 ## Normal: 0.6s - slower reaction than easy, gives player even more time
 ## Hard: 0.2s - quick reaction (hard mode uses other mechanics too)
 ## Power Fantasy: 0.8s - enemies react slower
+## Black Metal: 0.3s - fast reaction (hard mode feel without distraction)
 ## In night mode, all delays are multiplied by 1.3 (30% longer) (Issue #825).
 func get_detection_delay() -> float:
 	var base_delay: float
@@ -139,6 +165,8 @@ func get_detection_delay() -> float:
 			base_delay = 0.2
 		Difficulty.POWER_FANTASY:
 			base_delay = 0.8  # Enemies react slower in power fantasy
+		Difficulty.BLACK_METAL:
+			base_delay = 0.3  # Faster reaction - intense Black Metal atmosphere
 		_:
 			base_delay = 0.6
 	# Issue #825: In night mode, enemies react 30% slower (flashlight orientation delay)
@@ -198,6 +226,8 @@ func _get_grenade_difficulty_modifier() -> float:
 			return 1.5  # 150% of normal probability
 		Difficulty.POWER_FANTASY:
 			return 0.3  # 30% of normal probability - fewer grenades
+		Difficulty.BLACK_METAL:
+			return 1.0  # Normal probability
 		_:
 			return 1.0
 
@@ -297,13 +327,19 @@ func _load_settings() -> void:
 	if error == OK:
 		var saved_difficulty = config.get_value("difficulty", "level", Difficulty.NORMAL)
 		# Validate the saved value
-		if saved_difficulty is int and saved_difficulty >= 0 and saved_difficulty <= Difficulty.POWER_FANTASY:
+		if saved_difficulty is int and saved_difficulty >= 0 and saved_difficulty <= Difficulty.BLACK_METAL:
 			current_difficulty = saved_difficulty as Difficulty
 		else:
 			current_difficulty = Difficulty.NORMAL
 	else:
 		# File doesn't exist or failed to load - use default
 		current_difficulty = Difficulty.NORMAL
+	# FIX for Issue #886: Log loaded difficulty so it is traceable in session logs.
+	# Previously, difficulty state was invisible in logs, making it impossible to
+	# diagnose why PowerFantasy effects fired in some sessions but not others.
+	FileLogger.info("[DifficultyManager] Loaded difficulty: %s (value: %d)" % [
+		get_difficulty_name(), current_difficulty
+	])
 
 
 # ============================================================================
@@ -312,11 +348,30 @@ func _load_settings() -> void:
 
 ## Get the player's max health for current difficulty.
 ## Power Fantasy mode: 10 HP (instead of the usual 4 HP).
+## Black Metal mode: uses same random health as normal but multiplied by 0.75 (25% less).
 func get_player_max_health() -> int:
 	if current_difficulty == Difficulty.POWER_FANTASY:
 		return 10
 	# Default player health for other difficulties
 	return 4
+
+
+## Get the HP multiplier for current difficulty.
+## Black Metal mode: 0.75 (25% less HP for both player and enemies).
+## Other modes: 1.0 (no change).
+func get_hp_multiplier() -> float:
+	if current_difficulty == Difficulty.BLACK_METAL:
+		return 0.75
+	return 1.0
+
+
+## Get the player speed multiplier for current difficulty.
+## Black Metal mode: 1.25 (25% faster movement).
+## Other modes: 1.0 (no change).
+func get_player_speed_multiplier() -> float:
+	if current_difficulty == Difficulty.BLACK_METAL:
+		return 1.25
+	return 1.0
 
 
 ## Check if ricochets should damage enemies.
