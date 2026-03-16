@@ -55,12 +55,12 @@ const WEAPON_HINTS: Dictionary = {
 		{"key": "pm_reload", "text": "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"}
 	],
 	"m16": [
-		{"key": "m16_fire_mode", "text": "[color=#ff4444][B][/color] Переключи режим огня"},
+		{"key": "m16_fire_mode", "text": "[color=#ff4444][B][/color] Переключи режим стрельбы"},
 		{"key": "m16_reload", "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
 	],
 	"shotgun": [
 		{"key": "shotgun_pump", "text": "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"},
-		{"key": "shotgun_reload", "text": "[color=#ff4444][ПКМ↑][/color] [color=#888888][СКМ+ПКМ↓ xN] [ПКМ↓][/color] Перезарядись"}
+		{"key": "shotgun_reload", "text": "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ xN] [ПКМ↓ закрыть][/color]"}
 	],
 	"mini_uzi": [
 		{"key": "uzi_reload", "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}

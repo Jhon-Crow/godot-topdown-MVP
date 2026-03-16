@@ -88,21 +88,6 @@ custom_minimum_size = Vector2(260, 50)
 layout_mode = 2
 text = "Black Metal"
 
-[node name="Separator2" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="WeaponHintsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="WeaponHintsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Weapon Hints"
-
-[node name="WeaponHintsOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer"]
-layout_mode = 2
-custom_minimum_size = Vector2(140, 0)
-
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
