@@ -36,9 +36,21 @@ The game owner (Jhon-Crow) requested a new level after the Docks map with the fo
 
 4. **Root cause identified**: The `ColorRect` offsets (visual) and `RectangleShape2D` sizes (physics) were authored with **mismatched dimensions**. The `ColorRect` used asymmetric offsets (e.g., `left=-1200, right=-112`) while the collision shape was always centered (symmetric around the node's position). These two did not cover the same region, producing "ghost walls" and "hollow walls".
 
-5. **2026-03-16 (fix)** — Complete redesign of the interior wall layout in `FactoryLevel.tscn`:
+5. **2026-03-16 (fix — wall geometry)** — Complete redesign of the interior wall layout in `FactoryLevel.tscn`:
    - All 18 interior wall segments redesigned with **exactly matching** `ColorRect` offsets and `RectangleShape2D` sizes
    - Each segment verified: `shape_width == right_offset - left_offset` and `shape_height == bottom_offset - top_offset`
+
+6. **2026-03-16 (second owner feedback)** — The repository owner reported a second class of bug:
+   - **Bug 3 — Missing passages at column intersections**: "из левых 3 комнат невозможно попасть в остальные (нет прохода, но враги там есть)" (from the left 3 rooms it's impossible to get to the others — there's no passage, but enemies are there).
+   - The left column of rooms (ENTRY HALL, STORAGE, BOILER ROOM) was completely isolated from the center and right columns.
+
+7. **Root cause identified (Bug 3)**: The row wall segments (RowTop_L2, RowTop_C1, RowMid_L2, RowMid_C1, etc.) at column wall intersections had **zero gap** — they abutted directly against the column walls leaving no doorway for the player to pass through. Similarly between center and right columns via Column B wall.
+
+8. **2026-03-16 (fix — missing doorways)** — Fixed 8 row wall segments by shortening them to create 120px doorways centered on each column wall:
+   - `RowTop_L2`, `RowMid_L2`: x range 484→720 (was 484→768), position x 626→602
+   - `RowTop_C1`, `RowMid_C1`: x range 840→1104 (was 792→1104), position x 948→972
+   - `RowTop_C2`, `RowMid_C2`: x range 1225→1489 (was 1225→1537), position x 1381→1357
+   - `RowTop_R1`, `RowMid_R1`: x range 1610→1944 (was 1562→1944), position x 1753→1777
 
 ---
 
@@ -86,7 +98,7 @@ The map was authored without a visual editor (hand-written `.tscn` file). Withou
 
 ## Solution
 
-### Invariant: Always Symmetric and Matching
+### Bug 1 & 2: Invariant: Always Symmetric and Matching
 
 For every wall segment, the following must hold:
 
@@ -113,33 +125,66 @@ The fixed `FactoryLevel.tscn` uses 18 interior wall segments (6 column + 12 row)
 **Row walls** (horizontal dividers at y=700 and y=1300):
 - Each row is split into 3 sections (Left/Center/Right) by the column walls
 - Each section has a 120px doorway in the middle
+- The column wall intersection doorways were missing in the original fix — added in the second fix
 - All 12 row segments use symmetric offsets matching their `RectangleShape2D` sizes
+
+### Bug 3: Row Wall Segments Must Stop Before Column Walls
+
+The key insight is that row wall segments must leave gaps at column walls to allow passage:
+
+```
+Left column section (x=64 to x=780):
+  L1: x=80 to x=364   (within-section doorway: x=364 to x=484 = 120px)
+  L2: x=484 to x=720  (column-wall doorway: x=720 to x=840 = 120px total through col wall)
+
+Column A wall: x=768 to x=792  (24px physical wall, always present)
+
+Center column section (x=780 to x=1550):
+  C1: x=840 to x=1104  (column-wall doorway: x=720 to x=840 = 120px total through col wall)
+  (within-section doorway: x=1104 to x=1225 = 121px)
+  C2: x=1225 to x=1489  (column-wall doorway: x=1489 to x=1610 = 121px total through col wall)
+```
+
+**Rule**: Each row segment adjacent to a column wall must stop at `column_x ± 60px` (60px clearance on each side), creating a ~120px passable zone centered on the column wall.
 
 ---
 
 ## Verification
 
-After the fix, all 18 interior wall segment `ColorRect` offsets exactly match their `CollisionShape2D` sizes:
+After both fixes, all 18 interior wall segments have matching geometry and correct doorway gaps:
 
 ```
+Geometry match (ColorRect == CollisionShape2D):
 ✓ ColA_Top:  ColorRect=24×596,  Shape=24×596
 ✓ ColA_Mid:  ColorRect=24×520,  Shape=24×520
 ✓ ColA_Bot:  ColorRect=24×724,  Shape=24×724
 ✓ ColB_Top:  ColorRect=24×596,  Shape=24×596
 ✓ ColB_Mid:  ColorRect=24×520,  Shape=24×520
 ✓ ColB_Bot:  ColorRect=24×724,  Shape=24×724
-✓ RowTop_L1: ColorRect=284×24,  Shape=284×24
-✓ RowTop_L2: ColorRect=284×24,  Shape=284×24
-✓ RowTop_C1: ColorRect=312×24,  Shape=312×24
-✓ RowTop_C2: ColorRect=312×24,  Shape=312×24
-✓ RowTop_R1: ColorRect=382×24,  Shape=382×24
-✓ RowTop_R2: ColorRect=382×24,  Shape=382×24
-✓ RowMid_L1: ColorRect=284×24,  Shape=284×24
-✓ RowMid_L2: ColorRect=284×24,  Shape=284×24
-✓ RowMid_C1: ColorRect=312×24,  Shape=312×24
-✓ RowMid_C2: ColorRect=312×24,  Shape=312×24
-✓ RowMid_R1: ColorRect=382×24,  Shape=382×24
-✓ RowMid_R2: ColorRect=382×24,  Shape=382×24
+✓ RowTop_L1: ColorRect=284×24,  Shape=284×24   x=80–364
+✓ RowTop_L2: ColorRect=236×24,  Shape=236×24   x=484–720   (fixed: was 284)
+✓ RowTop_C1: ColorRect=264×24,  Shape=264×24   x=840–1104  (fixed: was 312)
+✓ RowTop_C2: ColorRect=264×24,  Shape=264×24   x=1225–1489 (fixed: was 312)
+✓ RowTop_R1: ColorRect=334×24,  Shape=334×24   x=1610–1944 (fixed: was 382)
+✓ RowTop_R2: ColorRect=382×24,  Shape=382×24   x=2065–2447
+✓ RowMid_L1: ColorRect=284×24,  Shape=284×24   x=80–364
+✓ RowMid_L2: ColorRect=236×24,  Shape=236×24   x=484–720   (fixed: was 284)
+✓ RowMid_C1: ColorRect=264×24,  Shape=264×24   x=840–1104  (fixed: was 312)
+✓ RowMid_C2: ColorRect=264×24,  Shape=264×24   x=1225–1489 (fixed: was 312)
+✓ RowMid_R1: ColorRect=334×24,  Shape=334×24   x=1610–1944 (fixed: was 382)
+✓ RowMid_R2: ColorRect=382×24,  Shape=382×24   x=2065–2447
+
+Doorway gaps (all passages are open):
+✓ ColA top doorway:   y=660–740 = 80px  (at y=700)
+✓ ColA mid doorway:   y=1260–1340 = 80px (at y=1300)
+✓ ColB top doorway:   y=660–740 = 80px  (at y=700)
+✓ ColB mid doorway:   y=1260–1340 = 80px (at y=1300)
+✓ RowTop_L doorway:   x=364–484 = 120px  (within left column)
+✓ RowTop ColA door:   x=720–840 = 120px  (between left and center)
+✓ RowTop_C doorway:   x=1104–1225 = 121px (within center column)
+✓ RowTop ColB door:   x=1489–1610 = 121px (between center and right)
+✓ RowTop_R doorway:   x=1944–2065 = 121px (within right column)
+(same pattern for RowMid)
 ```
 
 ---
