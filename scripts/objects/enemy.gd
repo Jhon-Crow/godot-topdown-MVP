@@ -2750,6 +2750,16 @@ func set_immune_to_pacifism(immune: bool) -> void:
 func on_new_pacifist_created(_e: Node2D, _c: float) -> void:
 	if _pacifist and _pacifist.is_pacifist: return
 
+## Alert this enemy that the loudspeaker was used (Issue #959).
+## Per spec: all enemies on the map hear the player when the loudspeaker is activated.
+func alert_from_loudspeaker(sound_position: Vector2) -> void:
+	if not _is_alive: return
+	if _pacifist and _pacifist.is_pacifist: return  # Pacifists already neutralized
+	_last_known_player_position = sound_position
+	if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
+		_transition_to_pursuing()
+	_log_to_file("Alerted by loudspeaker from position %s" % sound_position)
+
 func _is_visible_from_player() -> bool:  ## PLAYER can see ENEMY (checks center + corners)
 	return _is_position_visible_from_player(global_position) if _player else false
 func _get_enemy_check_points(c: Vector2) -> Array[Vector2]:  ## center + 4 corners for visibility
