@@ -582,14 +582,21 @@ public abstract partial class BaseWeapon : Node2D
         }
 
         // Diagnostic logging for Issue #765 (verify caliber data is correct)
-        if (caliber != null)
+        // Issue #969: These prints fire on EVERY shot. Disabled by default to prevent
+        // console flooding (which causes measurable FPS drops at high fire rates).
+        // Re-enable DebugCasing = true in BaseWeapon if you need to diagnose casing issues.
+        const bool DebugCasing = false;
+        if (DebugCasing)
         {
-            var caliberName = caliber.Get("caliber_name");
-            GD.Print($"[BaseWeapon] Spawning casing for {Name} with caliber: {caliberName}");
-        }
-        else
-        {
-            GD.PrintErr($"[BaseWeapon] WARNING: Spawning casing for {Name} with NULL caliber!");
+            if (caliber != null)
+            {
+                var caliberName = caliber.Get("caliber_name");
+                GD.Print($"[BaseWeapon] Spawning casing for {Name} with caliber: {caliberName}");
+            }
+            else
+            {
+                GD.PrintErr($"[BaseWeapon] WARNING: Spawning casing for {Name} with NULL caliber!");
+            }
         }
 
         // Calculate casing spawn position (near the weapon, slightly offset)

@@ -60,7 +60,12 @@ func _navigate_to_last_level() -> void:
 	# Only navigate if the last level is different from current
 	if last_level != current_path and last_level != "" and ResourceLoader.exists(last_level):
 		_log_to_file("Navigating to last played level: %s" % last_level)
-		get_tree().change_scene_to_file(last_level)
+		# Issue #997: Use SceneLoader for background loading with loading screen
+		var scene_loader: Node = get_node_or_null("/root/SceneLoader")
+		if scene_loader and scene_loader.has_method("load_level"):
+			scene_loader.load_level(last_level)
+		else:
+			get_tree().change_scene_to_file(last_level)
 	else:
 		_log_to_file("Already at last played level: %s" % current_path)
 

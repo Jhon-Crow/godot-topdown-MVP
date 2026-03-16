@@ -683,6 +683,50 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 
 
+## Apply building-level ammo configuration to weapons already equipped by C# Player (Issue #949).
+## This is called when C# Player.ApplySelectedWeaponFromGameManager() has already equipped the weapon
+## but we still need to apply building-specific ammo limits (30+30 for M16/AK instead of 30+90).
+func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	# M16 and AK+GL should have 2 magazines (30+30) on Building level (Issue #949)
+	if weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				print("BuildingLevel: Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("BuildingLevel: %s magazines reinitialized to %d (C# weapon)" % [weapon.name, base_magazines])
+
+		# Update ammo display
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+	# Silenced pistol: configure ammo for enemy count
+	elif weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+
+	# Mini UZI: should also have reduced magazines
+	elif weapon_id == "mini_uzi":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("BuildingLevel: MiniUzi magazines reinitialized to %d (C# weapon)" % base_magazines)
+
+
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
@@ -1384,6 +1428,7 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
 	# This prevents double-equipping when both C# and GDScript weapon setup run
+	# BUT we still need to apply building-level ammo configuration (Issue #949)
 	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
@@ -1398,7 +1443,9 @@ func _setup_selected_weapon() -> void:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				_log_to_file("%s already equipped by C# Player - applying building-level ammo config" % expected_name)
+				# Apply building-level ammo configuration to already-equipped weapon (Issue #949)
+				_apply_building_ammo_config(existing_weapon, selected_weapon_id)
 				return
 
 	# If shotgun is selected, we need to swap weapons
@@ -1562,6 +1609,20 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(akgl)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = akgl
+
+			# Reduce AKGL ammunition by half for Building level (Issue #949)
+			# Same as M16: base_magazines = 2 gives 30+30 ammo instead of 30+90
+			# In Power Fantasy mode, apply ammo multiplier
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("BuildingLevel: Power Fantasy mode - AKGL magazines multiplied by %dx" % ammo_multiplier)
+			if akgl.has_method("ReinitializeMagazines"):
+				akgl.ReinitializeMagazines(base_magazines, true)
+				print("BuildingLevel: AKGL magazines reinitialized to %d" % base_magazines)
 
 			print("BuildingLevel: AK + GL equipped successfully")
 		else:
