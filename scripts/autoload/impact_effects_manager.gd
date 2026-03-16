@@ -45,6 +45,21 @@ const WALL_COLLISION_LAYER: int = 4
 ## Set to 0 to disable cleanup limit.
 const MAX_BULLET_HOLES: int = 0
 
+## Number of blood decals spawned per lethal hit (Issue #969 optimization).
+## Reduced from 20 to 8 to limit file-write and node-add overhead at high fire rates.
+## Each decal add triggers SceneTree.tree_changed, causing scene-change checks in all managers.
+const BLOOD_DECALS_PER_LETHAL_HIT: int = 8
+
+## Number of blood decals spawned per non-lethal hit (Issue #969 optimization).
+## Reduced from 10 to 4 to limit overhead at high fire rates.
+const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 4
+
+## Issue #997 RCA-16: Per-second rate limiting for blood decals.
+## When multiple enemies die in the same second, limit total decals to prevent tree_changed floods.
+const MAX_BLOOD_DECALS_PER_SECOND: int = 20
+var _blood_decals_this_second: int = 0
+var _blood_decal_rate_limit_frame: int = -1
+
 ## Active blood decals for cleanup management.
 var _blood_decals = []
 
@@ -294,9 +309,9 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 ## @param caliber_data: Optional caliber data for effect scaling.
 ## @param is_lethal: Whether the hit was lethal (affects intensity and decal spawning).
 func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null, is_lethal: bool = true) -> void:
-	_log_info("spawn_blood_effect called at %s, dir=%s, lethal=%s" % [position, hit_direction, is_lethal])
-
+	# Issue #969: gate per-hit logging behind debug flag to prevent file write spam at high fire rates
 	if _debug_effects:
+		_log_info("spawn_blood_effect called at %s, dir=%s, lethal=%s" % [position, hit_direction, is_lethal])
 		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal)
 
 	if _blood_effect_scene == null:
@@ -310,7 +325,8 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 		print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
 		return
 
-	_log_info("Blood particle effect instantiated successfully")
+	if _debug_effects:
+		_log_info("Blood particle effect instantiated successfully")
 
 	effect.global_position = position
 
@@ -331,16 +347,17 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 	# Start emitting
 	effect.emitting = true
 
-	# Spawn many small blood decals that simulate where particles land
-	# Number of decals based on hit intensity and lethality
-	var num_decals := 20 if is_lethal else 10
+	# Spawn small blood decals that simulate where particles land
+	# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
+	var num_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
 	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
 	# Check for nearby walls and spawn wall splatters
 	_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
 
-	_log_info("Blood effect spawned at %s (scale=%s)" % [position, effect_scale])
+	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
+		_log_info("Blood effect spawned at %s (scale=%s)" % [position, effect_scale])
 		print("[ImpactEffectsManager] Blood effect spawned successfully")
 
 
@@ -586,8 +603,9 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
 		decals_scheduled += 1
 
-	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
+	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
+		_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 
 
@@ -624,6 +642,18 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	if not result.is_empty():
 		# Wall detected between origin and landing - skip this decal
 		return
+
+	# Issue #997 RCA-16: rate limit blood decals per second to prevent tree_changed floods
+	var current_frame := Engine.get_physics_frames()
+	# Reset counter every ~60 frames (approximately 1 second at 60fps)
+	if current_frame - _blood_decal_rate_limit_frame >= 60:
+		_blood_decals_this_second = 0
+		_blood_decal_rate_limit_frame = current_frame
+
+	if _blood_decals_this_second >= MAX_BLOOD_DECALS_PER_SECOND:
+		# Rate limit exceeded, skip this decal
+		return
+	_blood_decals_this_second += 1
 
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
@@ -698,8 +728,9 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	var wall_hit_pos: Vector2 = result.position
 	var wall_normal: Vector2 = result.normal
 
-	_log_info("Wall found for blood splatter at %s (dist=%d px)" % [wall_hit_pos, hit_position.distance_to(wall_hit_pos)])
+	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
+		_log_info("Wall found for blood splatter at %s (dist=%d px)" % [wall_hit_pos, hit_position.distance_to(wall_hit_pos)])
 		print("[ImpactEffectsManager] Wall found at ", wall_hit_pos, " normal=", wall_normal)
 
 	# Create blood splatter decal on the wall
