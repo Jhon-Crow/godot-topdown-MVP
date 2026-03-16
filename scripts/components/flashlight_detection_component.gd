@@ -97,6 +97,11 @@ func check_flashlight(enemy_pos: Vector2, enemy_facing_angle: float, enemy_fov_d
 	if not player.has_method("is_flashlight_on") or not player.is_flashlight_on():
 		return false
 
+	# Issue #640: When the flashlight is wall-clamped (player flush against wall),
+	# the beam is physically blocked — enemies should not detect it through the wall.
+	if player.has_method("is_flashlight_wall_clamped") and player.is_flashlight_wall_clamped():
+		return false
+
 	# Get flashlight beam properties from player
 	var flashlight_dir: Vector2 = Vector2.ZERO
 	if player.has_method("get_flashlight_direction"):
@@ -107,6 +112,13 @@ func check_flashlight(enemy_pos: Vector2, enemy_facing_angle: float, enemy_fov_d
 	var flashlight_origin: Vector2 = player.global_position
 	if player.has_method("get_flashlight_origin"):
 		flashlight_origin = player.get_flashlight_origin()
+
+	# Issue #640: Use the player's center position for wall checks.
+	# The barrel (flashlight_origin) may be inside a wall body when the player is flush
+	# against a wall. Raycasts from inside a wall don't detect it (hit_from_inside=false
+	# by default). The player center is always reliably outside walls, so we use it as
+	# a secondary check to verify the beam isn't blocked by a wall.
+	var player_center: Vector2 = player.global_position
 
 	# Quick distance pre-check: if the enemy is too far from the beam's farthest point,
 	# no sample point could be visible. Use sum of beam range + visibility range as max.
@@ -143,8 +155,19 @@ func check_flashlight(enemy_pos: Vector2, enemy_facing_angle: float, enemy_fov_d
 				continue
 
 		# Step 4: Verify the beam actually reaches this point (not blocked by walls)
-		# The flashlight has shadow_enabled, so check if the beam point is lit
+		# The flashlight has shadow_enabled, so light doesn't pass through walls.
+		# First check the geometric cone, then verify the beam isn't blocked by a wall
+		# between the flashlight origin and this point (Issue #629).
 		if not _is_point_in_beam_cone(point, flashlight_origin, flashlight_dir):
+			continue
+		if raycast != null and not _check_beam_reaches_point(flashlight_origin, point, raycast):
+			continue
+
+		# Issue #640: Secondary wall check from the player center.
+		# When the barrel is at/inside a wall boundary, the barrel-to-point ray may not
+		# detect the wall. The player center is always outside walls (CharacterBody2D
+		# physics guarantee), so this catch-all check reliably blocks detection through walls.
+		if raycast != null and not _check_beam_reaches_point(player_center, point, raycast):
 			continue
 
 		# Detection confirmed — enemy can see a point on the flashlight beam
@@ -231,6 +254,27 @@ func _check_enemy_los_to_point(enemy_pos: Vector2, point: Vector2, raycast: RayC
 	return has_los
 
 
+## Check if the flashlight beam reaches a point without being blocked by walls (Issue #629).
+## Uses the enemy's world physics to cast a ray from the flashlight origin to the target point.
+## This prevents enemies from detecting beam points that are behind walls from the flashlight.
+func _check_beam_reaches_point(beam_origin: Vector2, target_point: Vector2, raycast: RayCast2D) -> bool:
+	if raycast == null:
+		return true  # Assume beam reaches if no raycast available
+
+	var enemy_node := raycast.get_parent() as Node2D
+	if enemy_node == null:
+		return true
+
+	var space_state := enemy_node.get_world_2d().direct_space_state
+	if space_state == null:
+		return true
+
+	var query := PhysicsRayQueryParameters2D.create(beam_origin, target_point)
+	query.collision_mask = 4  # Layer 3: obstacles/walls
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()
+
+
 ## Check line of sight from flashlight to a position, respecting walls (Issue #574).
 ## Uses the enemy's raycast to verify the beam isn't blocked.
 func _check_beam_los(from_pos: Vector2, to_pos: Vector2, raycast: RayCast2D) -> bool:
@@ -273,13 +317,22 @@ func _check_beam_los(from_pos: Vector2, to_pos: Vector2, raycast: RayCast2D) -> 
 ## Parameters:
 ## - position: The position to check (e.g., a doorway or navigation waypoint)
 ## - player: Reference to the player node
+## - raycast: Optional RayCast2D for wall occlusion checks (Issue #629).
+##   When provided, verifies the beam isn't blocked by a wall between the
+##   flashlight origin and the position. Without a raycast, only the geometric
+##   cone is checked (which can give false positives through walls).
 ##
-## Returns true if the position is within the flashlight beam cone.
-func is_position_lit(position: Vector2, player: Node2D) -> bool:
+## Returns true if the position is within the flashlight beam cone and the beam
+## is not blocked by a wall.
+func is_position_lit(position: Vector2, player: Node2D, raycast: RayCast2D = null) -> bool:
 	if player == null or not is_instance_valid(player):
 		return false
 
 	if not player.has_method("is_flashlight_on") or not player.is_flashlight_on():
+		return false
+
+	# Issue #640: Wall-clamped beam cannot illuminate positions through walls.
+	if player.has_method("is_flashlight_wall_clamped") and player.is_flashlight_wall_clamped():
 		return false
 
 	var flashlight_dir: Vector2 = Vector2.ZERO
@@ -302,7 +355,22 @@ func is_position_lit(position: Vector2, player: Node2D) -> bool:
 	var dot := flashlight_dir.dot(direction_to_pos)
 	var beam_half_angle_rad := deg_to_rad(BEAM_HALF_ANGLE_DEG)
 
-	return dot >= cos(beam_half_angle_rad)
+	if dot < cos(beam_half_angle_rad):
+		return false
+
+	# Wall occlusion check (Issue #629): verify the beam actually reaches
+	# this position and isn't blocked by a wall.
+	if raycast != null and not _check_beam_reaches_point(flashlight_origin, position, raycast):
+		return false
+
+	# Issue #640: Secondary wall check from the player center.
+	# When the barrel is at/inside a wall boundary, the barrel-to-point ray may not
+	# detect the wall. The player center is always outside walls.
+	var player_center: Vector2 = player.global_position
+	if raycast != null and not _check_beam_reaches_point(player_center, position, raycast):
+		return false
+
+	return true
 
 
 ## Check if the next navigation waypoint is illuminated by the flashlight (Issue #574).
@@ -311,14 +379,15 @@ func is_position_lit(position: Vector2, player: Node2D) -> bool:
 ## Parameters:
 ## - nav_agent: The enemy's NavigationAgent2D
 ## - player: Reference to the player node
+## - raycast: Optional RayCast2D for wall occlusion checks (Issue #629)
 ##
 ## Returns true if the next waypoint in the navigation path is lit by the flashlight.
-func is_next_waypoint_lit(nav_agent: NavigationAgent2D, player: Node2D) -> bool:
+func is_next_waypoint_lit(nav_agent: NavigationAgent2D, player: Node2D, raycast: RayCast2D = null) -> bool:
 	if nav_agent == null or nav_agent.is_navigation_finished():
 		return false
 
 	var next_pos := nav_agent.get_next_path_position()
-	return is_position_lit(next_pos, player)
+	return is_position_lit(next_pos, player, raycast)
 
 
 ## Reset detection state.

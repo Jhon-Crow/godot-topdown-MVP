@@ -50,6 +50,9 @@ const PISTOL_BOLT: String = "res://assets/audio/взвод затвора пис
 ## Empty gun click sound (used for all weapons when out of ammo).
 const EMPTY_GUN_CLICK: String = "res://assets/audio/кончились патроны в пистолете.wav"
 
+## Empty gun click sound for pistols (PM, UZI, silenced pistol) - Issue #840.
+const PISTOL_EMPTY_CLICK: String = "res://assets/audio/попытка выстрелить без заряда ПМ.mp3"
+
 ## Hit sounds.
 const HIT_LETHAL: String = "res://assets/audio/звук смертельного попадания.wav"
 const HIT_NON_LETHAL: String = "res://assets/audio/звук попадания не смертельного попадания.wav"
@@ -155,8 +158,64 @@ const VOLUME_ASVK_SHOT: float = -2.0
 ## Volume for ASVK bolt-action sounds.
 const VOLUME_ASVK_BOLT: float = -3.0
 
+## RSh-12 revolver sounds (Issue #626) - using dedicated revolver audio files.
+## Cylinder open click.
+const REVOLVER_CYLINDER_OPEN: String = "res://assets/audio/Щелчок при открытии барабана револьвера.mp3"
+## Cylinder close click.
+const REVOLVER_CYLINDER_CLOSE: String = "res://assets/audio/Щелчок при закрытии барабана револьвера.mp3"
+## Cartridge insertion into cylinder.
+const REVOLVER_CARTRIDGE_INSERT: String = "res://assets/audio/заряжание патрона в револьвер.mp3"
+## Cylinder rotation sounds (3 variants for variety).
+const REVOLVER_CYLINDER_ROTATE_1: String = "res://assets/audio/звук вращения барабана 1.mp3"
+const REVOLVER_CYLINDER_ROTATE_2: String = "res://assets/audio/звук вращения барабана 2.mp3"
+const REVOLVER_CYLINDER_ROTATE_3: String = "res://assets/audio/звук вращения барабана 3.mp3"
+## Casings ejection from cylinder.
+const REVOLVER_CASINGS_EJECT: String = "res://assets/audio/высыпание гильз из револьвера.mp3"
+## Empty revolver click (no ammo).
+const REVOLVER_EMPTY_CLICK: String = "res://assets/audio/Щелчок пустого револьвера.mp3"
+## Hammer cock sound.
+const REVOLVER_HAMMER_COCK: String = "res://assets/audio/взведение курка револьвера.mp3"
+## Revolver shot sounds (4 variants for variety).
+const REVOLVER_SHOT_1: String = "res://assets/audio/звук выстрела револьвера.mp3"
+const REVOLVER_SHOT_2: String = "res://assets/audio/звук выстрела револьвера 2.mp3"
+const REVOLVER_SHOT_3: String = "res://assets/audio/звук выстрела револьвера 3.mp3"
+const REVOLVER_SHOT_4: String = "res://assets/audio/звук выстрела револьвера 4.mp3"
+## Volume for revolver reload actions.
+const VOLUME_REVOLVER_RELOAD: float = -3.0
+## Volume for revolver shot.
+const VOLUME_REVOLVER_SHOT: float = 0.0
+
+## AK rifle shots (5 variants) - randomly selected for variety.
+const AK_SHOTS: Array[String] = [
+	"res://assets/audio/выстрел из АК 1.mp3",
+	"res://assets/audio/выстрел из АК 2.mp3",
+	"res://assets/audio/выстрел из АК 3.mp3",
+	"res://assets/audio/выстрел из АК 4.mp3",
+	"res://assets/audio/выстрел из АК 5.mp3"
+]
+
+## Volume for AK shots.
+const VOLUME_AK_SHOT: float = -5.0
+
+## Underbarrel grenade launcher shot sound (GP-25).
+const GRENADE_LAUNCHER_SHOT: String = "res://assets/audio/выстрел из подствольного гранатомёта.mp3"
+
+## Volume for grenade launcher shot.
+const VOLUME_GRENADE_LAUNCHER: float = -3.0
+
 ## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
 const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
+
+## Homing Bullets active item sounds (Issue #890).
+## Activation chirp played once when the player activates homing bullets.
+const HOMING_ACTIVATION: String = "res://assets/audio/homing_activation.wav"
+## Scanner loop played continuously while the Homing Bullets item is equipped.
+const HOMING_SCANNER_LOOP: String = "res://assets/audio/homing_scanner_loop.wav"
+
+## Volume for homing bullets activation chirp.
+const VOLUME_HOMING_ACTIVATION: float = -3.0
+## Volume for homing bullets scanner loop (very quiet ambient).
+const VOLUME_HOMING_SCANNER: float = -18.0
 
 ## Volume settings (in dB).
 const VOLUME_FIRE_MODE_TOGGLE: float = -3.0
@@ -297,6 +356,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(RELOAD_FULL)
 	all_sounds.append(PISTOL_BOLT)
 	all_sounds.append(EMPTY_GUN_CLICK)
+	all_sounds.append(PISTOL_EMPTY_CLICK)
 	all_sounds.append(FIRE_MODE_TOGGLE)
 	all_sounds.append(HIT_LETHAL)
 	all_sounds.append(HIT_NON_LETHAL)
@@ -334,6 +394,26 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(ASVK_BOLT_STEP_2)
 	all_sounds.append(ASVK_BOLT_STEP_3)
 	all_sounds.append(ASVK_BOLT_STEP_4)
+	# AK rifle sounds (Issue #617)
+	all_sounds.append_array(AK_SHOTS)
+	all_sounds.append(GRENADE_LAUNCHER_SHOT)
+	# RSh-12 revolver sounds (Issue #626)
+	all_sounds.append(REVOLVER_CYLINDER_OPEN)
+	all_sounds.append(REVOLVER_CYLINDER_CLOSE)
+	all_sounds.append(REVOLVER_CARTRIDGE_INSERT)
+	all_sounds.append(REVOLVER_CYLINDER_ROTATE_1)
+	all_sounds.append(REVOLVER_CYLINDER_ROTATE_2)
+	all_sounds.append(REVOLVER_CYLINDER_ROTATE_3)
+	all_sounds.append(REVOLVER_CASINGS_EJECT)
+	all_sounds.append(REVOLVER_EMPTY_CLICK)
+	all_sounds.append(REVOLVER_HAMMER_COCK)
+	all_sounds.append(REVOLVER_SHOT_1)
+	all_sounds.append(REVOLVER_SHOT_2)
+	all_sounds.append(REVOLVER_SHOT_3)
+	all_sounds.append(REVOLVER_SHOT_4)
+	# Homing Bullets sounds (Issue #890)
+	all_sounds.append(HOMING_ACTIVATION)
+	all_sounds.append(HOMING_SCANNER_LOOP)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -582,6 +662,18 @@ func play_m16_bolt(position: Vector2) -> void:
 	play_random_sound_2d_with_priority(M16_BOLT_SOUNDS, position, VOLUME_RELOAD, SoundPriority.CRITICAL)
 
 
+## Plays a random AK rifle shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_ak_shot(position: Vector2) -> void:
+	play_random_sound_2d_with_priority(AK_SHOTS, position, VOLUME_AK_SHOT, SoundPriority.CRITICAL)
+
+
+## Plays grenade launcher shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_grenade_launch(position: Vector2) -> void:
+	play_sound_2d_with_priority(GRENADE_LAUNCHER_SHOT, position, VOLUME_GRENADE_LAUNCHER, SoundPriority.CRITICAL)
+
+
 ## Plays magazine removal sound (first phase of reload).
 ## Uses CRITICAL priority for reload sounds.
 func play_reload_mag_out(position: Vector2) -> void:
@@ -604,6 +696,13 @@ func play_reload_full(position: Vector2) -> void:
 ## Uses CRITICAL priority for player feedback sounds.
 func play_empty_click(position: Vector2) -> void:
 	play_sound_2d_with_priority(EMPTY_GUN_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
+
+
+## Plays pistol empty click sound for PM, UZI, and silenced pistol (Issue #840).
+## Uses CRITICAL priority for player feedback sounds.
+func play_pistol_empty_click(position: Vector2) -> void:
+	print("[AudioManager] play_pistol_empty_click called (Issue #840): ", PISTOL_EMPTY_CLICK)
+	play_sound_2d_with_priority(PISTOL_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
 
 
 ## Plays fire mode toggle sound (B key) at the given position.
@@ -819,6 +918,62 @@ func play_asvk_bolt_step(step: int) -> void:
 			sound_path = ASVK_BOLT_STEP_4
 	if sound_path != "":
 		play_sound_with_priority(sound_path, VOLUME_ASVK_BOLT, SoundPriority.CRITICAL)
+
+
+# ============================================================================
+# RSh-12 Revolver sounds (Issue #626)
+# ============================================================================
+
+## Plays the revolver cylinder open sound.
+## @param position: World position for 2D audio.
+func play_revolver_cylinder_open(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CYLINDER_OPEN, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver cylinder close sound.
+## @param position: World position for 2D audio.
+func play_revolver_cylinder_close(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CYLINDER_CLOSE, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver cartridge insertion sound.
+## @param position: World position for 2D audio.
+func play_revolver_cartridge_insert(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CARTRIDGE_INSERT, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver cylinder rotation sound (random variant from 3).
+## @param position: World position for 2D audio.
+func play_revolver_cylinder_rotate(position: Vector2) -> void:
+	var variants := [REVOLVER_CYLINDER_ROTATE_1, REVOLVER_CYLINDER_ROTATE_2, REVOLVER_CYLINDER_ROTATE_3]
+	var sound_path: String = variants[randi() % variants.size()]
+	play_sound_2d_with_priority(sound_path, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver casings ejection sound (when cylinder opens).
+## @param position: World position for 2D audio.
+func play_revolver_casings_eject(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_CASINGS_EJECT, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver empty click sound (no ammo).
+## @param position: World position for 2D audio.
+func play_revolver_empty_click(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_EMPTY_CLICK, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver hammer cock sound.
+## @param position: World position for 2D audio.
+func play_revolver_hammer_cock(position: Vector2) -> void:
+	play_sound_2d_with_priority(REVOLVER_HAMMER_COCK, position, VOLUME_REVOLVER_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the revolver shot sound (random variant from 4).
+## @param position: World position for 2D audio.
+func play_revolver_shot(position: Vector2) -> void:
+	var variants := [REVOLVER_SHOT_1, REVOLVER_SHOT_2, REVOLVER_SHOT_3, REVOLVER_SHOT_4]
+	var sound_path: String = variants[randi() % variants.size()]
+	play_sound_2d_with_priority(sound_path, position, VOLUME_REVOLVER_SHOT, SoundPriority.CRITICAL)
 
 
 # ============================================================================

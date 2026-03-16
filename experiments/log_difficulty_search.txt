@@ -1,0 +1,80 @@
+34:[01:32:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+35:[01:32:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+36:[01:32:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+37:[01:32:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+56:[01:32:04] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+57:[01:32:04] [INFO] [PowerFantasy] Saturation shader loaded successfully
+58:[01:32:04] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+59:[01:32:04] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+60:[01:32:04] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+81:[01:32:04] [INFO] [GrenadeManager] Grenade type changed from Flashbang to Frag Grenade
+125:[01:32:04] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+135:[01:32:04] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+205:[01:32:05] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+263:[01:32:05] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+273:[01:32:05] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+644:[01:32:17] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+698:[01:32:17] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+708:[01:32:17] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+941:[01:32:23] [INFO] [Player] Hit blocked by invincibility mode (C#)
+985:[01:32:23] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1113:[01:32:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1125:[01:32:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1164:[01:32:26] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1227:[01:32:26] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1260:[01:32:26] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1459:[01:32:27] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+1460:[01:32:27] [INFO] [PowerFantasy] Starting power fantasy effect:
+1461:[01:32:27] [INFO] [PowerFantasy]   - Time scale: 0.10
+1462:[01:32:27] [INFO] [PowerFantasy]   - Duration: 300ms
+1471:[01:32:28] [INFO] [PowerFantasy] Effect duration expired after 316.00 ms
+1472:[01:32:28] [INFO] [PowerFantasy] Ending power fantasy effect
+1569:[01:32:30] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1606:[01:32:30] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1642:[01:32:30] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1653:[01:32:30] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1670:[01:32:30] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1714:[01:32:31] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1731:[01:32:31] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1751:[01:32:31] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1764:[01:32:31] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1785:[01:32:31] [INFO] [Player] Hit blocked by invincibility mode (C#)
+1889:[01:32:32] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2029:[01:32:36] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+2030:[01:32:36] [INFO] [PowerFantasy] Starting power fantasy effect:
+2031:[01:32:36] [INFO] [PowerFantasy]   - Time scale: 0.10
+2032:[01:32:36] [INFO] [PowerFantasy]   - Duration: 300ms
+2072:[01:32:36] [INFO] [PowerFantasy] Effect duration expired after 302.00 ms
+2073:[01:32:36] [INFO] [PowerFantasy] Ending power fantasy effect
+2115:[01:32:36] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2155:[01:32:36] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2397:[01:32:37] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2411:[01:32:37] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2435:[01:32:38] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2441:[01:32:38] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2519:[01:32:38] [INFO] [Player] Hit blocked by invincibility mode (C#)
+2605:[01:32:38] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+2606:[01:32:38] [INFO] [PowerFantasy] Starting power fantasy effect:
+2607:[01:32:38] [INFO] [PowerFantasy]   - Time scale: 0.10
+2608:[01:32:38] [INFO] [PowerFantasy]   - Duration: 300ms
+2693:[01:32:38] [INFO] [PowerFantasy] Effect duration expired after 323.00 ms
+2694:[01:32:38] [INFO] [PowerFantasy] Ending power fantasy effect
+3017:[01:32:41] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+3018:[01:32:41] [INFO] [PowerFantasy] Starting power fantasy effect:
+3019:[01:32:41] [INFO] [PowerFantasy]   - Time scale: 0.10
+3020:[01:32:41] [INFO] [PowerFantasy]   - Duration: 300ms
+3055:[01:32:41] [INFO] [PowerFantasy] Effect duration expired after 331.00 ms
+3056:[01:32:41] [INFO] [PowerFantasy] Ending power fantasy effect
+3378:[01:32:44] [INFO] [PowerFantasy] Enemy killed - triggering 300ms last chance effect
+3379:[01:32:44] [INFO] [PowerFantasy] Starting power fantasy effect:
+3380:[01:32:44] [INFO] [PowerFantasy]   - Time scale: 0.10
+3381:[01:32:44] [INFO] [PowerFantasy]   - Duration: 300ms
+3434:[01:32:44] [INFO] [PowerFantasy] Effect duration expired after 316.00 ms
+3435:[01:32:44] [INFO] [PowerFantasy] Ending power fantasy effect
+3814:[01:32:49] [INFO] [Player] Hit blocked by invincibility mode (C#)
+3831:[01:32:49] [INFO] [Player] Hit blocked by invincibility mode (C#)
+3842:[01:32:49] [INFO] [Player] Hit blocked by invincibility mode (C#)
+3853:[01:32:49] [INFO] [Player] Hit blocked by invincibility mode (C#)
+3883:[01:32:49] [INFO] [Player] Hit blocked by invincibility mode (C#)
+3904:[01:32:49] [INFO] [Player] Hit blocked by invincibility mode (C#)
+3938:[01:32:49] [INFO] [Player] Hit blocked by invincibility mode (C#)

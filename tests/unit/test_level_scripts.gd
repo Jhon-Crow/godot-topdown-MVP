@@ -197,6 +197,13 @@ class MockBuildingLevel extends MockLevelBase:
 	## Default enemy count for building level.
 	var default_enemy_count: int = 10
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
 
@@ -205,9 +212,14 @@ class MockBuildingLevel extends MockLevelBase:
 
 	## Level ordering (matching LevelsMenu.LEVELS).
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -246,11 +258,23 @@ class MockCastleLevel extends MockLevelBase:
 	## Castle-specific weapon ammo multiplier (2x for all weapons).
 	var ammo_multiplier: int = 2
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -287,6 +311,13 @@ class MockTestTier extends MockLevelBase:
 	var map_width: int = 4000
 	var map_height: int = 2960
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Default enemy count for test tier (12 enemies: 6 guards, 4 patrols, 2 RPG).
 	var default_enemy_count: int = 12
 
@@ -295,9 +326,14 @@ class MockTestTier extends MockLevelBase:
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -332,15 +368,26 @@ class MockBeachLevel extends MockLevelBase:
 	## Default enemy count for beach level (8 enemies).
 	var default_enemy_count: int = 8
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Whether the score screen is currently shown.
 	var _score_shown: bool = false
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -360,10 +407,125 @@ class MockBeachLevel extends MockLevelBase:
 		return ""  # Not found
 
 
+class MockLabyrinthLevel extends MockLevelBase:
+	## Laboratory / starting level (Issue #808: weapon-dependent tutorial hints).
+	var level_name: String = "LabyrinthLevel"
+
+	## Default enemy count for labyrinth (5 enemies).
+	var default_enemy_count: int = 5
+
+	## Laboratory-specific rank thresholds (Issue #823).
+	## Shifted one step down so that the old A score gives S.
+	const LABYRINTH_RANK_THRESHOLDS: Dictionary = {
+		"S": 0.70,
+		"A+": 0.55,
+		"A": 0.38,
+		"B": 0.22,
+		"C": 0.12,
+		"D": 0.06,
+		"F": 0.0
+	}
+
+	## Tutorial hint tracking (Issue #808): weapon-dependent, mirrors tutorial_level.gd.
+	var _tutorial_hints: Dictionary = {}
+
+	## Tutorial state machine (mirrors labyrinth_level.gd TutorialStep).
+	enum TutorialStep { RELOAD, THROW_GRENADE, COMPLETED }
+	var _tutorial_step: int = TutorialStep.RELOAD
+
+	## Weapon type flags.
+	var _tutorial_has_shotgun: bool = false
+	var _tutorial_has_sniper_rifle: bool = false
+	var _tutorial_has_revolver: bool = false
+	var _tutorial_has_makarov_pm: bool = false
+
+	## State tracking.
+	var _tutorial_has_reloaded: bool = false
+	var _tutorial_has_thrown_grenade: bool = false
+
+	## Hint keys.
+	const HINT_RELOAD := "reload"
+	const HINT_GRENADE := "grenade"
+	const HINT_HAMMER_COCK := "hammer_cock"
+	const HINT_BOLT_CYCLE := "bolt_cycle"
+
+	## Setup weapon-dependent tutorial hints at level start (Issue #808).
+	func setup_tutorial_hints() -> void:
+		_tutorial_step = TutorialStep.RELOAD
+		_add_reload_hints()
+
+	## Add weapon-dependent reload hints plus grenade hint.
+	func _add_reload_hints() -> void:
+		if _tutorial_has_shotgun:
+			_tutorial_hints[HINT_RELOAD] = "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]"
+		elif _tutorial_has_sniper_rifle:
+			_tutorial_hints[HINT_RELOAD] = "[R] [F] [R] Перезарядись"
+			_tutorial_hints[HINT_BOLT_CYCLE] = "[←↓↑→] Передёрни затвор"
+		elif _tutorial_has_revolver:
+			_tutorial_hints[HINT_RELOAD] = "[R открыть] [ПКМ↑ патрон] [скролл] [R закрыть]"
+			_tutorial_hints[HINT_HAMMER_COCK] = "[ПКМ] Взведи курок"
+		elif _tutorial_has_makarov_pm:
+			_tutorial_hints[HINT_RELOAD] = "[R] [R] Перезарядись"
+		else:
+			_tutorial_hints[HINT_RELOAD] = "[R] [F] [R] Перезарядись"
+		if not _tutorial_hints.has(HINT_GRENADE):
+			_tutorial_hints[HINT_GRENADE] = "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]"
+
+	## Called when hammer is cocked — dismisses hammer hint.
+	func on_hammer_cocked() -> void:
+		_tutorial_hints.erase(HINT_HAMMER_COCK)
+
+	## Called when reload completes.
+	func on_reload_completed() -> void:
+		if _tutorial_step != TutorialStep.RELOAD:
+			return
+		if not _tutorial_has_reloaded:
+			_tutorial_has_reloaded = true
+			_tutorial_hints.erase(HINT_RELOAD)
+			_tutorial_hints.erase(HINT_HAMMER_COCK)
+			if _tutorial_has_thrown_grenade:
+				_tutorial_step = TutorialStep.COMPLETED
+				_tutorial_hints.clear()
+			else:
+				_tutorial_step = TutorialStep.THROW_GRENADE
+
+	## Called when grenade is thrown.
+	func on_grenade_thrown() -> void:
+		if _tutorial_step != TutorialStep.THROW_GRENADE and _tutorial_step != TutorialStep.RELOAD:
+			return
+		if not _tutorial_has_thrown_grenade:
+			_tutorial_has_thrown_grenade = true
+			_tutorial_hints.erase(HINT_GRENADE)
+			if _tutorial_step == TutorialStep.THROW_GRENADE:
+				_tutorial_step = TutorialStep.COMPLETED
+				_tutorial_hints.clear()
+
+	## Check if a tutorial hint is currently active.
+	func is_tutorial_hint_active(hint_key: String) -> bool:
+		return _tutorial_hints.has(hint_key)
+
+	## Check if all tutorial hints are dismissed.
+	func are_all_hints_dismissed() -> bool:
+		return _tutorial_hints.is_empty()
+
+	## Check if tutorial is complete.
+	func is_tutorial_complete() -> bool:
+		return _tutorial_step == TutorialStep.COMPLETED
+
+	## Initialize with default enemy configuration.
+	func initialize() -> void:
+		var enemies: Array = []
+		for i in range(default_enemy_count):
+			enemies.append("LabyrinthEnemy%d" % (i + 1))
+		setup_enemy_tracking(enemies)
+		setup_tutorial_hints()
+
+
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
 var test_tier: MockTestTier
 var beach_level: MockBeachLevel
+var labyrinth_level: MockLabyrinthLevel
 
 
 func before_each() -> void:
@@ -371,6 +533,7 @@ func before_each() -> void:
 	castle_level = MockCastleLevel.new()
 	test_tier = MockTestTier.new()
 	beach_level = MockBeachLevel.new()
+	labyrinth_level = MockLabyrinthLevel.new()
 
 
 func after_each() -> void:
@@ -378,6 +541,7 @@ func after_each() -> void:
 	castle_level = null
 	test_tier = null
 	beach_level = null
+	labyrinth_level = null
 
 
 # ============================================================================
@@ -667,6 +831,70 @@ func test_castle_double_magazines_from_1() -> void:
 
 	assert_eq(result, 2,
 		"1 starting magazine * 2 = 2 magazines for castle")
+
+
+# ============================================================================
+# Makarov PM 2.5x Ammo Multiplier Tests (Issue #636)
+# ============================================================================
+
+
+func test_pm_ammo_multiplier_building() -> void:
+	assert_almost_eq(building_level.pm_ammo_multiplier, 2.5, 0.01,
+		"Building level PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_castle() -> void:
+	assert_almost_eq(castle_level.pm_ammo_multiplier, 2.5, 0.01,
+		"Castle level PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_test_tier() -> void:
+	assert_almost_eq(test_tier.pm_ammo_multiplier, 2.5, 0.01,
+		"TestTier PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_beach() -> void:
+	assert_almost_eq(beach_level.pm_ammo_multiplier, 2.5, 0.01,
+		"BeachLevel PM ammo multiplier should be 2.5x")
+
+
+func test_pm_magazines_from_4() -> void:
+	var result := building_level.get_pm_magazine_count(4)
+
+	assert_eq(result, 10,
+		"4 starting magazines * 2.5 = 10 magazines for MakarovPM")
+
+
+func test_pm_magazines_from_2() -> void:
+	var result := building_level.get_pm_magazine_count(2)
+
+	assert_eq(result, 5,
+		"2 starting magazines * 2.5 = 5 magazines for MakarovPM")
+
+
+func test_pm_magazines_from_1() -> void:
+	var result := building_level.get_pm_magazine_count(1)
+
+	assert_true(result == 2 or result == 3,
+		"1 starting magazine * 2.5 = 2 or 3 (rounded) magazines for MakarovPM")
+
+
+func test_pm_multiplier_consistent_across_levels() -> void:
+	var pm_count_4: int = building_level.get_pm_magazine_count(4)
+	assert_eq(pm_count_4, castle_level.get_pm_magazine_count(4),
+		"Building and Castle PM magazine count should match for 4 starting mags")
+	assert_eq(pm_count_4, test_tier.get_pm_magazine_count(4),
+		"Building and TestTier PM magazine count should match for 4 starting mags")
+	assert_eq(pm_count_4, beach_level.get_pm_magazine_count(4),
+		"Building and Beach PM magazine count should match for 4 starting mags")
+
+
+func test_pm_multiplier_greater_than_castle_base() -> void:
+	var pm_mags: int = castle_level.get_pm_magazine_count(4)
+	var castle_mags: int = castle_level.get_castle_magazine_count(4)
+
+	assert_gt(pm_mags, castle_mags,
+		"PM 2.5x magazines (%d) should be more than Castle 2x (%d)" % [pm_mags, castle_mags])
 
 
 # ============================================================================
@@ -1175,7 +1403,7 @@ func test_all_levels_track_accuracy_consistently() -> void:
 # ============================================================================
 
 
-func test_level_order_building_to_testtier_to_castle() -> void:
+func test_level_order_building_to_testtier_to_castle_to_revolver() -> void:
 	var first := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
 	assert_eq(first, "res://scenes/levels/TestTier.tscn",
 		"BuildingLevel -> TestTier")
@@ -1185,8 +1413,8 @@ func test_level_order_building_to_testtier_to_castle() -> void:
 		"TestTier -> CastleLevel")
 
 	var third := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
-	assert_eq(third, "",
-		"CastleLevel is the last level (no next)")
+	assert_eq(third, "res://scenes/levels/RevolverLevel.tscn",
+		"CastleLevel -> Double Corridor (RevolverLevel) — Issue #952")
 
 
 # ============================================================================
@@ -1526,3 +1754,180 @@ func test_beach_level_complete_with_accuracy_tracking() -> void:
 		"Beach level accuracy should be ~66.67%")
 	assert_eq(beach_level._kills, 8,
 		"Beach level kill count should be 8")
+
+
+# ============================================================================
+# LabyrinthLevel Tutorial Hints Tests (Issue #808)
+# Weapon-dependent hints, same as Tutorial level — no walk/shoot hints.
+# ============================================================================
+
+
+func test_labyrinth_five_default_enemies() -> void:
+	labyrinth_level.initialize()
+
+	assert_eq(labyrinth_level._initial_enemy_count, 5,
+		"Labyrinth should have 5 enemies by default")
+
+
+func test_labyrinth_tutorial_shows_reload_and_grenade_at_start() -> void:
+	labyrinth_level.initialize()
+
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint should be shown at start")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Grenade hint should be shown at start alongside reload (Issue #808)")
+
+
+func test_labyrinth_tutorial_no_walk_or_shoot_hints() -> void:
+	labyrinth_level.initialize()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active("move"),
+		"No movement hint in Lab tutorial (owner request)")
+	assert_false(labyrinth_level.is_tutorial_hint_active("shoot"),
+		"No shoot hint in Lab tutorial (owner request)")
+
+
+func test_labyrinth_reload_dismisses_reload_hint_grenade_remains() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_reload_completed()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint should be dismissed after reload")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Grenade hint should remain after reload (Issue #808)")
+
+
+func test_labyrinth_grenade_thrown_completes_after_reload() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_reload_completed()
+	labyrinth_level.on_grenade_thrown()
+
+	assert_true(labyrinth_level.is_tutorial_complete(),
+		"Tutorial should complete after reload then grenade")
+	assert_true(labyrinth_level.are_all_hints_dismissed(),
+		"All hints dismissed after tutorial complete")
+
+
+func test_labyrinth_grenade_before_reload_dismisses_grenade_hint() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_grenade_thrown()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Grenade hint dismissed even when thrown before reload")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint still visible when grenade thrown early")
+
+
+func test_labyrinth_reload_after_early_grenade_completes_tutorial() -> void:
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_grenade_thrown()  # Grenade first
+	labyrinth_level.on_reload_completed()  # Then reload
+
+	assert_true(labyrinth_level.is_tutorial_complete(),
+		"Tutorial completes when reload done after early grenade")
+	assert_true(labyrinth_level.are_all_hints_dismissed(),
+		"No hints remain after tutorial completes")
+
+
+func test_labyrinth_revolver_shows_hammer_cock_hint() -> void:
+	labyrinth_level._tutorial_has_revolver = true
+	labyrinth_level.initialize()
+
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_HAMMER_COCK),
+		"Revolver should show hammer cock hint (Issue #808)")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Revolver should show reload hint")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_GRENADE),
+		"Revolver should show grenade hint simultaneously")
+
+
+func test_labyrinth_hammer_cocked_dismisses_hammer_hint() -> void:
+	labyrinth_level._tutorial_has_revolver = true
+	labyrinth_level.initialize()
+
+	labyrinth_level.on_hammer_cocked()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_HAMMER_COCK),
+		"Hammer hint dismissed when hammer is cocked (Issue #808)")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Reload hint still visible after hammer cocked")
+
+
+func test_labyrinth_shotgun_no_hammer_hint() -> void:
+	labyrinth_level._tutorial_has_shotgun = true
+	labyrinth_level.initialize()
+
+	assert_false(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_HAMMER_COCK),
+		"Shotgun should not show hammer hint")
+	assert_true(labyrinth_level.is_tutorial_hint_active(MockLabyrinthLevel.HINT_RELOAD),
+		"Shotgun should show reload hint")
+
+
+# ============================================================================
+# LabyrinthLevel Rank Threshold Tests (Issue #823)
+# Shifted thresholds: score that previously gave A now gives S.
+# ============================================================================
+
+
+func test_labyrinth_rank_thresholds_exist() -> void:
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("S"),
+		"Labyrinth thresholds should have S")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("A+"),
+		"Labyrinth thresholds should have A+")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("A"),
+		"Labyrinth thresholds should have A")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("B"),
+		"Labyrinth thresholds should have B")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("C"),
+		"Labyrinth thresholds should have C")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("D"),
+		"Labyrinth thresholds should have D")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS.has("F"),
+		"Labyrinth thresholds should have F")
+
+
+func test_labyrinth_s_threshold_equals_old_a_threshold() -> void:
+	## Key requirement of Issue #823: S threshold is 0.70 (the old default A threshold).
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["S"], 0.70, 0.001,
+		"Laboratory S threshold should be 0.70 (same as default A threshold)")
+
+
+func test_labyrinth_a_plus_threshold_equals_old_b_threshold() -> void:
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A+"], 0.55, 0.001,
+		"Laboratory A+ threshold should be 0.55 (same as default B threshold)")
+
+
+func test_labyrinth_a_threshold_equals_old_c_threshold() -> void:
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A"], 0.38, 0.001,
+		"Laboratory A threshold should be 0.38 (same as default C threshold)")
+
+
+func test_labyrinth_b_threshold_equals_old_d_threshold() -> void:
+	assert_almost_eq(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["B"], 0.22, 0.001,
+		"Laboratory B threshold should be 0.22 (same as default D threshold)")
+
+
+func test_labyrinth_thresholds_are_lower_than_defaults() -> void:
+	## All non-F thresholds should be lower than or equal to their default equivalents.
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["S"] < 1.0,
+		"Laboratory S threshold should be lower than default (1.0)")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A+"] < 0.85,
+		"Laboratory A+ threshold should be lower than default (0.85)")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["A"] < 0.70,
+		"Laboratory A threshold should be lower than default (0.70)")
+	assert_true(MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS["B"] < 0.55,
+		"Laboratory B threshold should be lower than default (0.55)")
+
+
+func test_labyrinth_thresholds_descending_order() -> void:
+	var t := MockLabyrinthLevel.LABYRINTH_RANK_THRESHOLDS
+	assert_true(t["S"] > t["A+"], "S threshold must be greater than A+")
+	assert_true(t["A+"] > t["A"], "A+ threshold must be greater than A")
+	assert_true(t["A"] > t["B"], "A threshold must be greater than B")
+	assert_true(t["B"] > t["C"], "B threshold must be greater than C")
+	assert_true(t["C"] > t["D"], "C threshold must be greater than D")
+	assert_true(t["D"] > t["F"], "D threshold must be greater than F")

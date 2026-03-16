@@ -280,6 +280,10 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -301,6 +305,8 @@ func _setup_player_tracking() -> void:
 			_update_magazines_label(mag_counts)
 		# Configure silenced pistol ammo based on enemy count
 		_configure_silenced_pistol_ammo(weapon)
+		# Configure 2.5x ammo for MakarovPM (Issue #636)
+		_configure_makarov_pm_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -414,6 +420,32 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		print("[TestTier] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
 
 		# Update the ammo display after configuration
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
+## Applies to all difficulty modes including Hard.
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	if weapon.name != "MakarovPM":
+		return
+
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		print("[TestTier] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -709,6 +741,10 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
 		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
+		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
+		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
@@ -994,25 +1030,29 @@ func _show_victory_message() -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
 
-	# Check if replay data is available
-	replay_manager = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
 
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
+		# Check if replay data is available
+		replay_manager = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
 
-	buttons_container.add_child(replay_button)
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+
+		buttons_container.add_child(replay_button)
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1090,6 +1130,30 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 	buttons_container.add_child(replay_button)
 
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
+
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
@@ -1156,6 +1220,21 @@ func _on_level_select_pressed() -> void:
 		print("[TestTier] ERROR: Could not load levels menu script")
 
 
+## Called when the Armory button is pressed on the score screen (Issue #897).
+func _on_armory_button_pressed() -> void:
+	print("[TestTier] Armory button pressed from score screen")
+	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
+	if armory_menu_scene:
+		var armory_menu = armory_menu_scene.instantiate()
+		armory_menu.layer = 100
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
+		get_tree().root.add_child(armory_menu)
+		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+	else:
+		print("[TestTier] ERROR: Could not load armory menu scene")
+
+
 ## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
 ## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
@@ -1166,9 +1245,14 @@ func _get_next_level_path() -> String:
 
 	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):
@@ -1221,7 +1305,7 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager).
 	# This prevents double-equipping when both C# and GDScript weapon setup succeed.
-	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "sniper": "SniperRifle", "m16": "AssaultRifle"}
+	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "sniper": "SniperRifle", "m16": "AssaultRifle", "ak_gl": "AKGL", "revolver": "Revolver"}
 	if selected_weapon_id in weapon_names:
 		var expected_name: String = weapon_names[selected_weapon_id]
 		var existing = _player.get_node_or_null(expected_name)
@@ -1346,6 +1430,48 @@ func _setup_selected_weapon() -> void:
 			print("TestTier: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("TestTier: Failed to load AssaultRifle scene!")
+	# If AK + GL is selected, swap weapons
+	elif selected_weapon_id == "ak_gl":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("TestTier: Removed default MakarovPM")
+
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+
+			print("TestTier: AK + GL equipped successfully")
+		else:
+			push_error("TestTier: Failed to load AKGL scene!")
+	# If Revolver is selected, swap weapons
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("TestTier: Removed default MakarovPM")
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			print("TestTier: RSh-12 Revolver equipped successfully")
+		else:
+			push_error("TestTier: Failed to load Revolver scene!")
 	# For Makarov PM, it's already in the scene - just ensure it's equipped
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -1354,6 +1480,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(makarov)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = makarov
+
+			# Configure 2.5x ammo for MakarovPM (Issue #636)
+			_configure_makarov_pm_ammo(makarov)
 
 
 ## Starts recording the replay for this level.

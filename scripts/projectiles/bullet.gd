@@ -100,7 +100,9 @@ var _penetrating_body: Node2D = null
 var _has_penetrated: bool = false
 
 ## Enable/disable debug logging for penetration calculations.
-var _debug_penetration: bool = true
+## Issue #969: Set to false by default — having this true in gameplay generates
+## hundreds of file I/O operations per second during shootouts, causing FPS drops.
+var _debug_penetration: bool = false
 
 ## Default penetration settings (used when caliber_data is not set).
 const DEFAULT_CAN_PENETRATE: bool = true
@@ -119,8 +121,84 @@ const MAX_PENETRATION_CHANCE_AT_DISTANCE: float = 0.3  # 30% max at viewport dis
 var shooter_position: Vector2 = Vector2.ZERO
 
 ## Duration in seconds to stun enemies on hit (0 = no stun effect).
-## Set by weapons like MakarovPM and SilencedPistol via Node.Set().
+## Set by weapons like MakarovPM and SilencedPistol via Call("set_stun_duration", value).
 var stun_duration: float = 0.0
+
+## Whether this bullet has homing enabled (steers toward nearest enemy).
+var homing_enabled: bool = false
+
+## Maximum angle (in radians) the bullet can turn from its original direction.
+## Default 110 degrees = ~1.92 radians.
+var homing_max_turn_angle: float = deg_to_rad(110.0)
+
+## Steering force for homing (radians per second of turning).
+## Higher values make bullets turn faster.
+var homing_steer_speed: float = 8.0
+
+## The original firing direction (stored when homing is enabled).
+## Used to limit total turn angle.
+var _homing_original_direction: Vector2 = Vector2.ZERO
+
+## Enable/disable debug logging for homing calculations.
+var _debug_homing: bool = false
+
+## Whether to use aim-line targeting (Issue #704, #781).
+## When true, bullets home toward enemy nearest to shooter's crosshair instead of nearest to bullet.
+var _use_aim_line_targeting: bool = false
+
+## Shooter's position when firing (used for aim-line targeting).
+var _homing_shooter_origin: Vector2 = Vector2.ZERO
+
+## Shooter's aim direction when firing (used for aim-line targeting).
+var _homing_aim_direction: Vector2 = Vector2.ZERO
+
+## Whether this bullet uses breaker behavior (Issue #678).
+## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
+var is_breaker_bullet: bool = false
+
+## Whether this bullet penetrates through enemies (Issue #829).
+## When true, the bullet deals damage to enemies but continues flying through them.
+## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+var penetrates_enemies: bool = false
+
+## Set of enemy bodies this bullet has already dealt damage to (Issue #829).
+## Prevents the bullet from re-applying damage when _on_area_entered fires multiple times
+## for the same enemy (e.g., multiple hit areas or re-entry signals).
+## NOTE: Only populated by _on_area_entered AFTER damage is dealt.
+var _penetrated_enemy_bodies: Array = []
+
+## Set of enemy CharacterBody2D nodes the bullet has already passed through (Issue #829).
+## Used exclusively in _on_body_entered to suppress physics re-entry signals.
+## Kept separate from _penetrated_enemy_bodies so that _on_area_entered can still
+## deal damage even after _on_body_entered has already allowed the bullet through.
+var _passed_through_enemy_bodies: Array = []
+
+## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
+const BREAKER_DETONATION_DISTANCE: float = 60.0
+
+## Explosion damage radius for breaker bullet detonation (in pixels).
+const BREAKER_EXPLOSION_RADIUS: float = 15.0
+
+## Explosion damage dealt by breaker bullet detonation.
+const BREAKER_EXPLOSION_DAMAGE: float = 1.0
+
+## Half-angle of the shrapnel cone in degrees (total cone = 2 * half_angle).
+const BREAKER_SHRAPNEL_HALF_ANGLE: float = 30.0
+
+## Damage per breaker shrapnel piece.
+const BREAKER_SHRAPNEL_DAMAGE: float = 0.1
+
+## Multiplier for shrapnel count: shrapnel_count = bullet_damage * this multiplier.
+const BREAKER_SHRAPNEL_COUNT_MULTIPLIER: float = 10.0
+
+## Breaker shrapnel scene path.
+const BREAKER_SHRAPNEL_SCENE_PATH: String = "res://scenes/projectiles/BreakerShrapnel.tscn"
+
+## Cached breaker shrapnel scene (loaded once).
+var _breaker_shrapnel_scene: PackedScene = null
+
+## Enable/disable debug logging for breaker bullet behavior.
+var _debug_breaker: bool = false
 
 
 func _ready() -> void:
@@ -149,6 +227,14 @@ func _ready() -> void:
 
 	# Set initial rotation based on direction
 	_update_rotation()
+
+	# Load breaker shrapnel scene if this is a breaker bullet
+	if is_breaker_bullet:
+		if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
+			_breaker_shrapnel_scene = load(BREAKER_SHRAPNEL_SCENE_PATH)
+		if _debug_breaker:
+			FileLogger.info("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
+				"loaded" if _breaker_shrapnel_scene else "MISSING"))
 
 
 ## Calculates the viewport diagonal distance for post-ricochet lifetime.
@@ -189,6 +275,10 @@ func _log_penetration(message: String) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Apply homing steering if enabled
+	if homing_enabled:
+		_apply_homing_steering(delta)
+
 	# Calculate movement this frame
 	var movement := direction * speed * delta
 
@@ -202,7 +292,7 @@ func _physics_process(delta: float) -> void:
 		if _distance_since_ricochet >= _max_post_ricochet_distance:
 			if _debug_ricochet:
 				print("[Bullet] Post-ricochet distance exceeded: ", _distance_since_ricochet, " >= ", _max_post_ricochet_distance)
-			queue_free()
+			_destroy()
 			return
 
 	# Track penetration distance while inside a wall
@@ -215,7 +305,7 @@ func _physics_process(delta: float) -> void:
 			_log_penetration("Max penetration distance exceeded: %s >= %s" % [_penetration_distance_traveled, max_pen_distance])
 			# Bullet stopped inside the wall - destroy it
 			# Visual effects disabled as per user request
-			queue_free()
+			_destroy()
 			return
 
 		# Check if we've exited the obstacle (raycast forward to see if still inside)
@@ -223,13 +313,18 @@ func _physics_process(delta: float) -> void:
 		if not _is_still_inside_obstacle():
 			_exit_penetration()
 
+	# Check for breaker detonation (raycast ahead for walls)
+	if is_breaker_bullet and not _is_penetrating:
+		if _check_breaker_detonation():
+			return  # Bullet detonated and was freed
+
 	# Update trail effect
 	_update_trail()
 
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		_destroy()
 
 
 ## Updates the visual trail effect by maintaining position history.
@@ -259,6 +354,19 @@ func _on_body_entered(body: Node2D) -> void:
 	# This handles the CharacterBody2D collision (separate from HitArea collision)
 	if body.has_method("is_alive") and not body.is_alive():
 		return  # Pass through dead entities
+
+	# Issue #829: If enemy penetration is enabled and this is an alive enemy CharacterBody2D,
+	# allow the bullet to pass through without being destroyed.
+	# The _on_area_entered handler takes care of dealing damage via the enemy's HitArea.
+	# We track which enemy bodies we've already passed through (body-level) to suppress
+	# physics re-entry signals, using a SEPARATE set from _penetrated_enemy_bodies so that
+	# _on_area_entered can still deal damage on first entry.
+	if penetrates_enemies and body.has_method("is_alive") and body.is_alive():
+		if body not in _passed_through_enemy_bodies:
+			_passed_through_enemy_bodies.append(body)
+			if _debug_penetration:
+				print("[Bullet]: Penetrating through enemy CharacterBody2D, bullet continues flying")
+		return  # Don't destroy the bullet - it passes through the enemy body
 
 	# If we're currently penetrating the same body, ignore re-entry
 	if _is_penetrating and _penetrating_body == body:
@@ -319,7 +427,7 @@ func _on_body_entered(body: Node2D) -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		audio_manager.play_bullet_wall_hit(global_position)
-	queue_free()
+	_destroy()
 
 
 ## Called when the bullet exits a body (wall).
@@ -348,6 +456,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and shooter_id == parent.get_instance_id() and not _has_ricocheted:
 			return  # Don't hit the shooter with direct shots
 
+		# Force field protection: Block damage if target has active force field (Issue #676)
+		if parent and parent.has_method("is_force_field_active"):
+			if parent.is_force_field_active():
+				return  # Bullet is reflected by force field, damage blocked
+
 		# Power Fantasy mode: Ricocheted bullets do NOT damage the player
 		if _has_ricocheted and parent and parent.is_in_group("player"):
 			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
@@ -360,6 +473,13 @@ func _on_area_entered(area: Area2D) -> void:
 		# doesn't take effect immediately (see Godot issues #62506, #100687)
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
 			return  # Pass through dead entities
+
+		# Issue #829: When penetrating enemies, only deal damage to each enemy once per pass-through.
+		# The area_entered signal fires once on entry, but we guard against future re-entries
+		# (e.g., if the enemy has multiple hit areas or the bullet passes through slowly).
+		if penetrates_enemies and parent != null:
+			if parent in _penetrated_enemy_bodies:
+				return  # Already dealt damage to this enemy during this pass-through
 
 		# Calculate effective damage (base damage × multiplier from ricochets/penetration)
 		var effective_damage: float = damage * damage_multiplier
@@ -384,7 +504,17 @@ func _on_area_entered(area: Area2D) -> void:
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
 
-		queue_free()
+		# Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
+		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
+		if penetrates_enemies:
+			if _debug_penetration:
+				print("[Bullet]: Penetrating through enemy, bullet continues flying")
+			# Track the enemy so we don't re-apply damage on subsequent area_entered calls
+			if parent != null and parent not in _penetrated_enemy_bodies:
+				_penetrated_enemy_bodies.append(parent)
+			return  # Don't destroy the bullet - it passes through
+
+		_destroy()
 
 
 ## Attempts to ricochet the bullet off a surface.
@@ -489,6 +619,8 @@ func _calculate_impact_angle(surface_normal: Vector2) -> float:
 ## - 0-15°: ~100% (grazing shots always ricochet)
 ## - 45°: ~80% (moderate angles have good ricochet chance)
 ## - 90°: ~10% (perpendicular shots rarely ricochet)
+## When Ricochet Points experimental setting is enabled (Issue #975),
+## probability is increased by 20% at angles where ricochet is possible.
 func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	var max_angle: float
 	var base_probability: float
@@ -512,7 +644,16 @@ func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	# Power of 2.17 creates a curve matching real-world ballistics
 	var power_factor := pow(normalized_angle, 2.17)
 	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
-	return base_probability * angle_factor
+	var probability := base_probability * angle_factor
+
+	# Issue #1028: Trajectory Glasses passive effect boosts ricochet chance by 30%
+	# at angles where ricochet is possible (same condition as green trajectory ray).
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("has_trajectory_glasses"):
+		if active_item_manager.has_trajectory_glasses():
+			probability = minf(probability + 0.3, 1.0)
+
+	return probability
 
 
 ## Performs the ricochet: updates direction, speed, and damage.
@@ -620,9 +761,10 @@ func _is_player_bullet() -> bool:
 	if shooter == null:
 		return false
 
-	# Check if the shooter is a player by script path
-	var script: Script = shooter.get_script()
-	if script and script.resource_path.contains("player"):
+	# Use group membership for reliable player detection (works for both C# and GDScript players).
+	# The "player" group is set on the Player node in the scene, consistently used across the codebase.
+	# Note: script.resource_path.contains("player") would fail for C# Player (capital P).
+	if shooter is Node and (shooter as Node).is_in_group("player"):
 		return true
 
 	return false
@@ -886,7 +1028,7 @@ func _exit_penetration() -> void:
 
 	# Destroy bullet after successful penetration
 	# Bullets don't continue flying after penetrating a wall
-	queue_free()
+	_destroy()
 
 
 ## Spawns a visual hole effect at penetration entry or exit point.
@@ -929,3 +1071,670 @@ func is_penetrating() -> bool:
 ## Returns the distance traveled through walls while penetrating.
 func get_penetration_distance() -> float:
 	return _penetration_distance_traveled
+
+
+# ============================================================================
+# C# Interop Setter Methods (Issue #781)
+# ============================================================================
+# GDScript non-@export variables cannot be set from C# via Node.Set() - it silently fails.
+# These setter methods allow C# weapons to properly configure GDScript bullets via Call().
+# Must be called BEFORE AddChild() so that _ready() uses the correct values.
+
+
+## Sets the bullet travel direction and updates rotation.
+## Called from C# weapons via Call("set_direction", dir).
+func set_direction(dir: Vector2) -> void:
+	direction = dir.normalized()
+	_update_rotation()
+
+
+## Sets the bullet speed.
+func set_speed(spd: float) -> void:
+	speed = spd
+
+
+## Sets the bullet damage.
+func set_damage(dmg: float) -> void:
+	damage = dmg
+
+
+## Sets the shooter instance ID for self-hit prevention.
+func set_shooter_id(id: int) -> void:
+	shooter_id = id
+
+
+## Sets the shooter position for distance-based penetration calculations.
+func set_shooter_position(pos: Vector2) -> void:
+	shooter_position = pos
+
+
+## Sets the stun duration applied to enemies on hit.
+func set_stun_duration(duration: float) -> void:
+	stun_duration = duration
+
+
+## Sets whether this bullet uses breaker behavior.
+## NOTE: Call this BEFORE AddChild() so _ready() loads the shrapnel scene.
+func set_is_breaker_bullet(is_breaker: bool) -> void:
+	is_breaker_bullet = is_breaker
+
+
+## Sets whether this bullet penetrates through enemies (Issue #829).
+func set_penetrates_enemies(penetrate: bool) -> void:
+	penetrates_enemies = penetrate
+
+
+# ============================================================================
+# Homing Bullet System (Issue #677)
+# ============================================================================
+
+
+## Enables homing on this bullet, storing the original direction.
+func enable_homing() -> void:
+	homing_enabled = true
+	_homing_original_direction = direction.normalized()
+	if _debug_homing:
+		print("[Bullet] Homing enabled, original direction: ", _homing_original_direction)
+
+
+## Enables homing with aim-line targeting (Issue #704, #781).
+## Called when firing new bullets during homing activation.
+## Targets the enemy closest to the player's line of fire, matching C# Bullet.cs behavior.
+## @param shooter_pos: The player's position when firing.
+## @param aim_dir: The player's aim direction when firing.
+func enable_homing_with_aim_line(shooter_pos: Vector2, aim_dir: Vector2) -> void:
+	homing_enabled = true
+	_homing_original_direction = direction.normalized()
+	_use_aim_line_targeting = true
+	_homing_shooter_origin = shooter_pos
+	_homing_aim_direction = aim_dir.normalized()
+	if _debug_homing:
+		print("[Bullet] Homing enabled with aim-line targeting, aim: ", _homing_aim_direction)
+
+
+## Applies homing steering toward the nearest alive enemy.
+## The bullet turns toward the nearest enemy but cannot exceed the max turn angle
+## from its original firing direction (110 degrees each side).
+func _apply_homing_steering(delta: float) -> void:
+	# Only player bullets should home
+	if not _is_player_bullet():
+		return
+
+	# Find nearest alive enemy
+	var target_pos := _find_nearest_enemy_position()
+	if target_pos == Vector2.ZERO:
+		return  # No valid target found
+
+	# Calculate desired direction toward target
+	var to_target := (target_pos - global_position).normalized()
+
+	# Calculate the angle difference between current direction and desired
+	var angle_diff := direction.angle_to(to_target)
+
+	# Limit per-frame steering (smooth turning)
+	var max_steer_this_frame := homing_steer_speed * delta
+	angle_diff = clampf(angle_diff, -max_steer_this_frame, max_steer_this_frame)
+
+	# Calculate proposed new direction
+	var new_direction := direction.rotated(angle_diff).normalized()
+
+	# Check if the new direction would exceed the max turn angle from original
+	var angle_from_original := _homing_original_direction.angle_to(new_direction)
+	if absf(angle_from_original) > homing_max_turn_angle:
+		if _debug_homing:
+			print("[Bullet] Homing angle limit reached: ", rad_to_deg(absf(angle_from_original)), "°")
+		return  # Don't steer further, angle limit reached
+
+	# Apply the steering
+	direction = new_direction
+	_update_rotation()
+
+	if _debug_homing:
+		print("[Bullet] Homing steer: angle_diff=", rad_to_deg(angle_diff), "° total_turn=", rad_to_deg(absf(angle_from_original)), "°")
+
+
+## Finds the position of the best homing target enemy.
+## When aim-line targeting is active (Issue #704, #781), finds the enemy closest
+## to the player's line of fire. Otherwise, finds the nearest enemy to the bullet.
+## Returns Vector2.ZERO if no enemies are found.
+func _find_nearest_enemy_position() -> Vector2:
+	var tree := get_tree()
+	if tree == null:
+		return Vector2.ZERO
+
+	var enemies := tree.get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return Vector2.ZERO
+
+	if _use_aim_line_targeting:
+		return _find_enemy_nearest_to_aim_line(enemies)
+
+	var nearest_pos := Vector2.ZERO
+	var nearest_dist := INF
+
+	for enemy in enemies:
+		if not enemy is Node2D:
+			continue
+		# Skip dead enemies
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+		# Skip enemies behind walls (Issue #709)
+		if not _has_line_of_sight_to_target(enemy.global_position):
+			if _debug_homing:
+				print("[Bullet] Skipping enemy ", enemy.name, " - wall blocks line of sight")
+			continue
+		var dist := global_position.distance_squared_to(enemy.global_position)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest_pos = enemy.global_position
+
+	return nearest_pos
+
+
+## Finds the enemy closest to the player's aim line (Issue #704, #781).
+## Uses perpendicular distance from the aim ray to score enemies.
+## Only considers enemies within max turn angle of the aim direction.
+## Skips enemies blocked by walls (Issue #709).
+## Returns Vector2.ZERO if no valid target found.
+func _find_enemy_nearest_to_aim_line(enemies: Array[Node]) -> Vector2:
+	var best_target := Vector2.ZERO
+	var best_score := INF
+	var max_perp_distance := 500.0
+
+	for enemy in enemies:
+		if not enemy is Node2D:
+			continue
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+
+		var to_enemy: Vector2 = enemy.global_position - _homing_shooter_origin
+		var dist_to_enemy := to_enemy.length()
+		if dist_to_enemy < 1.0:
+			continue
+
+		# Check angle from aim direction
+		var angle := absf(_homing_aim_direction.angle_to(to_enemy.normalized()))
+		if angle > homing_max_turn_angle:
+			continue
+
+		# Perpendicular distance from aim line (cross product magnitude)
+		var perp_dist := absf(to_enemy.x * _homing_aim_direction.y - to_enemy.y * _homing_aim_direction.x)
+		if perp_dist > max_perp_distance:
+			continue
+
+		# Skip enemies behind walls (Issue #709)
+		if not _has_line_of_sight_to_target(enemy.global_position):
+			if _debug_homing:
+				print("[Bullet] Skipping enemy ", enemy.name, " - wall blocks line of sight (aim-line)")
+			continue
+
+		# Score: prioritize closeness to aim line, with distance as tiebreaker
+		var score := perp_dist + dist_to_enemy * 0.1
+		if score < best_score:
+			best_score = score
+			best_target = enemy.global_position
+
+	return best_target
+
+
+## Checks if there is clear line of sight from the bullet to a target position (Issue #709, #781).
+## Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
+## Returns false if a wall blocks the path, preventing bullets from turning into walls.
+func _has_line_of_sight_to_target(target_pos: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		return true  # Can't check, assume clear
+
+	var query := PhysicsRayQueryParameters2D.create(global_position, target_pos)
+	query.collision_mask = 4  # Layer 3 = obstacles/walls only
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.exclude = [self]
+
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()  # True if no wall in the way
+
+
+# ============================================================================
+# Breaker Bullet System (Issue #678)
+# ============================================================================
+
+
+## Checks if a wall or enemy is within BREAKER_DETONATION_DISTANCE ahead.
+## If so, triggers the breaker detonation and returns true.
+## @return: True if detonation occurred, false otherwise.
+func _check_breaker_detonation() -> bool:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		return false
+
+	# Raycast forward from bullet position
+	var ray_start := global_position
+	var ray_end := global_position + direction * BREAKER_DETONATION_DISTANCE
+
+	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end)
+	# Check against walls/obstacles and characters (enemies)
+	query.collision_mask = collision_mask
+	query.exclude = [self]
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return false  # Nothing ahead within detonation distance
+
+	# Check if the hit is a wall (StaticBody2D/TileMap) or an alive enemy (CharacterBody2D)
+	var collider: Object = result.collider
+	if collider is StaticBody2D or collider is TileMap:
+		# Wall detected within range — trigger detonation!
+		var detonation_pos := global_position
+		if _debug_breaker:
+			FileLogger.info("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
+				global_position.distance_to(result.position), detonation_pos])
+		_breaker_detonate(detonation_pos)
+		return true
+	elif collider is CharacterBody2D:
+		# Enemy detected — check if alive
+		if collider.has_method("is_alive") and collider.is_alive():
+			var detonation_pos := global_position
+			if _debug_breaker:
+				FileLogger.info("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
+					collider.name, global_position.distance_to(result.position), detonation_pos])
+			_breaker_detonate(detonation_pos)
+			return true
+
+	return false  # Hit something we don't detonate for
+
+
+## Triggers the breaker bullet detonation: explosion damage + shrapnel cone.
+## @param detonation_pos: The position where the detonation occurs.
+func _breaker_detonate(detonation_pos: Vector2) -> void:
+	# 1. Apply explosion damage in radius
+	_breaker_apply_explosion_damage(detonation_pos)
+
+	# 2. Spawn visual explosion effect
+	_breaker_spawn_explosion_effect(detonation_pos)
+
+	# 3. Spawn shrapnel in a forward cone
+	_breaker_spawn_shrapnel(detonation_pos)
+
+	# 4. Play explosion sound
+	_breaker_play_explosion_sound(detonation_pos)
+
+	# 5. Destroy the bullet
+	_destroy()
+
+
+## Applies explosion damage to all enemies within BREAKER_EXPLOSION_RADIUS.
+## @param center: Center of the explosion.
+func _breaker_apply_explosion_damage(center: Vector2) -> void:
+	# Find all enemies in the scene
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var players := get_tree().get_nodes_in_group("player")
+
+	# Check enemies in radius
+	for enemy in enemies:
+		if enemy is Node2D and enemy.has_method("is_alive") and enemy.is_alive():
+			var distance := center.distance_to(enemy.global_position)
+			if distance <= BREAKER_EXPLOSION_RADIUS:
+				# Check line of sight
+				if _breaker_has_line_of_sight(center, enemy.global_position):
+					_breaker_apply_damage_to(enemy, BREAKER_EXPLOSION_DAMAGE)
+
+	# Also check player (breaker explosion can hurt the player at close range)
+	for player in players:
+		if player is Node2D:
+			# Don't damage the shooter
+			if shooter_id == player.get_instance_id():
+				continue
+			var distance := center.distance_to(player.global_position)
+			if distance <= BREAKER_EXPLOSION_RADIUS:
+				if _breaker_has_line_of_sight(center, player.global_position):
+					_breaker_apply_damage_to(player, BREAKER_EXPLOSION_DAMAGE)
+
+
+## Applies damage to a target.
+func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
+	var hit_direction := (target.global_position - global_position).normalized()
+
+	if target.has_method("on_hit_with_bullet_info_and_damage"):
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount)
+	elif target.has_method("on_hit_with_info"):
+		target.on_hit_with_info(hit_direction, null)
+	elif target.has_method("on_hit"):
+		target.on_hit()
+
+	if _debug_breaker:
+		FileLogger.info("[Bullet.Breaker] Explosion damage %.1f applied to %s" % [amount, target.name])
+
+
+## Checks line of sight from a position to a target position.
+func _breaker_has_line_of_sight(from: Vector2, to: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(from, to)
+	query.collision_mask = 4  # Only check against obstacles
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()
+
+
+## Spawns a small visual explosion effect at the detonation point.
+func _breaker_spawn_explosion_effect(center: Vector2) -> void:
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+
+	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
+		impact_manager.spawn_explosion_effect(center, BREAKER_EXPLOSION_RADIUS)
+	else:
+		# Fallback: create simple flash
+		_breaker_create_simple_flash(center)
+
+
+## Plays a small explosion sound at the detonation point.
+func _breaker_play_explosion_sound(center: Vector2) -> void:
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+		# Use wall hit sound as explosion (small detonation)
+		audio_manager.play_bullet_wall_hit(center)
+
+	# Emit sound for AI awareness
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		# Small explosion — use shorter range than grenade
+		sound_propagation.emit_sound(1, center, 0, self, 500.0)  # 1 = EXPLOSION, 0 = PLAYER
+
+
+## Creates a simple explosion flash if no manager is available.
+func _breaker_create_simple_flash(center: Vector2) -> void:
+	var flash := Sprite2D.new()
+	var size := int(BREAKER_EXPLOSION_RADIUS) * 2
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var img_center := Vector2(BREAKER_EXPLOSION_RADIUS, BREAKER_EXPLOSION_RADIUS)
+
+	for x in range(size):
+		for y in range(size):
+			var pos := Vector2(x, y)
+			var dist := pos.distance_to(img_center)
+			if dist <= BREAKER_EXPLOSION_RADIUS:
+				var alpha := 1.0 - (dist / BREAKER_EXPLOSION_RADIUS)
+				image.set_pixel(x, y, Color(1.0, 0.8, 0.4, alpha))
+			else:
+				image.set_pixel(x, y, Color(0, 0, 0, 0))
+
+	flash.texture = ImageTexture.create_from_image(image)
+	flash.global_position = center
+	flash.modulate = Color(1.0, 0.7, 0.3, 0.9)
+	flash.z_index = 100
+
+	var scene := get_tree().current_scene
+	if scene:
+		scene.add_child(flash)
+		var tween := get_tree().create_tween()
+		tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+		tween.tween_callback(flash.queue_free)
+
+
+## Maximum shrapnel pieces per single detonation (performance cap, Issue #678 optimization).
+## This prevents FPS drops when many pellets detonate simultaneously (e.g. shotgun).
+const BREAKER_MAX_SHRAPNEL_PER_DETONATION: int = 10
+
+## Maximum total concurrent breaker shrapnel in the scene (global cap).
+## If exceeded, new shrapnel spawning is skipped to maintain FPS.
+const BREAKER_MAX_CONCURRENT_SHRAPNEL: int = 60
+
+
+## Checks if a position is inside a wall or obstacle (Issue #740).
+## Used to prevent spawning shrapnel inside walls.
+## @param pos: The position to check.
+## @return: true if position is inside a wall, false otherwise.
+func _is_position_inside_wall(pos: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = pos
+	query.collision_mask = 4  # Layer 3 (obstacles/walls)
+	var result := space_state.intersect_point(query, 1)
+	return not result.is_empty()
+
+
+## Spawns breaker shrapnel pieces in a forward cone.
+## Shrapnel count is capped for performance (Issue #678 optimization).
+## Validates spawn positions to prevent shrapnel spawning behind walls (Issue #740).
+func _breaker_spawn_shrapnel(center: Vector2) -> void:
+	if _breaker_shrapnel_scene == null:
+		if _debug_breaker:
+			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
+		return
+
+	# Check global concurrent shrapnel limit
+	var existing_shrapnel := get_tree().get_nodes_in_group("breaker_shrapnel")
+	if existing_shrapnel.size() >= BREAKER_MAX_CONCURRENT_SHRAPNEL:
+		if _debug_breaker:
+			FileLogger.info("[Bullet.Breaker] Skipping shrapnel spawn: global limit %d reached" % BREAKER_MAX_CONCURRENT_SHRAPNEL)
+		return
+
+	# Calculate shrapnel count based on bullet damage, capped for performance
+	var effective_damage := damage * damage_multiplier
+	var shrapnel_count := int(effective_damage * BREAKER_SHRAPNEL_COUNT_MULTIPLIER)
+	shrapnel_count = clampi(shrapnel_count, 1, BREAKER_MAX_SHRAPNEL_PER_DETONATION)
+
+	# Further reduce if approaching global limit
+	var remaining_budget := BREAKER_MAX_CONCURRENT_SHRAPNEL - existing_shrapnel.size()
+	shrapnel_count = mini(shrapnel_count, remaining_budget)
+
+	var half_angle_rad := deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE)
+
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+
+	var spawned_count := 0
+	var skipped_count := 0
+
+	for i in range(shrapnel_count):
+		# Random angle within the forward cone
+		var random_angle := randf_range(-half_angle_rad, half_angle_rad)
+		var shrapnel_direction := direction.rotated(random_angle)
+
+		# Calculate potential spawn position (Issue #740 fix)
+		var spawn_offset := 5.0
+		var spawn_pos := center + shrapnel_direction * spawn_offset
+
+		# Check if spawn position is inside a wall (Issue #740 fix)
+		if _is_position_inside_wall(spawn_pos):
+			if _debug_breaker:
+				FileLogger.info("[Bullet.Breaker] Skipping shrapnel #%d: spawn position inside wall at %s" % [i, spawn_pos])
+			skipped_count += 1
+			continue
+
+		# Try pooled breaker shrapnel first for performance (Issue #724)
+		var shrapnel: Node = null
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+
+		if pool_manager and pool_manager.has_method("get_breaker_shrapnel"):
+			shrapnel = pool_manager.get_breaker_shrapnel()
+			if shrapnel and shrapnel.has_method("pool_activate"):
+				shrapnel.pool_activate(spawn_pos, shrapnel_direction, shooter_id)
+				shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
+				shrapnel.speed = randf_range(1400.0, 2200.0)
+				spawned_count += 1
+				continue  # Shrapnel is ready, skip to next
+
+		# Fallback to instantiation
+		shrapnel = _breaker_shrapnel_scene.instantiate()
+		if shrapnel == null:
+			continue
+
+		# Set shrapnel properties
+		shrapnel.global_position = spawn_pos
+		shrapnel.direction = shrapnel_direction
+		shrapnel.source_id = shooter_id  # Prevent self-damage using original shooter
+		shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
+
+		# Vary speed slightly for natural spread
+		shrapnel.speed = randf_range(1400.0, 2200.0)
+
+		# Add to scene using call_deferred to batch scene tree changes (Issue #678 optimization)
+		scene.call_deferred("add_child", shrapnel)
+		spawned_count += 1
+
+	if _debug_breaker:
+		FileLogger.info("[Bullet.Breaker] Spawned %d shrapnel pieces (%d skipped, budget: %d) in %.0f-degree cone" % [
+			spawned_count, skipped_count, remaining_budget, BREAKER_SHRAPNEL_HALF_ANGLE * 2])
+
+
+# ============================================================================
+# Object Pooling Support (Issue #724)
+# ============================================================================
+
+
+## Whether this bullet is currently pooled (inactive).
+var _is_pooled: bool = false
+
+## Original speed value for reset.
+var _original_speed: float = 2500.0
+
+
+## Activates the bullet from the pool with the given parameters.
+## Call this instead of setting properties directly after getting from pool.
+## @param pos: Global position to spawn at.
+## @param dir: Direction of travel.
+## @param shooter: Instance ID of the shooter (for self-damage prevention).
+## @param caliber: Optional caliber data resource.
+func pool_activate(pos: Vector2, dir: Vector2, shooter: int, caliber: Resource = null) -> void:
+	# Reset all state to defaults
+	_reset_state()
+
+	# Set activation parameters
+	global_position = pos
+	direction = dir.normalized()
+	shooter_id = shooter
+	shooter_position = pos
+	caliber_data = caliber if caliber else _load_default_caliber_data()
+
+	# Update rotation to match direction
+	_update_rotation()
+
+	# Re-enable processing and visibility
+	visible = true
+	set_physics_process(true)
+	set_process(true)
+
+	# Re-enable collision detection
+	monitoring = true
+	monitorable = true
+
+	_is_pooled = false
+
+
+## Deactivates the bullet and prepares it for return to the pool.
+## Call this instead of queue_free() when using pooling.
+func pool_deactivate() -> void:
+	if _is_pooled:
+		return
+
+	_is_pooled = true
+
+	# Disable processing
+	set_physics_process(false)
+	set_process(false)
+
+	# Hide bullet
+	visible = false
+
+	# Disable collision detection
+	monitoring = false
+	monitorable = false
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+	_position_history.clear()
+
+	# Return to pool manager
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager and pool_manager.has_method("return_bullet"):
+		pool_manager.return_bullet(self)
+
+
+## Resets all bullet state to defaults for reuse.
+func _reset_state() -> void:
+	# Reset core properties
+	speed = _original_speed
+	damage = 1.0
+	damage_multiplier = 1.0
+	_time_alive = 0.0
+	direction = Vector2.RIGHT
+	shooter_id = -1
+	shooter_position = Vector2.ZERO
+
+	# Reset ricochet state
+	_ricochet_count = 0
+	_has_ricocheted = false
+	_distance_since_ricochet = 0.0
+	_ricochet_position = Vector2.ZERO
+	_max_post_ricochet_distance = 0.0
+
+	# Reset penetration state
+	_is_penetrating = false
+	_penetration_distance_traveled = 0.0
+	_penetration_entry_point = Vector2.ZERO
+	_penetrating_body = null
+	_has_penetrated = false
+
+	# Reset homing state
+	homing_enabled = false
+	_homing_original_direction = Vector2.ZERO
+
+	# Reset breaker state
+	is_breaker_bullet = false
+	_breaker_shrapnel_scene = null
+
+	# Reset stun
+	stun_duration = 0.0
+
+	# Clear position history
+	_position_history.clear()
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+
+
+## Returns whether this bullet is currently pooled (inactive).
+func is_pooled() -> bool:
+	return _is_pooled
+
+
+## Destroys the bullet using pooling when available, otherwise queue_free.
+## This method should be used instead of direct queue_free() calls for proper pooling.
+func _destroy() -> void:
+	if _is_pooled:
+		return  # Already pooled
+
+	# Try to use pooling if pool manager is available
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager:
+		pool_deactivate()
+	else:
+		queue_free()
+
+
+## Override queue_free to use pooling when available.
+## This allows existing code to continue using queue_free() without changes.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		# If we're being deleted and pool manager exists, this might be an error
+		# The pool system should use pool_deactivate instead
+		pass
+
+
+## Convenience method to get a bullet from the pool.
+## Returns null if pool manager not available, in which case use instantiate().
+static func from_pool() -> Node:
+	var pool_manager: Node = Engine.get_singleton("ProjectilePoolManager") if Engine.has_singleton("ProjectilePoolManager") else null
+	if pool_manager == null:
+		# Try alternative path
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree:
+			pool_manager = tree.root.get_node_or_null("ProjectilePoolManager")
+	if pool_manager and pool_manager.has_method("get_bullet"):
+		return pool_manager.get_bullet()
+	return null

@@ -1,0 +1,915 @@
+[22:19:38] [INFO] ============================================================
+[22:19:38] [INFO] GAME LOG STARTED
+[22:19:38] [INFO] ============================================================
+[22:19:38] [INFO] Timestamp: 2026-02-07T22:19:38
+[22:19:38] [INFO] Log file: I:/Загрузки/godot exe/микро фиксы/game_log_20260207_221938.txt
+[22:19:38] [INFO] Executable: I:/Загрузки/godot exe/микро фиксы/Godot-Top-Down-Template.exe
+[22:19:38] [INFO] OS: Windows
+[22:19:38] [INFO] Debug build: false
+[22:19:38] [INFO] Engine version: 4.3-stable (official)
+[22:19:38] [INFO] Project: Godot Top-Down Template
+[22:19:38] [INFO] ------------------------------------------------------------
+[22:19:38] [INFO] [GameManager] GameManager ready
+[22:19:38] [INFO] [ScoreManager] ScoreManager ready
+[22:19:38] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[22:19:38] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[22:19:38] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[22:19:38] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[22:19:38] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:19:38] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[22:19:38] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[22:19:38] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[22:19:38] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[22:19:38] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[22:19:38] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[22:19:38] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[22:19:38] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:19:38] [INFO] [LastChance] Last chance shader loaded successfully
+[22:19:38] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[22:19:38] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[22:19:38] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[22:19:38] [INFO] [LastChance]   Sepia intensity: 0.70
+[22:19:38] [INFO] [LastChance]   Brightness: 0.60
+[22:19:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[22:19:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[22:19:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[22:19:38] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: true, Invincibility: false, Realistic visibility: false
+[22:19:38] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[22:19:38] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[22:19:38] [INFO] [CinemaEffects] Created effects layer at layer 99
+[22:19:38] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[22:19:38] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[22:19:38] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[22:19:38] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[22:19:38] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[22:19:38] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[22:19:38] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[22:19:38] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[22:19:38] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[22:19:38] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[22:19:38] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[22:19:38] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[22:19:38] [INFO] [GrenadeTimerHelper] Autoload ready
+[22:19:38] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[22:19:38] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[22:19:38] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[22:19:38] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[22:19:38] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[22:19:38] [INFO] [ProgressManager] ProgressManager ready, loaded 5 entries
+[22:19:38] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[22:19:38] [ENEMY] [Enemy1] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[22:19:38] [ENEMY] [Enemy2] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[22:19:38] [ENEMY] [Enemy3] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[22:19:38] [ENEMY] [Enemy4] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[22:19:38] [ENEMY] [Enemy5] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[22:19:38] [ENEMY] [Enemy6] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[22:19:38] [ENEMY] [Enemy7] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[22:19:38] [ENEMY] [Enemy8] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[22:19:38] [ENEMY] [Enemy9] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[22:19:38] [ENEMY] [Enemy10] Death animation component initialized
+[22:19:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:38] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:19:38] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:19:38] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:19:38] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:19:38] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[22:19:38] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:19:38] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:19:38] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:19:38] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:19:38] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:19:38] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:19:39] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[22:19:39] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 1/3, Health: 10/10
+[22:19:39] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:19:39] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[22:19:39] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[22:19:39] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[22:19:39] [INFO] [BuildingLevel] Setting up weapon: makarov_pm
+[22:19:39] [INFO] [ScoreManager] Level started with 10 enemies
+[22:19:39] [INFO] [BuildingLevel] ReplayManager found as C# autoload - verified OK
+[22:19:39] [INFO] [BuildingLevel] Starting replay recording - Player: Player, Enemies count: 10
+[22:19:39] [INFO] [ReplayManager] Replay data cleared
+[22:19:39] [INFO] [BuildingLevel] Previous replay data cleared
+[22:19:39] [INFO] [ReplayManager] Detected player weapon: Assault Rifle (default)
+[22:19:39] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[22:19:39] [INFO] [ReplayManager] Level: BuildingLevel
+[22:19:39] [INFO] [ReplayManager] Player: Player (valid: True)
+[22:19:39] [INFO] [ReplayManager] Enemies count: 10
+[22:19:39] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+[22:19:39] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[22:19:39] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[22:19:39] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[22:19:39] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[22:19:39] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[22:19:39] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[22:19:39] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[22:19:39] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[22:19:39] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[22:19:39] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[22:19:39] [INFO] [BuildingLevel] Replay recording started successfully
+[22:19:39] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[22:19:39] [INFO] [CinemaEffects] Found player node: Player
+[22:19:39] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:19:39] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[22:19:39] [ENEMY] [Enemy1] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[22:19:39] [ENEMY] [Enemy2] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 3, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[22:19:39] [ENEMY] [Enemy3] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[22:19:39] [ENEMY] [Enemy4] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[22:19:39] [ENEMY] [Enemy5] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 4, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[22:19:39] [ENEMY] [Enemy6] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 3, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[22:19:39] [ENEMY] [Enemy7] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 4, behavior: PATROL
+[22:19:39] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[22:19:39] [ENEMY] [Enemy8] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[22:19:39] [ENEMY] [Enemy9] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 2, behavior: GUARD
+[22:19:39] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[22:19:39] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[22:19:39] [ENEMY] [Enemy10] Registered as sound listener
+[22:19:39] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[22:19:39] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:19:39] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=123.7°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=180.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:19:39] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:19:39] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[22:19:39] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[22:19:39] [INFO] [PenultimateHit] Shader warmup complete in 446 ms
+[22:19:39] [INFO] [LastChance] Shader warmup complete in 445 ms
+[22:19:39] [INFO] [CinemaEffects] Cinema shader warmup complete in 393 ms
+[22:19:39] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:19:39] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:19:39] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:19:39] [INFO] [LastChance] Found player: Player
+[22:19:39] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:19:39] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:19:39] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:19:39] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:19:39] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 719 ms
+[22:19:40] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[22:19:41] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[22:19:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:42] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:19:42] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:19:42] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[22:19:42] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[22:19:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:42] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:19:42] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:19:42] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:19:42] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:19:42] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:19:42] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:19:42] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:19:42] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:19:42] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:19:42] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:19:42] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:19:42] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[22:19:42] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 10/10
+[22:19:42] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:19:42] [INFO] [CinemaEffects] Found player node: Player
+[22:19:42] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:19:42] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:19:42] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:19:42] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[22:19:42] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[22:19:42] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:19:42] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:19:42] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:19:42] [INFO] [LastChance] Found player: Player
+[22:19:42] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:19:42] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:19:42] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:19:42] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:19:42] [INFO] [ReplayManager] Recording frame 180 (3,1s): player_valid=False, enemies=10
+[22:19:42] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:42] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[22:19:42] [INFO] [Player.Grenade] G pressed - starting grab animation
+[22:19:42] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:42] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (782.3772, 198.36736)
+[22:19:42] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[22:19:42] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[22:19:42] [INFO] [GrenadeTimer] Initialized for Flashbang grenade, effect radius: 400
+[22:19:42] [INFO] [Player.Grenade] Added GrenadeTimer component (type: Flashbang)
+[22:19:42] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[22:19:42] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[22:19:42] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[22:19:42] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[22:19:42] [INFO] [Player.Grenade] Step 1 complete! Drag: (257.13623, 16.029678)
+[22:19:42] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[22:19:42] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[22:19:43] [INFO] [ReplayManager] Recording frame 240 (4,1s): player_valid=False, enemies=10
+[22:19:44] [INFO] [ReplayManager] Recording frame 300 (5,1s): player_valid=False, enemies=10
+[22:19:44] [INFO] [Player.Grenade.Simple] Throwing! Target: (755.5737, 161.63266), Distance: 545,9, Speed: 616,4, Friction: 300,0
+[22:19:44] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,032500252
+[22:19:44] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[22:19:44] [INFO] [Player.Grenade.Simple] C# set velocity directly: dir=(0.99947196, 0.032494534), speed=616,4, spawn=(209.96832, 143.8941)
+[22:19:44] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.999472, 0.032495), Speed: 616.4 (clamped from 616.4, max: 1352.8)
+[22:19:44] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[22:19:44] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[22:19:44] [INFO] [Player.Grenade] State reset to IDLE
+[22:19:44] [INFO] [Player.Grenade] State reset to IDLE
+[22:19:44] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[22:19:44] [INFO] [Player.Grenade] Player rotation restored to 0
+[22:19:45] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[22:19:45] [INFO] [ReplayManager] Recording frame 360 (6,1s): player_valid=False, enemies=10
+[22:19:45] [INFO] [GrenadeTimer] Flashbang grenade landed at (584.37256, 156.06668)
+[22:19:45] [INFO] [SoundPropagation] Sound emitted: type=GRENADE_LANDING, pos=(584.3726, 156.0667), source=NEUTRAL (FlashbangGrenade), range=112, listeners=10
+[22:19:45] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[22:19:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:19:45] [INFO] [GrenadeTimer] Emitted grenade landing sound at (584.37256, 156.06668)
+[22:19:45] [INFO] [SoundPropagation] Sound emitted: type=GRENADE_LANDING, pos=(585.1476, 156.0919), source=NEUTRAL (FlashbangGrenade), range=112, listeners=0
+[22:19:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:19:45] [INFO] [GrenadeBase] Grenade landed at (585.1476, 156.0919)
+[22:19:46] [INFO] [ReplayManager] Recording frame 420 (7,1s): player_valid=False, enemies=10
+[22:19:46] [INFO] [GrenadeBase] EXPLODED at (586.5894, 156.1387)!
+[22:19:46] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+[22:19:46] [INFO] [LastChance] Grenade explosion triggering last chance effect for 2.00 seconds
+[22:19:46] [INFO] [LastChance] Starting last chance effect:
+[22:19:46] [INFO] [LastChance]   - Time will be frozen (except player)
+[22:19:46] [INFO] [LastChance]   - Duration: 2.00 real seconds
+[22:19:46] [INFO] [LastChance]   - Trigger: grenade explosion
+[22:19:46] [INFO] [LastChance]   - Sepia intensity: 0.70
+[22:19:46] [INFO] [LastChance]   - Brightness: 0.60
+[22:19:46] [INFO] [LastChance] Set player Player and all 26 children to PROCESS_MODE_ALWAYS
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'Obstacle1' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'Obstacle2' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'Obstacle3' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall1' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall2' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall3' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'Cover1' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Set StaticBody2D 'Cover2' to PROCESS_MODE_ALWAYS for collision
+[22:19:46] [INFO] [LastChance] Skipping player node: Player
+[22:19:46] [INFO] [LastChance] Froze existing grenade: FlashbangGrenade
+[22:19:46] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[22:19:46] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[22:19:46] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[22:19:46] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(586.5894, 156.1387), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=0
+[22:19:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:19:46] [INFO] [LastChance] Freezing newly created explosion visual effect (Node2D): FlashbangEffect
+[22:19:46] [INFO] [LastChance] Registered frozen explosion visual: FlashbangEffect
+[22:19:46] [INFO] [LastChance] Freezing newly created explosion effect: PointLight2D
+[22:19:46] [INFO] [LastChance] Registered frozen explosion effect: PointLight2D
+[22:19:46] [INFO] [ImpactEffects] Flashbang effect spawned at (586.5894, 156.1387) (radius=400)
+[22:19:47] [INFO] [ReplayManager] Recording frame 480 (8,1s): player_valid=False, enemies=10
+[22:19:47] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:47] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:47] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:19:47] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:19:47] [INFO] [LastChance] All process modes restored
+[22:19:47] [INFO] [LastChance] Restored original colors to 5 player sprites
+[22:19:47] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[22:19:47] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[22:19:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:47] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:19:47] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:19:47] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:19:47] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:19:47] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:19:47] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:19:47] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:19:47] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:19:47] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:19:47] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:19:47] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:19:47] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[22:19:47] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 10/10
+[22:19:47] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:19:47] [INFO] [CinemaEffects] Found player node: Player
+[22:19:47] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:19:47] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:19:47] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:19:47] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[22:19:47] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[22:19:47] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:19:47] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:19:47] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:19:47] [INFO] [LastChance] Found player: Player
+[22:19:47] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:19:47] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:19:47] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:19:47] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:19:48] [INFO] [ReplayManager] Recording frame 540 (9,1s): player_valid=False, enemies=10
+[22:19:49] [INFO] [ReplayManager] Recording frame 600 (10,1s): player_valid=False, enemies=10
+[22:19:49] [INFO] [PauseMenu] Armory button pressed
+[22:19:49] [INFO] [PauseMenu] Creating new armory menu instance
+[22:19:49] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[22:19:49] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[22:19:49] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[22:19:49] [INFO] [PauseMenu] back_pressed signal exists on instance
+[22:19:49] [INFO] [PauseMenu] back_pressed signal connected
+[22:19:49] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[22:19:49] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[22:19:50] [INFO] [ReplayManager] Recording frame 660 (11,1s): player_valid=False, enemies=10
+[22:19:51] [INFO] [GrenadeManager] Grenade type changed from Flashbang to Frag Grenade
+[22:19:51] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:51] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:51] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:19:51] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:19:51] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[22:19:51] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[22:19:51] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:51] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:19:51] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:19:51] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:19:51] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[22:19:51] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:19:51] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:19:51] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:19:51] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:19:51] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:19:51] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:19:51] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:19:51] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[22:19:51] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 10/10
+[22:19:51] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:19:51] [INFO] [CinemaEffects] Found player node: Player
+[22:19:51] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:19:51] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:19:51] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:19:51] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[22:19:51] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[22:19:51] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:19:51] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:19:51] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:19:51] [INFO] [LastChance] Found player: Player
+[22:19:51] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:19:51] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:19:51] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:19:51] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:19:51] [INFO] [ReplayManager] Recording frame 720 (12,1s): player_valid=False, enemies=10
+[22:19:51] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:51] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[22:19:51] [INFO] [Player.Grenade] G pressed - starting grab animation
+[22:19:51] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:51] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (629.98004, 595.10205)
+[22:19:51] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[22:19:51] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[22:19:51] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[22:19:51] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+[22:19:51] [INFO] [Player.Grenade] Added GrenadeTimer component (type: Frag)
+[22:19:51] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[22:19:51] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[22:19:51] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[22:19:51] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[22:19:51] [INFO] [Player.Grenade] Step 1 complete! Drag: (49.23163, -16.69757)
+[22:19:51] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[22:19:51] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[22:19:51] [INFO] [Player.Grenade.Simple] Throwing! Target: (1221.5707, 464.86087), Distance: 1016,7, Speed: 812,7, Friction: 280,0
+[22:19:51] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,097546585
+[22:19:51] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[22:19:51] [INFO] [Player.Grenade.Simple] C# set velocity directly: dir=(0.9952462, 0.09739197), speed=812,7, spawn=(209.71477, 365.8435)
+[22:19:51] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.995246, 0.097392), Speed: 812.7 (clamped from 812.7, max: 1186.5)
+[22:19:51] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[22:19:51] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[22:19:51] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[22:19:51] [INFO] [Player.Grenade] State reset to IDLE
+[22:19:51] [INFO] [Player.Grenade] State reset to IDLE
+[22:19:51] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[22:19:52] [INFO] [Player.Grenade] Player rotation restored to 0
+[22:19:52] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[22:19:52] [INFO] [GrenadeBase] Collision detected with Obstacle3 (type: StaticBody2D)
+[22:19:52] [INFO] [FragGrenade] Impact detected! Body: Obstacle3 (type: StaticBody2D), triggering explosion
+[22:19:52] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[22:19:52] [INFO] [GrenadeBase] EXPLODED at (475.291, 394.8341)!
+[22:19:52] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+[22:19:52] [INFO] [LastChance] Grenade explosion triggering last chance effect for 2.00 seconds
+[22:19:52] [INFO] [LastChance] Starting last chance effect:
+[22:19:52] [INFO] [LastChance]   - Time will be frozen (except player)
+[22:19:52] [INFO] [LastChance]   - Duration: 2.00 real seconds
+[22:19:52] [INFO] [LastChance]   - Trigger: grenade explosion
+[22:19:52] [INFO] [LastChance]   - Sepia intensity: 0.70
+[22:19:52] [INFO] [LastChance]   - Brightness: 0.60
+[22:19:52] [INFO] [LastChance] Set player Player and all 26 children to PROCESS_MODE_ALWAYS
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'Obstacle1' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'Obstacle2' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'Obstacle3' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall1' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall2' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall3' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'Cover1' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Set StaticBody2D 'Cover2' to PROCESS_MODE_ALWAYS for collision
+[22:19:52] [INFO] [LastChance] Skipping player node: Player
+[22:19:52] [INFO] [LastChance] Froze existing grenade: FragGrenade
+[22:19:52] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[22:19:52] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[22:19:52] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[22:19:52] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(475.291, 394.8341), source=NEUTRAL (FragGrenade), range=2937, listeners=0
+[22:19:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: Shrapnel
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: Shrapnel
+[22:19:52] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -5.2 degrees
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: @Area2D@499
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: @Area2D@499
+[22:19:52] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 108.3 degrees
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: @Area2D@500
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: @Area2D@500
+[22:19:52] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 165.7 degrees
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: @Area2D@501
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: @Area2D@501
+[22:19:52] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 287.8 degrees
+[22:19:52] [INFO] [ImpactEffects] Spawning explosion visual effect at (475.291, 394.8341) (radius=225) - using shadow-based wall occlusion
+[22:19:52] [INFO] [LastChance] Freezing newly created explosion effect: @PointLight2D@502
+[22:19:52] [INFO] [LastChance] Registered frozen explosion effect: @PointLight2D@502
+[22:19:52] [INFO] [GrenadeTimer] Impact detected with Obstacle3 - EXPLODING!
+[22:19:52] [INFO] [GrenadeTimer] EXPLODED at (475.291, 394.8341)!
+[22:19:52] [INFO] [GrenadeTimer] Applying frag explosion damage (radius: 225, damage: 99)
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: @Area2D@503
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: @Area2D@503
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: @Area2D@504
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: @Area2D@504
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: @Area2D@505
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: @Area2D@505
+[22:19:52] [INFO] [LastChance] Freezing newly created shrapnel: @Area2D@506
+[22:19:52] [INFO] [LastChance] Registered frozen shrapnel: @Area2D@506
+[22:19:52] [INFO] [GrenadeTimer] Spawned 4 shrapnel pieces
+[22:19:52] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(475.291, 394.8341), source=NEUTRAL (FragGrenade), range=2938, listeners=0
+[22:19:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:19:52] [INFO] [LastChance] Freezing newly created explosion visual effect (Node2D): ExplosionFlash
+[22:19:52] [INFO] [LastChance] Registered frozen explosion visual: ExplosionFlash
+[22:19:52] [INFO] [LastChance] Freezing newly created explosion effect: PointLight2D
+[22:19:52] [INFO] [LastChance] Registered frozen explosion effect: PointLight2D
+[22:19:52] [INFO] [GrenadeTimer] Spawned PointLight2D frag explosion flash at (475.291, 394.8341) (shadow-based wall occlusion)
+[22:19:52] [INFO] [ReplayManager] Recording frame 780 (13,1s): player_valid=False, enemies=10
+[22:19:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:52] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:19:52] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:19:52] [INFO] [LastChance] All process modes restored
+[22:19:52] [INFO] [LastChance] Restored original colors to 5 player sprites
+[22:19:52] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[22:19:52] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[22:19:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:52] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:19:52] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:19:52] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:19:52] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[22:19:52] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:19:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:19:52] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:19:52] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:19:52] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:19:52] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:19:52] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:19:52] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[22:19:52] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 10/10
+[22:19:52] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:19:52] [INFO] [CinemaEffects] Found player node: Player
+[22:19:52] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:19:52] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:19:52] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:19:52] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[22:19:52] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[22:19:52] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:19:52] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:19:52] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:19:52] [INFO] [LastChance] Found player: Player
+[22:19:52] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:19:52] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:19:52] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:19:52] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:19:53] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:53] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[22:19:53] [INFO] [Player.Grenade] G pressed - starting grab animation
+[22:19:53] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:53] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (968.48157, 418.1076)
+[22:19:53] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[22:19:53] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[22:19:53] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[22:19:53] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 225
+[22:19:53] [INFO] [Player.Grenade] Added GrenadeTimer component (type: Frag)
+[22:19:53] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[22:19:53] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[22:19:53] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[22:19:53] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[22:19:53] [INFO] [Player.Grenade] Step 1 complete! Drag: (87.774536, 0)
+[22:19:53] [INFO] [ReplayManager] Recording frame 840 (14,1s): player_valid=False, enemies=10
+[22:19:53] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[22:19:53] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[22:19:54] [INFO] [ReplayManager] Recording frame 900 (15,1s): player_valid=False, enemies=10
+[22:19:54] [INFO] [Player.Grenade.Simple] Throwing! Target: (754.21594, 164.97217), Distance: 549,2, Speed: 597,3, Friction: 280,0
+[22:19:54] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,12842807
+[22:19:54] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[22:19:54] [INFO] [Player.Grenade.Simple] C# set velocity directly: dir=(0.9917644, 0.12807532), speed=597,3, spawn=(209.50586, 94.62894)
+[22:19:54] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.991764, 0.128075), Speed: 597.3 (clamped from 597.3, max: 1186.5)
+[22:19:54] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[22:19:54] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[22:19:54] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[22:19:54] [INFO] [Player.Grenade] State reset to IDLE
+[22:19:54] [INFO] [Player.Grenade] State reset to IDLE
+[22:19:54] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[22:19:54] [INFO] [Player.Grenade] Player rotation restored to 0
+[22:19:55] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[22:19:55] [INFO] [ReplayManager] Recording frame 960 (16,1s): player_valid=False, enemies=10
+[22:19:55] [INFO] [GrenadeTimer] Frag grenade landed - EXPLODING!
+[22:19:55] [INFO] [GrenadeTimer] EXPLODED at (581.69965, 142.69357)!
+[22:19:55] [INFO] [GrenadeTimer] Applying frag explosion damage (radius: 225, damage: 99)
+[22:19:55] [INFO] [GrenadeTimer] Spawned 4 shrapnel pieces
+[22:19:55] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(581.6996, 142.6936), source=NEUTRAL (FragGrenade), range=2938, listeners=0
+[22:19:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:19:55] [INFO] [GrenadeTimer] Spawned PointLight2D frag explosion flash at (581.69965, 142.69357) (shadow-based wall occlusion)
+[22:19:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:56] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:19:56] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:19:56] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[22:19:56] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[22:19:56] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:56] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:19:56] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:19:56] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:19:56] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[22:19:56] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:19:56] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:19:56] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:19:56] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:19:56] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:19:56] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:19:56] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:19:56] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[22:19:56] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 10/10
+[22:19:56] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:19:56] [INFO] [CinemaEffects] Found player node: Player
+[22:19:56] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:19:56] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:19:56] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:19:56] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[22:19:56] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[22:19:56] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:19:56] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:19:56] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:19:56] [INFO] [LastChance] Found player: Player
+[22:19:56] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:19:56] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:19:56] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:19:56] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:19:56] [INFO] [ReplayManager] Recording frame 1020 (17,1s): player_valid=False, enemies=10
+[22:19:57] [INFO] [ReplayManager] Recording frame 1080 (18,1s): player_valid=False, enemies=10
+[22:19:57] [INFO] [PauseMenu] Armory button pressed
+[22:19:57] [INFO] [PauseMenu] Creating new armory menu instance
+[22:19:57] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[22:19:57] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[22:19:57] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[22:19:57] [INFO] [PauseMenu] back_pressed signal exists on instance
+[22:19:57] [INFO] [PauseMenu] back_pressed signal connected
+[22:19:57] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[22:19:57] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[22:19:58] [INFO] [ReplayManager] Recording frame 1140 (19,1s): player_valid=False, enemies=10
+[22:19:59] [INFO] [GrenadeManager] Grenade type changed from Frag Grenade to F-1 Grenade
+[22:19:59] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:59] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:19:59] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:19:59] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:19:59] [INFO] [CinemaEffects] Scene changed to: Tutorial
+[22:19:59] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[22:19:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:19:59] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:19:59] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:19:59] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:19:59] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[22:19:59] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:19:59] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:19:59] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:19:59] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:19:59] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:19:59] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:19:59] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:19:59] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[22:19:59] [INFO] [Player] Ready! Ammo: 9/9, Grenades: 3/3, Health: 10/10
+[22:19:59] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:19:59] [INFO] [CinemaEffects] Found player node: Player
+[22:19:59] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:19:59] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:19:59] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:19:59] [INFO] [Player] Detected weapon: Makarov PM (Pistol pose)
+[22:19:59] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[22:19:59] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:19:59] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:19:59] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:19:59] [INFO] [LastChance] Found player: Player
+[22:19:59] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:19:59] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:19:59] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:19:59] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:19:59] [INFO] [ReplayManager] Recording frame 1200 (20,1s): player_valid=False, enemies=10
+[22:19:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:59] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[22:19:59] [INFO] [Player.Grenade] G pressed - starting grab animation
+[22:19:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:19:59] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (617.1755, 450.8349)
+[22:19:59] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[22:19:59] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[22:19:59] [INFO] [DefensiveGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[22:19:59] [INFO] [GrenadeTimer] Initialized for Flashbang grenade, effect radius: 700
+[22:19:59] [INFO] [Player.Grenade] Added GrenadeTimer component (type: Flashbang)
+[22:19:59] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[22:19:59] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[22:19:59] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[22:19:59] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[22:19:59] [INFO] [Player.Grenade] Step 1 complete! Drag: (358.81195, -37.40262)
+[22:19:59] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[22:19:59] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[22:20:00] [INFO] [ReplayManager] Recording frame 1260 (21,1s): player_valid=False, enemies=10
+[22:20:01] [INFO] [ReplayManager] Recording frame 1320 (22,1s): player_valid=False, enemies=10
+[22:20:01] [INFO] [Player.Grenade.Simple] Throwing! Target: (749.55927, 164.30426), Distance: 540,2, Speed: 613,2, Friction: 300,0
+[22:20:01] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,046433788
+[22:20:01] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[22:20:01] [INFO] [Player.Grenade.Simple] C# set velocity directly: dir=(0.99892217, 0.046417106), speed=613,2, spawn=(209.93533, 139.22945)
+[22:20:01] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.998922, 0.046417), Speed: 613.2 (clamped from 613.2, max: 1000.0)
+[22:20:01] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[22:20:01] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[22:20:01] [INFO] [Player.Grenade] State reset to IDLE
+[22:20:01] [INFO] [Player.Grenade] State reset to IDLE
+[22:20:01] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[22:20:01] [INFO] [Player.Grenade] Player rotation restored to 0
+[22:20:01] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[22:20:02] [INFO] [ReplayManager] Recording frame 1380 (23,1s): player_valid=False, enemies=10
+[22:20:02] [INFO] [SoundPropagation] Sound emitted: type=GRENADE_LANDING, pos=(580.5979, 156.4531), source=NEUTRAL (DefensiveGrenade), range=112, listeners=0
+[22:20:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:20:02] [INFO] [GrenadeBase] Grenade landed at (580.5979, 156.4531)
+[22:20:02] [INFO] [GrenadeTimer] Flashbang grenade landed at (580.5979, 156.45312)
+[22:20:02] [INFO] [SoundPropagation] Sound emitted: type=GRENADE_LANDING, pos=(580.5979, 156.4531), source=NEUTRAL (DefensiveGrenade), range=112, listeners=0
+[22:20:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:20:02] [INFO] [GrenadeTimer] Emitted grenade landing sound at (580.5979, 156.45312)
+[22:20:03] [INFO] [ReplayManager] Recording frame 1440 (24,1s): player_valid=False, enemies=10
+[22:20:03] [INFO] [GrenadeBase] EXPLODED at (582.4979, 156.5414)!
+[22:20:03] [INFO] [PowerFantasy] Grenade exploded - triggering last chance time-freeze effect for 2000ms
+[22:20:03] [INFO] [LastChance] Grenade explosion triggering last chance effect for 2.00 seconds
+[22:20:03] [INFO] [LastChance] Starting last chance effect:
+[22:20:03] [INFO] [LastChance]   - Time will be frozen (except player)
+[22:20:03] [INFO] [LastChance]   - Duration: 2.00 real seconds
+[22:20:03] [INFO] [LastChance]   - Trigger: grenade explosion
+[22:20:03] [INFO] [LastChance]   - Sepia intensity: 0.70
+[22:20:03] [INFO] [LastChance]   - Brightness: 0.60
+[22:20:03] [INFO] [LastChance] Set player Player and all 26 children to PROCESS_MODE_ALWAYS
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'Obstacle1' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'Obstacle2' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'Obstacle3' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall1' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall2' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'GrenadeWall3' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'Cover1' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Set StaticBody2D 'Cover2' to PROCESS_MODE_ALWAYS for collision
+[22:20:03] [INFO] [LastChance] Skipping player node: Player
+[22:20:03] [INFO] [LastChance] Froze existing grenade: DefensiveGrenade
+[22:20:03] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[22:20:03] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[22:20:03] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[22:20:03] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(582.4979, 156.5414), source=NEUTRAL (DefensiveGrenade), range=2937, listeners=0
+[22:20:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:20:03] [INFO] [DefensiveGrenade] Player found in blast radius at distance 433.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 9.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 9.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 8.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 8.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 7.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 7.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 6.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 6.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 5.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 5.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 4.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 4.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=False (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=false
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[22:20:03] [INFO] [PenultimateHit] Triggering penultimate hit effect (HP: 1.0)
+[22:20:03] [INFO] [PenultimateHit] Starting penultimate hit effect:
+[22:20:03] [INFO] [PenultimateHit]   - Time scale: 0.10
+[22:20:03] [INFO] [PenultimateHit]   - Saturation boost: 2.00 (3.0x)
+[22:20:03] [INFO] [PenultimateHit]   - Contrast boost: 1.00 (2.0x)
+[22:20:03] [INFO] [PenultimateHit]   - Duration: 3.0 real seconds
+[22:20:03] [INFO] [PenultimateHit] Applied shader parameters: saturation=2.00, contrast=1.00
+[22:20:03] [INFO] [PenultimateHit] Applying saturation to 10 enemies
+[22:20:03] [INFO] [PenultimateHit] Applied 4.0x saturation to 6 player sprites
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[22:20:03] [INFO] [Player] Spawning blood effect at (150, 136.44443), dir=(-0.99892217, -0.046417195), lethal=True (C#)
+[22:20:03] [INFO] [ImpactEffects] spawn_blood_effect called at (150, 136.4444), dir=(-0.998922, -0.046417), lethal=true
+[22:20:03] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[22:20:03] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[22:20:03] [INFO] [ImpactEffects] Wall found for blood splatter at (64, 132.4482) (dist=86 px)
+[22:20:03] [INFO] [BloodDecal] Blood puddle created at (65, 132.4482) (added to group)
+[22:20:03] [INFO] [ImpactEffects] Blood effect spawned at (150, 136.4444) (scale=1.5)
+[22:20:03] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 0.0
+[22:20:03] [INFO] [LastChance] Player health updated (C# Damaged): 0.0
+[22:20:03] [INFO] [CinemaEffects] Player died - triggering death effects
+[22:20:03] [INFO] [CinemaEffects] Death effects triggered - starting cigarette burn, expanding spots, and end of reel (top-right)
+[22:20:03] [INFO] [PenultimateHit] Player died - ending penultimate effect
+[22:20:03] [INFO] [PenultimateHit] Ending penultimate hit effect
+[22:20:03] [INFO] [PenultimateHit] Starting visual effects fade-out over 400ms
+[22:20:03] [INFO] [LastChance] Player died
+[22:20:03] [INFO] [LastChance] Ending last chance effect
+[22:20:03] [INFO] [LastChance] All process modes restored
+[22:20:03] [INFO] [LastChance] Unfroze grenade: DefensiveGrenade
+[22:20:03] [INFO] [LastChance] Starting visual effects fade-out over 400ms
+[22:20:03] [INFO] [DefensiveGrenade] Applied 99 HE damage to enemy at distance 433.0
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #1 at angle 6.4 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #2 at angle 7.0 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #3 at angle 11.2 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #4 at angle 20.0 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #5 at angle 48.7 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #6 at angle 43.5 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #7 at angle 46.4 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #8 at angle 66.1 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #9 at angle 69.1 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #10 at angle 74.4 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #11 at angle 78.0 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #12 at angle 87.6 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #13 at angle 108.7 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #14 at angle 111.8 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #15 at angle 115.7 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #16 at angle 136.7 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #17 at angle 139.2 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #18 at angle 164.0 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #19 at angle 172.6 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #20 at angle 158.7 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #21 at angle 171.4 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #22 at angle 175.6 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #23 at angle 211.0 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #24 at angle 209.7 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #25 at angle 222.7 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #26 at angle 211.6 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #27 at angle 230.9 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #28 at angle 246.8 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #29 at angle 239.3 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #30 at angle 268.1 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #31 at angle 276.4 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #32 at angle 289.8 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #33 at angle 280.0 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #34 at angle 283.5 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #35 at angle 293.4 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #36 at angle 304.3 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #37 at angle 319.1 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #38 at angle 330.9 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #39 at angle 337.0 degrees
+[22:20:03] [INFO] [DefensiveGrenade] Spawned shrapnel #40 at angle 340.5 degrees
+[22:20:03] [INFO] [ImpactEffects] Spawning explosion visual effect at (582.4979, 156.5414) (radius=700) - using shadow-based wall occlusion
+[22:20:03] [INFO] [GrenadeTimer] Timer expired - EXPLODING!
+[22:20:03] [INFO] [GrenadeTimer] EXPLODED at (582.49786, 156.54143)!
+[22:20:03] [INFO] [GrenadeTimer] Applying flashbang effects (radius: 700, blindness: 12s, stun: 6s)
+[22:20:03] [INFO] [GrenadeTimer] Applied flashbang to player at distance 433,0
+[22:20:03] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(582.4979, 156.5414), source=NEUTRAL (DefensiveGrenade), range=2938, listeners=0
+[22:20:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:20:03] [INFO] [GrenadeTimer] Spawned shadow-enabled flashbang effect at (582.49786, 156.54143) (radius: 700)
+[22:20:03] [INFO] ------------------------------------------------------------
+[22:20:03] [INFO] GAME LOG ENDED: 2026-02-07T22:20:03
+[22:20:03] [INFO] ============================================================

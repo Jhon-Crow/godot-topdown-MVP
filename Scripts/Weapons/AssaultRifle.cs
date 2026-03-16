@@ -76,6 +76,11 @@ public partial class AssaultRifle : BaseWeapon
     private Line2D? _laserSight;
 
     /// <summary>
+    /// Glow effect for the laser sight (aura + endpoint glow).
+    /// </summary>
+    private LaserGlowEffect? _laserGlow;
+
+    /// <summary>
     /// Reference to the Sprite2D node for the rifle visual.
     /// </summary>
     private Sprite2D? _rifleSprite;
@@ -197,6 +202,19 @@ public partial class AssaultRifle : BaseWeapon
             }
         }
 
+        // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null)
+        {
+            var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
+            if (shouldForceLaser.AsBool())
+            {
+                var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
+                LaserSightColor = purpleColorVariant.AsColor();
+                GD.Print($"[AssaultRifle] Laser Sight active item: laser color set to purple {LaserSightColor}");
+            }
+        }
+
         // Get or create the laser sight Line2D
         _laserSight = GetNodeOrNull<Line2D>("LaserSight");
 
@@ -219,6 +237,10 @@ public partial class AssaultRifle : BaseWeapon
                 _laserSight.AddPoint(Vector2.Zero);
                 _laserSight.AddPoint(Vector2.Right * LaserSightLength);
             }
+
+            // Create glow effect for existing laser sight
+            _laserGlow = new LaserGlowEffect();
+            _laserGlow.Create(this, LaserSightColor);
         }
 
         UpdateLaserSightVisibility();
@@ -328,6 +350,10 @@ public partial class AssaultRifle : BaseWeapon
         _laserSight.AddPoint(Vector2.Right * LaserSightLength);
 
         AddChild(_laserSight);
+
+        // Create glow effect (aura + endpoint glow)
+        _laserGlow = new LaserGlowEffect();
+        _laserGlow.Create(this, LaserSightColor);
     }
 
     /// <summary>
@@ -367,21 +393,25 @@ public partial class AssaultRifle : BaseWeapon
         var query = PhysicsRayQueryParameters2D.Create(
             GlobalPosition,
             GlobalPosition + endPoint,
-            4 // Collision mask for obstacles (layer 3 = value 4)
+            6 // Collision mask: obstacles (layer 3 = 4) | enemies (layer 2 = 2)
         );
 
         var result = spaceState.IntersectRay(query);
 
         if (result.Count > 0)
         {
-            // Hit an obstacle, shorten the laser
+            // Hit an obstacle or enemy, shorten the laser
+            // Extend 4px into the hit body so the laser visually penetrates the surface
             Vector2 hitPosition = (Vector2)result["position"];
-            endPoint = hitPosition - GlobalPosition;
+            endPoint = hitPosition - GlobalPosition + laserDirection * 4.0f;
         }
 
         // Update the laser sight line points (in local coordinates)
         _laserSight.SetPointPosition(0, Vector2.Zero);
         _laserSight.SetPointPosition(1, endPoint);
+
+        // Sync glow effect with laser
+        _laserGlow?.Update(Vector2.Zero, endPoint);
     }
 
     /// <summary>
@@ -393,6 +423,8 @@ public partial class AssaultRifle : BaseWeapon
         {
             _laserSight.Visible = LaserSightEnabled;
         }
+
+        _laserGlow?.SetVisible(LaserSightEnabled);
     }
 
     /// <summary>

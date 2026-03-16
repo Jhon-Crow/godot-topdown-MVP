@@ -28,9 +28,27 @@ var debug_mode_enabled: bool = false
 var invincibility_enabled: bool = false
 
 ## Currently selected weapon ID for player equipment.
-## Valid values: "makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "revolver" (corresponds to armory_menu WEAPONS keys)
+## Valid values: "makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "revolver", "ak_gl" (corresponds to armory_menu WEAPONS keys)
 ## Default: "makarov_pm" (Makarov PM starting pistol)
 var selected_weapon: String = "makarov_pm"
+
+## Unlocked weapons tracking.
+## PM is always unlocked (starting weapon).
+## Weapons with unlock conditions (shotgun, mini_uzi, sniper, revolver) start locked.
+## All other weapons (m16, silenced_pistol, ak_gl) are freely available from the start.
+## Weapons can be unlocked by holding LMB on their case in the armory menu once condition is met.
+## Issue #894: "all unspecified items can be opened from the start"
+var unlocked_weapons: Dictionary = {
+	"makarov_pm": true,
+	"m16": true,       # No unlock condition — freely available from start
+	"shotgun": false,  # Condition: Building D+
+	"mini_uzi": false, # Condition: Labyrinth D+
+	"silenced_pistol": true,  # No unlock condition — freely available from start
+	"sniper": false,   # Condition: Polygon D+
+	"revolver": false, # Condition: Castle F+
+	"ak_gl": true,     # No unlock condition — freely available from start
+	"smg": false       # Coming soon — not yet available
+}
 
 ## Weapon scene paths mapped to weapon IDs.
 const WEAPON_SCENES: Dictionary = {
@@ -40,7 +58,8 @@ const WEAPON_SCENES: Dictionary = {
 	"mini_uzi": "res://scenes/weapons/csharp/MiniUzi.tscn",
 	"silenced_pistol": "res://scenes/weapons/csharp/SilencedPistol.tscn",
 	"sniper": "res://scenes/weapons/csharp/SniperRifle.tscn",
-	"revolver": "res://scenes/weapons/csharp/Revolver.tscn"
+	"revolver": "res://scenes/weapons/csharp/Revolver.tscn",
+	"ak_gl": "res://scenes/weapons/csharp/AKGL.tscn"
 }
 
 ## Signal emitted when an enemy is killed (for screen effects).
@@ -60,6 +79,9 @@ signal invincibility_toggled(enabled: bool)
 
 ## Signal emitted when weapon selection changes.
 signal weapon_selected(weapon_id: String)
+
+## Signal emitted when a weapon is unlocked.
+signal weapon_unlocked(weapon_id: String)
 
 
 func _ready() -> void:
@@ -133,8 +155,11 @@ func on_player_death() -> void:
 
 
 ## Restarts the current scene.
+## Resets mouse mode to hidden before reloading so the cursor does not persist
+## from the score screen (Issue #905).
 func restart_scene() -> void:
 	_reset_stats()
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	get_tree().reload_current_scene()
 
 
@@ -217,6 +242,35 @@ func get_selected_weapon_scene_path() -> String:
 	if selected_weapon in WEAPON_SCENES:
 		return WEAPON_SCENES[selected_weapon]
 	return WEAPON_SCENES["makarov_pm"]  # Default to Makarov PM starting pistol
+
+
+## Check if a weapon is unlocked.
+## @param weapon_id: The weapon identifier to check.
+## @return: true if the weapon is unlocked, false otherwise.
+## Note: If all_weapons_unlocked is enabled in ExperimentalSettings, all weapons return true.
+func is_weapon_unlocked(weapon_id: String) -> bool:
+	# Check if all weapons are unlocked via experimental setting (Issue #882)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("is_all_weapons_unlocked"):
+		if experimental_settings.is_all_weapons_unlocked():
+			return true
+	return unlocked_weapons.get(weapon_id, false)
+
+
+## Unlock a weapon.
+## @param weapon_id: The weapon identifier to unlock.
+func unlock_weapon(weapon_id: String) -> void:
+	if weapon_id in unlocked_weapons:
+		if not unlocked_weapons[weapon_id]:
+			unlocked_weapons[weapon_id] = true
+			weapon_unlocked.emit(weapon_id)
+			_log_to_file("Weapon unlocked: %s" % weapon_id)
+
+
+## Get all unlocked weapons.
+## @return: Dictionary of weapon_id -> bool pairs.
+func get_unlocked_weapons() -> Dictionary:
+	return unlocked_weapons
 
 
 ## Log a message to the file logger if available.

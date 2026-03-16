@@ -1,0 +1,6 @@
+15K scenes/levels/BeachLevel.tscn
+39K scenes/levels/BuildingLevel.tscn
+27K scenes/levels/CastleLevel.tscn
+148K scenes/levels/CityLevel.tscn
+28K scenes/levels/LabyrinthLevel.tscn
+52K scenes/levels/TestTier.tscn

@@ -28,6 +28,10 @@ var direction: Vector2 = Vector2.RIGHT
 ## Used to prevent self-damage during initial explosion.
 var source_id: int = -1
 
+## Issue #692: Instance ID of the enemy who threw the grenade.
+## Used to prevent shrapnel from hitting the thrower.
+var thrower_id: int = -1
+
 ## Timer tracking remaining lifetime.
 var _time_alive: float = 0.0
 
@@ -74,7 +78,7 @@ func _physics_process(delta: float) -> void:
 	# Track lifetime and auto-destroy if exceeded
 	_time_alive += delta
 	if _time_alive >= lifetime:
-		queue_free()
+		_destroy()
 
 
 ## Updates the shrapnel rotation to match its travel direction.
@@ -105,6 +109,11 @@ func _on_body_entered(body: Node2D) -> void:
 	if source_id == body.get_instance_id():
 		return
 
+	# Issue #692: When shrapnel comes from an enemy-thrown grenade (thrower_id >= 0),
+	# skip ALL enemies to prevent both self-damage and friendly fire.
+	if thrower_id >= 0 and body.is_in_group("enemies"):
+		return
+
 	# Check if this is a dead enemy - shrapnel should pass through dead entities
 	if body.has_method("is_alive") and not body.is_alive():
 		return
@@ -122,7 +131,7 @@ func _on_body_entered(body: Node2D) -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		audio_manager.play_bullet_wall_hit(global_position)
-	queue_free()
+	_destroy()
 
 
 func _on_area_entered(area: Area2D) -> void:
@@ -132,6 +141,16 @@ func _on_area_entered(area: Area2D) -> void:
 		var parent: Node = area.get_parent()
 		if parent and source_id == parent.get_instance_id():
 			return  # Don't hit the source
+
+		# Force field protection: Block damage if target has active force field (Issue #676)
+		if parent and parent.has_method("is_force_field_active"):
+			if parent.is_force_field_active():
+				return  # Shrapnel is reflected by force field, damage blocked
+
+		# Issue #692: When shrapnel comes from an enemy-thrown grenade (thrower_id >= 0),
+		# skip ALL enemies to prevent both self-damage and friendly fire.
+		if parent and thrower_id >= 0 and parent.is_in_group("enemies"):
+			return  # Don't hit any enemy
 
 		# Check if the parent is dead
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
@@ -143,7 +162,7 @@ func _on_area_entered(area: Area2D) -> void:
 		else:
 			area.on_hit()
 
-		queue_free()
+		_destroy()
 
 
 ## Attempts to ricochet the shrapnel off a surface.
@@ -233,3 +252,122 @@ func _spawn_wall_hit_effect(body: Node2D) -> void:
 
 	# Spawn dust effect at hit position (without caliber data - small effect)
 	impact_manager.spawn_dust_effect(global_position, surface_normal, null)
+
+
+# ============================================================================
+# Object Pooling Support (Issue #724)
+# ============================================================================
+
+
+## Whether this shrapnel is currently pooled (inactive).
+var _is_pooled: bool = false
+
+## Original speed value for reset.
+var _original_speed: float = 5000.0
+
+
+## Activates the shrapnel from the pool with the given parameters.
+## @param pos: Global position to spawn at.
+## @param dir: Direction of travel.
+## @param source: Instance ID of the source (grenade) for self-damage prevention.
+## @param thrower: Instance ID of the enemy thrower (for friendly fire prevention).
+func pool_activate(pos: Vector2, dir: Vector2, source: int, thrower: int = -1) -> void:
+	# Reset all state to defaults
+	_reset_state()
+
+	# Set activation parameters
+	global_position = pos
+	direction = dir.normalized()
+	source_id = source
+	thrower_id = thrower
+
+	# Update rotation to match direction
+	_update_rotation()
+
+	# Re-enable processing and visibility
+	visible = true
+	set_physics_process(true)
+	set_process(true)
+
+	# Re-enable collision detection
+	monitoring = true
+	monitorable = true
+
+	_is_pooled = false
+
+
+## Deactivates the shrapnel and prepares it for return to the pool.
+func pool_deactivate() -> void:
+	if _is_pooled:
+		return
+
+	_is_pooled = true
+
+	# Disable processing
+	set_physics_process(false)
+	set_process(false)
+
+	# Hide shrapnel
+	visible = false
+
+	# Disable collision detection
+	monitoring = false
+	monitorable = false
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+	_position_history.clear()
+
+	# Return to pool manager
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager and pool_manager.has_method("return_shrapnel"):
+		pool_manager.return_shrapnel(self)
+
+
+## Destroys the shrapnel using pooling when available, otherwise queue_free.
+func _destroy() -> void:
+	if _is_pooled:
+		return
+
+	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+	if pool_manager:
+		pool_deactivate()
+	else:
+		queue_free()
+
+
+## Resets all shrapnel state to defaults for reuse.
+func _reset_state() -> void:
+	# Reset core properties
+	speed = _original_speed
+	damage = 1
+	_time_alive = 0.0
+	direction = Vector2.RIGHT
+	source_id = -1
+	thrower_id = -1
+
+	# Reset ricochet state
+	_ricochet_count = 0
+
+	# Clear position history
+	_position_history.clear()
+
+	# Clear trail
+	if _trail:
+		_trail.clear_points()
+
+
+## Returns whether this shrapnel is currently pooled (inactive).
+func is_pooled() -> bool:
+	return _is_pooled
+
+
+## Convenience method to get a shrapnel from the pool.
+static func from_pool() -> Node:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree:
+		var pool_manager: Node = tree.root.get_node_or_null("ProjectilePoolManager")
+		if pool_manager and pool_manager.has_method("get_shrapnel"):
+			return pool_manager.get_shrapnel()
+	return null

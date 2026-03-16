@@ -343,6 +343,10 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -363,6 +367,8 @@ func _setup_player_tracking() -> void:
 			_update_magazines_label(mag_counts)
 		# Configure silenced pistol ammo based on enemy count
 		_configure_silenced_pistol_ammo(weapon)
+		# Configure 2.5x ammo for MakarovPM (Issue #636)
+		_configure_makarov_pm_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -459,6 +465,33 @@ func _configure_castle_weapon_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 	else:
 		push_warning("[CastleLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
+## Applies to all difficulty modes including Hard.
+## Overrides the castle 2x multiplier since 2.5x > 2x.
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	if weapon.name != "MakarovPM":
+		return
+
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		print("[CastleLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -745,6 +778,10 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
 		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
+		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
+		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
@@ -937,7 +974,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Next Level button (Issue #568) - Castle is the last level, so no next level
+	# Next Level button (Issue #568) - Castle leads to Double Corridor next
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -965,6 +1002,30 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.add_theme_font_size_override("font_size", 18)
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
+
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1011,7 +1072,22 @@ func _on_level_select_pressed() -> void:
 		_log_to_file("ERROR: Could not load levels menu script")
 
 
-## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
+## Called when the Armory button is pressed on the score screen (Issue #897).
+func _on_armory_button_pressed() -> void:
+	_log_to_file("Armory button pressed from score screen")
+	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
+	if armory_menu_scene:
+		var armory_menu = armory_menu_scene.instantiate()
+		armory_menu.layer = 100
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
+		get_tree().root.add_child(armory_menu)
+		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+## Get the next level path based on the level ordering from LevelsMenu (Issue #568, Issue #762).
 ## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
 	var current_scene_path: String = ""
@@ -1021,9 +1097,14 @@ func _get_next_level_path() -> String:
 
 	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):
@@ -1101,7 +1182,9 @@ func _setup_selected_weapon() -> void:
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
-			"m16": "AssaultRifle"
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -1224,6 +1307,49 @@ func _setup_selected_weapon() -> void:
 			print("CastleLevel: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("CastleLevel: Failed to load AssaultRifle scene!")
+	# If AK + GL is selected, swap weapons
+	elif selected_weapon_id == "ak_gl":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("CastleLevel: Removed default MakarovPM")
+
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+
+			_configure_castle_weapon_ammo(akgl)
+			print("CastleLevel: AK + GL equipped successfully")
+		else:
+			push_error("CastleLevel: Failed to load AKGL scene!")
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("CastleLevel: Removed default MakarovPM")
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			_configure_castle_weapon_ammo(revolver)
+			print("CastleLevel: RSh-12 Revolver equipped successfully")
+		else:
+			push_error("CastleLevel: Failed to load Revolver scene!")
 	else:
 		# For Makarov PM, it's already in the scene - just ensure it's equipped
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -1233,8 +1359,8 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = makarov
 
-			# Configure 2x ammo for Castle level (MakarovPM)
-			_configure_castle_weapon_ammo(makarov)
+			# Configure 2.5x ammo for MakarovPM (Issue #636)
+			_configure_makarov_pm_ammo(makarov)
 
 
 ## Disable player controls after level completion (score screen shown).

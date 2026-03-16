@@ -1,0 +1,39 @@
+[gd_scene load_steps=4 format=3 uid="uid://aggression_cloud_effect_scene"]
+
+[sub_resource type="Gradient" id="Gradient_gas"]
+offsets = PackedFloat32Array(0, 0.2, 0.5, 1)
+colors = PackedColorArray(0.5, 0.15, 0.1, 0.85, 0.55, 0.18, 0.12, 0.7, 0.6, 0.2, 0.15, 0.5, 0.5, 0.15, 0.1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_gas"]
+gradient = SubResource("Gradient_gas")
+width = 32
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_gas"]
+lifetime_randomness = 0.4
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 300.0
+direction = Vector3(0, -1, 0)
+spread = 180.0
+initial_velocity_min = 8.0
+initial_velocity_max = 25.0
+gravity = Vector3(0, -15, 0)
+damping_min = 8.0
+damping_max = 18.0
+scale_min = 0.6
+scale_max = 1.8
+color = Color(0.55, 0.17, 0.12, 0.8)
+
+[node name="AggressionCloudEffect" type="GPUParticles2D"]
+z_index = 1
+emitting = false
+amount = 120
+process_material = SubResource("ParticleProcessMaterial_gas")
+texture = SubResource("GradientTexture2D_gas")
+lifetime = 5.0
+preprocess = 0.5
+explosiveness = 0.15
+randomness = 0.3

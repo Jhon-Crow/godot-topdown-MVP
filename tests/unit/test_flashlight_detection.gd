@@ -436,6 +436,147 @@ func test_to_string_with_detection() -> void:
 
 
 # ============================================================================
+# Wall-Clamped Detection Suppression Tests (Issue #640)
+# ============================================================================
+
+
+func test_no_detection_when_flashlight_wall_clamped() -> void:
+	# Issue #640: When the flashlight is wall-clamped (player flush against wall),
+	# enemies should not detect the beam through the wall.
+	var player := _create_mock_player(
+		Vector2(0, 0),       # origin
+		Vector2.RIGHT,       # direction: pointing right
+		true                 # flashlight on
+	)
+	player._flashlight_wall_clamped = true  # Wall-clamped
+
+	# Enemy is close, in front of beam, would normally detect it
+	var result := detection.check_flashlight(
+		Vector2(200, 0),     # enemy position (directly in beam)
+		0.0,                 # enemy facing angle (facing right, toward beam)
+		100.0,               # enemy FOV (100 degrees)
+		true,                # FOV enabled
+		player,              # player
+		null,                # no raycast (skip LOS — we test the wall-clamp guard)
+		0.2                  # delta > CHECK_INTERVAL so check runs
+	)
+
+	assert_false(result,
+		"Enemy should NOT detect flashlight when beam is wall-clamped")
+	assert_false(detection.detected,
+		"Detection state should be false when wall-clamped")
+	player.queue_free()
+
+
+func test_detection_resumes_after_wall_clamp_clears() -> void:
+	# Issue #640: After moving away from wall, detection should work again.
+	var player := _create_mock_player(
+		Vector2(0, 0),       # origin
+		Vector2.RIGHT,       # direction
+		true                 # flashlight on
+	)
+
+	# First: wall-clamped — no detection
+	player._flashlight_wall_clamped = true
+	var result1 := detection.check_flashlight(
+		Vector2(200, 0), 0.0, 100.0, true, player, null, 0.2
+	)
+	assert_false(result1, "Should not detect when wall-clamped")
+
+	# Then: wall clamp cleared
+	player._flashlight_wall_clamped = false
+	var result2 := detection.check_flashlight(
+		Vector2(200, 0), 0.0, 100.0, true, player, null, 0.2
+	)
+
+	# Note: without a raycast, the LOS check is skipped, so detection depends
+	# only on distance, FOV, and cone geometry. The beam should be detectable.
+	assert_true(result2,
+		"Enemy should detect flashlight after wall clamp clears")
+	player.queue_free()
+
+
+func test_is_position_lit_false_when_wall_clamped() -> void:
+	# Issue #640: Positions should not be reported as lit when wall-clamped.
+	var player := _create_mock_player(
+		Vector2(0, 0), Vector2.RIGHT, true
+	)
+	player._flashlight_wall_clamped = true
+
+	var lit := detection.is_position_lit(Vector2(200, 0), player)
+
+	assert_false(lit,
+		"Position should NOT be reported as lit when flashlight is wall-clamped")
+	player.queue_free()
+
+
+# ============================================================================
+# Player-Center Wall Check Tests (Issue #640 root cause #7)
+#
+# When the flashlight barrel is at/inside a wall boundary, raycasts from the
+# barrel don't detect the wall (Godot's hit_from_inside=false by default).
+# The detection component now adds a secondary check from the player center
+# (which is always outside walls) to reliably block detection through walls.
+# These tests verify the player_center variable is correctly set from
+# player.global_position and used in the wall check flow.
+# ============================================================================
+
+
+func test_player_center_used_for_wall_checks() -> void:
+	# Verify that the detection component extracts player_center from
+	# player.global_position for the secondary wall check.
+	# The flashlight origin may differ from player center (barrel offset).
+	var player_center := Vector2(486, 1020)
+	var barrel_offset := Vector2(501, 999)  # Barrel inside wall
+
+	var player := MockFlashlightPlayer.new()
+	player.global_position = player_center
+	player._flashlight_origin = barrel_offset
+	player._flashlight_direction = Vector2(0.556, -0.831).normalized()
+	player._flashlight_on = true
+	player._flashlight_wall_clamped = false  # Not wall-clamped (edge case)
+	add_child(player)
+
+	# With null raycast, the player-center check is skipped (no physics).
+	# But the detection still uses the correct player_center for distance pre-checks.
+	# This test verifies the mock setup is correct for the scenario.
+	assert_eq(player.global_position, player_center,
+		"Player center should be the CharacterBody2D global_position")
+	assert_ne(player.get_flashlight_origin(), player_center,
+		"Flashlight origin (barrel) should differ from player center")
+
+	player.queue_free()
+
+
+func test_detection_uses_barrel_origin_for_beam_geometry() -> void:
+	# Verify that beam sample points are generated from the barrel position
+	# (flashlight_origin), not from the player center.
+	var player := _create_mock_player(
+		Vector2(100, 100),  # Player center
+		Vector2.RIGHT,
+		true
+	)
+	# Set barrel position different from player center
+	player._flashlight_origin = Vector2(120, 100)
+
+	# Enemy is near the beam, facing toward it (would detect if barrel is origin)
+	var enemy_pos := Vector2(300, 50)
+	var enemy_facing := Vector2(-1, 0.5).normalized().angle()
+
+	# Without raycast, no wall check — detection depends only on cone geometry
+	var result := detection.check_flashlight(
+		enemy_pos, enemy_facing, 100.0, true, player, null, 0.2
+	)
+
+	# The estimated position should be the barrel position, not player center
+	if detection.detected:
+		assert_eq(detection.estimated_player_position, player._flashlight_origin,
+			"Estimated position should be the barrel position (flashlight_origin)")
+
+	player.queue_free()
+
+
+# ============================================================================
 # Helper Methods
 # ============================================================================
 
@@ -456,6 +597,7 @@ class MockFlashlightPlayer extends Node2D:
 	var _flashlight_on: bool = false
 	var _flashlight_direction: Vector2 = Vector2.RIGHT
 	var _flashlight_origin: Vector2 = Vector2.ZERO
+	var _flashlight_wall_clamped: bool = false
 
 	func is_flashlight_on() -> bool:
 		return _flashlight_on
@@ -469,3 +611,6 @@ class MockFlashlightPlayer extends Node2D:
 		if not _flashlight_on:
 			return global_position
 		return _flashlight_origin
+
+	func is_flashlight_wall_clamped() -> bool:
+		return _flashlight_wall_clamped

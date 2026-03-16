@@ -11,9 +11,20 @@ signal back_pressed
 ## Level metadata: name, scene path, description, preview color, enemy count.
 const LEVELS: Array[Dictionary] = [
 	{
+		"name": "Labyrinth",
+		"name_ru": "Лабиринт",
+		"path": "res://scenes/levels/LabyrinthLevel.tscn",
+		"description": "Labyrinth of technical rooms with narrow corridors and enclosed spaces.",
+		"preview_color": Color(0.15, 0.15, 0.18, 1.0),
+		"preview_accent": Color(0.3, 0.35, 0.4, 1.0),
+		"enemy_count": 5,
+		"map_size": "1920x1080"
+	},
+	{
 		"name": "Building Level",
+		"name_ru": "Здание",
 		"path": "res://scenes/levels/BuildingLevel.tscn",
-		"description": "Hotline Miami style building with interconnected rooms and corridors.",
+		"description": "Hotline Miami style building with interconnected rooms and corridors. Features a grenadier enemy.",
 		"preview_color": Color(0.35, 0.25, 0.2, 1.0),
 		"preview_accent": Color(0.6, 0.4, 0.3, 1.0),
 		"enemy_count": 10,
@@ -40,14 +51,24 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "6000x2560"
 	},
 	{
-		"name": "Tutorial",
-		"name_ru": "Обучение",
-		"path": "res://scenes/levels/csharp/TestTier.tscn",
-		"description": "Step-by-step training: movement, shooting, bolt-action, scope, grenades.",
-		"preview_color": Color(0.2, 0.25, 0.3, 1.0),
-		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
-		"enemy_count": 4,
-		"map_size": "1280x720"
+		"name": "Double Corridor",
+		"name_ru": "Двойной Коридор",
+		"path": "res://scenes/levels/RevolverLevel.tscn",
+		"description": "H-shaped map with two parallel corridors: penetration zones for multi-enemy kills and cover for reloading.",
+		"preview_color": Color(0.2, 0.15, 0.25, 1.0),
+		"preview_accent": Color(0.4, 0.3, 0.5, 1.0),
+		"enemy_count": 12,
+		"map_size": "2000x1600"
+	},
+	{
+		"name": "City",
+		"name_ru": "Город",
+		"path": "res://scenes/levels/CityLevel.tscn",
+		"description": "Large urban map with enterable buildings and street combat.",
+		"preview_color": Color(0.25, 0.22, 0.2, 1.0),
+		"preview_accent": Color(0.4, 0.35, 0.3, 1.0),
+		"enemy_count": 8,
+		"map_size": "6000x5000"
 	},
 	{
 		"name": "Beach",
@@ -58,11 +79,21 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.85, 0.75, 0.55, 1.0),
 		"enemy_count": 8,
 		"map_size": "2400x2000"
+	},
+	{
+		"name": "Docks",
+		"name_ru": "Доки",
+		"path": "res://scenes/levels/DocksLevel.tscn",
+		"description": "Large industrial docks with shipping containers, warehouses, and open areas between cover zones.",
+		"preview_color": Color(0.15, 0.25, 0.35, 1.0),
+		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
+		"enemy_count": 20,
+		"map_size": "5000x4000"
 	}
 ]
 
-## Difficulty names in display order.
-const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+## Difficulty names in display order (must match DifficultyManager.get_all_difficulty_names()).
+const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
 
 ## Card dimensions.
 const CARD_WIDTH: float = 220.0
@@ -79,6 +110,21 @@ var _card_container: GridContainer
 
 ## Map of level cards by path for styling.
 var _level_cards: Dictionary = {}
+
+
+## Check whether a level at the given index in LEVELS is unlocked.
+## The first level (Labyrinth) is always unlocked.
+## All other levels require the immediately preceding level to be completed on any difficulty.
+## @param level_index: Index into the LEVELS array.
+## @param progress_manager: The ProgressManager autoload node (may be null).
+## @return: True if the level is available to play.
+func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
+	if level_index <= 0:
+		return true
+	var previous_path: String = LEVELS[level_index - 1]["path"]
+	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):
+		return progress_manager.is_level_completed_any_difficulty(previous_path)
+	return false
 
 
 func _ready() -> void:
@@ -148,12 +194,16 @@ func _build_ui() -> void:
 	main_vbox.add_theme_constant_override("separation", 8)
 	margin.add_child(main_vbox)
 
-	# Title
+	# Title with neon styling
 	var title := Label.new()
 	title.text = "SELECT LEVEL"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
+	var neon_label_settings = load("res://resources/themes/neon_label_settings.tres")
+	if neon_label_settings:
+		title.label_settings = neon_label_settings
+	else:
+		title.add_theme_font_size_override("font_size", 22)
+		title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
 	main_vbox.add_child(title)
 
 	# Separator
@@ -211,17 +261,21 @@ func _populate_level_cards() -> void:
 	if current_scene and current_scene.scene_file_path:
 		current_scene_path = current_scene.scene_file_path
 
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+
 	# Create a card for each level
-	for level_data in LEVELS:
+	for i in range(LEVELS.size()):
+		var level_data: Dictionary = LEVELS[i]
 		var level_path: String = level_data["path"]
 		var is_current: bool = (level_path == current_scene_path)
-		var card := _create_level_card(level_data, is_current)
+		var unlocked: bool = is_level_unlocked(i, progress_manager)
+		var card := _create_level_card(level_data, is_current, unlocked)
 		_card_container.add_child(card)
 		_level_cards[level_path] = card
 
 
 ## Create a single level card.
-func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContainer:
+func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool = true) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = level_data["name"].replace(" ", "") + "Card"
 	card.custom_minimum_size = Vector2(CARD_WIDTH, CARD_HEIGHT)
@@ -235,6 +289,13 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 		card_style.border_width_right = 2
 		card_style.border_width_top = 2
 		card_style.border_width_bottom = 2
+	elif not unlocked:
+		card_style.bg_color = Color(0.1, 0.1, 0.12, 0.8)
+		card_style.border_color = Color(0.2, 0.2, 0.22, 0.5)
+		card_style.border_width_left = 1
+		card_style.border_width_right = 1
+		card_style.border_width_top = 1
+		card_style.border_width_bottom = 1
 	else:
 		card_style.bg_color = Color(0.18, 0.18, 0.2, 0.8)
 		card_style.border_color = Color(0.3, 0.3, 0.35, 0.6)
@@ -261,6 +322,10 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 	var preview_style := StyleBoxFlat.new()
 	var base_color: Color = level_data.get("preview_color", Color(0.2, 0.2, 0.3, 1.0))
 	var accent_color: Color = level_data.get("preview_accent", Color(0.4, 0.4, 0.5, 1.0))
+	# Dim the preview for locked levels
+	if not unlocked:
+		base_color = base_color.darkened(0.5)
+		accent_color = Color(0.3, 0.3, 0.35, 0.6)
 	preview_style.bg_color = base_color
 	preview_style.corner_radius_top_left = 4
 	preview_style.corner_radius_top_right = 4
@@ -274,29 +339,37 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 	preview_vbox.add_theme_constant_override("separation", 2)
 	preview_container.add_child(preview_vbox)
 
-	var map_size_label := Label.new()
-	map_size_label.text = level_data.get("map_size", "")
-	map_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	map_size_label.add_theme_font_size_override("font_size", 11)
-	map_size_label.add_theme_color_override("font_color", accent_color)
-	preview_vbox.add_child(map_size_label)
+	if not unlocked:
+		# Show lock icon instead of map details for locked levels
+		var lock_label := Label.new()
+		lock_label.text = "🔒"
+		lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_label.add_theme_font_size_override("font_size", 28)
+		preview_vbox.add_child(lock_label)
+	else:
+		var map_size_label := Label.new()
+		map_size_label.text = level_data.get("map_size", "")
+		map_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		map_size_label.add_theme_font_size_override("font_size", 11)
+		map_size_label.add_theme_color_override("font_color", accent_color)
+		preview_vbox.add_child(map_size_label)
 
-	var enemy_label := Label.new()
-	var enemy_count: int = level_data.get("enemy_count", 0)
-	enemy_label.text = "%d enemies" % enemy_count if enemy_count > 0 else "Training"
-	enemy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	enemy_label.add_theme_font_size_override("font_size", 13)
-	enemy_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.8, 0.9))
-	preview_vbox.add_child(enemy_label)
+		var enemy_label := Label.new()
+		var enemy_count: int = level_data.get("enemy_count", 0)
+		enemy_label.text = "%d enemies" % enemy_count if enemy_count > 0 else "Training"
+		enemy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		enemy_label.add_theme_font_size_override("font_size", 13)
+		enemy_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.8, 0.9))
+		preview_vbox.add_child(enemy_label)
 
-	# Current level badge
-	if is_current:
-		var badge := Label.new()
-		badge.text = "PLAYING"
-		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		badge.add_theme_font_size_override("font_size", 10)
-		badge.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
-		preview_vbox.add_child(badge)
+		# Current level badge
+		if is_current:
+			var badge := Label.new()
+			badge.text = "PLAYING"
+			badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			badge.add_theme_font_size_override("font_size", 10)
+			badge.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
+			preview_vbox.add_child(badge)
 
 	# Level name
 	var display_name: String = level_data.get("name_ru", level_data["name"])
@@ -306,21 +379,30 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 	name_label.add_theme_font_size_override("font_size", 15)
 	if is_current:
 		name_label.add_theme_color_override("font_color", Color(0.7, 1.0, 0.7, 1.0))
+	elif not unlocked:
+		name_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45, 1.0))
 	else:
 		name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1.0))
 	vbox.add_child(name_label)
 
-	# Description (wrapped)
+	# Description (wrapped) — for locked levels show "Complete previous level to unlock"
 	var desc_label := Label.new()
-	desc_label.text = level_data.get("description", "")
+	if not unlocked:
+		desc_label.text = "Complete the previous level to unlock"
+	else:
+		desc_label.text = level_data.get("description", "")
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_label.add_theme_font_size_override("font_size", 10)
-	desc_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
+	if not unlocked:
+		desc_label.add_theme_color_override("font_color", Color(0.35, 0.35, 0.4, 0.8))
+	else:
+		desc_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	desc_label.custom_minimum_size.x = CARD_WIDTH - 20
 	vbox.add_child(desc_label)
 
 	# Progress results for all difficulties (shown as letter grades)
+	# Locked levels show dimmed dashes — no progress is possible until unlocked.
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	var progress_vbox := VBoxContainer.new()
 	progress_vbox.layout_mode = 2
@@ -340,12 +422,15 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 		var difficulty_label := Label.new()
 		difficulty_label.text = difficulty_name + ":"
 		difficulty_label.add_theme_font_size_override("font_size", 9)
-		difficulty_label.add_theme_color_override("font_color", Color(0.5, 0.55, 0.6, 1.0))
+		if not unlocked:
+			difficulty_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.35, 0.6))
+		else:
+			difficulty_label.add_theme_color_override("font_color", Color(0.5, 0.55, 0.6, 1.0))
 		difficulty_label.custom_minimum_size.x = 80
 		row.add_child(difficulty_label)
 
 		var best_rank: String = ""
-		if progress_manager and progress_manager.has_method("get_best_rank"):
+		if unlocked and progress_manager and progress_manager.has_method("get_best_rank"):
 			best_rank = progress_manager.get_best_rank(level_data["path"], difficulty_name)
 
 		var grade_label := Label.new()
@@ -353,21 +438,25 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 		grade_label.add_theme_font_size_override("font_size", 14)
 		if grade_font:
 			grade_label.add_theme_font_override("font", grade_font)
-		if best_rank.is_empty():
+		if not unlocked:
+			grade_label.add_theme_color_override("font_color", Color(0.25, 0.25, 0.3, 0.5))
+		elif best_rank.is_empty():
 			grade_label.add_theme_color_override("font_color", Color(0.35, 0.35, 0.4, 1.0))
 		else:
 			grade_label.add_theme_color_override("font_color", _get_rank_color(best_rank))
 		grade_label.custom_minimum_size.x = 25
 		row.add_child(grade_label)
 
-	# Make card clickable (unless it's the current level)
-	if not is_current:
+	# Make card clickable (unless it's the current level or locked)
+	if is_current:
+		card.tooltip_text = "Currently playing this level"
+	elif not unlocked:
+		card.tooltip_text = "Complete the previous level to unlock %s" % display_name
+	else:
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		card.gui_input.connect(_on_card_gui_input.bind(level_data["path"]))
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		card.tooltip_text = "Click to load %s" % display_name
-	else:
-		card.tooltip_text = "Currently playing this level"
 
 	return card
 
@@ -411,18 +500,25 @@ func _on_card_gui_input(event: InputEvent, level_path: String) -> void:
 
 ## Load the selected level.
 func _on_level_selected(level_path: String) -> void:
-	# Unpause the game before changing scene
-	get_tree().paused = false
-
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 
-	# Change to the selected level
-	var error := get_tree().change_scene_to_file(level_path)
-	if error != OK:
-		get_tree().paused = true
-		# Show cursor again for menu interaction if error
-		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+	# Save the selected level for next session (Issue #896)
+	var persist_manager: Node = get_node_or_null("/root/PersistManager")
+	if persist_manager and persist_manager.has_method("save_last_level"):
+		persist_manager.save_last_level(level_path)
+
+	# Issue #997: Use SceneLoader for background loading with loading screen
+	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
+	if scene_loader and scene_loader.has_method("load_level"):
+		scene_loader.load_level(level_path)
+	else:
+		# Fallback to direct loading if SceneLoader not available
+		get_tree().paused = false
+		var error := get_tree().change_scene_to_file(level_path)
+		if error != OK:
+			get_tree().paused = true
+			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
 func _on_back_pressed() -> void:

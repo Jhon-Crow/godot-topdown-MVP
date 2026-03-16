@@ -9,6 +9,7 @@ extends Node2D
 ## - Clear room boundaries with walls and doorways
 ## - Similar mechanics to TestTier (ammo tracking, enemy tracking, etc.)
 ## - Score tracking with Hotline Miami style ranking system
+## - Dim window moonlight in corridors without enemies for night mode visibility (Issue #593)
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -124,6 +125,9 @@ func _ready() -> void:
 
 	# Setup exit zone near player spawn (left wall)
 	_setup_exit_zone()
+
+	# Setup window lights in corridors without enemies (Issue #593)
+	_setup_window_lights()
 
 	# Start replay recording
 	_start_replay_recording()
@@ -257,6 +261,180 @@ func _setup_realistic_visibility() -> void:
 	print("[BuildingLevel] Realistic visibility component added to player")
 
 
+## Setup window lights in corridors and rooms without enemies (Issue #593).
+## Places dim blue PointLight2D nodes along exterior walls to simulate moonlight
+## coming through windows. Only in areas without enemies so dark rooms with enemies
+## remain tense and challenging.
+## Window visuals (small blue ColorRect) are placed on the wall surface.
+##
+## Lighting architecture:
+## - Each window has ONE primary PointLight2D (low energy, shadows on) for the
+##   visible moonlight patch near the window.
+## - ONE DirectionalLight2D provides scene-wide ambient moonlight glow with
+##   NO visible edges. DirectionalLight2D illuminates the entire scene uniformly
+##   (unlike PointLight2D which has a finite circular boundary).
+func _setup_window_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Create a container node for all window lights
+	var windows_node := Node2D.new()
+	windows_node.name = "WindowLights"
+	environment.add_child(windows_node)
+
+	# Window light positions: [position, wall_side]
+	# wall_side: "top", "bottom", "left", "right" determines window visual orientation
+	# Placed ONLY in corridors/rooms WITHOUT enemies:
+	# - Central corridor (x=512-1376, y=700-1012)
+	# - Left lobby area (x=64-900, y=1000-1400)
+	# - Storage room (x=80-500, y=1612-2048)
+
+	# Left wall windows (x=64) - lobby and storage areas (no enemies)
+	_create_window_light(windows_node, Vector2(64, 1100), "left")
+	_create_window_light(windows_node, Vector2(64, 1250), "left")
+	_create_window_light(windows_node, Vector2(64, 1750), "left")
+	_create_window_light(windows_node, Vector2(64, 1900), "left")
+
+	# Top wall windows (y=64) - above corridor area (no enemies in corridor)
+	_create_window_light(windows_node, Vector2(700, 64), "top")
+	_create_window_light(windows_node, Vector2(900, 64), "top")
+	_create_window_light(windows_node, Vector2(1100, 64), "top")
+
+	# Bottom wall windows (y=2064) - below storage and lobby (no enemies)
+	_create_window_light(windows_node, Vector2(200, 2064), "bottom")
+	_create_window_light(windows_node, Vector2(400, 2064), "bottom")
+	_create_window_light(windows_node, Vector2(700, 2064), "bottom")
+	_create_window_light(windows_node, Vector2(1100, 2064), "bottom")
+
+	# Scene-wide ambient moonlight using DirectionalLight2D.
+	# DirectionalLight2D illuminates the entire scene uniformly with NO visible
+	# edges (unlike PointLight2D which has a finite circular boundary).
+	# Energy is very low (0.06) so it provides visible wall outlines
+	# without washing out the scene or hiding weapon muzzle flashes.
+	_create_ambient_moonlight(windows_node)
+
+	print("[BuildingLevel] Window lights placed in corridors without enemies (Issue #593)")
+
+
+## Create a single window light source at the given position on a wall.
+## Creates ONE PointLight2D with shadows enabled — the visible moonlight patch
+## near the window. Shadows from interior walls give the light a natural shape
+## that respects the building's geometry.
+## The scene-wide ambient glow is handled separately by _create_ambient_moonlight().
+##
+## Light gradient uses an early-fadeout design: the radial gradient reaches
+## absolute zero at 55% of the radius, leaving 45% of the texture as pure black
+## buffer. This ensures NO visible edges even against the near-black CanvasModulate.
+## Combined with large texture_scale (6.0) and low energy (0.12), the light
+## dissipates naturally with no perceptible boundary.
+## @param parent: Parent node to add the window to.
+## @param pos: Position of the window on the wall.
+## @param wall_side: Which wall the window is on ("top", "bottom", "left", "right").
+func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> void:
+	var window_node := Node2D.new()
+	window_node.name = "Window_%s_%d_%d" % [wall_side, int(pos.x), int(pos.y)]
+	window_node.position = pos
+	parent.add_child(window_node)
+
+	# Create window visual (small blue rectangle on the wall)
+	var window_rect := ColorRect.new()
+	window_rect.color = Color(0.3, 0.4, 0.7, 0.6)  # Semi-transparent blue
+	# Size and offset depend on wall orientation
+	match wall_side:
+		"left":
+			window_rect.offset_left = -4.0
+			window_rect.offset_top = -20.0
+			window_rect.offset_right = 4.0
+			window_rect.offset_bottom = 20.0
+		"right":
+			window_rect.offset_left = -4.0
+			window_rect.offset_top = -20.0
+			window_rect.offset_right = 4.0
+			window_rect.offset_bottom = 20.0
+		"top":
+			window_rect.offset_left = -20.0
+			window_rect.offset_top = -4.0
+			window_rect.offset_right = 20.0
+			window_rect.offset_bottom = 4.0
+		"bottom":
+			window_rect.offset_left = -20.0
+			window_rect.offset_top = -4.0
+			window_rect.offset_right = 20.0
+			window_rect.offset_bottom = 4.0
+	window_node.add_child(window_rect)
+
+	# --- Primary moonlight (visible patch near the window) ---
+	var light := PointLight2D.new()
+	light.name = "MoonLight"
+	light.color = Color(0.4, 0.5, 0.9, 1.0)  # Cool blue moonlight
+	light.energy = 0.12  # Low — slightly brighter (Issue #642), large texture_scale compensates for coverage
+	# Shadows enabled so interior walls cast natural shadows from the moonlight
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0  # Higher smoothing for softer shadow edges
+	light.shadow_color = Color(0, 0, 0, 0.7)
+	light.texture = _create_window_light_texture()
+	light.texture_scale = 6.0  # Large scale so gradient fades out well before the edge
+	# Offset the light inward from the wall so it illuminates the interior
+	match wall_side:
+		"left":
+			light.position = Vector2(60, 0)
+		"right":
+			light.position = Vector2(-60, 0)
+		"top":
+			light.position = Vector2(0, 60)
+		"bottom":
+			light.position = Vector2(0, -60)
+	window_node.add_child(light)
+
+
+## Create a radial gradient texture for the primary window moonlight.
+## Uses an early-fadeout design where the gradient reaches absolute zero at 55%
+## of the radius, leaving 45% of the texture as pure black buffer zone.
+## This eliminates visible edges at the PointLight2D quad boundary because the
+## light contribution is already zero well before the texture boundary.
+## Against the near-black CanvasModulate (0.02, 0.02, 0.04), even subpixel
+## differences at the boundary could be visible, so the large buffer is critical.
+func _create_window_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	# Bright center core (0-10% radius)
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	# Smooth falloff begins early
+	gradient.add_point(0.1, Color(0.7, 0.7, 0.7, 1.0))
+	gradient.add_point(0.2, Color(0.45, 0.45, 0.45, 1.0))
+	gradient.add_point(0.3, Color(0.25, 0.25, 0.25, 1.0))
+	gradient.add_point(0.4, Color(0.1, 0.1, 0.1, 1.0))
+	# Fade to absolute zero by 55% — remaining 45% is pure black buffer
+	gradient.add_point(0.5, Color(0.02, 0.02, 0.02, 1.0))
+	gradient.add_point(0.55, Color(0.0, 0.0, 0.0, 1.0))
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 512
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(0.5, 0.0)
+	return texture
+
+
+## Create a scene-wide ambient moonlight using DirectionalLight2D.
+## DirectionalLight2D illuminates the entire scene uniformly — unlike PointLight2D,
+## it has no position, no radius, and NO visible edges. This is the correct node
+## for simulating moonlight (parallel rays from a distant source).
+## Shadows are disabled so the ambient glow passes through all walls uniformly.
+## @param parent: Parent node to add the ambient light to.
+func _create_ambient_moonlight(parent: Node2D) -> void:
+	var ambient := DirectionalLight2D.new()
+	ambient.name = "AmbientMoonlight"
+	ambient.color = Color(0.35, 0.45, 0.85, 1.0)  # Subtle blue moonlight tint
+	ambient.energy = 0.06  # Faint — slightly brighter (Issue #642) for better wall outline visibility
+	ambient.shadow_enabled = false  # Must pass through all walls for uniform glow
+	parent.add_child(ambient)
+
+
 func _process(_delta: float) -> void:
 	# Update enemy positions for aggressiveness tracking
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -375,6 +553,10 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -396,6 +578,8 @@ func _setup_player_tracking() -> void:
 			_update_magazines_label(mag_counts)
 		# Configure silenced pistol ammo based on enemy count
 		_configure_silenced_pistol_ammo(weapon)
+		# Configure 2.5x ammo for MakarovPM (Issue #636)
+		_configure_makarov_pm_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -471,6 +655,76 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+
+
+## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
+## Applies to all difficulty modes including Hard.
+func _configure_makarov_pm_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	if weapon.name != "MakarovPM":
+		return
+
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	var pm_magazines: int = int(round(starting_magazines * 2.5))
+
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(pm_magazines, true)
+		print("[BuildingLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
+
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+
+## Apply building-level ammo configuration to weapons already equipped by C# Player (Issue #949).
+## This is called when C# Player.ApplySelectedWeaponFromGameManager() has already equipped the weapon
+## but we still need to apply building-specific ammo limits (30+30 for M16/AK instead of 30+90).
+func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
+	if weapon == null:
+		return
+
+	# M16 and AK+GL should have 2 magazines (30+30) on Building level (Issue #949)
+	if weapon_id == "m16" or weapon_id == "ak_gl":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+				print("BuildingLevel: Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("BuildingLevel: %s magazines reinitialized to %d (C# weapon)" % [weapon.name, base_magazines])
+
+		# Update ammo display
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+
+	# Silenced pistol: configure ammo for enemy count
+	elif weapon_id == "silenced_pistol":
+		_configure_silenced_pistol_ammo(weapon)
+
+	# Mini UZI: should also have reduced magazines
+	elif weapon_id == "mini_uzi":
+		var base_magazines: int = 2
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager:
+			var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+			if ammo_multiplier > 1:
+				base_magazines *= ammo_multiplier
+		if weapon.has_method("ReinitializeMagazines"):
+			weapon.ReinitializeMagazines(base_magazines, true)
+			print("BuildingLevel: MiniUzi magazines reinitialized to %d (C# weapon)" % base_magazines)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -815,6 +1069,10 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
 		if weapon == null:
+			weapon = _player.get_node_or_null("AKGL")
+		if weapon == null:
+			weapon = _player.get_node_or_null("Revolver")
+		if weapon == null:
 			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
@@ -1046,27 +1304,57 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
 
-	# Check if replay data is available
-	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
 
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-		_log_to_file("Watch Replay button created (replay data available)")
+		# Check if replay data is available
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+			_log_to_file("Watch Replay button created (replay data available)")
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+			_log_to_file("Watch Replay button created (disabled - no replay data)")
+
+		buttons_container.add_child(replay_button)
 	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
-		_log_to_file("Watch Replay button created (disabled - no replay data)")
+		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
 
-	buttons_container.add_child(replay_button)
+	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
+		var armory_button := Button.new()
+		armory_button.name = "ArmoryButton"
+		armory_button.text = "★ Armory — Items Available!"
+		armory_button.custom_minimum_size = Vector2(200, 40)
+		armory_button.add_theme_font_size_override("font_size", 18)
+		armory_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+		var armory_style := StyleBoxFlat.new()
+		armory_style.bg_color = Color(0.28, 0.22, 0.08, 0.9)
+		armory_style.border_color = Color(1.0, 0.8, 0.1, 1.0)
+		armory_style.border_width_left = 2
+		armory_style.border_width_right = 2
+		armory_style.border_width_top = 2
+		armory_style.border_width_bottom = 2
+		armory_style.corner_radius_top_left = 4
+		armory_style.corner_radius_top_right = 4
+		armory_style.corner_radius_bottom_left = 4
+		armory_style.corner_radius_bottom_right = 4
+		armory_button.add_theme_stylebox_override("normal", armory_style)
+		armory_button.pressed.connect(_on_armory_button_pressed)
+		buttons_container.add_child(armory_button)
 
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1140,19 +1428,24 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
 	# This prevents double-equipping when both C# and GDScript weapon setup run
+	# BUT we still need to apply building-level ammo configuration (Issue #949)
 	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
 			"sniper": "SniperRifle",
-			"m16": "AssaultRifle"
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
 			var existing_weapon = _player.get_node_or_null(expected_name)
 			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
-				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				_log_to_file("%s already equipped by C# Player - applying building-level ammo config" % expected_name)
+				# Apply building-level ammo configuration to already-equipped weapon (Issue #949)
+				_apply_building_ammo_config(existing_weapon, selected_weapon_id)
 				return
 
 	# If shotgun is selected, we need to swap weapons
@@ -1296,6 +1589,65 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load AssaultRifle scene!")
+	# If AK + GL is selected, swap weapons
+	elif selected_weapon_id == "ak_gl":
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
+
+		# Load and add the AKGL
+		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
+		if akgl_scene:
+			var akgl = akgl_scene.instantiate()
+			akgl.name = "AKGL"
+			_player.add_child(akgl)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = akgl
+
+			# Reduce AKGL ammunition by half for Building level (Issue #949)
+			# Same as M16: base_magazines = 2 gives 30+30 ammo instead of 30+90
+			# In Power Fantasy mode, apply ammo multiplier
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("BuildingLevel: Power Fantasy mode - AKGL magazines multiplied by %dx" % ammo_multiplier)
+			if akgl.has_method("ReinitializeMagazines"):
+				akgl.ReinitializeMagazines(base_magazines, true)
+				print("BuildingLevel: AKGL magazines reinitialized to %d" % base_magazines)
+
+			print("BuildingLevel: AK + GL equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load AKGL scene!")
+	# If Revolver is selected, swap weapons
+	elif selected_weapon_id == "revolver":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
+
+		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
+		if revolver_scene:
+			var revolver = revolver_scene.instantiate()
+			revolver.name = "Revolver"
+			_player.add_child(revolver)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = revolver
+
+			print("BuildingLevel: RSh-12 Revolver equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load Revolver scene!")
 	# For Makarov PM, it's already in the scene
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
@@ -1305,15 +1657,21 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = makarov
 
+			# Configure 2.5x ammo for MakarovPM (Issue #636)
+			_configure_makarov_pm_ammo(makarov)
 
-## Handle W key shortcut for Watch Replay when score is shown.
+
+## Handle W key shortcut for Watch Replay when score is shown (Issue #807: check experimental setting).
 func _unhandled_input(event: InputEvent) -> void:
 	if not _score_shown:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
+			# Issue #807: Only trigger replay if enabled in experimental settings
+			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+			if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
+				_on_watch_replay_pressed()
 
 
 ## Called when the Watch Replay button is pressed (or W key).
@@ -1362,6 +1720,23 @@ func _on_level_select_pressed() -> void:
 		_log_to_file("ERROR: Could not load levels menu script")
 
 
+## Called when the Armory button is pressed on the score screen (Issue #897).
+func _on_armory_button_pressed() -> void:
+	_log_to_file("Armory button pressed from score screen")
+	# Load the armory menu as a CanvasLayer overlay
+	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
+	if armory_menu_scene:
+		var armory_menu = armory_menu_scene.instantiate()
+		armory_menu.layer = 100  # On top of everything
+		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
+		armory_menu.opened_from_score_screen = true
+		get_tree().root.add_child(armory_menu)
+		# Connect back button to close the overlay
+		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load armory menu scene")
+
+
 ## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
 ## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
@@ -1372,9 +1747,14 @@ func _get_next_level_path() -> String:
 
 	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
+		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/RevolverLevel.tscn",
+		"res://scenes/levels/CityLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+		"res://scenes/levels/DocksLevel.tscn",
 	]
 
 	for i in range(level_paths.size()):

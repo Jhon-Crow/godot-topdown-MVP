@@ -41,13 +41,25 @@ public partial class ShotgunPellet : Area2D
 
     /// <summary>
     /// Direction the pellet travels (set by the shooter).
+    /// Exported so GDScript force field can check "direction" in pellet (Issue #912).
     /// </summary>
+    [Export]
     public Vector2 Direction { get; set; } = Vector2.Right;
 
     /// <summary>
     /// Instance ID of the node that shot this pellet.
+    /// Exported so GDScript force field can check "shooter_id" in pellet (Issue #912).
     /// </summary>
+    [Export]
     public ulong ShooterId { get; set; } = 0;
+
+    /// <summary>
+    /// Whether this pellet uses breaker behavior (Issue #678).
+    /// Set via Node.Set("is_breaker_bullet", true) by Shotgun.SpawnPelletWithOffset().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsBreakerBullet { get; set; } = false;
 
     // =========================================================================
     // Ricochet Configuration (Shotgun Pellet - limited to 35 degrees)
@@ -118,6 +130,59 @@ public partial class ShotgunPellet : Area2D
     /// Enable debug logging for ricochet calculations.
     /// </summary>
     private const bool DebugRicochet = false;
+
+    // =========================================================================
+    // Homing Pellet System (Issue #704)
+    // =========================================================================
+
+    /// <summary>
+    /// Whether this pellet has homing enabled (steers toward nearest enemy).
+    /// </summary>
+    private bool _homingEnabled = false;
+
+    /// <summary>
+    /// Maximum angle (in radians) the pellet can turn from its original direction.
+    /// 170 degrees = ~2.97 radians (Issue #737).
+    /// </summary>
+    private float _homingMaxTurnAngle = Mathf.DegToRad(170.0f);
+
+    /// <summary>
+    /// Steering speed for homing (radians per second of turning).
+    /// Increased from 8.0 to 50.0 for sharp turning (rounded angle, not semicircle) (Issue #709).
+    /// </summary>
+    private float _homingSteerSpeed = 50.0f;
+
+    /// <summary>
+    /// The original firing direction (stored when homing is enabled).
+    /// Used to limit total turn angle.
+    /// </summary>
+    private Vector2 _homingOriginalDirection = Vector2.Zero;
+
+    /// <summary>
+    /// Enable debug logging for homing calculations.
+    /// </summary>
+    private const bool DebugHoming = false;
+
+    /// <summary>
+    /// Whether aim-line targeting is active (Issue #704).
+    /// When true, targets enemy closest to the player's aim line rather than nearest to pellet.
+    /// </summary>
+    private bool _useAimLineTargeting = false;
+
+    /// <summary>
+    /// The player's position when pellet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterOrigin = Vector2.Zero;
+
+    /// <summary>
+    /// The player's aim direction when pellet was fired (for aim-line targeting).
+    /// </summary>
+    private Vector2 _shooterAimDirection = Vector2.Zero;
+
+    /// <summary>
+    /// Whether homing is enabled on this pellet.
+    /// </summary>
+    public bool HomingEnabled => _homingEnabled;
 
     /// <summary>
     /// Timer tracking remaining lifetime.
@@ -194,6 +259,12 @@ public partial class ShotgunPellet : Area2D
 
     public override void _PhysicsProcess(double delta)
     {
+        // Apply homing steering if enabled (Issue #704)
+        if (_homingEnabled)
+        {
+            ApplyHomingSteering((float)delta);
+        }
+
         // Calculate movement this frame
         var movement = Direction * Speed * (float)delta;
 
@@ -212,6 +283,15 @@ public partial class ShotgunPellet : Area2D
                 }
                 QueueFree();
                 return;
+            }
+        }
+
+        // Check for breaker detonation (Issue #678)
+        if (IsBreakerBullet)
+        {
+            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, false))
+            {
+                return; // Pellet detonated and was freed
             }
         }
 
@@ -250,6 +330,252 @@ public partial class ShotgunPellet : Area2D
         }
     }
 
+    // =========================================================================
+    // Homing Methods (Issue #704)
+    // =========================================================================
+
+    /// <summary>
+    /// Enables homing on this pellet, storing the original direction.
+    /// Called when activating homing on already-airborne pellets.
+    /// Targets the nearest enemy to the pellet itself.
+    /// </summary>
+    public void EnableHoming()
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        if (DebugHoming)
+        {
+            GD.Print($"[ShotgunPellet] Homing enabled, original direction: {_homingOriginalDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Enables homing on this pellet with aim-line targeting (Issue #704).
+    /// Called when firing new pellets during homing activation.
+    /// Targets the enemy closest to the player's line of fire.
+    /// </summary>
+    /// <param name="shooterPos">The player's position when firing.</param>
+    /// <param name="aimDir">The player's aim direction when firing.</param>
+    public void EnableHomingWithAimLine(Vector2 shooterPos, Vector2 aimDir)
+    {
+        _homingEnabled = true;
+        _homingOriginalDirection = Direction.Normalized();
+        _useAimLineTargeting = true;
+        _shooterOrigin = shooterPos;
+        _shooterAimDirection = aimDir.Normalized();
+        if (DebugHoming)
+        {
+            GD.Print($"[ShotgunPellet] Homing enabled with aim-line targeting, aim: {_shooterAimDirection}");
+        }
+    }
+
+    /// <summary>
+    /// Applies homing steering toward the nearest alive enemy.
+    /// The pellet turns toward the nearest enemy but cannot exceed the max turn angle
+    /// from its original firing direction (170 degrees each side, Issue #737).
+    /// </summary>
+    private void ApplyHomingSteering(float delta)
+    {
+        // Only player pellets should home
+        if (!IsPlayerPellet())
+        {
+            return;
+        }
+
+        // Find nearest alive enemy
+        var targetPos = FindNearestEnemyPosition();
+        if (targetPos == Vector2.Zero)
+        {
+            return; // No valid target found
+        }
+
+        // Calculate desired direction toward target
+        var toTarget = (targetPos - GlobalPosition).Normalized();
+
+        // Calculate the angle difference between current direction and desired
+        float angleDiff = Direction.AngleTo(toTarget);
+
+        // Limit per-frame steering (smooth turning)
+        float maxSteerThisFrame = _homingSteerSpeed * delta;
+        angleDiff = Mathf.Clamp(angleDiff, -maxSteerThisFrame, maxSteerThisFrame);
+
+        // Calculate proposed new direction
+        var newDirection = Direction.Rotated(angleDiff).Normalized();
+
+        // Check if the new direction would exceed the max turn angle from original
+        float angleFromOriginal = _homingOriginalDirection.AngleTo(newDirection);
+        if (Mathf.Abs(angleFromOriginal) > _homingMaxTurnAngle)
+        {
+            if (DebugHoming)
+            {
+                GD.Print($"[ShotgunPellet] Homing angle limit reached: {Mathf.RadToDeg(Mathf.Abs(angleFromOriginal))}°");
+            }
+            return; // Don't steer further, angle limit reached
+        }
+
+        // Apply the steering
+        Direction = newDirection;
+        UpdateRotation();
+
+        if (DebugHoming)
+        {
+            GD.Print($"[ShotgunPellet] Homing steer: angle_diff={Mathf.RadToDeg(angleDiff)}° total_turn={Mathf.RadToDeg(Mathf.Abs(angleFromOriginal))}°");
+        }
+    }
+
+    /// <summary>
+    /// Finds the position of the best homing target enemy.
+    /// When aim-line targeting is active (Issue #704), finds the enemy closest
+    /// to the player's line of fire. Otherwise, finds the nearest enemy to the pellet.
+    /// Returns Vector2.Zero if no enemies are found.
+    /// </summary>
+    private Vector2 FindNearestEnemyPosition()
+    {
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return Vector2.Zero;
+        }
+
+        var enemies = tree.GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+        {
+            return Vector2.Zero;
+        }
+
+        if (_useAimLineTargeting)
+        {
+            return FindEnemyNearestToAimLine(enemies);
+        }
+
+        var nearestPos = Vector2.Zero;
+        float nearestDist = float.PositiveInfinity;
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+            // Skip dead enemies
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+            // Skip enemies behind walls (Issue #709)
+            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
+            {
+                if (DebugHoming)
+                {
+                    GD.Print($"[ShotgunPellet] Skipping enemy {enemyNode.Name} - wall blocks line of sight");
+                }
+                continue;
+            }
+            float dist = GlobalPosition.DistanceSquaredTo(enemyNode.GlobalPosition);
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearestPos = enemyNode.GlobalPosition;
+            }
+        }
+
+        return nearestPos;
+    }
+
+    /// <summary>
+    /// Finds the enemy closest to the player's aim line (Issue #704).
+    /// Uses perpendicular distance from the aim ray to score enemies.
+    /// Only considers enemies within max turn angle (170 degrees, Issue #737) of the aim direction.
+    /// Skips enemies blocked by walls (Issue #709).
+    /// </summary>
+    private Vector2 FindEnemyNearestToAimLine(Godot.Collections.Array<Node> enemies)
+    {
+        var bestTarget = Vector2.Zero;
+        float bestScore = float.PositiveInfinity;
+        float maxPerpDistance = 500.0f;
+        float maxAngle = _homingMaxTurnAngle;
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode)
+            {
+                continue;
+            }
+            if (enemyNode.HasMethod("is_alive"))
+            {
+                bool alive = (bool)enemyNode.Call("is_alive");
+                if (!alive)
+                {
+                    continue;
+                }
+            }
+
+            Vector2 toEnemy = enemyNode.GlobalPosition - _shooterOrigin;
+            float distToEnemy = toEnemy.Length();
+            if (distToEnemy < 1.0f)
+            {
+                continue;
+            }
+
+            float angle = Mathf.Abs(_shooterAimDirection.AngleTo(toEnemy.Normalized()));
+            if (angle > maxAngle)
+            {
+                continue;
+            }
+
+            float perpDist = Mathf.Abs(toEnemy.X * _shooterAimDirection.Y - toEnemy.Y * _shooterAimDirection.X);
+            if (perpDist > maxPerpDistance)
+            {
+                continue;
+            }
+
+            // Skip enemies behind walls (Issue #709)
+            if (!HasLineOfSightToTarget(enemyNode.GlobalPosition))
+            {
+                if (DebugHoming)
+                {
+                    GD.Print($"[ShotgunPellet] Skipping enemy {enemyNode.Name} - wall blocks line of sight (aim-line)");
+                }
+                continue;
+            }
+
+            float score = perpDist + distToEnemy * 0.1f;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestTarget = enemyNode.GlobalPosition;
+            }
+        }
+
+        return bestTarget;
+    }
+
+    /// <summary>
+    /// Checks if there is a clear line of sight from the pellet to a target position (Issue #709).
+    /// Uses a physics raycast against obstacles (collision layer 3 = mask 4) to detect walls.
+    /// Returns false if a wall blocks the path, preventing the pellet from turning into walls.
+    /// </summary>
+    private bool HasLineOfSightToTarget(Vector2 targetPos)
+    {
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return true; // Can't check, assume clear
+        }
+
+        var query = PhysicsRayQueryParameters2D.Create(GlobalPosition, targetPos);
+        query.CollisionMask = 4; // Layer 3 = obstacles/walls only
+        query.CollideWithAreas = false;
+        query.CollideWithBodies = true;
+
+        var result = spaceState.IntersectRay(query);
+        return result.Count == 0; // True if no wall in the way
+    }
+
     /// <summary>
     /// Sets the direction for the pellet.
     /// </summary>
@@ -259,6 +585,44 @@ public partial class ShotgunPellet : Area2D
         Direction = direction.Normalized();
         UpdateRotation();
     }
+
+    // ===========================================================================
+    // Getter methods for GDScript interop (Issue #930)
+    //
+    // GDScript's .get("property_name") does NOT work reliably with C# [Export]
+    // properties. Instead, we expose explicit getter methods that GDScript can
+    // call via .Call("get_direction") or .Call("GetDirection").
+    // ===========================================================================
+
+    /// <summary>
+    /// Gets the pellet's travel direction (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public Vector2 get_direction() => Direction;
+
+    /// <summary>
+    /// Gets the pellet's speed (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public float get_speed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (snake_case for GDScript interop, Issue #930).
+    /// </summary>
+    public ulong get_shooter_id() => ShooterId;
+
+    /// <summary>
+    /// Gets the pellet's travel direction (PascalCase alias, Issue #930).
+    /// </summary>
+    public Vector2 GetDirection() => Direction;
+
+    /// <summary>
+    /// Gets the pellet's speed (PascalCase alias, Issue #930).
+    /// </summary>
+    public float GetSpeed() => Speed;
+
+    /// <summary>
+    /// Gets the shooter ID (PascalCase alias, Issue #930).
+    /// </summary>
+    public ulong GetShooterId() => ShooterId;
 
     /// <summary>
     /// Called when the pellet hits a static body (wall or obstacle).
@@ -329,11 +693,37 @@ public partial class ShotgunPellet : Area2D
     }
 
     /// <summary>
+    /// Checks if the given area belongs to an active force field (Issue #912).
+    /// See Bullet.cs for full explanation.
+    /// </summary>
+    private static bool IsForceFieldArea(Area2D area)
+    {
+        if (area.Name.ToString().Contains("ForceField", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        var parent = area.GetParent();
+        if (parent != null && parent.HasMethod("is_protecting"))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Called when the pellet hits another area (like a target or enemy).
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
         GD.Print($"[ShotgunPellet]: Hit {area.Name} (damage: {Damage * _damageMultiplier})");
+
+        // Issue #912: If this area belongs to the force field, let the force field
+        // GDScript handle trapping the pellet. Do NOT destroy this pellet here.
+        if (IsForceFieldArea(area))
+        {
+            GD.Print($"[ShotgunPellet]: Entering force field area — letting force field handle this pellet");
+            return;
+        }
 
         // Check if this is the shooter's HitArea
         var parent = area.GetParent();
@@ -584,9 +974,13 @@ public partial class ShotgunPellet : Area2D
         _hasRicocheted = true;
         _distanceSinceRicochet = 0.0f;
 
-        float angleFactor = 1.0f - (impactAngleDeg / MaxRicochetAngle);
+        // Normalize against 90 degrees (same as Bullet.cs) so that the travel distance
+        // is based on physical impact steepness rather than pellet's narrow angle limit.
+        // Using MaxRicochetAngle (35°) caused the factor to collapse too quickly:
+        // at 30° impact the pellet would survive only ~84ms, appearing to vanish instantly (Issue #908).
+        float angleFactor = 1.0f - (impactAngleDeg / 90.0f);
         angleFactor = Mathf.Clamp(angleFactor, 0.1f, 1.0f);
-        _maxPostRicochetDistance = _viewportDiagonal * angleFactor * 0.5f; // Shorter post-ricochet distance for pellets
+        _maxPostRicochetDistance = _viewportDiagonal * angleFactor;
 
         // Clear trail history
         _positionHistory.Clear();

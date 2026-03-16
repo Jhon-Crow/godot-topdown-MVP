@@ -6,6 +6,10 @@ class_name EnemyGrenadeComponent
 ## Grenade thrown signal.
 signal grenade_thrown(grenade: Node, target_position: Vector2)
 
+## Issue #712: Signal to request enemy to face throw direction before throwing.
+## Parameters: target_direction (Vector2) - normalized direction to face.
+signal face_throw_direction(target_direction: Vector2)
+
 # Configuration - set these from enemy's export vars
 var grenade_count: int = 0
 var grenade_scene: PackedScene = null
@@ -17,6 +21,10 @@ var safety_margin: float = 50.0  # Safety margin for blast radius (Issue #375)
 var inaccuracy: float = 0.15
 var throw_delay: float = 0.4
 var debug_logging: bool = false
+## Issue #712: Time to wait for enemy to rotate toward target before throwing (seconds).
+var face_direction_delay: float = 0.3
+## Issue #712: Whether to require visibility check for throw target (enemy must see target area).
+var require_target_visibility: bool = true
 
 # Constants
 const HIDDEN_THRESHOLD := 6.0
@@ -36,6 +44,8 @@ var _cooldown: float = 0.0
 var _is_throwing: bool = false
 var _enemy: CharacterBody2D = null
 var _logger: Node = null
+## Cache for blast radius to avoid repeated scene instantiation (Issue #886)
+var _blast_radius_cache: float = -1.0
 
 # Trigger 1: Suppression
 var _hidden_timer: float = 0.0
@@ -275,30 +285,41 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 		_log("Throw path blocked to %s" % target)
 		return false
 
+	# Issue #712: Check if target is visible to enemy (not throwing into unseen area)
+	if require_target_visibility and not _is_target_visible(target):
+		_log("Target not visible to enemy (in wall/unseen area) at %s - skipping throw" % target)
+		return false
+
 	_execute_throw(target, is_alive, is_stunned, is_blinded)
 	return true
 
 
-## Get grenade blast radius (Issue #375)
+## Get grenade blast radius (Issue #375).
+## Result is cached after first access to avoid repeated scene instantiation (Issue #886).
 func _get_blast_radius() -> float:
-	if grenade_scene == null:
-		return 225.0  # Default frag grenade radius
+	if _blast_radius_cache >= 0.0:
+		return _blast_radius_cache
 
-	# Try to instantiate grenade temporarily to query its radius
+	if grenade_scene == null:
+		_blast_radius_cache = 225.0  # Default frag grenade radius
+		return _blast_radius_cache
+
+	# Instantiate grenade once to read effect_radius, then cache the result
 	var temp_grenade = grenade_scene.instantiate()
 	if temp_grenade == null:
-		return 225.0  # Fallback
-
-	var radius := 225.0  # Default
+		_blast_radius_cache = 225.0  # Fallback
+		return _blast_radius_cache
 
 	# Check if grenade has effect_radius property
 	if temp_grenade.get("effect_radius") != null:
-		radius = temp_grenade.effect_radius
+		_blast_radius_cache = temp_grenade.effect_radius
+	else:
+		_blast_radius_cache = 225.0  # Default
 
 	# Clean up temporary instance
 	temp_grenade.queue_free()
 
-	return radius
+	return _blast_radius_cache
 
 
 func _path_clear(target: Vector2) -> bool:
@@ -316,10 +337,54 @@ func _path_clear(target: Vector2) -> bool:
 	return _enemy.global_position.distance_to(result.position) > _enemy.global_position.distance_to(target) * 0.6
 
 
+## Issue #712: Check if the target position is visible to the enemy.
+## This prevents throwing grenades into areas the enemy cannot see (behind walls).
+## Uses raycast to verify line of sight and checks if target is within enemy's FOV.
+func _is_target_visible(target: Vector2) -> bool:
+	if _enemy == null:
+		return true  # Cannot verify, allow throw
+
+	# Check line of sight to target
+	var space := _enemy.get_world_2d().direct_space_state
+	if space == null:
+		return true
+
+	var query := PhysicsRayQueryParameters2D.create(_enemy.global_position, target)
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = [_enemy]
+	var result := space.intersect_ray(query)
+
+	# If there's an obstacle blocking the full path to target, target is not visible
+	if not result.is_empty():
+		var hit_pos: Vector2 = result.position
+		var dist_to_hit := _enemy.global_position.distance_to(hit_pos)
+		var dist_to_target := _enemy.global_position.distance_to(target)
+		# Target is behind a wall if wall is between enemy and target
+		if dist_to_hit < dist_to_target * 0.95:  # 95% threshold for floating point tolerance
+			return false
+
+	# Check if target is within enemy's field of view
+	if _enemy.has_method("_is_position_in_fov"):
+		if not _enemy._is_position_in_fov(target):
+			_log("Target %s not in enemy FOV - skipping throw" % target)
+			return false
+
+	return true
+
+
 func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bool) -> void:
 	if grenade_scene == null:
 		return
 	_is_throwing = true
+
+	# Issue #712: Signal enemy to face throw direction before throwing
+	var throw_dir := (target - _enemy.global_position).normalized()
+	face_throw_direction.emit(throw_dir)
+	_log("Facing throw direction: %s (waiting %.1fs)" % [throw_dir, face_direction_delay])
+
+	# Wait for enemy to rotate toward target
+	if face_direction_delay > 0.0:
+		await get_tree().create_timer(face_direction_delay).timeout
 
 	if throw_delay > 0.0:
 		await get_tree().create_timer(throw_delay).timeout
@@ -331,6 +396,10 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
 	var grenade: Node2D = grenade_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
+
+	# Issue #692: Set thrower_id on the grenade so it won't damage the throwing enemy
+	if grenade.get("thrower_id") != null:
+		grenade.thrower_id = _enemy.get_instance_id()
 
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)
@@ -361,6 +430,9 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 	# Mark C# timer as thrown (enables impact detection for Frag grenades)
 	_mark_grenade_thrown(grenade as RigidBody2D)
 
+	# Issue #692: Set thrower on C# GrenadeTimer for self-damage prevention
+	_set_grenade_thrower(grenade as RigidBody2D, _enemy.get_instance_id())
+
 	grenades_remaining -= 1
 	_cooldown = throw_cooldown
 	_is_throwing = false
@@ -376,8 +448,8 @@ func add_grenades(count: int) -> void:
 func _log(msg: String) -> void:
 	if debug_logging:
 		print("[EnemyGrenadeComponent] %s" % msg)
-	if _logger and _logger.has_method("log_info"):
-		_logger.log_info("[EnemyGrenade] %s" % msg)
+		if _logger and _logger.has_method("log_info"):
+			_logger.log_info("[EnemyGrenade] %s" % msg)
 
 
 ## FIX for Issue #432: Attach C# GrenadeTimer component via autoload helper.
@@ -410,3 +482,12 @@ func _mark_grenade_thrown(grenade: RigidBody2D) -> void:
 	var helper := get_node_or_null("/root/GrenadeTimerHelper")
 	if helper and helper.has_method("MarkAsThrown"):
 		helper.MarkAsThrown(grenade)
+
+
+## Issue #692: Set thrower on C# GrenadeTimer for self-damage prevention.
+func _set_grenade_thrower(grenade: RigidBody2D, enemy_instance_id: int) -> void:
+	if grenade == null:
+		return
+	var helper := get_node_or_null("/root/GrenadeTimerHelper")
+	if helper and helper.has_method("SetThrower"):
+		helper.SetThrower(grenade, enemy_instance_id)

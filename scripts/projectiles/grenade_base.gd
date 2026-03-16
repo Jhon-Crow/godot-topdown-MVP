@@ -115,6 +115,7 @@ var _previous_velocity: Vector2 = Vector2.ZERO
 ## activated, causing grenades to fly infinitely without exploding.
 var _was_frozen_on_start: bool = true
 
+
 ## Signal emitted when the grenade explodes.
 signal exploded(position: Vector2, grenade: GrenadeBase)
 
@@ -144,6 +145,10 @@ func _ready() -> void:
 	# We use manual ground_friction in _physics_process() for predictable constant deceleration.
 	# This ensures grenades travel the exact distance calculated by: d = v² / (2 * ground_friction)
 	# Previously linear_damp=1.0 was causing grenades to land significantly short of their target.
+	# FIX for Issue #615: Set damp_mode to REPLACE so linear_damp=0 means EXACTLY zero damping.
+	# In COMBINE mode (Godot default), linear_damp=0 still adds the project default (0.1),
+	# causing grenades to travel ~13% shorter than the physics formula predicts.
+	linear_damp_mode = RigidBody2D.DAMP_MODE_REPLACE
 	linear_damp = 0.0
 
 	# Set up physics material for wall bouncing
@@ -178,37 +183,20 @@ func _physics_process(delta: float) -> void:
 			FileLogger.info("[GrenadeBase] Detected unfreeze without timer activation - auto-activating timer (fallback)")
 			activate_timer()
 
-	# Apply velocity-dependent ground friction to slow down
-	# FIX for issue #435: Grenade should maintain speed for most of flight,
-	# only slowing down noticeably at the very end of its path.
-	# At high velocities: reduced friction (grenade maintains speed)
-	# At low velocities: full friction (grenade slows to stop)
-	if linear_velocity.length() > 0:
-		var current_speed := linear_velocity.length()
-
-		# Calculate friction multiplier based on velocity
-		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
-		# Below friction_ramp_velocity: smoothly ramp up to full friction
-		var friction_multiplier: float
-		if current_speed >= friction_ramp_velocity:
-			# High speed: minimal friction to maintain velocity
-			friction_multiplier = min_friction_multiplier
-		else:
-			# Low speed: smoothly increase friction from min to full (1.0)
-			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
-			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
-			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
-			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
-
-		var effective_friction := ground_friction * friction_multiplier
-		var friction_force := linear_velocity.normalized() * effective_friction * delta
-		if friction_force.length() > linear_velocity.length():
-			linear_velocity = Vector2.ZERO
-		else:
-			linear_velocity -= friction_force
+	# FIX for Issue #615: Ground friction is handled exclusively by C# GrenadeTimer.
+	# GDScript friction was removed to prevent double friction (GDScript + C# applying
+	# friction simultaneously caused grenades to travel only ~59% of target distance).
+	# C# GrenadeTimer.ApplyGroundFriction() applies uniform friction: F = ground_friction * delta
+	# This matches the throw speed formula: v = sqrt(2 * F * d), d = v² / (2 * F)
 
 	# Check for landing (grenade comes to near-stop after being thrown)
-	if not _has_landed and _timer_active:
+	# FIX for Issue #855: Only check for landing when grenade is actually in flight (not frozen).
+	# When the grenade is frozen and follows the player, FREEZE_MODE_KINEMATIC causes
+	# linear_velocity to reflect the position changes from player movement. This was
+	# triggering the landing sound when the player paused, even though the grenade
+	# had never been thrown. Guard with is_thrown() (which returns `not freeze`) to
+	# match the correct behavior already implemented in C# GrenadeTimer.cs (IsThrown guard).
+	if not _has_landed and _timer_active and is_thrown():
 		var current_speed := linear_velocity.length()
 		var previous_speed := _previous_velocity.length()
 		# Grenade has landed when it was moving fast and now nearly stopped
@@ -633,3 +621,44 @@ func _scatter_casings(effect_radius: float) -> void:
 
 	if scattered_count > 0 or proximity_count > 0:
 		FileLogger.info("[GrenadeBase] Scattered %d casings (lethal zone) + %d casings (proximity) from explosion" % [scattered_count, proximity_count])
+
+
+## Spawn a scorch mark on the floor after explosion (Issue #1005).
+## Scorch marks persist as visual evidence of the explosion.
+## @param scorch_radius: Radius of the scorch mark in pixels.
+## @param scorch_alpha: Opacity of the scorch mark (0.0 to 1.0).
+## @param grenade_type_name: Name of the grenade type for logging.
+func _spawn_scorch_mark(scorch_radius: float, scorch_alpha: float, grenade_type_name: String) -> void:
+	# Try to use ImpactEffectsManager if available
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager and impact_manager.has_method("spawn_explosion_scorch_mark"):
+		impact_manager.spawn_explosion_scorch_mark(global_position, scorch_radius, scorch_alpha, grenade_type_name)
+		return
+
+	# Fallback: instantiate scorch mark directly
+	var scorch_scene_path := "res://scenes/effects/ExplosionScorchMark.tscn"
+	if not ResourceLoader.exists(scorch_scene_path):
+		FileLogger.info("[GrenadeBase] ExplosionScorchMark scene not found at: %s" % scorch_scene_path)
+		return
+
+	var scorch_scene: PackedScene = load(scorch_scene_path)
+	if scorch_scene == null:
+		return
+
+	var scorch_mark: Node = scorch_scene.instantiate()
+	if scorch_mark == null:
+		return
+
+	# Configure scorch mark properties
+	scorch_mark.global_position = global_position
+	scorch_mark.scorch_radius = scorch_radius
+	scorch_mark.scorch_alpha = scorch_alpha
+	scorch_mark.grenade_type = grenade_type_name
+
+	# Add to current scene
+	var scene := get_tree().current_scene
+	if scene:
+		scene.add_child(scorch_mark)
+		FileLogger.info("[GrenadeBase] Spawned %s scorch mark at %s (radius: %.1f, alpha: %.2f)" % [
+			grenade_type_name, str(global_position), scorch_radius, scorch_alpha
+		])

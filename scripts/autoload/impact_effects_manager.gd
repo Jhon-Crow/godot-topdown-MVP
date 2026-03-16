@@ -17,6 +17,7 @@ var _blood_decal_scene: PackedScene = null
 var _bullet_hole_scene: PackedScene = null
 var _muzzle_flash_scene: PackedScene = null
 var _flashbang_effect_scene: PackedScene = null
+var _explosion_scorch_mark_scene: PackedScene = null
 
 ## Default effect scale for calibers without explicit setting.
 const DEFAULT_EFFECT_SCALE: float = 1.0
@@ -44,14 +45,59 @@ const WALL_COLLISION_LAYER: int = 4
 ## Set to 0 to disable cleanup limit.
 const MAX_BULLET_HOLES: int = 0
 
+## Number of blood decals spawned per lethal hit (Issue #969 optimization).
+## Reduced from 20 to 8 to limit file-write and node-add overhead at high fire rates.
+## Each decal add triggers SceneTree.tree_changed, causing scene-change checks in all managers.
+const BLOOD_DECALS_PER_LETHAL_HIT: int = 8
+
+## Number of blood decals spawned per non-lethal hit (Issue #969 optimization).
+## Reduced from 10 to 4 to limit overhead at high fire rates.
+const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 4
+
+## Issue #997 RCA-16: Per-second rate limiting for blood decals.
+## When multiple enemies die in the same second, limit total decals to prevent tree_changed floods.
+const MAX_BLOOD_DECALS_PER_SECOND: int = 20
+var _blood_decals_this_second: int = 0
+var _blood_decal_rate_limit_frame: int = -1
+
 ## Active blood decals for cleanup management.
 var _blood_decals = []
+
+## Cached light texture for explosion effects (Issue #724 optimization).
+## Creating GradientTexture2D is expensive, so we cache and reuse it.
+var _cached_explosion_light_texture: GradientTexture2D = null
+
+## Pool of reusable PointLight2D objects for explosion effects (Issue #724 optimization).
+## Creating/destroying many PointLight2D objects causes FPS drops even without shadows.
+## This pool allows reusing lights instead of creating new ones each explosion.
+var _explosion_light_pool: Array[PointLight2D] = []
+
+## Active explosion lights currently animating (for tracking and recycling).
+var _active_explosion_lights: Array[PointLight2D] = []
+
+## Maximum number of concurrent explosion lights allowed.
+## Beyond this limit, new explosions won't create lights to prevent FPS drops.
+## Based on testing: 5-10 simultaneous PointLight2D cause noticeable performance impact.
+const MAX_CONCURRENT_EXPLOSION_LIGHTS: int = 8
+
+## Initial pool size for explosion lights (pre-created at startup).
+const EXPLOSION_LIGHT_POOL_SIZE: int = 12
 
 ## Active bullet holes for cleanup management (visual only).
 var _bullet_holes = []
 
 ## Active penetration collision holes for cleanup management.
 var _penetration_holes = []
+
+## Active muzzle flash data for enemy detection (Issue #910).
+## Each entry contains position, direction, and timestamp.
+var _active_muzzle_flashes: Array = []
+
+## Maximum number of tracked muzzle flashes to prevent memory growth.
+const MAX_TRACKED_FLASHES: int = 10
+
+## Maximum age before flash is removed from tracking (seconds).
+const FLASH_TRACKING_MAX_AGE: float = 0.5
 
 ## Penetration hole scene.
 var _penetration_hole_scene: PackedScene = null
@@ -88,6 +134,9 @@ func _ready() -> void:
 	_last_scene = get_tree().current_scene
 
 	_log_info("ImpactEffectsManager ready - FULL VERSION with blood effects enabled")
+
+	# Initialize explosion light pool (Issue #724 optimization)
+	_init_explosion_light_pool()
 
 	# Perform shader warmup to prevent first-shot lag (Issue #343)
 	# This pre-compiles GPU shaders for particle effects during loading
@@ -201,6 +250,18 @@ func _preload_effect_scenes() -> void:
 		if _debug_effects:
 			print("[ImpactEffectsManager] FlashbangEffect scene not found (optional)")
 
+	# Issue #1005: Load explosion scorch mark scene
+	var scorch_mark_path := "res://scenes/effects/ExplosionScorchMark.tscn"
+	if ResourceLoader.exists(scorch_mark_path):
+		_explosion_scorch_mark_scene = load(scorch_mark_path)
+		loaded_scenes.append("ExplosionScorchMark")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded ExplosionScorchMark scene")
+	else:
+		# Scorch mark is optional - don't warn, just log in debug mode
+		if _debug_effects:
+			print("[ImpactEffectsManager] ExplosionScorchMark scene not found (optional)")
+
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
 ## @param position: World position where the bullet hit the wall.
@@ -248,9 +309,9 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 ## @param caliber_data: Optional caliber data for effect scaling.
 ## @param is_lethal: Whether the hit was lethal (affects intensity and decal spawning).
 func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null, is_lethal: bool = true) -> void:
-	_log_info("spawn_blood_effect called at %s, dir=%s, lethal=%s" % [position, hit_direction, is_lethal])
-
+	# Issue #969: gate per-hit logging behind debug flag to prevent file write spam at high fire rates
 	if _debug_effects:
+		_log_info("spawn_blood_effect called at %s, dir=%s, lethal=%s" % [position, hit_direction, is_lethal])
 		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal)
 
 	if _blood_effect_scene == null:
@@ -264,7 +325,8 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 		print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
 		return
 
-	_log_info("Blood particle effect instantiated successfully")
+	if _debug_effects:
+		_log_info("Blood particle effect instantiated successfully")
 
 	effect.global_position = position
 
@@ -285,16 +347,17 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 	# Start emitting
 	effect.emitting = true
 
-	# Spawn many small blood decals that simulate where particles land
-	# Number of decals based on hit intensity and lethality
-	var num_decals := 20 if is_lethal else 10
+	# Spawn small blood decals that simulate where particles land
+	# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
+	var num_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
 	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
 	# Check for nearby walls and spawn wall splatters
 	_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
 
-	_log_info("Blood effect spawned at %s (scale=%s)" % [position, effect_scale])
+	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
+		_log_info("Blood effect spawned at %s (scale=%s)" % [position, effect_scale])
 		print("[ImpactEffectsManager] Blood effect spawned successfully")
 
 
@@ -377,8 +440,40 @@ func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Res
 	# Add to scene tree
 	_add_effect_to_scene(effect)
 
+	# Track flash for enemy detection (Issue #910)
+	_track_muzzle_flash(position, direction)
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] Muzzle flash spawned at ", position, " with scale=", effect_scale)
+
+
+## Track a muzzle flash for enemy detection (Issue #910).
+func _track_muzzle_flash(position: Vector2, direction: Vector2) -> void:
+	var flash_data := {
+		"position": position,
+		"direction": direction.normalized(),
+		"timestamp": Time.get_ticks_msec() / 1000.0
+	}
+	_active_muzzle_flashes.append(flash_data)
+	while _active_muzzle_flashes.size() > MAX_TRACKED_FLASHES:
+		_active_muzzle_flashes.pop_front()
+
+
+## Get active muzzle flashes for enemy detection (Issue #910).
+## Returns array of dictionaries with: position, direction, age (seconds).
+func get_active_muzzle_flashes() -> Array:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	_active_muzzle_flashes = _active_muzzle_flashes.filter(
+		func(f): return current_time - f.timestamp < FLASH_TRACKING_MAX_AGE
+	)
+	var result: Array = []
+	for flash in _active_muzzle_flashes:
+		result.append({
+			"position": flash.position,
+			"direction": flash.direction,
+			"age": current_time - flash.timestamp
+		})
+	return result
 
 
 ## Spawns a flashbang visual effect at the given position.
@@ -508,8 +603,9 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
 		decals_scheduled += 1
 
-	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
+	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
+		_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 
 
@@ -546,6 +642,18 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	if not result.is_empty():
 		# Wall detected between origin and landing - skip this decal
 		return
+
+	# Issue #997 RCA-16: rate limit blood decals per second to prevent tree_changed floods
+	var current_frame := Engine.get_physics_frames()
+	# Reset counter every ~60 frames (approximately 1 second at 60fps)
+	if current_frame - _blood_decal_rate_limit_frame >= 60:
+		_blood_decals_this_second = 0
+		_blood_decal_rate_limit_frame = current_frame
+
+	if _blood_decals_this_second >= MAX_BLOOD_DECALS_PER_SECOND:
+		# Rate limit exceeded, skip this decal
+		return
+	_blood_decals_this_second += 1
 
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
@@ -620,8 +728,9 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	var wall_hit_pos: Vector2 = result.position
 	var wall_normal: Vector2 = result.normal
 
-	_log_info("Wall found for blood splatter at %s (dist=%d px)" % [wall_hit_pos, hit_position.distance_to(wall_hit_pos)])
+	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
+		_log_info("Wall found for blood splatter at %s (dist=%d px)" % [wall_hit_pos, hit_position.distance_to(wall_hit_pos)])
 		print("[ImpactEffectsManager] Wall found at ", wall_hit_pos, " normal=", wall_normal)
 
 	# Create blood splatter decal on the wall
@@ -804,12 +913,13 @@ func clear_penetration_holes() -> void:
 		print("[ImpactEffectsManager] All penetration holes cleared")
 
 
-## Clears all persistent effects (blood decals, bullet holes, and penetration holes).
+## Clears all persistent effects (blood decals, bullet holes, penetration holes, and scorch marks).
 ## Call this on scene transitions.
 func clear_all_persistent_effects() -> void:
 	clear_blood_decals()
 	clear_bullet_holes()
 	clear_penetration_holes()
+	clear_scorch_marks()
 
 
 ## Called when the scene tree changes. Detects scene transitions and clears stale references.
@@ -821,6 +931,7 @@ func _on_tree_changed() -> void:
 		_blood_decals.clear()
 		_bullet_holes.clear()
 		_penetration_holes.clear()
+		_scorch_marks.clear()
 		_last_scene = current_scene
 
 
@@ -1037,42 +1148,61 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 
 
 ## Internal helper to spawn grenade visual effects with automatic wall occlusion.
-## FIX for Issue #470 (Final): Uses ONLY PointLight2D with shadow_enabled=true.
-## This ensures the light automatically respects wall geometry through Godot's native
-## 2D lighting/shadow system - same approach as MuzzleFlash.tscn.
+## FIX for Issue #470 (Final): Uses ONLY PointLight2D.
+## FIX for Issue #724 (Performance): Pools and limits concurrent lights.
 ##
-## Previous implementation used Sprite2D + PointLight2D, but Sprite2D ignores shadows
-## and was visible through walls. Now we only use PointLight2D which natively respects
-## LightOccluder2D nodes on walls.
+## Performance optimization (Issue #724):
+## - PointLight2D objects are pooled and reused instead of created/destroyed
+## - Maximum concurrent lights is limited (beyond limit, effects are skipped)
+## - Shadows are disabled (brief flashes don't need accurate shadow casting)
 ##
 ## @param position: World position of the explosion.
 ## @param radius: Effect radius for visual size.
 ## @param flash_color: Color of the flash effect.
 ## @param effect_type: Type name for logging ("flashbang" or "explosion").
 func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
-	_log_info("Spawning %s visual effect at %s (radius=%d) - using shadow-based wall occlusion" % [effect_type, position, int(radius)])
+	# Check if we've hit the concurrent light limit (Issue #724 optimization)
+	if _active_explosion_lights.size() >= MAX_CONCURRENT_EXPLOSION_LIGHTS:
+		if _debug_effects:
+			print("[ImpactEffectsManager] Skipping %s light at %s - concurrent limit (%d) reached" % [
+				effect_type, position, MAX_CONCURRENT_EXPLOSION_LIGHTS])
+		return
 
-	# FIX for Issue #470: Use ONLY PointLight2D with shadows for proper wall occlusion
-	# Do NOT create Sprite2D as it ignores shadows and passes through walls
+	# Use pooled light with limit check
 	_create_grenade_light_with_occlusion(position, radius, flash_color, effect_type)
 
 
-## Creates a PointLight2D-based flash effect for grenade explosions with automatic wall occlusion.
-## FIX for Issue #470: Uses shadow_enabled=true to ensure the flash is blocked by walls.
-## This is the same approach used by MuzzleFlash.tscn for weapon muzzle flashes.
+## Creates a PointLight2D-based flash effect for grenade explosions.
 ##
-## The PointLight2D's shadow system automatically respects LightOccluder2D nodes on walls,
-## so no manual raycast check is needed - walls naturally block the light.
+## ISSUE #724 OPTIMIZATION (Phase 2): PointLight2D pooling.
+##
+## Performance issues with multiple simultaneous lights:
+## - Creating 12+ PointLight2D objects at once causes FPS drops
+## - This happens even with shadows disabled
+## - Each PointLight2D adds GPU draw calls regardless of shadow state
+##
+## Solution: Pool and reuse PointLight2D objects.
+## - Lights are retrieved from pool instead of created
+## - After fade-out, lights return to pool instead of being freed
+## - Maximum concurrent lights is enforced to prevent overload
 ##
 ## @param position: World position of the explosion.
 ## @param radius: Effect radius for light size.
 ## @param light_color: Color of the flash.
 ## @param effect_type: Type name for logging ("flashbang" or "explosion").
 func _create_grenade_light_with_occlusion(position: Vector2, radius: float, light_color: Color, effect_type: String) -> void:
-	var light := PointLight2D.new()
+	# Get a light from the pool (or create new if pool empty)
+	var light: PointLight2D = _get_explosion_light_from_pool()
+	if light == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] Failed to get explosion light from pool")
+		return
+
+	# Configure the light
 	light.global_position = position
 	light.z_index = 10  # Draw above floor but not too high
 	light.color = Color(light_color.r, light_color.g, light_color.b, 1.0)
+	light.visible = true
 
 	# Use high energy for visible flash - much brighter than muzzle flash
 	# Flashbang: 8.0 energy (blinding white flash)
@@ -1084,26 +1214,28 @@ func _create_grenade_light_with_occlusion(position: Vector2, radius: float, ligh
 		light.energy = 6.0
 		light.texture_scale = radius / 80.0
 
-	# Use a gradient texture for the light
-	light.texture = _create_light_texture()
-
-	# CRITICAL for Issue #470: Enable shadows so light is blocked by walls
-	# This is the key difference from the old Sprite2D approach
-	light.shadow_enabled = true
-	light.shadow_color = Color(0, 0, 0, 0.9)
-	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
-	light.shadow_filter_smooth = 6.0
-
-	_add_effect_to_scene(light)
+	# Track as active
+	_active_explosion_lights.append(light)
 
 	# Animate the light: fade out over 0.4s with ease-out curve
 	var fade_duration := 0.4 if effect_type == "flashbang" else 0.3
 	var tween := light.create_tween()
 	tween.tween_property(light, "energy", 0.0, fade_duration).set_ease(Tween.EASE_OUT)
-	tween.tween_callback(light.queue_free)
+	# Return to pool instead of freeing
+	tween.tween_callback(_return_explosion_light_to_pool.bind(light))
+
+
+## Returns the cached light texture for explosion effects.
+## Issue #724 optimization: Creating GradientTexture2D every explosion is expensive
+## because it causes GPU texture uploads. We cache and reuse the texture instead.
+func _get_cached_light_texture() -> GradientTexture2D:
+	if _cached_explosion_light_texture == null:
+		_cached_explosion_light_texture = _create_light_texture()
+	return _cached_explosion_light_texture
 
 
 ## Creates a simple white radial gradient texture for the light.
+## Note: This is called once and cached via _get_cached_light_texture().
 func _create_light_texture() -> GradientTexture2D:
 	var gradient := Gradient.new()
 	gradient.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0)])
@@ -1118,6 +1250,98 @@ func _create_light_texture() -> GradientTexture2D:
 	texture.height = 256
 
 	return texture
+
+
+# =============================================================================
+# Explosion Light Pool Management (Issue #724 Optimization)
+# =============================================================================
+
+
+## Initializes the explosion light pool with pre-created PointLight2D objects.
+## This is called once during _ready() to avoid runtime allocation.
+func _init_explosion_light_pool() -> void:
+	# Pre-cache the texture first
+	_get_cached_light_texture()
+
+	# Create the pool of PointLight2D objects
+	for i in range(EXPLOSION_LIGHT_POOL_SIZE):
+		var light := _create_pooled_explosion_light()
+		_explosion_light_pool.append(light)
+
+	_log_info("Explosion light pool initialized: %d lights pre-created" % EXPLOSION_LIGHT_POOL_SIZE)
+
+
+## Creates a single PointLight2D configured for explosion effects.
+## The light is initially hidden and added to the scene tree.
+func _create_pooled_explosion_light() -> PointLight2D:
+	var light := PointLight2D.new()
+	light.visible = false
+	light.z_index = 10
+	light.shadow_enabled = false  # Shadows are expensive, brief flashes don't need them
+	light.texture = _get_cached_light_texture()
+
+	# Add to scene tree (as child of autoload so it persists)
+	add_child(light)
+
+	return light
+
+
+## Gets an explosion light from the pool.
+## Returns a ready-to-use PointLight2D, or null if pool is exhausted and limit reached.
+func _get_explosion_light_from_pool() -> PointLight2D:
+	# Try to get from pool first
+	if _explosion_light_pool.size() > 0:
+		var light: PointLight2D = _explosion_light_pool.pop_back()
+		if _debug_effects:
+			print("[ImpactEffectsManager] Light retrieved from pool (pool: %d, active: %d)" % [
+				_explosion_light_pool.size(), _active_explosion_lights.size()])
+		return light
+
+	# Pool empty - check if we can create a new one
+	if _active_explosion_lights.size() < MAX_CONCURRENT_EXPLOSION_LIGHTS:
+		var light := _create_pooled_explosion_light()
+		if _debug_effects:
+			print("[ImpactEffectsManager] Created new light (pool empty, active: %d)" % _active_explosion_lights.size())
+		return light
+
+	# Pool empty and at limit - try to recycle the oldest active light
+	if _active_explosion_lights.size() > 0:
+		var oldest: PointLight2D = _active_explosion_lights.pop_front()
+		# Stop any existing tween
+		var tweens := oldest.get_tree().get_processed_tweens()
+		for tween in tweens:
+			if tween.is_valid():
+				# Can't check tween target, so just reset the light
+				pass
+		oldest.visible = false
+		oldest.energy = 0.0
+		if _debug_effects:
+			print("[ImpactEffectsManager] Recycled oldest active light")
+		return oldest
+
+	return null
+
+
+## Returns an explosion light to the pool after it finishes animating.
+func _return_explosion_light_to_pool(light: PointLight2D) -> void:
+	if not is_instance_valid(light):
+		return
+
+	# Remove from active tracking
+	var idx := _active_explosion_lights.find(light)
+	if idx >= 0:
+		_active_explosion_lights.remove_at(idx)
+
+	# Reset and hide
+	light.visible = false
+	light.energy = 0.0
+
+	# Return to pool
+	_explosion_light_pool.append(light)
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Light returned to pool (pool: %d, active: %d)" % [
+			_explosion_light_pool.size(), _active_explosion_lights.size()])
 
 
 ## Creates a radial gradient texture for grenade flash effects.
@@ -1138,5 +1362,62 @@ func _create_radial_gradient_texture(radius: int) -> GradientTexture2D:
 	texture.height = radius * 2
 
 	return texture
+
+
+# =============================================================================
+# Explosion Scorch Marks (Issue #1005)
+# =============================================================================
+
+
+## Active scorch marks for cleanup management.
+var _scorch_marks: Array = []
+
+
+## Spawns an explosion scorch mark on the floor at the given position.
+## Scorch marks persist as visual evidence of grenade explosions.
+## @param position: World position where the grenade exploded.
+## @param scorch_radius: Radius of the scorch mark in pixels.
+## @param scorch_alpha: Opacity of the scorch mark (0.0 to 1.0).
+## @param grenade_type: Type of grenade for logging ("flashbang", "frag", "defensive").
+func spawn_explosion_scorch_mark(position: Vector2, scorch_radius: float, scorch_alpha: float, grenade_type: String) -> void:
+	if _debug_effects:
+		print("[ImpactEffectsManager] spawn_explosion_scorch_mark at ", position, " radius=", scorch_radius, " alpha=", scorch_alpha, " type=", grenade_type)
+
+	if _explosion_scorch_mark_scene == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ExplosionScorchMark scene not loaded, skipping")
+		return
+
+	var scorch_mark: Node = _explosion_scorch_mark_scene.instantiate()
+	if scorch_mark == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ERROR: Failed to instantiate scorch mark")
+		return
+
+	# Configure scorch mark properties
+	scorch_mark.global_position = position
+	scorch_mark.scorch_radius = scorch_radius
+	scorch_mark.scorch_alpha = scorch_alpha
+	scorch_mark.grenade_type = grenade_type
+
+	# Add to scene
+	_add_effect_to_scene(scorch_mark)
+
+	# Track for cleanup management
+	_scorch_marks.append(scorch_mark)
+
+	_log_info("Spawned %s scorch mark at %s (radius: %.1f, alpha: %.2f)" % [
+		grenade_type, str(position), scorch_radius, scorch_alpha])
+
+
+## Clears all scorch marks from the scene.
+## Call this on scene transitions or when cleaning up.
+func clear_scorch_marks() -> void:
+	for mark in _scorch_marks:
+		if mark and is_instance_valid(mark):
+			mark.queue_free()
+	_scorch_marks.clear()
+	if _debug_effects:
+		print("[ImpactEffectsManager] All scorch marks cleared")
 
 

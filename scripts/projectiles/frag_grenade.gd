@@ -35,6 +35,22 @@ var _has_impacted: bool = false
 ## Track if we've started throwing (to avoid impact during initial spawn).
 var _is_thrown: bool = false
 
+## Issue #657: Minimum distance grenade must travel from spawn point before
+## impact explosion is armed. Prevents self-kills when grenade hits nearby
+## furniture/obstacles immediately after being thrown.
+const MIN_ARMING_DISTANCE := 80.0
+
+## Issue #657: Position where the grenade was spawned (for arming distance check).
+var _spawn_position: Vector2 = Vector2.ZERO
+
+## Issue #657: Whether the grenade has traveled far enough to arm impact explosion.
+var _impact_armed: bool = false
+
+## Issue #692: Instance ID of the enemy who threw this grenade.
+## Used to prevent self-damage from own grenade explosion and shrapnel.
+## -1 means no thrower tracked (e.g., player-thrown grenades).
+var thrower_id: int = -1
+
 ## Track the previous freeze state to detect when grenade is released.
 ## FIX for Issue #432: When C# code sets Freeze=false directly without calling
 ## throw methods, _is_thrown was never set to true, preventing explosion.
@@ -43,6 +59,9 @@ var _was_frozen: bool = true
 
 func _ready() -> void:
 	super._ready()
+
+	# Issue #657: Record spawn position for arming distance calculation
+	_spawn_position = global_position
 
 	# Frag grenade is slightly lighter - increase max throw speed slightly
 	# (5% increase for "slightly lighter")
@@ -81,7 +100,8 @@ func activate_timer() -> void:
 	FileLogger.info("[FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)")
 
 
-## Override _physics_process to disable blinking (no timer countdown for frag grenades).
+## Override _physics_process to handle freeze detection and disable blinking
+## (no timer countdown for frag grenades).
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
@@ -96,37 +116,27 @@ func _physics_process(delta: float) -> void:
 			_is_thrown = true
 			FileLogger.info("[FragGrenade] Detected unfreeze - enabling impact detection (fallback)")
 
-	# Apply velocity-dependent ground friction to slow down
-	# FIX for issue #435: Grenade should maintain speed for most of flight,
-	# only slowing down noticeably at the very end of its path.
-	# At high velocities: reduced friction (grenade maintains speed)
-	# At low velocities: full friction (grenade slows to stop)
-	if linear_velocity.length() > 0:
-		var current_speed := linear_velocity.length()
+	# FIX for Issue #638: Ground friction is handled exclusively by C# GrenadeTimer.
+	# Previously, this override applied velocity-dependent friction in GDScript,
+	# creating DOUBLE FRICTION with C# GrenadeTimer.ApplyGroundFriction().
+	# This caused frag grenades to travel only ~64% of their target distance.
+	# The fix in Issue #615 removed friction from grenade_base.gd but missed
+	# this override in frag_grenade.gd.
+	# C# GrenadeTimer.ApplyGroundFriction() applies uniform friction: F = ground_friction * delta
+	# This matches the throw speed formula: v = sqrt(2 * F * d), d = v² / (2 * F)
 
-		# Calculate friction multiplier based on velocity
-		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
-		# Below friction_ramp_velocity: smoothly ramp up to full friction
-		var friction_multiplier: float
-		if current_speed >= friction_ramp_velocity:
-			# High speed: minimal friction to maintain velocity
-			friction_multiplier = min_friction_multiplier
-		else:
-			# Low speed: smoothly increase friction from min to full (1.0)
-			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
-			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
-			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
-			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
-
-		var effective_friction := ground_friction * friction_multiplier
-		var friction_force := linear_velocity.normalized() * effective_friction * delta
-		if friction_force.length() > linear_velocity.length():
-			linear_velocity = Vector2.ZERO
-		else:
-			linear_velocity -= friction_force
+	# Issue #657: Check if grenade has traveled far enough to arm impact explosion
+	if not _impact_armed and _is_thrown:
+		if global_position.distance_to(_spawn_position) >= MIN_ARMING_DISTANCE:
+			_impact_armed = true
 
 	# Check for landing (grenade comes to near-stop after being thrown)
-	if not _has_landed and _timer_active:
+	# FIX for Issue #878: Add is_thrown() guard (same as grenade_base.gd Issue #855 fix).
+	# FragGrenade overrides _physics_process() so the base class fix is never reached here.
+	# While frozen and following the player, FREEZE_MODE_KINEMATIC causes linear_velocity
+	# to reflect player movement, which was falsely triggering landing detection and
+	# playing the landing sound while the grenade was still held.
+	if not _has_landed and _timer_active and is_thrown():
 		var current_speed := linear_velocity.length()
 		var previous_speed := _previous_velocity.length()
 		# Grenade has landed when it was moving fast and now nearly stopped
@@ -177,6 +187,11 @@ func _on_body_entered(body: Node) -> void:
 
 	# Only explode on impact if we've been thrown and haven't exploded yet
 	if _is_thrown and not _has_impacted and not _has_exploded:
+		# Issue #657: Don't explode on impact until grenade has traveled MIN_ARMING_DISTANCE
+		# from spawn point. This prevents self-kills when grenade hits nearby furniture.
+		if not _impact_armed:
+			FileLogger.info("[FragGrenade] Impact with %s ignored - grenade not armed yet (dist=%.1f < %.1f)" % [body.name, global_position.distance_to(_spawn_position), MIN_ARMING_DISTANCE])
+			return
 		# Trigger impact explosion on wall/obstacle/enemy hit
 		# StaticBody2D = walls, obstacles, furniture
 		# TileMap = terrain tiles
@@ -228,6 +243,10 @@ func _on_explode() -> void:
 
 	# Spawn visual explosion effect
 	_spawn_explosion_effect()
+
+	# Issue #1005: Spawn scorch mark on floor
+	# Frag (offensive): 2x grenade size (~40px), burnt mark (alpha 0.6)
+	_spawn_scorch_mark(40.0, 0.6, "frag")
 
 
 ## Override explosion sound to play frag grenade specific sound.
@@ -284,10 +303,18 @@ func _get_effect_radius() -> float:
 
 
 ## Find all enemies within the effect radius.
+## Issue #692: When thrown by an enemy (thrower_id >= 0), excludes ALL enemies
+## from explosion damage to prevent both self-kills and friendly fire.
 func _get_enemies_in_radius() -> Array:
 	var enemies_in_range: Array = []
 
-	# Get all enemies in the scene
+	# Issue #692: If this grenade was thrown by an enemy, skip ALL enemies
+	# to prevent both self-damage and friendly fire between allies.
+	if thrower_id >= 0:
+		FileLogger.info("[FragGrenade] Skipping all enemies - enemy-thrown grenade (thrower ID: %d)" % thrower_id)
+		return enemies_in_range
+
+	# Get all enemies in the scene (only for player-thrown grenades)
 	var enemies := get_tree().get_nodes_in_group("enemies")
 
 	for enemy in enemies:
@@ -387,16 +414,29 @@ func _spawn_shrapnel() -> void:
 
 		# Calculate direction vector
 		var direction := Vector2(cos(final_angle), sin(final_angle))
+		var spawn_pos := global_position + direction * 10.0  # Slight offset from center
 
-		# Create shrapnel instance
-		var shrapnel := shrapnel_scene.instantiate()
+		# Try pooled shrapnel first for performance (Issue #724)
+		var shrapnel: Node = null
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+
+		if pool_manager and pool_manager.has_method("get_shrapnel"):
+			shrapnel = pool_manager.get_shrapnel()
+			if shrapnel and shrapnel.has_method("pool_activate"):
+				shrapnel.pool_activate(spawn_pos, direction, get_instance_id(), thrower_id)
+				continue  # Shrapnel is ready, skip to next
+
+		# Fallback to instantiation
+		shrapnel = shrapnel_scene.instantiate()
 		if shrapnel == null:
 			continue
 
 		# Set shrapnel properties
-		shrapnel.global_position = global_position + direction * 10.0  # Slight offset from center
+		shrapnel.global_position = spawn_pos
 		shrapnel.direction = direction
 		shrapnel.source_id = get_instance_id()
+		# Issue #692: Pass thrower_id so shrapnel doesn't hit the enemy who threw it
+		shrapnel.thrower_id = thrower_id
 
 		# Add to scene
 		get_tree().current_scene.add_child(shrapnel)

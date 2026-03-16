@@ -46,10 +46,15 @@ class MockProgressManager:
 		var key: String = _make_key(level_path, difficulty_name)
 		return key in _progress
 
+	func is_level_completed_any_difficulty(level_path: String) -> bool:
+		for difficulty_name in _get_all_difficulty_names():
+			if is_level_completed(level_path, difficulty_name):
+				return true
+		return false
+
 	func get_progress_for_all_difficulties(level_path: String) -> Dictionary:
 		var result: Dictionary = {}
-		var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
-		for difficulty_name in difficulties:
+		for difficulty_name in _get_all_difficulty_names():
 			var rank: String = get_best_rank(level_path, difficulty_name)
 			if not rank.is_empty():
 				result[difficulty_name] = rank
@@ -74,6 +79,9 @@ class MockProgressManager:
 
 	func _make_key(level_path: String, difficulty_name: String) -> String:
 		return "%s:%s" % [level_path, difficulty_name]
+
+	func _get_all_difficulty_names() -> Array[String]:
+		return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
 
 
 var progress: MockProgressManager
@@ -374,3 +382,88 @@ func test_get_progress_for_all_difficulties_complete() -> void:
 	assert_eq(result["Normal"], "B")
 	assert_eq(result["Hard"], "D")
 	assert_eq(result["Power Fantasy"], "S")
+
+
+# ============================================================================
+# is_level_completed_any_difficulty Tests (Issue #984)
+# ============================================================================
+
+
+func test_is_level_completed_any_difficulty_false_when_no_progress() -> void:
+	assert_false(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should not be completed on any difficulty when there is no progress")
+
+
+func test_is_level_completed_any_difficulty_true_after_easy() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Easy", "F", 100)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Easy")
+
+
+func test_is_level_completed_any_difficulty_true_after_normal() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "B", 5000)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Normal")
+
+
+func test_is_level_completed_any_difficulty_true_after_hard() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Hard", "A", 9000)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Hard")
+
+
+func test_is_level_completed_any_difficulty_true_after_power_fantasy() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Power Fantasy", "S", 20000)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Power Fantasy")
+
+
+func test_is_level_completed_any_difficulty_does_not_affect_other_level() -> void:
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "C", 3000)
+	assert_false(progress.is_level_completed_any_difficulty("res://scenes/levels/BuildingLevel.tscn"),
+		"Completing Labyrinth should not mark Building Level as completed")
+
+
+func test_is_level_completed_any_difficulty_with_f_rank_counts() -> void:
+	# Even an F rank means the level was completed — it still unlocks the next level
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Normal", "F", 0)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"An F rank completion should still count for unlocking the next level")
+
+
+# ============================================================================
+# Black Metal Difficulty Tests (Issue #984 regression — missing "Black Metal")
+# ============================================================================
+
+
+func test_is_level_completed_any_difficulty_true_after_black_metal() -> void:
+	# Bug: "Black Metal" was missing from the difficulty list, so completing a level
+	# on Black Metal mode did not count for unlocking the next level.
+	progress.save_level_progress("res://scenes/levels/LabyrinthLevel.tscn", "Black Metal", "A", 12369)
+	assert_true(progress.is_level_completed_any_difficulty("res://scenes/levels/LabyrinthLevel.tscn"),
+		"Level should be considered completed after clearing on Black Metal (regression: Issue #984)")
+
+
+func test_get_progress_for_all_difficulties_includes_black_metal() -> void:
+	# Black Metal progress should appear in the all-difficulties result
+	var level: String = "res://scenes/levels/LabyrinthLevel.tscn"
+	progress.save_level_progress(level, "Black Metal", "A", 12369)
+
+	var result: Dictionary = progress.get_progress_for_all_difficulties(level)
+	assert_true(result.has("Black Metal"), "Black Metal should appear in all-difficulties result")
+	assert_eq(result["Black Metal"], "A", "Black Metal rank should be A")
+
+
+func test_five_difficulty_modes_tracked() -> void:
+	var level: String = "res://scenes/levels/CastleLevel.tscn"
+	progress.save_level_progress(level, "Easy", "A+", 9000)
+	progress.save_level_progress(level, "Normal", "B", 6000)
+	progress.save_level_progress(level, "Hard", "D", 2000)
+	progress.save_level_progress(level, "Power Fantasy", "S", 15000)
+	progress.save_level_progress(level, "Black Metal", "A", 12000)
+
+	assert_eq(progress.get_best_rank(level, "Easy"), "A+")
+	assert_eq(progress.get_best_rank(level, "Normal"), "B")
+	assert_eq(progress.get_best_rank(level, "Hard"), "D")
+	assert_eq(progress.get_best_rank(level, "Power Fantasy"), "S")
+	assert_eq(progress.get_best_rank(level, "Black Metal"), "A")

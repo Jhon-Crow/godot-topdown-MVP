@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 using GodotTopdown.Scripts.Projectiles;
+using CSharpBullet = GodotTopDownTemplate.Projectiles.Bullet;
+using CSharpShotgunPellet = GodotTopDownTemplate.Projectiles.ShotgunPellet;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -116,6 +118,14 @@ public partial class Player : BaseCharacter
     /// Whether the player is currently in a reload sequence.
     /// </summary>
     private bool _isReloadingSequence = false;
+
+    /// <summary>
+    /// Whether a semi-automatic shoot input has been buffered.
+    /// When the player clicks while the fire timer is still active,
+    /// the click is buffered and consumed as soon as the weapon can fire.
+    /// This prevents lost inputs when clicking faster than the fire rate allows.
+    /// </summary>
+    private bool _semiAutoShootBuffered = false;
 
     /// <summary>
     /// Tracks ammo count when reload sequence started (at step 1 after R pressed).
@@ -619,6 +629,193 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Teleport Bracers System (Issue #672)
+
+    /// <summary>
+    /// Whether teleport bracers are equipped (active item selected in armory).
+    /// </summary>
+    private bool _teleportBracersEquipped = false;
+
+    /// <summary>
+    /// Whether the player is currently aiming the teleport (Space held).
+    /// </summary>
+    private bool _teleportAiming = false;
+
+    /// <summary>
+    /// Current number of teleport charges remaining.
+    /// </summary>
+    private int _teleportCharges = 6;
+
+    /// <summary>
+    /// Maximum number of teleport charges.
+    /// </summary>
+    private const int MaxTeleportCharges = 6;
+
+    /// <summary>
+    /// The computed safe teleport target position (updated each frame while aiming).
+    /// </summary>
+    private Vector2 _teleportTargetPosition = Vector2.Zero;
+
+    /// <summary>
+    /// Player collision radius for teleport safety checks (matches Player.tscn CircleShape2D).
+    /// </summary>
+    private const float PlayerCollisionRadius = 16.0f;
+
+    /// <summary>
+    /// Signal emitted when teleport charges change.
+    /// </summary>
+    [Signal]
+    public delegate void TeleportChargesChangedEventHandler(int current, int maximum);
+
+
+    #endregion
+
+    #region Homing Bullets System (Issue #677)
+
+    /// <summary>
+    /// Whether homing bullets are equipped (active item selected in armory).
+    /// </summary>
+    private bool _homingBulletsEquipped = false;
+
+    /// <summary>
+    /// Whether the homing effect is currently active (bullets steer toward enemies).
+    /// </summary>
+    private bool _homingActive = false;
+
+    /// <summary>
+    /// Remaining homing charges (2 per battle).
+    /// </summary>
+    private int _homingCharges = 2;
+
+    /// <summary>
+    /// Maximum homing charges per battle.
+    /// </summary>
+    private const int MaxHomingCharges = 2;
+
+    /// <summary>
+    /// Duration of homing effect per activation in seconds.
+    /// </summary>
+    private const float HomingDuration = 1.2f;
+
+    /// <summary>
+    /// Timer tracking remaining homing effect duration.
+    /// </summary>
+    private float _homingTimer = 0.0f;
+
+    /// <summary>
+    /// Path to the homing bullets activation sound.
+    /// </summary>
+    private const string HomingSoundPath = "res://assets/audio/homing_activation.wav";
+
+    /// <summary>
+    /// Path to the homing bullets scanner looping ambient sound (Issue #890).
+    /// </summary>
+    private const string HomingScannerLoopPath = "res://assets/audio/homing_scanner_loop.wav";
+
+    /// <summary>
+    /// AudioStreamPlayer for homing activation sound.
+    /// </summary>
+    private AudioStreamPlayer? _homingAudioPlayer = null;
+
+    /// <summary>
+    /// AudioStreamPlayer for homing scanner looping ambient sound (Issue #890).
+    /// Loops while homing bullets item is equipped (always-on ambient scanner).
+    /// </summary>
+    private AudioStreamPlayer? _homingScannerPlayer = null;
+
+    /// <summary>
+    /// Signal emitted when homing charges change.
+    /// </summary>
+    [Signal]
+    public delegate void HomingChargesChangedEventHandler(int current, int maximum);
+
+    /// <summary>
+    /// Signal emitted when homing effect activates.
+    /// </summary>
+    [Signal]
+    public delegate void HomingActivatedEventHandler();
+
+    /// <summary>
+    /// Signal emitted when homing effect deactivates.
+    /// </summary>
+    [Signal]
+    public delegate void HomingDeactivatedEventHandler();
+
+    // Progress bar state for homing bullets (Issue #974)
+    /// <summary>Whether the homing combined progress bar is visible.</summary>
+    private bool _homingBarVisible = false;
+    /// <summary>Whether the homing charge bar should show briefly after deactivation.</summary>
+    private bool _homingChargeBarPending = false;
+    /// <summary>Timer for auto-hiding homing charge bar after deactivation (300ms).</summary>
+    private float _homingChargeBarHideTimer = 0.0f;
+    /// <summary>Duration to show charge bar after deactivation before auto-hiding.</summary>
+    private const float HomingChargeBarHideDelay = 0.3f;
+
+    #endregion
+
+    #region BFF Pendant System (Issue #674)
+
+    /// <summary>
+    /// Path to the enemy scene used for the BFF companion (spawn actual enemy with aggressive AI).
+    /// Issue #674: Instead of a custom companion scene, we reuse the Enemy scene in aggressive state.
+    /// </summary>
+    private const string BffEnemyScenePath = "res://scenes/objects/Enemy.tscn";
+
+    /// <summary>
+    /// Whether the BFF pendant is equipped (active item selected in armory).
+    /// </summary>
+    private bool _bffPendantEquipped = false;
+
+    /// <summary>
+    /// Whether the companion has already been summoned this battle (one charge per battle).
+    /// </summary>
+    private bool _bffCompanionSummoned = false;
+
+    /// <summary>
+    /// Reference to the summoned companion node.
+    /// </summary>
+    private Node2D? _bffCompanionNode = null;
+
+    #endregion
+
+    #region Invisibility Suit System (Issue #673)
+
+    /// <summary>
+    /// Whether the invisibility suit is equipped (active item selected in armory).
+    /// </summary>
+    private bool _invisibilitySuitEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript invisibility suit effect node.
+    /// </summary>
+    private Node? _invisibilitySuitEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript invisibility HUD node.
+    /// </summary>
+    private Node? _invisibilityHud = null;
+
+    /// <summary>
+    /// Maximum charges per battle (matches invisibility_suit_effect.gd MAX_CHARGES).
+    /// </summary>
+    private const int InvisibilityMaxCharges = 2;
+
+    #endregion
+
+    #region Force Field System (Issue #676)
+
+    /// <summary>
+    /// Whether the force field is equipped (active item selected in armory).
+    /// </summary>
+    private bool _forceFieldEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript force field effect node.
+    /// </summary>
+    private Node? _forceFieldEffect = null;
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -643,9 +840,10 @@ public partial class Player : BaseCharacter
         // Configure health based on difficulty
         if (HealthComponent != null)
         {
-            // Check if Power Fantasy mode is active for special health configuration
+            // Check difficulty mode for special health configuration
             var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
             bool isPowerFantasy = difficultyManager != null && (bool)difficultyManager.Call("is_power_fantasy_mode");
+            bool isBlackMetal = difficultyManager != null && difficultyManager.HasMethod("is_black_metal_mode") && (bool)difficultyManager.Call("is_black_metal_mode");
 
             if (isPowerFantasy)
             {
@@ -655,6 +853,25 @@ public partial class Player : BaseCharacter
                 HealthComponent.InitialHealth = 10;
                 HealthComponent.InitializeHealth();
                 GD.Print($"[Player] {Name}: Power Fantasy mode - spawned with {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth} HP");
+            }
+            else if (isBlackMetal)
+            {
+                // Black Metal mode: 25% less HP (Issue #958)
+                // Base range 2-4 HP reduced by 0.75 multiplier -> 1-3 HP
+                float hpMult = difficultyManager != null && difficultyManager.HasMethod("get_hp_multiplier")
+                    ? (float)difficultyManager.Call("get_hp_multiplier")
+                    : 0.75f;
+                HealthComponent.UseRandomHealth = true;
+                HealthComponent.MinRandomHealth = Mathf.Max(1, (int)(2 * hpMult));
+                HealthComponent.MaxRandomHealth = Mathf.Max(1, (int)(4 * hpMult));
+                HealthComponent.InitializeHealth();
+                GD.Print($"[Player] {Name}: Black Metal mode - spawned with {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth} HP (25% less)");
+                // Also apply 25% speed boost (Issue #958)
+                float speedMult = difficultyManager != null && difficultyManager.HasMethod("get_player_speed_multiplier")
+                    ? (float)difficultyManager.Call("get_player_speed_multiplier")
+                    : 1.25f;
+                MaxSpeed *= speedMult;
+                GD.Print($"[Player] {Name}: Black Metal mode - speed set to {MaxSpeed} (25% faster)");
             }
             else
             {
@@ -764,11 +981,15 @@ public partial class Player : BaseCharacter
         // Auto-equip weapon if not set but a weapon child exists
         if (CurrentWeapon == null)
         {
-            // Try MakarovPM first (default starting weapon), then AssaultRifle for backward compatibility
+            // Try MakarovPM first (default starting weapon), then AssaultRifle, then AKGL for backward compatibility
             CurrentWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
             if (CurrentWeapon == null)
             {
                 CurrentWeapon = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+            }
+            if (CurrentWeapon == null)
+            {
+                CurrentWeapon = GetNodeOrNull<BaseWeapon>("AKGL");
             }
             if (CurrentWeapon != null)
             {
@@ -860,6 +1081,27 @@ public partial class Player : BaseCharacter
 
         // Initialize flashlight if active item manager has flashlight selected (Issue #546)
         InitFlashlight();
+
+        // Initialize teleport bracers if active item manager has them selected (Issue #672)
+        InitTeleportBracers();
+
+        // Initialize homing bullets if active item manager has them selected (Issue #677)
+        InitHomingBullets();
+
+        // Initialize BFF pendant if active item manager has it selected (Issue #674)
+        InitBffPendant();
+
+        // Initialize invisibility suit if active item manager has it selected (Issue #673)
+        InitInvisibilitySuit();
+
+        // Initialize breaker bullets if active item manager has them selected (Issue #678)
+        InitBreakerBullets();
+
+        // Initialize force field if active item manager has it selected (Issue #676)
+        InitForceField();
+
+        // Initialize trajectory glasses if active item manager has them selected (Issue #744)
+        InitTrajectoryGlasses();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1081,9 +1323,13 @@ public partial class Player : BaseCharacter
         // This takes priority over grenade input since the sniper uses RMB for scoping
         bool sniperScopeConsumedInput = HandleSniperScopeInput();
 
+        // Handle AKGL grenade launcher input (RMB) when AKGL is equipped
+        // This takes priority over grenade input since the underbarrel uses RMB for firing
+        bool akglGrenadeLauncherConsumedInput = HandleAKGLGrenadeLauncherInput();
+
         // Handle grenade input first (so it can consume shoot input)
-        // Skip if sniper scope already consumed the RMB input
-        if (!sniperScopeConsumedInput)
+        // Skip if sniper scope or AKGL grenade launcher already consumed the RMB input
+        if (!sniperScopeConsumedInput && !akglGrenadeLauncherConsumedInput)
         {
             HandleGrenadeInput();
         }
@@ -1103,8 +1349,27 @@ public partial class Player : BaseCharacter
             HandleShootingInput();
         }
 
-        // Handle reload sequence input (R-F-R)
-        HandleReloadSequenceInput();
+        // Handle revolver manual hammer cocking with RMB (Issue #649)
+        // RMB instantly cocks the hammer so the next LMB fires without delay.
+        // Only when not preparing grenade (G not held) and not in sniper scope.
+        if (CurrentWeapon is Revolver revolverForCock && !sniperScopeConsumedInput
+            && _grenadeState == GrenadeState.Idle
+            && Input.IsActionJustPressed("grenade_throw"))
+        {
+            revolverForCock.ManualCockHammer();
+        }
+
+        // Handle revolver multi-step cylinder reload (Issue #626)
+        // Must be checked before standard reload to prevent R-F-R sequence from intercepting
+        if (CurrentWeapon is Revolver)
+        {
+            HandleRevolverReloadInput();
+        }
+        else
+        {
+            // Handle reload sequence input (R-F-R) for non-revolver weapons
+            HandleReloadSequenceInput();
+        }
 
         // Handle fire mode toggle (B key for burst/auto toggle)
         if (Input.IsActionJustPressed("toggle_fire_mode"))
@@ -1114,6 +1379,30 @@ public partial class Player : BaseCharacter
 
         // Handle flashlight input (hold Space to turn on, release to turn off) (Issue #546)
         HandleFlashlightInput();
+
+        // Handle teleport bracers input (hold Space to aim, release to teleport) (Issue #672)
+        HandleTeleportBracersInput();
+
+        // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
+        HandleHomingBulletsInput((float)delta);
+
+        // Update homing progress bar auto-hide timer (Issue #974)
+        UpdateHomingBarTimer((float)delta);
+
+        // Handle BFF pendant input (press Space to summon companion) (Issue #674)
+        HandleBffPendantInput();
+
+        // Handle invisibility suit input (press Space to activate) (Issue #673)
+        HandleInvisibilitySuitInput();
+
+        // Handle force field input (hold Space to activate) (Issue #676)
+        HandleForceFieldInput((float)delta);
+
+        // Handle trajectory glasses input (press Space to activate) (Issue #744)
+        HandleTrajectoryGlassesInput();
+
+        // Update trajectory glasses progress bar auto-hide timer (Issue #974)
+        UpdateTrajectoryBarTimer((float)delta);
     }
 
     /// <summary>
@@ -1143,12 +1432,79 @@ public partial class Player : BaseCharacter
             isAutomatic = assaultRifle.CurrentFireMode == FireMode.Automatic;
         }
 
+        // For semi-automatic weapons, buffer click inputs so fast clicking works.
+        // When the player clicks while the fire timer is still active, the click
+        // is buffered and consumed as soon as the weapon can fire again.
+        // This prevents lost inputs when clicking faster than the fire rate allows.
+        //
+        // Issue #821 FIX: Only buffer clicks during fire cooldown, NOT during reload/pump.
+        // When reloading or pumping, play empty click sound instead of buffering shot.
+        if (!isAutomatic && Input.IsActionJustPressed("shoot"))
+        {
+            // Check if shotgun needs pumping (Issue #821)
+            var shotgun = CurrentWeapon as Shotgun;
+            bool shotgunNeedsPump = shotgun != null &&
+                shotgun.ActionState != ShotgunActionState.Ready;
+
+            // Check if any reload is in progress (Issue #821)
+            bool isReloading = _isReloadingSequence ||
+                (CurrentWeapon != null && CurrentWeapon.IsReloading);
+
+            // Check if revolver cylinder is open (Issue #821)
+            var revolver = CurrentWeapon as Revolver;
+            bool revolverReloading = revolver != null &&
+                revolver.ReloadState != RevolverReloadState.NotReloading;
+
+            // Check if shotgun is in reload state (Issue #821)
+            bool shotgunReloading = shotgun != null &&
+                shotgun.ReloadState != ShotgunReloadState.NotReloading;
+
+            // Check if weapon has no ammo (Issue #835)
+            // Clicking on an empty weapon should not buffer a shot for after reload -
+            // it should only play an empty click sound. Otherwise the buffered click
+            // from an empty weapon fires automatically right after reload completes.
+            // Issue #842: Shotgun uses ShellsInTube (CurrentAmmo is always 0 as a
+            // placeholder, since the tube magazine is tracked separately).
+            bool weaponEmpty;
+            if (shotgun != null)
+                weaponEmpty = shotgun.ShellsInTube <= 0;
+            else
+                weaponEmpty = CurrentWeapon.CurrentAmmo <= 0;
+
+            if (isReloading || shotgunNeedsPump || revolverReloading || shotgunReloading || weaponEmpty)
+            {
+                // Issue #821: Don't buffer shots during reload/pump - play empty click instead
+                // Issue #835: Don't buffer shots when weapon is empty
+                PlayEmptyClickSound();
+                GD.Print($"[Player.FIX#821/#835] Click during reload/pump/empty - playing empty click (isReloading={isReloading}, shotgunNeedsPump={shotgunNeedsPump}, revolverReloading={revolverReloading}, shotgunReloading={shotgunReloading}, weaponEmpty={weaponEmpty})");
+            }
+            else
+            {
+                _semiAutoShootBuffered = true;
+            }
+        }
+
         // Determine if shooting input is active
-        bool shootInputActive = isAutomatic ? Input.IsActionPressed("shoot") : Input.IsActionJustPressed("shoot");
+        bool shootInputActive;
+        if (isAutomatic)
+        {
+            shootInputActive = Input.IsActionPressed("shoot");
+        }
+        else
+        {
+            // For semi-auto: fire if we have a buffered click and weapon can fire
+            shootInputActive = _semiAutoShootBuffered && CurrentWeapon.CanFire;
+        }
 
         if (!shootInputActive)
         {
             return;
+        }
+
+        // Consume the buffered input for semi-auto weapons
+        if (!isAutomatic)
+        {
+            _semiAutoShootBuffered = false;
         }
 
         // Check if weapon is empty before trying to shoot (not in reload sequence)
@@ -1209,14 +1565,23 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Plays the empty click sound when trying to shoot without ammo.
+    /// Uses weapon-specific sound to match each weapon's authentic dry-fire click.
+    /// Issue #842: Was always playing the M16/pistol sound for all weapons.
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
-        {
+        if (audioManager == null) return;
+
+        if (CurrentWeapon is Shotgun && audioManager.HasMethod("play_shotgun_empty_click"))
+            audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+        else if (CurrentWeapon is Revolver && audioManager.HasMethod("play_revolver_empty_click"))
+            audioManager.Call("play_revolver_empty_click", GlobalPosition);
+        else if ((CurrentWeapon is MakarovPM || CurrentWeapon is MiniUzi || CurrentWeapon is SilencedPistol)
+            && audioManager.HasMethod("play_pistol_empty_click"))
+            audioManager.Call("play_pistol_empty_click", GlobalPosition);
+        else if (audioManager.HasMethod("play_empty_click"))
             audioManager.Call("play_empty_click", GlobalPosition);
-        }
     }
 
     /// <summary>
@@ -1256,6 +1621,15 @@ public partial class Player : BaseCharacter
         if (shotgun != null && (shotgun.ReloadState != ShotgunReloadState.NotReloading || shotgun.IsDragging))
         {
             // Keep current rotation locked - don't follow mouse
+            return;
+        }
+
+        // TACTICAL RELOAD for revolver (Issue #626): Lock rotation while cylinder is open
+        // or when dragging (RMB held for cartridge insertion gesture).
+        var revolverForRotation = GetNodeOrNull<Revolver>("Revolver");
+        if (revolverForRotation != null && revolverForRotation.ReloadState != RevolverReloadState.NotReloading)
+        {
+            // Keep current rotation locked during cylinder reload
             return;
         }
 
@@ -1320,8 +1694,9 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
+        // Check in order of specificity: SniperRifle, AKGL, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
         var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
+        var akgl = GetNodeOrNull<BaseWeapon>("AKGL");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
@@ -1332,6 +1707,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Sniper;
             LogToFile("[Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)");
+        }
+        else if (akgl != null)
+        {
+            detectedType = WeaponType.Rifle;
+            LogToFile("[Player] Detected weapon: AK + GL (Rifle pose)");
         }
         else if (miniUzi != null)
         {
@@ -1581,6 +1961,14 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Skip R-F-R reload for Revolver - it uses multi-step cylinder reload (Issue #626)
+        // R key: open/close cylinder. RMB drag up: insert cartridge. Scroll: rotate cylinder.
+        // Handled by HandleRevolverReloadInput() and Revolver.cs input handlers.
+        if (CurrentWeapon is Revolver)
+        {
+            return;
+        }
+
         // Can't reload if magazine is full (and not in reload sequence)
         if (!_isReloadingSequence && CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
         {
@@ -1594,7 +1982,8 @@ public partial class Player : BaseCharacter
         }
 
         // Check if this is a pistol-type weapon that uses R->R reload (2-step) instead of R->F->R (3-step)
-        bool isPistolReload = CurrentWeapon is MakarovPM || CurrentWeapon is Revolver;
+        // Note: Revolver is excluded above - it uses multi-step cylinder reload (Issue #626)
+        bool isPistolReload = CurrentWeapon is MakarovPM;
 
         // Handle R key (first and third step, or both steps for pistol)
         if (Input.IsActionJustPressed("reload"))
@@ -1697,6 +2086,64 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Handles revolver multi-step cylinder reload input (Issue #626).
+    /// R key: Open cylinder (if closed) or close cylinder (if open).
+    /// RMB drag up (insert cartridge) and scroll wheel (rotate cylinder)
+    /// are handled directly by Revolver.cs in _Process() and _Input().
+    /// Sequence: R (open) → RMB drag up (insert) → scroll (rotate) → repeat → R (close).
+    /// </summary>
+    private void HandleRevolverReloadInput()
+    {
+        var revolver = CurrentWeapon as Revolver;
+        if (revolver == null)
+        {
+            return;
+        }
+
+        // Only handle R key press - drag and scroll are handled by Revolver.cs
+        if (!Input.IsActionJustPressed("reload"))
+        {
+            return;
+        }
+
+        switch (revolver.ReloadState)
+        {
+            case RevolverReloadState.NotReloading:
+                // R press: Open cylinder to begin reload
+                if (revolver.OpenCylinder())
+                {
+                    _isReloadingSequence = true;
+                    // Start arm animation for cylinder open
+                    StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
+                    EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
+                    EmitSignal(SignalName.ReloadStarted);
+                    LogToFile("[Player] Revolver: cylinder opened (R key)");
+                }
+                break;
+
+            case RevolverReloadState.CylinderOpen:
+            case RevolverReloadState.Loading:
+                // R press: Close cylinder to finish reload
+                if (revolver.CloseCylinder())
+                {
+                    _isReloadingSequence = false;
+                    // Animate arm return
+                    StartReloadAnimPhase(ReloadAnimPhase.ReturnIdle, ReloadAnimReturnDuration);
+                    EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);
+                    EmitSignal(SignalName.ReloadCompleted);
+                    // Emit sound propagation for reload completion
+                    var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+                    if (soundPropagation != null && soundPropagation.HasMethod("emit_player_reload_complete"))
+                    {
+                        soundPropagation.Call("emit_player_reload_complete", GlobalPosition, this);
+                    }
+                    LogToFile("[Player] Revolver: cylinder closed (R key), reload complete");
+                }
+                break;
+        }
+    }
+
+    /// <summary>
     /// Plays the magazine out sound (first reload step).
     /// </summary>
     private void PlayReloadMagOutSound()
@@ -1768,6 +2215,11 @@ public partial class Player : BaseCharacter
 
         // Perform instant reload
         CurrentWeapon.InstantReload();
+
+        // Issue #835: Clear any buffered shot from before/during reload.
+        // If player clicked LMB on an empty weapon before reload started, that click
+        // should not automatically fire after reload completes.
+        _semiAutoShootBuffered = false;
 
         GD.Print("[Player] Reload sequence complete! Magazine refilled instantly.");
         EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);
@@ -1874,8 +2326,27 @@ public partial class Player : BaseCharacter
             bullet.Set("shooter_id", GetInstanceId());
         }
 
+        // Set breaker bullet flag if breaker bullets active item is selected (Issue #678)
+        if (_breakerBulletsActive)
+        {
+            bullet.Set("is_breaker_bullet", true);
+        }
+
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Enable homing on the bullet if homing effect is active (Issue #677)
+        if (_homingActive)
+        {
+            if (bullet is CSharpBullet csBullet)
+            {
+                csBullet.EnableHoming();
+            }
+            else if (bullet.HasMethod("enable_homing"))
+            {
+                bullet.Call("enable_homing");
+            }
+        }
     }
 
     /// <summary>
@@ -1917,6 +2388,14 @@ public partial class Player : BaseCharacter
     {
         if (HealthComponent == null || !IsAlive)
         {
+            return;
+        }
+
+        // Check force field protection (Issue #676)
+        // Force field makes player invulnerable while active
+        if (is_force_field_active())
+        {
+            LogToFile("[Player] Hit blocked by force field (C#)");
             return;
         }
 
@@ -2039,6 +2518,12 @@ public partial class Player : BaseCharacter
 
         CurrentWeapon = weapon;
 
+        // Propagate breaker bullets flag to new weapon (Issue #678)
+        if (_breakerBulletsActive)
+        {
+            CurrentWeapon.IsBreakerBulletActive = true;
+        }
+
         // Add weapon as child if not already in scene tree
         if (CurrentWeapon.GetParent() == null)
         {
@@ -2113,6 +2598,10 @@ public partial class Player : BaseCharacter
             case "makarov_pm":
                 scenePath = "res://scenes/weapons/csharp/MakarovPM.tscn";
                 weaponNodeName = "MakarovPM";
+                break;
+            case "ak_gl":
+                scenePath = "res://scenes/weapons/csharp/AKGL.tscn";
+                weaponNodeName = "AKGL";
                 break;
             default:
                 LogToFile($"[Player.Weapon] Unknown weapon ID '{selectedWeaponId}', keeping default");
@@ -2226,6 +2715,50 @@ public partial class Player : BaseCharacter
         {
             sniperRifle.AdjustScopeFineTune(mouseMotion.Relative);
         }
+    }
+
+    #endregion
+
+    #region AKGL Grenade Launcher System
+
+    /// <summary>
+    /// Handles AKGL underbarrel grenade launcher input when the AKGL is equipped.
+    /// RMB fires the grenade launcher (single shot, no reload).
+    /// Returns true if the AKGL grenade launcher consumed the RMB input.
+    /// </summary>
+    private bool HandleAKGLGrenadeLauncherInput()
+    {
+        // Only handle when AKGL is the current weapon
+        var akgl = CurrentWeapon as AKGL;
+        if (akgl == null)
+        {
+            return false;
+        }
+
+        // Handle RMB press to fire the grenade launcher
+        if (Input.IsActionJustPressed("grenade_throw"))
+        {
+            // Only fire if not already in a grenade action and grenade is available
+            if (_grenadeState == GrenadeState.Idle && !Input.IsActionPressed("grenade_prepare"))
+            {
+                if (akgl.GrenadeAvailable)
+                {
+                    // Calculate fire direction
+                    Vector2 direction = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+                    akgl.FireGrenadeLauncher(direction);
+                    LogToFile("[Player] AKGL grenade launcher fired!");
+                    return true;
+                }
+                else
+                {
+                    LogToFile("[Player] AKGL grenade launcher empty - no grenade available");
+                    // Still consume input to prevent grenade throw when GL is empty
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     #endregion
@@ -2604,13 +3137,13 @@ public partial class Player : BaseCharacter
 
         // Calculate throw speed needed to reach target (using physics)
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        // FIX for issue #428: Apply 16% compensation factor to account for:
-        // 1. Discrete time integration error from Godot's 60 FPS Euler integration (~0.8%)
-        // 2. Additional physics damping effects in Godot's RigidBody2D (~12.5%)
-        // Empirically tested: grenades travel ~86% of calculated distance without compensation.
-        // Factor of 1.16 (≈ 1/0.86) brings actual landing position to match target cursor position.
-        const float physicsCompensationFactor = 1.16f;
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * physicsCompensationFactor);
+        // FIX for issue #615: Removed the 1.16x compensation factor.
+        // Root causes: (1) GDScript + C# were BOTH applying friction (double friction), and
+        // (2) Godot's default linear_damp=0.1 in COMBINE mode added hidden damping.
+        // Fix: GDScript friction removed entirely (C# GrenadeTimer is sole friction source),
+        // and linear_damp_mode set to REPLACE so linear_damp=0 means zero damping.
+        // v = sqrt(2*F*d) now works correctly without any compensation factor.
+        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
 
         // Clamp to grenade's max throw speed
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
@@ -2770,6 +3303,10 @@ public partial class Player : BaseCharacter
         if (scenePath.Contains("Frag", StringComparison.OrdinalIgnoreCase))
         {
             grenadeType = GrenadeTimer.GrenadeType.Frag;
+        }
+        else if (scenePath.Contains("Aggression", StringComparison.OrdinalIgnoreCase))
+        {
+            grenadeType = GrenadeTimer.GrenadeType.AggressionGas;
         }
 
         // Create and configure the GrenadeTimer component
@@ -3799,6 +4336,1310 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Teleport Bracers Methods (Issue #672)
+
+    /// <summary>
+    /// Initialize the teleport bracers if the ActiveItemManager has them selected.
+    /// </summary>
+    private void InitTeleportBracers()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.TeleportBracers] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_teleport_bracers"))
+        {
+            LogToFile("[Player.TeleportBracers] ActiveItemManager missing has_teleport_bracers method");
+            return;
+        }
+
+        bool hasTeleportBracers = (bool)activeItemManager.Call("has_teleport_bracers");
+        if (!hasTeleportBracers)
+        {
+            LogToFile("[Player.TeleportBracers] No teleport bracers selected in ActiveItemManager");
+            return;
+        }
+
+        _teleportBracersEquipped = true;
+        _teleportCharges = MaxTeleportCharges;
+        LogToFile($"[Player.TeleportBracers] Teleport bracers equipped with {_teleportCharges} charges");
+
+        // Emit initial charge count for UI
+        EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+
+        // Draw initial charge progress bar (Issue #700)
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Handle teleport bracers input: hold Space to aim, release to teleport.
+    /// While Space is held, shows targeting reticle with player silhouette.
+    /// On release, teleports player to the safe target position.
+    /// </summary>
+    private void HandleTeleportBracersInput()
+    {
+        if (!_teleportBracersEquipped)
+        {
+            return;
+        }
+
+        if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            // Space held — enter/continue aiming mode
+            if (!_teleportAiming && _teleportCharges > 0)
+            {
+                _teleportAiming = true;
+                LogToFile("[Player.TeleportBracers] Aiming started");
+            }
+
+            if (_teleportAiming)
+            {
+                // Update target position each frame
+                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
+                QueueRedraw();
+            }
+        }
+        else if (_teleportAiming)
+        {
+            // Space released — execute teleport
+            _teleportAiming = false;
+            ExecuteTeleport();
+        }
+    }
+
+    /// <summary>
+    /// Execute the teleport to the current target position.
+    /// Decrements charges and emits signal for UI update.
+    /// </summary>
+    private void ExecuteTeleport()
+    {
+        if (_teleportCharges <= 0)
+        {
+            LogToFile("[Player.TeleportBracers] No charges remaining");
+            QueueRedraw();
+            return;
+        }
+
+        Vector2 oldPosition = GlobalPosition;
+        GlobalPosition = _teleportTargetPosition;
+        _teleportCharges--;
+
+        EmitSignal(SignalName.TeleportChargesChanged, _teleportCharges, MaxTeleportCharges);
+        LogToFile($"[Player.TeleportBracers] Teleported from {oldPosition} to {_teleportTargetPosition}, charges: {_teleportCharges}/{MaxTeleportCharges}");
+
+        // Issue #723: Reset enemy memory when player teleports - enemies lose track and enter search mode
+        ResetAllEnemyMemories("teleport");
+
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Reset memory for all enemies in the scene (Issue #723).
+    /// Called when player teleports or becomes invisible, causing enemies to lose track and enter search mode.
+    /// </summary>
+    /// <param name="reason">The reason for the memory reset (for logging purposes).</param>
+    private void ResetAllEnemyMemories(string reason = "teleport")
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int resetCount = 0;
+
+        foreach (var node in enemies)
+        {
+            if (node.HasMethod("reset_memory"))
+            {
+                node.Call("reset_memory");
+                resetCount++;
+            }
+        }
+
+        if (resetCount > 0)
+        {
+            LogToFile($"[Player] Reset memory for {resetCount} enemies ({reason} - Issue #723)");
+        }
+    }
+
+    /// <summary>
+    /// Find a safe teleport destination that doesn't place the player inside walls.
+    /// The reticle should "skip through" walls — if the cursor is past a wall,
+    /// the teleport lands on the far side of the wall, not before it.
+    /// Uses multiple raycasts to find clear space beyond obstacles.
+    /// The result is always clamped to the navigation mesh to prevent teleporting
+    /// outside the map boundary walls (Issue #939).
+    /// </summary>
+    /// <param name="fromPos">The player's current position.</param>
+    /// <param name="cursorPos">The mouse cursor position (intended target).</param>
+    /// <returns>A safe teleport destination position within the map bounds.</returns>
+    private Vector2 GetSafeTeleportPosition(Vector2 fromPos, Vector2 cursorPos)
+    {
+        var spaceState = GetWorld2D().DirectSpaceState;
+        if (spaceState == null)
+        {
+            LogToFile("[Player.TeleportBracers] Warning: Could not get DirectSpaceState");
+            return cursorPos;
+        }
+
+        // Check if cursor position is directly accessible (no wall between player and cursor)
+        var directQuery = PhysicsRayQueryParameters2D.Create(fromPos, cursorPos, 4); // mask 4 = obstacles
+        directQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+        var directResult = spaceState.IntersectRay(directQuery);
+
+        Vector2 candidatePos;
+        if (directResult.Count == 0)
+        {
+            // No wall in the way — check if cursor position itself is inside a wall
+            candidatePos = EnsureNotInsideWall(spaceState, cursorPos);
+        }
+        else
+        {
+            // Wall detected between player and cursor.
+            // "Skip through" the wall: find clear space on the far side.
+            Vector2 wallHitPos = (Vector2)directResult["position"];
+            Vector2 direction = (cursorPos - fromPos).Normalized();
+            float totalDistance = fromPos.DistanceTo(cursorPos);
+            float wallDistance = fromPos.DistanceTo(wallHitPos);
+
+            // Probe from just past the wall hit point to the cursor, looking for open space
+            float probeStart = wallDistance + PlayerCollisionRadius + 2.0f;
+            float step = PlayerCollisionRadius;
+
+            // Start from cursor position and work backward to find the closest valid position to cursor
+            candidatePos = fromPos + direction * Mathf.Max(wallDistance - PlayerCollisionRadius - 2.0f, 0.0f);
+
+            for (float dist = probeStart; dist <= totalDistance + step; dist += step)
+            {
+                float clampedDist = Mathf.Min(dist, totalDistance);
+                Vector2 testPos = fromPos + direction * clampedDist;
+
+                // Check if this position is inside a wall using shape query
+                if (!IsPositionInsideWall(spaceState, testPos))
+                {
+                    // Found clear space beyond the wall — verify we can raycast from there
+                    // back to the cursor (no additional walls in between)
+                    candidatePos = testPos;
+
+                    // Now find the best position closest to the cursor
+                    // Continue scanning forward to get as close to cursor as possible
+                    Vector2 lastGoodPos = testPos;
+                    for (float fwdDist = clampedDist + step; fwdDist <= totalDistance; fwdDist += step)
+                    {
+                        Vector2 fwdTestPos = fromPos + direction * fwdDist;
+                        if (!IsPositionInsideWall(spaceState, fwdTestPos))
+                        {
+                            lastGoodPos = fwdTestPos;
+                        }
+                        else
+                        {
+                            // Hit another wall, stop here
+                            break;
+                        }
+                    }
+
+                    // Also test exact cursor position
+                    if (!IsPositionInsideWall(spaceState, cursorPos))
+                    {
+                        lastGoodPos = cursorPos;
+                    }
+
+                    candidatePos = lastGoodPos;
+                    break;
+                }
+            }
+        }
+
+        // Clamp the final position to the navigation mesh to prevent teleporting
+        // outside the map boundary walls (Issue #939).
+        return ClampToNavigationMesh(candidatePos);
+    }
+
+    /// <summary>
+    /// Clamp a position to the navigation mesh so the player cannot teleport
+    /// outside the solid boundary walls surrounding the map (Issue #939).
+    /// Uses NavigationServer2D to find the closest valid point on the nav mesh.
+    /// </summary>
+    /// <param name="position">The candidate teleport position.</param>
+    /// <returns>The closest valid position within the navigation mesh.</returns>
+    private Vector2 ClampToNavigationMesh(Vector2 position)
+    {
+        var navMap = GetWorld2D().NavigationMap;
+        if (!navMap.IsValid)
+        {
+            LogToFile("[Player.TeleportBracers] Warning: Could not get NavigationMap for boundary check");
+            return position;
+        }
+
+        Vector2 closest = NavigationServer2D.MapGetClosestPoint(navMap, position);
+        if (!closest.IsEqualApprox(position))
+        {
+            LogToFile($"[Player.TeleportBracers] Clamped teleport from {position} to {closest} (outside map bounds)");
+        }
+        return closest;
+    }
+
+    /// <summary>
+    /// Check if a position is inside a wall using a point shape query.
+    /// Tests 4 points around the position at the player's collision radius.
+    /// </summary>
+    private bool IsPositionInsideWall(PhysicsDirectSpaceState2D spaceState, Vector2 position)
+    {
+        // Test points at cardinal directions from position (at player radius)
+        Vector2[] testOffsets = {
+            new Vector2(PlayerCollisionRadius, 0),
+            new Vector2(-PlayerCollisionRadius, 0),
+            new Vector2(0, PlayerCollisionRadius),
+            new Vector2(0, -PlayerCollisionRadius)
+        };
+
+        // Use a short raycast from center to each offset point
+        // If any hits a wall, the position is too close to/inside a wall
+        foreach (var offset in testOffsets)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(position, position + offset, 4);
+            query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                float hitDist = position.DistanceTo((Vector2)result["position"]);
+                if (hitDist < PlayerCollisionRadius)
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Also test from the center outward in more directions for better coverage
+        var centerQuery = PhysicsRayQueryParameters2D.Create(
+            position + new Vector2(0, -1), position + new Vector2(0, 1), 4);
+        centerQuery.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+        var centerResult = spaceState.IntersectRay(centerQuery);
+        if (centerResult.Count > 0)
+        {
+            float hitDist = position.DistanceTo((Vector2)centerResult["position"]);
+            if (hitDist < 2.0f)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Ensure a position is not inside a wall. If it is, nudge it to safety.
+    /// </summary>
+    private Vector2 EnsureNotInsideWall(PhysicsDirectSpaceState2D spaceState, Vector2 position)
+    {
+        if (!IsPositionInsideWall(spaceState, position))
+        {
+            return position;
+        }
+
+        // Position is inside wall — try nudging in cardinal directions
+        float nudgeDistance = PlayerCollisionRadius + 5.0f;
+        Vector2[] nudgeDirections = {
+            Vector2.Up, Vector2.Down, Vector2.Left, Vector2.Right,
+            new Vector2(-1, -1).Normalized(), new Vector2(1, -1).Normalized(),
+            new Vector2(-1, 1).Normalized(), new Vector2(1, 1).Normalized()
+        };
+
+        foreach (var dir in nudgeDirections)
+        {
+            Vector2 nudgedPos = position + dir * nudgeDistance;
+            if (!IsPositionInsideWall(spaceState, nudgedPos))
+            {
+                return nudgedPos;
+            }
+        }
+
+        // Could not find safe position, return original
+        return position;
+    }
+
+    #endregion
+
+    #region Homing Bullets Methods (Issue #677)
+
+    /// <summary>
+    /// Initialize the homing bullets if the ActiveItemManager has them selected.
+    /// </summary>
+    private void InitHomingBullets()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Homing] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_homing_bullets"))
+        {
+            LogToFile("[Player.Homing] ActiveItemManager missing has_homing_bullets method");
+            return;
+        }
+
+        bool hasHomingBullets = (bool)activeItemManager.Call("has_homing_bullets");
+        if (!hasHomingBullets)
+        {
+            LogToFile("[Player.Homing] No homing bullets selected in ActiveItemManager");
+            return;
+        }
+
+        _homingBulletsEquipped = true;
+        _homingCharges = MaxHomingCharges;
+        _homingActive = false;
+        _homingTimer = 0.0f;
+        SetupHomingAudio();
+
+        LogToFile($"[Player.Homing] Homing bullets equipped, charges: {_homingCharges}/{MaxHomingCharges}");
+    }
+
+    /// <summary>
+    /// Handle homing bullets input: press Space to activate for 1 second.
+    /// When activated, all bullets fired during the activation window steer toward enemies.
+    /// Also enables homing on already-airborne player bullets.
+    /// </summary>
+    private void HandleHomingBulletsInput(float delta)
+    {
+        if (!_homingBulletsEquipped)
+        {
+            return;
+        }
+
+        // Handle active timer countdown
+        if (_homingActive)
+        {
+            _homingTimer -= delta;
+            if (_homingTimer <= 0.0f)
+            {
+                _homingActive = false;
+                _homingTimer = 0.0f;
+                StopHomingScanner();
+                // Show charge bar briefly after deactivation, then hide (Issue #974)
+                _homingBarVisible = false;
+                _homingChargeBarPending = true;
+                _homingChargeBarHideTimer = HomingChargeBarHideDelay;
+                QueueRedraw();
+                EmitSignal(SignalName.HomingDeactivated);
+                LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+            }
+        }
+
+        // Activate on Space press (only if not already active and has charges)
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            if (_homingCharges > 0 && !_homingActive)
+            {
+                _homingActive = true;
+                _homingTimer = HomingDuration;
+                _homingCharges--;
+                PlayHomingSound();
+                StartHomingScanner();
+                // Show combined progress bar (charge pips + timer) on activation (Issue #974)
+                _homingBarVisible = true;
+                _homingChargeBarPending = false;
+                QueueRedraw();
+                EmitSignal(SignalName.HomingActivated);
+                EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
+                LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
+
+                // Enable homing on all already-airborne player bullets
+                EnableHomingOnAirborneBullets();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Enable homing on all player bullets currently in the scene.
+    /// Called when the player activates homing so that bullets already in flight
+    /// also start steering toward enemies.
+    /// </summary>
+    private void EnableHomingOnAirborneBullets()
+    {
+        var tree = GetTree();
+        if (tree == null)
+        {
+            return;
+        }
+
+        var currentScene = tree.CurrentScene;
+        if (currentScene == null)
+        {
+            return;
+        }
+
+        int enabledCount = 0;
+        ulong myId = GetInstanceId();
+
+        // Find all Bullet nodes in the scene
+        EnableHomingRecursive(currentScene, myId, ref enabledCount);
+
+        if (enabledCount > 0)
+        {
+            LogToFile($"[Player.Homing] Enabled homing on {enabledCount} airborne bullets");
+        }
+    }
+
+    /// <summary>
+    /// Recursively find Bullet and ShotgunPellet nodes and enable homing on player projectiles.
+    /// </summary>
+    private void EnableHomingRecursive(Node node, ulong playerId, ref int count)
+    {
+        // Check if this is a C# Bullet
+        if (node is CSharpBullet csBullet)
+        {
+            if (csBullet.ShooterId == playerId && !csBullet.HomingEnabled)
+            {
+                csBullet.EnableHoming();
+                count++;
+            }
+        }
+        // Check if this is a C# ShotgunPellet (Issue #704)
+        else if (node is CSharpShotgunPellet csPellet)
+        {
+            if (csPellet.ShooterId == playerId && !csPellet.HomingEnabled)
+            {
+                csPellet.EnableHoming();
+                count++;
+            }
+        }
+        // Check if this is a GDScript bullet (has enable_homing method and shooter_id property)
+        else if (node is Area2D area && node.HasMethod("enable_homing"))
+        {
+            var shooterId = node.Get("shooter_id");
+            if (shooterId.VariantType != Variant.Type.Nil)
+            {
+                ulong bulletShooterId = shooterId.AsUInt64();
+                if (bulletShooterId == playerId)
+                {
+                    var homingEnabled = node.Get("homing_enabled");
+                    if (homingEnabled.VariantType == Variant.Type.Nil || !(bool)homingEnabled)
+                    {
+                        node.Call("enable_homing");
+                        count++;
+                    }
+                }
+            }
+        }
+
+        // Recurse into children
+        foreach (var child in node.GetChildren())
+        {
+            EnableHomingRecursive(child, playerId, ref count);
+        }
+    }
+
+    /// <summary>
+    /// Set up the audio players for homing activation sound and scanner loop (Issue #890).
+    /// </summary>
+    private void SetupHomingAudio()
+    {
+        if (ResourceLoader.Exists(HomingSoundPath))
+        {
+            var stream = GD.Load<AudioStream>(HomingSoundPath);
+            if (stream != null)
+            {
+                _homingAudioPlayer = new AudioStreamPlayer();
+                _homingAudioPlayer.Stream = stream;
+                _homingAudioPlayer.VolumeDb = -3.0f;
+                AddChild(_homingAudioPlayer);
+                LogToFile("[Player.Homing] Homing activation sound loaded");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing activation sound not found: {HomingSoundPath}");
+        }
+
+        // Set up the looping scanner ambient sound (Issue #890).
+        if (ResourceLoader.Exists(HomingScannerLoopPath))
+        {
+            var scannerStream = GD.Load<AudioStreamWav>(HomingScannerLoopPath);
+            if (scannerStream != null)
+            {
+                scannerStream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
+                // Set loop endpoints so the stream actually loops the full clip.
+                // Without LoopEnd, Godot defaults to 0 → loops a zero-length region (silence).
+                int bytesPerSample = (scannerStream.Format == AudioStreamWav.FormatEnum.Format16Bits) ? 2 : 1;
+                int channels = scannerStream.Stereo ? 2 : 1;
+                int totalSamples = scannerStream.Data.Length / (bytesPerSample * channels);
+                scannerStream.LoopBegin = 0;
+                scannerStream.LoopEnd = totalSamples;
+                _homingScannerPlayer = new AudioStreamPlayer();
+                _homingScannerPlayer.Stream = scannerStream;
+                // 3x quieter than original -18 dB: 20*log10(1/3) ≈ -9.54 dB → -18 - 9.54 ≈ -27.5 dB
+                _homingScannerPlayer.VolumeDb = -27.5f;
+                AddChild(_homingScannerPlayer);
+                // Do NOT play here — scanner starts only when homing is activated (Issue #890).
+                LogToFile($"[Player.Homing] Homing scanner loop ready (Issue #890), samples={totalSamples}");
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Homing] Homing scanner loop sound not found: {HomingScannerLoopPath}");
+        }
+    }
+
+    /// <summary>
+    /// Play the homing activation sound.
+    /// </summary>
+    private void PlayHomingSound()
+    {
+        if (_homingAudioPlayer != null && IsInstanceValid(_homingAudioPlayer))
+        {
+            _homingAudioPlayer.Play();
+        }
+    }
+
+    /// <summary>
+    /// Start the looping scanner sound. Called when homing is activated (Issue #890).
+    /// </summary>
+    private void StartHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && !_homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Play();
+            LogToFile("[Player.Homing] Homing scanner loop started (Issue #890)");
+        }
+    }
+
+    /// <summary>
+    /// Stop the looping scanner sound. Called when homing effect expires (Issue #890).
+    /// </summary>
+    private void StopHomingScanner()
+    {
+        if (_homingScannerPlayer != null && IsInstanceValid(_homingScannerPlayer) && _homingScannerPlayer.Playing)
+        {
+            _homingScannerPlayer.Stop();
+            LogToFile("[Player.Homing] Homing scanner loop stopped (Issue #890)");
+        }
+    }
+
+    /// <summary>
+    /// Check if homing bullets effect is currently active.
+    /// </summary>
+    public bool IsHomingActive()
+    {
+        return _homingActive;
+    }
+
+    #endregion
+
+    #region BFF Pendant Methods (Issue #674)
+
+    /// <summary>
+    /// Initialize the BFF pendant if the ActiveItemManager has it selected.
+    /// </summary>
+    private void InitBffPendant()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_bff_pendant"))
+        {
+            LogToFile("[Player.BffPendant] ActiveItemManager missing has_bff_pendant method");
+            return;
+        }
+
+        bool hasBffPendant = (bool)activeItemManager.Call("has_bff_pendant");
+        if (!hasBffPendant)
+        {
+            LogToFile("[Player.BffPendant] No BFF pendant selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.BffPendant] BFF pendant is selected, ready to summon companion");
+
+        // Verify enemy scene exists (we spawn an actual enemy as companion)
+        if (!ResourceLoader.Exists(BffEnemyScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
+            return;
+        }
+
+        _bffPendantEquipped = true;
+        _bffCompanionSummoned = false;
+        LogToFile("[Player.BffPendant] BFF pendant equipped — press Space to summon companion");
+    }
+
+    /// <summary>
+    /// Handle BFF pendant input: press Space to summon a companion (one charge per battle).
+    /// </summary>
+    private void HandleBffPendantInput()
+    {
+        if (!_bffPendantEquipped)
+        {
+            return;
+        }
+
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            SummonBffCompanion();
+        }
+    }
+
+    /// <summary>
+    /// Summon the BFF companion near the player.
+    /// Issue #674: Spawns an actual Enemy in permanent aggressive state.
+    /// User feedback: "copy enemy AI but make it aggressive and not treat player as enemy"
+    /// </summary>
+    private void SummonBffCompanion()
+    {
+        if (_bffCompanionSummoned)
+        {
+            return;
+        }
+
+        if (!ResourceLoader.Exists(BffEnemyScenePath))
+        {
+            LogToFile($"[Player.BffPendant] WARNING: Enemy scene not found: {BffEnemyScenePath}");
+            return;
+        }
+
+        var enemyScene = GD.Load<PackedScene>(BffEnemyScenePath);
+        if (enemyScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: Failed to load enemy scene");
+            return;
+        }
+
+        var companion = enemyScene.Instantiate<Node2D>();
+
+        // Configure health range to 2-4 HP as per issue requirements (before adding to scene)
+        if (companion.HasMethod("set") && companion.Get("min_health").VariantType != Variant.Type.Nil)
+        {
+            companion.Set("min_health", 2);
+            companion.Set("max_health", 4);
+        }
+
+        // Issue #926: BFF companion has 50% slower reaction speed than enemies.
+        // Multiply all reaction/detection delays by 1.5 (150% of normal = 50% slower).
+        const float BffReactionMultiplier = 1.5f;
+        companion.Set("detection_delay", 0.2f * BffReactionMultiplier);       // 0.2s * 1.5 = 0.3s
+        companion.Set("threat_reaction_delay", 0.2f * BffReactionMultiplier); // 0.2s * 1.5 = 0.3s
+        companion.Set("lead_prediction_delay", 0.3f * BffReactionMultiplier); // 0.3s * 1.5 = 0.45s
+
+        // Add to the current scene (not as child of player, so it moves independently)
+        var tree = GetTree();
+        if (tree?.CurrentScene == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: No current scene to add companion to");
+            companion.QueueFree();
+            return;
+        }
+
+        tree.CurrentScene.AddChild(companion);
+
+        // CRITICAL: Remove from "enemies" group so other enemies don't target it
+        // and so it doesn't count toward level enemy counter
+        companion.RemoveFromGroup("enemies");
+
+        // Add to "bff_companions" group for identification
+        companion.AddToGroup("bff_companions");
+
+        // Set companion name for logging
+        companion.Name = "BffCompanion";
+
+        // Make companion permanently aggressive (uses AggressionComponent AI to attack enemies)
+        if (companion.HasMethod("set_aggressive"))
+        {
+            companion.Call("set_aggressive", true);
+            LogToFile("[Player.BffPendant] Companion set to aggressive state");
+        }
+
+        // Apply green-cyan tint to distinguish from regular enemies
+        ApplyBffCompanionVisualTint(companion);
+
+        // Find a valid spawn position that is not inside a wall
+        var spawnPos = FindValidBffCompanionSpawnPosition();
+        companion.GlobalPosition = spawnPos;
+
+        _bffCompanionNode = companion;
+        _bffCompanionSummoned = true;
+
+        // Connect companion death signal if it exists
+        if (companion.HasSignal("died"))
+        {
+            companion.Connect("died", Callable.From(OnBffCompanionDied));
+        }
+
+        LogToFile($"[Player.BffPendant] Companion spawned at {companion.GlobalPosition} (aggressive enemy)");
+    }
+
+    /// <summary>
+    /// Apply a green-cyan tint to the companion to distinguish it from regular enemies.
+    /// </summary>
+    private static void ApplyBffCompanionVisualTint(Node2D companion)
+    {
+        var model = companion.GetNodeOrNull("EnemyModel");
+        if (model == null)
+        {
+            return;
+        }
+
+        var tint = new Color(0.3f, 1.0f, 0.7f, 1.0f);
+        foreach (var spriteName in new[] { "Body", "Head", "LeftArm", "RightArm" })
+        {
+            var sprite = model.GetNodeOrNull(spriteName);
+            if (sprite is Sprite2D sprite2D)
+            {
+                sprite2D.Modulate = tint;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Find a valid spawn position for the companion that is not inside a wall.
+    /// Tries multiple offsets around the player until a valid position is found.
+    /// Issue #674: Prevents companion from spawning inside/behind walls.
+    /// </summary>
+    private Vector2 FindValidBffCompanionSpawnPosition()
+    {
+        var spaceState = GetWorld2D().DirectSpaceState;
+        if (spaceState == null)
+        {
+            LogToFile("[Player.BffPendant] WARNING: Physics state unavailable, using default spawn");
+            return GlobalPosition + new Vector2(-50, 30);
+        }
+
+        const float CompanionRadius = 24.0f;
+
+        float baseRotation = _playerModel?.Rotation ?? 0.0f;
+        var offsets = new Vector2[]
+        {
+            new Vector2(-50, 30).Rotated(baseRotation),
+            new Vector2(-60, 0).Rotated(baseRotation),
+            new Vector2(-50, -30).Rotated(baseRotation),
+            new Vector2(0, 50).Rotated(baseRotation),
+            new Vector2(0, -50).Rotated(baseRotation),
+            new Vector2(50, 30).Rotated(baseRotation),
+            new Vector2(50, -30).Rotated(baseRotation),
+            new Vector2(-30, 0).Rotated(baseRotation),
+        };
+
+        foreach (var offset in offsets)
+        {
+            var testPos = GlobalPosition + offset;
+            if (IsBffSpawnPositionValid(spaceState, testPos, CompanionRadius))
+            {
+                LogToFile($"[Player.BffPendant] Found valid spawn at offset {offset}");
+                return testPos;
+            }
+        }
+
+        LogToFile("[Player.BffPendant] WARNING: No valid spawn position found, spawning at player");
+        return GlobalPosition;
+    }
+
+    /// <summary>
+    /// Check if a position is valid for spawning the companion.
+    /// Returns true if the position is not inside a wall and has line of sight from player.
+    /// </summary>
+    private bool IsBffSpawnPositionValid(PhysicsDirectSpaceState2D spaceState, Vector2 pos, float radius)
+    {
+        // First check: line of sight from player to spawn position
+        var losQuery = new PhysicsRayQueryParameters2D
+        {
+            From = GlobalPosition,
+            To = pos,
+            CollisionMask = 1  // Walls only (layer 1)
+        };
+        var losResult = spaceState.IntersectRay(losQuery);
+        if (losResult.Count > 0)
+        {
+            return false; // Wall blocks line of sight
+        }
+
+        // Second check: position itself is not inside a wall
+        var shapeQuery = new PhysicsShapeQueryParameters2D
+        {
+            Shape = new CircleShape2D { Radius = radius },
+            Transform = new Transform2D(0, pos),
+            CollisionMask = 1  // Walls only (layer 1)
+        };
+        var overlapResult = spaceState.IntersectShape(shapeQuery);
+        return overlapResult.Count == 0;
+    }
+
+    /// <summary>
+    /// Called when the BFF companion dies.
+    /// </summary>
+    private void OnBffCompanionDied()
+    {
+        LogToFile("[Player.BffPendant] Companion has been killed");
+        _bffCompanionNode = null;
+    }
+
+    #endregion
+
+    #region Invisibility Suit Methods (Issue #673)
+
+    /// <summary>
+    /// Initialize the invisibility suit if the ActiveItemManager has it selected.
+    /// Loads the GDScript effect and HUD nodes and wires up signal callbacks.
+    /// </summary>
+    private void InitInvisibilitySuit()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.InvisibilitySuit] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_invisibility_suit"))
+        {
+            LogToFile("[Player.InvisibilitySuit] ActiveItemManager missing has_invisibility_suit method");
+            return;
+        }
+
+        bool hasInvisibilitySuit = (bool)activeItemManager.Call("has_invisibility_suit");
+        if (!hasInvisibilitySuit)
+        {
+            LogToFile("[Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.InvisibilitySuit] Invisibility suit is selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/invisibility_suit_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.InvisibilitySuit] WARNING: Failed to load invisibility_suit_effect.gd");
+            return;
+        }
+
+        _invisibilitySuitEffect = new Node();
+        _invisibilitySuitEffect.SetScript(effectScript);
+        _invisibilitySuitEffect.Name = "InvisibilitySuitEffect";
+        AddChild(_invisibilitySuitEffect);
+
+        // Initialize with player reference
+        _invisibilitySuitEffect.Call("initialize", this);
+
+        // Connect signals for HUD updates
+        _invisibilitySuitEffect.Connect("invisibility_activated", Callable.From<int>(OnInvisibilityActivated));
+        _invisibilitySuitEffect.Connect("invisibility_deactivated", Callable.From<int>(OnInvisibilityDeactivated));
+
+        _invisibilitySuitEquipped = true;
+        int charges = (int)_invisibilitySuitEffect.Call("get_charges");
+        LogToFile($"[Player.InvisibilitySuit] Invisibility suit equipped, charges: {charges}");
+
+        // Load and instantiate the GDScript charge bar (Node2D positioned above player)
+        var hudScript = GD.Load<Script>("res://scripts/ui/invisibility_hud.gd");
+        if (hudScript != null)
+        {
+            _invisibilityHud = new Node2D();
+            _invisibilityHud.SetScript(hudScript);
+            _invisibilityHud.Name = "InvisibilityHUD";
+            AddChild(_invisibilityHud);
+            _invisibilityHud.Call("initialize", _invisibilitySuitEffect);
+            LogToFile("[Player.InvisibilitySuit] Charge bar created");
+        }
+        else
+        {
+            LogToFile("[Player.InvisibilitySuit] WARNING: Failed to load invisibility_hud.gd");
+        }
+    }
+
+    /// <summary>
+    /// Handle invisibility suit input: press Space to activate.
+    /// Single press activates for full duration (4 seconds), auto-deactivates.
+    /// </summary>
+    private void HandleInvisibilitySuitInput()
+    {
+        if (!_invisibilitySuitEquipped || _invisibilitySuitEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_invisibilitySuitEffect))
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
+            if (!isActive)
+            {
+                _invisibilitySuitEffect.Call("activate");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Check if the player is currently invisible (Issue #673).
+    /// Called by enemy AI via duck typing (has_method + call).
+    /// </summary>
+    public bool is_invisible()
+    {
+        if (!_invisibilitySuitEquipped || _invisibilitySuitEffect == null)
+            return false;
+        if (!IsInstanceValid(_invisibilitySuitEffect))
+            return false;
+        return (bool)_invisibilitySuitEffect.Call("is_invisible");
+    }
+
+    /// <summary>
+    /// Callback when invisibility activates.
+    /// </summary>
+    private void OnInvisibilityActivated(int chargesRemaining)
+    {
+        if (_invisibilityHud != null && IsInstanceValid(_invisibilityHud))
+        {
+            _invisibilityHud.Call("set_active", true);
+            _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
+        }
+
+        // Issue #723: Reset enemy memory when player becomes invisible
+        // Enemies lose track and enter search mode at last known position
+        ResetAllEnemyMemories("invisibility activation");
+    }
+
+    /// <summary>
+    /// Callback when invisibility deactivates.
+    /// </summary>
+    private void OnInvisibilityDeactivated(int chargesRemaining)
+    {
+        if (_invisibilityHud != null && IsInstanceValid(_invisibilityHud))
+        {
+            _invisibilityHud.Call("set_active", false);
+            _invisibilityHud.Call("update_charges", chargesRemaining, InvisibilityMaxCharges);
+        }
+    }
+
+    #endregion
+
+    #region Trajectory Glasses System (Issue #744)
+
+    /// <summary>
+    /// Whether trajectory glasses are equipped (active item selected in armory).
+    /// </summary>
+    private bool _trajectoryGlassesEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript trajectory glasses effect node.
+    /// </summary>
+    private Node? _trajectoryGlassesEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript trajectory glasses HUD node.
+    /// </summary>
+    private Node? _trajectoryGlassesHud = null;
+
+    // Progress bar state for trajectory glasses (Issue #974)
+    /// <summary>Whether the trajectory glasses combined progress bar is visible.</summary>
+    private bool _trajectoryBarVisible = false;
+    /// <summary>Current charges remaining for trajectory glasses (cached for drawing).</summary>
+    private int _trajectoryBarCharges = 0;
+    /// <summary>Whether the trajectory charge bar should show briefly after deactivation.</summary>
+    private bool _trajectoryChargeBarPending = false;
+    /// <summary>Timer for auto-hiding trajectory charge bar after deactivation (300ms).</summary>
+    private float _trajectoryChargeBarHideTimer = 0.0f;
+    /// <summary>Duration to show charge bar after deactivation before auto-hiding.</summary>
+    private const float TrajectoryChargeBarHideDelay = 0.3f;
+    /// <summary>Effect duration for trajectory glasses (must match trajectory_glasses_effect.gd).</summary>
+    private const float TrajectoryGlassesDuration = 10.0f;
+    /// <summary>Max charges for trajectory glasses (must match trajectory_glasses_effect.gd).</summary>
+    private const int TrajectoryGlassesMaxCharges = 2;
+
+    /// <summary>
+    /// Initialize trajectory glasses if the ActiveItemManager has them selected (Issue #744).
+    /// Loads and instantiates the GDScript trajectory_glasses_effect.gd controller.
+    /// </summary>
+    private void InitTrajectoryGlasses()
+    {
+        LogToFile("[Player.TrajectoryGlasses] Checking trajectory glasses...");
+
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_trajectory_glasses"))
+        {
+            LogToFile("[Player.TrajectoryGlasses] ActiveItemManager missing has_trajectory_glasses method");
+            return;
+        }
+
+        bool hasTrajectoryGlasses = (bool)activeItemManager.Call("has_trajectory_glasses");
+        if (!hasTrajectoryGlasses)
+        {
+            LogToFile("[Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.TrajectoryGlasses] Trajectory glasses selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/trajectory_glasses_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_effect.gd");
+            return;
+        }
+
+        _trajectoryGlassesEffect = new Node();
+        _trajectoryGlassesEffect.SetScript(effectScript);
+        _trajectoryGlassesEffect.Name = "TrajectoryGlassesEffect";
+        AddChild(_trajectoryGlassesEffect);
+
+        // Initialize with player reference
+        _trajectoryGlassesEffect.Call("initialize", this);
+
+        // Pass current weapon so ricochet angle is weapon-specific (Issue #744)
+        if (CurrentWeapon != null)
+        {
+            _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+            LogToFile($"[Player.TrajectoryGlasses] Weapon set: {CurrentWeapon.Name}");
+        }
+
+        // Connect signals
+        _trajectoryGlassesEffect.Connect("trajectory_activated", Callable.From<int>(OnTrajectoryActivated));
+        _trajectoryGlassesEffect.Connect("trajectory_deactivated", Callable.From<int>(OnTrajectoryDeactivated));
+
+        _trajectoryGlassesEquipped = true;
+        int charges = (int)_trajectoryGlassesEffect.Get("charges");
+        LogToFile($"[Player.TrajectoryGlasses] Trajectory glasses equipped, charges: {charges}");
+
+        // Load and instantiate the GDScript HUD
+        var hudScript = GD.Load<Script>("res://scripts/ui/trajectory_glasses_hud.gd");
+        if (hudScript != null)
+        {
+            _trajectoryGlassesHud = new Node2D();
+            _trajectoryGlassesHud.SetScript(hudScript);
+            _trajectoryGlassesHud.Name = "TrajectoryGlassesHUD";
+            AddChild(_trajectoryGlassesHud);
+            _trajectoryGlassesHud.Call("initialize", _trajectoryGlassesEffect);
+            LogToFile("[Player.TrajectoryGlasses] HUD created");
+        }
+        else
+        {
+            LogToFile("[Player.TrajectoryGlasses] WARNING: Failed to load trajectory_glasses_hud.gd");
+        }
+    }
+
+    /// <summary>
+    /// Handle trajectory glasses input: press Space to activate (Issue #744).
+    /// Single press activates for full duration (10 seconds), auto-deactivates.
+    /// </summary>
+    private void HandleTrajectoryGlassesInput()
+    {
+        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+            if (!isActive)
+            {
+                // Update weapon reference in case player switched weapons (Issue #744)
+                if (CurrentWeapon != null)
+                {
+                    _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+                }
+
+                int charges = (int)_trajectoryGlassesEffect.Get("charges");
+                LogToFile($"[Player.TrajectoryGlasses] Space pressed - activating (charges: {charges})");
+                bool activated = (bool)_trajectoryGlassesEffect.Call("activate");
+                LogToFile($"[Player.TrajectoryGlasses] Activation result: {activated}");
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called when trajectory glasses activate.
+    /// Shows combined progress bar with charge pips + timer (Issue #974).
+    /// </summary>
+    private void OnTrajectoryActivated(int chargesRemaining)
+    {
+        _trajectoryBarVisible = true;
+        _trajectoryBarCharges = chargesRemaining;
+        _trajectoryChargeBarPending = false;
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Called when trajectory glasses deactivate.
+    /// Shows charge bar briefly then hides (Issue #974).
+    /// </summary>
+    private void OnTrajectoryDeactivated(int chargesRemaining)
+    {
+        _trajectoryBarVisible = false;
+        _trajectoryBarCharges = chargesRemaining;
+        _trajectoryChargeBarPending = true;
+        _trajectoryChargeBarHideTimer = TrajectoryChargeBarHideDelay;
+        QueueRedraw();
+    }
+
+    #endregion
+
+    #region Breaker Bullets System (Issue #678)
+
+    /// <summary>
+    /// Whether breaker bullets are active (passive item, Issue #678).
+    /// When true, all spawned bullets will have is_breaker_bullet = true.
+    /// </summary>
+    private bool _breakerBulletsActive = false;
+
+    /// <summary>
+    /// Initialize breaker bullets if the ActiveItemManager has them selected.
+    /// Breaker bullets are a passive item — no special nodes needed,
+    /// just a flag that modifies bullet behavior on spawn.
+    /// </summary>
+    private void InitBreakerBullets()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BreakerBullets] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_breaker_bullets"))
+        {
+            LogToFile("[Player.BreakerBullets] ActiveItemManager missing has_breaker_bullets method");
+            return;
+        }
+
+        bool hasBreakerBullets = (bool)activeItemManager.Call("has_breaker_bullets");
+        if (!hasBreakerBullets)
+        {
+            LogToFile("[Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager");
+            return;
+        }
+
+        _breakerBulletsActive = true;
+        LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls");
+
+        // Set breaker bullet flag on current weapon so all spawned bullets get the flag
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.IsBreakerBulletActive = true;
+            LogToFile($"[Player.BreakerBullets] Set IsBreakerBulletActive on weapon: {CurrentWeapon.Name}");
+        }
+    }
+
+    #endregion
+
+    #region Force Field System (Issue #676)
+
+    /// <summary>
+    /// Initialize the force field if the ActiveItemManager has it selected.
+    /// Loads the GDScript effect node and attaches it as a child.
+    /// </summary>
+    private void InitForceField()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ForceField] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_force_field"))
+        {
+            LogToFile("[Player.ForceField] ActiveItemManager missing has_force_field method");
+            return;
+        }
+
+        bool hasForceField = (bool)activeItemManager.Call("has_force_field");
+        if (!hasForceField)
+        {
+            LogToFile("[Player.ForceField] Force field not selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.ForceField] Force field is selected, initializing...");
+
+        // Load the GDScript effect scene
+        const string ForceFieldScenePath = "res://scenes/effects/ForceFieldEffect.tscn";
+        var forceFieldScene = GD.Load<PackedScene>(ForceFieldScenePath);
+        if (forceFieldScene == null)
+        {
+            LogToFile($"[Player.ForceField] WARNING: Failed to load ForceFieldEffect scene: {ForceFieldScenePath}");
+            return;
+        }
+
+        _forceFieldEffect = forceFieldScene.Instantiate();
+        _forceFieldEffect.Name = "ForceFieldEffect";
+        AddChild(_forceFieldEffect);
+        _forceFieldEquipped = true;
+
+        LogToFile("[Player.ForceField] Force field initialized successfully");
+    }
+
+    /// <summary>
+    /// Handle force field input: hold Space to activate, release to deactivate.
+    /// </summary>
+    /// <param name="delta">Physics frame delta time.</param>
+    private void HandleForceFieldInput(float delta)
+    {
+        if (!_forceFieldEquipped || _forceFieldEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_forceFieldEffect))
+        {
+            return;
+        }
+
+        if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            bool isActive = (bool)_forceFieldEffect.Get("is_active");
+            if (!isActive)
+            {
+                _forceFieldEffect.Call("activate");
+            }
+        }
+        else
+        {
+            bool isActive = (bool)_forceFieldEffect.Get("is_active");
+            if (isActive)
+            {
+                _forceFieldEffect.Call("deactivate");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Check if force field is currently protecting the player (Issue #676).
+    /// Called by bullet/projectile code via duck typing.
+    /// </summary>
+    public bool is_force_field_active()
+    {
+        if (!_forceFieldEquipped || _forceFieldEffect == null)
+            return false;
+        if (!IsInstanceValid(_forceFieldEffect))
+            return false;
+        return (bool)_forceFieldEffect.Call("is_protecting");
+    }
+
+    #endregion
+
     #region Logging
 
     /// <summary>
@@ -3925,12 +5766,54 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Override _Draw to visualize grenade trajectory.
+    /// Override _Draw to visualize grenade trajectory and teleport reticle.
     /// In simple mode: Always shows trajectory preview (semi-transparent arc).
     /// In complex mode: Only shows when debug mode is enabled (F7).
+    /// Teleport bracers: Shows targeting line and player silhouette at target.
     /// </summary>
     public override void _Draw()
     {
+        // Draw homing bullets progress bar (Issue #974)
+        if (_homingBulletsEquipped)
+        {
+            if (_homingBarVisible)
+            {
+                // Show combined bar (charge pips + timer) while active
+                DrawHomingCombinedBar();
+            }
+            else if (_homingChargeBarPending)
+            {
+                // Show charge-only bar briefly after deactivation
+                DrawHomingChargeBar();
+            }
+        }
+
+        // Draw trajectory glasses progress bar (Issue #974)
+        if (_trajectoryGlassesEquipped)
+        {
+            if (_trajectoryBarVisible)
+            {
+                // Show combined bar (charge pips + timer) while active
+                DrawTrajectoryGlassesCombinedBar();
+            }
+            else if (_trajectoryChargeBarPending)
+            {
+                // Show charge-only bar briefly after deactivation
+                DrawTrajectoryGlassesChargeBar();
+            }
+        }
+
+
+        // Draw teleport targeting reticle if aiming (Issue #672)
+        // Note: Charge count is displayed on the reticle itself (Issue #972)
+        if (_teleportAiming && _teleportBracersEquipped)
+        {
+            DrawTeleportReticle();
+        }
+
+        // Draw trajectory glasses laser (Issue #744)
+        DrawTrajectoryGlasses();
+
         // Determine if we should draw trajectory
         bool isSimpleAiming = _grenadeState == GrenadeState.SimpleAiming;
         bool isComplexAiming = _grenadeState == GrenadeState.Aiming;
@@ -4001,6 +5884,9 @@ public partial class Player : BaseCharacter
             if (throwDistance < 10.0f) throwDistance = 10.0f;
 
             // Calculate throw speed needed to reach target
+            // FIX for issue #615: No compensation factor needed. Root causes were double friction
+            // (GDScript + C# both applying) and Godot default linear_damp=0.1. GDScript friction
+            // was removed entirely; C# GrenadeTimer is sole friction source. v = sqrt(2*F*d) works.
             float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
@@ -4047,6 +5933,8 @@ public partial class Player : BaseCharacter
                 throwSpeed = MinThrowSpeed * 0.5f;
             }
 
+            // FIX for issue #615: No compensation factor needed. Double friction was the root
+            // cause. With single C# friction, the formula works correctly.
             landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
         }
 
@@ -4115,6 +6003,354 @@ public partial class Player : BaseCharacter
         }
         // Default: Flashbang effect radius (FlashbangGrenade.tscn)
         return 400.0f;
+    }
+
+    /// <summary>
+    /// Draw combined charge pips + timer bar for homing bullets (Issue #974).
+    /// Layout: charge pips on top (showing remaining uses), timer bar below (depleting over activation).
+    /// </summary>
+    private void DrawHomingCombinedBar()
+    {
+        const float barWidth = 40.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+        const float pipHeight = 4.0f;
+        const float combinedGap = 2.0f;
+        const float timerBarHeight = 3.0f;
+
+        int chargeMax = MaxHomingCharges;
+        int chargeValue = _homingCharges;
+        float timerValue = _homingTimer;
+        float timerMax = HomingDuration;
+
+        if (chargeMax <= 0)
+            return;
+
+        float pipY = barYOffset;
+        float timerY = barYOffset + pipHeight + combinedGap;
+
+        // Draw charge pips
+        float totalGaps = segmentGap * (chargeMax - 1);
+        float pipWidth = (barWidth - totalGaps) / chargeMax;
+        if (pipWidth < 2.0f) pipWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float chargePercent = (float)chargeValue / chargeMax;
+        Color pipFillColor;
+        if (chargePercent > 0.5f)
+            pipFillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (chargePercent > 0.25f)
+            pipFillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            pipFillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+        Color timerFillColor = new Color(0.0f, 0.9f, 0.7f, 0.9f);
+
+        for (int i = 0; i < chargeMax; i++)
+        {
+            float segX = startX + i * (pipWidth + segmentGap);
+            Rect2 pipRect = new Rect2(segX, pipY, pipWidth, pipHeight);
+
+            DrawRect(pipRect, bgColor);
+            if (i < chargeValue)
+                DrawRect(pipRect, pipFillColor);
+            else
+                DrawRect(pipRect, emptyColor);
+            DrawRect(pipRect, borderColor, false, borderWidth);
+        }
+
+        // Draw timer bar below pips
+        Rect2 timerRect = new Rect2(-barWidth / 2.0f, timerY, barWidth, timerBarHeight);
+        DrawRect(timerRect, bgColor);
+        if (timerMax > 0.0f && timerValue > 0.0f)
+        {
+            float fillRatio = Mathf.Clamp(timerValue / timerMax, 0.0f, 1.0f);
+            Rect2 fillRect = new Rect2(-barWidth / 2.0f, timerY, barWidth * fillRatio, timerBarHeight);
+            DrawRect(fillRect, timerFillColor);
+        }
+        DrawRect(timerRect, borderColor, false, borderWidth);
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar for homing bullets (shown briefly after deactivation, Issue #974).
+    /// </summary>
+    private void DrawHomingChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxHomingCharges;
+        int filledCount = _homingCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Draw combined charge pips + timer bar for trajectory glasses (Issue #974).
+    /// Layout: charge pips on top (showing remaining uses), timer bar below (depleting over activation).
+    /// </summary>
+    private void DrawTrajectoryGlassesCombinedBar()
+    {
+        const float barWidth = 40.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+        const float pipHeight = 4.0f;
+        const float combinedGap = 2.0f;
+        const float timerBarHeight = 3.0f;
+
+        int chargeMax = TrajectoryGlassesMaxCharges;
+        int chargeValue = _trajectoryBarCharges;
+        float timerValue = 0.0f;
+        float timerMax = TrajectoryGlassesDuration;
+
+        // Get live timer from effect if available
+        if (_trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            timerValue = (float)_trajectoryGlassesEffect.Call("get_remaining_time");
+        }
+
+        if (chargeMax <= 0)
+            return;
+
+        float pipY = barYOffset;
+        float timerY = barYOffset + pipHeight + combinedGap;
+
+        float totalGaps = segmentGap * (chargeMax - 1);
+        float pipWidth = (barWidth - totalGaps) / chargeMax;
+        if (pipWidth < 2.0f) pipWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float chargePercent = (float)chargeValue / chargeMax;
+        Color pipFillColor;
+        if (chargePercent > 0.5f)
+            pipFillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (chargePercent > 0.25f)
+            pipFillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            pipFillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+        Color timerFillColor = new Color(0.0f, 0.9f, 0.7f, 0.9f);
+
+        for (int i = 0; i < chargeMax; i++)
+        {
+            float segX = startX + i * (pipWidth + segmentGap);
+            Rect2 pipRect = new Rect2(segX, pipY, pipWidth, pipHeight);
+
+            DrawRect(pipRect, bgColor);
+            if (i < chargeValue)
+                DrawRect(pipRect, pipFillColor);
+            else
+                DrawRect(pipRect, emptyColor);
+            DrawRect(pipRect, borderColor, false, borderWidth);
+        }
+
+        // Draw timer bar below pips
+        Rect2 timerRect = new Rect2(-barWidth / 2.0f, timerY, barWidth, timerBarHeight);
+        DrawRect(timerRect, bgColor);
+        if (timerMax > 0.0f && timerValue > 0.0f)
+        {
+            float fillRatio = Mathf.Clamp(timerValue / timerMax, 0.0f, 1.0f);
+            Rect2 fillRect = new Rect2(-barWidth / 2.0f, timerY, barWidth * fillRatio, timerBarHeight);
+            DrawRect(fillRect, timerFillColor);
+        }
+        DrawRect(timerRect, borderColor, false, borderWidth);
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar for trajectory glasses (shown briefly after deactivation, Issue #974).
+    /// </summary>
+    private void DrawTrajectoryGlassesChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = TrajectoryGlassesMaxCharges;
+        int filledCount = _trajectoryBarCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Update homing progress bar auto-hide timer (Issue #974).
+    /// Hides the charge bar 300ms after homing deactivation.
+    /// </summary>
+    private void UpdateHomingBarTimer(float delta)
+    {
+        if (_homingChargeBarPending)
+        {
+            _homingChargeBarHideTimer -= delta;
+            if (_homingChargeBarHideTimer <= 0.0f)
+            {
+                _homingChargeBarPending = false;
+                QueueRedraw();
+            }
+        }
+
+        // While homing is active, keep redrawing to update the timer bar
+        if (_homingBarVisible)
+        {
+            QueueRedraw();
+        }
+    }
+
+    /// <summary>
+    /// Update trajectory glasses progress bar auto-hide timer (Issue #974).
+    /// Hides the charge bar 300ms after trajectory deactivation.
+    /// </summary>
+    private void UpdateTrajectoryBarTimer(float delta)
+    {
+        if (_trajectoryChargeBarPending)
+        {
+            _trajectoryChargeBarHideTimer -= delta;
+            if (_trajectoryChargeBarHideTimer <= 0.0f)
+            {
+                _trajectoryChargeBarPending = false;
+                QueueRedraw();
+            }
+        }
+
+        // While trajectory glasses are active, keep redrawing to update the timer bar
+        if (_trajectoryBarVisible)
+        {
+            QueueRedraw();
+        }
+    }
+
+    /// <summary>
+    /// Draw the teleport targeting reticle with player silhouette at target position (Issue #672).
+    /// Shows a dashed line from player to target and a player-shaped outline at the destination.
+    /// </summary>
+    private void DrawTeleportReticle()
+    {
+        Vector2 localTarget = ToLocal(_teleportTargetPosition);
+
+        // Colors for the teleport reticle
+        Color lineColor = new Color(0.4f, 0.8f, 1.0f, 0.5f);  // Cyan semi-transparent
+        Color silhouetteColor;
+        if (_teleportCharges > 0)
+        {
+            silhouetteColor = new Color(0.4f, 0.8f, 1.0f, 0.6f);  // Cyan
+        }
+        else
+        {
+            silhouetteColor = new Color(1.0f, 0.3f, 0.3f, 0.4f);  // Red (no charges)
+        }
+
+        // Draw dashed line from player to target
+        DrawTrajectoryLine(Vector2.Zero, localTarget, lineColor, 2.0f);
+
+        // Draw player silhouette at target position
+        // Body circle (matches PlayerCollisionRadius = 16)
+        DrawCircleOutline(localTarget, PlayerCollisionRadius, silhouetteColor, 2.5f);
+
+        // Draw body shape inside the circle (simplified player contour)
+        // Head (small circle above center)
+        Vector2 headOffset = new Vector2(-6, -2);  // Matches Player.tscn Head position
+        DrawCircleOutline(localTarget + headOffset, 6.0f, silhouetteColor, 2.0f);
+
+        // Body (rectangle shape)
+        Vector2 bodyCenter = localTarget + new Vector2(-4, 0);  // Matches Body position
+        float bw = 5.0f, bh = 8.0f;
+        DrawLine(bodyCenter + new Vector2(-bw, -bh), bodyCenter + new Vector2(bw, -bh), silhouetteColor, 2.0f);
+        DrawLine(bodyCenter + new Vector2(bw, -bh), bodyCenter + new Vector2(bw, bh), silhouetteColor, 2.0f);
+        DrawLine(bodyCenter + new Vector2(bw, bh), bodyCenter + new Vector2(-bw, bh), silhouetteColor, 2.0f);
+        DrawLine(bodyCenter + new Vector2(-bw, bh), bodyCenter + new Vector2(-bw, -bh), silhouetteColor, 2.0f);
+
+        // Arms (two small lines)
+        // Left arm
+        DrawLine(localTarget + new Vector2(18, 4), localTarget + new Vector2(24, 8), silhouetteColor, 2.0f);
+        // Right arm
+        DrawLine(localTarget + new Vector2(-8, 4), localTarget + new Vector2(-2, 8), silhouetteColor, 2.0f);
+
+        // Draw charge count near the target
+        // Show remaining charges as small dots around the silhouette
+        for (int i = 0; i < MaxTeleportCharges; i++)
+        {
+            float angle = (float)i / MaxTeleportCharges * Mathf.Tau - Mathf.Pi / 2.0f;
+            Vector2 dotPos = localTarget + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (PlayerCollisionRadius + 10.0f);
+            Color dotColor;
+            if (i < _teleportCharges)
+            {
+                dotColor = new Color(0.4f, 1.0f, 0.8f, 0.8f);  // Green-cyan (available)
+            }
+            else
+            {
+                dotColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);  // Gray (used)
+            }
+            DrawCircleOutline(dotPos, 3.0f, dotColor, 2.0f);
+        }
     }
 
     /// <summary>
@@ -4198,6 +6434,100 @@ public partial class Player : BaseCharacter
 
         DrawLine(end, arrowLeft, color, width);
         DrawLine(end, arrowRight, color, width);
+    }
+
+    /// <summary>
+    /// Draw trajectory glasses laser lines in local player coordinates (Issue #744).
+    /// Uses the same _draw() approach as grenade trajectory: reads local-coordinate points
+    /// stored by trajectory_glasses_effect.gd and draws them here in Player's _Draw().
+    /// </summary>
+    private void DrawTrajectoryGlasses()
+    {
+        if (!_trajectoryGlassesEquipped || _trajectoryGlassesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            return;
+        }
+
+        bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+        if (!isActive)
+        {
+            return;
+        }
+
+        // Read trajectory points (in local player coordinates) from the GDScript effect
+        var pointsVariant = _trajectoryGlassesEffect.Get("trajectory_local_points");
+        if (pointsVariant.VariantType == Variant.Type.Nil)
+        {
+            return;
+        }
+
+        var pointsArray = pointsVariant.AsGodotArray();
+        if (pointsArray.Count < 2)
+        {
+            return;
+        }
+
+        // Read the index where the invalid (red) terminal segment starts.
+        // -1 means all segments are valid (green).
+        var invalidIdxVariant = _trajectoryGlassesEffect.Get("trajectory_invalid_start_index");
+        int invalidStartIndex = invalidIdxVariant.VariantType != Variant.Type.Nil
+            ? invalidIdxVariant.AsInt32()
+            : -1;
+
+        Color validColor = new Color(0.0f, 1.0f, 0.0f, 0.8f);   // Green
+        Color invalidColor = new Color(1.0f, 0.0f, 0.0f, 0.8f); // Red
+
+        // Determine up to which index valid (green) segments run.
+        // If invalidStartIndex == -1: all segments are green (0..Count-2).
+        // If invalidStartIndex >= 1: green segments are 0..invalidStartIndex-2,
+        //   and segment (invalidStartIndex-1) -> (invalidStartIndex) is red.
+        int lastValidSegmentEnd = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+
+        // Draw glow for valid segments
+        for (int i = 0; i < lastValidSegmentEnd; i++)
+        {
+            Color glowValid = new Color(0.0f, 1.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), glowValid, 6.0f);
+        }
+
+        // Draw glow for terminal invalid segment (if any)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
+        {
+            Color glowInvalid = new Color(1.0f, 0.0f, 0.0f, 0.3f);
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), glowInvalid, 6.0f);
+        }
+
+        // Draw main laser for valid segments (green)
+        for (int i = 0; i < lastValidSegmentEnd; i++)
+        {
+            DrawLine(pointsArray[i].As<Vector2>(), pointsArray[i + 1].As<Vector2>(), validColor, 2.0f);
+        }
+
+        // Draw main laser for terminal invalid segment (red)
+        if (invalidStartIndex >= 1 && invalidStartIndex < pointsArray.Count)
+        {
+            DrawLine(pointsArray[invalidStartIndex - 1].As<Vector2>(), pointsArray[invalidStartIndex].As<Vector2>(), invalidColor, 2.0f);
+        }
+
+        // Draw dot at start (bullet spawn point)
+        DrawCircle(pointsArray[0].As<Vector2>(), 3.0f, validColor);
+
+        // Draw small diamonds at valid bounce points (not at the terminal red point)
+        int lastDiamond = invalidStartIndex >= 1 ? invalidStartIndex - 1 : pointsArray.Count - 1;
+        for (int i = 1; i < lastDiamond; i++)
+        {
+            float s = 4.0f;
+            Vector2 p = pointsArray[i].As<Vector2>();
+            DrawLine(p + new Vector2(0, -s), p + new Vector2(s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(s, 0), p + new Vector2(0, s), validColor, 2.0f);
+            DrawLine(p + new Vector2(0, s), p + new Vector2(-s, 0), validColor, 2.0f);
+            DrawLine(p + new Vector2(-s, 0), p + new Vector2(0, -s), validColor, 2.0f);
+        }
     }
 
     #endregion

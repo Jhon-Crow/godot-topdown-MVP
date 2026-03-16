@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://dxqmk8f3nw5pe"]
+[gd_scene load_steps=4 format=3 uid="uid://dxqmk8f3nw5pe"]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pause"]
+[ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
+[ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="4_neon_theme"]
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 100
@@ -22,6 +24,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("4_neon_theme")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MenuContainer"]
 layout_mode = 1
@@ -41,6 +44,7 @@ theme_override_constants/separation = 20
 [node name="TitleLabel" type="Label" parent="MenuContainer/VBoxContainer"]
 layout_mode = 2
 text = "PAUSED"
+label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
 [node name="ResumeButton" type="Button" parent="MenuContainer/VBoxContainer"]
@@ -67,6 +71,16 @@ text = "Armory"
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Levels"
+
+[node name="TrainingButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Training"
+
+[node name="SoundButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Sound"
 
 [node name="ExperimentalButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
