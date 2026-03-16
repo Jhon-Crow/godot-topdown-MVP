@@ -36,6 +36,9 @@ class MockExperimentalSettings:
 	## Whether enemy flashlight blinding is enabled (Issue #903).
 	var enemy_flashlight_blinding_enabled: bool = false
 
+	## Whether replay viewing is enabled (Issue #807).
+	var replay_enabled: bool = false
+
 	## Whether all weapons are unlocked (Issue #882).
 	var all_weapons_unlocked: bool = false
 
@@ -111,6 +114,17 @@ class MockExperimentalSettings:
 	func is_realistic_visibility_enabled() -> bool:
 		return realistic_visibility_enabled
 
+	## Set replay viewing enabled/disabled (Issue #807).
+	func set_replay_enabled(enabled: bool) -> void:
+		if replay_enabled != enabled:
+			replay_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if replay viewing is enabled (Issue #807).
+	func is_replay_enabled() -> bool:
+		return replay_enabled
+
 	## Set log recording enabled/disabled (Issue #848).
 	func set_logging_enabled(enabled: bool) -> void:
 		if logging_enabled != enabled:
@@ -152,6 +166,7 @@ class MockExperimentalSettings:
 		_saved_settings["debug_mode_enabled"] = debug_mode_enabled
 		_saved_settings["invincibility_enabled"] = invincibility_enabled
 		_saved_settings["realistic_visibility_enabled"] = realistic_visibility_enabled
+		_saved_settings["replay_enabled"] = replay_enabled
 		_saved_settings["logging_enabled"] = logging_enabled
 		_saved_settings["enemy_flashlight_blinding_enabled"] = enemy_flashlight_blinding_enabled
 		_saved_settings["all_weapons_unlocked"] = all_weapons_unlocked
@@ -182,6 +197,10 @@ class MockExperimentalSettings:
 			realistic_visibility_enabled = _saved_settings["realistic_visibility_enabled"]
 		else:
 			realistic_visibility_enabled = false
+		if _saved_settings.has("replay_enabled"):
+			replay_enabled = _saved_settings["replay_enabled"]
+		else:
+			replay_enabled = false
 		if _saved_settings.has("logging_enabled"):
 			logging_enabled = _saved_settings["logging_enabled"]
 		else:
@@ -203,6 +222,7 @@ class MockExperimentalSettings:
 		debug_mode_enabled = false
 		invincibility_enabled = false
 		realistic_visibility_enabled = false
+		replay_enabled = false
 		logging_enabled = true
 		enemy_flashlight_blinding_enabled = false
 		all_weapons_unlocked = false
@@ -1178,3 +1198,186 @@ func test_save_and_load_all_weapons_unlocked_enabled() -> void:
 
 	assert_true(settings.is_all_weapons_unlocked(),
 		"All weapons unlocked enabled state should survive reload")
+
+
+# ============================================================================
+# Replay Viewing Setting Tests (Issue #807, Issue #1051)
+# ============================================================================
+
+
+func test_default_replay_enabled_disabled() -> void:
+	assert_false(settings.replay_enabled,
+		"Replay viewing should be disabled by default")
+
+
+func test_is_replay_enabled_returns_false_by_default() -> void:
+	assert_false(settings.is_replay_enabled(),
+		"is_replay_enabled should return false by default")
+
+
+func test_set_replay_enabled_true() -> void:
+	settings.set_replay_enabled(true)
+
+	assert_true(settings.replay_enabled,
+		"Replay viewing should be enabled after set_replay_enabled(true)")
+
+
+func test_set_replay_enabled_false() -> void:
+	settings.replay_enabled = true
+	settings.set_replay_enabled(false)
+
+	assert_false(settings.replay_enabled,
+		"Replay viewing should be disabled after set_replay_enabled(false)")
+
+
+func test_set_replay_enabled_emits_signal() -> void:
+	settings.set_replay_enabled(true)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when enabling replay viewing")
+
+
+func test_set_replay_enabled_no_signal_if_same_value() -> void:
+	settings.replay_enabled = false
+	settings.settings_changed_emitted = 0
+
+	settings.set_replay_enabled(false)  # Same value
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if replay_enabled value unchanged")
+
+
+func test_set_replay_enabled_saves_settings() -> void:
+	settings.set_replay_enabled(true)
+
+	assert_true(settings._saved_settings.has("replay_enabled"),
+		"Settings should contain replay_enabled")
+	assert_true(settings._saved_settings["replay_enabled"],
+		"Saved value should match enabled state")
+
+
+func test_load_settings_restores_replay_enabled() -> void:
+	settings._saved_settings["replay_enabled"] = true
+	settings._load_settings()
+
+	assert_true(settings.replay_enabled,
+		"Load should restore saved replay viewing setting")
+
+
+func test_load_settings_replay_defaults_to_false_when_empty() -> void:
+	settings.replay_enabled = true
+	settings._saved_settings.clear()
+	settings._load_settings()
+
+	assert_false(settings.replay_enabled,
+		"Load should default replay viewing to false when no saved settings")
+
+
+func test_reset_clears_replay_enabled() -> void:
+	settings.set_replay_enabled(true)
+	settings.reset_to_defaults()
+
+	assert_false(settings.replay_enabled,
+		"Reset should disable replay viewing")
+
+
+func test_replay_enabled_independent_of_other_settings() -> void:
+	settings.set_replay_enabled(true)
+	assert_true(settings.is_replay_enabled(), "Replay viewing should be enabled")
+	assert_false(settings.is_fov_enabled(), "FOV should still be disabled (default)")
+	assert_false(settings.is_complex_grenade_throwing(), "Grenades should still be disabled")
+	assert_false(settings.is_ai_prediction_enabled(), "AI prediction should still be disabled")
+
+
+func test_save_and_load_replay_enabled() -> void:
+	settings.set_replay_enabled(true)
+
+	# Reset in-memory state
+	settings.replay_enabled = false
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_true(settings.is_replay_enabled(),
+		"Replay enabled state should survive reload")
+
+
+# ============================================================================
+# Replay Button Visibility Logic Tests (Issue #1051)
+# ============================================================================
+# These tests verify the logic used by level scripts to decide whether to show
+# the Watch Replay button on the score screen. The button should only appear
+# when ExperimentalSettings.is_replay_enabled() returns true.
+
+
+## Helper that simulates the replay button visibility check used in level scripts.
+## Returns true if the replay button should be shown, false otherwise.
+## Mirrors: experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
+func _should_show_replay_button(experimental_settings) -> bool:
+	if experimental_settings == null:
+		return false
+	if not experimental_settings.has_method("is_replay_enabled"):
+		return false
+	return experimental_settings.is_replay_enabled()
+
+
+func test_replay_button_hidden_when_replay_disabled() -> void:
+	# Default state: replay_enabled = false
+	var should_show: bool = _should_show_replay_button(settings)
+
+	assert_false(should_show,
+		"Replay button should NOT be shown when replay viewing is disabled (Issue #1051)")
+
+
+func test_replay_button_shown_when_replay_enabled() -> void:
+	settings.set_replay_enabled(true)
+	var should_show: bool = _should_show_replay_button(settings)
+
+	assert_true(should_show,
+		"Replay button should be shown when replay viewing is enabled")
+
+
+func test_replay_button_hidden_when_experimental_settings_null() -> void:
+	var should_show: bool = _should_show_replay_button(null)
+
+	assert_false(should_show,
+		"Replay button should NOT be shown when ExperimentalSettings node is null")
+
+
+func test_replay_button_hidden_after_disabling_replay() -> void:
+	settings.set_replay_enabled(true)
+	assert_true(_should_show_replay_button(settings),
+		"Replay button should be shown when enabled")
+
+	settings.set_replay_enabled(false)
+	assert_false(_should_show_replay_button(settings),
+		"Replay button should NOT be shown after disabling replay viewing")
+
+
+func test_polygon_level_replay_button_hidden_by_default() -> void:
+	# Simulates the Polygon (TestTier) level score screen with default settings
+	# Issue #1051: replay button was appearing on Polygon even with replay disabled
+	var experimental_settings_mock := MockExperimentalSettings.new()
+	# Default: replay_enabled = false (as in ExperimentalSettings)
+	var should_show: bool = _should_show_replay_button(experimental_settings_mock)
+
+	assert_false(should_show,
+		"Polygon level: replay button should NOT appear on score screen by default (Issue #1051)")
+
+
+func test_city_level_replay_button_hidden_by_default() -> void:
+	# Simulates city_level score screen with default settings (Issue #1051)
+	var experimental_settings_mock := MockExperimentalSettings.new()
+	var should_show: bool = _should_show_replay_button(experimental_settings_mock)
+
+	assert_false(should_show,
+		"City level: replay button should NOT appear on score screen by default (Issue #1051)")
+
+
+func test_docks_level_replay_button_hidden_by_default() -> void:
+	# Simulates docks_level score screen with default settings (Issue #1051)
+	var experimental_settings_mock := MockExperimentalSettings.new()
+	var should_show: bool = _should_show_replay_button(experimental_settings_mock)
+
+	assert_false(should_show,
+		"Docks level: replay button should NOT appear on score screen by default (Issue #1051)")
