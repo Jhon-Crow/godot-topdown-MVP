@@ -423,12 +423,9 @@ func _ready() -> void:
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 
-## Issue #650: Clean up when enemy leaves scene tree (scene change or queue_free).
-## _unregister_sound_listener() must be called here because _die() is NOT called on scene change.
-## Without this, SoundPropagation._listeners grows unboundedly across scene loads, causing crashes.
+## Issue #650 fix #9: Unregister on exit — _die() is NOT called on scene change, so listeners accumulate without this.
 func _exit_tree() -> void:
-	_unregister_from_group_search()
-	_unregister_sound_listener()  # Issue #650 fix #9
+	_unregister_from_group_search(); _unregister_sound_listener()
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
