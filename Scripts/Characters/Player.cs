@@ -1087,6 +1087,9 @@ public partial class Player : BaseCharacter
         // Initialize breaker bullets if active item manager has them selected (Issue #678)
         InitBreakerBullets();
 
+        // Initialize combat disposition if active item manager has it selected (Issue #1047)
+        InitCombatDisposition();
+
         // Initialize force field if active item manager has it selected (Issue #676)
         InitForceField();
 
@@ -2414,6 +2417,9 @@ public partial class Player : BaseCharacter
         }
 
         base.TakeDamage(amount);
+
+        // Apply combat disposition hit penalty (Issue #1047)
+        ApplyCombatDispositionHitPenalty();
     }
 
     /// <summary>
@@ -5490,6 +5496,92 @@ public partial class Player : BaseCharacter
             CurrentWeapon.IsBreakerBulletActive = true;
             LogToFile($"[Player.BreakerBullets] Set IsBreakerBulletActive on weapon: {CurrentWeapon.Name}");
         }
+    }
+
+    #endregion
+
+    #region Combat Disposition System (Issue #1047)
+
+    /// <summary>
+    /// Whether the Combat Disposition passive item is active.
+    /// When active, player damage and fire rate are boosted on start,
+    /// and reduced each time the player takes damage.
+    /// </summary>
+    private bool _combatDispositionActive = false;
+
+    /// <summary>
+    /// Current damage bonus from Combat Disposition.
+    /// Starts at +0.7 and decreases by 1 each time player takes damage.
+    /// </summary>
+    private float _combatDispositionDamageBonus = 0.0f;
+
+    /// <summary>
+    /// Current fire rate bonus from Combat Disposition.
+    /// Starts at +1 and decreases by 1.2 each time player takes damage.
+    /// </summary>
+    private float _combatDispositionFireRateBonus = 0.0f;
+
+    /// <summary>
+    /// Initialize Combat Disposition if the ActiveItemManager has it selected (Issue #1047).
+    /// Sets the initial damage and fire rate bonuses on the current weapon.
+    /// </summary>
+    private void InitCombatDisposition()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.CombatDisposition] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_combat_disposition"))
+        {
+            LogToFile("[Player.CombatDisposition] ActiveItemManager missing has_combat_disposition method");
+            return;
+        }
+
+        bool hasCombatDisposition = (bool)activeItemManager.Call("has_combat_disposition");
+        if (!hasCombatDisposition)
+        {
+            LogToFile("[Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager");
+            return;
+        }
+
+        _combatDispositionActive = true;
+        _combatDispositionDamageBonus = 0.7f;
+        _combatDispositionFireRateBonus = 1.0f;
+
+        // Apply bonuses to current weapon
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+            LogToFile($"[Player.CombatDisposition] Initialized on weapon {CurrentWeapon.Name}: +{_combatDispositionDamageBonus} damage, +{_combatDispositionFireRateBonus} fire rate");
+        }
+
+        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}");
+    }
+
+    /// <summary>
+    /// Called when Combat Disposition is active and the player takes damage.
+    /// Reduces the damage and fire rate bonuses as a penalty.
+    /// </summary>
+    private void ApplyCombatDispositionHitPenalty()
+    {
+        if (!_combatDispositionActive)
+            return;
+
+        _combatDispositionDamageBonus -= 1.0f;
+        _combatDispositionFireRateBonus -= 1.2f;
+
+        // Apply updated bonuses to current weapon
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+        }
+
+        LogToFile($"[Player.CombatDisposition] Hit penalty applied — damage bonus: {_combatDispositionDamageBonus:F1}, fire rate bonus: {_combatDispositionFireRateBonus:F1}");
     }
 
     #endregion

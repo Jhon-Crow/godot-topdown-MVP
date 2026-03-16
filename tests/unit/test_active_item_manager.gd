@@ -120,7 +120,8 @@ class MockActiveItemManager:
 		BREAKER_BULLETS = 6,
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
-		LASER_SIGHT = 9
+		LASER_SIGHT = 9,
+		COMBAT_DISPOSITION = 10
 	}
 
 	## Currently selected active item type
@@ -177,6 +178,11 @@ class MockActiveItemManager:
 			"name": "Laser Sight",
 			"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+		},
+		10: {
+			"name": "Combat Disposition",
+			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
+			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1 and fire rate by 1.2."
 		}
 	}
 
@@ -265,6 +271,10 @@ class MockActiveItemManager:
 	## Check if laser sight is currently equipped
 	func has_laser_sight() -> bool:
 		return current_active_item == ActiveItemType.LASER_SIGHT
+
+	## Check if combat disposition is currently equipped
+	func has_combat_disposition() -> bool:
+		return current_active_item == ActiveItemType.COMBAT_DISPOSITION
 
 
 var manager: MockActiveItemManager
@@ -417,7 +427,7 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
 	assert_eq(types.size(), 11,
-		"Should return 11 active item types")
+		"Should return 11 active item types (NONE + 10 items including Combat Disposition)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -627,7 +637,7 @@ class MockArmoryWithActiveItems:
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
-		10: {"name": "Ricochet Points", "description": "Ricochet Points — passive: +30% ricochet chance"}
+		10: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Applied active item type
@@ -954,10 +964,13 @@ func test_armory_select_trajectory_glasses() -> void:
 
 func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void:
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
-	# Its effect is now part of Trajectory Glasses. Ensure no item at index 10 exists.
+	# Its effect is now part of Trajectory Glasses.
+	# Index 10 is now occupied by COMBAT_DISPOSITION (Issue #1047), not Ricochet Points.
 	var data := manager.get_active_item_data(10)
-	assert_true(data.is_empty(),
-		"There should be no active item at index 10 — RICOCHET_POINTS was removed (Issue #1028)")
+	assert_false(data.is_empty(),
+		"Index 10 should now be Combat Disposition (Issue #1047), not empty — RICOCHET_POINTS was removed (Issue #1028)")
+	assert_eq(data.get("name", ""), "Combat Disposition",
+		"Item at index 10 should be Combat Disposition (Issue #1047)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
