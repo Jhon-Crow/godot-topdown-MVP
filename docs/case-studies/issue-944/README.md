@@ -221,10 +221,80 @@ Translation:
 | `LINE_HEIGHT` | 26.0 | Font size (20) + default line spacing |
 | Vertical center | `LINE_HEIGHT * 0.55` | Proper center accounting for baseline |
 
+## Session 5: Fix Diagonal Connector Between Lines
+
+After Session 4, the owner provided additional feedback (comment #4069575813):
+
+> уже ближе к тому, что я хочу, но в конце строки линия должна прерываться, сейчас она тянется к началу следующей строки
+
+Translation:
+> Already closer to what I want, but at the end of a line the line should break — currently it extends to the beginning of the next line.
+
+### Root Cause Analysis (Session 5)
+
+**Problem: Line2D polyline connects all points sequentially**
+
+The previous implementation used a **single Line2D** with 2 points per text line (e.g., 4 points for a 2-line hint). The problem is that `Line2D` draws a continuous polyline connecting all points in order:
+
+```
+point[0] (0, line_y_0) → point[1] (text_width, line_y_0)  ← Line 1 ✓
+                                   ↓  (diagonal connector!)
+point[2] (0, line_y_1) ← point[1] connects here ← Bug!
+point[2] (0, line_y_1) → point[3] (text_width, line_y_1)  ← Line 2 ✓
+```
+
+Because Line2D is a polyline (all points connected), when line 1 ends at `(text_width, line_y_0)` and line 2 starts at `(0, line_y_1)`, there is an unwanted diagonal segment connecting them.
+
+### Technical Solution (Session 5)
+
+**Use separate Line2D nodes per text line:**
+
+Instead of one Line2D with 4 points, use two Line2D nodes each with 2 points. Each Line2D only renders its own line segment with no connection to other lines.
+
+**Before (broken):**
+```gdscript
+# Single Line2D: points connected sequentially, creates diagonal
+var strike_line := Line2D.new()
+strike_line.add_point(Vector2(0, line_y_0))       # Line 1 start
+strike_line.add_point(Vector2(text_width, line_y_0))  # Line 1 end  ← connects to ↓
+strike_line.add_point(Vector2(0, line_y_1))       # Line 2 start (diagonal connector)
+strike_line.add_point(Vector2(text_width, line_y_1))  # Line 2 end
+```
+
+**After (fixed):**
+```gdscript
+# Separate Line2D per line: no cross-line connections
+for line_idx in range(line_count):
+    var seg := Line2D.new()
+    seg.add_point(Vector2(0, line_y))        # Start
+    seg.add_point(Vector2(0, line_y))        # End (animated)
+    label.add_child(seg)
+    lines.append(seg)
+_hint_strike_lines[hint_key] = lines  # Array instead of single Line2D
+```
+
+### Data Structure Change
+
+| Variable | Before | After |
+|----------|--------|-------|
+| `_hint_strike_lines` | `Dict[String → Line2D]` | `Dict[String → Array[Line2D]]` |
+| `_tutorial_hint_strike_lines` | `Dict[String → Line2D]` | `Dict[String → Array[Line2D]]` |
+
+### Functions Updated
+
+| Function | Change |
+|----------|--------|
+| `_add_hint()` / `_add_tutorial_hint()` | Stores `[]` (empty array), no pre-created Line2D |
+| `_setup_strikethrough_lines()` | Creates one Line2D per line, stores in array |
+| `_extend_hint_strikethrough()` | Accepts array, checks `is_empty()` instead of `is_instance_valid()` |
+| `_update_strikethrough_points()` | Iterates array, updates end point of each Line2D |
+| `_animate_hint_strikethrough_and_fade()` | Works with array |
+
 ## References
 
 - [BBCode in RichTextLabel - Godot Docs](https://docs.godotengine.org/en/stable/tutorials/ui/bbcode_in_richtextlabel.html)
 - [RichTextEffect - Godot Docs](https://docs.godotengine.org/en/stable/classes/class_richtexteffect.html)
+- [Line2D - Godot Docs](https://docs.godotengine.org/en/stable/classes/class_line2d.html)
 - [godot-text_effects plugin](https://github.com/teebarjunk/godot-text_effects)
 - [Godot Forum - Custom RichTextEffect](https://godotforums.org/d/26200-custom-richtexteffect-help)
 
