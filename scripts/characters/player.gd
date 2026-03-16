@@ -4020,12 +4020,13 @@ func _spawn_armored_skin_shards() -> void:
 
 	for i in range(ARMORED_SKIN_SHARD_COUNT):
 		var shard: Node2D = shard_scene.instantiate()
-		parent.add_child(shard)
-		shard.global_position = global_position
 
-		# Distribute shards evenly in all directions with slight random deviation
+		# Set direction and source_id before add_child so _ready() uses the correct values
 		var base_angle: float = (float(i) / float(ARMORED_SKIN_SHARD_COUNT)) * TAU
 		var angle_deviation: float = randf_range(-PI / ARMORED_SKIN_SHARD_COUNT, PI / ARMORED_SKIN_SHARD_COUNT)
 		var angle: float = base_angle + angle_deviation
 		shard.direction = Vector2(cos(angle), sin(angle)).normalized()
 		shard.source_id = get_instance_id()
+
+		parent.add_child(shard)
+		shard.global_position = global_position
