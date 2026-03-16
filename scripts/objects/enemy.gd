@@ -81,13 +81,6 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 @export var has_force_field: bool = false  ## Whether this enemy has a Force Field (Issue #1034).
-
-# Force Field Configuration (Issue #1034)
-## Duration the force field stays active (seconds).
-const ENEMY_FORCE_FIELD_DURATION: float = 4.0
-## Recharge time after the force field deactivates (seconds).
-const ENEMY_FORCE_FIELD_RECHARGE_TIME: float = 20.0
-
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -354,15 +347,7 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
-
-## [Force Field - Issue #1034] Enemy force field state
-var _force_field_effect: Node2D = null  ## ForceFieldEffect instance
-var _force_field_active: bool = false  ## Force field currently active
-var _force_field_timer: float = 0.0  ## Counts down while active (duration) or up while recharging
-var _force_field_recharging: bool = false  ## True while recharging after deactivation
-var _force_field_recharge_elapsed: float = 0.0  ## Recharge elapsed time
-var _force_field_progress_bar: ActiveItemProgressBar = null  ## Recharge progress bar above enemy
-
+var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -428,8 +413,7 @@ func _ready() -> void:
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
-	_setup_machete_component()  # Issue #579
-	_setup_force_field()  # Issue #1034
+	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup()  # Issue #579, #1034
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -887,8 +871,7 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
-	_update_suppression(delta)
-	_update_force_field(delta)  # Issue #1034
+	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null))  # Issue #1034
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
@@ -1120,9 +1103,8 @@ func _update_suppression(delta: float) -> void:
 				_threat_reaction_delay_elapsed = true
 				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
 
-		# Only set under_fire after the reaction delay has elapsed.
-		# Issue #1034: Force field enemies ignore suppression while force field is active.
-		if _threat_reaction_delay_elapsed and not _force_field_active:
+		# Only set under_fire after delay; Issue #1034: ignore if force field is active.
+		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			_under_fire = true
 			_suppression_timer = 0.0
 
@@ -4832,82 +4814,6 @@ func _setup_aggression_component() -> void:  ## [Issue #675]
 	_aggression.aggression_changed.connect(func(a): if _status_effect_anim: _status_effect_anim.set_aggressive(a); if a and _current_state in [AIState.IDLE, AIState.IN_COVER]: _transition_to_combat())
 func set_aggressive(a: bool) -> void: if _aggression: _aggression.set_aggressive(a)
 func is_aggressive() -> bool: return _aggression != null and _aggression.is_aggressive()
-
-# Force Field System (Issue #1034) - Enemy with force field that activates on player detection
-## Setup the force field effect and recharge progress bar. Called from _ready() when has_force_field=true.
-func _setup_force_field() -> void:
-	if not has_force_field:
-		return
-	var ff_scene: PackedScene = load("res://scenes/effects/ForceFieldEffect.tscn")
-	if ff_scene == null:
-		FileLogger.info("[Enemy] ForceFieldEffect scene not found, skipping force field setup")
-		return
-	_force_field_effect = ff_scene.instantiate()
-	_force_field_effect.name = "EnemyForceField"
-	add_child(_force_field_effect)
-	# Connect deactivation signal so we can start recharge
-	_force_field_effect.force_field_deactivated.connect(_on_force_field_deactivated)
-	# Ensure force field starts inactive
-	_force_field_effect.deactivate()
-	# Create recharge progress bar above enemy
-	_force_field_progress_bar = ActiveItemProgressBar.new()
-	_force_field_progress_bar.name = "ForceFieldProgressBar"
-	add_child(_force_field_progress_bar)
-	_force_field_progress_bar.hide_bar()
-	FileLogger.info("[Enemy] Force field setup complete (duration=%.1fs recharge=%.1fs)" % [ENEMY_FORCE_FIELD_DURATION, ENEMY_FORCE_FIELD_RECHARGE_TIME])
-
-## Update force field logic each physics frame. Called from _physics_process. (Issue #1034)
-func _update_force_field(delta: float) -> void:
-	if not has_force_field or _force_field_effect == null:
-		return
-
-	# Activate force field when player (or companion) is spotted and not recharging
-	if not _force_field_active and not _force_field_recharging:
-		if (_can_see_player and _player != null) or (_can_see_companion and _companion != null):
-			# Reset remaining_charge high enough so ForceFieldEffect doesn't expire before our 4s timer
-			_force_field_effect.set("remaining_charge", ENEMY_FORCE_FIELD_DURATION + 1.0)
-			var ok: bool = _force_field_effect.activate()
-			if ok:
-				_force_field_active = true
-				_force_field_timer = ENEMY_FORCE_FIELD_DURATION
-				FileLogger.info("[Enemy] Force field activated")
-
-	# Countdown while active — deactivate after ENEMY_FORCE_FIELD_DURATION seconds
-	if _force_field_active:
-		_force_field_timer -= delta
-		if _force_field_timer <= 0.0:
-			_force_field_timer = 0.0
-			_force_field_active = false
-			_force_field_recharging = true
-			_force_field_recharge_elapsed = 0.0
-			_force_field_effect.deactivate()
-			# Show recharge progress bar (fills from 0 → full over ENEMY_FORCE_FIELD_RECHARGE_TIME)
-			if _force_field_progress_bar:
-				_force_field_progress_bar.show_bar(ActiveItemProgressBar.DisplayMode.CONTINUOUS, 0.0, ENEMY_FORCE_FIELD_RECHARGE_TIME)
-			FileLogger.info("[Enemy] Force field deactivated — recharging for %.1fs" % ENEMY_FORCE_FIELD_RECHARGE_TIME)
-
-	# Recharge countdown
-	if _force_field_recharging:
-		_force_field_recharge_elapsed += delta
-		if _force_field_progress_bar:
-			_force_field_progress_bar.update_value(_force_field_recharge_elapsed)
-		if _force_field_recharge_elapsed >= ENEMY_FORCE_FIELD_RECHARGE_TIME:
-			_force_field_recharging = false
-			_force_field_recharge_elapsed = 0.0
-			if _force_field_progress_bar:
-				_force_field_progress_bar.hide_bar()
-			FileLogger.info("[Enemy] Force field recharged and ready")
-
-## Handle force field deactivated signal from ForceFieldEffect (charge depleted mid-use). (Issue #1034)
-func _on_force_field_deactivated() -> void:
-	if not _force_field_active:
-		return  # Already handled by _update_force_field countdown
-	_force_field_active = false
-	_force_field_recharging = true
-	_force_field_recharge_elapsed = 0.0
-	if _force_field_progress_bar:
-		_force_field_progress_bar.show_bar(ActiveItemProgressBar.DisplayMode.CONTINUOUS, 0.0, ENEMY_FORCE_FIELD_RECHARGE_TIME)
-
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
