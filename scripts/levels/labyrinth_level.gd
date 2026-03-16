@@ -175,6 +175,11 @@ var _tutorial_hint_strike_progress: Dictionary = {}
 ## Multi-line hints need multiple Line2D segments, one per line.
 var _tutorial_hint_line_counts: Dictionary = {}
 
+## Issue #1080: Track per-line text widths for each hint (hint_key -> Array[float]).
+## Each entry is the rendered pixel width of the corresponding text line,
+## so strikethrough lines match the actual text length instead of the label width.
+var _tutorial_hint_line_widths: Dictionary = {}
+
 ## Number of shots fired (Issue #945: reload hint appears after 2 shots).
 var _tutorial_shots_fired: int = 0
 
@@ -2414,6 +2419,7 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 
 ## Issue #944 Session 5: Set up one Line2D per text line after label layout is ready.
 ## Each line gets its own Line2D node so there are no diagonal connectors between lines.
+## Issue #1080: Also computes per-line text widths so strikethrough matches actual text length.
 func _setup_tutorial_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 	if not is_instance_valid(label):
 		return
@@ -2425,6 +2431,36 @@ func _setup_tutorial_strikethrough_lines(hint_key: String, label: RichTextLabel)
 	var content_height := label.get_content_height()
 	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
 	_tutorial_hint_line_counts[hint_key] = line_count
+
+	# Issue #1080: Compute per-line text widths using font metrics.
+	# Map each character in the plain text to its visual line, then measure each line's width.
+	var line_widths: Array = []
+	var font: Font = label.get_theme_font("normal_font")
+	var font_size: int = label.get_theme_font_size("normal_font_size")
+	if is_instance_valid(font) and font_size > 0:
+		var plain_text: String = label.get_parsed_text()
+		# Build per-line text strings by mapping character indices to visual lines.
+		var per_line_text: Array = []
+		for _i in range(line_count):
+			per_line_text.append("")
+		var char_count: int = plain_text.length()
+		for char_idx in range(char_count):
+			var visual_line: int = label.get_character_line(char_idx)
+			if visual_line >= 0 and visual_line < line_count:
+				per_line_text[visual_line] += plain_text[char_idx]
+		for line_idx in range(line_count):
+			var w: float = font.get_string_size(per_line_text[line_idx], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			line_widths.append(maxf(w, 1.0))
+	else:
+		# Fallback: use label content width for all lines.
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		for _i in range(line_count):
+			line_widths.append(fallback_width)
+	_tutorial_hint_line_widths[hint_key] = line_widths
 
 	# Create one Line2D per text line to avoid diagonal connectors between lines.
 	var lines: Array = []
@@ -2443,7 +2479,7 @@ func _setup_tutorial_strikethrough_lines(hint_key: String, label: RichTextLabel)
 		lines.append(seg)
 
 	_tutorial_hint_strike_lines[hint_key] = lines
-	print("[LabyrinthLevel] Setup strikethrough for '%s': %d lines" % [hint_key, line_count])
+	print("[LabyrinthLevel] Setup strikethrough for '%s': %d lines, widths: %s" % [hint_key, line_count, str(line_widths)])
 
 
 ## Issue #944 Session 5: Animate the strikethrough lines to extend progressively as steps complete.
@@ -2461,16 +2497,21 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 	if target_progress <= current_progress:
 		return  # Already at or past this progress
 
-	# Get the text width to calculate pixel position.
-	var text_width := 300.0  # Default, matches custom_minimum_size.x
-	if _tutorial_hints.has(hint_key):
-		var label: RichTextLabel = _tutorial_hints[hint_key]
-		if is_instance_valid(label):
-			var content_width := label.get_content_width()
-			if content_width > 0:
-				text_width = content_width
-			elif label.custom_minimum_size.x > 0:
-				text_width = label.custom_minimum_size.x
+	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
+	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		var fallback_width := 300.0
+		if _tutorial_hints.has(hint_key):
+			var label: RichTextLabel = _tutorial_hints[hint_key]
+			if is_instance_valid(label):
+				var content_width := label.get_content_width()
+				if content_width > 0:
+					fallback_width = content_width
+				elif label.custom_minimum_size.x > 0:
+					fallback_width = label.custom_minimum_size.x
+		var line_count_fb: int = _tutorial_hint_line_counts.get(hint_key, 1)
+		for _i in range(line_count_fb):
+			line_widths.append(fallback_width)
 
 	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
 
@@ -2478,7 +2519,7 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 	var tween := create_tween()
 	tween.tween_method(
 		func(progress: float):
-			_update_tutorial_strikethrough_points(strike_lines, line_count, text_width, progress),
+			_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, progress),
 		current_progress, target_progress, TUTORIAL_HINT_STRIKETHROUGH_DURATION * 0.5
 	).set_ease(Tween.EASE_OUT)
 
@@ -2489,7 +2530,9 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 ## Issue #944 Session 5: Update per-line Line2D end points for multi-line strikethrough.
 ## progress: 0.0-1.0 overall progress across all lines.
 ## Each Line2D in the array represents one text line and is animated independently.
-func _update_tutorial_strikethrough_points(strike_lines: Array, line_count: int, text_width: float, progress: float) -> void:
+## Issue #1080: line_widths is an Array[float] with the pixel width of each text line,
+## so the strikethrough only extends over the actual text, not over empty space.
+func _update_tutorial_strikethrough_points(strike_lines: Array, line_count: int, line_widths: Array, progress: float) -> void:
 	for line_idx in range(line_count):
 		if line_idx >= strike_lines.size():
 			break
@@ -2509,8 +2552,9 @@ func _update_tutorial_strikethrough_points(strike_lines: Array, line_count: int,
 		else:
 			line_progress = (progress - line_start_progress) / (line_end_progress - line_start_progress)
 
-		# Update the end point of this line segment (start remains at x=0).
-		seg.set_point_position(1, Vector2(text_width * line_progress, seg.get_point_position(0).y))
+		# Issue #1080: Use per-line width so the strikethrough matches the actual text length.
+		var line_width: float = line_widths[line_idx] if line_idx < line_widths.size() else 300.0
+		seg.set_point_position(1, Vector2(line_width * line_progress, seg.get_point_position(0).y))
 
 
 ## Remove a tutorial hint label by key.
@@ -2544,12 +2588,17 @@ func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: Rich
 	if _tutorial_hint_strike_lines.has(hint_key):
 		strike_lines = _tutorial_hint_strike_lines[hint_key]
 
-	# Get the text width using actual content width.
-	var text_width: float = label.get_content_width()
-	if text_width <= 0:
-		text_width = label.custom_minimum_size.x
-	if text_width <= 0:
-		text_width = 300.0  # Default width
+	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
+	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		var line_count_fb: int = _tutorial_hint_line_counts.get(hint_key, 1)
+		for _i in range(line_count_fb):
+			line_widths.append(fallback_width)
 
 	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
@@ -2560,7 +2609,7 @@ func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: Rich
 	if not strike_lines.is_empty():
 		tween.tween_method(
 			func(progress: float):
-				_update_tutorial_strikethrough_points(strike_lines, line_count, text_width, progress),
+				_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, progress),
 			current_progress, 1.0, TUTORIAL_HINT_STRIKETHROUGH_DURATION
 		).set_ease(Tween.EASE_OUT)
 
@@ -2576,6 +2625,7 @@ func _finalize_tutorial_hint_dismiss(hint_key: String, label: RichTextLabel) -> 
 	_tutorial_hint_strike_lines.erase(hint_key)
 	_tutorial_hint_strike_progress.erase(hint_key)
 	_tutorial_hint_line_counts.erase(hint_key)
+	_tutorial_hint_line_widths.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
 	print("[LabyrinthLevel] Hint '%s' dismissed (animation complete)" % hint_key)
