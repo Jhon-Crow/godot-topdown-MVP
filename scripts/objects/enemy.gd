@@ -1500,6 +1500,14 @@ func _process_combat_state(delta: float) -> void:
 	# Determine if we should be in approach phase or exposed shooting phase
 	var in_direct_contact := distance_to_player <= COMBAT_DIRECT_CONTACT_DISTANCE
 
+	# Issue #583: RPG enemy fires immediately at max range - no approach phase needed
+	if _is_rpg_weapon and not _rpg_fired and has_clear_shot and _detection_delay_elapsed:
+		_aim_at_player()
+		if _shoot_timer >= shoot_cooldown:
+			_shoot()
+			_shoot_timer = 0.0
+		return
+
 	# Enter exposed phase if we have a clear shot and are either close enough or have approached long enough
 	if has_clear_shot and (in_direct_contact or _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME):
 		# Close enough AND have clear shot - start exposed shooting phase
@@ -4969,7 +4977,11 @@ func _switch_to_secondary_weapon() -> void:
 	_is_shotgun_weapon = sc.get("is_shotgun", false); _is_rpg_weapon = false; _spread_threshold = sc.get("spread_threshold", 3); _initial_spread = sc.get("initial_spread", 0.5)
 	_spread_increment = sc.get("spread_increment", 0.6); _max_spread = sc.get("max_spread", 4.0); _spread_reset_time = sc.get("spread_reset_time", 0.25); _shot_count = 0; _spread_timer = 0.0
 	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size; _is_reloading = false; _reload_timer = 0.0
-	print("[Enemy] RPG fired, switched to secondary weapon")
+	# Issue #583: Update weapon sprite to show PM instead of RPG
+	if sc.get("sprite_path", "") != "" and _weapon_sprite:
+		var tex := load(sc["sprite_path"]) as Texture2D
+		if tex: _weapon_sprite.texture = tex
+	print("[Enemy] RPG fired, switched to secondary weapon (PM)")
 
 ## Setup enemy flashlight for night mode (Issue #824).
 func _setup_enemy_flashlight() -> void:

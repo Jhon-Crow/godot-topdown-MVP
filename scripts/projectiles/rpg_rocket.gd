@@ -39,6 +39,9 @@ var _has_exploded: bool = false
 ## Reference to the trail Line2D node (if present).
 var _trail: Line2D = null
 
+## Reference to the exhaust GPUParticles2D node (if present).
+var _exhaust: GPUParticles2D = null
+
 ## History of global positions for the trail effect.
 var _position_history: Array[Vector2] = []
 
@@ -52,6 +55,14 @@ func _ready() -> void:
 		_trail.clear_points()
 		_trail.top_level = true
 		_trail.position = Vector2.ZERO
+
+	# Issue #583: Orient exhaust particles to emit backward from rocket direction
+	_exhaust = get_node_or_null("ExhaustParticles")
+	if _exhaust and _exhaust.process_material is ParticleProcessMaterial:
+		var mat := _exhaust.process_material as ParticleProcessMaterial
+		# Emit opposite to travel direction (in local space, -X is behind the rocket)
+		var back := -direction
+		mat.direction = Vector3(back.x, back.y, 0.0)
 
 	rotation = direction.angle()
 
@@ -107,6 +118,10 @@ func _explode() -> void:
 	if _has_exploded:
 		return
 	_has_exploded = true
+
+	# Issue #583: Stop exhaust particles on explosion
+	if _exhaust:
+		_exhaust.emitting = false
 
 	# Trigger Power Fantasy rocket explosion effect
 	var power_fantasy_manager: Node = get_node_or_null("/root/PowerFantasyEffectsManager")

@@ -135,7 +135,7 @@ const WEAPON_CONFIGS := {
 		"magazine_size": 9,  # PM magazine
 		"bullet_spawn_offset": 25.0,
 		"weapon_loudness": 1469.0,
-		"sprite_path": "",  # Default sprite
+		"sprite_path": "res://assets/sprites/weapons/makarov_pm_topdown.png",  # PM sprite (Issue #583)
 		"bullet_scene_path": "res://scenes/projectiles/Bullet9mm.tscn",
 		"casing_scene_path": "res://scenes/effects/Casing.tscn",
 		"caliber_path": "res://resources/calibers/caliber_9x18.tres",
