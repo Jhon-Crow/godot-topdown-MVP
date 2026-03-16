@@ -646,11 +646,11 @@ func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	var angle_factor := (1.0 - power_factor) * 0.9 + 0.1
 	var probability := base_probability * angle_factor
 
-	# Issue #1004: Ricochet Points active item boosts ricochet chance by 30%
+	# Issue #1028: Trajectory Glasses passive effect boosts ricochet chance by 30%
 	# at angles where ricochet is possible (same condition as green trajectory ray).
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
-	if active_item_manager and active_item_manager.has_method("has_ricochet_points"):
-		if active_item_manager.has_ricochet_points():
+	if active_item_manager and active_item_manager.has_method("has_trajectory_glasses"):
+		if active_item_manager.has_trajectory_glasses():
 			probability = minf(probability + 0.3, 1.0)
 
 	return probability
