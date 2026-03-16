@@ -1502,7 +1502,11 @@ func _process_combat_state(delta: float) -> void:
 
 	# Issue #583: RPG fires immediately at max range (no approach phase)
 	if _is_rpg_weapon and not _rpg_fired and has_clear_shot and _detection_delay_elapsed:
-		_aim_at_player(); if _shoot_timer >= shoot_cooldown: _shoot(); _shoot_timer = 0.0
+		_aim_at_player()
+		if _shoot_timer >= shoot_cooldown:
+			_log_debug("RPG: firing rocket at player (dist=%.0f)" % distance_to_player)
+			_shoot()
+			_shoot_timer = 0.0  # reset only after actual shot
 		return
 
 	# Enter exposed phase if we have a clear shot and are either close enough or have approached long enough
