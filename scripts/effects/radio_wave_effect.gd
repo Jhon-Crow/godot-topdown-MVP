@@ -1,9 +1,13 @@
 extends Node2D
-## Animated radio wave effect for the Radio Jammer enemy (Issue #1036).
+## Animated radio wave effect and jamming logic for the Radio Jammer enemy (Issue #1036).
 ##
 ## Draws expanding semi-transparent concentric rings around the enemy
 ## to visually indicate the jamming field is active.
 ## Rings expand outward and fade out as they reach full size.
+##
+## This node also manages the jamming of the player's active items:
+## while the parent enemy is alive and the player is within jammer_radius,
+## ActiveItemManager.set_jammed(true) is called each physics frame.
 
 ## Radius at which a ring is fully faded out (pixels).
 const MAX_RING_RADIUS: float = 60.0
@@ -22,6 +26,9 @@ const RING_COLOR: Color = Color(0.2, 0.8, 1.0, 0.6)
 
 ## Line width for drawing rings.
 const LINE_WIDTH: float = 2.0
+
+## Radius within which the player's active items are jammed (pixels).
+@export var jammer_radius: float = 1000.0
 
 ## Internal structure representing one expanding ring.
 class Ring:
@@ -58,6 +65,22 @@ func _process(delta: float) -> void:
 		_spawn_ring()
 
 	queue_redraw()
+
+
+func _physics_process(_delta: float) -> void:
+	# Jam player's active items when within jammer_radius and parent enemy is alive (Issue #1036)
+	var aim := get_node_or_null("/root/ActiveItemManager")
+	if aim == null: return
+	var parent := get_parent()
+	# If parent enemy is not alive, release the jammer and stop
+	if not is_instance_valid(parent) or (parent.has_method("is_alive") and not parent.is_alive()):
+		aim.set_jammed(false)
+		return
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty(): return
+	var player: Node = players[0]
+	if not is_instance_valid(player): return
+	aim.set_jammed(get_parent().global_position.distance_to(player.global_position) <= jammer_radius)
 
 
 func _draw() -> void:
