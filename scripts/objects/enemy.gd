@@ -1700,9 +1700,13 @@ func _process_in_cover_state(delta: float) -> void:
 	# If player (or companion) is no longer visible and not under fire, try pursuing
 	# Issue #934: consider companion visibility
 	# Issue #910: also try suppressive fire before pursuing
+	# Issue #1027 Fix 18 (RCA-21): check minimum duration before PURSUING to prevent
+	# the SUPPRESSED → IN_COVER → PURSUING instant cycling pattern observed in log.
+	# Previously only SUPPRESSED and player-flanked paths had minimum duration guards.
 	if not (_can_see_player or _can_see_companion) and not _under_fire and not (_suppressive_fire and _suppressive_fire.try_suppress_cover(_player, _last_known_player_position, _is_melee_weapon, _is_reloading, _shoot_timer, shoot_cooldown)):
-		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
-		_transition_to_pursuing()
+		if time_in_state >= IN_COVER_MIN_DURATION:
+			_log_debug("Lost sight of player from cover, transitioning to PURSUING")
+			_transition_to_pursuing()
 
 ## Process FLANKING state - flank player using cover-to-cover movement.
 func _process_flanking_state(delta: float) -> void:

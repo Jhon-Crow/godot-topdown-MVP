@@ -56,8 +56,11 @@ const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 4
 
 ## Issue #997 RCA-16: Per-second rate limiting for blood decals.
 ## When multiple enemies die in the same second, limit total decals to prevent tree_changed floods.
-const MAX_BLOOD_DECALS_PER_SECOND: int = 20
+## Issue #1027 Fix 16: Reduced from 20 to 15 to provide more headroom against burst spikes.
+const MAX_BLOOD_DECALS_PER_SECOND: int = 15
 var _blood_decals_this_second: int = 0
+## Issue #1027 Fix 16: Tracks start of current 60-frame window (not reset point).
+## Bug fix: previously reset to current_frame causing boundary bursts to exceed limit.
 var _blood_decal_rate_limit_frame: int = -1
 
 ## Active blood decals for cleanup management.
@@ -643,12 +646,16 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 		# Wall detected between origin and landing - skip this decal
 		return
 
-	# Issue #997 RCA-16: rate limit blood decals per second to prevent tree_changed floods
+	# Issue #997 RCA-16 / Issue #1027 Fix 16: rate limit blood decals per second.
+	# Fix 16: Previously reset _blood_decal_rate_limit_frame to current_frame on window expiry,
+	# which allowed a burst of MAX_BLOOD_DECALS_PER_SECOND decals immediately after the reset
+	# in the same physics step, effectively doubling the cap at window boundaries.
+	# Fix: align window to fixed 60-frame blocks so resets are consistent.
 	var current_frame := Engine.get_physics_frames()
-	# Reset counter every ~60 frames (approximately 1 second at 60fps)
-	if current_frame - _blood_decal_rate_limit_frame >= 60:
+	var current_window := current_frame / 60  # Integer division — window index
+	if current_window != _blood_decal_rate_limit_frame:
 		_blood_decals_this_second = 0
-		_blood_decal_rate_limit_frame = current_frame
+		_blood_decal_rate_limit_frame = current_window
 
 	if _blood_decals_this_second >= MAX_BLOOD_DECALS_PER_SECOND:
 		# Rate limit exceeded, skip this decal
@@ -727,6 +734,18 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	# Wall found! Spawn blood splatter at the impact point
 	var wall_hit_pos: Vector2 = result.position
 	var wall_normal: Vector2 = result.normal
+
+	# Issue #1027 Fix 17: Apply same rate limiter to wall blood splatters.
+	# Previously wall splatters bypassed MAX_BLOOD_DECALS_PER_SECOND, causing unthrottled
+	# SceneTree.tree_changed callbacks on every bullet hit at high fire rates (e.g. AK-GL).
+	var current_frame_w := Engine.get_physics_frames()
+	var current_window_w := current_frame_w / 60
+	if current_window_w != _blood_decal_rate_limit_frame:
+		_blood_decals_this_second = 0
+		_blood_decal_rate_limit_frame = current_window_w
+	if _blood_decals_this_second >= MAX_BLOOD_DECALS_PER_SECOND:
+		return
+	_blood_decals_this_second += 1
 
 	# Issue #969: gate per-hit log behind debug flag
 	if _debug_effects:
