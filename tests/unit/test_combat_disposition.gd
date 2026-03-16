@@ -99,21 +99,28 @@ class MockActiveItemManager:
 class MockCombatDispositionSystem:
 	## Whether combat disposition is active
 	var active: bool = false
-	## Current damage bonus (starts at +0.7, decreases by 1 per hit)
+	## Whether the hit penalty has already been applied (only applied once per run)
+	var penalty_applied: bool = false
+	## Current damage bonus (starts at +0.7, decreases by 1 on first hit)
 	var damage_bonus: float = 0.0
-	## Current fire rate bonus (starts at +1, decreases by 1.2 per hit)
+	## Current fire rate bonus (starts at +1, decreases by 1.2 on first hit)
 	var fire_rate_bonus: float = 0.0
 
 	## Initialize with starting bonuses
 	func init_combat_disposition() -> void:
 		active = true
+		penalty_applied = false
 		damage_bonus = 0.7
 		fire_rate_bonus = 1.0
 
-	## Apply hit penalty (called when player takes damage)
+	## Apply hit penalty (called when player takes damage).
+	## The penalty is only applied once per run (on the first hit).
 	func apply_hit_penalty() -> void:
 		if not active:
 			return
+		if penalty_applied:
+			return
+		penalty_applied = true
 		damage_bonus -= 1.0
 		fire_rate_bonus -= 1.2
 
@@ -318,22 +325,22 @@ func test_combat_disposition_fire_rate_penalty_on_first_hit() -> void:
 		"After 1 hit: fire rate bonus should be 1.0 - 1.2 = -0.2")
 
 
-func test_combat_disposition_damage_penalty_on_second_hit() -> void:
+func test_combat_disposition_penalty_not_applied_on_second_hit() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
-	system.apply_hit_penalty()
-	assert_almost_eq(system.damage_bonus, -1.3, 0.001,
-		"After 2 hits: damage bonus should be 0.7 - 2.0 = -1.3")
+	system.apply_hit_penalty()  # second call — should be ignored
+	assert_almost_eq(system.damage_bonus, -0.3, 0.001,
+		"After 2 hits: penalty applied only once, damage bonus should still be 0.7 - 1.0 = -0.3")
 
 
-func test_combat_disposition_fire_rate_penalty_on_second_hit() -> void:
+func test_combat_disposition_fire_rate_penalty_not_applied_on_second_hit() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
-	system.apply_hit_penalty()
-	assert_almost_eq(system.fire_rate_bonus, -1.4, 0.001,
-		"After 2 hits: fire rate bonus should be 1.0 - 2.4 = -1.4")
+	system.apply_hit_penalty()  # second call — should be ignored
+	assert_almost_eq(system.fire_rate_bonus, -0.2, 0.001,
+		"After 2 hits: penalty applied only once, fire rate bonus should still be 1.0 - 1.2 = -0.2")
 
 
 func test_combat_disposition_hit_penalty_not_applied_when_inactive() -> void:
@@ -360,13 +367,57 @@ func test_combat_disposition_effective_damage_after_hit() -> void:
 func test_combat_disposition_effective_fire_rate_floored_above_minimum() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.init_combat_disposition()
-	# Apply many hits to make fire rate bonus very negative
-	for i in range(100):
-		system.apply_hit_penalty()
-	var base_fire_rate := 5.0
+	# Apply penalty (only first call has effect)
+	system.apply_hit_penalty()
+	# After penalty: fire_rate_bonus = 1.0 - 1.2 = -0.2
+	# With a low base rate of 0.1, effective = max(0.1 + (-0.2), 0.1) = max(-0.1, 0.1) = 0.1
+	var base_fire_rate := 0.1
 	var effective := system.get_effective_fire_rate(base_fire_rate)
 	assert_true(effective >= 0.1,
 		"Effective fire rate should never go below minimum 0.1 (to prevent division by zero)")
+
+
+# ============================================================================
+# Penalty Applied Once Tests
+# ============================================================================
+
+
+func test_combat_disposition_penalty_not_applied_before_first_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.init_combat_disposition()
+	assert_false(system.penalty_applied,
+		"penalty_applied should be false before any hit is taken")
+
+
+func test_combat_disposition_penalty_applied_after_first_hit() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.init_combat_disposition()
+	system.apply_hit_penalty()
+	assert_true(system.penalty_applied,
+		"penalty_applied should be true after the first hit")
+
+
+func test_combat_disposition_penalty_flag_remains_true_after_multiple_hits() -> void:
+	var system := MockCombatDispositionSystem.new()
+	system.init_combat_disposition()
+	system.apply_hit_penalty()
+	system.apply_hit_penalty()
+	system.apply_hit_penalty()
+	assert_true(system.penalty_applied,
+		"penalty_applied should remain true after multiple hits")
+	# Bonuses should only have been reduced once
+	assert_almost_eq(system.damage_bonus, -0.3, 0.001,
+		"Damage bonus should only decrease once regardless of hit count")
+	assert_almost_eq(system.fire_rate_bonus, -0.2, 0.001,
+		"Fire rate bonus should only decrease once regardless of hit count")
+
+
+func test_combat_disposition_penalty_not_applied_when_inactive() -> void:
+	var system := MockCombatDispositionSystem.new()
+	# Not initialized — inactive
+	system.apply_hit_penalty()
+	assert_false(system.penalty_applied,
+		"penalty_applied should remain false when system is not active")
 
 
 # ============================================================================
