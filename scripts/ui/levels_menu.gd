@@ -89,6 +89,18 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 		"enemy_count": 20,
 		"map_size": "5000x4000"
+	},
+	{
+		"name": "Arena",
+		"name_ru": "Арена",
+		"path": "res://scenes/levels/ArenaLevel.tscn",
+		"description": "Endless wave survival arena. Fight off waves of enemies. Health, ammo, and weapon pickups spawn between waves.",
+		"preview_color": Color(0.35, 0.1, 0.1, 1.0),
+		"preview_accent": Color(0.8, 0.3, 0.2, 1.0),
+		"enemy_count": 0,
+		"endless": true,
+		"always_unlocked": true,
+		"map_size": "1920x1080"
 	}
 ]
 
@@ -120,6 +132,9 @@ var _level_cards: Dictionary = {}
 ## @return: True if the level is available to play.
 func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
 	if level_index <= 0:
+		return true
+	# Levels marked always_unlocked are available regardless of progression.
+	if LEVELS[level_index].get("always_unlocked", false):
 		return true
 	var previous_path: String = LEVELS[level_index - 1]["path"]
 	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):
@@ -356,7 +371,13 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 
 		var enemy_label := Label.new()
 		var enemy_count: int = level_data.get("enemy_count", 0)
-		enemy_label.text = "%d enemies" % enemy_count if enemy_count > 0 else "Training"
+		var is_endless: bool = level_data.get("endless", false)
+		if is_endless:
+			enemy_label.text = "∞ волн"
+		elif enemy_count > 0:
+			enemy_label.text = "%d enemies" % enemy_count
+		else:
+			enemy_label.text = "Training"
 		enemy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		enemy_label.add_theme_font_size_override("font_size", 13)
 		enemy_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.8, 0.9))
