@@ -102,6 +102,9 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	}
 }
 
+## Whether the player's active items are currently jammed by a Radio Jammer enemy (Issue #1036).
+var _is_jammed: bool = false
+
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
 
@@ -269,3 +272,15 @@ func unlock_active_item(item_type: int) -> void:
 ## @return: Dictionary of item_type -> bool pairs.
 func get_unlocked_active_items() -> Dictionary:
 	return unlocked_active_items
+
+
+## Set whether the player's active items are jammed by a Radio Jammer enemy (Issue #1036).
+## @param jammed: true to jam active items, false to restore them.
+func set_jammed(jammed: bool) -> void:
+	_is_jammed = jammed
+
+
+## Check whether the player's active items are currently jammed (Issue #1036).
+## Returns true when a living Radio Jammer enemy is within 1000px.
+func is_active_item_jammed() -> bool:
+	return _is_jammed

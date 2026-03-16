@@ -80,6 +80,8 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
+@export var is_radio_jammer: bool = false  ## Whether this enemy jams the player's active items within jammer_radius (Issue #1036).
+@export var jammer_radius: float = 1000.0  ## Radius within which the player's active items are jammed (Issue #1036).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -807,6 +809,10 @@ func _select_best_target() -> void:
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
+
+	# Update radio jammer effect (Issue #1036)
+	if is_radio_jammer:
+		_update_jammer_effect()
 
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
@@ -4292,10 +4298,35 @@ func _notify_nearby_enemies_of_death() -> void:
 		e.on_ally_died(global_position, true, _last_hit_direction); notified += 1
 	if notified > 0: _log_to_file("[AllyDeath] Notified %d enemies" % notified)
 
+## Update radio jammer effect: jam player's active items when within radius (Issue #1036).
+func _update_jammer_effect() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+	var player: Node = get_node_or_null("/root/Player")
+	if player == null:
+		# Try finding the player via the group
+		var players := get_tree().get_nodes_in_group("players")
+		if players.is_empty():
+			return
+		player = players[0]
+	if not is_instance_valid(player):
+		return
+	var dist: float = global_position.distance_to(player.global_position)
+	var should_jam: bool = dist <= jammer_radius
+	if active_item_manager.has_method("set_jammed"):
+		active_item_manager.set_jammed(should_jam)
+
+
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
+	# Release jammer effect on death (Issue #1036)
+	if is_radio_jammer:
+		var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+		if active_item_manager and active_item_manager.has_method("set_jammed"):
+			active_item_manager.set_jammed(false)
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
 	var pfm = get_node_or_null("/root/PowerFantasyEffectsManager")  # Issue #492: Power Fantasy effect
@@ -4952,6 +4983,7 @@ func _on_grenadier_grenade_exploded() -> void:
 func _start_waiting_for_grenadier(wt: float) -> void: _waiting_for_grenadier = true; _grenadier_wait_timer = min(wt, 8.0)
 func _stop_waiting_for_grenadier() -> void: _waiting_for_grenadier = false; _grenadier_wait_timer = 0.0
 func get_is_grenadier() -> bool: return is_grenadier
+func get_is_radio_jammer() -> bool: return is_radio_jammer  ## Issue #1036
 func is_waiting_for_grenade() -> bool: return _waiting_for_grenadier
 ## Issue #657: Non-idle allies near a pursuing grenadier with grenades wait for it to throw.
 func _should_wait_for_nearby_grenadier() -> bool:

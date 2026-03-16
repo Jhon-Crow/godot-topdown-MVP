@@ -3036,6 +3036,12 @@ func _handle_flashlight_input() -> void:
 	if not is_instance_valid(_flashlight_node):
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
+		if _flashlight_node.has_method("turn_off"):
+			_flashlight_node.turn_off()
+		return
+
 	if Input.is_action_pressed("flashlight_toggle"):
 		if _flashlight_node.has_method("turn_on"):
 			_flashlight_node.turn_on()
@@ -3136,6 +3142,10 @@ func _handle_homing_input(delta: float) -> void:
 			_stop_homing_scanner()
 			homing_deactivated.emit()
 			FileLogger.info("[Player.Homing] Homing effect expired, charges remaining: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
+		return
 
 	# Activate on Space press (only if not already active and has charges)
 	if Input.is_action_just_pressed("flashlight_toggle"):
@@ -3275,6 +3285,10 @@ func _handle_bff_pendant_input() -> void:
 	if not _bff_pendant_equipped:
 		return
 	if _bff_companion_summoned:
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
 		return
 
 	if Input.is_action_just_pressed("flashlight_toggle"):
@@ -3535,6 +3549,10 @@ func _handle_invisibility_suit_input() -> void:
 	if not is_instance_valid(_invisibility_suit):
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
+		return
+
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
 		if not _invisibility_suit.is_active:
@@ -3671,6 +3689,12 @@ func _handle_force_field_input(delta: float) -> void:
 	if not _force_field_equipped or _force_field == null:
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
+		if _force_field.is_active:
+			_force_field.deactivate()
+		return
+
 	# Hold Space to activate, release to deactivate
 	if Input.is_action_pressed("flashlight_toggle"):
 		if not _force_field.is_active:
@@ -3784,6 +3808,10 @@ func _handle_trajectory_glasses_input() -> void:
 		return
 
 	if not is_instance_valid(_trajectory_glasses):
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
 		return
 
 	# Activate on Space press (not hold — single press activates for full duration)
