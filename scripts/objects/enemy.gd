@@ -4142,9 +4142,8 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 ## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0).
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0) -> void:
-	if not _is_alive:
-		return
-
+	if not _is_alive: return
+	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
 	hit.emit()
 
 	# Store hit direction for death animation

@@ -11,7 +11,7 @@ extends Node
 ## Duration the force field stays active (seconds).
 const DURATION: float = 4.0
 ## Recharge time after the force field deactivates (seconds).
-const RECHARGE_TIME: float = 20.0
+const RECHARGE_TIME: float = 10.0
 
 var _force_field_effect: Node2D = null  ## ForceFieldEffect instance
 var _active: bool = false  ## Force field currently active
@@ -43,6 +43,8 @@ func setup() -> void:
 	_force_field_effect.deactivate()
 	_progress_bar = ActiveItemProgressBar.new()
 	_progress_bar.name = "ForceFieldProgressBar"
+	# Use the same blue as the force field bubble so colors match (Issue #1034).
+	_progress_bar.fill_color_override = Color(0.4, 0.7, 1.0, 0.85)
 	_parent.add_child(_progress_bar)
 	_progress_bar.hide_bar()
 	FileLogger.info("[EnemyForceField] Setup complete (duration=%.1fs recharge=%.1fs)" % [DURATION, RECHARGE_TIME])

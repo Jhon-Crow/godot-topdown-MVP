@@ -122,3 +122,62 @@ _force_field_effect.set("owner_is_player", false)
 ```
 
 This change is minimal, backward-compatible (player force field unaffected), and directly inverts the predicate for the enemy case.
+
+---
+
+## Follow-up Bug Report (2026-03-17) — Three Additional Issues
+
+**Log file**: `game_log_20260317_011713.txt`
+
+After the player-bullet-trapping fix was deployed, the user reported three new issues observed during gameplay:
+
+### Issue 1: Recharge too slow (20s → 10s)
+
+**Symptom**: After the force field deactivates, the 20-second recharge is too long — enemy is vulnerable for too long.
+
+**Log evidence** (line 359): `[EnemyForceField] Setup complete (duration=4.0s recharge=20.0s)`
+
+**Fix**: `RECHARGE_TIME` in `EnemyForceFieldComponent` reduced from `20.0` to `10.0` seconds.
+
+---
+
+### Issue 2: Enemy takes damage while force field is active (invulnerability missing)
+
+**Symptom**: Player bullets are now correctly trapped by the force field, but the enemy still takes hit damage. The issue is that `take_damage` / `on_hit_with_bullet_info` in `enemy.gd` runs independently of whether the bullet was stopped by the force field.
+
+**Root cause**: In `enemy.gd`, `on_hit_with_bullet_info()` is invoked when the bullet's C# `OnAreaEntered` handler fires. Even though `EnemyForceFieldComponent` freezes the bullet (stops its `_PhysicsProcess`), the bullet's area-entered event has already fired and called `take_damage`. The force field traps the bullet **visually** but the damage call is already in-flight.
+
+**Log evidence** (lines 2884–3026): Force field activated at 01:18:09, and `Hit: dmg=2, hp=3/4->1/4` was recorded at 01:18:10 — still inside the active window.
+
+**Fix**: Added guard in `on_hit_with_bullet_info()` in `enemy.gd`:
+```gdscript
+if _force_field_component and _force_field_component.is_active():
+    _log_to_file("Hit blocked by force field — enemy is invulnerable")
+    return
+```
+This ensures the enemy is fully invulnerable to damage while the force field is active, regardless of bullet event ordering.
+
+---
+
+### Issue 3: Progress bar color does not match force field
+
+**Symptom**: The recharge progress bar above the enemy uses dynamic green/yellow/red colors (standard `ActiveItemProgressBar` behavior). The force field bubble is blue (`Color(0.4, 0.7, 1.0)`), so the bar color should match.
+
+**Root cause**: `ActiveItemProgressBar._get_fill_color()` uses three threshold-based colors that change based on fill percentage. There was no way to override this with a fixed color.
+
+**Fix**: Added `fill_color_override: Color` property to `ActiveItemProgressBar`. When set to a non-transparent color, it bypasses the dynamic threshold logic and always uses the override color. `EnemyForceFieldComponent.setup()` sets:
+```gdscript
+_progress_bar.fill_color_override = Color(0.4, 0.7, 1.0, 0.85)  # Force field blue
+```
+This is backward-compatible — all existing `ActiveItemProgressBar` users are unaffected (override defaults to transparent).
+
+---
+
+## Complete Fix Summary
+
+| Issue | Root Cause | Fix | Files Changed |
+|-------|-----------|-----|---------------|
+| Player bullets not trapped | `ForceFieldEffect` hardcoded "skip player bullets" | Added `owner_is_player` flag; enemy sets `false` | `force_field_effect.gd`, `enemy_force_field_component.gd` |
+| Recharge too slow | `RECHARGE_TIME = 20.0` | Reduced to `10.0` | `enemy_force_field_component.gd` |
+| Enemy takes damage through active force field | `on_hit_with_bullet_info` had no force field guard | Added invulnerability check at top of `on_hit_with_bullet_info` | `enemy.gd` |
+| Progress bar wrong color | No color override in `ActiveItemProgressBar` | Added `fill_color_override` property | `active_item_progress_bar.gd`, `enemy_force_field_component.gd` |
