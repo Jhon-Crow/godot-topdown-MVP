@@ -37,6 +37,8 @@ func setup() -> void:
 	_force_field_effect = ff_scene.instantiate()
 	_force_field_effect.name = "EnemyForceField"
 	_parent.add_child(_force_field_effect)
+	# Mark as enemy-owned so it traps player bullets instead of enemy bullets (Issue #1034).
+	_force_field_effect.set("owner_is_player", false)
 	_force_field_effect.force_field_deactivated.connect(_on_force_field_deactivated)
 	_force_field_effect.deactivate()
 	_progress_bar = ActiveItemProgressBar.new()
