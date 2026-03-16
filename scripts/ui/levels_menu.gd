@@ -91,6 +91,16 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "5000x4000"
 	},
 	{
+		"name": "Factory",
+		"name_ru": "Завод",
+		"path": "res://scenes/levels/FactoryLevel.tscn",
+		"description": "Industrial factory building with interconnected rooms and corridors. 13 heavily armored enemies, max 2 per room.",
+		"preview_color": Color(0.2, 0.18, 0.14, 1.0),
+		"preview_accent": Color(0.45, 0.38, 0.28, 1.0),
+		"enemy_count": 13,
+		"map_size": "2400x2000"
+	},
+	{
 		"name": "Decadence",
 		"name_ru": "Декаданс",
 		"path": "res://scenes/levels/DecadenceLevel.tscn",
@@ -125,11 +135,15 @@ var _level_cards: Dictionary = {}
 ## Check whether a level at the given index in LEVELS is unlocked.
 ## The first level (Labyrinth) is always unlocked.
 ## All other levels require the immediately preceding level to be completed on any difficulty.
+## If the "all maps unlocked" experimental setting is enabled (Issue #1075), all levels are accessible.
 ## @param level_index: Index into the LEVELS array.
 ## @param progress_manager: The ProgressManager autoload node (may be null).
 ## @return: True if the level is available to play.
 func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
 	if level_index <= 0:
+		return true
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.is_all_maps_unlocked():
 		return true
 	var previous_path: String = LEVELS[level_index - 1]["path"]
 	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):
