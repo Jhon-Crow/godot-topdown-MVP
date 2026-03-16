@@ -65,7 +65,36 @@ Resolved conflicts:
 
 Also compacted `_switch_to_secondary_weapon` from 20→10 lines to stay under the 5000-line architecture limit.
 
+## Third Feedback (2026-03-17)
+
+User reported "новый враг должен появляться на карте Полигон / сейчас там все с m16" (new enemy should appear on the Polygon map / currently all have M16). Provided `game_log_20260317_010617.txt`.
+
+### Analysis of game_log_20260317_010617.txt
+
+The log confirms RPG enemies ARE spawning and functioning in TestTier:
+- `[RpgEnemy1] Spawned at (3700, 1400), hp: 1, behavior: GUARD` ✅
+- `[RpgEnemy2] Spawned at (2000, 2200), hp: 1, behavior: GUARD` ✅
+- `Sound emitted: type=GUNSHOT, source=ENEMY (RpgEnemy1), range=2500` = RPG shot (weapon_loudness=2500) ✅
+- `Sound emitted: type=GUNSHOT, source=ENEMY (RpgEnemy1), range=1469` = PM shot after switch ✅
+- RpgEnemy2 same pattern ✅
+
+### Root Cause of "everything is M16" complaint
+
+Despite the RPG enemy logic working correctly (firing rockets, switching to PM), the **enemy weapon sprite was still showing M16**. This is because:
+
+1. The base `Enemy.tscn` scene has `WeaponSprite` texture set to `m16_rifle_topdown.png` by default.
+2. In `_configure_weapon_type()`, the sprite is only updated when `sprite_path != ""`.
+3. The RPG weapon config (type 4) had `"sprite_path": ""` — leaving the default M16 sprite unchanged.
+
+### Fix Applied
+
+1. Created `assets/sprites/weapons/rpg_topdown.png` — a 72×18 pixel top-down RPG-7 sprite (matching ak_gl_topdown.png dimensions), showing the rocket launcher tube, warhead, pistol grip and rear exhaust bell.
+2. Updated `WeaponConfigComponent` RPG entry: `"sprite_path": "res://assets/sprites/weapons/rpg_topdown.png"`.
+
+This ensures RPG enemies visually display the rocket launcher weapon instead of the M16 rifle.
+
 ## Logs
 
 - `game_log_20260208_193502.txt` - Game log from user testing showing RPG enemies in CastleLevel (wrong level)
 - `game_log_20260209_110330.txt` - Game log confirming RPG enemies working correctly in TestTier
+- `game_log_20260317_010617.txt` - Game log confirming RPG enemies in TestTier but visual sprite was M16 (now fixed)

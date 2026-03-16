@@ -109,7 +109,7 @@ const WEAPON_CONFIGS := {
 		"magazine_size": 1,  # Only 1 RPG round
 		"bullet_spawn_offset": 35.0,
 		"weapon_loudness": 2500.0,  # Very loud rocket launch
-		"sprite_path": "",  # Default sprite
+		"sprite_path": "res://assets/sprites/weapons/rpg_topdown.png",  # RPG sprite
 		"bullet_scene_path": "res://scenes/projectiles/RpgRocket.tscn",
 		"casing_scene_path": "",  # No casings for RPG
 		"caliber_path": "",  # Rocket has no caliber
