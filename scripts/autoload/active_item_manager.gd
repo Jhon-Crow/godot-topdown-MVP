@@ -16,7 +16,8 @@ enum ActiveItemType {
 	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
-	LASER_SIGHT        # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	RECOIL_COMPENSATOR # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
 }
 
 ## Currently selected active item type.
@@ -39,7 +40,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
-	ActiveItemType.LASER_SIGHT: true           # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.RECOIL_COMPENSATOR: true   # No unlock condition — freely available from start (Issue #1073)
 }
 
 ## Active item data for UI and selection.
@@ -99,6 +101,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Laser Sight",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+	},
+	ActiveItemType.RECOIL_COMPENSATOR: {
+		"name": "Recoil Compensator",
+		"icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
+		"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
+		"activation_hint": "Hold Space to activate"
 	}
 }
 
@@ -228,6 +236,11 @@ func has_trajectory_glasses() -> bool:
 ## Check if laser sight is currently equipped (Issue #947).
 func has_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if recoil compensator is currently equipped (Issue #1073).
+func has_recoil_compensator() -> bool:
+	return current_active_item == ActiveItemType.RECOIL_COMPENSATOR
 
 
 ## Get the laser sight color (purple).

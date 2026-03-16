@@ -120,7 +120,8 @@ class MockActiveItemManager:
 		BREAKER_BULLETS = 6,
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
-		LASER_SIGHT = 9
+		LASER_SIGHT = 9,
+		RECOIL_COMPENSATOR = 10
 	}
 
 	## Currently selected active item type
@@ -177,6 +178,12 @@ class MockActiveItemManager:
 			"name": "Laser Sight",
 			"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+		},
+		10: {
+			"name": "Recoil Compensator",
+			"icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
+			"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
+			"activation_hint": "Hold Space to activate"
 		}
 	}
 
@@ -265,6 +272,10 @@ class MockActiveItemManager:
 	## Check if laser sight is currently equipped
 	func has_laser_sight() -> bool:
 		return current_active_item == ActiveItemType.LASER_SIGHT
+
+	## Check if recoil compensator is currently equipped
+	func has_recoil_compensator() -> bool:
+		return current_active_item == ActiveItemType.RECOIL_COMPENSATOR
 
 
 var manager: MockActiveItemManager
@@ -627,7 +638,7 @@ class MockArmoryWithActiveItems:
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
-		10: {"name": "Ricochet Points", "description": "Ricochet Points — passive: +30% ricochet chance"}
+		10: {"name": "Recoil Compensator", "description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts."}
 	}
 
 	## Applied active item type
@@ -952,12 +963,14 @@ func test_armory_select_trajectory_glasses() -> void:
 # ============================================================================
 
 
-func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void:
-	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
-	# Its effect is now part of Trajectory Glasses. Ensure no item at index 10 exists.
+func test_active_item_at_index_10_is_recoil_compensator() -> void:
+	# Issue #1028: RICOCHET_POINTS was removed and its passive effect merged into Trajectory Glasses.
+	# Issue #1073: Index 10 is now occupied by RECOIL_COMPENSATOR.
 	var data := manager.get_active_item_data(10)
-	assert_true(data.is_empty(),
-		"There should be no active item at index 10 — RICOCHET_POINTS was removed (Issue #1028)")
+	assert_false(data.is_empty(),
+		"Index 10 should be RECOIL_COMPENSATOR (Issue #1073)")
+	assert_eq(data["name"], "Recoil Compensator",
+		"Item at index 10 should be 'Recoil Compensator' (Issue #1073)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
