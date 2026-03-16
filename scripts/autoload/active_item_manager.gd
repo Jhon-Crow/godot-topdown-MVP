@@ -16,7 +16,8 @@ enum ActiveItemType {
 	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
-	LASER_SIGHT        # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	DASH               # Dash - press Space to dash in movement direction; invincible during dash, 1.2s cooldown (Issue #1071)
 }
 
 ## Currently selected active item type.
@@ -39,7 +40,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
-	ActiveItemType.LASER_SIGHT: true           # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.DASH: true                  # No unlock condition — freely available from start (Issue #1071)
 }
 
 ## Active item data for UI and selection.
@@ -99,6 +101,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Laser Sight",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+	},
+	ActiveItemType.DASH: {
+		"name": "Dash",
+		"icon_path": "res://assets/sprites/weapons/dash_icon.png",
+		"description": "Dash — press Space to dash in the movement direction. Invincible during the dash. 1.2 second cooldown, unlimited uses.",
+		"activation_hint": "Press Space to dash"
 	}
 }
 
@@ -240,6 +248,11 @@ func get_laser_sight_color() -> Color:
 ## Returns true when laser sight active item is equipped (Issue #947).
 func should_force_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if dash is currently equipped (Issue #1071).
+func has_dash() -> bool:
+	return current_active_item == ActiveItemType.DASH
 
 
 ## Check if an active item type is unlocked.

@@ -370,6 +370,9 @@ func _ready() -> void:
 	# Initialize trajectory glasses if active item manager has trajectory glasses selected (Issue #744)
 	_init_trajectory_glasses()
 
+	# Initialize dash if active item manager has it selected (Issue #1071)
+	_init_dash()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
@@ -394,7 +397,14 @@ func _physics_process(delta: float) -> void:
 
 	var input_direction := _get_input_direction()
 
-	if input_direction != Vector2.ZERO:
+	# Update dash state before movement so the dash velocity is applied this frame (Issue #1071)
+	_update_dash_state(delta, input_direction)
+
+	# During an active dash (Issue #1071), override velocity with dash speed.
+	# Normal acceleration/friction are skipped until the dash ends.
+	if _dash_active:
+		velocity = _dash_direction * DASH_SPEED
+	elif input_direction != Vector2.ZERO:
 		# Apply acceleration towards the input direction
 		velocity = velocity.move_toward(input_direction * max_speed, acceleration * delta)
 	else:
@@ -487,6 +497,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle trajectory glasses input (press Space to activate) (Issue #744)
 	_handle_trajectory_glasses_input()
+
+	# Handle dash input (press Space to dash) (Issue #1071)
+	_handle_dash_input(delta)
 
 
 func _get_input_direction() -> Vector2:
@@ -1048,6 +1061,11 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	# Check force field protection (Issue #676)
 	if is_force_field_active():
 		FileLogger.info("[Player] Hit blocked by force field")
+		return
+
+	# Check dash invincibility (Issue #1071) — player is invincible during the dash
+	if is_dashing():
+		FileLogger.info("[Player] Hit blocked by dash invincibility")
 		return
 
 	# Check invincibility mode (F6 toggle)
@@ -3848,6 +3866,164 @@ func get_trajectory_glasses() -> Node:
 
 
 # ============================================================================
+# Dash Active Item (Issue #1071)
+# ============================================================================
+
+## Dash speed in pixels per second (3× normal max_speed).
+const DASH_SPEED: float = 900.0
+
+## Duration of the dash in seconds.
+const DASH_DURATION: float = 0.12
+
+## Cooldown between dashes in seconds (per issue spec).
+const DASH_COOLDOWN: float = 1.2
+
+## Whether dash is equipped (selected in armory).
+var _dash_equipped: bool = false
+
+## Whether a dash is currently in progress.
+var _dash_active: bool = false
+
+## Time remaining in the current dash.
+var _dash_timer: float = 0.0
+
+## Cooldown remaining before next dash can be used.
+var _dash_cooldown_timer: float = 0.0
+
+## Direction of the current dash.
+var _dash_direction: Vector2 = Vector2.ZERO
+
+## AudioStreamPlayer for dash sound.
+var _dash_audio_player: AudioStreamPlayer = null
+
+## Path to the dash sound file.
+const DASH_SOUND_PATH: String = "res://assets/audio/dash.wav"
+
+## Signal emitted when dash starts.
+signal dash_started
+
+## Signal emitted when dash ends.
+signal dash_ended
+
+## Signal emitted when dash cooldown changes.
+signal dash_cooldown_changed(remaining: float, total: float)
+
+
+## Initialize dash if ActiveItemManager has it selected.
+func _init_dash() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Dash] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_dash"):
+		FileLogger.info("[Player.Dash] ActiveItemManager missing has_dash method")
+		return
+
+	if not active_item_manager.has_dash():
+		FileLogger.info("[Player.Dash] Dash not selected in ActiveItemManager")
+		return
+
+	_dash_equipped = true
+	_dash_active = false
+	_dash_timer = 0.0
+	_dash_cooldown_timer = 0.0
+
+	_setup_dash_audio()
+
+	FileLogger.info("[Player.Dash] Dash equipped — Speed: %.0f px/s, Duration: %.2fs, Cooldown: %.1fs" % [
+		DASH_SPEED, DASH_DURATION, DASH_COOLDOWN
+	])
+
+
+## Set up audio player for dash sound.
+func _setup_dash_audio() -> void:
+	if ResourceLoader.exists(DASH_SOUND_PATH):
+		var stream = load(DASH_SOUND_PATH)
+		if stream:
+			_dash_audio_player = AudioStreamPlayer.new()
+			_dash_audio_player.stream = stream
+			_dash_audio_player.volume_db = -6.0
+			add_child(_dash_audio_player)
+			FileLogger.info("[Player.Dash] Dash sound loaded")
+	else:
+		FileLogger.info("[Player.Dash] No dash sound found at %s — silent dash" % DASH_SOUND_PATH)
+
+
+## Update dash timers and handle input.
+## Called BEFORE the movement block in _physics_process so dash velocity applies this frame.
+func _update_dash_state(delta: float, input_direction: Vector2) -> void:
+	if not _dash_equipped:
+		return
+
+	# Update active dash timer
+	if _dash_active:
+		_dash_timer -= delta
+		if _dash_timer <= 0.0:
+			_dash_active = false
+			_dash_timer = 0.0
+			# Start cooldown after dash finishes
+			_dash_cooldown_timer = DASH_COOLDOWN
+			dash_ended.emit()
+			FileLogger.info("[Player.Dash] Dash ended, cooldown started: %.1fs" % DASH_COOLDOWN)
+		return
+
+	# Tick cooldown down
+	if _dash_cooldown_timer > 0.0:
+		_dash_cooldown_timer -= delta
+		if _dash_cooldown_timer < 0.0:
+			_dash_cooldown_timer = 0.0
+		# Update bar every frame while cooling down (shows time elapsed, not remaining)
+		_show_active_item_timer_bar(DASH_COOLDOWN - _dash_cooldown_timer, DASH_COOLDOWN)
+		if _dash_cooldown_timer <= 0.0:
+			_hide_active_item_bar()
+			FileLogger.info("[Player.Dash] Cooldown finished — dash ready")
+		return
+
+	# Activate dash on Space press (only when off cooldown and not already dashing)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		_start_dash(input_direction)
+
+
+## Handle dash input (stub kept so the call in _physics_process after move_and_slide is a no-op).
+## Actual work moved to _update_dash_state, called before movement.
+func _handle_dash_input(_delta: float) -> void:
+	pass
+
+
+## Start a dash in the given input direction.
+## Falls back to the player model's facing direction if no input.
+func _start_dash(input_direction: Vector2) -> void:
+	# Choose dash direction: movement direction > aim direction
+	if input_direction.length_squared() > 0.01:
+		_dash_direction = input_direction.normalized()
+	else:
+		# Fallback to current facing direction (player model rotation)
+		if _player_model:
+			_dash_direction = Vector2.RIGHT.rotated(_player_model.global_rotation)
+		else:
+			_dash_direction = Vector2.RIGHT
+
+	_dash_active = true
+	_dash_timer = DASH_DURATION
+
+	# Play dash sound
+	if _dash_audio_player and is_instance_valid(_dash_audio_player):
+		_dash_audio_player.play()
+
+	dash_started.emit()
+
+	FileLogger.info("[Player.Dash] Dash started — direction: (%.2f, %.2f), speed: %.0fpx/s, duration: %.2fs" % [
+		_dash_direction.x, _dash_direction.y, DASH_SPEED, DASH_DURATION
+	])
+
+
+## Returns true while a dash is in progress (used for invincibility check).
+func is_dashing() -> bool:
+	return _dash_active
+
+
+# ============================================================================
 # Active Item Progress Bar (Issue #700)
 # ============================================================================
 
@@ -3963,9 +4139,10 @@ func _update_charge_bar_timer(delta: float) -> void:
 			_update_active_item_timer(_trajectory_glasses.get_remaining_time())
 
 	# Handle charge bar auto-hide (300ms delay for charge-based items)
-	# Only hide if neither homing nor trajectory glasses is active
+	# Only hide if neither homing, trajectory glasses, nor dash cooldown is active
 	var any_active: bool = (_homing_equipped and _homing_active) or \
-		(_trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) and _trajectory_glasses.is_active)
+		(_trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) and _trajectory_glasses.is_active) or \
+		(_dash_equipped and _dash_cooldown_timer > 0.0)
 	if _charge_bar_hide_pending and not any_active:
 		_charge_bar_hide_timer -= delta
 		if _charge_bar_hide_timer <= 0.0:

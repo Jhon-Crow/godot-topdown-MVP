@@ -120,7 +120,8 @@ class MockActiveItemManager:
 		BREAKER_BULLETS = 6,
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
-		LASER_SIGHT = 9
+		LASER_SIGHT = 9,
+		DASH = 10
 	}
 
 	## Currently selected active item type
@@ -177,6 +178,11 @@ class MockActiveItemManager:
 			"name": "Laser Sight",
 			"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+		},
+		10: {
+			"name": "Dash",
+			"icon_path": "res://assets/sprites/weapons/dash_icon.png",
+			"description": "Dash — press Space to dash in the movement direction. Invincible during the dash. 1.2 second cooldown, unlimited uses."
 		}
 	}
 
@@ -265,6 +271,10 @@ class MockActiveItemManager:
 	## Check if laser sight is currently equipped
 	func has_laser_sight() -> bool:
 		return current_active_item == ActiveItemType.LASER_SIGHT
+
+	## Check if dash is currently equipped (Issue #1071)
+	func has_dash() -> bool:
+		return current_active_item == ActiveItemType.DASH
 
 
 var manager: MockActiveItemManager
@@ -627,7 +637,7 @@ class MockArmoryWithActiveItems:
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
-		10: {"name": "Ricochet Points", "description": "Ricochet Points — passive: +30% ricochet chance"}
+		10: {"name": "Dash", "description": "Dash — press Space to dash. Invincible during dash. 1.2s cooldown (Issue #1071)"}
 	}
 
 	## Applied active item type
@@ -954,10 +964,14 @@ func test_armory_select_trajectory_glasses() -> void:
 
 func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void:
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
-	# Its effect is now part of Trajectory Glasses. Ensure no item at index 10 exists.
+	# Its passive effect is now part of Trajectory Glasses.
+	# Index 10 is now DASH (Issue #1071), not RICOCHET_POINTS.
 	var data := manager.get_active_item_data(10)
-	assert_true(data.is_empty(),
-		"There should be no active item at index 10 — RICOCHET_POINTS was removed (Issue #1028)")
+	# Index 10 should now be DASH, not RICOCHET_POINTS
+	assert_false(data.is_empty(),
+		"Index 10 should now be DASH — RICOCHET_POINTS was removed (Issue #1028)")
+	assert_eq(data["name"], "Dash",
+		"Index 10 should be Dash (Issue #1071)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
@@ -967,3 +981,82 @@ func test_trajectory_glasses_description_mentions_passive_boost() -> void:
 		"Trajectory Glasses description should mention 30% passive ricochet boost (Issue #1028)")
 	assert_true(data["description"].contains("passive"),
 		"Trajectory Glasses description should mention passive (Issue #1028)")
+
+# ============================================================================
+# Dash Tests (Issue #1071)
+# ============================================================================
+
+
+func test_active_item_type_dash_value() -> void:
+	# ActiveItemType.DASH should be 10 (after LASER_SIGHT at 9)
+	var expected := 10
+	assert_eq(expected, 10, "DASH should be the eleventh active item type (10)")
+
+
+func test_active_item_data_has_dash() -> void:
+	var data := manager.get_active_item_data(10)
+	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain DASH type")
+	assert_eq(data["name"], "Dash", "Dash should have correct name")
+
+
+func test_dash_data_has_icon_path() -> void:
+	var data := manager.get_active_item_data(10)
+	assert_true(data["icon_path"].contains("dash"),
+		"Dash icon path should contain 'dash'")
+
+
+func test_dash_data_has_description() -> void:
+	var data := manager.get_active_item_data(10)
+	assert_true(data["description"].contains("Space"),
+		"Dash description should mention Space key")
+	assert_true(data["description"].contains("1.2"),
+		"Dash description should mention 1.2s cooldown (Issue #1071 spec)")
+	assert_true(data["description"].contains("unlimited") or data["description"].contains("Invincible"),
+		"Dash description should mention unlimited uses or invincibility")
+
+
+func test_no_dash_by_default() -> void:
+	assert_false(manager.has_dash(),
+		"Dash should not be equipped by default")
+
+
+func test_has_dash_after_selection() -> void:
+	manager.set_active_item(10)
+	assert_true(manager.has_dash(),
+		"has_dash should return true after selecting dash")
+
+
+func test_no_dash_after_deselection() -> void:
+	manager.set_active_item(10)
+	manager.set_active_item(0)
+	assert_false(manager.has_dash(),
+		"has_dash should return false after switching back to none")
+
+
+func test_dash_does_not_conflict_with_flashlight() -> void:
+	manager.set_active_item(10)
+	assert_false(manager.has_flashlight(),
+		"Flashlight should not be active when dash is selected")
+	assert_true(manager.has_dash(),
+		"Dash should be active")
+
+
+func test_dash_does_not_conflict_with_force_field() -> void:
+	manager.set_active_item(10)
+	assert_false(manager.has_force_field(),
+		"Force field should not be active when dash is selected")
+	assert_true(manager.has_dash(),
+		"Dash should be active")
+
+
+func test_set_active_item_to_dash() -> void:
+	manager.set_active_item(10)
+	assert_eq(manager.current_active_item, 10,
+		"Active item type should change to DASH")
+
+
+func test_armory_select_dash() -> void:
+	var armory := MockArmoryWithActiveItems.new()
+	var result := armory.select_active_item(10)
+	assert_true(result, "Should select dash")
+	assert_eq(armory.pending_active_item, 10, "Pending should be dash")
