@@ -118,6 +118,13 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public bool IsBreakerBulletActive { get; set; } = false;
 
+    /// <summary>
+    /// Remaining drilling bullet count for the current magazine (Issue #751).
+    /// When > 0, spawned bullets will have is_drilling_bullet = true (pass through walls).
+    /// Decremented on each shot; player.gd sets this to CurrentAmmo on activation.
+    /// </summary>
+    public int DrillingBulletsRemaining { get; set; } = 0;
+
     protected float _fireTimer;
     private float _reloadTimer;
 
@@ -506,6 +513,22 @@ public abstract partial class BaseWeapon : Node2D
             {
                 // GDScript bullet — use setter method (Issue #781)
                 bullet.Call("set_is_breaker_bullet", true);
+            }
+        }
+
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Decrements the counter; when it reaches 0, drilling effect ends naturally.
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+            if (bullet is CSharpBullet csBulletDrilling)
+            {
+                csBulletDrilling.IsDrillingBullet = true;
+            }
+            else
+            {
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_is_drilling_bullet", true);
             }
         }
 

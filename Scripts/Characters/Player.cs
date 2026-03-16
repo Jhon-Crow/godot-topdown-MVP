@@ -1097,6 +1097,9 @@ public partial class Player : BaseCharacter
         // Initialize breaker bullets if active item manager has them selected (Issue #678)
         InitBreakerBullets();
 
+        // Initialize drilling bullets if active item manager has them selected (Issue #751)
+        InitDrillingBullets();
+
         // Initialize force field if active item manager has it selected (Issue #676)
         InitForceField();
 
@@ -1403,6 +1406,12 @@ public partial class Player : BaseCharacter
 
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
+
+        // Handle drilling bullets input (press Space to activate, Issue #751)
+        HandleDrillingBulletsInput();
+
+        // Update drilling bullets charge bar auto-hide timer (Issue #751)
+        UpdateDrillingBarTimer((float)delta);
     }
 
     /// <summary>
@@ -2331,6 +2340,10 @@ public partial class Player : BaseCharacter
         {
             bullet.Set("is_breaker_bullet", true);
         }
+
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Note: direct SpawnBullet is only used when CurrentWeapon == null (no weapon system)
+        // so we don't decrement DrillingBulletsRemaining here; BaseWeapon.SpawnBullet handles it.
 
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
@@ -5544,6 +5557,142 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Drilling Bullets System (Issue #751)
+
+    /// <summary>
+    /// Whether drilling bullets item is equipped.
+    /// </summary>
+    private bool _drillingBulletsEquipped = false;
+
+    /// <summary>
+    /// Whether the single charge has been used this battle.
+    /// </summary>
+    private bool _drillingBulletsUsed = false;
+
+    /// <summary>
+    /// Whether the charge bar auto-hide is pending (shown briefly after activation).
+    /// </summary>
+    private bool _drillingChargeBarPending = false;
+
+    /// <summary>
+    /// Timer for auto-hiding the drilling charge bar after activation.
+    /// </summary>
+    private float _drillingChargeBarHideTimer = 0.0f;
+
+    /// <summary>
+    /// Delay in seconds before hiding the drilling charge bar.
+    /// </summary>
+    private const float DrillingChargeBarHideDelay = 0.3f;
+
+    /// <summary>
+    /// Initialize drilling bullets if the ActiveItemManager has them selected (Issue #751).
+    /// One charge per battle — press Space to apply wall-piercing to current magazine.
+    /// </summary>
+    private void InitDrillingBullets()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.DrillingBullets] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_drilling_bullets"))
+        {
+            LogToFile("[Player.DrillingBullets] ActiveItemManager missing has_drilling_bullets method");
+            return;
+        }
+
+        bool hasDrilling = (bool)activeItemManager.Call("has_drilling_bullets");
+        if (!hasDrilling)
+        {
+            LogToFile("[Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager");
+            return;
+        }
+
+        _drillingBulletsEquipped = true;
+        _drillingBulletsUsed = false;
+        LogToFile("[Player.DrillingBullets] Drilling bullets equipped — 1 charge: press Space to apply to current magazine");
+    }
+
+    /// <summary>
+    /// Handle drilling bullets input: press Space to activate once per battle (Issue #751).
+    /// Sets DrillingBulletsRemaining on the current weapon to current magazine ammo count.
+    /// </summary>
+    private void HandleDrillingBulletsInput()
+    {
+        if (!_drillingBulletsEquipped)
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            if (!_drillingBulletsUsed)
+            {
+                if (CurrentWeapon != null && CurrentWeapon.CurrentAmmo > 0)
+                {
+                    _drillingBulletsUsed = true;
+                    int magazineAmmo = CurrentWeapon.CurrentAmmo;
+                    CurrentWeapon.DrillingBulletsRemaining = magazineAmmo;
+                    LogToFile($"[Player.DrillingBullets] Activated! Magazine has {magazineAmmo} drilling bullets. Charge consumed.");
+
+                    // Show charge bar briefly (now empty — charge spent)
+                    _drillingChargeBarPending = true;
+                    _drillingChargeBarHideTimer = DrillingChargeBarHideDelay;
+                    QueueRedraw();
+                }
+                else
+                {
+                    LogToFile("[Player.DrillingBullets] Cannot activate — no ammo in current magazine");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update drilling bullets progress bar auto-hide timer (Issue #751).
+    /// </summary>
+    private void UpdateDrillingBarTimer(float delta)
+    {
+        if (_drillingChargeBarPending)
+        {
+            _drillingChargeBarHideTimer -= delta;
+            if (_drillingChargeBarHideTimer <= 0.0f)
+            {
+                _drillingChargeBarPending = false;
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Draw the drilling bullets single-charge indicator.
+    /// Cyan = charge available, dark = charge used.
+    /// </summary>
+    private void DrawDrillingChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float borderWidth = 1.0f;
+
+        bool chargeAvailable = !_drillingBulletsUsed;
+        Color fillColor = chargeAvailable
+            ? new Color(0.2f, 0.8f, 0.9f, 0.85f)   // Cyan — charge available
+            : new Color(0.2f, 0.2f, 0.2f, 0.4f);    // Dark grey — charge spent
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        Rect2 bgRect = new Rect2(-barWidth / 2.0f, barYOffset, barWidth, barHeight);
+        DrawRect(bgRect, bgColor);
+        DrawRect(bgRect, fillColor);
+        DrawRect(bgRect, borderColor, false, borderWidth);
+    }
+
+    #endregion
+
     #region Force Field System (Issue #676)
 
     /// <summary>
@@ -5803,6 +5952,11 @@ public partial class Player : BaseCharacter
             }
         }
 
+        // Draw drilling bullets charge bar (Issue #751)
+        if (_drillingBulletsEquipped && (_drillingChargeBarPending || !_drillingBulletsUsed))
+        {
+            DrawDrillingChargeBar();
+        }
 
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
