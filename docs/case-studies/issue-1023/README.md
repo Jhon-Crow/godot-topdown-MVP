@@ -10,151 +10,140 @@
 > Lightning should illuminate the entire screen.
 > Make it look cooler.
 
-## Analysis
+---
 
-### Current State of Black Metal Mode
+## Timeline / Sequence of Events
 
-Black Metal difficulty mode currently provides:
-- **Visual Filter:** B&W + red color palette via `black_metal.gdshader`
-- **Gameplay Modifiers:** 25% less HP, 25% faster movement, 0.3s enemy reaction time
-- **Effects Manager:** `BlackMetalEffectsManager` handles the visual filter
+### Phase 1: Initial Implementation (commit 01c12951)
 
-### Enemy Hit Detection
+The first implementation created `BlackMetalLightningEffectsManager` and `lightning_flash.gdshader`.
 
-Enemy hits are processed in `scripts/objects/enemy.gd`:
-- `on_hit_with_bullet_info()` - main entry point for hit detection
-- Emits `hit` signal that can be listened to
-- `HitEffectsManager` already provides saturation boost and time slowdown on hits
+**The original shader (v1) used `hint_screen_texture` approach:**
+```glsl
+void fragment() {
+    vec4 screen_color = texture(TEXTURE, UV);  // <-- TEXTURE on ColorRect = 1×1 white pixel
+    vec3 brightened = screen_color.rgb + flash_color * intensity * brightness_boost;
+    COLOR.rgb = mix(screen_color.rgb, brightened, intensity);
+    COLOR.a = screen_color.a;
+}
+```
 
-### Existing Effect Systems
+**Root cause of v1 failure:** `TEXTURE` on a `ColorRect` node is a 1×1 white pixel, not the screen. So `screen_color = vec4(1,1,1,1)` always. The "brightened" result was just a more-white rectangle → **screen blink only, no bolt visible**.
 
-The project has several effect patterns we can follow:
-1. **ExplosionFlash** - PointLight2D with fade animation for explosions
-2. **MuzzleFlash** - Brief light flash with particles
-3. **HitEffectsManager** - Screen-wide effects using CanvasLayer + ColorRect shader
-4. **BlackMetalEffectsManager** - Fullscreen shader overlay
+---
 
-## Solution Design
+### Phase 2: Trigger Fix for C# Weapons (commit 89996744)
 
-### Core Concept
+The player was using a Sniper Rifle (C# weapon). The original `trigger_lightning` call was only in `scripts/projectiles/bullet.gd` (GDScript). All C# projectile/weapon classes had their own `TriggerPlayerHitEffects()` methods that were not updated:
 
-Create a **BlackMetalLightningEffectsManager** autoload that:
-1. Listens for enemy hit events when Black Metal mode is active
-2. Triggers screen-wide lightning flash effect
-3. Creates diverse lightning bolt visuals
-4. Plays thunder sound effects
+- `Scripts/Projectiles/Bullet.cs`
+- `Scripts/Projectiles/SniperBullet.cs`
+- `Scripts/Projectiles/ShotgunPellet.cs`
+- `Scripts/Weapons/SniperRifle.cs`
+- `Scripts/Autoload/ReplayManager.cs`
 
-### Technical Implementation
+This commit added `trigger_lightning()` to all five C# classes. After this fix, lightning IS triggering on enemy hits (confirmed in game logs).
 
-#### 1. Lightning Flash Effect
+---
 
-Use a **CanvasLayer** with **ColorRect** + custom shader approach:
-- White flash that illuminates entire screen
-- Quick flash (0.1-0.2s) with rapid fadeout
-- Randomized intensity for visual diversity
-- Multiple flash patterns (single, double, triple flash)
+### Phase 3: Procedural Bolt Shader (commit 03231c17)
 
-#### 2. Lightning Bolt Visual (Optional)
+The v1 blank-texture shader was replaced with a procedural bolt shader that draws an actual jagged lightning bolt using SDF + FBM noise. The shader used the correct overlay approach (no `hint_screen_texture`).
 
-Based on [Godot Shaders - Lightning](https://godotshaders.com/shader/lightning/):
-- Procedural lightning bolts using Fractal Brownian Motion + Perlin Noise
-- Randomized position and shape for each hit
-- Can be toggled for performance
+**But the user still reported: "сейчас экран просто моргает когда должна появляться молния"**
+(Translation: "the screen still just blinks when lightning should appear")
 
-#### 3. Integration Points
+---
 
-- Hook into `HitEffectsManager` or create dedicated manager
-- Listen to enemy `hit` signal
-- Check `DifficultyManager.is_black_metal_mode()` before triggering
+### Phase 4: Root Cause Analysis of v2 Shader (current investigation)
 
-### Visual Diversity
+**Game log analysis** (`game_log_20260317_010325.txt`) confirmed:
+- Lightning IS triggering correctly (TRIPLE, DOUBLE, SINGLE strikes logged)
+- Shader logs show "Lightning bolt shader loaded" (new v2 shader, not old)
+- Yet user still sees white blink behavior
 
-To make the effect look diverse:
-1. **Randomized intensity:** 0.8-1.0 energy multiplier
-2. **Flash patterns:** Single (40%), double (40%), triple (20%)
-3. **Flash duration variation:** 0.08-0.15 seconds
-4. **Optional lightning bolt position:** Random screen positions
-5. **Color variation:** Pure white to slight blue tint
+**Root cause of v2 failure: missing `render_mode blend_add`**
 
-## Implementation Plan
+The v2 shader used `shader_type canvas_item` without specifying a blend mode, which defaults to standard alpha compositing. In standard alpha blending:
 
-1. Create `BlackMetalLightningEffectsManager` autoload
-2. Create lightning flash shader (`lightning_flash.gdshader`)
-3. Integrate with enemy hit detection
-4. Add visual diversity through randomization
-5. Register autoload in `project.godot`
-6. Test thoroughly
+```
+final_pixel = shader_output * shader_alpha + scene_pixel * (1 - shader_alpha)
+```
 
-## Research Sources
+The shader computed a **screen-wide ambient flash** at `flash_strength = 0.35` opacity covering the whole screen:
+```glsl
+float screen_glow = flash_strength * 0.35;  // = 0.35 at progress=0
+float final_alpha = clamp(screen_alpha + bolt_alpha * 0.9, 0.0, 1.0);
+// At non-bolt pixel: final_alpha ≈ 0.35, final_color = vec3(0.88, 0.92, 1.0)
+```
 
-- [Godot Shaders - Lightning](https://godotshaders.com/shader/lightning/) - Fractal Brownian Motion approach
-- [Godot Shaders - 2D Lightning](https://godotshaders.com/shader/2d-lightning/) - Pixel art lightning
-- [Godot Shaders - Random 2D Lightning Strikes](https://godotshaders.com/shader/random-2d-lightning-strikes/) - Random bolt positioning
-- [Godot Shaders - Flash Shader](https://godotshaders.com/shader/flash-shader/) - Screen flash techniques
-- [Godot Docs - PointLight2D](https://docs.godotengine.org/en/stable/classes/class_pointlight2d.html) - 2D lighting
+This means **35% of each pixel on the entire screen** was covered by a cool-white overlay at peak intensity — visually identical to the original white blink.
 
-## Implementation
+The bolt itself (core width `0.003 UV = ~3.8 pixels`) was technically drawn, but it was:
+1. Invisible against the 35% white background already covering the whole screen
+2. Very thin relative to the screen-wide white fill
 
-### Files Created
+**Additional technical factors:**
+- Classic horror films have the bolt as the dominant visual element, not the ambient fill
+- Without `blend_add`, any non-zero alpha on non-bolt pixels produces the "blink" look
+- With `blend_add`, black = transparent (adds nothing), bright = adds light to scene
 
-1. **`scripts/autoload/black_metal_lightning_effects_manager.gd`**
-   - Main autoload manager for lightning effects
-   - Handles activation/deactivation based on difficulty mode
-   - Implements randomized flash patterns (single, double, triple)
-   - Uses delayed activation to prevent white screen issues
+---
 
-2. **`scripts/shaders/lightning_flash.gdshader`**
-   - Custom shader for screen-wide flash effect
-   - Additive brightness blending for dramatic illumination
-   - Smooth fadeout for natural lightning look
+## Root Cause Summary
 
-3. **`tests/unit/test_black_metal_lightning.gd`**
-   - Unit tests for lightning effects
-   - Tests activation logic, constants, and integration
+| Version | Root Cause | Visual Result |
+|---------|-----------|---------------|
+| v1 shader | `TEXTURE` on ColorRect = 1×1 white pixel, no bolt drawn | White blink |
+| v2 shader | Missing `render_mode blend_add`; 35% white ambient fill dominated | White blink |
+| v3 shader | `render_mode blend_add` + corona instead of screen fill | Actual lightning bolt visible |
 
-### Files Modified
+---
 
-1. **`project.godot`**
-   - Added `BlackMetalLightningEffectsManager` autoload
+## Fix: v3 Shader with `render_mode blend_add`
 
-2. **`scripts/projectiles/bullet.gd`**
-   - Added lightning trigger in `_trigger_player_hit_effects()`
+The fix adds `render_mode blend_add;` to the shader and changes the visual composition:
 
-3. **`scripts/projectiles/shrapnel.gd`**
-   - Added lightning trigger for player-thrown grenade hits
+```glsl
+shader_type canvas_item;
+render_mode blend_add;  // ← key fix: black=invisible, bright=adds light to scene
+```
 
-4. **`scripts/autoload/replay_system.gd`**
-   - Added lightning trigger in `_trigger_replay_hit_effect()`
+With additive blending:
+- `COLOR = vec4(0.0, 0.0, 0.0, 1.0)` → adds nothing to scene (equivalent to transparent)
+- `COLOR = vec4(1.0, 1.0, 1.0, 1.0)` → makes that pixel fully white by adding maximum light
+- The bolt's background (where no bolt) stays completely invisible
+- The bolt streak itself adds bright blue-white light to the scene
+- A tight corona near the origin adds a zone of extra brightness (but not screen-wide)
 
-## Expected Result
+**Visual result:** Actual jagged lightning bolt visible on screen, with surrounding blue-white glow, striking from top of screen downward — classic horror film lightning effect.
 
-When playing in Black Metal mode, each enemy hit will trigger:
-1. A bright white screen flash that illuminates everything
-2. Rapid fadeout creating a lightning-like effect
-3. Visual diversity through randomized flash patterns and intensity
-4. Enhanced "Black Metal" atmosphere with dramatic lighting
+---
 
-## Technical Details
+## Files Changed
 
-### Flash Patterns
+### `scripts/shaders/lightning_flash.gdshader`
+- Added `render_mode blend_add;`
+- Replaced screen-wide ambient flash with tight directional corona near bolt origin
+- Increased bolt widths (core 0.003→0.004, glow 0.012→0.018, outer 0.04→0.055)
+- Made glow color more vivid blue-white (0.65/0.75/1.0 → 0.55/0.70/1.0)
+- Changed final output from alpha-controlled to `vec4(final_rgb * intensity, 1.0)`
+- Removed aspect ratio correction (was causing slight distortion in SDF)
 
-| Pattern | Probability | Flashes |
-|---------|-------------|---------|
-| Single  | 50%         | 1       |
-| Double  | 35%         | 2       |
-| Triple  | 15%         | 3       |
+---
 
-### Timing
+## References
 
-- **Flash duration:** 0.06-0.12 seconds (randomized)
-- **Gap between flashes:** 0.04 seconds
-- **Intensity:** 0.7-1.0 (randomized)
+- **Godot Issue #79914:** `hint_screen_texture` glitches in Compatibility mode (explains why screen texture sampling was avoided)
+- **Godot Issue #66458:** OpenGL Compatibility renderer issues tracker
+- **godotshaders.com lightning shaders:** Confirmed `render_mode blend_add` is standard for lightning overlays
+- **Classic horror film lightning:** Blue-white bolt as dominant visual; ambient fill secondary/localized
 
-### Layer Order
+---
 
-| Layer | Effect |
-|-------|--------|
-| 97    | Black Metal B&W+red filter |
-| 98    | Lightning flash |
-| 100   | Hit effects (saturation) |
-| 101   | Penultimate hit effects |
+## Game Logs
+
+| File | Description |
+|------|-------------|
+| `game_log_20260312_014153.txt` | First test after trigger fix — lightning only fired on player-damage, not on enemy hit |
+| `game_log_20260317_010325.txt` | Second test after v2 shader — lightning fires correctly but still looks like white blink |
