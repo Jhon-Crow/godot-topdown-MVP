@@ -2836,6 +2836,10 @@ func _draw_trajectory_glasses() -> void:
 	if not _trajectory_glasses.is_active:
 		return
 
+	# Skip drawing during the "off" phase of the low-time blink (Issue #1049).
+	if not _trajectory_glasses.trajectory_ray_visible:
+		return
+
 	var points: Array[Vector2] = _trajectory_glasses.trajectory_local_points
 	if points.size() < 2:
 		return
