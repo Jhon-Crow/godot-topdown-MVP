@@ -43,6 +43,29 @@ The enemies spawned and functioned in CastleLevel, but the user requested placem
 - `scripts/levels/test_tier.gd` - Updated enemy count comment
 - `tests/unit/test_level_scripts.gd` - Updated mock enemy counts and test assertions
 
+## Second Feedback (2026-02-09)
+
+User reported "RPG wasn't added" and provided a new game log. However, analysis of `game_log_20260209_110330.txt` confirms:
+
+- RpgEnemy1 spawned at (3700, 1400) in TestTier ✅
+- RpgEnemy2 spawned at (2000, 2200) in TestTier ✅
+- RpgEnemy1 entered COMBAT state and fired (GUNSHOT range=2500 = RPG loudness) ✅
+- After first shot, RpgEnemy1 subsequent shots used range=1469 (PM loudness) = weapon switch worked ✅
+- RpgEnemy2 same pattern ✅
+
+The RPG enemies ARE present and functioning. The user may have been testing with an older cached build. The weapon switching to PM is confirmed working by the different sound propagation ranges in the log.
+
+## Merge Conflicts Resolved (2026-03-16)
+
+Merged latest `main` branch which included changes from issues #858, #675, #934, #954, #883, #921, #636.
+Resolved conflicts:
+- `enemy.gd`: integrated RPG no-lead-prediction flag into new aggression logic; preserved RPG no-shell-sound into new sound cooldown logic; kept both `_switch_to_secondary_weapon` (Issue #583) and `_setup_enemy_flashlight` (Issue #824)
+- `test_enemy.gd`: kept both RPG tests and new Issue #883/#921 tests
+- `test_level_scripts.gd`: kept PM ammo multiplier from main + updated enemy count to 12
+
+Also compacted `_switch_to_secondary_weapon` from 20→10 lines to stay under the 5000-line architecture limit.
+
 ## Logs
 
-- `game_log_20260208_193502.txt` - Game log from user testing showing RPG enemies in CastleLevel
+- `game_log_20260208_193502.txt` - Game log from user testing showing RPG enemies in CastleLevel (wrong level)
+- `game_log_20260209_110330.txt` - Game log confirming RPG enemies working correctly in TestTier
