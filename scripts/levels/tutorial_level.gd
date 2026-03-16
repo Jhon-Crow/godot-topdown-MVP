@@ -791,6 +791,10 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 ## This allows the ammo counter to update immediately as each shell is loaded.
 ## Bug fix #7: also updates the bolt-cycle hint to reflect the remaining shells to load.
 ## Bug fix round 4: updates using full reload hint builder that also tracks reload state.
+## Issue #1025 fix: skip hint update when ShellCountChanged fires due to a shot (reload_state=0)
+##   while the full-reload hint is active. Without this guard, firing extra shots after the
+##   2nd shot overwrites the full-reload hint with the state=0 (open-bolt highlighted) format,
+##   causing the one-step lag: bolt-open no longer advances the highlight until a shell loads.
 func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 	# Get the reserve ammo from the weapon for display
 	var reserve_ammo: int = 0
@@ -802,8 +806,10 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 		if shotgun != null and shotgun.get("ReloadState") != null:
 			reload_state = int(shotgun.ReloadState)
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
-	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state
-	if _hint_labels.has(HINT_BOLT_CYCLE):
+	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state.
+	# Issue #1025: skip update when reload_state=0 (shot fired, not reloading) and the full-reload
+	# hint is active — otherwise the hint resets to state=0 (open-bolt highlighted) on every shot.
+	if _hint_labels.has(HINT_BOLT_CYCLE) and (reload_state != 0 or not _shotgun_full_reload_active):
 		var label: RichTextLabel = _hint_labels[HINT_BOLT_CYCLE]
 		if is_instance_valid(label):
 			label.text = _build_shotgun_full_reload_hint_bbcode(reload_state)
