@@ -947,8 +947,10 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 		if weapon != null and weapon.get("ReloadState") != null:
 			reload_state = int(weapon.ReloadState)
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
-	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state
-	if _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+	# Bug fix #7 + round 4: update bolt-cycle hint with new shell count and current reload state.
+	# Issue #1025: skip update when reload_state=0 (shot fired, not reloading) and the full-reload
+	# hint is active — otherwise the hint resets to state=0 (open-bolt highlighted) on every shot.
+	if _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE) and (reload_state != 0 or not _tutorial_shotgun_full_reload_active):
 		var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
 		if is_instance_valid(label):
 			label.text = _build_tutorial_shotgun_full_reload_hint_bbcode(reload_state)
@@ -2262,14 +2264,16 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 
 
 ## Return the number of shells the shotgun still needs to fill up to capacity (Bug fix #7).
+## Issue #1025: use ShellsInTube/TubeMagazineCapacity (same as tutorial_level.gd) instead of
+##   CurrentAmmo/MaxAmmo which the Shotgun does not populate.
 func _get_tutorial_shotgun_shells_to_load() -> int:
 	if _tutorial_shotgun == null:
 		return 8
-	var current_ammo = _tutorial_shotgun.get("CurrentAmmo")
-	var max_ammo = _tutorial_shotgun.get("MaxAmmo")
-	if current_ammo == null or max_ammo == null:
+	var shells_in_tube = _tutorial_shotgun.get("ShellsInTube")
+	var tube_capacity = _tutorial_shotgun.get("TubeMagazineCapacity")
+	if shells_in_tube == null or tube_capacity == null:
 		return 8
-	return int(max_ammo) - int(current_ammo)
+	return int(tube_capacity) - int(shells_in_tube)
 
 
 ## Get the unique color for a tutorial hint by its key (Issue #945).
