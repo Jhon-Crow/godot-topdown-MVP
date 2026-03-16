@@ -16,7 +16,8 @@ enum ActiveItemType {
 	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
-	LASER_SIGHT        # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	ARMORED_SKIN       # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
 }
 
 ## Currently selected active item type.
@@ -38,7 +39,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
-	ActiveItemType.LASER_SIGHT: true           # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.ARMORED_SKIN: true          # No unlock condition — freely available from start (Issue #1045)
 }
 
 ## Active item data for UI and selection.
@@ -98,6 +100,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Laser Sight",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+	},
+	ActiveItemType.ARMORED_SKIN: {
+		"name": "Armored Skin",
+		"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
+		"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
 	}
 }
 
@@ -227,6 +234,11 @@ func has_trajectory_glasses() -> bool:
 ## Check if laser sight is currently equipped (Issue #947).
 func has_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if armored skin is currently equipped (Issue #1045).
+func has_armored_skin() -> bool:
+	return current_active_item == ActiveItemType.ARMORED_SKIN
 
 
 ## Get the laser sight color (purple).

@@ -120,7 +120,8 @@ class MockActiveItemManager:
 		BREAKER_BULLETS = 6,
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
-		LASER_SIGHT = 9
+		LASER_SIGHT = 9,
+		ARMORED_SKIN = 10
 	}
 
 	## Currently selected active item type
@@ -177,6 +178,11 @@ class MockActiveItemManager:
 			"name": "Laser Sight",
 			"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+		},
+		10: {
+			"name": "Armored Skin",
+			"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
+			"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
 		}
 	}
 
@@ -265,6 +271,10 @@ class MockActiveItemManager:
 	## Check if laser sight is currently equipped
 	func has_laser_sight() -> bool:
 		return current_active_item == ActiveItemType.LASER_SIGHT
+
+	## Check if armored skin is currently equipped (Issue #1045)
+	func has_armored_skin() -> bool:
+		return current_active_item == ActiveItemType.ARMORED_SKIN
 
 
 var manager: MockActiveItemManager
@@ -627,7 +637,7 @@ class MockArmoryWithActiveItems:
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
-		10: {"name": "Ricochet Points", "description": "Ricochet Points — passive: +30% ricochet chance"}
+		10: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."}
 	}
 
 	## Applied active item type
@@ -954,10 +964,13 @@ func test_armory_select_trajectory_glasses() -> void:
 
 func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void:
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
-	# Its effect is now part of Trajectory Glasses. Ensure no item at index 10 exists.
+	# Its effect is now part of Trajectory Glasses.
+	# Issue #1045: Index 10 is now ARMORED_SKIN — verify it is NOT Ricochet Points.
 	var data := manager.get_active_item_data(10)
-	assert_true(data.is_empty(),
-		"There should be no active item at index 10 — RICOCHET_POINTS was removed (Issue #1028)")
+	assert_false(data.is_empty(),
+		"Index 10 is now ARMORED_SKIN (Issue #1045), not RICOCHET_POINTS")
+	assert_ne(data.get("name", ""), "Ricochet Points",
+		"RICOCHET_POINTS should not exist — removed in Issue #1028")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
