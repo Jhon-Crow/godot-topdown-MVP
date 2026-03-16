@@ -89,6 +89,16 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 		"enemy_count": 20,
 		"map_size": "5000x4000"
+	},
+	{
+		"name": "Decadence",
+		"name_ru": "Декаданс",
+		"path": "res://scenes/levels/DecadenceLevel.tscn",
+		"description": "Hotline Miami: Chapter Three. Neon nightclub with dance floor, bar, VIP rooms, and back alley. Synthwave aesthetic.",
+		"preview_color": Color(0.1, 0.03, 0.18, 1.0),
+		"preview_accent": Color(1.0, 0.2, 0.8, 1.0),
+		"enemy_count": 12,
+		"map_size": "2400x2000"
 	}
 ]
 
