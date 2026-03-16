@@ -272,6 +272,14 @@ func _ready() -> void:
 		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
 			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
 
+	# Apply extended magazine passive item total ammo reduction (Issue #1065)
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("get_total_ammo_multiplier"):
+		var ammo_mult: float = active_item_manager.get_total_ammo_multiplier()
+		if ammo_mult != 1.0:
+			max_ammo = maxi(1, int(max_ammo * ammo_mult))
+			FileLogger.info("[Player] Extended Magazine: total ammo reduced to %d (multiplier=%.2f)" % [max_ammo, ammo_mult])
+
 	_current_ammo = max_ammo
 	_current_health = max_health
 	_is_alive = true
