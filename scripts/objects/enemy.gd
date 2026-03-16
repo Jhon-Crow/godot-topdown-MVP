@@ -29,8 +29,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
+## Weapon types: RIFLE, SHOTGUN, UZI, MACHETE (melee, #579), MACHINE_GUN (PKM belt-fed, #1033).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, MACHINE_GUN }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -377,6 +377,7 @@ var _grenade_component: EnemyGrenadeComponent = null
 
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
+var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
@@ -491,6 +492,8 @@ func _configure_weapon_type() -> void:
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
 	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
+	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033: machine gun belt override
+	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033: machine gun long reload override
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -1109,20 +1112,14 @@ func _update_suppression(delta: float) -> void:
 
 ## Update reload state.
 func _update_reload(delta: float) -> void:
-	if not _is_reloading:
-		return
+	if not _is_reloading: return
 	_reload_timer += delta
-	if _reload_timer >= reload_time:
-		_finish_reload()
+	if _reload_timer >= reload_time: _finish_reload()
 
 ## Start reloading the weapon.
 func _start_reload() -> void:
-	# Can't reload if already reloading or no reserve ammo
-	if _is_reloading or _reserve_ammo <= 0:
-		return
-	_is_reloading = true
-	_reload_timer = 0.0
-	reload_started.emit()
+	if _is_reloading or _reserve_ammo <= 0: return
+	_is_reloading = true; _reload_timer = 0.0; reload_started.emit()
 	_log_debug("Reloading... (%d reserve ammo)" % _reserve_ammo)
 
 ## Finish the reload process.
@@ -1145,23 +1142,22 @@ func _finish_reload() -> void:
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
 	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
-	# Can't shoot if reloading
-	if _is_reloading:
-		return false
+	if _is_reloading: return false
 
-	# Can't shoot if no ammo in magazine
 	if _current_ammo <= 0:
-		# Try to start reload if we have reserve ammo
-		if _reserve_ammo > 0:
-			_start_reload()
+		if _reserve_ammo > 0: _start_reload()
 		else:
-			# No ammo at all - emit depleted signal once
 			if not _goap_world_state.get("ammo_depleted", false):
-				_goap_world_state["ammo_depleted"] = true
-				ammo_depleted.emit()
-				_log_debug("All ammunition depleted!")
+				_goap_world_state["ammo_depleted"] = true; ammo_depleted.emit(); _log_debug("All ammunition depleted!")
+				if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active: _activate_machine_gunner_pm_fallback()  # #1033
 		return false
 	return true
+## [#1033] Machine gunner PM fallback: switch to RIFLE-config sidearm and retreat.
+func _activate_machine_gunner_pm_fallback() -> void:
+	_machine_gunner_pm_active = true; weapon_type = WeaponType.RIFLE; _configure_weapon_type()
+	magazine_size = 8; total_magazines = 2; _current_ammo = magazine_size; _reserve_ammo = magazine_size
+	_is_reloading = false; _reload_timer = 0.0; _goap_world_state["ammo_depleted"] = false
+	_log_to_file("[#1033] Machine gunner belts empty — switched to PM, retreating"); _transition_to_retreating()
 
 ## Process the AI state machine.
 func _process_ai_state(delta: float) -> void:
@@ -4143,6 +4139,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0) -> void:
 	if not _is_alive:
 		return
+
+	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
+	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation).dot(-hit_direction.normalized()) >= 0.9659 and randf() < 0.30:
+		_log_to_file("[#1033] Machine gunner front-arc hit ignored"); hit.emit(); _show_hit_flash(); return
 
 	hit.emit()
 
