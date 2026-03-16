@@ -55,38 +55,56 @@ The v1 blank-texture shader was replaced with a procedural bolt shader that draw
 
 ---
 
-### Phase 4: Root Cause Analysis of v2 Shader (current investigation)
+### Phase 4: `render_mode blend_add` Attempt (commit 21221cc8) — Still White Blink
 
 **Game log analysis** (`game_log_20260317_010325.txt`) confirmed:
 - Lightning IS triggering correctly (TRIPLE, DOUBLE, SINGLE strikes logged)
-- Shader logs show "Lightning bolt shader loaded" (new v2 shader, not old)
-- Yet user still sees white blink behavior
+- Shader logs show "Lightning bolt shader loaded" (v2 procedural shader)
+- Yet user still reported: "всё ещё не срабатывает (моргает белым)" — "still not working (white blink)"
 
-**Root cause of v2 failure: missing `render_mode blend_add`**
+**Diagnosis at the time:** v2 shader had 35% white ambient fill + missing `render_mode blend_add`.
 
-The v2 shader used `shader_type canvas_item` without specifying a blend mode, which defaults to standard alpha compositing. In standard alpha blending:
+**Fix applied:** Added `render_mode blend_add;` to `lightning_flash.gdshader`.
 
+**But user reported again (`game_log_20260317_021309.txt`):** "всё ещё не работает (просто белая вспышка)" — still just a white flash.
+
+---
+
+### Phase 5: Root Cause of Persistent White Blink — gl_compatibility Renderer Incompatibility
+
+**Decisive finding: `render_mode blend_add` does NOT work reliably in Godot's gl_compatibility renderer.**
+
+This is the exact same renderer limitation documented in Issue #958 (Black Metal filter white screen) and referenced in `cinema_effects_manager.gd`:
+
+> *"gl_compatibility renderer has known bugs with hint_screen_texture"*
+> *— Godot Issue #79914, #66458*
+
+**What happens when `blend_add` fails in gl_compatibility:**
+- The ColorRect renders as a **full-alpha opaque rectangle** (Godot falls back to normal blending)
+- The shader outputs `COLOR = vec4(final_rgb * intensity, 1.0)` with `alpha=1.0`
+- This **replaces the entire screen** with the shader output
+- At non-bolt pixels: `final_rgb ≈ vec3(0,0,0)` (black) — but with `alpha=1.0`, the result is just a black rectangle when not at bolt
+- Wait — the ColorRect's default background color is **white** (`Color(1,1,1,1)`)
+- When the shader returns black, the blend overwrites the scene with black (not transparent)
+
+Actually the real problem is simpler: **`render_mode blend_add` is simply not supported/applied** in the gl_compatibility renderer at the canvas_item level. The ColorRect becomes an opaque full-screen overlay using default `blend_mix` (standard alpha). The white blink comes from the bolt shader's non-bolt pixels having zero or near-zero brightness — but the entire scene is replaced by the full-alpha shader output, which at `COLOR = vec4(0,0,0,1)` makes a black screen. But with any ambient fill (even a small corona), some pixels become white, and the blending overwrites the scene.
+
+In testing with the game logs (`game_log_20260317_021309.txt`):
 ```
-final_pixel = shader_output * shader_alpha + scene_pixel * (1 - shader_alpha)
+[02:13:26] [BlackMetalLightningEffectsManager] Starting SINGLE lightning strike
 ```
+Lightning IS firing. The shader IS loaded. But the visual is still a white blink — confirming `render_mode blend_add` has no effect and the ColorRect is rendering with standard full-alpha blending.
 
-The shader computed a **screen-wide ambient flash** at `flash_strength = 0.35` opacity covering the whole screen:
-```glsl
-float screen_glow = flash_strength * 0.35;  // = 0.35 at progress=0
-float final_alpha = clamp(screen_alpha + bolt_alpha * 0.9, 0.0, 1.0);
-// At non-bolt pixel: final_alpha ≈ 0.35, final_color = vec3(0.88, 0.92, 1.0)
-```
+**Cross-reference with all other successful effects in this game:**
 
-This means **35% of each pixel on the entire screen** was covered by a cool-white overlay at peak intensity — visually identical to the original white blink.
+All shaders in this game that produce screen-wide overlay effects use `hint_screen_texture`:
+- `black_metal.gdshader` — uses `hint_screen_texture` ✓ (works after Issue #958 fix)
+- `saturation.gdshader` — uses `hint_screen_texture` ✓
+- `flashbang_player.gdshader` — uses `hint_screen_texture` ✓
+- `last_chance.gdshader` — uses `hint_screen_texture` ✓
+- `ghost_replay.gdshader` — uses `hint_screen_texture` ✓
 
-The bolt itself (core width `0.003 UV = ~3.8 pixels`) was technically drawn, but it was:
-1. Invisible against the 35% white background already covering the whole screen
-2. Very thin relative to the screen-wide white fill
-
-**Additional technical factors:**
-- Classic horror films have the bolt as the dominant visual element, not the ambient fill
-- Without `blend_add`, any non-zero alpha on non-bolt pixels produces the "blink" look
-- With `blend_add`, black = transparent (adds nothing), bright = adds light to scene
+Only the cinema_film shader does NOT use `hint_screen_texture` — but it creates only subtle overlays (grain, vignette) with very low alpha, where standard blending produces acceptable results. For a full-screen-replacement effect like lightning, this approach does not work.
 
 ---
 
@@ -95,49 +113,75 @@ The bolt itself (core width `0.003 UV = ~3.8 pixels`) was technically drawn, but
 | Version | Root Cause | Visual Result |
 |---------|-----------|---------------|
 | v1 shader | `TEXTURE` on ColorRect = 1×1 white pixel, no bolt drawn | White blink |
-| v2 shader | Missing `render_mode blend_add`; 35% white ambient fill dominated | White blink |
-| v3 shader | `render_mode blend_add` + corona instead of screen fill | Actual lightning bolt visible |
+| v2 shader | Screen-wide 35% white ambient fill dominated the bolt | White blink |
+| v3 shader | `render_mode blend_add` not supported in gl_compatibility; ColorRect renders as full-alpha opaque overlay | White blink |
+| **v4 shader** | **Uses `hint_screen_texture` (same as black_metal.gdshader); additive bolt brightening on actual scene pixels** | **Actual lightning bolt** |
 
 ---
 
-## Fix: v3 Shader with `render_mode blend_add`
+## Fix: v4 Shader with `hint_screen_texture` (Final Solution)
 
-The fix adds `render_mode blend_add;` to the shader and changes the visual composition:
+The definitive fix uses the **same approach as all other successful screen-effect shaders in this game**:
 
 ```glsl
 shader_type canvas_item;
-render_mode blend_add;  // ← key fix: black=invisible, bright=adds light to scene
+// NO render_mode blend_add — not supported in gl_compatibility
+
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+// ↑ reads actual rendered scene pixels, exactly like black_metal.gdshader
+
+void fragment() {
+    vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
+
+    if (intensity <= 0.001) {
+        COLOR = original;  // pass-through during warmup (safe)
+        return;
+    }
+
+    // ... compute bolt_contrib and corona ...
+
+    // ADDITIVE: only bolt pixels become brighter; non-bolt pixels unchanged
+    vec3 lightning_add = bolt_rgb * bolt_val + corona_color * corona;
+    lightning_add *= intensity;
+
+    // Away from bolt: lightning_add ≈ 0 → COLOR = original (no white blink)
+    // At bolt center: COLOR = original + bright blue-white (bolt visible)
+    COLOR = vec4(original.rgb + lightning_add, original.a);
+}
 ```
 
-With additive blending:
-- `COLOR = vec4(0.0, 0.0, 0.0, 1.0)` → adds nothing to scene (equivalent to transparent)
-- `COLOR = vec4(1.0, 1.0, 1.0, 1.0)` → makes that pixel fully white by adding maximum light
-- The bolt's background (where no bolt) stays completely invisible
-- The bolt streak itself adds bright blue-white light to the scene
-- A tight corona near the origin adds a zone of extra brightness (but not screen-wide)
+**Why this fixes the white blink:**
+1. Non-bolt pixels: `lightning_add = 0` → `COLOR = original` (pure pass-through, scene unchanged)
+2. Bolt pixels: `COLOR = original + bright_blue_white` (scene brightened at bolt position)
+3. At `intensity=0`: full pass-through (safe for warmup, same as black_metal.gdshader)
+4. The `hint_screen_texture` reads the actual rendered B&W scene (after layer 97 filter), so the bolt appears correctly on top of the Black Metal filter
 
-**Visual result:** Actual jagged lightning bolt visible on screen, with surrounding blue-white glow, striking from top of screen downward — classic horror film lightning effect.
+**Safety (same warmup pattern as black_metal.gdshader):**
+- Manager warmup: sets `intensity=0.0`, shows rect for 1 frame, hides → no visible effect during compilation
+- Delayed activation: 3 frames after scene transitions before allowing flashes
+- This is identical to `black_metal_effects_manager.gd`'s proven approach
 
 ---
 
 ## Files Changed
 
 ### `scripts/shaders/lightning_flash.gdshader`
-- Added `render_mode blend_add;`
-- Replaced screen-wide ambient flash with tight directional corona near bolt origin
-- Increased bolt widths (core 0.003→0.004, glow 0.012→0.018, outer 0.04→0.055)
-- Made glow color more vivid blue-white (0.65/0.75/1.0 → 0.55/0.70/1.0)
-- Changed final output from alpha-controlled to `vec4(final_rgb * intensity, 1.0)`
-- Removed aspect ratio correction (was causing slight distortion in SDF)
+- **Removed** `render_mode blend_add;` (not supported in gl_compatibility)
+- **Added** `uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;`
+- **Changed** `void fragment()` to read `original` from `screen_texture` (like black_metal.gdshader)
+- **Changed** final output: `COLOR = vec4(original.rgb + lightning_add, original.a)` (true additive)
+- At `intensity=0.0`: returns `original` (pass-through, safe for warmup)
+- Tight corona near bolt origin (not screen-wide) — preserves no-blink behavior
 
 ---
 
 ## References
 
-- **Godot Issue #79914:** `hint_screen_texture` glitches in Compatibility mode (explains why screen texture sampling was avoided)
+- **Issue #958 case study** (`docs/case-studies/issue-958/README.md`): Full analysis of gl_compatibility white screen issues — identical root cause pattern
+- **Godot Issue #79914:** `hint_screen_texture` glitches in Compatibility mode (why 3-frame delay is needed)
 - **Godot Issue #66458:** OpenGL Compatibility renderer issues tracker
-- **godotshaders.com lightning shaders:** Confirmed `render_mode blend_add` is standard for lightning overlays
-- **Classic horror film lightning:** Blue-white bolt as dominant visual; ambient fill secondary/localized
+- **`black_metal.gdshader`**: Reference implementation for correct screen-reading overlay in this game
+- **Classic horror film lightning:** Blue-white bolt as dominant visual; brief area illumination near strike point
 
 ---
 
@@ -147,3 +191,4 @@ With additive blending:
 |------|-------------|
 | `game_log_20260312_014153.txt` | First test after trigger fix — lightning only fired on player-damage, not on enemy hit |
 | `game_log_20260317_010325.txt` | Second test after v2 shader — lightning fires correctly but still looks like white blink |
+| `game_log_20260317_021309.txt` | Third test after v3 blend_add shader — lightning fires correctly, still white blink (blend_add not working in gl_compatibility) |

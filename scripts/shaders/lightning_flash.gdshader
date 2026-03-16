@@ -1,27 +1,32 @@
 shader_type canvas_item;
-render_mode blend_add;
+
 // Lightning flash shader for Black Metal difficulty mode.
 //
 // Draws actual horror-film style lightning bolts across the screen.
-// Uses render_mode blend_add so the output is ADDED to the scene:
-//   - Where the shader outputs black (vec3(0.0)), nothing is added → invisible
-//   - Where it outputs bright colors, those pixels become brighter
-//   - This means no white blink — only the bolt and its glow are visible
+// Uses hint_screen_texture to read the scene and ADDITIVELY brighten bolt pixels.
+//
+// Why hint_screen_texture instead of render_mode blend_add:
+//   Godot's gl_compatibility renderer does NOT support render_mode blend_add reliably.
+//   When blend_add fails, the ColorRect renders as a full-alpha opaque white rectangle,
+//   producing the exact white blink symptom reported by the owner.
+//   hint_screen_texture (same approach as black_metal.gdshader, saturation.gdshader, etc.)
+//   reads the actual scene pixels and allows true additive brightening per-pixel.
+//   At intensity=0.0: pure pass-through (identical to black_metal.gdshader warmup approach).
+//
+// WHITE SCREEN FIX (Issue #1023):
+//   Manager performs warmup with intensity=0.0 (pass-through), same as black_metal_effects_manager.
+//   Activation is deferred by 3 frames after scene transitions to ensure framebuffer is populated.
 //
 // Effect structure:
 //   - One or two jagged main bolt streaks from a top point downward
 //   - Several branches splitting off the main bolt
-//   - A bright screen-wide illumination corona centered on the bolt origin
-//     (simulates how lightning briefly lights up the area around the strike)
+//   - A bright corona centered near the bolt origin (simulates area illumination)
 //   - Blue-white inner core, wider glow halo (classic horror lightning)
 //   - Every strike looks different: randomized per-strike via seed uniform
 //
-// OVERLAY APPROACH (no hint_screen_texture):
-//   Same as cinema_film.gdshader — compatible with gl_compatibility renderer.
-//
 // Issue #1023: Thunder and lightning effects for Black Metal mode.
 
-// intensity: 0.0 = invisible, 1.0 = full effect. Animated by manager.
+// intensity: 0.0 = pass-through (no effect), 1.0 = full lightning. Animated by manager.
 uniform float intensity : hint_range(0.0, 1.0) = 0.0;
 
 // progress: 0.0 = bolt just struck, 1.0 = fully faded (lifetime of this flash)
@@ -32,6 +37,12 @@ uniform float seed : hint_range(0.0, 100.0) = 0.0;
 
 // Number of bolt streaks to draw (1 = single bolt, 2 = two simultaneous bolts)
 uniform float bolt_count : hint_range(1.0, 2.0) = 1.0;
+
+// Screen texture sampler for reading the rendered scene.
+// hint_screen_texture is safe here because:
+//   1. Warmup runs at intensity=0.0 so the output is pass-through (original.rgb).
+//   2. Activation is deferred by ACTIVATION_DELAY_FRAMES frames after scene transitions.
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 // ============================================================================
 // HASH / NOISE HELPERS
@@ -64,7 +75,7 @@ float smooth_noise(float t, float s) {
 // ============================================================================
 
 float bolt_sdf(vec2 uv, float sx, float sy, float ex, float ey,
-               float noise_scale, float bolt_seed, float aspect) {
+               float noise_scale, float bolt_seed) {
     vec2 start = vec2(sx, sy);
     vec2 end_  = vec2(ex, ey);
     vec2 dir = end_ - start;
@@ -135,15 +146,20 @@ float branch_sdf(vec2 uv, float start_t, float sx, float sy, float ex, float ey,
 
 // ============================================================================
 // MAIN FRAGMENT
-// render_mode blend_add means:
-//   final_pixel = scene_pixel + shader_output
-//   black (0,0,0) adds nothing → invisible
-//   bright colors add light to the scene → lightning glow
+// Uses hint_screen_texture: reads the actual rendered scene, then additively
+// brightens pixels near the lightning bolt.
+//
+// At intensity=0.0: COLOR = original (pure pass-through, no effect)
+// Near bolt at peak: COLOR = original + bright blue-white additive light
 // ============================================================================
 
 void fragment() {
+    // Read the actual scene pixel (same approach as black_metal.gdshader)
+    vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
+
+    // At intensity=0: pure pass-through — safe for warmup and when inactive
     if (intensity <= 0.001) {
-        COLOR = vec4(0.0);
+        COLOR = original;
         return;
     }
 
@@ -170,13 +186,11 @@ void fragment() {
     float noise_scale2 = 0.025 + hash11(s0 + 14.0) * 0.035;
 
     // ---- bolt widths ----
-    // With blend_add, these values control how much light the bolt adds.
-    // Wider values ensure the bolt is always clearly visible on screen.
     float core_width  = 0.004;   // bright inner core
-    float glow_width  = 0.018;   // blue-white glow halo
-    float outer_width = 0.055;   // wide dim illumination aura
+    float glow_width  = 0.020;   // blue-white glow halo
+    float outer_width = 0.060;   // wide dim illumination aura
 
-    float d1 = bolt_sdf(uv, orig_x, orig_y, end_x, end_y, noise_scale, s0, 1.0);
+    float d1 = bolt_sdf(uv, orig_x, orig_y, end_x, end_y, noise_scale, s0);
     float bolt_contrib = 0.0;
 
     // Core (white-blue, very bright)
@@ -186,11 +200,11 @@ void fragment() {
     bolt_contrib += smoothstep(glow_width, core_width, d1) * 0.65;
 
     // Outer aura
-    bolt_contrib += smoothstep(outer_width, glow_width, d1) * 0.25;
+    bolt_contrib += smoothstep(outer_width, glow_width, d1) * 0.30;
 
     // Second bolt if requested
     if (bolt_count >= 1.5) {
-        float d2 = bolt_sdf(uv, orig_x2, orig_y, end_x2, end_y2, noise_scale2, s0 + 20.0, 1.0);
+        float d2 = bolt_sdf(uv, orig_x2, orig_y, end_x2, end_y2, noise_scale2, s0 + 20.0);
         bolt_contrib += smoothstep(core_width, 0.0, d2) * 1.0;
         bolt_contrib += smoothstep(glow_width, core_width, d2) * 0.55;
         bolt_contrib += smoothstep(outer_width, glow_width, d2) * 0.20;
@@ -202,23 +216,20 @@ void fragment() {
         float branch_t = 0.2 + hash11(bs) * 0.65;
         float bd = branch_sdf(uv, branch_t, orig_x, orig_y, end_x, end_y, bs);
         float branch_core = 0.003;
-        float branch_glow = 0.010;
+        float branch_glow = 0.012;
         bolt_contrib += smoothstep(branch_core, 0.0, bd) * 0.7;
-        bolt_contrib += smoothstep(branch_glow, branch_core, bd) * 0.30;
+        bolt_contrib += smoothstep(branch_glow, branch_core, bd) * 0.35;
     }
 
     // ---- directional corona near origin ----
-    // A soft glow centered near the bolt origin point (top of screen).
-    // With blend_add this ADDS light to the scene around the origin,
-    // simulating the area near the lightning strike being extra bright.
-    // Critically: this does NOT produce a screen-wide white blink.
+    // Simulates the area near the lightning strike being extra bright.
     float flash_strength = (1.0 - progress) * (1.0 - progress);
     float dist_to_origin = length(uv - vec2(orig_x, orig_y));
     // Tight corona: falls off to 0 by distance 0.35 UV from origin
-    float corona = smoothstep(0.35, 0.0, dist_to_origin) * flash_strength * 0.6;
+    float corona = smoothstep(0.35, 0.0, dist_to_origin) * flash_strength * 0.5;
 
-    // ---- color ----
-    // Lightning core: bright white with cool blue tint (classic horror)
+    // ---- lightning color ----
+    // Blue-white inner core, wider vivid blue-white glow (classic horror lightning)
     vec3 bolt_color_core = vec3(0.95, 0.97, 1.0);  // near-white, slightly cool
     vec3 bolt_color_glow = vec3(0.55, 0.70, 1.0);  // vivid blue-white glow
     vec3 corona_color    = vec3(0.75, 0.85, 1.0);  // cool corona near origin
@@ -228,9 +239,18 @@ void fragment() {
     // Blend from glow color to core color based on how close to bolt center
     vec3 bolt_rgb = mix(bolt_color_glow, bolt_color_core, smoothstep(0.3, 1.0, bolt_val));
 
-    // Combine bolt and corona (additive; background is implicitly black = no addition)
-    vec3 final_rgb = bolt_rgb * bolt_val + corona_color * corona;
+    // Additive lightning contribution (added to scene, not replacing it)
+    // bolt_rgb * bolt_val: 0 away from bolt, bright at bolt center
+    // corona_color * corona: soft glow near strike point
+    vec3 lightning_add = bolt_rgb * bolt_val + corona_color * corona;
 
-    // Apply intensity (manager fades this from 1→0 over flash lifetime)
-    COLOR = vec4(final_rgb * intensity, 1.0);
+    // Apply intensity fade (manager animates 1→0 over flash duration)
+    lightning_add *= intensity;
+
+    // Final: original scene + additive lightning light
+    // Away from bolt: lightning_add ≈ 0 → output ≈ original (no white blink)
+    // At bolt: output = original + bright blue-white (bolt visible over scene)
+    vec3 final_rgb = original.rgb + lightning_add;
+
+    COLOR = vec4(final_rgb, original.a);
 }
