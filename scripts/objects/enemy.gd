@@ -4961,25 +4961,15 @@ func _setup_machete_component() -> void:
 
 ## Switch from RPG to secondary weapon (PM pistol) after firing rocket (Issue #583).
 func _switch_to_secondary_weapon() -> void:
-	var c := WeaponConfigComponent.get_config(weapon_type)
-	var switch_type: int = c.get("switch_weapon_type", 0)
-	var sc := WeaponConfigComponent.get_config(switch_type)
-	shoot_cooldown = sc["shoot_cooldown"]; bullet_speed = sc["bullet_speed"]; magazine_size = sc["magazine_size"]
-	bullet_spawn_offset = sc["bullet_spawn_offset"]; weapon_loudness = sc["weapon_loudness"]
-	if sc.get("bullet_scene_path", "") != "":
-		var s := load(sc["bullet_scene_path"]) as PackedScene
-		if s: bullet_scene = s
-	if sc.get("casing_scene_path", "") != "":
-		var s := load(sc["casing_scene_path"]) as PackedScene
-		if s: casing_scene = s
+	var sc := WeaponConfigComponent.get_config(WeaponConfigComponent.get_config(weapon_type).get("switch_weapon_type", 0))
+	shoot_cooldown = sc["shoot_cooldown"]; bullet_speed = sc["bullet_speed"]; magazine_size = sc["magazine_size"]; bullet_spawn_offset = sc["bullet_spawn_offset"]; weapon_loudness = sc["weapon_loudness"]
+	if sc.get("bullet_scene_path", "") != "": var s := load(sc["bullet_scene_path"]) as PackedScene; if s: bullet_scene = s
+	if sc.get("casing_scene_path", "") != "": var s2 := load(sc["casing_scene_path"]) as PackedScene; if s2: casing_scene = s2
 	if sc.get("caliber_path", "") != "": _caliber_data = load(sc["caliber_path"])
-	_is_shotgun_weapon = sc.get("is_shotgun", false); _is_rpg_weapon = false
-	_spread_threshold = sc.get("spread_threshold", 3); _initial_spread = sc.get("initial_spread", 0.5)
-	_spread_increment = sc.get("spread_increment", 0.6); _max_spread = sc.get("max_spread", 4.0)
-	_spread_reset_time = sc.get("spread_reset_time", 0.25); _shot_count = 0; _spread_timer = 0.0
-	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size
-	_is_reloading = false; _reload_timer = 0.0
-	print("[Enemy] RPG fired, switched to %s" % WeaponConfigComponent.get_type_name(switch_type))
+	_is_shotgun_weapon = sc.get("is_shotgun", false); _is_rpg_weapon = false; _spread_threshold = sc.get("spread_threshold", 3); _initial_spread = sc.get("initial_spread", 0.5)
+	_spread_increment = sc.get("spread_increment", 0.6); _max_spread = sc.get("max_spread", 4.0); _spread_reset_time = sc.get("spread_reset_time", 0.25); _shot_count = 0; _spread_timer = 0.0
+	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size; _is_reloading = false; _reload_timer = 0.0
+	print("[Enemy] RPG fired, switched to secondary weapon")
 
 ## Setup enemy flashlight for night mode (Issue #824).
 func _setup_enemy_flashlight() -> void:
