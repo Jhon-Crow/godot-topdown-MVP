@@ -26,7 +26,8 @@ class MockActiveItemManager:
 		BREAKER_BULLETS = 6,
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
-		LASER_SIGHT = 9
+		LASER_SIGHT = 9,
+		AUTO_RELOAD = 10
 	}
 
 	## Currently selected active item type
@@ -43,7 +44,8 @@ class MockActiveItemManager:
 		6: {"name": "Breaker Bullets", "icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png", "description": "Breaker bullets."},
 		7: {"name": "Force Field", "icon_path": "res://assets/sprites/weapons/force_field_icon.png", "description": "Force field."},
 		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
-		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."}
+		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
+		10: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."}
 	}
 
 	## Check if laser sight is currently equipped (Issue #947)
@@ -250,11 +252,11 @@ func test_total_active_items_includes_laser_sight() -> void:
 		"All active item types should include LASER_SIGHT")
 
 
-func test_active_item_count_is_ten() -> void:
-	# NONE + 9 items = 10 total
+func test_active_item_count_is_eleven() -> void:
+	# NONE + 10 items = 11 total (added AUTO_RELOAD in Issue #1067)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 10,
-		"Should have 10 active item types total (NONE + 9 items including LASER_SIGHT)")
+	assert_eq(all_types.size(), 11,
+		"Should have 11 active item types total (NONE + 10 items including LASER_SIGHT and AUTO_RELOAD)")
 
 
 # ============================================================================

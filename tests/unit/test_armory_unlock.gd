@@ -83,7 +83,8 @@ class MockActiveItemManager:
 		BREAKER_BULLETS,
 		FORCE_FIELD,
 		TRAJECTORY_GLASSES, # Issue #744
-		LASER_SIGHT         # Issue #947
+		LASER_SIGHT,        # Issue #947
+		AUTO_RELOAD         # Issue #1067
 	}
 
 	# Issue #894: only FLASHLIGHT and TELEPORT_BRACERS have conditions
@@ -98,7 +99,8 @@ class MockActiveItemManager:
 		ActiveItemType.BREAKER_BULLETS: true,      # No condition — freely available from start
 		ActiveItemType.FORCE_FIELD: true,          # No condition — freely available from start
 		ActiveItemType.TRAJECTORY_GLASSES: true,   # No condition — freely available from start (Issue #744)
-		ActiveItemType.LASER_SIGHT: true           # No condition — freely available from start (Issue #947)
+		ActiveItemType.LASER_SIGHT: true,          # No condition — freely available from start (Issue #947)
+		ActiveItemType.AUTO_RELOAD: true           # No condition — freely available from start (Issue #1067)
 	}
 
 	var unlock_signals: Array = []

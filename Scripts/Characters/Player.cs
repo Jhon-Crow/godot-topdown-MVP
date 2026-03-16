@@ -1103,6 +1103,9 @@ public partial class Player : BaseCharacter
         // Initialize trajectory glasses if active item manager has them selected (Issue #744)
         InitTrajectoryGlasses();
 
+        // Initialize auto-reload if active item manager has it selected (Issue #1067)
+        InitAutoReload();
+
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
         int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
@@ -5636,6 +5639,157 @@ public partial class Player : BaseCharacter
         if (!IsInstanceValid(_forceFieldEffect))
             return false;
         return (bool)_forceFieldEffect.Call("is_protecting");
+    }
+
+    #endregion
+
+    #region Auto-Reload System (Issue #1067)
+
+    /// <summary>
+    /// The ratio by which the magazine capacity is reduced when auto-reload is active.
+    /// Magazine size = floor(original / AutoReloadMagazineDivisor).
+    /// </summary>
+    private const float AutoReloadMagazineDivisor = 2.1f;
+
+    /// <summary>
+    /// Whether the auto-reload passive item is active.
+    /// When true, killing an enemy refills the current magazine from reserves.
+    /// </summary>
+    private bool _autoReloadActive = false;
+
+    /// <summary>
+    /// Initialize the auto-reload passive item if the ActiveItemManager has it selected (Issue #1067).
+    /// Reduces magazine capacity by 2.1x and connects to enemy death signals so that
+    /// each kill tops up the current magazine from reserve ammo.
+    /// </summary>
+    private void InitAutoReload()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.AutoReload] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_auto_reload"))
+        {
+            LogToFile("[Player.AutoReload] ActiveItemManager missing has_auto_reload method");
+            return;
+        }
+
+        bool hasAutoReload = (bool)activeItemManager.Call("has_auto_reload");
+        if (!hasAutoReload)
+        {
+            LogToFile("[Player.AutoReload] Auto-reload not selected in ActiveItemManager");
+            return;
+        }
+
+        _autoReloadActive = true;
+        LogToFile("[Player.AutoReload] Auto-reload active — magazine capacity reduced 2.1x, kills refill magazine from reserves");
+
+        // Reduce magazine capacity on the current weapon
+        ReduceMagazineSizeForAutoReload();
+
+        // Connect to all existing enemy Died signals
+        ConnectAutoReloadToEnemies();
+    }
+
+    /// <summary>
+    /// Reduces the current weapon's magazine size by the auto-reload divisor (2.1x).
+    /// The new magazine size is floor(original / 2.1). Reserve ammo is adjusted accordingly.
+    /// </summary>
+    private void ReduceMagazineSizeForAutoReload()
+    {
+        if (CurrentWeapon?.WeaponData == null)
+        {
+            LogToFile("[Player.AutoReload] No current weapon or weapon data — skipping magazine size reduction");
+            return;
+        }
+
+        int originalSize = CurrentWeapon.WeaponData.MagazineSize;
+        int reducedSize = Math.Max(1, (int)(originalSize / AutoReloadMagazineDivisor));
+
+        LogToFile($"[Player.AutoReload] Reducing magazine size: {originalSize} -> {reducedSize}");
+
+        // Reinitialize magazines with the reduced size.
+        // StartingMagazineCount is used so that the total reserve round count
+        // is proportionally adjusted to match the new smaller magazines.
+        CurrentWeapon.ReinitializeMagazines(CurrentWeapon.StartingMagazineCount, reducedSize);
+    }
+
+    /// <summary>
+    /// Scans the scene for enemies and connects to their Died signal so that each
+    /// kill triggers a magazine refill.
+    /// </summary>
+    private void ConnectAutoReloadToEnemies()
+    {
+        // Enemies are parented under Environment/Enemies in level scenes.
+        // We search from the current scene root for all nodes in the "enemies" group.
+        var tree = GetTree();
+        if (tree == null)
+        {
+            LogToFile("[Player.AutoReload] No scene tree available — cannot connect to enemy signals");
+            return;
+        }
+
+        var enemies = tree.GetNodesInGroup("enemies");
+        int connected = 0;
+        foreach (Node enemy in enemies)
+        {
+            if (enemy.HasSignal("died"))
+            {
+                // Avoid double-connecting if already connected
+                if (!enemy.IsConnected("died", Callable.From(OnEnemyKilledForAutoReload)))
+                {
+                    enemy.Connect("died", Callable.From(OnEnemyKilledForAutoReload));
+                    connected++;
+                }
+            }
+        }
+
+        LogToFile($"[Player.AutoReload] Connected to {connected} enemies' died signals");
+    }
+
+    /// <summary>
+    /// Called when an enemy dies while auto-reload is active.
+    /// Refills the current magazine from reserve ammo (up to magazine capacity).
+    /// </summary>
+    private void OnEnemyKilledForAutoReload()
+    {
+        if (!_autoReloadActive || CurrentWeapon == null)
+        {
+            return;
+        }
+
+        int magazineCapacity = CurrentWeapon.WeaponData?.MagazineSize ?? 0;
+        if (magazineCapacity <= 0)
+        {
+            return;
+        }
+
+        int currentAmmo = CurrentWeapon.CurrentAmmo;
+        int needed = magazineCapacity - currentAmmo;
+
+        if (needed <= 0)
+        {
+            LogToFile("[Player.AutoReload] Kill — magazine already full, no refill needed");
+            return;
+        }
+
+        int reserve = CurrentWeapon.ReserveAmmo;
+        if (reserve <= 0)
+        {
+            LogToFile("[Player.AutoReload] Kill — no reserve ammo left to refill");
+            return;
+        }
+
+        // Transfer as much as available from reserve to fill the magazine
+        int toAdd = Math.Min(needed, reserve);
+        CurrentWeapon.CurrentAmmo = currentAmmo + toAdd;
+        // Consume the transferred bullets from the reserve (subtract from spare magazines)
+        CurrentWeapon.ConsumeReserveAmmo(toAdd);
+
+        LogToFile($"[Player.AutoReload] Kill — refilled {toAdd} rounds ({currentAmmo} -> {CurrentWeapon.CurrentAmmo}/{magazineCapacity}), reserve: {CurrentWeapon.ReserveAmmo}");
     }
 
     #endregion
