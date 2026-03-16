@@ -465,6 +465,29 @@ class AvoidFlashlightPassageAction extends GOAPAction:
 		return 100.0  # Should never happen if preconditions are correct
 
 
+## Action to coordinate group search when multiple enemies are searching (Issue #650).
+## When multiple enemies are in SEARCHING state near the same area, this action
+## ensures they use zone-based coordination instead of duplicating search areas.
+## Each enemy searches a unique angular sector for optimal coverage speed.
+class CoordinatedSearchAction extends GOAPAction:
+	func _init() -> void:
+		super._init("coordinated_search", 2.5)
+		preconditions = {
+			"player_visible": false,
+			"has_suspected_position": true,
+			"is_searching": true
+		}
+		effects = {
+			"area_patrolled": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Lower cost than solo search (3.5) to prefer coordinated search
+		if world_state.get("is_searching", false):
+			return 2.0  # Preferred over SearchLowConfidenceAction (3.0-3.5)
+		return 100.0
+
+
 ## Action to throw a grenade at the player or suspected position (Issue #657).
 ## Used by grenadier enemies to integrate grenade throwing into GOAP planning.
 ## High priority when grenadier has grenades and a trigger condition is met.
@@ -516,6 +539,8 @@ static func create_all_actions() -> Array[GOAPAction]:
 	# Flashlight detection actions (Issue #574)
 	actions.append(InvestigateFlashlightAction.new())
 	actions.append(AvoidFlashlightPassageAction.new())
+	# Group search coordination action (Issue #650)
+	actions.append(CoordinatedSearchAction.new())
 	# Grenadier grenade throw action (Issue #657)
 	actions.append(ThrowGrenadeAction.new())
 	return actions
