@@ -190,6 +190,13 @@ position = Vector2(1264, 48)
 collision_layer = 4
 collision_mask = 0
 
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallTop"]
+offset_left = -1232.0
+offset_top = -16.0
+offset_right = 1232.0
+offset_bottom = 16.0
+color = Color(0.15, 0.05, 0.2, 1)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
 shape = SubResource("RectangleShape2D_wall_h")
 
@@ -200,6 +207,13 @@ occluder = SubResource("OccluderPolygon2D_wall_h")
 position = Vector2(1264, 2080)
 collision_layer = 4
 collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallBottom"]
+offset_left = -1232.0
+offset_top = -16.0
+offset_right = 1232.0
+offset_bottom = 16.0
+color = Color(0.15, 0.05, 0.2, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
 shape = SubResource("RectangleShape2D_wall_h")
@@ -212,6 +226,13 @@ position = Vector2(48, 1064)
 collision_layer = 4
 collision_mask = 0
 
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLeft"]
+offset_left = -16.0
+offset_top = -1032.0
+offset_right = 16.0
+offset_bottom = 1032.0
+color = Color(0.15, 0.05, 0.2, 1)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
 shape = SubResource("RectangleShape2D_wall_v")
 
@@ -222,6 +243,13 @@ occluder = SubResource("OccluderPolygon2D_wall_v")
 position = Vector2(2480, 1064)
 collision_layer = 4
 collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallRight"]
+offset_left = -16.0
+offset_top = -1032.0
+offset_right = 16.0
+offset_bottom = 1032.0
+color = Color(0.15, 0.05, 0.2, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
 shape = SubResource("RectangleShape2D_wall_v")
@@ -234,6 +262,13 @@ position = Vector2(500, 350)
 collision_layer = 4
 collision_mask = 0
 
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/VIPWallRight"]
+offset_left = -12.0
+offset_top = -150.0
+offset_right = 12.0
+offset_bottom = 150.0
+color = Color(0.2, 0.05, 0.25, 1)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/VIPWallRight"]
 shape = SubResource("RectangleShape2D_wall_short_v")
 
@@ -244,6 +279,13 @@ occluder = SubResource("OccluderPolygon2D_wall_short_v")
 position = Vector2(300, 600)
 collision_layer = 4
 collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/VIPWallBottom"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.2, 0.05, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/VIPWallBottom"]
 shape = SubResource("RectangleShape2D_wall_short_h")
@@ -256,6 +298,13 @@ position = Vector2(1500, 350)
 collision_layer = 4
 collision_mask = 0
 
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/BarWallLeft"]
+offset_left = -12.0
+offset_top = -150.0
+offset_right = 12.0
+offset_bottom = 150.0
+color = Color(0.2, 0.05, 0.15, 1)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/BarWallLeft"]
 shape = SubResource("RectangleShape2D_wall_short_v")
 
@@ -266,6 +315,13 @@ occluder = SubResource("OccluderPolygon2D_wall_short_v")
 position = Vector2(1950, 600)
 collision_layer = 4
 collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/BarWallBottom"]
+offset_left = -400.0
+offset_top = -12.0
+offset_right = 400.0
+offset_bottom = 12.0
+color = Color(0.2, 0.05, 0.15, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/BarWallBottom"]
 shape = SubResource("RectangleShape2D_wall_long_h")
@@ -278,6 +334,13 @@ position = Vector2(300, 1300)
 collision_layer = 4
 collision_mask = 0
 
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/BackAlleyWallTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.15, 0.08, 0.18, 1)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/BackAlleyWallTop"]
 shape = SubResource("RectangleShape2D_wall_short_h")
 
@@ -288,6 +351,13 @@ occluder = SubResource("OccluderPolygon2D_wall_short_h")
 position = Vector2(500, 1650)
 collision_layer = 4
 collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/BackAlleyWallRight"]
+offset_left = -12.0
+offset_top = -150.0
+offset_right = 12.0
+offset_bottom = 150.0
+color = Color(0.15, 0.08, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/BackAlleyWallRight"]
 shape = SubResource("RectangleShape2D_wall_short_v")
@@ -300,6 +370,13 @@ position = Vector2(1500, 1650)
 collision_layer = 4
 collision_mask = 0
 
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/StorageWallLeft"]
+offset_left = -12.0
+offset_top = -150.0
+offset_right = 12.0
+offset_bottom = 150.0
+color = Color(0.18, 0.12, 0.1, 1)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/StorageWallLeft"]
 shape = SubResource("RectangleShape2D_wall_short_v")
 
@@ -311,6 +388,13 @@ position = Vector2(1950, 1300)
 collision_layer = 4
 collision_mask = 0
 
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/StorageWallTop"]
+offset_left = -400.0
+offset_top = -12.0
+offset_right = 400.0
+offset_bottom = 12.0
+color = Color(0.18, 0.12, 0.1, 1)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/StorageWallTop"]
 shape = SubResource("RectangleShape2D_wall_long_h")
 
@@ -321,6 +405,13 @@ occluder = SubResource("OccluderPolygon2D_wall_long_h")
 position = Vector2(950, 600)
 collision_layer = 4
 collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/DanceFloorDividerTop"]
+offset_left = -300.0
+offset_top = -12.0
+offset_right = 300.0
+offset_bottom = 12.0
+color = Color(0.2, 0.05, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/DanceFloorDividerTop"]
 shape = SubResource("RectangleShape2D_wall_mid_h")
