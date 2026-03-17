@@ -5880,11 +5880,25 @@ public partial class Player : BaseCharacter
         // not WeaponData.MagazineSize which remains at the original unreduced value.
         _autoReloadMagazineSize = reducedSize;
 
-        // Preserve total ammo: calculate how many smaller magazines equal the original total.
-        // E.g. 4 magazines of 30 = 120 bullets → ceil(120 / 14) = 9 magazines of 14 = 126 bullets.
-        // This ensures the player is NOT penalized in total ammo count.
-        int currentMagazineCount = CurrentWeapon.StartingMagazineCount;
-        int totalBullets = currentMagazineCount * originalSize;
+        // Issue #1105: The Shotgun stores its total ammo as ShellsInTube + ReserveAmmo, not as
+        // StartingMagazineCount × MagazineSize. Using StartingMagazineCount (= 4, the base default)
+        // would compute 4 × 8 = 32 total bullets, far exceeding the actual 8 + 12 = 20 available.
+        // This would create ammo from thin air.  Use the weapon's actual current ammo for Shotgun.
+        int totalBullets;
+        int currentMagazineCount;
+        if (CurrentWeapon is Shotgun shotgunForAmmoCalc)
+        {
+            totalBullets = shotgunForAmmoCalc.ShellsInTube + CurrentWeapon.ReserveAmmo;
+            currentMagazineCount = CurrentWeapon.StartingMagazineCount; // used only for log
+        }
+        else
+        {
+            // Preserve total ammo: calculate how many smaller magazines equal the original total.
+            // E.g. 4 magazines of 30 = 120 bullets → ceil(120 / 14) = 9 magazines of 14 = 126 bullets.
+            // This ensures the player is NOT penalized in total ammo count.
+            currentMagazineCount = CurrentWeapon.StartingMagazineCount;
+            totalBullets = currentMagazineCount * originalSize;
+        }
         int newMagazineCount = Math.Max(1, (int)Math.Ceiling((double)totalBullets / reducedSize));
 
         LogToFile($"[Player.AutoReload] Reducing magazine size: {originalSize} -> {reducedSize}, magazines: {currentMagazineCount} -> {newMagazineCount} (total bullets preserved: {totalBullets})");
@@ -5904,6 +5918,17 @@ public partial class Player : BaseCharacter
                 CurrentWeapon.Call("ReinitializeCylinder");
             }
             LogToFile($"[Player.AutoReload] Revolver CylinderSize updated to {reducedSize}, cylinder reinitialized");
+        }
+
+        // Issue #1105: For the Shotgun, also reduce TubeMagazineCapacity and trim ShellsInTube.
+        // ReinitializeMagazines only affects the MagazineInventory (reserve shells); the tube
+        // is tracked separately via ShellsInTube/TubeMagazineCapacity. Without this update,
+        // the kill handler compares ShellsInTube=8 against magazineCapacity=3 and always
+        // concludes "tube already full", never triggering the auto-reload refill.
+        if (CurrentWeapon is Shotgun shotgunForAutoReload)
+        {
+            shotgunForAutoReload.SetAutoReloadTubeCapacity(reducedSize);
+            LogToFile($"[Player.AutoReload] Shotgun TubeMagazineCapacity updated to {reducedSize}");
         }
     }
 
@@ -5960,10 +5985,33 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        int currentAmmo = CurrentWeapon.CurrentAmmo;
-        int needed = magazineCapacity - currentAmmo;
+        // Issue #1105: Shotgun uses ShellsInTube as its active ammo count; CurrentAmmo is
+        // always 0 (an unused placeholder in its MagazineInventory). Use the dedicated
+        // AutoRefillTube() method to top up the tube from the reserve.
+        if (CurrentWeapon is Shotgun shotgun)
+        {
+            int shellsInTube = shotgun.ShellsInTube;
+            int needed = magazineCapacity - shellsInTube;
+            if (needed <= 0)
+            {
+                LogToFile($"[Player.AutoReload] Kill — shotgun tube already full ({shellsInTube}/{magazineCapacity}), no refill needed");
+                return;
+            }
+            if (shotgun.ReserveAmmo <= 0)
+            {
+                LogToFile("[Player.AutoReload] Kill — no reserve shells left to refill shotgun tube");
+                return;
+            }
+            int shellsToAdd = Math.Min(needed, shotgun.ReserveAmmo);
+            int added = shotgun.AutoRefillTube(shellsToAdd);
+            LogToFile($"[Player.AutoReload] Kill — refilled {added} shells ({shellsInTube} -> {shotgun.ShellsInTube}/{magazineCapacity}), reserve: {shotgun.ReserveAmmo}");
+            return;
+        }
 
-        if (needed <= 0)
+        int currentAmmo = CurrentWeapon.CurrentAmmo;
+        int ammoNeeded = magazineCapacity - currentAmmo;
+
+        if (ammoNeeded <= 0)
         {
             LogToFile("[Player.AutoReload] Kill — magazine already full, no refill needed");
             return;
@@ -5980,7 +6028,7 @@ public partial class Player : BaseCharacter
         // reserve magazines into the current magazine. This is a pure transfer: the amount
         // added to the current magazine equals the amount removed from the reserve, so total
         // ammo is conserved (no ammo is created or destroyed).
-        int toAdd = Math.Min(needed, reserve);
+        int toAdd = Math.Min(ammoNeeded, reserve);
         CurrentWeapon.CurrentAmmo = currentAmmo + toAdd;
         // Remove the transferred rounds from the reserve magazines.
         CurrentWeapon.ConsumeReserveAmmo(toAdd);
