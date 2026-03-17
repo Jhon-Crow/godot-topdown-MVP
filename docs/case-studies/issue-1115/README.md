@@ -10,7 +10,8 @@
 | **Author** | Jhon-Crow |
 | **Solved by** | AI automated solver (konard) |
 | **Date opened** | 2026-03-17T21:39:02Z |
-| **Date of game log** | 2026-03-18T01:01:26Z |
+| **Date of game log (first)** | 2026-03-18T01:01:26Z |
+| **Date of game log (second)** | 2026-03-18T02:06:55Z |
 | **Predecessor issue** | [#1036 — Add Radio Jammer enemy](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1036) |
 
 ---
@@ -232,12 +233,64 @@ const LINE_WIDTH: float = 3.0
 
 ---
 
-## 9. Files in this Case Study
+## 9. Second Game Log — `game_log_20260318_020655.txt`
+
+A second log was submitted after the fix was merged to the branch. Analysis shows the same absence of cancellation.
+
+### Session summary
+
+- Captured: 2026-03-18, 02:06:55–02:07:27 (32 seconds total, two level loads)
+- Build: **Godot 4.3-stable, Windows pre-compiled exe** at `I:/Загрузки/godot exe/радио враг/Godot-Top-Down-Template.exe`
+- First level: `LabyrinthLevel` (short session, then restarted)
+- Second level: `DecadenceLevel`
+- Active item equipped: **Trajectory Glasses** (switched from Loudspeaker at 02:07:12)
+- RadioJammer spawned at: **(1100, 900)** with hp=2, radius=1000
+
+### Key event sequence (LabyrinthLevel session)
+
+```
+02:07:12  [ActiveItemManager] Active item changed → Trajectory Glasses
+02:07:13  [TrajectoryGlasses] Effect ready, charges: 2/2
+02:07:14  [ActiveItemManager.Jammer] VERBOSE: dist=1368.5 => clear   ← safe at activation
+02:07:14  [Player.TrajectoryGlasses] Space pressed - activating (charges: 2)
+02:07:14  [TrajectoryGlasses] Activated! Duration: 10.0s, Charges remaining: 1/2
+02:07:14  [ActiveItemManager.Jammer] Periodic: dist=1318.3    ← still outside range
+02:07:17  [ActiveItemManager.Jammer] Periodic: dist=120.1     ← INSIDE JAMMER RANGE (< 1000 px)
+02:07:17  [TrajectoryGlasses] _calculate_ricochet_trajectory: ...  ← effect STILL RUNNING
+02:07:18  [TrajectoryGlasses] Effect ready, charges: 2/2      ← scene reloaded, charges reset
+```
+
+**Critical observation**: At **02:07:17**, `dist=120.1` (player well inside 1000 px jammer radius). The TrajectoryGlasses effect was still calculating trajectories (logs continuing after dist=120.1). There is **no** `[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)` line anywhere in this log.
+
+### Root cause of no cancellation in second log
+
+**The user tested with a pre-compiled binary** (`I:/Загрузки/godot exe/радио враг/Godot-Top-Down-Template.exe`) that was built **before** the Issue #1115 fix was implemented. The fix exists in the source code on branch `issue-1115-d78fefdfd813`, but this binary does not include it.
+
+Evidence:
+1. No `(Issue #1115)` tag appears anywhere in the second log (our fix adds these tags on every cancellation).
+2. The cancellation code path logs `[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)` on every invocation — its absence proves the code was not present.
+3. The binary path (`радио враг` = "radio enemy" in Russian) suggests this was a specially compiled test build from an earlier commit.
+
+**The fix is correctly implemented in the source.** To verify the fix works, the user needs to rebuild from the current branch source.
+
+### Distance timeline (second log, LabyrinthLevel)
+
+| Time | Player position | Distance to Jammer (1100,900) | Status |
+|------|-----------------|-------------------------------|--------|
+| 02:07:14 | (150, 1885) | ~1368 px | **OUTSIDE** (clear) |
+| 02:07:14 | (150, 1822) | ~1318 px | **OUTSIDE** (clear) |
+| 02:07:17 | (490, 1368) | **120 px** | **INSIDE** ← bug manifests (old binary) |
+| 02:07:18 | scene reload | — | Charges reset to 2/2 |
+
+---
+
+## 10. Files in this Case Study
 
 | File | Description |
 |------|-------------|
 | `README.md` | This case study document |
-| `game_log_20260318_010126.txt` | Game log provided by the reporter demonstrating the bug |
+| `game_log_20260318_010126.txt` | First game log (2026-03-18 01:01:26) demonstrating the bug |
+| `game_log_20260318_020655.txt` | Second game log (2026-03-18 02:06:55) — same binary, same bug, fix not yet in this build |
 
 ---
 
@@ -247,11 +300,13 @@ const LINE_WIDTH: float = 3.0
 The original Issue #1036 implementation correctly blocked **new** activations while jammed, but did not add cancellation logic for **already-running** effects. Three active items (Homing Bullets, Invisibility Suit, Trajectory Glasses) were missing this check.
 
 ### Evidence
-The game log unambiguously shows:
-1. TrajectoryGlasses activated at distance=1378 px (outside jammer range) — correct
-2. Player walked to distance=289 px (inside jammer range at 01:01:45) — jammer range=1000 px
-3. TrajectoryGlasses continued running through the rest of the log (until 0.62s remaining) — bug
-4. No cancellation log line appears in the log — confirming the fix was not present
+Both game logs unambiguously show the same pattern:
+1. TrajectoryGlasses activated outside jammer range — correct
+2. Player walked inside jammer range (< 1000 px from RadioJammer at (1100, 900))
+3. TrajectoryGlasses continued running uninterrupted — bug
+4. No `(Issue #1115)` cancellation log line appears in either log — confirming the fix was not present in the tested binary
+
+Both logs were produced by the same pre-compiled Windows binary (`I:/Загрузки/godot exe/радио враг/Godot-Top-Down-Template.exe`), which predates the fix implementation on branch `issue-1115-d78fefdfd813`.
 
 ### Fix
 Added per-frame `is_active_item_jammed()` guards inside `_handle_homing_input`, `_handle_invisibility_suit_input`, and `_handle_trajectory_glasses_input` in `player.gd`. Also resized the JammerHUD prohibition sign from radius=14/width=4 to radius=10/width=3 to match Combat Disposition icon proportions.
