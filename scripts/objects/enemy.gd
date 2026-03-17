@@ -3857,7 +3857,8 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 
 	var direction := weapon_forward  # Barrel direction for realistic behavior
 	# Fire projectiles and spawn casing
-	if _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583: bypass pool, directly spawn rocket
+	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)  # Issue #455: Add muzzle flash effect
 	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
@@ -3893,6 +3894,15 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
 	elif p.get("shooter_position") != null: p.shooter_position = pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
+
+## Fire RPG rocket directly (bypass pool - Issue #583, analogous to AKGL.cs FireGrenadeLauncher).
+func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
+	if bullet_scene == null: return
+	var rocket := bullet_scene.instantiate(); rocket.global_position = pos
+	if rocket.get("direction") != null: rocket.direction = dir
+	if rocket.get("shooter_id") != null: rocket.shooter_id = get_instance_id()
+	if rocket.get("shooter_position") != null: rocket.shooter_position = pos
+	get_tree().current_scene.add_child(rocket); _log_debug("RPG: rocket spawned dir=%s" % str(dir))
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
@@ -4720,26 +4730,11 @@ func _is_player_distracted() -> bool:
 	return is_distracted
 
 ## Set a navigation target and get the direction to follow the path.
-## Uses NavigationAgent2D for proper pathfinding around obstacles.
-## Returns the direction to move, or Vector2.ZERO if navigation is not available.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
-	if _nav_agent == null:
-		# Fall back to direct movement if no navigation agent
-		return (target_pos - global_position).normalized()
-
-	# Set the target for navigation
+	if _nav_agent == null: return (target_pos - global_position).normalized()
 	_nav_agent.target_position = target_pos
-
-	# Check if navigation is finished
-	if _nav_agent.is_navigation_finished():
-		return Vector2.ZERO
-
-	# Get the next position in the path
-	var next_pos: Vector2 = _nav_agent.get_next_path_position()
-
-	# Calculate direction to next path position
-	var direction: Vector2 = (next_pos - global_position).normalized()
-	return direction
+	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
+	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
 ## Move toward a target position using NavigationAgent2D pathfinding.
 ## Primary navigation movement. Returns true if movement applied, false if target reached or nav unavailable.
