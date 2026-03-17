@@ -253,26 +253,16 @@ var _flank_last_position: Vector2 = Vector2.ZERO  ## Last pos for progress
 var _flank_stuck_timer: float = 0.0  ## Stuck check timer
 const FLANK_STUCK_MAX_TIME: float = 2.0  ## Max time without progress
 const FLANK_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
-var _flank_fail_count: int = 0  ## Consecutive flank failures
-const FLANK_FAIL_MAX_COUNT: int = 2  ## Max failures before cooldown
-var _flank_cooldown_timer: float = 0.0  ## Cooldown after failures
-const FLANK_COOLDOWN_DURATION: float = 5.0  ## Failure cooldown (sec)
-var _global_stuck_timer: float = 0.0  ## Stuck timer (Issue #367: Global stuck detection)
-var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Last position
-const GLOBAL_STUCK_MAX_TIME: float = 4.0  ## Max stuck time
-const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Min move distance
-var _machete_combat_stuck_timer: float = 0.0  ## Stuck timer for machete COMBAT state (Issue #1107)
-var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Last position for stuck check
-const MACHETE_COMBAT_STUCK_MAX_TIME: float = 1.5  ## Max stuck time before re-routing (sec)
-const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Min move distance to not be stuck
-var _assault_wait_timer: float = 0.0  ## Assault wait timer (Assault State)
-const ASSAULT_WAIT_DURATION: float = 5.0  ## Pre-assault wait (sec)
-var _assault_ready: bool = false  ## Assault wait complete
-var _in_assault: bool = false  ## In assault
-var _search_center: Vector2 = Vector2.ZERO  ## Search center (Search State - Issue #322)
-var _search_radius: float = 100.0  ## Current radius
-const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius
-const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Radius expansion
+var _flank_fail_count: int = 0; const FLANK_FAIL_MAX_COUNT: int = 2  ## Consecutive flank failures / max before cooldown
+var _flank_cooldown_timer: float = 0.0; const FLANK_COOLDOWN_DURATION: float = 5.0  ## Cooldown timer / duration (sec) after failures
+var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Stuck timer (Issue #367) / last position
+const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance
+var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
+const MACHETE_COMBAT_STUCK_MAX_TIME: float = 1.5; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 1.5s stuck within 20px
+var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
+var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
+var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
+const SEARCH_INITIAL_RADIUS: float = 100.0; const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Initial radius / radius expansion
 const SEARCH_MAX_RADIUS: float = 2000.0  ## Max radius before relocating center (Issue #405: search continues indefinitely)
 var _search_waypoints: Array[Vector2] = []  ## Search waypoints
 var _search_current_waypoint_index: int = 0  ## Current waypoint index
@@ -1392,26 +1382,16 @@ func _process_combat_state(delta: float) -> void:
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
 		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player):  # Issue #1083: block melee through walls
-			_machete.perform_melee_attack(_player); _shoot_timer = 0.0
-			_machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; return
+			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; return
 		var tp := _player.global_position
-		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
-			tp = _machete.get_backstab_approach_position(_player, 60.0)
+		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player): tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed)
-		# Issue #1107: Detect when machete enemy is stuck against a wall in COMBAT state.
-		# If the enemy hasn't moved significantly while trying to approach the player,
-		# transition to PURSUING to use cover-to-cover navigation and find an alternate route.
-		var moved_dist := global_position.distance_to(_machete_combat_stuck_last_pos)
-		if moved_dist < MACHETE_COMBAT_STUCK_DIST_THRESHOLD:
+		if global_position.distance_to(_machete_combat_stuck_last_pos) < MACHETE_COMBAT_STUCK_DIST_THRESHOLD:  # Issue #1107: Wall-stuck detection
 			_machete_combat_stuck_timer += delta
 			if _machete_combat_stuck_timer >= MACHETE_COMBAT_STUCK_MAX_TIME:
-				_log_to_file("[#1107] Machete COMBAT stuck (%.1fs) at %s, rerouting via PURSUING" % [_machete_combat_stuck_timer, global_position])
-				_machete_combat_stuck_timer = 0.0
-				_machete_combat_stuck_last_pos = global_position
-				_transition_to_pursuing()
-		else:
-			_machete_combat_stuck_timer = 0.0
-			_machete_combat_stuck_last_pos = global_position
+				_log_to_file("[#1107] Machete COMBAT stuck (%.1fs), rerouting" % _machete_combat_stuck_timer)
+				_machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; _transition_to_pursuing()
+		else: _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position
 		return
 	# [#1033] Machine gunner: never retreat while belts have ammo — hold position and suppress.
 	# Fire at last-known player position (corridor suppression) regardless of LOS or under-fire status.
@@ -2580,9 +2560,7 @@ func _transition_to_combat() -> void:
 	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
 	# Issue #409: Clear witnessed ally death flag when engaging player
 	_witnessed_ally_death = false; _suspected_directions.clear()
-	_pursuing_vulnerability_sound = false
-	# Issue #1107: Reset machete combat stuck detection on every COMBAT transition
-	_machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position
+	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
 
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
@@ -4776,25 +4754,10 @@ func _is_player_distracted() -> bool:
 	return is_distracted
 
 ## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
-## Issue #1107: When no path is found (target unreachable), try to navigate to the nearest
-## reachable point on the navigation mesh instead of stopping or going through walls.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	if _nav_agent == null: return (target_pos - global_position).normalized()
 	_nav_agent.target_position = target_pos
-	if _nav_agent.is_navigation_finished():
-		# Check if we're actually at the target or if there's no path (Issue #1107).
-		# In Godot 4, is_navigation_finished() returns true for both cases.
-		# If the target is far away, it means no path was found — use nearest reachable point.
-		var dist_to_target := global_position.distance_to(target_pos)
-		if dist_to_target > _nav_agent.target_desired_distance * 2.0:
-			var nav_map := _nav_agent.get_navigation_map()
-			if nav_map.is_valid():
-				var nearest := NavigationServer2D.map_get_closest_point(nav_map, target_pos)
-				if nearest != target_pos and global_position.distance_to(nearest) > _nav_agent.target_desired_distance:
-					_nav_agent.target_position = nearest
-					if not _nav_agent.is_navigation_finished():
-						return (_nav_agent.get_next_path_position() - global_position).normalized()
-		return Vector2.ZERO
+	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
