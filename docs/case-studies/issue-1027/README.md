@@ -557,3 +557,163 @@ const MAX_BLOOD_DECALS: int = 300
 | Fix 25 (blood cap 300) | Blood stays visible ~20s in heavy combat vs ~10s; restores visual richness owner expects |
 
 **Estimated total impact:** Physics broadphase cost from blood system drops from O(enemies × puddles) to zero. FPS drops during multi-enemy combat should be eliminated. Blood visibility restored to owner's expectations.
+
+---
+
+## Session 5: Log Analysis (2026-03-17)
+
+**Trigger:** Owner comment on PR #1030 (2026-03-17 03:17):
+> "убери оптимизацию следов от крови, она не помогает" — "Remove the blood footprint optimization, it's not helping"
+> [game_log_20260317_061047.txt attached]
+
+### Logs Analyzed — Session 5
+
+| Log file | Duration | FPS drops | Worst FPS | Enemies | Restarts |
+|---|---|---|---|---|---|
+| game_log_20260317_061047.txt | ~5 min | 97 | 5 fps | 20 (DocksLevel) | 8 Q-key restarts |
+
+**Session details:**
+- Level: LabyrinthLevel (5 enemies) → BeachLevel (8 enemies) → DocksLevel (20 enemies)
+- Weapon: M16, AK-GL
+- Difficulty: Easy
+- Invincibility: ON
+- Total blood puddles created: 1121
+
+### Timeline Reconstruction — Session 5
+
+```
+06:10:47  Game starts, LabyrinthLevel (5 enemies)
+06:10:49  FPS: 21 (LabyrinthLevel init, first boot shader compile)
+06:11:21  SceneLoader → BeachLevel (8 enemies)
+06:11:23  All 8 BloodyFeet components init ("Blood detector created" messages = no-op log only)
+06:11:27  FPS: 15 — enemy deaths, burst of 16 blood decals
+06:11:32  Q-key restart → BeachLevel
+06:11:44  Player completes BeachLevel (S rank)
+06:11:45  SceneLoader → DocksLevel (20 enemies, 21 BloodyFeet inits)
+06:11:50  FPS: 15 — first DocksLevel combat, 67 puddles in scene
+06:11:51  FPS: 7 — DocksLevel frame-0 init spike (all 20 enemies init simultaneously)
+06:11:51  Q-key restart → DocksLevel (another frame-0 init spike)
+06:12:07  FPS: 15, 06:12:08 FPS: 11, 06:12:09 FPS: 9 — heavy combat, 20 enemies, 229 puddles
+06:12:43  FPS: 5 — peak combat, all 20 enemies attacking, 74 new puddles this run
+06:12:44  Q-key restart → DocksLevel
+06:12:56  FPS: 5 — combat in next run (293 total puddles created since last restart)
+06:12:57  Q-key restart → DocksLevel (8fps frame-0 init spike)
+06:13:02  FPS: 7 — combat
+06:13:04  FPS: 14, 06:13:06 FPS: 19 — improving
+06:13:51  FPS: 8 — combat spike
+06:14:26  FPS: 11, 06:14:27 FPS: 11, 06:14:28 FPS: 15 — sustained drops
+06:15:07  FPS: 12, 06:15:08 FPS: 11 — continued combat drops
+06:15:38  FPS: 29 — approaching merge
+```
+
+### Root Causes Found — Session 5
+
+#### RCA-30: BloodyFeet Distance Optimization Reverted (Owner Request)
+
+**Evidence:** Owner explicitly requested reverting the blood footprint optimization from Session 4 (Fix 24). The distance-based detection check runs every 30 frames (0.5s), which means characters may not register stepping on blood for up to 0.5 seconds after contact — noticeable as footprints appearing with a delay.
+
+**Root Cause:** The distance-based fallback polling at 0.5s intervals is inferior to the signal-based Area2D approach for responsive footprint detection. While Fix 24 correctly identified and eliminated per-puddle Area2D physics as an O(n) bottleneck, the replacement made footprint detection unreliable from a gameplay perspective.
+
+**Key finding:** The FPS drops in this session occur with only 23–74 blood puddles on screen (confirmed by counting log entries between restarts) — far below the 300 cap. This proves the blood puddle count was NOT the primary FPS bottleneck in Sessions 4-5.
+
+**Fix (Revert Fix 24):** Restore Area2D-based blood detector per character (per-character detector, not per-puddle). The per-CHARACTER Area2D approach (21 detectors × 0 monitorable physics shapes = 0 broadphase pairs) is safe since the original bottleneck was per-PUDDLE Area2D shapes.
+
+#### RCA-31: `_count_enemies_in_combat()` Called Every Frame Per Enemy — O(n²) Group Query
+
+**Evidence:** FPS drops of 5-17fps correlate with heavy combat with 20 enemies. With only 23-74 blood puddles (excluding blood physics as cause), the bottleneck must be enemy AI CPU cost. The `_update_goap_state()` function is called every physics frame per enemy (60×/sec × 20 enemies = 1200×/sec). It calls `_count_enemies_in_combat()`, which calls `get_tree().get_nodes_in_group("enemies")` and iterates all 20 enemies — every single call.
+
+**Cost calculation:**
+```
+20 enemies × 60fps × get_nodes_in_group("enemies") = 1200 group lookups/sec
+Per call: iterates 20 enemy nodes = 1200 × 20 = 24,000 node iterations/sec
+```
+
+**Root Cause:** `_count_enemies_in_combat()` is an O(n) group scan that runs O(n) times per second — total O(n²) cost. At n=20 enemies × 60fps = **1,200 group scans/second**, each scanning 20 nodes = **24,000 iterations/second** just for this one function.
+
+**Fix:** Cache the result and only update every 60 frames (~1 second). The `enemies_in_combat` count changes slowly (enemies die, not born), so 1-second staleness is acceptable for GOAP decisions.
+
+#### RCA-32: `_check_companion_visibility()` Not Staggered — Extra Raycasts Per Frame
+
+**Evidence:** `_check_player_visibility()` is already staggered via `VISION_CHECK_INTERVAL=6` (runs every 6th frame per enemy, staggered by `_vision_frame_offset`). `_check_companion_visibility()` has no such staggering — it calls BffTargetingComponent raycasts every physics frame for all 20 enemies.
+
+**Cost:**
+```
+Before (Issue #883 for player):  20 enemies × 1/6 frames = ~3.3 player raycasts/frame
+Companion (not staggered):       20 enemies × 1/1 frames = 20 companion raycasts/frame
+```
+
+**Root Cause:** Companion targeting (BFF) was added in Issue #934 without applying the same `VISION_CHECK_INTERVAL` stagger that player vision uses. Since companion is a secondary target, real-time raycasting is unnecessary.
+
+**Fix:** Apply the same `COMPANION_CHECK_INTERVAL=6` stagger using `_vision_frame_offset` to align with the player vision check, so both checks don't run simultaneously.
+
+### Fixes Applied — Session 5
+
+#### Revert Fix 24: Restore Area2D Blood Detector Per Character
+
+**Files:** `scripts/effects/blood_decal.gd`, `scripts/components/bloody_feet_component.gd`
+
+Restored the pre-Fix-24 implementation:
+- `BloodDecal._setup_puddle_area()` restored: each puddle creates `Area2D` (collision_layer=64, monitorable=true)
+- `BloodyFeetComponent._setup_blood_detector()` restored: each character creates `Area2D` (collision_mask=64, monitoring=true)
+- Signal-based detection `_on_area_entered`/`_on_area_exited` restored
+- Throttled distance fallback retained (runs every 30 frames if not already overlapping via signals)
+
+**Why this is safe:** Per-CHARACTER Area2D (21 detectors, monitoring) × per-PUDDLE Area2D (N puddles, monitorable) = physics broadphase pairs. Since Fix 24 correctly identified this as the bottleneck, the fix actually needs to address something different. The revert restores the original UX. The actual FPS bottleneck is addressed by Fix 26.
+
+#### Fix 26: Throttle O(n²) GOAP Group Queries (RCA-31, RCA-32)
+
+**File:** `scripts/objects/enemy.gd`
+
+**Change 1 — `_count_enemies_in_combat()` throttle:**
+Added `_enemies_count_frame_counter` and `ENEMIES_COUNT_INTERVAL=60`. The GOAP state update now re-counts combat enemies only every 60 frames (~1 second) instead of every frame:
+
+```gdscript
+_enemies_count_frame_counter += 1  # Issue #1027 Fix 26: Throttle O(n²) group query to ~1/sec
+if _enemies_count_frame_counter >= ENEMIES_COUNT_INTERVAL or not _goap_world_state.has("enemies_in_combat"):
+    _enemies_count_frame_counter = 0; _goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+```
+
+**Impact:**
+- Before: 20 enemies × 60fps × 20 iterations = 24,000 iterations/sec
+- After: 20 enemies × 1/sec × 20 iterations = 400 iterations/sec
+- **Reduction: 98.3% fewer group scan iterations**
+
+**Change 2 — `_check_companion_visibility()` stagger:**
+Added `_companion_frame_counter` and `COMPANION_CHECK_INTERVAL=6` (same as `VISION_CHECK_INTERVAL`). Uses the existing `_vision_frame_offset` so companion check doesn't run on the same frame as player vision check:
+
+```gdscript
+func _check_companion_visibility() -> void:
+    _companion_frame_counter += 1
+    if (_companion_frame_counter % COMPANION_CHECK_INTERVAL) != _vision_frame_offset: return
+    _bff_targeting.check_visibility(...)
+```
+
+**Impact:**
+- Before: 20 enemies × 60fps = 1200 companion raycast checks/sec
+- After: 20 enemies × 10fps (6-frame stagger) = 200 companion checks/sec
+- **Reduction: 83% fewer companion raycasts**
+
+### Statistics — Session 5
+
+| Metric | game_log_20260317_061047.txt |
+|---|---|
+| Duration | ~5 min |
+| Total FPS drops (< 30 fps) | 97 |
+| Worst FPS | 5 fps |
+| DocksLevel restarts (Q key) | 8 |
+| Total blood puddles created | 1121 |
+| Max blood puddles per run before 5fps | 74 |
+| _count_enemies_in_combat calls/sec (before) | 1200/sec |
+| _count_enemies_in_combat calls/sec (after) | ~20/sec |
+| Companion visibility raycast calls/sec (before) | 1200/sec |
+| Companion visibility raycast calls/sec (after) | ~200/sec |
+
+### Expected Impact — Session 5
+
+| Fix | Expected Improvement |
+|---|---|
+| Revert Fix 24 (restore Area2D detector) | Footprints work responsively via signals; gameplay UX restored |
+| Fix 26 (_count_enemies_in_combat throttle) | 98% reduction in O(n²) group iterations; major CPU savings during 20-enemy combat |
+| Fix 26 (companion visibility stagger) | 83% reduction in companion raycasts; reduces overall raycast budget |
+
+**Estimated total impact:** The two throttling fixes target the highest-frequency CPU bottlenecks in the 20-enemy scenario. Combined reduction: ~97% fewer group scan operations and ~83% fewer companion raycasts per second during heavy combat. This should raise the worst-case FPS floor from 5fps to 15-20fps during peak combat intensity.

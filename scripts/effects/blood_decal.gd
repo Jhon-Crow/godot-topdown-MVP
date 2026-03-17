@@ -21,6 +21,10 @@ class_name BloodDecal
 ## Initial alpha value.
 var _initial_alpha: float = 0.85
 
+## Area2D for collision detection (allows characters to detect stepping in blood).
+var _puddle_area: Area2D = null
+
+
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
@@ -29,19 +33,43 @@ func _ready() -> void:
 	_file_logger = get_node_or_null("/root/FileLogger")
 	_initial_alpha = modulate.a
 
-	# Add to blood_puddle group for distance-based detection by BloodyFeetComponent.
-	# Issue #1027 Fix 24: No longer creates a per-puddle Area2D here.
-	# Previously each puddle spawned an Area2D + CollisionShape2D for physics-based
-	# signal detection, creating 150+ physics collision shapes with 20 enemies = 3000+
-	# broadphase pair checks per frame causing 6fps drops during heavy combat.
-	# BloodyFeetComponent uses its own Area2D detector with a distance fallback (every
-	# 30 frames) which is sufficient for detecting blood contact without per-puddle physics.
+	# Add to blood_puddle group for detection
 	if is_puddle:
 		add_to_group("blood_puddle")
+		_setup_puddle_area()
 		_log_info("Blood puddle created at %s (added to group)" % global_position)
 
 	if auto_fade:
 		_start_fade_timer()
+
+
+## Creates an Area2D for detecting when characters step in this blood puddle.
+func _setup_puddle_area() -> void:
+	_puddle_area = Area2D.new()
+	_puddle_area.name = "PuddleArea"
+
+	# Set collision layer 7 for blood puddles (2^6 = 64)
+	_puddle_area.collision_layer = 64
+	_puddle_area.collision_mask = 0
+	_puddle_area.monitoring = false
+	_puddle_area.monitorable = true
+
+	# Create collision shape based on texture size
+	var collision_shape := CollisionShape2D.new()
+	collision_shape.name = "PuddleCollision"
+	var shape := CircleShape2D.new()
+	# Use texture size to determine collision radius, scaled appropriately
+	if texture:
+		shape.radius = max(texture.get_width(), texture.get_height()) * scale.x * 0.4
+	else:
+		shape.radius = 12.0  # Default radius if no texture
+	collision_shape.shape = shape
+
+	_puddle_area.add_child(collision_shape)
+	add_child(_puddle_area)
+
+	# Add the area to blood_puddle group as well for redundant detection
+	_puddle_area.add_to_group("blood_puddle")
 
 
 ## Starts the timer for automatic fade-out.
