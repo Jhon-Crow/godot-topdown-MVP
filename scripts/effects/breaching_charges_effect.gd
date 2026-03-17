@@ -242,6 +242,8 @@ func get_charges() -> int:
 ## Returns an empty array if none found, or an Array of {"wall": Node, "hit_pos": Vector2,
 ## "direction": Vector2} dictionaries sorted by distance (nearest first).
 ## Issue #1093: returns all walls so that charges placed at corners affect both adjacent walls.
+## When a thin corner fill piece is hit, performs a second-pass ray cast excluding that piece
+## to find the adjacent walls that connect at the corner.
 func _find_walls_with_hits() -> Array:
 	if _player == null:
 		return []
@@ -285,6 +287,42 @@ func _find_walls_with_hits() -> Array:
 					"dist": dist
 				}
 
+	# Second pass: for any thin corner-fill pieces found (small in both axes),
+	# re-cast the same rays excluding those pieces to find the actual adjacent walls
+	# they would otherwise occlude. Corner fills are typically square and smaller than
+	# BREACH_PASSAGE_WIDTH — their presence at a corner blocks rays from reaching
+	# the larger walls on both sides of the junction.
+	var corner_fill_rids: Array = []
+	for node in walls_by_node.keys():
+		if _is_corner_fill(node):
+			corner_fill_rids.append(node.get_rid())
+			FileLogger.info("[BreachingCharges] Corner fill detected: '%s' — scanning for adjacent walls" % node.name)
+
+	if not corner_fill_rids.is_empty():
+		var exclude_list: Array = [_player.get_rid()] + corner_fill_rids
+		# Use a slightly larger radius so rays reach walls behind the corner fill
+		var extended_radius: float = PLACEMENT_RADIUS * 1.5
+		for dir in directions:
+			var query2 := PhysicsRayQueryParameters2D.create(
+				player_pos,
+				player_pos + dir * extended_radius,
+				WALL_COLLISION_LAYER
+			)
+			query2.exclude = exclude_list
+			var result2 := space_state.intersect_ray(query2)
+
+			if result2.size() > 0 and result2.has("collider"):
+				var collider: Node = result2["collider"]
+				var dist: float = player_pos.distance_to(result2["position"])
+
+				if not walls_by_node.has(collider) or dist < walls_by_node[collider]["dist"]:
+					walls_by_node[collider] = {
+						"wall": collider,
+						"hit_pos": result2["position"],
+						"direction": dir,
+						"dist": dist
+					}
+
 	if walls_by_node.is_empty():
 		return []
 
@@ -302,6 +340,18 @@ func _find_walls_with_hits() -> Array:
 	])
 
 	return found
+
+
+## Returns true if the wall node is a thin corner-fill piece (small in both dimensions).
+## Corner fills are square blocks used to close gaps at wall junctions; they are too small
+## to split (both axes < BREACH_PASSAGE_WIDTH) and their presence occludes adjacent walls.
+func _is_corner_fill(wall: Node) -> bool:
+	for child in wall.get_children():
+		if child is CollisionShape2D and (child as CollisionShape2D).shape is RectangleShape2D:
+			var size: Vector2 = ((child as CollisionShape2D).shape as RectangleShape2D).size
+			# A corner fill is small in BOTH dimensions (unlike a wall that is long in one axis)
+			return size.x < BREACH_PASSAGE_WIDTH and size.y < BREACH_PASSAGE_WIDTH
+	return false
 
 
 ## Carve a passage through the wall at the breach position.

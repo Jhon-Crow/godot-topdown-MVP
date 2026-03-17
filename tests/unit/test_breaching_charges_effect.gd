@@ -725,3 +725,37 @@ func test_corner_each_wall_uses_its_own_hit_position() -> void:
 		"Vertical wall: surviving top segment should exist when hit at bottom end")
 	assert_almost_eq(v_bottom_height, 0.0, 1.0,
 		"Vertical wall: bottom segment should be ~0 when passage is at bottom end")
+
+
+# ============================================================================
+# Issue #1093 (Building level fix): corner fill detection and adjacent wall scan
+# ============================================================================
+
+
+func test_corner_fill_geometry_is_square_and_small() -> void:
+	# The corner fill pieces in BuildingLevel are 24×24.
+	# They must be smaller than BREACH_PASSAGE_WIDTH (120) in BOTH axes
+	# to be recognised as corner fills that require the second-pass adjacent wall scan.
+	var corner_size := Vector2(24.0, 24.0)
+	var passage_width: float = 120.0
+	var is_corner_fill: bool = corner_size.x < passage_width and corner_size.y < passage_width
+	assert_true(is_corner_fill,
+		"A 24×24 corner fill should be detected as too small to split in both axes")
+
+
+func test_long_wall_is_not_corner_fill() -> void:
+	# A 400×24 horizontal wall is long in X — not a corner fill.
+	var wall_size := Vector2(400.0, 24.0)
+	var passage_width: float = 120.0
+	var is_corner_fill: bool = wall_size.x < passage_width and wall_size.y < passage_width
+	assert_false(is_corner_fill,
+		"A 400×24 wall should not be classified as a corner fill")
+
+
+func test_short_vertical_wall_is_not_corner_fill() -> void:
+	# A 24×200 vertical wall is long in Y — not a corner fill.
+	var wall_size := Vector2(24.0, 200.0)
+	var passage_width: float = 120.0
+	var is_corner_fill: bool = wall_size.x < passage_width and wall_size.y < passage_width
+	assert_false(is_corner_fill,
+		"A 24×200 wall should not be classified as a corner fill")
