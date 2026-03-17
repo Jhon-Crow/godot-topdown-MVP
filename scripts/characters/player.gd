@@ -370,6 +370,9 @@ func _ready() -> void:
 	# Initialize trajectory glasses if active item manager has trajectory glasses selected (Issue #744)
 	_init_trajectory_glasses()
 
+	# Initialize breaching charges if active item manager has them selected (Issue #1043)
+	_init_breaching_charges()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
@@ -487,6 +490,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle trajectory glasses input (press Space to activate) (Issue #744)
 	_handle_trajectory_glasses_input()
+
+	# Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
+	_handle_breaching_charges_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -3982,3 +3988,125 @@ func _on_homing_deactivated_hide_bar() -> void:
 ## Called when homing charges change.
 func _on_homing_charges_changed(_current: int, _maximum: int) -> void:
 	pass
+
+
+# ============================================================================
+# Breaching Charges (Issue #1043)
+# ============================================================================
+
+
+## Preload the breaching charges effect script.
+const BreachingChargesEffectScript = preload("res://scripts/effects/breaching_charges_effect.gd")
+
+## Whether breaching charges are equipped.
+var _breaching_charges_equipped: bool = false
+
+## Reference to the breaching charges effect node.
+var _breaching_charges: Node = null
+
+## Signal emitted when a breaching charge is placed.
+signal breaching_charge_placed(charges_remaining: int)
+
+## Signal emitted when breaching charges detonate.
+signal breaching_charges_detonated(position: Vector2)
+
+## Signal emitted when breaching charges count changes.
+signal breaching_charges_changed(current: int, maximum: int)
+
+
+## Initialize breaching charges if the ActiveItemManager has them selected.
+func _init_breaching_charges() -> void:
+	FileLogger.info("[Player.BreachingCharges] Checking breaching charges...")
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.BreachingCharges] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_breaching_charges"):
+		FileLogger.info("[Player.BreachingCharges] ActiveItemManager missing has_breaching_charges method")
+		return
+
+	if not active_item_manager.has_breaching_charges():
+		FileLogger.info("[Player.BreachingCharges] No breaching charges selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.BreachingCharges] Breaching charges selected, initializing...")
+
+	# Create the effect node
+	_breaching_charges = BreachingChargesEffectScript.new()
+	_breaching_charges.name = "BreachingChargesEffect"
+	add_child(_breaching_charges)
+
+	# Initialize with player reference
+	_breaching_charges.initialize(self)
+
+	# Connect signals
+	_breaching_charges.charge_placed.connect(_on_breaching_charge_placed)
+	_breaching_charges.charges_detonated.connect(_on_breaching_charges_detonated)
+	_breaching_charges.charges_changed.connect(_on_breaching_charges_changed)
+
+	_breaching_charges_equipped = true
+	FileLogger.info("[Player.BreachingCharges] Breaching charges equipped, charges: %d" % _breaching_charges.charges)
+
+	# Show initial charge bar
+	_show_active_item_charge_bar(_breaching_charges.charges, _breaching_charges.MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Handle breaching charges input.
+## - Hold Space near a wall → place charge (on release)
+## - Press Space when charge placed → detonate
+func _handle_breaching_charges_input() -> void:
+	if not _breaching_charges_equipped or _breaching_charges == null:
+		return
+
+	if not is_instance_valid(_breaching_charges):
+		return
+
+	# If a charge is already placed: press Space to detonate
+	if _breaching_charges.has_placed_charge:
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			var detonated := _breaching_charges.detonate()
+			if detonated:
+				FileLogger.info("[Player.BreachingCharges] Charge detonated")
+		return
+
+	# No charge placed yet: hold Space to aim at wall, release to place
+	if Input.is_action_just_released("flashlight_toggle") and _breaching_charges._holding_for_placement:
+		_breaching_charges._holding_for_placement = false
+		var placed := _breaching_charges.try_place_charge()
+		if placed:
+			FileLogger.info("[Player.BreachingCharges] Charge placed")
+	elif Input.is_action_pressed("flashlight_toggle") and _breaching_charges.charges > 0:
+		_breaching_charges._holding_for_placement = true
+	elif Input.is_action_just_released("flashlight_toggle"):
+		_breaching_charges._holding_for_placement = false
+
+
+## Callback when a breaching charge is placed.
+func _on_breaching_charge_placed(charges_remaining: int) -> void:
+	breaching_charge_placed.emit(charges_remaining)
+	_show_active_item_charge_bar(charges_remaining, _breaching_charges.MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+	FileLogger.info("[Player.BreachingCharges] Charge placed signal received, charges left: %d" % charges_remaining)
+
+
+## Callback when breaching charges are detonated.
+func _on_breaching_charges_detonated(pos: Vector2) -> void:
+	breaching_charges_detonated.emit(pos)
+	FileLogger.info("[Player.BreachingCharges] Detonation signal received at %s" % str(pos))
+
+
+## Callback when breaching charges count changes.
+func _on_breaching_charges_changed(current: int, maximum: int) -> void:
+	breaching_charges_changed.emit(current, maximum)
+	_show_active_item_charge_bar(current, maximum)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Get the breaching charges effect node.
+func get_breaching_charges() -> Node:
+	return _breaching_charges

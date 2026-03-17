@@ -816,6 +816,25 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Breaching Charges System (Issue #1043)
+
+    /// <summary>
+    /// Whether breaching charges are equipped (active item selected in armory).
+    /// </summary>
+    private bool _breachingChargesEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript breaching charges effect node.
+    /// </summary>
+    private Node? _breachingChargesEffect = null;
+
+    /// <summary>
+    /// Whether Space is currently held for placement detection.
+    /// </summary>
+    private bool _breachingHoldingForPlacement = false;
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -1102,6 +1121,9 @@ public partial class Player : BaseCharacter
 
         // Initialize trajectory glasses if active item manager has them selected (Issue #744)
         InitTrajectoryGlasses();
+
+        // Initialize breaching charges if active item manager has them selected (Issue #1043)
+        InitBreachingCharges();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1400,6 +1422,9 @@ public partial class Player : BaseCharacter
 
         // Handle trajectory glasses input (press Space to activate) (Issue #744)
         HandleTrajectoryGlassesInput();
+
+        // Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
+        HandleBreachingChargesInput();
 
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
@@ -5643,6 +5668,125 @@ public partial class Player : BaseCharacter
         if (!IsInstanceValid(_forceFieldEffect))
             return false;
         return (bool)_forceFieldEffect.Call("is_protecting");
+    }
+
+    #endregion
+
+    #region Breaching Charges Methods (Issue #1043)
+
+    /// <summary>
+    /// Initialize breaching charges if the ActiveItemManager has them selected (Issue #1043).
+    /// Loads and instantiates the GDScript breaching_charges_effect.gd controller.
+    /// </summary>
+    private void InitBreachingCharges()
+    {
+        LogToFile("[Player.BreachingCharges] Checking breaching charges...");
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BreachingCharges] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_breaching_charges"))
+        {
+            LogToFile("[Player.BreachingCharges] ActiveItemManager missing has_breaching_charges method");
+            return;
+        }
+
+        bool hasBreachingCharges = (bool)activeItemManager.Call("has_breaching_charges");
+        if (!hasBreachingCharges)
+        {
+            LogToFile("[Player.BreachingCharges] No breaching charges selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.BreachingCharges] Breaching charges selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/breaching_charges_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.BreachingCharges] WARNING: Failed to load breaching_charges_effect.gd");
+            return;
+        }
+
+        _breachingChargesEffect = new Node();
+        _breachingChargesEffect.SetScript(effectScript);
+        _breachingChargesEffect.Name = "BreachingChargesEffect";
+        AddChild(_breachingChargesEffect);
+
+        // Initialize with player reference
+        _breachingChargesEffect.Call("initialize", this);
+
+        _breachingChargesEquipped = true;
+        int charges = (int)_breachingChargesEffect.Call("get_charges");
+        LogToFile($"[Player.BreachingCharges] Breaching charges equipped, charges: {charges}");
+    }
+
+    /// <summary>
+    /// Handle breaching charges input:
+    /// - Hold Space near a wall and release → place a charge
+    /// - Press Space when a charge is placed → detonate
+    /// </summary>
+    private void HandleBreachingChargesInput()
+    {
+        if (!_breachingChargesEquipped || _breachingChargesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_breachingChargesEffect))
+        {
+            return;
+        }
+
+        // If a charge is placed, press Space to detonate
+        bool hasPlacedCharge = (bool)_breachingChargesEffect.Get("has_placed_charge");
+        if (hasPlacedCharge)
+        {
+            if (Input.IsActionJustPressed("flashlight_toggle"))
+            {
+                bool detonated = (bool)_breachingChargesEffect.Call("detonate");
+                if (detonated)
+                {
+                    LogToFile("[Player.BreachingCharges] Charge detonated");
+                }
+            }
+            return;
+        }
+
+        // No charge placed yet: hold Space near a wall, release to place
+        if (Input.IsActionJustReleased("flashlight_toggle") && _breachingHoldingForPlacement)
+        {
+            _breachingHoldingForPlacement = false;
+            // Notify effect: no longer holding (hides in-hand sprite)
+            _breachingChargesEffect.Call("set_holding_for_placement", false);
+            bool placed = (bool)_breachingChargesEffect.Call("try_place_charge");
+            if (placed)
+            {
+                LogToFile("[Player.BreachingCharges] Charge placed");
+            }
+        }
+        else if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            int charges = (int)_breachingChargesEffect.Call("get_charges");
+            if (charges > 0 && !_breachingHoldingForPlacement)
+            {
+                _breachingHoldingForPlacement = true;
+                // Notify effect: started holding (shows in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", true);
+            }
+        }
+        else if (Input.IsActionJustReleased("flashlight_toggle"))
+        {
+            if (_breachingHoldingForPlacement)
+            {
+                _breachingHoldingForPlacement = false;
+                // Notify effect: released without placing (hides in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", false);
+            }
+        }
     }
 
     #endregion
