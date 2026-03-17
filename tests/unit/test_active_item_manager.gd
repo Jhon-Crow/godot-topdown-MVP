@@ -124,7 +124,8 @@ class MockActiveItemManager:
 		LOUDSPEAKER = 10,
 		BREACHING_CHARGES = 11,
 		ARMORED_SKIN = 12,
-		AUTO_RELOAD = 13
+		AUTO_RELOAD = 13,
+		DEAD_EYE = 14
 	}
 
 	## Currently selected active item type
@@ -201,6 +202,11 @@ class MockActiveItemManager:
 			"name": "Auto-Reload",
 			"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
 			"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
+		},
+		14: {
+			"name": "Dead Eye",
+			"icon_path": "res://assets/sprites/weapons/dead_eye_icon.png",
+			"description": "Dead Eye — passive: starts with -20% damage. Each hit increases damage by +5% (stacks). Missing resets damage to -20%."
 		}
 	}
 
@@ -448,8 +454,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 13,
-		"Should return 13 active item types")
+	assert_eq(types.size(), 15,
+		"Should return 15 active item types")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -464,6 +470,7 @@ func test_get_all_active_item_types() -> void:
 	assert_true(11 in types)  # BREACHING_CHARGES (Issue #1043)
 	assert_true(12 in types)  # ARMORED_SKIN (Issue #1045)
 	assert_true(13 in types)  # AUTO_RELOAD (Issue #1067)
+	assert_true(14 in types)  # DEAD_EYE (Issue #1069)
 
 
 func test_get_active_item_name_none() -> void:

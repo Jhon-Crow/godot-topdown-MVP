@@ -88,6 +88,12 @@ class MockDeadEyeManager:
 			return 1.0
 		return _multiplier
 
+	## Returns the current hit streak count (number of stacks above base).
+	func get_hit_streak() -> int:
+		if not _is_active:
+			return 0
+		return int(round((_multiplier - BASE_MULTIPLIER) / HIT_STEP))
+
 	## Internal reset helper.
 	func _reset() -> void:
 		_multiplier = BASE_MULTIPLIER
@@ -334,3 +340,50 @@ func test_deactivation_returns_1() -> void:
 	_manager.set_active(false)
 	assert_almost_eq(_manager.get_damage_multiplier(), 1.0, 0.001,
 		"After deactivation, multiplier should return to 1.0")
+
+
+# ============================================================================
+# Hit Streak Counter Tests
+# ============================================================================
+
+
+func test_get_hit_streak_zero_when_inactive() -> void:
+	assert_eq(_manager.get_hit_streak(), 0,
+		"Streak should be 0 when inactive")
+
+
+func test_get_hit_streak_zero_at_base() -> void:
+	_manager.set_active(true)
+	assert_eq(_manager.get_hit_streak(), 0,
+		"Streak should be 0 at base multiplier (no hits yet)")
+
+
+func test_get_hit_streak_increments() -> void:
+	_manager.set_active(true)
+	# First hit
+	_manager.notify_bullet_fired()
+	_manager.notify_hit()
+	_manager.force_close_volley()
+	assert_eq(_manager.get_hit_streak(), 1,
+		"Streak should be 1 after first hit")
+	# Second hit
+	_manager.notify_bullet_fired()
+	_manager.notify_hit()
+	_manager.force_close_volley()
+	assert_eq(_manager.get_hit_streak(), 2,
+		"Streak should be 2 after second hit")
+
+
+func test_get_hit_streak_resets_on_miss() -> void:
+	_manager.set_active(true)
+	# Build streak
+	for i in range(3):
+		_manager.notify_bullet_fired()
+		_manager.notify_hit()
+		_manager.force_close_volley()
+	assert_eq(_manager.get_hit_streak(), 3, "Streak should be 3")
+	# Miss — fire but no hit, then let volley close
+	_manager.notify_bullet_fired()
+	_manager.force_close_volley()
+	assert_eq(_manager.get_hit_streak(), 0,
+		"Streak should reset to 0 after miss")
