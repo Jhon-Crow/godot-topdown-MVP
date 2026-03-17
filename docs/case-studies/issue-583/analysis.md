@@ -191,3 +191,61 @@ The key observations:
 
 **Logs**:
 - `game_log_20260317_063521.txt` - RPG rockets spawn but are stationary (this fix addresses this)
+
+## Root Cause #8: call_deferred("launch") Never Executes (2026-03-17, ~08:00)
+
+**Symptom (game_log_20260317_100552.txt)**: After switching to `call_deferred("launch", dir)`, the log shows "Rocket queued launch" but no "Launched:" message ever appears — confirming the deferred call never executes.
+
+**Root cause**: `call_deferred()` with a custom GDScript method name is unreliable in Godot 4 exported builds. Even when the method exists at queue-processing time, the exported bytecode's method resolution may fail for user-defined GDScript methods called by name string.
+
+**Fix Applied (commit `e48c36e5` then `f66f121f`)**:
+Abandoned the `launch()` method approach entirely. Converted `RpgRocket` to `Area2D` with:
+- Direction set as a property (no method calls)
+- `_physics_process` for movement: `position += direction * _speed * delta`
+- `body_entered` + `area_entered` signals for collision detection
+
+The `RigidBody2D` was also attempted (`e48c36e5`) but rejected because physics forces caused the rocket to spin and drift sideways on collision — "behaves like a plastic bottle".
+
+**Logs**:
+- `game_log_20260317_100552.txt` - "Rocket queued launch" with no "Launched:" = deferred call failed
+- Detailed analysis: `game_log_20260317_100552_analysis.md`
+
+## Root Cause #9: Area2D Direction Set Before vs After add_child (2026-03-17, ~08:22)
+
+**Symptom**: User reports "ракета опять не летит и не физический объект" (rocket again doesn't fly and is not a physical object). Screenshot shows rocket visible but stationary next to enemy.
+
+**Build**: Area2D fix commit `f66f121f` (uploaded as artifact at 08:09:31 UTC, user complaint at 08:22:43 UTC).
+
+**Root cause hypothesis**: The Area2D fix set `direction` BEFORE `add_child()`, while bullet.gd (which always works) sets direction AFTER `add_child()`. Setting properties before vs after `add_child` has subtle differences in Godot 4 exported builds due to how the ScriptInstance initializes.
+
+Additionally, the user comment "not a physical object" reflects that `Area2D` has no physics collision response (no bouncing, no push forces) unlike the previous `RigidBody2D`. The rocket now passes through walls kinematically (detecting via signals), which may feel "unphysical" to the user.
+
+**Fix Applied (Session 9)**:
+Changed `_fire_rpg_rocket()` to set `direction` AFTER `add_child()` (exact bullet pattern):
+```gdscript
+# BEFORE (f66f121f — set before add_child):
+rocket.set("direction", rocket_dir)
+rocket.global_position = pos
+get_tree().current_scene.add_child(rocket)
+
+# AFTER (session 9 — set after add_child, same as _spawn_projectile for bullets):
+rocket.global_position = pos
+get_tree().current_scene.add_child(rocket)
+rocket.set("direction", rocket_dir)
+rocket.set("shooter_id", get_instance_id())
+rocket.set("shooter_position", pos)
+```
+
+Also added first-frame `_physics_process` diagnostic: `[RpgRocket] First frame: pos=... dir=... speed=... delta=...`
+
+**Godot 4 Export Pitfalls (Complete List)**:
+1. `as ClassName` cast → unreliable for GDScript class_name in exports → use `as Node2D`
+2. `load(path)` at runtime → returns null in exports → use `preload(path)`
+3. `has_method()` for GDScript methods → false in exports even after add_child → use property access
+4. `call_deferred("gd_method")` → may not execute in exports → avoid entirely
+5. `ImageTexture.create_from_image()` in `_ready()` → fails silently → use ext_resource PNG
+6. Setting properties before `add_child()` → untested in this codebase → use post-add_child (bullet pattern)
+
+**Logs**:
+- User screenshot (2026-03-17T08:22:43Z): rocket visible, stationary
+- `game_log_20260317_100552_session9_analysis.md` - detailed analysis

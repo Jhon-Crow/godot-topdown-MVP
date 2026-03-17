@@ -82,7 +82,8 @@ func _ready() -> void:
 
 	_exhaust = get_node_or_null("ExhaustParticles")
 
-	# Orient rocket to travel direction (nose forward, no free rotation)
+	# Note: direction is set by the spawner AFTER add_child (same as bullet.gd pattern).
+	# _physics_process updates rotation every frame so the initial rotation here is just a best-effort.
 	rotation = direction.angle()
 
 	# Orient exhaust particles to emit backward from rocket direction
@@ -91,7 +92,7 @@ func _ready() -> void:
 		var back := -direction
 		mat.direction = Vector3(back.x, back.y, 0.0)
 
-	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s launch_speed=%.0f max_speed=%.0f" % [
+	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s (will be overridden by spawner) launch_speed=%.0f max_speed=%.0f" % [
 		str(global_position), str(direction), launch_speed, max_speed])
 
 
@@ -101,6 +102,11 @@ func _physics_process(delta: float) -> void:
 
 	_time_alive += delta
 
+	# Keep rotation locked to direction (prevent any accidental rotation)
+	# Note: direction may be set AFTER _ready() by the spawner (same as bullet.gd pattern),
+	# so rotation is updated every frame to stay correct.
+	rotation = direction.angle()
+
 	# Phase 1: Motor burn — accelerate from launch_speed to max_speed
 	if _time_alive <= motor_burn_time:
 		_speed = min(_speed + motor_acceleration * delta, max_speed)
@@ -108,8 +114,10 @@ func _physics_process(delta: float) -> void:
 	# Move straight in direction (no physics drift, no free rotation — same as bullet.gd)
 	position += direction * _speed * delta
 
-	# Keep rotation locked to direction (prevent any accidental rotation)
-	rotation = direction.angle()
+	# Log first-frame movement for diagnostics (helps confirm _physics_process is running in exports)
+	if _time_alive <= delta * 2.0:
+		FileLogger.info("[RpgRocket] First frame: pos=%s dir=%s speed=%.0f delta=%.4f" % [
+			str(global_position), str(direction), _speed, delta])
 
 	_update_trail()
 

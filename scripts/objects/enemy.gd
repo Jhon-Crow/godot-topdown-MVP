@@ -3895,13 +3895,16 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	elif p.get("shooter_position") != null: p.shooter_position = pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
 
-## Fire RPG rocket (Issue #583). Area2D pattern: set direction before add_child, acceleration managed by rocket script.
+## Fire RPG rocket (Issue #583). Mirrors bullet.gd pattern: add_child first, then set properties.
+## This matches the exact pattern used by _spawn_projectile for regular bullets, which works in exports.
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
 	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
-	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
-	get_tree().current_scene.add_child(rocket)
+	rocket.global_position = pos
+	get_tree().current_scene.add_child(rocket)  # _ready() runs here with default direction=RIGHT
+	# Set properties AFTER add_child (same as bullet _spawn_projectile pattern — works in exports)
+	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos)
 	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
