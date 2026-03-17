@@ -5892,6 +5892,9 @@ public partial class Player : BaseCharacter
 
         _loudspeakerEquipped = true;
 
+        // Initialize charges for the current level (Issue #959)
+        _loudspeakerProgress.Call("reset_for_new_level");
+
         // Create in-hand sprite shown during activation
         const string LoudspeakerTexturePath = "res://assets/sprites/weapons/loudspeaker_icon.png";
         if (ResourceLoader.Exists(LoudspeakerTexturePath))
@@ -5911,7 +5914,8 @@ public partial class Player : BaseCharacter
         }
 
         int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
-        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, charges: {(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}");
+        int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
+        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}");
     }
 
     /// <summary>

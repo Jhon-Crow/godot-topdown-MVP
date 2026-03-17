@@ -206,8 +206,50 @@ The previous analysis assumed Godot EXE builds embed scripts (making GDScript un
 
 ---
 
+## Third Report (2026-03-17 05:56) — Item still not working after C# fix
+
+**User feedback:** After the C# Player.cs fix, the item is still not working. New log: `game_log_20260317_055627.txt`.
+
+### Root Cause 5: `loudspeaker_progress.gd` extends `RefCounted` instead of `Node`
+
+**Evidence from `game_log_20260317_055627.txt`:**
+```
+[05:56:27] [Player.Loudspeaker] Loudspeaker equipped, charges: 0
+[05:56:43] [Player.Loudspeaker] Cannot activate: no charges or cooldown active
+```
+
+The C# code now runs (confirming Fix 1 worked — `[Player.Loudspeaker]` lines appear), but `charges_remaining` is always `0`, blocking activation.
+
+**Root cause:** `scripts/components/loudspeaker_progress.gd` declares `extends RefCounted`. In C#, the node is created with `new Node()` and then `.SetScript(progressScript)` is called. You **cannot apply a `RefCounted`-extending script to a `Node` object** — this causes GDScript method calls to return wrong/default values (0 instead of 2 for `get_max_charges()`).
+
+The pattern is the same as `breaching_charges_effect.gd` which correctly `extends Node`. All GDScript components that are dynamically attached to `Node` instances from C# must extend `Node` (or a Node subclass), not `RefCounted`.
+
+**Additionally:** Even after fixing `extends Node`, `reset_for_new_level()` was not called during `InitLoudspeaker()`. The GDScript member variable initializer `var charges_remaining: int = 2` might not be guaranteed to run after `SetScript()`. Explicit `reset_for_new_level()` call was added after `AddChild`.
+
+### Fix 6 (2026-03-17): Change `loudspeaker_progress.gd` to `extends Node`
+
+Changed:
+```gdscript
+# Before (broken)
+extends RefCounted
+
+# After (fixed)
+extends Node
+```
+
+Also added explicit `reset_for_new_level()` call in `InitLoudspeaker()` in `Scripts/Characters/Player.cs` after `AddChild(_loudspeakerProgress)`.
+
+### Updated Affected Files
+| File | Change |
+|------|--------|
+| `scripts/components/loudspeaker_progress.gd` | **Changed `extends RefCounted` → `extends Node`** (root cause of charges=0) |
+| `Scripts/Characters/Player.cs` | Added `reset_for_new_level()` call after AddChild; improved charge logging |
+| `docs/case-studies/issue-959/game_log_20260317_055627.txt` | New game log added |
+
+---
+
 ## References
 - Issue #959: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/959
 - PR #1018: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1018
 - Issue #1028 (RICOCHET_POINTS removal): referenced in test file
-- Game logs: `game_log_20260317_011120.txt`, `game_log_20260317_050705.txt` (this directory)
+- Game logs: `game_log_20260317_011120.txt`, `game_log_20260317_050705.txt`, `game_log_20260317_055627.txt` (this directory)

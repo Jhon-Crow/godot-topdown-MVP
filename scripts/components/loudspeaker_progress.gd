@@ -1,5 +1,5 @@
 class_name LoudspeakerProgress
-extends RefCounted
+extends Node
 ## Tracks Loudspeaker active item progress through 7 development levels.
 ##
 ## Level progression is based on completing levels while using the loudspeaker:
