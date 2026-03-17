@@ -21,7 +21,7 @@ enum ActiveItemType {
 	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
-	COMBAT_DISPOSITION # Combat Disposition - passive: +0.7 damage and +1 fire rate on start; on hit: -3.0 damage and -3.6 fire rate (Issue #1047)
+	COMBAT_DISPOSITION # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 }
 
 ## Currently selected active item type.
@@ -135,7 +135,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
-		"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
+		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
 	}
 }
 

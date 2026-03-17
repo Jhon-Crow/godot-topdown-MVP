@@ -5694,13 +5694,13 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Current damage bonus from Combat Disposition.
-    /// Starts at +0.7, decreases by 1 on first hit taken.
+    /// Starts at +0.77, decreases by 6.0 on first hit taken.
     /// </summary>
     private float _combatDispositionDamageBonus = 0.0f;
 
     /// <summary>
     /// Current fire rate bonus from Combat Disposition.
-    /// Starts at +1, decreases by 1.2 on first hit taken.
+    /// Starts at +1.1, decreases by 7.2 on first hit taken.
     /// </summary>
     private float _combatDispositionFireRateBonus = 0.0f;
 
@@ -5738,8 +5738,8 @@ public partial class Player : BaseCharacter
 
         _combatDispositionActive = true;
         _combatDispositionPenaltyApplied = false;
-        _combatDispositionDamageBonus = 0.7f;
-        _combatDispositionFireRateBonus = 1.0f;
+        _combatDispositionDamageBonus = 0.77f;
+        _combatDispositionFireRateBonus = 1.1f;
 
         // Apply bonuses to current weapon
         if (CurrentWeapon != null)
@@ -5769,8 +5769,8 @@ public partial class Player : BaseCharacter
             return;
 
         _combatDispositionPenaltyApplied = true;
-        _combatDispositionDamageBonus -= 3.0f;
-        _combatDispositionFireRateBonus -= 3.6f;
+        _combatDispositionDamageBonus -= 6.0f;
+        _combatDispositionFireRateBonus -= 7.2f;
 
         // Apply updated bonuses to current weapon
         if (CurrentWeapon != null)
