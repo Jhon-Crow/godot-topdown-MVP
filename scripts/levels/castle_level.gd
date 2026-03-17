@@ -62,6 +62,9 @@ var _level_cleared: bool = false
 ## Whether the level completion sequence has been triggered (prevents duplicate calls).
 var _level_completed: bool = false
 
+## Weapon hints component instance (Issue #809).
+var _weapon_hints_component: Node = null
+
 
 func _ready() -> void:
 	print("CastleLevel loaded - Medieval Fortress Assault")
@@ -101,6 +104,9 @@ func _ready() -> void:
 
 	# Setup exit zone at the exit point (bottom of castle)
 	_setup_exit_zone()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
 
 
 ## Initialize the ScoreManager for this level.
@@ -307,6 +313,33 @@ func _setup_realistic_visibility() -> void:
 	print("[CastleLevel] Realistic visibility component added to player")
 
 
+## Setup weapon hints component (Issue #809).
+## Shows weapon-specific tutorial hints when player uses a new weapon.
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[CastleLevel] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[CastleLevel] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	# Setup the component with player and CanvasLayer references (Issue #809)
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[CastleLevel] Weapon hints component added and setup")
+
+
 ## Setup tracking for the player.
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
@@ -468,6 +501,9 @@ func _configure_castle_weapon_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 	else:
 		push_warning("[CastleLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -495,6 +531,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Setup debug UI elements for kills and accuracy.

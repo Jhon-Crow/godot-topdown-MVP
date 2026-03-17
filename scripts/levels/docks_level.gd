@@ -25,6 +25,9 @@ const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
 var _replay_manager: Node = null
 
+## Weapon hints component instance (Issue #809).
+var _weapon_hints_component: Node = null
+
 
 func _get_or_create_replay_manager() -> Node:
 	if _replay_manager != null and is_instance_valid(_replay_manager):
@@ -54,6 +57,9 @@ func _ready() -> void:
 	_initialize_score_manager()
 	_setup_exit_zone()
 	_start_replay_recording()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
 
 
 func _initialize_score_manager() -> void:
@@ -105,6 +111,33 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.name = "RealisticVisibilityComponent"
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
+
+
+## Setup weapon hints component (Issue #809).
+## Shows weapon-specific tutorial hints when player uses a new weapon.
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[DocksLevel] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[DocksLevel] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	# Setup the component with player and CanvasLayer references (Issue #809)
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[DocksLevel] Weapon hints component added and setup")
 
 
 func _process(_delta: float) -> void:
@@ -285,6 +318,9 @@ func _configure_docks_weapon_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 	else:
 		push_warning("[DocksLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 func _configure_makarov_pm_ammo(weapon: Node) -> void:
@@ -304,6 +340,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 func _on_player_ammo_changed(current: int, maximum: int) -> void:

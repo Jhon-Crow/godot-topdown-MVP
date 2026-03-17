@@ -6,7 +6,7 @@ extends Node2D
 ## making navigation more maze-like and challenging.
 ## Features:
 ## - Larger labyrinth layout (~3200x2400 pixels) for more exploration
-## - 14 enemies distributed across many rooms (more than BuildingLevel)
+## - 15 enemies distributed across many rooms (more than BuildingLevel), including a machine gunner
 ## - More rooms with narrower corridors for a true labyrinth feel
 ## - Score tracking with Hotline Miami style ranking system
 
@@ -18,6 +18,9 @@ var _ammo_label: Label = null
 
 ## Reference to the player.
 var _player: Node2D = null
+
+## Reference to the weapon hints component (Issue #809).
+var _weapon_hints_component: Node = null
 
 ## Total enemy count at start.
 var _initial_enemy_count: int = 0
@@ -126,6 +129,9 @@ func _ready() -> void:
 
 	# Start replay recording
 	_start_replay_recording()
+
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
 
 
 ## Initialize the ScoreManager for this level.
@@ -950,6 +956,32 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.2, 1.0))
 	else:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+
+
+## Setup weapon hints component (Issue #809).
+## Shows weapon-specific tutorial hints when player uses a new weapon.
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[Labyrinth2Level] CanvasLayer node not found for weapon hints")
+		return
+
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[Labyrinth2Level] WeaponHintsComponent script not found")
+		return
+
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[Labyrinth2Level] Weapon hints component added and setup")
 
 
 ## Log a message to the level log file for debugging.

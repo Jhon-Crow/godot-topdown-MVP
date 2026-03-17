@@ -794,6 +794,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
 
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+
 
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
@@ -1580,6 +1584,10 @@ func _setup_selected_weapon() -> void:
 			if m16.has_method("ReinitializeMagazines"):
 				m16.ReinitializeMagazines(base_magazines, true)
 				print("LabyrinthLevel: M16 magazines reinitialized to %d" % base_magazines)
+
+			# Reapply auto-reload magazine size reduction if active (Issue #1067).
+			if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+				_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 			print("LabyrinthLevel: M16 Assault Rifle equipped successfully")
 		else:
