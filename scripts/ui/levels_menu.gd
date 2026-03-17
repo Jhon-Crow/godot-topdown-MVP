@@ -91,14 +91,34 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "5000x4000"
 	},
 	{
-		"name": "Roguelike",
-		"name_ru": "Рогалик",
-		"path": "res://scenes/levels/RoguelikeLevel.tscn",
-		"description": "Procedurally generated dungeon: random rooms, random weapons, random enemies — a new layout every run.",
-		"preview_color": Color(0.2, 0.1, 0.35, 1.0),
-		"preview_accent": Color(0.55, 0.3, 0.9, 1.0),
-		"enemy_count": 0,
-		"map_size": "3840x2160"
+		"name": "Factory",
+		"name_ru": "Завод",
+		"path": "res://scenes/levels/FactoryLevel.tscn",
+		"description": "Industrial factory building with interconnected rooms and corridors. 13 heavily armored enemies, max 2 per room.",
+		"preview_color": Color(0.2, 0.18, 0.14, 1.0),
+		"preview_accent": Color(0.45, 0.38, 0.28, 1.0),
+		"enemy_count": 13,
+		"map_size": "2400x2000"
+	},
+	{
+		"name": "Decadence",
+		"name_ru": "Декаданс",
+		"path": "res://scenes/levels/DecadenceLevel.tscn",
+		"description": "Hotline Miami: Chapter Three. Neon nightclub with dance floor, bar, VIP rooms, and back alley. Synthwave aesthetic.",
+		"preview_color": Color(0.1, 0.03, 0.18, 1.0),
+		"preview_accent": Color(1.0, 0.2, 0.8, 1.0),
+		"enemy_count": 12,
+		"map_size": "2400x2000"
+	},
+	{
+		"name": "Labyrinth Complex",
+		"name_ru": "Лабиринт Комплекс",
+		"path": "res://scenes/levels/Labyrinth2Level.tscn",
+		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 15 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
+		"preview_color": Color(0.12, 0.14, 0.2, 1.0),
+		"preview_accent": Color(0.25, 0.3, 0.45, 1.0),
+		"enemy_count": 15,
+		"map_size": "3200x2400"
 	}
 ]
 
@@ -126,15 +146,15 @@ var _level_cards: Dictionary = {}
 ## The first level (Labyrinth) is always unlocked.
 ## The Roguelike level is always unlocked (procedurally generated, no prerequisites).
 ## All other levels require the immediately preceding level to be completed on any difficulty.
+## If the "all maps unlocked" experimental setting is enabled (Issue #1075), all levels are accessible.
 ## @param level_index: Index into the LEVELS array.
 ## @param progress_manager: The ProgressManager autoload node (may be null).
 ## @return: True if the level is available to play.
 func is_level_unlocked(level_index: int, progress_manager: Node) -> bool:
 	if level_index <= 0:
 		return true
-	# Roguelike level is always available — no prerequisites required.
-	var level_path: String = LEVELS[level_index]["path"]
-	if level_path == "res://scenes/levels/RoguelikeLevel.tscn":
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.is_all_maps_unlocked():
 		return true
 	var previous_path: String = LEVELS[level_index - 1]["path"]
 	if progress_manager and progress_manager.has_method("is_level_completed_any_difficulty"):

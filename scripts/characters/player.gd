@@ -272,6 +272,13 @@ func _ready() -> void:
 		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
 			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
 
+	# Apply Armored Skin +1 HP bonus before setting current health (Issue #1045)
+	var _armored_skin_check: Node = get_node_or_null("/root/ActiveItemManager")
+	if _armored_skin_check and _armored_skin_check.has_method("has_armored_skin"):
+		if _armored_skin_check.has_armored_skin():
+			max_health += 1
+			FileLogger.info("[Player.ArmoredSkin] +1 HP bonus applied, max_health = %d" % max_health)
+
 	_current_ammo = max_ammo
 	_current_health = max_health
 	_is_alive = true
@@ -370,8 +377,23 @@ func _ready() -> void:
 	# Initialize trajectory glasses if active item manager has trajectory glasses selected (Issue #744)
 	_init_trajectory_glasses()
 
+	# Initialize loudspeaker if active item manager has it selected (Issue #959)
+	_init_loudspeaker()
+
+	# Initialize breaching charges if active item manager has them selected (Issue #1043)
+	_init_breaching_charges()
+
+	# Initialize armored skin if active item manager has it selected (Issue #1045)
+	_init_armored_skin()
+
+	# Initialize recoil compensator if active item manager has it selected (Issue #1073)
+	_init_recoil_compensator()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
+
+	# Initialize jammer HUD icon (Issue #1036)
+	_init_jammer_hud()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -456,8 +478,17 @@ func _physics_process(delta: float) -> void:
 	# Grenade steps 2 and 3 use LMB, so don't shoot during those
 	# In simple mode, we only use RMB so shooting with LMB is always allowed
 	var can_shoot := _grenade_state == GrenadeState.IDLE or _grenade_state == GrenadeState.TIMER_STARTED or _grenade_state == GrenadeState.SIMPLE_AIMING
-	if can_shoot and Input.is_action_just_pressed("shoot"):
+	# When recoil compensator is active, allow auto-fire at boosted rate (10% faster) while holding shoot.
+	# Without compensator, preserve default semi-auto (just_pressed) behavior.
+	var shoot_pressed: bool
+	if _recoil_compensator_active and _recoil_compensator_shoot_cooldown <= 0.0:
+		shoot_pressed = Input.is_action_pressed("shoot")
+	else:
+		shoot_pressed = Input.is_action_just_pressed("shoot")
+	if can_shoot and shoot_pressed:
 		_shoot()
+		if _recoil_compensator_active and fire_rate > 0.0:
+			_recoil_compensator_shoot_cooldown = 1.0 / (fire_rate * RECOIL_COMPENSATOR_FIRE_RATE_BOOST)
 
 	# Handle reload input based on weapon type and mode
 	if _current_weapon_type == WeaponType.REVOLVER:
@@ -487,6 +518,18 @@ func _physics_process(delta: float) -> void:
 
 	# Handle trajectory glasses input (press Space to activate) (Issue #744)
 	_handle_trajectory_glasses_input()
+
+	# Handle loudspeaker input (press Space to emit sound cone) (Issue #959)
+	_handle_loudspeaker_input()
+
+	# Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
+	_handle_breaching_charges_input()
+
+	# Handle recoil compensator input (hold Space to activate) (Issue #1073)
+	_handle_recoil_compensator_input(delta)
+
+	# Update jammer HUD icon visibility (Issue #1036)
+	_update_jammer_hud()
 
 
 func _get_input_direction() -> Vector2:
@@ -680,7 +723,10 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 
 
 ## Calculate current spread based on consecutive shots.
+## Returns 0.0 when recoil compensator is active (Issue #1073).
 func _get_current_spread() -> float:
+	if _recoil_compensator_active:
+		return 0.0
 	if _shot_count <= SPREAD_THRESHOLD:
 		return INITIAL_SPREAD
 	else:
@@ -776,7 +822,10 @@ func _shoot() -> void:
 
 
 ## Trigger screen shake based on shooting direction and current spread.
+## Suppressed when recoil compensator is active (Issue #1073).
 func _trigger_screen_shake(shoot_direction: Vector2) -> void:
+	if _recoil_compensator_active:
+		return
 	if screen_shake_intensity <= 0.0:
 		return
 
@@ -1068,6 +1117,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 	# Show hit flash effect
 	_show_hit_flash()
+
+	# Armored Skin: spawn glass shards when at low HP (Issue #1045)
+	if _armored_skin_active and _current_health <= 2:
+		_spawn_armored_skin_shards()
 
 	# Apply damage
 	_current_health -= 1
@@ -2836,6 +2889,10 @@ func _draw_trajectory_glasses() -> void:
 	if not _trajectory_glasses.is_active:
 		return
 
+	# Skip drawing during the "off" phase of the low-time blink (Issue #1049).
+	if not _trajectory_glasses.trajectory_ray_visible:
+		return
+
 	var points: Array[Vector2] = _trajectory_glasses.trajectory_local_points
 	if points.size() < 2:
 		return
@@ -3036,6 +3093,14 @@ func _handle_flashlight_input() -> void:
 	if not is_instance_valid(_flashlight_node):
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
+		if _flashlight_node.has_method("turn_off"):
+			_flashlight_node.turn_off()
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			FileLogger.info("[Player.Flashlight] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
 	if Input.is_action_pressed("flashlight_toggle"):
 		if _flashlight_node.has_method("turn_on"):
 			_flashlight_node.turn_on()
@@ -3139,6 +3204,10 @@ func _handle_homing_input(delta: float) -> void:
 
 	# Activate on Space press (only if not already active and has charges)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.Homing] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if _homing_charges > 0 and not _homing_active:
 			_homing_active = true
 			_homing_timer = HOMING_DURATION
@@ -3278,6 +3347,10 @@ func _handle_bff_pendant_input() -> void:
 		return
 
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.BffPendant] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		_summon_bff_companion()
 
 
@@ -3537,6 +3610,10 @@ func _handle_invisibility_suit_input() -> void:
 
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.InvisibilitySuit] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if not _invisibility_suit.is_active:
 			_invisibility_suit.activate()
 
@@ -3671,6 +3748,14 @@ func _handle_force_field_input(delta: float) -> void:
 	if not _force_field_equipped or _force_field == null:
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy (hold-based item)
+	if ActiveItemManager.is_active_item_jammed():
+		if _force_field.is_active:
+			_force_field.deactivate()
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			FileLogger.info("[Player.ForceField] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
 	# Hold Space to activate, release to deactivate
 	if Input.is_action_pressed("flashlight_toggle"):
 		if not _force_field.is_active:
@@ -3788,6 +3873,11 @@ func _handle_trajectory_glasses_input() -> void:
 
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		# Use verbose variant so the log records detailed jammer diagnostics on every Space press
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.TrajectoryGlasses] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if not _trajectory_glasses.is_active:
 			# Update weapon reference before activation (in case player switched weapons)
 			_update_trajectory_glasses_weapon()
@@ -3797,30 +3887,19 @@ func _handle_trajectory_glasses_input() -> void:
 
 
 ## Callback when trajectory glasses activates.
-## Shows combined progress bar with charge pips + timer (Issue #974).
+## Shows charge pips briefly (400 ms) via the HUD node; no progress bar (Issue #1049).
 func _on_trajectory_activated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
-	# Show combined progress bar (Issue #974)
-	_show_active_item_combined_bar(
-		charges_remaining,
-		_trajectory_glasses.MAX_CHARGES,
-		_trajectory_glasses.EFFECT_DURATION,
-		_trajectory_glasses.EFFECT_DURATION
-	)
-	# Also update legacy HUD if present
+	# Show charge pip HUD briefly — it auto-hides after ACTIVATION_SHOW_DURATION (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
-		_trajectory_glasses_hud.set_active(true)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+		_trajectory_glasses_hud.set_active(true)
 
 
 ## Callback when trajectory glasses deactivates.
 func _on_trajectory_deactivated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
-	# Show charge bar briefly then hide (Issue #974)
-	_show_active_item_charge_bar(charges_remaining, _trajectory_glasses.MAX_CHARGES)
-	_charge_bar_hide_pending = true
-	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
-	# Also update legacy HUD if present
+	# Hide charge pip HUD immediately on deactivation (Issue #1049)
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
 		_trajectory_glasses_hud.set_active(false)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
@@ -3845,6 +3924,301 @@ func is_trajectory_glasses_active() -> bool:
 ## Get the trajectory glasses effect node (for HUD queries).
 func get_trajectory_glasses() -> Node:
 	return _trajectory_glasses
+
+
+# ============================================================================
+# Radio Jammer HUD (Issue #1036)
+# ============================================================================
+
+## Preloaded jammer HUD script (prohibition sign shown when active items are jammed).
+const JammerHudScript = preload("res://scripts/ui/jammer_hud.gd")
+
+## Reference to the jammer HUD node (shown above player when jammed + has active item).
+var _jammer_hud: Node2D = null
+
+
+## Initialize the jammer HUD node (always created; visibility is toggled at runtime).
+func _init_jammer_hud() -> void:
+	_jammer_hud = JammerHudScript.new()
+	_jammer_hud.name = "JammerHUD"
+	add_child(_jammer_hud)
+	FileLogger.info("[Player.Jammer] JammerHUD initialized")
+
+
+## Update jammer HUD visibility: show only when jammed and player has an active item.
+func _update_jammer_hud() -> void:
+	if _jammer_hud == null or not is_instance_valid(_jammer_hud):
+		return
+	var has_item: bool = ActiveItemManager.current_active_item != ActiveItemManager.ActiveItemType.NONE
+	_jammer_hud.set_jammed_visible(ActiveItemManager.is_active_item_jammed() and has_item)
+
+
+# ============================================================================
+# Loudspeaker Active Item (Issue #959)
+# ============================================================================
+
+## Preloaded loudspeaker cone effect script.
+const LoudspeakerConeEffectScript = preload("res://scripts/effects/loudspeaker_cone_effect.gd")
+
+## Whether the loudspeaker is equipped (active item selected in armory).
+var _loudspeaker_equipped: bool = false
+
+## Reference to the loudspeaker cone visual effect node.
+var _loudspeaker_cone: Node2D = null
+
+## Loudspeaker progress tracker (7-level system).
+var _loudspeaker_progress: LoudspeakerProgress = null
+
+## Sprite shown in player's hands during loudspeaker activation (Issue #959).
+var _loudspeaker_hand_sprite: Sprite2D = null
+
+## Timer for how long to show loudspeaker in hands (seconds).
+var _loudspeaker_hold_timer: float = 0.0
+
+## Duration to show loudspeaker in hands during activation (matches cone expand duration).
+const LOUDSPEAKER_HOLD_DURATION: float = 0.6
+
+## Signal emitted when the loudspeaker is activated (for level scripts to apply effect).
+signal loudspeaker_activated(position: Vector2, direction: Vector2, effect_chance: float)
+
+## Signal emitted when loudspeaker charges change.
+signal loudspeaker_charges_changed(current: int, maximum: int)
+
+
+## Initialize the loudspeaker if the ActiveItemManager has it selected.
+func _init_loudspeaker() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Loudspeaker] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_loudspeaker"):
+		FileLogger.info("[Player.Loudspeaker] ActiveItemManager missing has_loudspeaker method")
+		return
+
+	if not active_item_manager.has_loudspeaker():
+		FileLogger.info("[Player.Loudspeaker] No loudspeaker selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.Loudspeaker] Loudspeaker selected, initializing...")
+
+	# Create loudspeaker progress tracker
+	_loudspeaker_progress = LoudspeakerProgress.new()
+
+	# Create the cone visual effect node
+	_loudspeaker_cone = LoudspeakerConeEffectScript.new()
+	_loudspeaker_cone.name = "LoudspeakerConeEffect"
+	_loudspeaker_cone.z_index = 1  # Draw above floor, below UI
+	add_child(_loudspeaker_cone)
+	_loudspeaker_cone.initialize(self)
+
+	_loudspeaker_equipped = true
+
+	# Create a sprite to show loudspeaker in player's hands during activation (Issue #959)
+	var loudspeaker_texture_path := "res://assets/sprites/weapons/loudspeaker_icon.png"
+	if ResourceLoader.exists(loudspeaker_texture_path):
+		_loudspeaker_hand_sprite = Sprite2D.new()
+		_loudspeaker_hand_sprite.texture = load(loudspeaker_texture_path)
+		_loudspeaker_hand_sprite.name = "LoudspeakerHandSprite"
+		_loudspeaker_hand_sprite.visible = false
+		_loudspeaker_hand_sprite.scale = Vector2(0.6, 0.6)
+		_loudspeaker_hand_sprite.position = Vector2(10, 0)
+		_loudspeaker_hand_sprite.z_index = 2
+		if _weapon_mount:
+			_weapon_mount.add_child(_loudspeaker_hand_sprite)
+		else:
+			add_child(_loudspeaker_hand_sprite)
+
+	var max_charges := _loudspeaker_progress.get_max_charges()
+	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, charges: %s" % (
+		str(max_charges) if max_charges != -1 else "unlimited"
+	))
+
+
+## Handle loudspeaker input: press Space to emit sound cone (Issue #959).
+func _handle_loudspeaker_input() -> void:
+	if not _loudspeaker_equipped or _loudspeaker_progress == null:
+		return
+
+	# Update cooldown timer every frame
+	_loudspeaker_progress.update(get_process_delta_time())
+
+	# Update loudspeaker hold timer (show loudspeaker sprite in hands during activation)
+	if _loudspeaker_hold_timer > 0.0:
+		_loudspeaker_hold_timer -= get_process_delta_time()
+		if _loudspeaker_hold_timer <= 0.0:
+			_loudspeaker_hold_timer = 0.0
+			# Restore weapon visibility
+			if _weapon_mount:
+				for child in _weapon_mount.get_children():
+					if child != _loudspeaker_hand_sprite:
+						child.visible = true
+			if _loudspeaker_hand_sprite and is_instance_valid(_loudspeaker_hand_sprite):
+				_loudspeaker_hand_sprite.visible = false
+
+	if not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.Loudspeaker] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
+	if not _loudspeaker_progress.can_activate():
+		FileLogger.info("[Player.Loudspeaker] Cannot activate: no charges or cooldown active")
+		return
+
+	# Determine if this is the first use before consuming the charge
+	var is_first_use: bool = not _loudspeaker_progress.used_this_level
+
+	# Consume charge / start cooldown
+	_loudspeaker_progress.use()
+
+	# Get aim direction (toward mouse cursor)
+	var aim_dir := _get_aim_direction()
+
+	# Show loudspeaker in player's hands: hide weapon, show loudspeaker sprite (Issue #959)
+	if _loudspeaker_hand_sprite and is_instance_valid(_loudspeaker_hand_sprite):
+		_loudspeaker_hand_sprite.visible = true
+		if _weapon_mount:
+			for child in _weapon_mount.get_children():
+				if child != _loudspeaker_hand_sprite:
+					child.visible = false
+		_loudspeaker_hold_timer = LOUDSPEAKER_HOLD_DURATION
+
+	# Show the cone visual effect
+	if _loudspeaker_cone and is_instance_valid(_loudspeaker_cone):
+		_loudspeaker_cone.play(aim_dir)
+
+	# Effect chance: first use is always 100%, subsequent uses depend on level
+	var effect_chance := 1.0 if is_first_use else _loudspeaker_progress.get_effect_chance()
+
+	# Notify all enemies on the map that a loud sound was made (they all hear it)
+	_alert_all_enemies_loudspeaker()
+
+	# Apply pacifism effect to enemies in the cone sector (Stage 5)
+	var hostility_chance := _loudspeaker_progress.get_hostility_chance()
+	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance)
+
+	# Emit signal so level scripts can track loudspeaker activations
+	loudspeaker_activated.emit(global_position, aim_dir, effect_chance)
+
+	# Update charge display
+	var max_charges := _loudspeaker_progress.get_max_charges()
+	var current_charges := _loudspeaker_progress.charges_remaining
+	loudspeaker_charges_changed.emit(current_charges, max_charges if max_charges != -1 else 0)
+
+	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%" % [
+		aim_dir, effect_chance * 100.0
+	])
+
+
+## Get the current aim direction (toward mouse cursor, or last move direction).
+func _get_aim_direction() -> Vector2:
+	# Aim toward mouse cursor
+	var mouse_pos := get_global_mouse_position()
+	var diff := mouse_pos - global_position
+	if diff.length() > 1.0:
+		return diff.normalized()
+	# Fallback: use current velocity direction
+	if velocity.length() > 1.0:
+		return velocity.normalized()
+	return Vector2.RIGHT
+
+
+## Apply the loudspeaker pacifism effect to enemies in the cone sector (Issue #959, Stage 5).
+##
+## Rules (from issue spec):
+## - Cone half-angle: 50 degrees (same as LoudspeakerConeEffect)
+## - Not behind a wall: raycasted (collision mask 4 = walls)
+## - Behind cover but within 500px: still gets effect
+## - Only enemies NOT previously attacked by player (not wounded/suppressed)
+## - Effect chance: 100% on first use, per-level chance on subsequent uses
+## - Hostility: each enemy independently rolls hostility toward any pacifist created
+func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float) -> void:
+	const CONE_HALF_ANGLE: float = 0.872664625997  # 50 degrees in radians
+	const COVER_MAX_DISTANCE: float = 500.0
+	var wall_mask: int = 4  # Physics layer for walls
+
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var pacified_count := 0
+
+	for enemy in enemies:
+		if not enemy.has_method("apply_pacifism"):
+			continue
+		if not enemy.has_method("is_alive") or not enemy.is_alive():
+			continue
+		if not enemy.has_method("is_pacifist") or enemy.is_pacifist():
+			continue  # Already pacifist
+
+		# Check if enemy was attacked by player (only unengaged enemies can be pacified)
+		if enemy.has_method("was_attacked_by_player") and enemy.was_attacked_by_player():
+			continue
+
+		var to_enemy: Vector2 = enemy.global_position - global_position
+		var dist: float = to_enemy.length()
+
+		if dist < 0.1:
+			continue
+
+		# Check cone angle
+		var angle_to_enemy := abs(direction.angle_to(to_enemy.normalized()))
+		if angle_to_enemy > CONE_HALF_ANGLE:
+			continue
+
+		# Line-of-sight check (raycast to enemy)
+		var space_state := get_world_2d().direct_space_state
+		var ray := PhysicsRayQueryParameters2D.new()
+		ray.from = global_position
+		ray.to = enemy.global_position
+		ray.collision_mask = wall_mask
+		ray.exclude = [self]
+		var result := space_state.intersect_ray(ray)
+		var behind_wall := not result.is_empty()
+
+		# If behind a wall (not just cover), skip — unless within 500px (cover rule)
+		if behind_wall and dist > COVER_MAX_DISTANCE:
+			continue
+
+		# Roll effect chance
+		if randf() > effect_chance:
+			continue
+
+		# Apply pacifism
+		if enemy.apply_pacifism(hostility_chance):
+			pacified_count += 1
+			FileLogger.info("[Player.Loudspeaker] Pacified enemy at %s (dist=%.0f, cover=%s)" % [
+				enemy.global_position, dist, str(behind_wall)
+			])
+
+	FileLogger.info("[Player.Loudspeaker] Effect applied: %d/%d enemies pacified" % [
+		pacified_count, enemies.size()
+	])
+
+
+## Alert all enemies on the map that the loudspeaker was used (they hear a loud sound).
+## Per issue spec: "enemies on the whole map hear the player when this item is used".
+func _alert_all_enemies_loudspeaker() -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var alerted := 0
+	for enemy in enemies:
+		if enemy.has_method("alert_from_loudspeaker"):
+			enemy.alert_from_loudspeaker(global_position)
+			alerted += 1
+		elif enemy.has_method("alert"):
+			enemy.alert(global_position)
+			alerted += 1
+	FileLogger.info("[Player.Loudspeaker] Alerted %d enemies" % alerted)
+
+
+## Check if the loudspeaker is equipped (Issue #959).
+func has_loudspeaker() -> bool:
+	return _loudspeaker_equipped
+
+
+## Get the loudspeaker progress tracker (Issue #959).
+func get_loudspeaker_progress() -> LoudspeakerProgress:
+	return _loudspeaker_progress
 
 
 # ============================================================================
@@ -3957,16 +4331,11 @@ func _update_charge_bar_timer(delta: float) -> void:
 	if _homing_equipped and _homing_active:
 		_update_active_item_timer(_homing_timer)
 
-	# Update combined bar (charge pips + timer) while trajectory glasses is active (Issue #974)
-	if _trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses):
-		if _trajectory_glasses.is_active:
-			_update_active_item_timer(_trajectory_glasses.get_remaining_time())
+	# Trajectory glasses no longer use the ActiveItemProgressBar (Issue #1049).
+	# Their charge pips are shown by trajectory_glasses_hud which auto-hides after 400 ms.
 
-	# Handle charge bar auto-hide (300ms delay for charge-based items)
-	# Only hide if neither homing nor trajectory glasses is active
-	var any_active: bool = (_homing_equipped and _homing_active) or \
-		(_trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) and _trajectory_glasses.is_active)
-	if _charge_bar_hide_pending and not any_active:
+	# Handle charge bar auto-hide (300ms delay for charge-based items, e.g. homing bullets)
+	if _charge_bar_hide_pending and not (_homing_equipped and _homing_active):
 		_charge_bar_hide_timer -= delta
 		if _charge_bar_hide_timer <= 0.0:
 			_charge_bar_hide_pending = false
@@ -3994,3 +4363,280 @@ func _on_homing_deactivated_hide_bar() -> void:
 ## Called when homing charges change.
 func _on_homing_charges_changed(_current: int, _maximum: int) -> void:
 	pass
+
+
+# ============================================================================
+# Breaching Charges (Issue #1043)
+# ============================================================================
+
+
+## Preload the breaching charges effect script.
+const BreachingChargesEffectScript = preload("res://scripts/effects/breaching_charges_effect.gd")
+
+## Whether breaching charges are equipped.
+var _breaching_charges_equipped: bool = false
+
+## Reference to the breaching charges effect node.
+var _breaching_charges: Node = null
+
+## Signal emitted when a breaching charge is placed.
+signal breaching_charge_placed(charges_remaining: int)
+
+## Signal emitted when breaching charges detonate.
+signal breaching_charges_detonated(position: Vector2)
+
+## Signal emitted when breaching charges count changes.
+signal breaching_charges_changed(current: int, maximum: int)
+
+
+## Initialize breaching charges if the ActiveItemManager has them selected.
+func _init_breaching_charges() -> void:
+	FileLogger.info("[Player.BreachingCharges] Checking breaching charges...")
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.BreachingCharges] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_breaching_charges"):
+		FileLogger.info("[Player.BreachingCharges] ActiveItemManager missing has_breaching_charges method")
+		return
+
+	if not active_item_manager.has_breaching_charges():
+		FileLogger.info("[Player.BreachingCharges] No breaching charges selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.BreachingCharges] Breaching charges selected, initializing...")
+
+	# Create the effect node
+	_breaching_charges = BreachingChargesEffectScript.new()
+	_breaching_charges.name = "BreachingChargesEffect"
+	add_child(_breaching_charges)
+
+	# Initialize with player reference
+	_breaching_charges.initialize(self)
+
+	# Connect signals
+	_breaching_charges.charge_placed.connect(_on_breaching_charge_placed)
+	_breaching_charges.charges_detonated.connect(_on_breaching_charges_detonated)
+	_breaching_charges.charges_changed.connect(_on_breaching_charges_changed)
+
+	_breaching_charges_equipped = true
+	FileLogger.info("[Player.BreachingCharges] Breaching charges equipped, charges: %d" % _breaching_charges.charges)
+
+	# Show initial charge bar
+	_show_active_item_charge_bar(_breaching_charges.charges, _breaching_charges.MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Handle breaching charges input.
+## - Hold Space near a wall → place charge (on release)
+## - Press Space when charge placed → detonate
+func _handle_breaching_charges_input() -> void:
+	if not _breaching_charges_equipped or _breaching_charges == null:
+		return
+
+	if not is_instance_valid(_breaching_charges):
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if Input.is_action_just_pressed("flashlight_toggle") and ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.BreachingCharges] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
+	# If a charge is already placed: press Space to detonate
+	if _breaching_charges.has_placed_charge:
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			var detonated := _breaching_charges.detonate()
+			if detonated:
+				FileLogger.info("[Player.BreachingCharges] Charge detonated")
+		return
+
+	# No charge placed yet: hold Space to aim at wall, release to place
+	if Input.is_action_just_released("flashlight_toggle") and _breaching_charges._holding_for_placement:
+		_breaching_charges._holding_for_placement = false
+		var placed := _breaching_charges.try_place_charge()
+		if placed:
+			FileLogger.info("[Player.BreachingCharges] Charge placed")
+	elif Input.is_action_pressed("flashlight_toggle") and _breaching_charges.charges > 0:
+		_breaching_charges._holding_for_placement = true
+	elif Input.is_action_just_released("flashlight_toggle"):
+		_breaching_charges._holding_for_placement = false
+
+
+## Callback when a breaching charge is placed.
+func _on_breaching_charge_placed(charges_remaining: int) -> void:
+	breaching_charge_placed.emit(charges_remaining)
+	_show_active_item_charge_bar(charges_remaining, _breaching_charges.MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+	FileLogger.info("[Player.BreachingCharges] Charge placed signal received, charges left: %d" % charges_remaining)
+
+
+## Callback when breaching charges are detonated.
+func _on_breaching_charges_detonated(pos: Vector2) -> void:
+	breaching_charges_detonated.emit(pos)
+	FileLogger.info("[Player.BreachingCharges] Detonation signal received at %s" % str(pos))
+
+
+## Callback when breaching charges count changes.
+func _on_breaching_charges_changed(current: int, maximum: int) -> void:
+	breaching_charges_changed.emit(current, maximum)
+	_show_active_item_charge_bar(current, maximum)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+
+
+## Get the breaching charges effect node.
+func get_breaching_charges() -> Node:
+	return _breaching_charges
+
+
+# ============================================================================
+# Armored Skin (Issue #1045)
+# ============================================================================
+
+
+## Whether armored skin is active (passive item, Issue #1045).
+var _armored_skin_active: bool = false
+
+## Scene path for the armored skin shard projectile.
+const ARMORED_SKIN_SHARD_SCENE_PATH: String = "res://scenes/projectiles/ArmoredSkinShard.tscn"
+
+## Number of glass shards to spawn on low-HP hit.
+const ARMORED_SKIN_SHARD_COUNT: int = 20
+
+## HP threshold at or below which shards spawn on hit.
+const ARMORED_SKIN_HP_THRESHOLD: int = 2
+
+
+## Initialize armored skin if the ActiveItemManager has it selected.
+func _init_armored_skin() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	if not active_item_manager.has_method("has_armored_skin"):
+		return
+
+	if not active_item_manager.has_armored_skin():
+		FileLogger.info("[Player.ArmoredSkin] No armored skin selected in ActiveItemManager")
+		return
+
+	_armored_skin_active = true
+	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
+
+
+## Spawn 20 glass/crystal shards in all directions from the player position.
+## Called when armored skin is active and player is at ≤2 HP while being hit.
+func _spawn_armored_skin_shards() -> void:
+	if not ResourceLoader.exists(ARMORED_SKIN_SHARD_SCENE_PATH):
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Shard scene not found: %s" % ARMORED_SKIN_SHARD_SCENE_PATH)
+		return
+
+	var shard_scene: PackedScene = load(ARMORED_SKIN_SHARD_SCENE_PATH)
+	if shard_scene == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Failed to load shard scene")
+		return
+
+	var parent: Node = get_parent()
+	if parent == null:
+		return
+
+	FileLogger.info("[Player.ArmoredSkin] Spawning %d glass shards (HP: %d)" % [ARMORED_SKIN_SHARD_COUNT, _current_health])
+
+	for i in range(ARMORED_SKIN_SHARD_COUNT):
+		var shard: Node2D = shard_scene.instantiate()
+
+		# Set direction and source_id before add_child so _ready() uses the correct values
+		var base_angle: float = (float(i) / float(ARMORED_SKIN_SHARD_COUNT)) * TAU
+		var angle_deviation: float = randf_range(-PI / ARMORED_SKIN_SHARD_COUNT, PI / ARMORED_SKIN_SHARD_COUNT)
+		var angle: float = base_angle + angle_deviation
+		shard.direction = Vector2(cos(angle), sin(angle)).normalized()
+		shard.source_id = get_instance_id()
+
+		parent.add_child(shard)
+		shard.global_position = global_position
+
+
+# ============================================================================
+# Recoil Compensator (Issue #1073)
+# ============================================================================
+
+
+## Whether the recoil compensator is equipped.
+var _recoil_compensator_equipped: bool = false
+
+## Whether the recoil compensator is currently active (Space held and charge > 0).
+var _recoil_compensator_active: bool = false
+
+## Remaining charge in seconds (max 15 seconds).
+var _recoil_compensator_charge: float = 0.0
+
+## Maximum charge duration in seconds.
+const RECOIL_COMPENSATOR_MAX_CHARGE: float = 15.0
+
+## Fire rate multiplier when compensator is active (10% boost).
+const RECOIL_COMPENSATOR_FIRE_RATE_BOOST: float = 1.1
+
+## Shoot cooldown timer for fire rate boost (seconds remaining until next shot allowed).
+var _recoil_compensator_shoot_cooldown: float = 0.0
+
+
+## Initialize the recoil compensator if the ActiveItemManager has it selected.
+func _init_recoil_compensator() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_recoil_compensator"):
+		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager does not have has_recoil_compensator method")
+		return
+
+	if not active_item_manager.has_recoil_compensator():
+		FileLogger.info("[Player.RecoilCompensator] Recoil compensator not selected")
+		return
+
+	_recoil_compensator_equipped = true
+	_recoil_compensator_charge = RECOIL_COMPENSATOR_MAX_CHARGE
+
+	FileLogger.info("[Player.RecoilCompensator] Recoil compensator initialized, charge: %.1f s" % _recoil_compensator_charge)
+
+
+## Handle recoil compensator input: hold Space to activate, release to deactivate.
+## Charge depletes at 1 s/s while active; deactivates automatically when empty.
+func _handle_recoil_compensator_input(delta: float) -> void:
+	if not _recoil_compensator_equipped:
+		return
+
+	# Update shoot cooldown timer
+	if _recoil_compensator_shoot_cooldown > 0.0:
+		_recoil_compensator_shoot_cooldown -= delta
+
+	if Input.is_action_pressed("flashlight_toggle") and _recoil_compensator_charge > 0.0:
+		# Activate: deplete charge
+		if not _recoil_compensator_active:
+			_recoil_compensator_active = true
+			FileLogger.info("[Player.RecoilCompensator] Activated, charge: %.2f s" % _recoil_compensator_charge)
+
+		_recoil_compensator_charge -= delta
+		if _recoil_compensator_charge <= 0.0:
+			_recoil_compensator_charge = 0.0
+			_recoil_compensator_active = false
+			FileLogger.info("[Player.RecoilCompensator] Charge depleted, deactivating")
+
+		# Update progress bar while active
+		_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
+	else:
+		# Deactivate when Space is released or charge is empty
+		if _recoil_compensator_active:
+			_recoil_compensator_active = false
+			FileLogger.info("[Player.RecoilCompensator] Deactivated, charge: %.2f s" % _recoil_compensator_charge)
+			if _recoil_compensator_charge > 0.0:
+				_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
+
+
+## Check if the recoil compensator is currently active.
+func is_recoil_compensator_active() -> bool:
+	return _recoil_compensator_equipped and _recoil_compensator_active

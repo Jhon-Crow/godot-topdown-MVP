@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Components;
 using GodotTopDownTemplate.Projectiles;
 
@@ -936,6 +937,10 @@ public partial class Revolver : BaseWeapon
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Apply the current recoil offset to the direction
         Vector2 result = direction.Rotated(_recoilOffset);
 
@@ -1023,6 +1028,10 @@ public partial class Revolver : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -1195,6 +1204,26 @@ public partial class Revolver : BaseWeapon
     /// Uses the exported CylinderSize property as the authoritative source (Issue #950).
     /// </summary>
     public int CylinderCapacity => CylinderSize;
+
+    /// <summary>
+    /// Rebuilds the _chamberOccupied tracking array to match the current CylinderSize.
+    /// Called by the auto-reload system (Issue #1067) after CylinderSize is reduced so that
+    /// the per-chamber display and reload logic use the new (smaller) cylinder capacity.
+    /// Marks the first CurrentAmmo chambers as occupied (same logic as _Ready).
+    /// </summary>
+    public void ReinitializeCylinder()
+    {
+        int cylinderCapacity = CylinderCapacity;
+        _chamberOccupied = new bool[cylinderCapacity];
+        int ammo = CurrentAmmo;
+        for (int i = 0; i < cylinderCapacity; i++)
+        {
+            _chamberOccupied[i] = i < ammo;
+        }
+        _currentChamberIndex = 0;
+        GD.Print($"[Revolver] ReinitializeCylinder: cylinderCapacity={cylinderCapacity}, ammo={ammo}");
+        EmitSignal(SignalName.CylinderStateChanged);
+    }
 
     /// <summary>
     /// Whether the cylinder can be opened for reloading.
