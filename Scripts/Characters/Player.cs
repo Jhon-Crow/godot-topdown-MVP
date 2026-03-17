@@ -938,6 +938,22 @@ public partial class Player : BaseCharacter
 
             // Connect to health changed signal for visual feedback
             HealthComponent.HealthChanged += OnPlayerHealthChanged;
+
+            // Apply Armored Skin +1 HP bonus if selected (Issue #1045)
+            // Must be applied after InitializeHealth() so we add on top of the rolled value
+            var activeItemManagerForHp = GetNodeOrNull("/root/ActiveItemManager");
+            if (activeItemManagerForHp != null && activeItemManagerForHp.HasMethod("has_armored_skin"))
+            {
+                bool hasArmoredSkin = (bool)activeItemManagerForHp.Call("has_armored_skin");
+                if (hasArmoredSkin)
+                {
+                    float newMax = HealthComponent.MaxHealth + 1;
+                    float newCurrent = HealthComponent.CurrentHealth + 1;
+                    HealthComponent.MaxHealth = newMax;
+                    HealthComponent.SetHealth(newCurrent);
+                    LogToFile($"[Player.ArmoredSkin] +1 HP bonus applied, health now {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth}");
+                }
+            }
         }
 
         // Update visual based on initial health
@@ -1158,6 +1174,9 @@ public partial class Player : BaseCharacter
 
         // Initialize breaching charges if active item manager has them selected (Issue #1043)
         InitBreachingCharges();
+
+        // Initialize armored skin if active item manager has it selected (Issue #1045)
+        InitArmoredSkin();
 
         // Initialize loudspeaker if active item manager has it selected (Issue #959)
         InitLoudspeaker();
@@ -2478,6 +2497,17 @@ public partial class Player : BaseCharacter
 
         // Show hit flash effect
         ShowHitFlash();
+
+        // Armored Skin: spawn glass/crystal shards when at low HP (Issue #1045)
+        // One-time trigger: deactivate after spawning so it only fires once per life.
+        // The triggering projectile's damage is fully absorbed (return early).
+        if (_armoredSkinActive && HealthComponent.CurrentHealth <= 2)
+        {
+            _armoredSkinActive = false;
+            SpawnArmoredSkinShards();
+            // Absorb the hit — triggering projectile deals no damage
+            return;
+        }
 
         // Determine if this hit will be lethal before applying damage
         bool willBeFatal = HealthComponent.CurrentHealth <= amount;
@@ -5826,6 +5856,102 @@ public partial class Player : BaseCharacter
                 // Notify effect: released without placing (hides in-hand sprite)
                 _breachingChargesEffect.Call("set_holding_for_placement", false);
             }
+        }
+    }
+
+    #endregion
+
+    #region Armored Skin System (Issue #1045)
+
+    /// <summary>
+    /// Whether armored skin is active (passive item, Issue #1045).
+    /// When true, 20 glass/crystal shards will be spawned when player is at ≤2 HP and hit.
+    /// </summary>
+    private bool _armoredSkinActive = false;
+
+    /// <summary>
+    /// Path to the ArmoredSkinShard scene.
+    /// </summary>
+    private const string ArmoredSkinShardScenePath = "res://scenes/projectiles/ArmoredSkinShard.tscn";
+
+    /// <summary>
+    /// Number of shards to spawn on trigger.
+    /// </summary>
+    private const int ArmoredSkinShardCount = 20;
+
+    /// <summary>
+    /// Initialize armored skin if the ActiveItemManager has it selected (Issue #1045).
+    /// Armored skin is a passive item — no special nodes needed,
+    /// just a flag that triggers shard spawning at low HP.
+    /// </summary>
+    private void InitArmoredSkin()
+    {
+        LogToFile("[Player.ArmoredSkin] Checking armored skin...");
+
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ArmoredSkin] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_armored_skin"))
+        {
+            LogToFile("[Player.ArmoredSkin] ActiveItemManager missing has_armored_skin method");
+            return;
+        }
+
+        bool hasArmoredSkin = (bool)activeItemManager.Call("has_armored_skin");
+        if (!hasArmoredSkin)
+        {
+            LogToFile("[Player.ArmoredSkin] No armored skin selected in ActiveItemManager");
+            return;
+        }
+
+        _armoredSkinActive = true;
+        LogToFile("[Player.ArmoredSkin] Armored skin active — shards will spawn when HP ≤2 and hit");
+    }
+
+    /// <summary>
+    /// Spawn 20 glass/crystal shards in all directions from the player position (Issue #1045).
+    /// Called when armored skin is active and player is at ≤2 HP while being hit.
+    /// </summary>
+    private void SpawnArmoredSkinShards()
+    {
+        if (!ResourceLoader.Exists(ArmoredSkinShardScenePath))
+        {
+            LogToFile($"[Player.ArmoredSkin] WARNING: Shard scene not found: {ArmoredSkinShardScenePath}");
+            return;
+        }
+
+        var shardScene = GD.Load<PackedScene>(ArmoredSkinShardScenePath);
+        if (shardScene == null)
+        {
+            LogToFile("[Player.ArmoredSkin] WARNING: Failed to load shard scene");
+            return;
+        }
+
+        var parent = GetParent();
+        if (parent == null)
+        {
+            return;
+        }
+
+        LogToFile($"[Player.ArmoredSkin] Spawning {ArmoredSkinShardCount} glass shards (HP: {HealthComponent?.CurrentHealth ?? 0})");
+
+        for (int i = 0; i < ArmoredSkinShardCount; i++)
+        {
+            var shard = shardScene.Instantiate<Node2D>();
+
+            // Set direction and source_id before add_child so _ready() uses the correct values
+            float baseAngle = ((float)i / ArmoredSkinShardCount) * Mathf.Tau;
+            float angleDeviation = (float)GD.RandRange(-Mathf.Pi / ArmoredSkinShardCount, Mathf.Pi / ArmoredSkinShardCount);
+            float angle = baseAngle + angleDeviation;
+            shard.Set("direction", new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)).Normalized());
+            shard.Set("source_id", GetInstanceId());
+
+            parent.AddChild(shard);
+            shard.GlobalPosition = GlobalPosition;
         }
     }
 

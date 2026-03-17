@@ -272,6 +272,13 @@ func _ready() -> void:
 		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
 			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
 
+	# Apply Armored Skin +1 HP bonus before setting current health (Issue #1045)
+	var _armored_skin_check: Node = get_node_or_null("/root/ActiveItemManager")
+	if _armored_skin_check and _armored_skin_check.has_method("has_armored_skin"):
+		if _armored_skin_check.has_armored_skin():
+			max_health += 1
+			FileLogger.info("[Player.ArmoredSkin] +1 HP bonus applied, max_health = %d" % max_health)
+
 	_current_ammo = max_ammo
 	_current_health = max_health
 	_is_alive = true
@@ -375,6 +382,9 @@ func _ready() -> void:
 
 	# Initialize breaching charges if active item manager has them selected (Issue #1043)
 	_init_breaching_charges()
+
+	# Initialize armored skin if active item manager has it selected (Issue #1045)
+	_init_armored_skin()
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
@@ -1080,6 +1090,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 	# Show hit flash effect
 	_show_hit_flash()
+
+	# Armored Skin: spawn glass shards when at low HP (Issue #1045)
+	if _armored_skin_active and _current_health <= 2:
+		_spawn_armored_skin_shards()
 
 	# Apply damage
 	_current_health -= 1
@@ -4379,3 +4393,70 @@ func _on_breaching_charges_changed(current: int, maximum: int) -> void:
 ## Get the breaching charges effect node.
 func get_breaching_charges() -> Node:
 	return _breaching_charges
+
+
+# ============================================================================
+# Armored Skin (Issue #1045)
+# ============================================================================
+
+
+## Whether armored skin is active (passive item, Issue #1045).
+var _armored_skin_active: bool = false
+
+## Scene path for the armored skin shard projectile.
+const ARMORED_SKIN_SHARD_SCENE_PATH: String = "res://scenes/projectiles/ArmoredSkinShard.tscn"
+
+## Number of glass shards to spawn on low-HP hit.
+const ARMORED_SKIN_SHARD_COUNT: int = 20
+
+## HP threshold at or below which shards spawn on hit.
+const ARMORED_SKIN_HP_THRESHOLD: int = 2
+
+
+## Initialize armored skin if the ActiveItemManager has it selected.
+func _init_armored_skin() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	if not active_item_manager.has_method("has_armored_skin"):
+		return
+
+	if not active_item_manager.has_armored_skin():
+		FileLogger.info("[Player.ArmoredSkin] No armored skin selected in ActiveItemManager")
+		return
+
+	_armored_skin_active = true
+	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
+
+
+## Spawn 20 glass/crystal shards in all directions from the player position.
+## Called when armored skin is active and player is at ≤2 HP while being hit.
+func _spawn_armored_skin_shards() -> void:
+	if not ResourceLoader.exists(ARMORED_SKIN_SHARD_SCENE_PATH):
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Shard scene not found: %s" % ARMORED_SKIN_SHARD_SCENE_PATH)
+		return
+
+	var shard_scene: PackedScene = load(ARMORED_SKIN_SHARD_SCENE_PATH)
+	if shard_scene == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Failed to load shard scene")
+		return
+
+	var parent: Node = get_parent()
+	if parent == null:
+		return
+
+	FileLogger.info("[Player.ArmoredSkin] Spawning %d glass shards (HP: %d)" % [ARMORED_SKIN_SHARD_COUNT, _current_health])
+
+	for i in range(ARMORED_SKIN_SHARD_COUNT):
+		var shard: Node2D = shard_scene.instantiate()
+
+		# Set direction and source_id before add_child so _ready() uses the correct values
+		var base_angle: float = (float(i) / float(ARMORED_SKIN_SHARD_COUNT)) * TAU
+		var angle_deviation: float = randf_range(-PI / ARMORED_SKIN_SHARD_COUNT, PI / ARMORED_SKIN_SHARD_COUNT)
+		var angle: float = base_angle + angle_deviation
+		shard.direction = Vector2(cos(angle), sin(angle)).normalized()
+		shard.source_id = get_instance_id()
+
+		parent.add_child(shard)
+		shard.global_position = global_position

@@ -18,7 +18,8 @@ enum ActiveItemType {
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
 	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
-	BREACHING_CHARGES  # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
+	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
+	ARMORED_SKIN       # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
 }
 
 ## Currently selected active item type.
@@ -43,7 +44,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
 	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
-	ActiveItemType.BREACHING_CHARGES: true     # No unlock condition — freely available from start (Issue #1043)
+	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
+	ActiveItemType.ARMORED_SKIN: true          # No unlock condition — freely available from start (Issue #1045)
 }
 
 ## Active item data for UI and selection.
@@ -115,6 +117,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
 		"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate: blasts open a passage in the wall. 2 charges per battle. Enemies on the other side are stunned and blinded for 3 seconds.",
 		"activation_hint": "Hold Space near wall to place, press Space to detonate"
+	},
+	ActiveItemType.ARMORED_SKIN: {
+		"name": "Armored Skin",
+		"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
+		"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
 	}
 }
 
@@ -254,6 +261,11 @@ func has_loudspeaker() -> bool:
 ## Check if breaching charges are currently equipped (Issue #1043).
 func has_breaching_charges() -> bool:
 	return current_active_item == ActiveItemType.BREACHING_CHARGES
+
+
+## Check if armored skin is currently equipped (Issue #1045).
+func has_armored_skin() -> bool:
+	return current_active_item == ActiveItemType.ARMORED_SKIN
 
 
 ## Get the laser sight color (purple).
