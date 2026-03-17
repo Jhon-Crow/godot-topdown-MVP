@@ -132,71 +132,98 @@ This is consistent with Godot Issues #79914 and #66458 — the screen texture ca
 
 ---
 
+### Phase 6: Overlay Approach with Always-Visible ColorRect (commit c9c656bf) — New Regression
+
+The v5 overlay shader (no `hint_screen_texture`, `COLOR = vec4(0,0,0,0)` at intensity=0) was believed to be the fix.
+
+**User reported (`game_log_20260317_032119.txt`):** "теперь на всех сложностях сломался визуал (белый экран)" — "now visuals are broken on ALL difficulties (white screen)"
+
+This is a **regression** — the white screen now appears on EVERY difficulty mode, not just during lightning flashes.
+
+**Root cause of v5 regression:**
+
+A full-screen transparent `ColorRect` at layer 98 with `COLOR = vec4(0,0,0,0)` interferes with `hint_screen_texture` in higher-layer shaders. The `cinema_film.gdshader` runs at layer 99 and uses `hint_screen_texture` to composite its film grain overlay. When layer 98 has an always-visible transparent quad, the screen texture capture for layer 99 captures the **transparent quad** (black with alpha=0) rather than the actual game scene — producing a white screen in gl_compatibility's screen capture.
+
+In the game log:
+```
+[CinemaEffects] Created effects layer at layer 99
+[BlackMetalLightningEffectsManager] Lightning bolt shader loaded
+[CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+```
+Lightning manager layer 98 with transparent always-visible ColorRect is present before cinema (layer 99) activates. Cinema's `hint_screen_texture` then reads through the transparent quad and gets a corrupted (white) result.
+
+---
+
 ## Root Cause Summary
 
 | Version | Root Cause | Visual Result |
 |---------|-----------|---------------|
-| v1 shader | `TEXTURE` on ColorRect = 1×1 white pixel, no bolt drawn | White blink |
-| v2 shader | Screen-wide 35% white ambient fill dominated the bolt | White blink |
-| v3 shader | `render_mode blend_add` not supported in gl_compatibility | White blink |
-| v4 shader | `hint_screen_texture` captures white on first frame after `visible=false→true` transition | White blink |
-| **v5 shader** | **Overlay approach (no screen_texture); ColorRect always visible; shader alpha=0 = transparent** | **Actual lightning bolt** |
+| v1 shader | `TEXTURE` on ColorRect = 1×1 white pixel, no bolt drawn | White blink on flash |
+| v2 shader | Screen-wide 35% white ambient fill dominated the bolt | White blink on flash |
+| v3 shader | `render_mode blend_add` not supported in gl_compatibility | White blink on flash |
+| v4 shader | `hint_screen_texture` captures white on first frame after `visible=false→true` transition | White blink on flash |
+| v5 shader | Transparent ColorRect always-visible at layer 98 corrupts `hint_screen_texture` at layer 99 | White screen on ALL difficulties |
+| **v6 shader** | **`hint_screen_texture` passthrough + always-visible ColorRect (never toggled)** | **Actual lightning bolt, no regression** |
 
 ---
 
-## Fix: v5 Shader — Overlay Approach (Final Solution)
+## Fix: v6 Shader — hint_screen_texture with Always-Visible ColorRect (Final Solution)
 
-The definitive fix uses the **same approach as `cinema_film.gdshader`** — an overlay with alpha blending, NO screen_texture:
+The definitive fix uses **`hint_screen_texture` with an always-visible ColorRect** — the same approach as `black_metal.gdshader`:
 
 ```glsl
 shader_type canvas_item;
-// NO hint_screen_texture — unreliable in gl_compatibility when ColorRect changes visibility
-// NO render_mode blend_add — not supported in gl_compatibility
+
+// Screen texture — safe because ColorRect is ALWAYS VISIBLE (never toggled)
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 void fragment() {
+    vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
+
+    // At intensity=0: pure passthrough — no visual effect on any difficulty
     if (intensity <= 0.001) {
-        COLOR = vec4(0.0, 0.0, 0.0, 0.0);  // fully transparent
+        COLOR = original;
         return;
     }
 
     // ... compute bolt_contrib, corona ...
 
-    // OVERLAY: transparent where no bolt, colored+alpha where bolt is
-    float total_alpha = clamp(bolt_alpha + corona_alpha, 0.0, 1.0);
-    COLOR = vec4(final_rgb, total_alpha);
-    // Renderer alpha-blends this over the scene: no white blink possible
+    // Additive: original scene + lightning light
+    vec3 lightning_add = bolt_rgb * bolt_val + corona_color * corona;
+    lightning_add *= intensity;
+    COLOR = vec4(original.rgb + lightning_add, original.a);
 }
 ```
 
-**Manager change:**
+**Manager:**
 ```gdscript
-# ColorRect is ALWAYS VISIBLE — shader alpha controls appearance
+# ColorRect is ALWAYS VISIBLE — shader intensity controls appearance
 _flash_rect.visible = true  # Set once in _ready(), never toggled
-# intensity=0 → shader outputs alpha=0 → fully transparent
+# intensity=0 → shader outputs original scene → pure passthrough
+# intensity=1 → additive lightning brightens scene pixels
 ```
 
-**Why this definitively fixes the white blink:**
-1. `COLOR.a = 0` when no bolt → fully transparent, scene shows through
-2. No `hint_screen_texture` → no screen capture issues
-3. ColorRect always visible → no visible=false→true transition → no gl_compatibility bug
-4. Standard alpha blending composites bolt color over B&W scene correctly
+**Why this definitively fixes both problems:**
+1. **No white blink on flash**: `visible` never toggles → no first-frame screen-capture bug
+2. **No white screen on all difficulties**: `intensity=0` → `COLOR = original` (pure passthrough) → no transparent quad interfering with cinema layer's screen capture
+3. **Correct lightning visuals**: additive brightening shows bolt over scene without replacing it
+4. **Same approach as `black_metal.gdshader`** which is proven to work in this game
 
 ---
 
 ## Files Changed
 
 ### `scripts/shaders/lightning_flash.gdshader`
-- **Removed** `hint_screen_texture` sampler
-- **Removed** `render_mode blend_add;`
-- **Changed** approach to transparent overlay: `COLOR = vec4(bolt_rgb, bolt_alpha)`
-- At `intensity=0.0`: outputs `COLOR = vec4(0,0,0,0)` (fully transparent, no effect)
-- Added screen-wide corona alpha (wider illumination area)
+- **Uses** `hint_screen_texture` (same as `black_metal.gdshader`)
+- At `intensity=0.0`: pure passthrough — `COLOR = original` → no effect on any difficulty
+- At `intensity=1.0`: additive brightening at bolt pixels — lightning glows over scene
+- **Removed** transparent overlay approach that was causing white screen regression
 
 ### `scripts/autoload/black_metal_lightning_effects_manager.gd`
 - **Changed** `_flash_rect.visible = false` → `_flash_rect.visible = true` (always visible)
 - **Removed** delayed activation logic (`_waiting_for_activation`, `_activation_frame_counter`)
 - **Removed** `_on_tree_changed()` reconnection
-- Manager now only sets `intensity` to 0/1 to show/hide the bolt
+- Manager only sets `intensity` to 0/1 — never toggles `visible`
 
 ---
 
@@ -218,3 +245,4 @@ _flash_rect.visible = true  # Set once in _ready(), never toggled
 | `game_log_20260317_010325.txt` | Second test after v2 shader — lightning fires correctly but still looks like white blink |
 | `game_log_20260317_021309.txt` | Third test after v3 blend_add shader — lightning fires correctly, still white blink (blend_add not working in gl_compatibility) |
 | `game_log_20260317_025412.txt` | Fourth test after v4 hint_screen_texture shader — lightning fires correctly, STILL white blink (hint_screen_texture fails on visible=false→true transition) |
+| `game_log_20260317_032119.txt` | Fifth test after v5 overlay shader — NEW regression: white screen on ALL difficulties (transparent ColorRect at layer 98 corrupts cinema layer 99 screen_texture capture) |

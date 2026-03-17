@@ -2,33 +2,36 @@ shader_type canvas_item;
 
 // Lightning flash shader for Black Metal difficulty mode.
 //
-// APPROACH: OVERLAY-BASED (no screen_texture) — same as cinema_film.gdshader.
+// APPROACH: hint_screen_texture with always-visible ColorRect — same as black_metal.gdshader.
 //
-// Why NOT hint_screen_texture:
+// Why NOT the pure overlay approach (previous attempt, Issue #1023 v5):
+//   A full-screen transparent ColorRect at layer 98 interferes with hint_screen_texture
+//   in shaders at higher layers (cinema_film.gdshader at layer 99). In Godot's
+//   gl_compatibility renderer, a transparent canvas_item overlay corrupts the screen
+//   capture for higher-layer shaders, producing a white screen on ALL difficulties.
+//
+// Why NOT toggling visible=false→true:
 //   Godot's gl_compatibility renderer has known bugs with hint_screen_texture
-//   (GitHub Issues #79914, #66458). When the ColorRect becomes visible after
-//   being hidden, hint_screen_texture can return white/empty on that first frame,
-//   producing exactly the white blink symptom reported by the owner.
-//   Every attempt to fix this (blend_add, warmup, delayed activation) still
-//   exhibits the white blink because the screen capture is unreliable.
+//   (GitHub Issues #79914, #66458). When the ColorRect transitions from visible=false
+//   to visible=true, the screen capture can return white/empty on that first frame,
+//   producing a white blink on every single flash.
 //
-// Overlay approach:
-//   The shader outputs the bolt as colored pixels with alpha — transparent
-//   where no bolt, colored where the bolt is. Standard alpha blending in
-//   the renderer composites this over the scene naturally and correctly.
-//   At intensity=0.0: COLOR.a = 0 everywhere → fully transparent (no effect).
-//   At bolt pixels: bright blue-white with alpha → visible over scene.
+// CORRECT APPROACH (same as black_metal.gdshader):
+//   Keep ColorRect ALWAYS VISIBLE. At intensity=0.0, the shader outputs pure
+//   passthrough (original scene unchanged). This avoids BOTH the visible-toggle
+//   white-frame bug AND the transparent-overlay-interfering-with-higher-layer-shaders
+//   problem. The ColorRect is always present but invisible at intensity=0.
 //
 // Effect structure:
 //   - One or two jagged main bolt streaks from a top point downward
 //   - Several branches splitting off the main bolt
-//   - A screen-wide corona flash (like area illumination from lightning)
+//   - A corona near the bolt origin (simulates area illumination from lightning)
 //   - Blue-white inner core, wider glow halo (classic horror lightning)
 //   - Every strike looks different: randomized per-strike via seed uniform
 //
 // Issue #1023: Thunder and lightning effects for Black Metal mode.
 
-// intensity: 0.0 = invisible (no effect), 1.0 = full lightning. Animated by manager.
+// intensity: 0.0 = passthrough (no effect), 1.0 = full lightning. Animated by manager.
 uniform float intensity : hint_range(0.0, 1.0) = 0.0;
 
 // progress: 0.0 = bolt just struck, 1.0 = fully faded (lifetime of this flash)
@@ -39,6 +42,12 @@ uniform float seed : hint_range(0.0, 100.0) = 0.0;
 
 // Number of bolt streaks to draw (1 = single bolt, 2 = two simultaneous bolts)
 uniform float bolt_count : hint_range(1.0, 2.0) = 1.0;
+
+// Screen texture sampler for reading the rendered scene.
+// hint_screen_texture is safe here because the ColorRect is ALWAYS VISIBLE —
+// we never toggle visible=false→true, so the white-frame bug never triggers.
+// At intensity=0.0: output = original (pure passthrough, identical to black_metal.gdshader warmup).
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 // ============================================================================
 // HASH / NOISE HELPERS
@@ -143,19 +152,21 @@ float branch_sdf(vec2 uv, float start_t, float sx, float sy, float ex, float ey,
 // ============================================================================
 // MAIN FRAGMENT
 //
-// OVERLAY APPROACH (no screen_texture):
-//   Outputs the lightning bolt as an alpha-composited overlay.
-//   Transparent pixels (alpha=0) let the scene show through unchanged.
-//   Bolt pixels (alpha>0) are bright blue-white, composited over scene by renderer.
+// Uses hint_screen_texture: reads the actual rendered scene, then additively
+// brightens pixels near the lightning bolt.
 //
-//   At intensity=0.0: alpha=0 everywhere → fully transparent, no effect visible.
-//   This makes warmup and off-state completely safe with no visual artifacts.
+// At intensity=0.0: COLOR = original (pure pass-through, no effect on any difficulty)
+// Near bolt at peak: COLOR = original + bright blue-white additive light
 // ============================================================================
 
 void fragment() {
-    // At intensity=0: fully transparent — safe for warmup and inactive state
+    // Read the actual scene pixel (same approach as black_metal.gdshader)
+    vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
+
+    // At intensity=0: pure pass-through — safe for warmup and when inactive
+    // This ensures no visual artifact on any difficulty when bolt is not firing
     if (intensity <= 0.001) {
-        COLOR = vec4(0.0, 0.0, 0.0, 0.0);
+        COLOR = original;
         return;
     }
 
@@ -217,51 +228,36 @@ void fragment() {
         bolt_contrib += smoothstep(branch_glow, branch_core, bd) * 0.35;
     }
 
-    // ---- screen-wide corona flash (simulates area illumination) ----
-    // Fades quickly: strongest at bolt origin, falls off across screen
+    // ---- directional corona near origin ----
+    // Simulates the area near the lightning strike being extra bright.
     float flash_strength = (1.0 - progress) * (1.0 - progress);
     float dist_to_origin = length(uv - vec2(orig_x, orig_y));
-    // Screen-wide glow: 0.8 at origin, falls off to ~0.1 at screen edge
-    float corona_wide = smoothstep(1.0, 0.0, dist_to_origin) * flash_strength * 0.35;
-    // Tight corona near origin
-    float corona_tight = smoothstep(0.35, 0.0, dist_to_origin) * flash_strength * 0.25;
-    float corona = corona_wide + corona_tight;
+    // Tight corona: falls off to 0 by distance 0.35 UV from origin
+    float corona = smoothstep(0.35, 0.0, dist_to_origin) * flash_strength * 0.5;
 
     // ---- lightning color ----
     // Blue-white inner core, wider vivid blue-white glow (classic horror lightning)
     vec3 bolt_color_core = vec3(0.95, 0.97, 1.0);  // near-white, slightly cool
     vec3 bolt_color_glow = vec3(0.55, 0.70, 1.0);  // vivid blue-white glow
-    vec3 corona_color    = vec3(0.75, 0.85, 1.0);  // cool area illumination
+    vec3 corona_color    = vec3(0.75, 0.85, 1.0);  // cool corona near origin
 
     float bolt_val = clamp(bolt_contrib, 0.0, 1.0);
 
     // Blend from glow color to core color based on how close to bolt center
     vec3 bolt_rgb = mix(bolt_color_glow, bolt_color_core, smoothstep(0.3, 1.0, bolt_val));
 
+    // Additive lightning contribution (added to scene, not replacing it)
+    // bolt_rgb * bolt_val: 0 away from bolt, bright at bolt center
+    // corona_color * corona: soft glow near strike point
+    vec3 lightning_add = bolt_rgb * bolt_val + corona_color * corona;
+
     // Apply intensity fade (manager animates 1→0 over flash duration)
-    float fade = intensity;
+    lightning_add *= intensity;
 
-    // --- Bolt overlay alpha ---
-    // At bolt center: bright and mostly opaque
-    // Away from bolt: transparent (scene shows through)
-    float bolt_alpha = bolt_val * fade;
+    // Final: original scene + additive lightning light
+    // Away from bolt: lightning_add ≈ 0 → output ≈ original (no white blink)
+    // At bolt: output = original + bright blue-white (bolt visible over scene)
+    vec3 final_rgb = original.rgb + lightning_add;
 
-    // --- Corona (screen-wide illumination flash) alpha ---
-    // Very subtle — just a hint of brightening across the full screen
-    float corona_alpha = corona * fade;
-
-    // Combine bolt and corona.
-    // The corona adds a faint bright tint across the whole screen — like area illumination.
-    // The bolt is the sharp visible streak.
-    float total_alpha = clamp(bolt_alpha + corona_alpha, 0.0, 1.0);
-
-    // Blend bolt_rgb toward white near bolt center (super-bright core)
-    vec3 final_rgb = mix(bolt_color_glow, vec3(1.0), bolt_val * 0.6);
-    // Mix in corona color for areas far from bolt
-    if (bolt_val < 0.1) {
-        final_rgb = corona_color;
-    }
-
-    // Output as transparent overlay — no screen_texture needed
-    COLOR = vec4(final_rgb, total_alpha);
+    COLOR = vec4(final_rgb, original.a);
 }

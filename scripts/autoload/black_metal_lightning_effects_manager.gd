@@ -6,17 +6,23 @@ extends Node
 ## jagged bolt streaks from the top of the screen downward, with branches, plus
 ## a brief screen-wide illumination flash — like old horror/black-metal films.
 ##
-## The bolt shader uses the OVERLAY approach (no hint_screen_texture), same as
-## cinema_film.gdshader. The shader outputs transparent pixels where there is no bolt
-## and colored (blue-white) pixels with alpha where the bolt appears.
-## Standard alpha blending composites this correctly over the scene in all renderers.
+## The bolt shader uses hint_screen_texture (same as black_metal.gdshader), with the
+## ColorRect kept ALWAYS VISIBLE. This combination avoids both known gl_compatibility bugs:
+##   1. visible=false→true transition bug: never occurs because ColorRect is always visible.
+##   2. Transparent overlay corrupting higher-layer screen_texture capture: avoided because
+##      at intensity=0 the shader outputs the original scene unchanged (pure passthrough),
+##      not a transparent black quad.
 ##
-## Why NOT hint_screen_texture:
+## Why NOT toggling visible:
 ##   Godot's gl_compatibility renderer has known bugs with hint_screen_texture
 ##   (GitHub Issues #79914, #66458). When a ColorRect transitions from visible=false
 ##   to visible=true, the screen capture can return white/empty on the first frame,
-##   causing the white blink symptom. This was reproducible across all fix attempts.
-##   The overlay approach avoids the problem entirely.
+##   causing the white blink symptom.
+##
+## Why NOT the pure overlay approach (transparent ColorRect always visible):
+##   A full-screen transparent quad at layer 98 interferes with hint_screen_texture
+##   in higher-layer shaders (cinema_film at layer 99), producing a white screen on
+##   ALL difficulties — not just Black Metal.
 ##
 ## Features:
 ## - Procedural jagged lightning bolt drawn across the screen
@@ -53,7 +59,7 @@ const TRIPLE_FLASH_CHANCE: float = 0.15
 var _flash_layer: CanvasLayer = null
 
 ## ColorRect carrying the bolt shader material.
-## Stays ALWAYS VISIBLE — shader controls appearance via alpha (intensity=0 → alpha=0).
+## Stays ALWAYS VISIBLE — shader controls appearance via intensity (intensity=0 → passthrough).
 ## This avoids the gl_compatibility hint_screen_texture white-frame bug that occurs
 ## when transitioning from visible=false to visible=true.
 var _flash_rect: ColorRect = null
@@ -110,10 +116,10 @@ func _ready() -> void:
 		push_warning("BlackMetalLightningEffectsManager: Could not load lightning_flash.gdshader")
 		_log("WARNING: Could not load lightning_flash.gdshader")
 
-	# Keep ColorRect ALWAYS VISIBLE — shader outputs alpha=0 when intensity=0.
+	# Keep ColorRect ALWAYS VISIBLE — shader outputs passthrough (original scene) when intensity=0.
 	# This avoids the gl_compatibility bug where transitioning visible=false→true
 	# on a hint_screen_texture ColorRect can produce a white frame.
-	# (The overlay shader doesn't use screen_texture, so it's always safe to be visible.)
+	# At intensity=0: COLOR = original scene → no visual effect on any difficulty.
 	_flash_rect.visible = true
 	_flash_layer.add_child(_flash_rect)
 
@@ -192,7 +198,7 @@ func _start_single_flash() -> void:
 	_use_double_bolt = randf() < 0.3
 
 	# Show the bolt by setting intensity to 1.0.
-	# The ColorRect is always visible; shader controls appearance via alpha.
+	# The ColorRect is always visible; shader controls appearance via intensity.
 	if _material:
 		_material.set_shader_parameter("seed", _current_seed)
 		_material.set_shader_parameter("bolt_count", 2.0 if _use_double_bolt else 1.0)
@@ -265,8 +271,8 @@ func _apply_current_difficulty() -> void:
 
 
 ## Performs warmup to pre-compile the lightning bolt shader.
-## Since the overlay shader outputs alpha=0 at intensity=0, the ColorRect is
-## always visible but invisible (transparent). Warmup just ensures GPU compilation.
+## At intensity=0.0, the shader outputs the original scene (pure passthrough).
+## This ensures no white blink even during GPU shader compilation.
 func _warmup_shader() -> void:
 	if _flash_rect == null or _material == null:
 		return
@@ -274,8 +280,8 @@ func _warmup_shader() -> void:
 	_log("Starting shader warmup (Issue #343 pattern)...")
 	var start_time := Time.get_ticks_msec()
 
-	# intensity=0.0 → shader outputs alpha=0.0 → fully transparent → no visible effect.
-	# ColorRect is already visible=true, so this is just triggering GPU compilation.
+	# intensity=0.0 → shader outputs original scene → pure passthrough, no visible effect.
+	# Same pattern as black_metal_effects_manager warmup.
 	_material.set_shader_parameter("intensity", 0.0)
 
 	# Wait one frame for GPU to compile and process the shader.
