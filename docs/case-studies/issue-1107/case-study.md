@@ -6,147 +6,148 @@
 
 **Description (translated):** The machete enemy does not try to go around obstacles, but walks straight into the wall (directly toward the player). Teach it to effectively avoid obstacles.
 
-**Screenshot:** Enemy pressed against a vertical wall corridor, trying to reach the player by moving straight through it.
+**Original screenshot (`screenshot.png`):** Enemy pressed against a vertical wall corridor, trying to reach the player by moving straight through it.
+
+**Follow-up screenshot (`screenshot_20260317_wall_corner.png`):** After initial fix, enemy still gets stuck at L-shaped wall corners. The player is near the top-left of the inner corner, and the machete enemy is pressed against the corner wall.
+
+**Game log (`game_log_20260317_211211.txt`):** Captured 2026-03-17 during DocksLevel gameplay.
+
+---
+
+## Timeline of Events (from game log)
+
+1. `LoadingDock_Machete` spawns at `(3845.992, 1800)` in DocksLevel
+2. Enemy enters COMBAT state, navigates toward player through DocksLevel container maze
+3. At ~21:15:03 (line 9009): `[#1107] Machete COMBAT stuck (1.5s), rerouting` — stuck detection from first fix triggers
+4. Enemy transitions COMBAT → PURSUING → tries FLANKING to `(248.3807, 1832.972)` near left wall
+5. At ~21:15:08 (line 9194): `GLOBAL STUCK: pos=(694.0665, 2079.933)` — enemy is stuck in PURSUING at x=694
+6. Transitions to SEARCHING, then back to COMBAT on re-sighting
+7. Pattern repeats: COMBAT→stuck→PURSUING→FLANKING stuck→PURSUING→GLOBAL STUCK
+8. At ~21:15:58 (line 11780): Another `[#1107]` trigger at a different position
+9. At ~21:16:09 (line 12073): `FLANKING stuck at (178.0656, 1768.372)` — left boundary wall
+
+**Pattern:** The enemy gets trapped in a **cycle** of COMBAT→PURSUING→FLANKING→stuck→repeat. The stuck positions consistently have low x values (178, 293, 694) indicating the enemy is being pushed against the left wall of DocksLevel.
 
 ---
 
 ## Root Cause Analysis
 
-### Codebase Investigation
+### Root Cause 1: Physics Corner-Sticking (PRIMARY)
 
-The enemy AI in `scripts/objects/enemy.gd` has multiple states (IDLE, COMBAT, PURSUING, FLANKING, SEEKING_COVER, IN_COVER, etc.).
+When `_move_to_target_nav()` sets `velocity` and then `move_and_slide()` runs:
 
-**For machete enemies:**
-1. **IDLE → PURSUING** (line 1352): When a machete enemy first spots the player, it transitions to PURSUING state (cover-to-cover movement) rather than directly to COMBAT.
-2. **PURSUING → COMBAT** (line 2011-2013): When the enemy gets within `CLOSE_COMBAT_DISTANCE` (400px) of the player, it transitions to COMBAT.
-3. **COMBAT state machete movement** (lines 1382-1395): Machete enemy in COMBAT calls `_move_to_target_nav(player_pos, combat_move_speed)`.
+1. The nav agent computes a path around the L-corner
+2. `get_next_path_position()` returns the next waypoint *around* the corner
+3. Enemy moves toward that waypoint — but at the corner itself, the physics body collides with the wall
+4. `move_and_slide()` slides the enemy along wall1 into wall2
+5. At a **concave corner** (inner L-corner), wall1's slide vector points into wall2, and wall2's normal cancels it — the enemy gets physically pinned
+6. Next frame: nav agent recomputes path, still points around the corner, same outcome
+7. No mechanism existed to apply **escape force** away from the wall surface
 
-The `_move_to_target_nav` function (line 4763) uses `NavigationAgent2D` to compute a path, then applies `_apply_wall_avoidance` (raycast-based wall steering).
+This is a well-known issue with `CharacterBody2D.move_and_slide()` at concave corners: the character gets trapped because slide vectors from two walls cancel each other. The solution is to use `get_slide_collision()` normals to add an escape direction to the velocity.
 
-### The `_get_nav_direction_to` Function (Lines 4757-4761)
+### Root Cause 2: Slow COMBAT Stuck Detection
+
+The `MACHETE_COMBAT_STUCK_MAX_TIME` was 1.5 seconds. During that time, the enemy oscillates back and forth at the corner, which looks bad visually. Reducing to 0.8s makes recovery faster.
+
+### Root Cause 3: COMBAT→PURSUING Cycle
+
+After recovering from COMBAT stuck → PURSUING, the enemy immediately transitions back to COMBAT because it can still see the player through the corner gap. This creates an infinite cycle:
+- COMBAT (stuck) → stuck timer triggers → PURSUING → can_see_player → COMBAT (stuck again)
+
+The corner escape fix breaks this cycle by allowing the enemy to actually navigate around the corner rather than just detecting the stuck state.
+
+### Root Cause 4: Flank Target Near Wall Boundary
+
+When the machete enemy transitions to PURSUING, it calls `_find_pursuit_cover_toward_player()`. If no good cover exists, it tries flanking. The `_calculate_flank_position()` computes `player_pos + flank_direction * flank_distance`. Near the left boundary wall (x≈178), computed flank targets land outside or on the nav mesh edge. The enemy navigates to the wall edge, gets stuck there too.
+
+The corner escape fix also helps here, as does the reduced stuck timer (0.8s instead of 1.5s).
+
+---
+
+## Navigation Setup Analysis
+
+| Level | agent_radius | Bake Method |
+|-------|-------------|-------------|
+| BeachLevel | 24.0 | `bake_navigation_polygon()` |
+| DocksLevel | 24.0 | `bake_navigation_polygon()` |
+| DecadenceLevel | 24.0 | `bake_navigation_polygon()` |
+| FactoryLevel | 24.0 | `bake_navigation_polygon()` |
+| BuildingLevel | ❌ none | `bake_from_source_geometry_data()` |
+| CastleLevel | ❌ none | `bake_from_source_geometry_data()` |
+| CityLevel | ❌ none | `bake_from_source_geometry_data()` |
+| LabyrinthLevel | ❌ none | `bake_from_source_geometry_data()` |
+
+Levels using `bake_from_source_geometry_data()` without `agent_radius` produce nav meshes where paths go right up to the wall geometry boundary (zero margin). This makes corner sticking worse because the path endpoint is at the wall surface itself.
+
+DocksLevel (where the issue was observed) correctly sets `agent_radius = 24.0`, but even with margin, the **physics body** of the enemy (which has its own collision shape) can still get pinned at concave corners because the navmesh margin applies to path computation, not to the actual physics collision resolution.
+
+---
+
+## Godot 4 Research Findings
+
+### CharacterBody2D.move_and_slide() at Concave Corners
+
+In Godot 4, `CharacterBody2D.move_and_slide()` handles wall sliding by computing the velocity component parallel to the wall surface. At a concave corner:
+- Wall1 normal: `N1`
+- Wall2 normal: `N2`
+- Projected velocity along Wall1: `v - (v·N1)*N1`
+- If this projected velocity points into Wall2: `(v - (v·N1)*N1) · N2 < 0`
+- Then the remaining velocity component is zero → character is stuck
+
+**Fix**: Use `get_slide_collision(i).get_normal()` to read what walls were hit, then add those normals as a bias to the next frame's movement direction. This "escape" direction pushes the character away from the corner.
+
+### Godot GitHub Issues
+- **#60546**: 2D navigation agent radius not applied in path baking (fixed in 4.1)
+- **#57967**: NavigationObstacle2D issues with static bodies
+- **#69988**: RVO avoidance rework (Godot 4.1)
+- **#88540**: CharacterBody2D stuck in corners — confirmed behavior, escape via collision normals recommended
+
+### Best Practices for Corner Navigation
+1. **Use `get_slide_collision()` normals**: After `move_and_slide()`, check collision normals and add them to velocity direction next frame
+2. **Shorter stuck timer**: Detect stuck state faster (0.8s vs 1.5s) for better responsiveness
+3. **Agent radius**: Set `agent_radius = 24.0` in ALL levels' nav baking (not just 4 of 8)
+4. **Navigation Server nearest point**: When target is outside nav mesh, use `NavigationServer2D.map_get_closest_point()` to clamp target
+
+---
+
+## Implemented Fix (PR #1108, Session 2)
+
+### Change 1: Corner Escape in `_move_to_target_nav` (line 4768-4770)
 
 ```gdscript
-func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
-    if _nav_agent == null: return (target_pos - global_position).normalized()  # FALLBACK: direct
-    _nav_agent.target_position = target_pos
-    if _nav_agent.is_navigation_finished(): return Vector2.ZERO
-    return (_nav_agent.get_next_path_position() - global_position).normalized()
+var _esc: Vector2 = Vector2.ZERO  # Issue #1107: Corner escape via slide collision normals
+for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
+if _esc.length_squared() > 0.01: direction = (direction + _esc.normalized() * 0.6).normalized()
 ```
 
-**Critical fallback at line 4758:** If `_nav_agent` is null (NavigationAgent2D not found), returns direct direction toward target — no obstacle avoidance at all.
+**Mechanism**: Reads wall collision normals from the **previous frame's** `move_and_slide()`. If any walls were hit, the combined normals point away from the walls. This direction is blended 60% into the movement direction, steering the enemy away from the wall corner. Applied to ALL enemies (not just machete) since the underlying physics issue affects everyone.
 
-### Key Issues Identified
+**Why 0.6 blend weight**: Strong enough to escape corners but not so strong that it overrides the nav path entirely and causes enemies to ignore obstacles.
 
-#### Issue A: No Stuck Detection in COMBAT State
-The global stuck detection (line 806-833) only applies to PURSUING and FLANKING states. When a machete enemy is in COMBAT and gets stuck against a wall, there is **no recovery mechanism**. The enemy stays in COMBAT, keeps applying direct force toward the player, and remains pressed against the wall indefinitely.
+### Change 2: Faster COMBAT Stuck Timer (line 261)
 
-#### Issue B: NavigationAgent2D `is_navigation_finished()` Returns True When No Path Found
-In Godot 4, `NavigationAgent2D.is_navigation_finished()` returns `true` both when:
-1. The target has been reached, AND
-2. **No path exists** (target unreachable)
+```gdscript
+const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8  # was 1.5
+```
 
-When no path is found (e.g., if the player is at a position outside the navigation mesh, or the navmesh isn't properly baked), the function returns `true`, causing `_get_nav_direction_to` to return `Vector2.ZERO` (enemy stops). However, if the navmesh is there but paths too close to walls (no margin), the agent follows a path that goes right up to the wall edge and tries to slide along it.
+Detects stuck state in 0.8 seconds instead of 1.5 seconds. Since the corner escape fix should prevent most sticking, this timer is now a safety net that fires less often but faster when needed.
 
-#### Issue C: Async NavigationAgent2D Target Setting
-In Godot 4, setting `_nav_agent.target_position = target_pos` is asynchronous — the navigation query is processed in the next physics frame. On the **first frame** after entering COMBAT, `is_navigation_finished()` may return `true` from the previous state, causing the enemy to have zero velocity while its internal target updates. This can create brief "freeze frames" that make the enemy look stuck.
+### Previous Fix (Session 1, still active)
 
-#### Issue D: NavigationPolygon Margin vs Wall Geometry
-Per Godot documentation: navigation polygons must have sufficient margin from wall geometry. If the navigation polygon extends to the wall boundary without margin, the computed path will go up to and along the wall edge, causing the agent to repeatedly clip into wall colliders. The `beach_level.gd` bakes with `agent_radius = 24.0` which should help, but inconsistent baking across levels may cause issues.
-
-#### Issue E: Wall Avoidance Raycasts in Wrong Direction
-The `_apply_wall_avoidance` function uses 8 raycasts spread from -90° to +90° in front of the movement direction, plus 1 rear check. When the enemy is moving directly toward a wall (following a bad nav path), the center raycast (0°) detects the wall and the function should steer away. However, the steering is based on collision normals — in certain corner cases, perpendicular forces can cancel each other out (e.g., facing into an inside corner of two walls).
-
----
-
-## Data Collected
-
-### Affected Levels
-- **BeachLevel** (5 machete enemies, weapon_type = 3)
-- **DecadenceLevel** (3 machete enemies)
-- **DocksLevel** (2 machete enemies)
-
-### Navigation Setup
-All levels use `NavigationRegion2D` with pre-baked navigation polygons. Beach level bakes at runtime with `agent_radius = 24.0`. Castle and some others only warn if NavigationRegion2D is missing.
-
-### Enemy Configuration
-- `NavigationAgent2D` exists in `scenes/objects/Enemy.tscn` with:
-  - `path_desired_distance = 4.0`
-  - `target_desired_distance = 10.0`
-  - `avoidance_enabled = true`
-  - `max_speed = 320.0`
-
----
-
-## Research: Godot 4 Pathfinding Best Practices
-
-### NavigationAgent2D Core Architecture
-- Pathfinding (navmesh-based path computation) and avoidance (RVO) are **independent subsystems**
-- Avoidance does NOT know about walls — it only reasons about agent velocities
-- Static obstacles should be in the navigation mesh polygon boundaries, NOT in `NavigationObstacle2D`
-- `is_navigation_finished()` returns `true` for both "arrived" and "no path found" — must check both cases
-
-### Known Issues in Godot 4 (Pre-4.1)
-- **#60546**: 2D navigation lacked agent radius baking (paths hug corners) — fixed in 4.1
-- **#57967**: NavigationObstacle2D on static bodies causes large avoidance arcs — using nav mesh boundaries is correct
-- **#69988**: RVO instabilities when avoidance updated every frame — fixed in 4.1
-
-### Why Enemies Walk Into Walls
-1. Navigation polygon edge flush with wall geometry (no margin) → path leads to wall edge
-2. RVO avoidance pushes agent sideways off the navmesh into a wall
-3. Target set before navigation map is synchronized (goes to wrong position)
-4. No path found → some engines fall back to direct movement (this codebase has this at line 4758)
-
----
-
-## Proposed Solutions
-
-### Solution 1: Add Stuck Detection to COMBAT State (Minimal Fix)
-Add stuck detection to the COMBAT state for machete enemies. If the enemy hasn't moved significantly for N seconds while in COMBAT, transition to PURSUING which uses cover-to-cover navigation and has existing stuck recovery.
-
-**Pros:** Minimal code change, low risk
-**Cons:** Doesn't fix the underlying pathfinding issue, just recovers from getting stuck
-
-### Solution 2: Use NavigationAgent2D `velocity_computed` Signal (RVO Proper Integration)
-Currently, the code calls `move_and_slide()` directly with the velocity computed from the nav path direction. Godot's RVO avoidance requires calling `nav_agent.set_velocity(desired_vel)` and then using the velocity from the `velocity_computed` signal. Without this, the avoidance system runs but its output isn't used for wall avoidance.
-
-**Pros:** Uses avoidance correctly for agent-to-agent separation
-**Cons:** Avoidance doesn't avoid static walls — this won't fix wall collision
-
-### Solution 3: Re-route Navigation When Wall Collision Detected (Recommended)
-When the machete enemy detects it's stuck against a wall (e.g., velocity is low while desired velocity is high, or raycast ahead shows wall AND nav path leads through it), force a new pathfinding query or transition to FLANKING state to find an alternate route.
-
-**Pros:** Directly addresses the symptom
-**Cons:** Adds complexity
-
-### Solution 4: Use Path Intermediate Points (Best Practice)
-For the COMBAT state machete movement, instead of always targeting `_player.global_position` (which may be unreachable), use the navigation path's intermediate waypoints. The `_move_to_target_nav` function already does this via `get_next_path_position()`. But the issue is that when `is_navigation_finished()` returns `true` (no path), the fallback should trigger a recovery.
-
-**Recommended Combined Fix:**
-1. Add navigation path validity check — distinguish "no path found" from "arrived at target"
-2. When no path is found, use a fallback behavior (e.g., move to last known reachable position near player, or transition to PURSUING)
-3. Add stuck detection to COMBAT state for machete enemies
-4. Add debug logging for navigation failures
-
-### Solution 5: NavigationAgent2D with Proper Deferral
-Ensure `target_position` is set with proper frame deferral to avoid the async issue where `is_navigation_finished()` returns stale `true` on the first frame.
-
----
-
-## Implemented Fix
-
-See `scripts/objects/enemy.gd` and `scripts/components/machete_component.gd` for the implementation.
-
-### Changes Made:
-1. **Added stuck detection to COMBAT state for machete enemies** — if the enemy's velocity is near zero while trying to move toward the player (and not attacking/dodging), and it has been stuck for > threshold seconds, it transitions to FLANKING or PURSUING state to find an alternate route.
-2. **Added navigation validity helper** — check if the navigation path is actually valid (target reachable) before using direct movement. When path is invalid, use the nearest navigable position to the target.
-3. **Improved wall collision recovery** — when a raycast detects a wall directly ahead AND the nav agent path is still pointing toward it, force a navigation re-query by briefly setting target to a nearby reachable position.
+- Stuck detection in COMBAT state for machete enemies (COMBAT→PURSUING after 0.8s stuck)
+- Improved `_get_nav_direction_to` fallback for unreachable targets
 
 ---
 
 ## References
 
 - Godot 4 Navigation Docs: https://docs.godotengine.org/en/stable/tutorials/navigation/
+- Godot 4 CharacterBody2D.move_and_slide(): https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html
 - GitHub #60546: NavigationAgent2D radius not applied in 2D (fixed 4.1)
 - GitHub #57967: NavigationObstacle2D radius issue
 - GitHub #69988: Navigation Avoidance rework (Godot 4.1)
+- GitHub #88540: CharacterBody2D corner sticking
 - Project issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1107
+- Game log: `docs/case-studies/issue-1107/game_log_20260317_211211.txt`
+- Follow-up screenshot: `docs/case-studies/issue-1107/screenshot_20260317_wall_corner.png`

@@ -258,7 +258,7 @@ var _flank_cooldown_timer: float = 0.0; const FLANK_COOLDOWN_DURATION: float = 5
 var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Stuck timer (Issue #367) / last position
 const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
-const MACHETE_COMBAT_STUCK_MAX_TIME: float = 1.5; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 1.5s stuck within 20px
+const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -4763,12 +4763,12 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
-	if direction == Vector2.ZERO:
-		velocity = Vector2.ZERO
-		return false
+	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
-	velocity = direction * speed
-	rotation = direction.angle()
+	var _esc: Vector2 = Vector2.ZERO  # Issue #1107: Corner escape via slide collision normals
+	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
+	if _esc.length_squared() > 0.01: direction = (direction + _esc.normalized() * 0.6).normalized()
+	velocity = direction * speed; rotation = direction.angle()
 	return true
 
 ## Check if the navigation agent has a valid path to the target.
