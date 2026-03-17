@@ -1393,6 +1393,17 @@ func _process_combat_state(delta: float) -> void:
 		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
 			tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed); return
+	# [#1033] Machine gunner: never retreat while belts have ammo — hold position and suppress.
+	# Fire at last-known player position (corridor suppression) regardless of LOS or under-fire status.
+	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
+		var suppress_target := _player.global_position if (_can_see_player and _player != null) else _last_known_player_position
+		if suppress_target != Vector2.ZERO:
+			_machine_gunner_suppressing_corridor = true
+			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
+				_machine_gunner_fire_at_corridor(suppress_target)
+			return  # Hold position; belt depletion triggers PM fallback + retreat
+		_machine_gunner_suppressing_corridor = false
+
 	# Check suppression (ignore during vulnerability pursuit)
 	# RCA-19: Add minimum combat duration before retreating to prevent rapid COMBAT→RETREATING cycling
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
@@ -1408,13 +1419,6 @@ func _process_combat_state(delta: float) -> void:
 	# But only after minimum time has elapsed to prevent rapid state thrashing
 	# when visibility flickers at wall/obstacle edges
 	if not _can_see_player:
-		# [#1033] Machine gunner: suppress last-seen corridor/passage until belt is empty instead of pursuing.
-		if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and _last_known_player_position != Vector2.ZERO:
-			_machine_gunner_suppressing_corridor = true
-			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
-				_machine_gunner_fire_at_corridor(_last_known_player_position)
-			return  # Stay put and suppress; belt depletion triggers PM fallback + retreat
-		_machine_gunner_suppressing_corridor = false
 		if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
 			_combat_exposed = false
 			_combat_approaching = false
