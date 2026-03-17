@@ -1179,6 +1179,9 @@ public partial class Player : BaseCharacter
         // Initialize breaker bullets if active item manager has them selected (Issue #678)
         InitBreakerBullets();
 
+        // Initialize combat disposition if active item manager has it selected (Issue #1047)
+        InitCombatDisposition();
+
         // Initialize force field if active item manager has it selected (Issue #676)
         InitForceField();
 
@@ -2560,6 +2563,9 @@ public partial class Player : BaseCharacter
         }
 
         base.TakeDamage(amount);
+
+        // Apply combat disposition hit penalty (Issue #1047)
+        ApplyCombatDispositionHitPenalty();
     }
 
     /// <summary>
@@ -2652,6 +2658,15 @@ public partial class Player : BaseCharacter
         if (_breakerBulletsActive)
         {
             CurrentWeapon.IsBreakerBulletActive = true;
+        }
+
+        // Propagate Combat Disposition bonuses to new weapon (Issue #1047)
+        // This ensures the penalty persists when the weapon is swapped during a run.
+        if (_combatDispositionActive)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+            LogToFile($"[Player.CombatDisposition] Propagated bonuses to new weapon {CurrentWeapon.Name}: damage {_combatDispositionDamageBonus:F1}, fire rate {_combatDispositionFireRateBonus:F1}");
         }
 
         // Add weapon as child if not already in scene tree
@@ -5677,6 +5692,174 @@ public partial class Player : BaseCharacter
             CurrentWeapon.IsBreakerBulletActive = true;
             LogToFile($"[Player.BreakerBullets] Set IsBreakerBulletActive on weapon: {CurrentWeapon.Name}");
         }
+    }
+
+    #endregion
+
+    #region Combat Disposition System (Issue #1047)
+
+    /// <summary>
+    /// Whether the Combat Disposition passive item is active.
+    /// When active, player damage and fire rate are boosted on start,
+    /// and reduced once after the first hit per run.
+    /// </summary>
+    private bool _combatDispositionActive = false;
+
+    /// <summary>
+    /// Whether the hit penalty has already been applied this run.
+    /// The penalty is applied only once (on the first hit taken).
+    /// </summary>
+    private bool _combatDispositionPenaltyApplied = false;
+
+    /// <summary>
+    /// Current damage bonus from Combat Disposition.
+    /// Starts at +0.77, decreases by 6.0 on first hit taken.
+    /// </summary>
+    private float _combatDispositionDamageBonus = 0.0f;
+
+    /// <summary>
+    /// Current fire rate bonus from Combat Disposition.
+    /// Starts at +1.1, decreases by 7.2 on first hit taken.
+    /// </summary>
+    private float _combatDispositionFireRateBonus = 0.0f;
+
+    /// <summary>Sword icon shown near the player when the positive effect is active.</summary>
+    private Sprite2D? _combatDispositionSwordIcon = null;
+
+    /// <summary>Broken sword icon shown near the player when the negative effect is active.</summary>
+    private Sprite2D? _combatDispositionBrokenSwordIcon = null;
+
+    /// <summary>
+    /// Initialize Combat Disposition if the ActiveItemManager has it selected (Issue #1047).
+    /// Sets the initial damage and fire rate bonuses on the current weapon.
+    /// </summary>
+    private void InitCombatDisposition()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.CombatDisposition] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_combat_disposition"))
+        {
+            LogToFile("[Player.CombatDisposition] ActiveItemManager missing has_combat_disposition method");
+            return;
+        }
+
+        bool hasCombatDisposition = (bool)activeItemManager.Call("has_combat_disposition");
+        if (!hasCombatDisposition)
+        {
+            LogToFile("[Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager");
+            return;
+        }
+
+        _combatDispositionActive = true;
+        _combatDispositionPenaltyApplied = false;
+        _combatDispositionDamageBonus = 0.77f;
+        _combatDispositionFireRateBonus = 1.1f;
+
+        // Apply bonuses to current weapon
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+            LogToFile($"[Player.CombatDisposition] Initialized on weapon {CurrentWeapon.Name}: +{_combatDispositionDamageBonus} damage, +{_combatDispositionFireRateBonus} fire rate");
+        }
+
+        // Show sword icon (positive effect active)
+        UpdateCombatDispositionIcons();
+
+        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}");
+    }
+
+    /// <summary>
+    /// Called when Combat Disposition is active and the player takes damage.
+    /// Applies the damage and fire rate penalty only on the first hit per run.
+    /// </summary>
+    private void ApplyCombatDispositionHitPenalty()
+    {
+        if (!_combatDispositionActive)
+            return;
+
+        // Penalty is applied only once per run (on the first hit)
+        if (_combatDispositionPenaltyApplied)
+            return;
+
+        _combatDispositionPenaltyApplied = true;
+        _combatDispositionDamageBonus -= 6.0f;
+        _combatDispositionFireRateBonus -= 7.2f;
+
+        // Apply updated bonuses to current weapon
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+        }
+
+        // Switch icon to broken sword (negative effect active)
+        UpdateCombatDispositionIcons();
+
+        LogToFile($"[Player.CombatDisposition] First hit — penalty applied once: damage bonus: {_combatDispositionDamageBonus:F1}, fire rate bonus: {_combatDispositionFireRateBonus:F1}");
+    }
+
+    /// <summary>
+    /// Creates or updates the sword / broken-sword icons displayed near the player.
+    /// Shows the intact sword icon while the positive bonus is active (before first hit),
+    /// and the broken sword icon after the penalty has been applied.
+    /// </summary>
+    private void UpdateCombatDispositionIcons()
+    {
+        const string SwordIconPath = "res://assets/sprites/weapons/combat_disposition_icon.png";
+        const string BrokenSwordIconPath = "res://assets/sprites/weapons/combat_disposition_broken_sword_icon.png";
+        // Position slightly above and to the right of the player
+        var iconOffset = new Vector2(20, -40);
+
+        // --- Sword icon (positive effect) ---
+        if (_combatDispositionSwordIcon == null)
+        {
+            var tex = GD.Load<Texture2D>(SwordIconPath);
+            if (tex != null)
+            {
+                _combatDispositionSwordIcon = new Sprite2D();
+                _combatDispositionSwordIcon.Name = "CombatDispositionSwordIcon";
+                _combatDispositionSwordIcon.Texture = tex;
+                _combatDispositionSwordIcon.Scale = new Vector2(0.5f, 0.5f);
+                _combatDispositionSwordIcon.Position = iconOffset;
+                AddChild(_combatDispositionSwordIcon);
+            }
+            else
+            {
+                LogToFile($"[Player.CombatDisposition] WARNING: Failed to load sword icon: {SwordIconPath}");
+            }
+        }
+
+        // --- Broken sword icon (negative effect) ---
+        if (_combatDispositionBrokenSwordIcon == null)
+        {
+            var tex = GD.Load<Texture2D>(BrokenSwordIconPath);
+            if (tex != null)
+            {
+                _combatDispositionBrokenSwordIcon = new Sprite2D();
+                _combatDispositionBrokenSwordIcon.Name = "CombatDispositionBrokenSwordIcon";
+                _combatDispositionBrokenSwordIcon.Texture = tex;
+                _combatDispositionBrokenSwordIcon.Scale = new Vector2(0.5f, 0.5f);
+                _combatDispositionBrokenSwordIcon.Position = iconOffset;
+                AddChild(_combatDispositionBrokenSwordIcon);
+            }
+            else
+            {
+                LogToFile($"[Player.CombatDisposition] WARNING: Failed to load broken sword icon: {BrokenSwordIconPath}");
+            }
+        }
+
+        // Show/hide based on penalty state
+        bool penaltyApplied = _combatDispositionPenaltyApplied;
+        if (_combatDispositionSwordIcon != null)
+            _combatDispositionSwordIcon.Visible = !penaltyApplied;
+        if (_combatDispositionBrokenSwordIcon != null)
+            _combatDispositionBrokenSwordIcon.Visible = penaltyApplied;
     }
 
     #endregion

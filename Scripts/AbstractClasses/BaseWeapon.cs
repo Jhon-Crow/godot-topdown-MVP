@@ -118,6 +118,18 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public bool IsBreakerBulletActive { get; set; } = false;
 
+    /// <summary>
+    /// Extra damage bonus added to every bullet spawned (Issue #1047, Combat Disposition passive item).
+    /// Can be negative (penalty after taking damage).
+    /// </summary>
+    public float DamageBonus { get; set; } = 0.0f;
+
+    /// <summary>
+    /// Extra fire rate bonus added to fire rate (shots/sec) for every shot (Issue #1047, Combat Disposition passive item).
+    /// Can be negative (penalty after taking damage).
+    /// </summary>
+    public float FireRateBonus { get; set; } = 0.0f;
+
     protected float _fireTimer;
     private float _reloadTimer;
 
@@ -308,7 +320,8 @@ public abstract partial class BaseWeapon : Node2D
 
         // Consume ammo from current magazine
         MagazineInventory.ConsumeAmmo();
-        _fireTimer = 1.0f / WeaponData.FireRate;
+        float effectiveFireRate = WeaponData.FireRate + FireRateBonus;
+        _fireTimer = 1.0f / Mathf.Max(effectiveFireRate, 0.1f);
 
         SpawnBullet(direction);
 
@@ -455,7 +468,7 @@ public abstract partial class BaseWeapon : Node2D
             if (WeaponData != null)
             {
                 csBulletDirect.Speed = WeaponData.BulletSpeed;
-                csBulletDirect.Damage = WeaponData.Damage;
+                csBulletDirect.Damage = WeaponData.Damage + DamageBonus;
                 // Pass caliber data so Bullet.cs reads correct ricochet parameters (Issue #915)
                 csBulletDirect.CaliberData = WeaponData.Caliber;
             }
@@ -473,7 +486,7 @@ public abstract partial class BaseWeapon : Node2D
             if (WeaponData != null)
             {
                 pelletDirect.Speed = WeaponData.BulletSpeed;
-                pelletDirect.Damage = WeaponData.Damage;
+                pelletDirect.Damage = WeaponData.Damage + DamageBonus;
             }
             var owner = GetParent();
             if (owner != null)
@@ -490,7 +503,7 @@ public abstract partial class BaseWeapon : Node2D
             if (WeaponData != null)
             {
                 bullet.Call("set_speed", WeaponData.BulletSpeed);
-                bullet.Call("set_damage", WeaponData.Damage);
+                bullet.Call("set_damage", WeaponData.Damage + DamageBonus);
             }
             var owner = GetParent();
             if (owner != null)
@@ -784,7 +797,15 @@ public abstract partial class BaseWeapon : Node2D
         }
 
         // Fire the chamber bullet
-        _fireTimer = WeaponData != null ? 1.0f / WeaponData.FireRate : 0.1f;
+        if (WeaponData != null)
+        {
+            float effectiveFireRate = WeaponData.FireRate + FireRateBonus;
+            _fireTimer = 1.0f / Mathf.Max(effectiveFireRate, 0.1f);
+        }
+        else
+        {
+            _fireTimer = 0.1f;
+        }
         ChamberBulletFired = true;
         HasBulletInChamber = false;
 
