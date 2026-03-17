@@ -71,6 +71,15 @@ var _hammer_cocked: bool = false
 ## Whether the fire-mode hint is waiting to be shown.
 var _fire_mode_hint_pending: bool = false
 
+## Whether the shotgun full-reload hint is currently active (mirrors labyrinth_level.gd).
+var _shotgun_full_reload_active: bool = false
+
+## Reference to the weapon node used for shotgun shell-count queries.
+var _shotgun_node: Node = null
+
+## Whether the AK GL grenade launcher hint has been shown (to avoid re-showing).
+var _ak_gl_launcher_hint_shown: bool = false
+
 ## Timer for auto-dismissing all hints after a long idle period.
 var _dismiss_timer: Timer = null
 
@@ -326,12 +335,14 @@ func _connect_weapon_signals(weapon: Node, weapon_id: String) -> void:
 				if not weapon.FireModeChanged.is_connected(_on_fire_mode_changed):
 					weapon.FireModeChanged.connect(_on_fire_mode_changed)
 		"ak_gl":
-			if weapon.has_signal("FireModeChanged"):
-				if not weapon.FireModeChanged.is_connected(_on_fire_mode_changed):
-					weapon.FireModeChanged.connect(_on_fire_mode_changed)
+			# Note: AKGL does NOT have FireModeChanged — no connection needed (mirrors labyrinth_level.gd).
 			if weapon.has_signal("GrenadeFired"):
 				if not weapon.GrenadeFired.is_connected(_on_grenade_launcher_fired):
 					weapon.GrenadeFired.connect(_on_grenade_launcher_fired)
+
+	# Store shotgun node reference for shell-count queries
+	if weapon_id == "shotgun":
+		_shotgun_node = weapon
 
 	# Connect player-level reload signals
 	if _player.has_signal("ReloadCompleted"):
@@ -340,6 +351,11 @@ func _connect_weapon_signals(weapon: Node, weapon_id: String) -> void:
 	elif _player.has_signal("reload_completed"):
 		if not _player.reload_completed.is_connected(_on_reload_completed):
 			_player.reload_completed.connect(_on_reload_completed)
+
+	# Connect ReloadSequenceProgress for step-by-step hint highlighting (mirrors labyrinth_level.gd)
+	if _player.has_signal("ReloadSequenceProgress"):
+		if not _player.ReloadSequenceProgress.is_connected(_on_reload_sequence_progress):
+			_player.ReloadSequenceProgress.connect(_on_reload_sequence_progress)
 
 	_log_to_file("Connected weapon signals for: %s (node: %s)" % [weapon_id, weapon.name])
 
@@ -391,61 +407,78 @@ func _on_weapon_fired() -> void:
 
 
 ## Reveal the reload hint appropriate for the current weapon.
-## Mirrors Labyrinth _add_tutorial_reload_hints().
+## Mirrors labyrinth_level.gd _add_tutorial_reload_hints().
 func _reveal_reload_hint() -> void:
 	match _current_weapon_id:
 		"shotgun":
-			# Replace pump-action hint with full reload hint
+			# Replace pump-action hint with full reload hint (mirrors labyrinth round 4 fix)
+			_shotgun_full_reload_active = true
 			if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 				_dismiss_hint(HINT_KEY_BOLT_CYCLE)
 			_add_hint(HINT_KEY_BOLT_CYCLE,
-				"[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ xN] [ПКМ↓ закрыть][/color]")
+				_build_shotgun_full_reload_hint_bbcode(0))
 		"sniper":
 			_add_hint(HINT_KEY_RELOAD,
-				"[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись")
+				_build_reload_hint_bbcode(0, 3))
 		"revolver":
 			_add_hint(HINT_KEY_RELOAD,
-				"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]")
+				_build_revolver_reload_hint_bbcode(0))
 		"makarov_pm":
 			_add_hint(HINT_KEY_RELOAD,
-				"[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись")
+				_build_reload_hint_bbcode(0, 2))
 		_:
 			# Standard R → F → R (m16, mini_uzi, silenced_pistol, ak_gl, etc.)
 			_add_hint(HINT_KEY_RELOAD,
-				"[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись")
+				_build_reload_hint_bbcode(0, 3))
 
 	_log_to_file("Reload hint revealed for: %s" % _current_weapon_id)
 
 
 ## Called when sniper bolt step changes.
-## Mirrors Labyrinth _on_tutorial_sniper_bolt_step_changed(): updates hint text then dismisses on completion.
+## Mirrors labyrinth_level.gd _on_tutorial_sniper_bolt_step_changed(): updates hint text then dismisses on completion.
 func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 	if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 		var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
 		if is_instance_valid(label):
-			match step:
-				0: label.text = "[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] Передёрни затвор"
-				1: label.text = "[color=#888888][←][/color] [color=#ff4444][↓][/color] [color=#888888][↑] [→][/color] Передёрни затвор"
-				2: label.text = "[color=#888888][←] [↓][/color] [color=#ff4444][↑][/color] [color=#888888][→][/color] Передёрни затвор"
-				3: label.text = "[color=#888888][←] [↓] [↑][/color] [color=#ff4444][→][/color] Передёрни затвор"
+			label.text = _build_sniper_bolt_hint_bbcode(step)
 	if step >= total_steps:
 		_dismiss_hint(HINT_KEY_BOLT_CYCLE)
 
 
 ## Called when shotgun action state changes (pump-action cycling).
-## Dismisses the pump-action hint when player cycles the bolt.
+## Mirrors labyrinth_level.gd _on_tutorial_shotgun_action_state_changed().
 ## ShotgunActionState: 0=Ready, 1=NeedsPumpUp, 2=NeedsPumpDown
 func _on_shotgun_action_state_changed(new_state: int) -> void:
-	# State 0 = Ready (bolt cycled) — dismiss the pump hint
-	if new_state == 0 and _hint_labels.has(HINT_KEY_BOLT_CYCLE):
-		# Only dismiss pump hint (not full-reload hint which shares the key)
-		if not _reload_hint_revealed:
+	# Do not overwrite the full reload hint with the pump hint
+	if _shotgun_full_reload_active:
+		return
+
+	if new_state == 0:
+		# Bolt cycle complete — dismiss pump hint
+		if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 			_dismiss_hint(HINT_KEY_BOLT_CYCLE)
+	elif _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+		var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
+		if is_instance_valid(label):
+			label.text = _build_shotgun_pump_hint_bbcode(new_state)
 
 
-## Called when shotgun reload state changes.
-func _on_shotgun_reload_state_changed(_new_state: int) -> void:
-	pass  # Reload completion handled by _on_reload_completed
+## Called when shotgun reload state changes (full shell-by-shell reload).
+## Mirrors labyrinth_level.gd _on_tutorial_shotgun_reload_state_changed().
+## ShotgunReloadState: 0=NotReloading, 1=WaitingToOpen, 2=Loading, 3=WaitingToClose
+func _on_shotgun_reload_state_changed(new_state: int) -> void:
+	if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+		return
+
+	# State 0 = reload fully complete — treat as reload done
+	if new_state == 0:
+		_log_to_file("Shotgun reload completed via ReloadStateChanged(0)")
+		_on_reload_completed()
+		return
+
+	var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
+	if is_instance_valid(label):
+		label.text = _build_shotgun_full_reload_hint_bbcode(new_state)
 
 
 ## Called when hammer is cocked on revolver — dismisses hammer-cock hint.
@@ -478,22 +511,205 @@ func _on_grenade_launcher_fired() -> void:
 
 
 ## Called when player completes a reload.
-## Mirrors Labyrinth _on_tutorial_reload_completed(): dismisses reload hint.
-## For M16/AK GL: sets flag to show fire-mode hint after reload (shown on next weapon_selected or manually).
+## Mirrors labyrinth_level.gd _on_tutorial_reload_completed(): dismisses reload hint.
+## For M16: shows fire-mode hint after reload (mirrors Labyrinth).
+## For AK GL: shows grenade launcher hint after reload (mirrors Labyrinth Issue #991).
 func _on_reload_completed() -> void:
 	if not _hints_active:
 		return
 	if _hint_labels.has(HINT_KEY_RELOAD):
 		_dismiss_hint(HINT_KEY_RELOAD)
-	if _hint_labels.has(HINT_KEY_BOLT_CYCLE) and _current_weapon_id == "shotgun":
-		_dismiss_hint(HINT_KEY_BOLT_CYCLE)
+	if _current_weapon_id == "shotgun":
+		if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+			_dismiss_hint(HINT_KEY_BOLT_CYCLE)
+		_shotgun_full_reload_active = false
+
 	# M16: show fire-mode hint after reload (mirrors Labyrinth)
 	if _current_weapon_id == "m16":
 		_fire_mode_hint_pending = true
 		if not _hint_labels.has(HINT_KEY_FIRE_MODE):
 			_add_hint(HINT_KEY_FIRE_MODE,
 				"[color=#ff4444][B][/color] Переключи режим стрельбы")
+
+	# AK GL: show grenade launcher hint after reload (Issue #991 pattern — sequential, no overlap)
+	if _current_weapon_id == "ak_gl" and not _ak_gl_launcher_hint_shown:
+		if _ak_gl_has_round_loaded():
+			_ak_gl_launcher_hint_shown = true
+			if not _hint_labels.has(HINT_KEY_LAUNCHER):
+				_add_hint(HINT_KEY_LAUNCHER,
+					"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом")
+
 	_log_to_file("Reload completed — reload hint dismissed for: %s" % _current_weapon_id)
+
+
+## Called when the reload sequence progresses — updates hint text to highlight the next step.
+## Mirrors labyrinth_level.gd _on_tutorial_reload_sequence_progress().
+## Shotgun uses ReloadStateChanged instead — skipped here.
+## @param step: last completed step (0 = nothing done yet).
+## @param total: total reload steps.
+func _on_reload_sequence_progress(step: int, total: int) -> void:
+	# Shotgun uses ReloadStateChanged for step-by-step highlighting
+	if _current_weapon_id == "shotgun":
+		return
+
+	if _current_weapon_id == "revolver":
+		if _hint_labels.has(HINT_KEY_RELOAD):
+			var label: RichTextLabel = _hint_labels[HINT_KEY_RELOAD]
+			if is_instance_valid(label):
+				label.text = _build_revolver_reload_hint_bbcode(step)
+		return
+
+	if not _hint_labels.has(HINT_KEY_RELOAD):
+		return
+
+	var new_text := _build_reload_hint_bbcode(step, total)
+	if new_text.is_empty():
+		return
+	var label: RichTextLabel = _hint_labels[HINT_KEY_RELOAD]
+	if is_instance_valid(label):
+		label.text = new_text
+	_log_to_file("Reload sequence step %d/%d — hint updated" % [step, total])
+
+
+## Build BBCode reload hint text based on step and total steps.
+## Mirrors labyrinth_level.gd _build_tutorial_reload_hint_bbcode().
+func _build_reload_hint_bbcode(step: int, total: int) -> String:
+	if _current_weapon_id == "makarov_pm" or total <= 2:
+		# Makarov PM / 2-step reload: R → R
+		match step:
+			0:
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+			1:
+				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.25)
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+			_:
+				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.5)
+				return "[color=#888888][R] [R][/color] Перезарядись"
+	else:
+		# Standard 3-step reload: R → F → R
+		match step:
+			0:
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+			1:
+				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.17)
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+			2:
+				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.33)
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+			_:
+				_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.5)
+				return "[color=#888888][R] [F] [R][/color] Перезарядись"
+	return ""
+
+
+## Build BBCode for revolver reload hint with step-based highlighting.
+## Mirrors labyrinth_level.gd _build_tutorial_revolver_reload_hint_bbcode().
+func _build_revolver_reload_hint_bbcode(step: int) -> String:
+	match step:
+		0:
+			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+		1:
+			_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.15)
+			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
+		2:
+			_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.55)
+			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
+		_:
+			_extend_hint_strikethrough(HINT_KEY_RELOAD, 0.75)
+			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+	return ""
+
+
+## Build BBCode for shotgun full reload hint with step-based highlighting.
+## Mirrors labyrinth_level.gd _build_tutorial_shotgun_full_reload_hint_bbcode().
+## ShotgunReloadState: 0=NotReloading, 1=WaitingToOpen, 2=Loading, 3=WaitingToClose
+func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
+	var shells_needed: int = _get_shotgun_shells_to_load()
+	match state:
+		0, 1:
+			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+		2:
+			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.25)
+			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
+		3:
+			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.55)
+			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
+		_:
+			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.8)
+			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+	return ""
+
+
+## Build BBCode for shotgun between-shots pump hint.
+## Mirrors labyrinth_level.gd _build_tutorial_shotgun_pump_hint_bbcode().
+## ShotgunActionState: 1=NeedsPumpUp, 2=NeedsPumpDown
+func _build_shotgun_pump_hint_bbcode(state: int) -> String:
+	match state:
+		1:
+			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
+		2:
+			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.2)
+			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+		_:
+			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.4)
+			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
+	return ""
+
+
+## Build BBCode for sniper bolt-cycle hint showing 4-step sequence.
+## Mirrors labyrinth_level.gd _build_tutorial_sniper_bolt_hint_bbcode().
+func _build_sniper_bolt_hint_bbcode(step: int) -> String:
+	const STEPS := ["←", "↓", "↑", "→"]
+	var parts: PackedStringArray = []
+	for i in range(STEPS.size()):
+		if i < step:
+			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+		elif i == step:
+			parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
+		else:
+			parts.append("[color=#888888][%s][/color]" % STEPS[i])
+	if step > 0:
+		_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, float(step) * 0.125)
+	return " ".join(parts) + " Передёрни затвор"
+
+
+## Get number of shells the shotgun needs to reload to capacity.
+## Mirrors labyrinth_level.gd _get_tutorial_shotgun_shells_to_load().
+func _get_shotgun_shells_to_load() -> int:
+	if _shotgun_node == null or not is_instance_valid(_shotgun_node):
+		return 8
+	var shells_in_tube = _shotgun_node.get("ShellsInTube")
+	var tube_capacity = _shotgun_node.get("TubeMagazineCapacity")
+	if shells_in_tube == null or tube_capacity == null:
+		return 8
+	return int(tube_capacity) - int(shells_in_tube)
+
+
+## Check whether the AK GL has a round loaded in the grenade launcher.
+## Mirrors labyrinth_level.gd _tutorial_ak_gl_has_round_loaded().
+func _ak_gl_has_round_loaded() -> bool:
+	if _current_weapon_node == null or not is_instance_valid(_current_weapon_node):
+		return true  # Assume loaded if node not found
+	var available = _current_weapon_node.get("GrenadeAvailable")
+	if available != null:
+		return bool(available)
+	return true  # Assume loaded if property not found
+
+
+## Extend the strikethrough progress for a hint (used by BBCode builders).
+## Mirrors labyrinth_level.gd _extend_tutorial_hint_strikethrough().
+func _extend_hint_strikethrough(hint_key: String, progress: float) -> void:
+	if not _hint_strike_progress.has(hint_key):
+		return
+	var current: float = _hint_strike_progress[hint_key]
+	if progress <= current:
+		return
+	_hint_strike_progress[hint_key] = progress
+	var strike_lines: Array = _hint_strike_lines.get(hint_key, [])
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+	var line_widths: Array = _hint_line_widths.get(hint_key, [])
+	if not strike_lines.is_empty():
+		_update_strikethrough_points(strike_lines, line_count, line_widths, progress)
 
 
 ## Called when the global dismiss timer times out — clear all remaining hints.
@@ -754,6 +970,8 @@ func _disconnect_weapon_signals() -> void:
 			_player.ReloadCompleted.disconnect(_on_reload_completed)
 		if _player.has_signal("reload_completed") and _player.reload_completed.is_connected(_on_reload_completed):
 			_player.reload_completed.disconnect(_on_reload_completed)
+		if _player.has_signal("ReloadSequenceProgress") and _player.ReloadSequenceProgress.is_connected(_on_reload_sequence_progress):
+			_player.ReloadSequenceProgress.disconnect(_on_reload_sequence_progress)
 
 
 ## Reset per-weapon hint tracking state.
@@ -764,6 +982,9 @@ func _reset_hint_state() -> void:
 	_scope_used = false
 	_hammer_cocked = false
 	_fire_mode_hint_pending = false
+	_shotgun_full_reload_active = false
+	_shotgun_node = null
+	_ak_gl_launcher_hint_shown = false
 	_disconnect_weapon_signals()
 	# Note: _pending_unlock is NOT cleared here — it is consumed by _on_weapon_selected
 
@@ -787,9 +1008,26 @@ func _update_hint_positions() -> void:
 		index += 1
 
 
-## Called when revolver reload state changes (for future step-tracking, mirrors Labyrinth).
-func _on_revolver_reload_state_changed(_new_state: int) -> void:
-	pass  # Reload completion handled by _on_reload_completed
+## Called when revolver reload state changes — updates hint text step-by-step.
+## Mirrors labyrinth_level.gd _on_tutorial_revolver_reload_state_changed().
+## RevolverReloadState: 0=NotReloading, 1=CylinderOpen, 2=Loading, 3=ClosingCylinder
+func _on_revolver_reload_state_changed(new_state: int) -> void:
+	if not _hint_labels.has(HINT_KEY_RELOAD):
+		return
+
+	var hint_step: int = 0
+	match new_state:
+		1:
+			hint_step = 1  # CylinderOpen → highlight insert cartridge
+		2:
+			hint_step = 2  # Loading → highlight close cylinder
+		_:
+			hint_step = 3  # Done
+
+	var label: RichTextLabel = _hint_labels[HINT_KEY_RELOAD]
+	if is_instance_valid(label):
+		label.text = _build_revolver_reload_hint_bbcode(hint_step)
+	_log_to_file("Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
 
 
 ## Clean up when component is removed.
