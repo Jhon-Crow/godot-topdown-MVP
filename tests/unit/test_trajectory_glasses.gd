@@ -93,24 +93,23 @@ class MockTrajectoryGlassesEffect:
 		if _effect_timer <= 0.0:
 			deactivate()
 			return
-		# Continuous blink phase (< 4 s)
 		if _effect_timer <= CONTINUOUS_BLINK_THRESHOLD:
-			_warning_flash_timer += delta
-			var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
-			trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
-		elif _effect_timer <= SINGLE_BLINK_THRESHOLD:
-			# Single-blink phase (between 2.5 s and 4 s)
-			if not _single_blink_triggered:
+			# Trigger one-shot single blink when crossing 25% threshold (Issue #1085).
+			if _effect_timer <= SINGLE_BLINK_THRESHOLD and not _single_blink_triggered:
 				_single_blink_triggered = true
 				_single_blink_timer = 0.0
 			var single_blink_period := 1.0 / WARNING_FLASH_FREQUENCY
-			_single_blink_timer += delta
-			if _single_blink_timer < single_blink_period * 0.5:
-				trajectory_ray_visible = false
-			elif _single_blink_timer < single_blink_period:
-				trajectory_ray_visible = true
+			if _single_blink_triggered and _single_blink_timer < single_blink_period:
+				_single_blink_timer += delta
+				if _single_blink_timer < single_blink_period * 0.5:
+					trajectory_ray_visible = false
+				else:
+					trajectory_ray_visible = true
 			else:
-				trajectory_ray_visible = true
+				# Continuous blink at WARNING_FLASH_FREQUENCY Hz.
+				_warning_flash_timer += delta
+				var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
+				trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
 		else:
 			# Normal phase
 			_warning_flash_timer = 0.0
@@ -478,17 +477,18 @@ func test_trajectory_ray_visible_in_normal_phase() -> void:
 
 func test_trajectory_ray_single_blink_triggered_at_25_percent() -> void:
 	effect.activate()
-	# Advance to just below SINGLE_BLINK_THRESHOLD (2.5 s) but above CONTINUOUS_BLINK_THRESHOLD (4.0 s)
-	# 10 - 7.6 = 2.4 s remaining — within single-blink zone
+	# Advance to just inside CONTINUOUS_BLINK_THRESHOLD (4 s) and past SINGLE_BLINK_THRESHOLD (2.5 s).
+	# 10 - 7.6 = 2.4 s remaining → inside continuous blink AND past 25% threshold.
+	# The single-blink fires: ray goes off for half a period.
 	effect.update(7.6)
-	# At the very start of the single-blink phase the ray should go off
+	effect.update(0.001)  # tiny step to enter single-blink override
 	assert_false(effect.trajectory_ray_visible,
-		"Ray should be off at start of single-blink phase (25% warning)")
+		"Ray should be off during first half of single-blink at 25% threshold")
 
 
 func test_trajectory_ray_returns_to_visible_after_single_blink() -> void:
 	effect.activate()
-	# Advance to 2.4 s remaining (single-blink zone starts)
+	# Advance to 2.4 s remaining (single-blink triggered inside continuous blink zone)
 	effect.update(7.6)
 	# Advance through one full single-blink period (~0.333 s)
 	var single_blink_period := 1.0 / effect.WARNING_FLASH_FREQUENCY
@@ -499,18 +499,16 @@ func test_trajectory_ray_returns_to_visible_after_single_blink() -> void:
 
 func test_trajectory_ray_single_blink_fires_only_once() -> void:
 	effect.activate()
-	# Advance into single-blink zone
+	# Advance past 25% threshold
 	effect.update(7.6)
 	# Let the single-blink finish
 	var single_blink_period := 1.0 / effect.WARNING_FLASH_FREQUENCY
-	effect.update(single_blink_period)
-	# Advance a bit more while still in single-blink zone (still between 2.5s and 4.0s threshold)
-	# 10 - 7.6 - 0.333 = ~2.07 s remaining: still in single-blink zone
+	effect.update(single_blink_period + 0.1)
+	# Advance a bit more — still in continuous blink zone
 	effect.update(0.1)
-	assert_true(effect.trajectory_ray_visible,
-		"Ray must stay visible after single-blink — blink fires only once")
+	# _single_blink_triggered must stay true so the flash does not repeat
 	assert_true(effect._single_blink_triggered,
-		"_single_blink_triggered flag must remain true so blink doesn't repeat")
+		"_single_blink_triggered flag must remain true so single blink doesn't repeat")
 
 
 func test_trajectory_ray_starts_continuous_blink_at_4_seconds() -> void:
@@ -527,7 +525,7 @@ func test_trajectory_ray_starts_continuous_blink_at_4_seconds() -> void:
 
 func test_continuous_blink_ray_is_off_during_first_half_period() -> void:
 	effect.activate()
-	# Advance to 3.9 s remaining (just inside continuous blink zone)
+	# Advance to 3.9 s remaining (just inside continuous blink zone, above 25% threshold)
 	effect.update(6.1)
 	# At the very first tick into continuous blink the flash_timer is near 0 → ray should be off
 	effect.update(0.001)

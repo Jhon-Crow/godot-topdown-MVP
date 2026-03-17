@@ -234,27 +234,34 @@ func _process(delta: float) -> void:
 	# Update trajectory visualization every frame
 	_update_trajectory()
 
-	# Blink logic (Issue #1085):
-	# Phase 1 — single blink once when remaining time crosses 25% (SINGLE_BLINK_THRESHOLD = 2.5 s).
-	# Phase 2 — continuous blinking once remaining time drops below CONTINUOUS_BLINK_THRESHOLD (4 s).
+	# Blink logic (Issue #1085).
+	# Timeline (10 s total):
+	#   10 s → 4 s  : ray solid (normal phase)
+	#    4 s → 0 s  : continuous blinking at WARNING_FLASH_FREQUENCY Hz
+	#   At 2.5 s    : single extra blink (ray off for half-period) injected into the
+	#                 continuous-blink stream as an additional one-shot flash.
+	#
+	# Because SINGLE_BLINK_THRESHOLD (2.5 s) < CONTINUOUS_BLINK_THRESHOLD (4 s),
+	# the single blink fires while continuous blinking is already active.
 	if _effect_timer <= CONTINUOUS_BLINK_THRESHOLD:
-		# Continuous blink phase: toggle at WARNING_FLASH_FREQUENCY Hz.
-		_warning_flash_timer += delta
-		var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
-		trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
-	elif _effect_timer <= SINGLE_BLINK_THRESHOLD:
-		# Single-blink phase: fire one quick flash (one half-period on, one half-period off).
-		if not _single_blink_triggered:
+		# Trigger the one-shot single blink the first time we cross 25% (Issue #1085).
+		if _effect_timer <= SINGLE_BLINK_THRESHOLD and not _single_blink_triggered:
 			_single_blink_triggered = true
 			_single_blink_timer = 0.0
-		var single_blink_period := 1.0 / WARNING_FLASH_FREQUENCY  # ~0.333 s total
-		_single_blink_timer += delta
-		if _single_blink_timer < single_blink_period * 0.5:
-			trajectory_ray_visible = false  # first half: ray off (visible flash-off)
-		elif _single_blink_timer < single_blink_period:
-			trajectory_ray_visible = true   # second half: ray back on
+
+		# During the single-blink window, override with a clean off→on half-period.
+		var single_blink_period := 1.0 / WARNING_FLASH_FREQUENCY
+		if _single_blink_triggered and _single_blink_timer < single_blink_period:
+			_single_blink_timer += delta
+			if _single_blink_timer < single_blink_period * 0.5:
+				trajectory_ray_visible = false  # ray off
+			else:
+				trajectory_ray_visible = true   # ray back on
 		else:
-			trajectory_ray_visible = true   # blink finished — stay on
+			# Continuous blink: toggle at WARNING_FLASH_FREQUENCY Hz.
+			_warning_flash_timer += delta
+			var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
+			trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
 	else:
 		# Normal phase: ray always visible, reset timers.
 		_warning_flash_timer = 0.0
