@@ -981,9 +981,31 @@ func _on_armory_button_pressed() -> void:
 		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
-		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
+		armory_menu.back_pressed.connect(func():
+			armory_menu.queue_free()
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
+		armory_menu.apply_pressed_from_score_screen.connect(func():
+			# Issue #1050: Remove gold highlight from armory button if all available items have been opened
+			var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
+			if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock") or not unlock_manager.has_any_available_unlock():
+				_remove_armory_button_gold_style()
+		)
 	else:
 		_log_to_file("ERROR: Could not load armory menu scene")
+
+
+## Issue #1050: Remove gold highlight from the ArmoryButton when no items remain to unlock.
+## The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+func _remove_armory_button_gold_style() -> void:
+	var armory_btn := get_tree().current_scene.find_child("ArmoryButton", true, false)
+	if armory_btn:
+		armory_btn.text = "Armory"
+		armory_btn.remove_theme_color_override("font_color")
+		armory_btn.remove_theme_stylebox_override("normal")
 
 
 ## Setup the weapon based on GameManager's selected weapon.
