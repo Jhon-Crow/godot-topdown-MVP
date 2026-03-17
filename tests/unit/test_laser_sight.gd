@@ -31,7 +31,8 @@ class MockActiveItemManager:
 		LOUDSPEAKER = 11,
 		BREACHING_CHARGES = 12,
 		ARMORED_SKIN = 13,
-		AUTO_RELOAD = 14
+		AUTO_RELOAD = 14,
+		COMBAT_DISPOSITION = 15
 	}
 
 	## Currently selected active item type
@@ -53,7 +54,8 @@ class MockActiveItemManager:
 		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
 		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
 		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored Skin."},
-		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."}
+		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
+		15: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Check if laser sight is currently equipped (Issue #947)
@@ -260,11 +262,11 @@ func test_total_active_items_includes_laser_sight() -> void:
 		"All active item types should include LASER_SIGHT")
 
 
-func test_active_item_count_is_fourteen() -> void:
-	# NONE + 13 items = 14 total (LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN added by main, AUTO_RELOAD added by Issue #1067)
+func test_active_item_count_is_sixteen() -> void:
+	# NONE + 15 items = 16 total (EXTENDED_MAGAZINE added by Issue #1065, COMBAT_DISPOSITION added by Issue #1047)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 14,
-		"Should have 14 active item types total (NONE + 13 items including LASER_SIGHT, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, and AUTO_RELOAD)")
+	assert_eq(all_types.size(), 16,
+		"Should have 16 active item types total (NONE + 15 items including LASER_SIGHT, EXTENDED_MAGAZINE, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, AUTO_RELOAD, and COMBAT_DISPOSITION)")
 
 
 # ============================================================================

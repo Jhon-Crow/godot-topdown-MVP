@@ -156,8 +156,28 @@ This is a low-priority enhancement but would prevent future debugging confusion.
 | 2026-03-17 19:17 UTC | Fix commit `c3d6dc1e`: Shotgun ✅ fixed; Revolver ✅ already fixed; tests updated; case study added |
 | ~21:31 UTC (23:31 local) | Owner tests again; Revolver ✅ working, Shotgun ❌ still 0/8 (old binary), PM ✅ working |
 | 2026-03-17 20:33 UTC | Owner reports "everything works except PM"; uploads `game_log_20260317_233144.txt`; requests case study |
+| ~21:54 UTC (23:54 local) | Owner tests again after case study published; uploads `game_log_20260317_235414.txt`; reports "PM has 9 bullets" — again a misreading of `22/9` log format |
 
 **Key finding:** The second test used a **binary built before the Shotgun fix** (`c3d6dc1e`). The owner's claim that "PM is broken" is contradicted by the log showing `22/9` (PM working correctly). The **Shotgun** was still broken in the binary tested.
+
+### 2.3 `game_log_20260317_235414.txt` — Third test session (binary: pre-`c3d6dc1e`, post-Revolver fix)
+
+**Difficulty:** Normal (value: 1)
+**Active item:** Extended Magazine (switched at 23:54:30)
+**User report:** "сейчас в ПМ с расширенным магазином 9 патронов" ("currently PM with Extended Magazine has 9 bullets")
+
+Key log lines:
+```
+[23:54:30] [ActiveItemManager] Active item changed from Auto-Reload to Extended Magazine
+[23:54:30] [Player.Weapon] Equipped Revolver (ammo: 12/5)   ← 12 = 5×2.5 ✅ (Revolver working)
+[23:54:36] [Player] Ready! Ammo: 22/9                       ← MakarovPM: 22 = 9×2.5 ✅ (PM working)
+[23:54:44] [Player.Weapon] Equipped Shotgun (ammo: 0/8)     ← tube = 8, NOT 20 ❌ (Shotgun still broken)
+[23:54:47] [Player.Weapon] Equipped MiniUzi (ammo: 80/32)   ← 80 = 32×2.5 ✅
+```
+
+**Analysis:** The user's report of "9 bullets in PM" is again a misreading of the `current/raw` log format. The actual loaded ammo is **22** (=9×2.5), as shown in `[Player] Ready! Ammo: 22/9`. The `/9` denominator is the raw `WeaponData.MagazineSize`, not the active capacity. PM is working correctly.
+
+The Shotgun still showed `0/8` because this binary was built from a commit before `c3d6dc1e` (our Shotgun fix). Once the user rebuilds from the latest branch tip, Shotgun will show `0/20` and load up to 20 shells.
 
 ---
 
@@ -231,6 +251,7 @@ In `Scripts/Characters/Player.cs` line 1192, add the actual active magazine capa
 |------|-------------|
 | `game_log_20260317_213029.txt` | First bug report log — Power Fantasy, initial build (`33a8cce9`), Shotgun ❌, Revolver not tested |
 | `game_log_20260317_233144.txt` | Second test log — Normal difficulty, Revolver ✅, Shotgun ❌, MakarovPM ✅ (misreported as broken) |
+| `game_log_20260317_235414.txt` | Third test log — Normal difficulty, post-fix binary; Revolver `12/5` ✅, MakarovPM `22/9` ✅, Shotgun `0/8` ❌ (old binary, pre-`c3d6dc1e`) |
 
 ---
 

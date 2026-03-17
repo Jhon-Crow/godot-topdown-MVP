@@ -31,7 +31,8 @@ class MockActiveItemManager:
 		LOUDSPEAKER = 11,
 		BREACHING_CHARGES = 12,
 		ARMORED_SKIN = 13,
-		AUTO_RELOAD = 14
+		AUTO_RELOAD = 14,
+		COMBAT_DISPOSITION = 15
 	}
 
 	## Currently selected active item type
@@ -53,7 +54,8 @@ class MockActiveItemManager:
 		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker — press Space to emit sound cone."},
 		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges — hold Space near a wall to place a charge."},
 		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored Skin — passive: +1 HP."},
-		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but refilled on kill."}
+		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but refilled on kill."},
+		15: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Check if extended magazine is currently equipped (Issue #1065)
@@ -328,11 +330,11 @@ func test_total_active_items_includes_extended_magazine() -> void:
 		"All active item types should include EXTENDED_MAGAZINE")
 
 
-func test_active_item_count_is_fifteen() -> void:
-	# NONE + 14 items = 15 total (after adding EXTENDED_MAGAZINE + Loudspeaker + Breaching Charges + Armored Skin + Auto-Reload)
+func test_active_item_count_is_sixteen() -> void:
+	# NONE + 15 items = 16 total (after adding EXTENDED_MAGAZINE + Loudspeaker + Breaching Charges + Armored Skin + Auto-Reload + Combat Disposition)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 15,
-		"Should have 15 active item types total (NONE + 14 items including EXTENDED_MAGAZINE)")
+	assert_eq(all_types.size(), 16,
+		"Should have 16 active item types total (NONE + 15 items including EXTENDED_MAGAZINE and COMBAT_DISPOSITION)")
 
 
 # ============================================================================

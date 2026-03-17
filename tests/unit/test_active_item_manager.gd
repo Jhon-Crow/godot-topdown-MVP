@@ -125,7 +125,8 @@ class MockActiveItemManager:
 		LOUDSPEAKER = 11,
 		BREACHING_CHARGES = 12,
 		ARMORED_SKIN = 13,
-		AUTO_RELOAD = 14
+		AUTO_RELOAD = 14,
+		COMBAT_DISPOSITION = 15
 	}
 
 	## Currently selected active item type
@@ -207,6 +208,11 @@ class MockActiveItemManager:
 			"name": "Auto-Reload",
 			"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
 			"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
+		},
+		14: {
+			"name": "Combat Disposition",
+			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
+			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
 		}
 	}
 
@@ -303,6 +309,10 @@ class MockActiveItemManager:
 	## Check if auto-reload is currently equipped (Issue #1067)
 	func has_auto_reload() -> bool:
 		return current_active_item == ActiveItemType.AUTO_RELOAD
+
+	## Check if combat disposition is currently equipped
+	func has_combat_disposition() -> bool:
+		return current_active_item == ActiveItemType.COMBAT_DISPOSITION
 
 
 var manager: MockActiveItemManager
@@ -454,8 +464,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 13,
-		"Should return 13 active item types")
+	assert_eq(types.size(), 16,
+		"Should return 16 active item types (NONE + 15 items including Extended Magazine and Combat Disposition)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -471,6 +481,7 @@ func test_get_all_active_item_types() -> void:
 	assert_true(12 in types)  # BREACHING_CHARGES (Issue #1043)
 	assert_true(13 in types)  # ARMORED_SKIN (Issue #1045)
 	assert_true(14 in types)  # AUTO_RELOAD (Issue #1067)
+	assert_true(15 in types)  # COMBAT_DISPOSITION (Issue #1047)
 
 
 func test_get_active_item_name_none() -> void:
@@ -673,7 +684,8 @@ class MockArmoryWithActiveItems:
 		11: {"name": "Loudspeaker", "description": "Loudspeaker — press Space to emit sound cone"},
 		12: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
 		13: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
-		14: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"}
+		14: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"},
+		15: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Applied active item type
@@ -1003,7 +1015,7 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 	# Its effect is now part of Trajectory Glasses.
 	# Index 10 is EXTENDED_MAGAZINE (Issue #1065). Index 11 is LOUDSPEAKER (Issue #959).
 	# Index 12 is BREACHING_CHARGES (Issue #1043). Index 13 is ARMORED_SKIN (Issue #1045).
-	# Index 14 is AUTO_RELOAD (Issue #1067).
+	# Index 14 is AUTO_RELOAD (Issue #1067). Index 15 is COMBAT_DISPOSITION (Issue #1047).
 	var data := manager.get_active_item_data(10)
 	assert_false(data.is_empty(),
 		"Index 10 should be EXTENDED_MAGAZINE (Issue #1065) — RICOCHET_POINTS was removed (Issue #1028)")
@@ -1019,6 +1031,11 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 		"Index 14 should be AUTO_RELOAD (Issue #1067)")
 	assert_eq(auto_reload_data.get("name", ""), "Auto-Reload",
 		"Item at index 14 should be Auto-Reload (Issue #1067)")
+	var combat_data := manager.get_active_item_data(15)
+	assert_false(combat_data.is_empty(),
+		"Index 15 should now be Combat Disposition (Issue #1047)")
+	assert_eq(combat_data.get("name", ""), "Combat Disposition",
+		"Item at index 15 should be Combat Disposition (Issue #1047)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
