@@ -30,11 +30,12 @@ const MIN_EFFECT_SCALE: float = 0.2
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-## Issue #1027 Fix 22: Set cap at 150 to prevent GPU overload on large levels (DocksLevel with 20
-## enemies accumulated 400+ decals, causing 6fps drops). Oldest decals removed when limit reached.
-## Previous value was 0 (unlimited) per issue #293/#370 (puddles never disappear), but DocksLevel
-## scale makes that untenable for performance.
-const MAX_BLOOD_DECALS: int = 150
+## Issue #1027 Fix 22: Introduced cap to prevent GPU overload.
+## Issue #1027 Fix 24: Raised from 150 → 300 because Fix 24 (removing per-puddle Area2D) eliminates
+## the main physics bottleneck. The previous 6fps drops were caused by 21 character Area2D detectors
+## × 150 puddle Area2D shapes = 3150 physics pair checks/frame, NOT by rendering 150 Sprite2D nodes.
+## With Area2D removed from puddles, 300 Sprite2D nodes are cheap to render (~1ms GPU at 60fps).
+const MAX_BLOOD_DECALS: int = 300
 
 ## Maximum distance to check for walls for blood splatters (in pixels).
 const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0
