@@ -23,6 +23,14 @@ class_name DefensiveGrenade
 ## Per issue #495: 40 shrapnel pieces.
 @export var shrapnel_count: int = 40
 
+## Maximum number of wall ricochets per shrapnel piece.
+## Issue #937: Limiting ricochets reduces the cascade of wall collisions in enclosed spaces
+## (LabyrinthLevel). With 40 shrapnel pieces and 3 ricochets each, up to 120 simultaneous
+## raycast calls and physics collision events occur in a small area — causing noticeable lag.
+## Setting to 1 allows one ricochet (realistic) while avoiding the exponential collision
+## cascade from 3 ricochets × 40 pieces = 120 events in a closed room.
+@export var shrapnel_max_ricochets: int = 1
+
 ## Shrapnel scene to instantiate.
 @export var shrapnel_scene: PackedScene
 
@@ -230,6 +238,9 @@ func _spawn_shrapnel() -> void:
 			shrapnel = pool_manager.get_shrapnel()
 			if shrapnel and shrapnel.has_method("pool_activate"):
 				shrapnel.pool_activate(spawn_pos, direction, get_instance_id(), thrower_id)
+				# Issue #937: Limit ricochets to reduce collision cascade in enclosed spaces
+				if "max_ricochets" in shrapnel:
+					shrapnel.max_ricochets = shrapnel_max_ricochets
 				continue  # Shrapnel is ready, skip to next
 
 		# Fallback to instantiation
@@ -243,6 +254,9 @@ func _spawn_shrapnel() -> void:
 		shrapnel.source_id = get_instance_id()
 		# Issue #692: Pass thrower_id so shrapnel doesn't hit the enemy who threw it
 		shrapnel.thrower_id = thrower_id
+		# Issue #937: Limit ricochets to reduce collision cascade in enclosed spaces
+		if "max_ricochets" in shrapnel:
+			shrapnel.max_ricochets = shrapnel_max_ricochets
 
 		# Add to scene
 		get_tree().current_scene.add_child(shrapnel)
