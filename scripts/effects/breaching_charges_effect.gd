@@ -210,7 +210,7 @@ func detonate() -> bool:
 	_remove_placed_charge_marker()
 
 	# Disable the wall's collision to create a passage
-	_open_wall_passage(wall)
+	_open_wall_passage(wall, det_pos)
 
 	# Spawn directional explosion cone effect
 	_spawn_explosion_effect(det_pos, det_dir)
@@ -282,7 +282,8 @@ func _find_nearest_wall_with_hit() -> Dictionary:
 ## For thin/short walls (smaller than BREACH_PASSAGE_WIDTH in the split axis) the
 ## collision is disabled entirely and the visual is faded (alpha 0.25) — the wall
 ## remains visible but is passable, fulfilling Issue #1087 item 5.
-func _open_wall_passage(wall: Node) -> void:
+## breach_world_pos: the world-space hit position where the charge was placed.
+func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	if wall == null or not is_instance_valid(wall):
 		FileLogger.info("[BreachingCharges] WARNING: Wall reference invalid at detonation")
 		return
@@ -312,8 +313,7 @@ func _open_wall_passage(wall: Node) -> void:
 	var wall_size: Vector2 = rect_shape.size  # full width x height
 
 	# Breach point in wall-local coordinates
-	var breach_world: Vector2 = _charge_position
-	var breach_local: Vector2 = wall.to_local(breach_world)
+	var breach_local: Vector2 = wall.to_local(breach_world_pos)
 
 	# Half-sizes for convenience
 	var half_w: float = wall_size.x * 0.5
