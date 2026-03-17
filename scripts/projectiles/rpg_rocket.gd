@@ -63,8 +63,14 @@ func _ready() -> void:
 	linear_damp = 0.0
 	continuous_cd = 1  # Same as VOGGrenade: continuous collision detection
 
+	# Enable contact monitoring (required for body_entered signal to fire on RigidBody2D)
+	# Also set in .tscn as fallback in case _ready() runs after add_child
+	contact_monitor = true
+	max_contacts_reported = 4
+
 	# Connect collision signal (same as VOGGrenade uses body_entered)
-	body_entered.connect(_on_body_entered)
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
 
 	_trail = get_node_or_null("Trail")
 	if _trail:
@@ -89,6 +95,11 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
+
+	# Keep rocket facing its travel direction (lock_rotation=true prevents physics rotation,
+	# this keeps the sprite visually aligned to velocity direction)
+	if linear_velocity.length_squared() > 0.0:
+		rotation = linear_velocity.angle()
 
 	_update_trail()
 
