@@ -656,7 +656,8 @@ public partial class ShotgunPellet : Area2D
         }
 
         // Drilling pellets pass through walls completely (Issue #751)
-        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap))
+        // TileMapLayer is checked alongside TileMap for Godot 4.3+ compatibility
+        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap || body is TileMapLayer))
         {
             return; // Wall ignored — pellet continues with full damage
         }

@@ -653,7 +653,8 @@ public partial class Bullet : Area2D
         }
 
         // Drilling bullets pass through walls completely (Issue #751)
-        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap))
+        // TileMapLayer is checked alongside TileMap for Godot 4.3+ compatibility
+        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap || body is TileMapLayer))
         {
             return; // Wall ignored — bullet continues with full damage
         }

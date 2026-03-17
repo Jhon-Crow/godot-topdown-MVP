@@ -907,6 +907,57 @@ public abstract partial class BaseWeapon : Node2D
         GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
     }
 
+    /// <summary>
+    /// Reinitializes the magazine inventory with a custom magazine size.
+    /// Used by the auto-reload passive item (Issue #1067) to reduce magazine capacity.
+    /// </summary>
+    /// <param name="magazineCount">Number of magazines to initialize with.</param>
+    /// <param name="magazineSize">Custom magazine capacity (overrides WeaponData.MagazineSize).</param>
+    /// <param name="fillAllMagazines">If true, all magazines start full. Otherwise, only current is full.</param>
+    public virtual void ReinitializeMagazines(int magazineCount, int magazineSize, bool fillAllMagazines = true)
+    {
+        if (WeaponData == null)
+        {
+            GD.PrintErr("[BaseWeapon] Cannot reinitialize magazines: WeaponData is null");
+            return;
+        }
+
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines of size {magazineSize}, fillAll={fillAllMagazines}");
+    }
+
+    /// <summary>
+    /// Consumes a specified number of rounds from the spare (reserve) magazines.
+    /// Used by the auto-reload passive item to deduct bullets transferred to the current magazine.
+    /// Removes bullets starting from the magazines with the least ammo.
+    /// </summary>
+    /// <param name="amount">Number of rounds to consume from reserve.</param>
+    public virtual void ConsumeReserveAmmo(int amount)
+    {
+        int remaining = amount;
+
+        // Consume from spare magazines starting from the least-loaded ones
+        // (prefer to empty partial magazines first to reduce clutter)
+        var sparesSortedAscending = MagazineInventory.SpareMagazines
+            .OrderBy(m => m.CurrentAmmo)
+            .ToList();
+
+        foreach (var mag in sparesSortedAscending)
+        {
+            if (remaining <= 0) break;
+
+            int toConsume = Math.Min(mag.CurrentAmmo, remaining);
+            mag.CurrentAmmo -= toConsume;
+            remaining -= toConsume;
+        }
+
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+    }
+
     // =========================================================================
     // Caliber Data Accessors (Issue #935)
     // These C# methods expose caliber properties to GDScript callers.
