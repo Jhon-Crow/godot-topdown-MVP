@@ -1351,7 +1351,7 @@ func _process_combat_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
-		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown:
+		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player):  # Issue #1083: block melee through walls
 			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; return
 		var tp := _player.global_position
 		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
