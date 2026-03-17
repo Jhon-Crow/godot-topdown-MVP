@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Issue**: Add one teleporting enemy to the City map — enemy teleports ≤1 viewport per 10 seconds, uses cover and flanking teleport, has a blue stripe.
+**Issue**: Add one teleporting enemy to the City map — enemy teleports ≤1 viewport per 10 seconds, uses cover and flanking teleport, has a blue backpack visual indicator.
 
 **Reported failures**: Three separate game logs all showing `has_died_signal=false` / `0 enemies registered` on every map.
 
@@ -20,6 +20,8 @@
 | 2026-03-16 (evening) | Log `game_log_20260316_223230.txt`: still 0 enemies on all maps |
 | 2026-03-17 | Log `game_log_20260317_013124.txt`: still 0 enemies on all maps — user requests fresh start from `main` |
 | 2026-03-17 | Third attempt: reset to `main`, implement using the `EnemyForceFieldComponent` pattern |
+| 2026-03-17 | User confirms "it works now", requests: resolve conflict + remove progress bar + blue backpack |
+| 2026-03-17 | Fourth session: merge main (adds ShieldIcon for force field), replace tiny 2×2 blue pixel with 16×20 backpack sprite |
 
 ---
 
@@ -80,7 +82,7 @@ A `Node`-based component class (not `RefCounted`, so it can have `_ready()`) tha
 - Manages teleport cooldown via `COOLDOWN = 10.0` constant
 - Limits range to 1 viewport diagonal (`VIEWPORT_FRACTION = 1.0`)
 - Provides `is_ready()`, `update(delta)`, `try_teleport(target)` methods
-- Has `add_blue_stripe(model)` static method for the visual indicator
+- Has `add_backpack(model)` static method for the blue backpack visual indicator
 - Spawns blue particle burst effects on teleport (origin + destination)
 
 ### 2. `scripts/objects/enemy.gd` (minimal changes)
@@ -119,7 +121,9 @@ enable_cover = true
 is_teleporter = true
 ```
 
-The blue stripe is added programmatically by `EnemyTeleportComponent.add_blue_stripe()`.
+The blue backpack sprite is added programmatically by `EnemyTeleportComponent.add_backpack()`.
+The sprite (`assets/sprites/characters/enemy/teleporter_backpack.png`, 16×20 px) is a recognizable
+blue backpack shape positioned on the enemy body — no progress bar or stripe above the enemy head.
 
 ---
 
