@@ -124,7 +124,9 @@ class MockActiveItemManager:
 		LOUDSPEAKER = 10,
 		BREACHING_CHARGES = 11,
 		ARMORED_SKIN = 12,
-		AUTO_RELOAD = 13
+		AUTO_RELOAD = 13,
+		DRILLING_BULLETS = 14,
+		COMBAT_DISPOSITION = 15
 	}
 
 	## Currently selected active item type
@@ -201,6 +203,16 @@ class MockActiveItemManager:
 			"name": "Auto-Reload",
 			"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
 			"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
+		},
+		14: {
+			"name": "Drilling Bullets",
+			"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
+			"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle."
+		},
+		15: {
+			"name": "Combat Disposition",
+			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
+			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
 		}
 	}
 
@@ -297,6 +309,14 @@ class MockActiveItemManager:
 	## Check if auto-reload is currently equipped (Issue #1067)
 	func has_auto_reload() -> bool:
 		return current_active_item == ActiveItemType.AUTO_RELOAD
+
+	## Check if drilling bullets are currently equipped (Issue #751)
+	func has_drilling_bullets() -> bool:
+		return current_active_item == ActiveItemType.DRILLING_BULLETS
+
+	## Check if combat disposition is currently equipped
+	func has_combat_disposition() -> bool:
+		return current_active_item == ActiveItemType.COMBAT_DISPOSITION
 
 
 var manager: MockActiveItemManager
@@ -448,8 +468,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 13,
-		"Should return 13 active item types")
+	assert_eq(types.size(), 14,
+		"Should return 14 active item types (NONE + 13 items including Combat Disposition)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -665,7 +685,8 @@ class MockArmoryWithActiveItems:
 		10: {"name": "Loudspeaker", "description": "Loudspeaker — press Space to emit sound cone"},
 		11: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
 		12: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
-		13: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"}
+		13: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"},
+		14: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Applied active item type
@@ -994,7 +1015,7 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
 	# Its effect is now part of Trajectory Glasses. Index 10 is now LOUDSPEAKER (Issue #959).
 	# Index 11 is BREACHING_CHARGES (Issue #1043). Index 12 is ARMORED_SKIN (Issue #1045).
-	# Index 13 is AUTO_RELOAD (Issue #1067).
+	# Index 13 is AUTO_RELOAD (Issue #1067). Index 14 is DRILLING_BULLETS (Issue #751). Index 15 is COMBAT_DISPOSITION (Issue #1047).
 	var data := manager.get_active_item_data(10)
 	assert_false(data.is_empty(),
 		"Index 10 should be LOUDSPEAKER — RICOCHET_POINTS was removed (Issue #1028), LOUDSPEAKER added (Issue #959)")
@@ -1010,6 +1031,16 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 		"Index 13 should be AUTO_RELOAD (Issue #1067)")
 	assert_eq(auto_reload_data.get("name", ""), "Auto-Reload",
 		"Item at index 13 should be Auto-Reload (Issue #1067)")
+	var drilling_data := manager.get_active_item_data(14)
+	assert_false(drilling_data.is_empty(),
+		"Index 14 should now be Drilling Bullets (Issue #751)")
+	assert_eq(drilling_data.get("name", ""), "Drilling Bullets",
+		"Item at index 14 should be Drilling Bullets (Issue #751)")
+	var combat_data := manager.get_active_item_data(15)
+	assert_false(combat_data.is_empty(),
+		"Index 15 should now be Combat Disposition (Issue #1047)")
+	assert_eq(combat_data.get("name", ""), "Combat Disposition",
+		"Item at index 15 should be Combat Disposition (Issue #1047)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
