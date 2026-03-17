@@ -50,10 +50,12 @@ theme_override_constants/margin_bottom = 20
 [node name="ScrollContainer" type="ScrollContainer" parent="MenuContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
@@ -290,6 +292,27 @@ autowrap_mode = 2
 [node name="HSeparator12" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="AllMapsUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllMapsUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unlock All Maps"
+
+[node name="AllMapsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
+layout_mode = 2
+
+[node name="AllMapsUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, all levels are accessible without
+completing previous levels. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -329,6 +352,65 @@ text = "Open"
 layout_mode = 2
 text = "Shows which items are unlocked by completing
 which levels at what rank."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator14" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemiesTableContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemiesTableLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "View Enemies Table"
+
+[node name="EnemiesTableButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer"]
+layout_mode = 2
+text = "Open"
+
+[node name="EnemiesTableDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Shows which unique enemy types appear on each map."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator14b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemySpawnerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Enemy Spawner"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="EnemySpawnerDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Spawn any enemy type on the current map near the player."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EnemySpawnerContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyTypeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enemy Type"
+
+[node name="EnemyTypeOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer"]
+layout_mode = 2
+
+[node name="SpawnEnemyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Spawn Enemy"
+
+[node name="SpawnStatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
 

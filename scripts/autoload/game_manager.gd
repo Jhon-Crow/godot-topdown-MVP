@@ -83,6 +83,20 @@ signal weapon_selected(weapon_id: String)
 ## Signal emitted when a weapon is unlocked.
 signal weapon_unlocked(weapon_id: String)
 
+## Timer accumulator for F8 hold-to-spawn (Issue #1112).
+## Tracks how long F8 has been held. Resets on key release.
+var _f8_hold_time: float = 0.0
+
+## Whether F8 is currently being held down (Issue #1112).
+var _f8_held: bool = false
+
+## Whether a spawn was already triggered during the current F8 hold (Issue #1112).
+## Prevents repeated spawns while the key is held.
+var _f8_spawn_triggered: bool = false
+
+## Hold duration in seconds required to trigger F8 spawn (Issue #1112).
+const F8_HOLD_THRESHOLD: float = 0.2
+
 
 func _ready() -> void:
 	# Reset stats when starting
@@ -109,6 +123,25 @@ func _input(event: InputEvent) -> void:
 		# Handle debug mode toggle with F7 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F7:
 			toggle_debug_mode()
+		# Track F8 press/release for hold-to-spawn (Issue #1112)
+		elif event.physical_keycode == KEY_F8:
+			if event.pressed and not event.echo:
+				_f8_held = true
+				_f8_hold_time = 0.0
+				_f8_spawn_triggered = false
+			elif not event.pressed:
+				_f8_held = false
+				_f8_hold_time = 0.0
+				_f8_spawn_triggered = false
+
+
+func _process(delta: float) -> void:
+	# F8 hold-to-spawn: after holding F8 for 200ms outside a menu, spawn the selected enemy (Issue #1112).
+	if _f8_held and not _f8_spawn_triggered:
+		_f8_hold_time += delta
+		if _f8_hold_time >= F8_HOLD_THRESHOLD:
+			_f8_spawn_triggered = true
+			_spawn_selected_enemy_at_player()
 
 
 ## Resets all statistics to initial values.
@@ -271,6 +304,68 @@ func unlock_weapon(weapon_id: String) -> void:
 ## @return: Dictionary of weapon_id -> bool pairs.
 func get_unlocked_weapons() -> Dictionary:
 	return unlocked_weapons
+
+
+## Spawn the selected enemy type near the player (Issue #1112).
+## Used for F8 hold-to-spawn while outside the experimental menu.
+func _spawn_selected_enemy_at_player() -> void:
+	var scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
+	if scene == null:
+		push_warning("[GameManager] F8 spawn: Enemy.tscn not found.")
+		return
+
+	var current_scene: Node = get_tree().current_scene
+	if current_scene == null:
+		push_warning("[GameManager] F8 spawn: No active scene.")
+		return
+
+	# Find player position for spawn offset.
+	var p: Node = player
+	if p == null:
+		p = get_node_or_null("/root/Player")
+	if p == null and current_scene:
+		p = current_scene.find_child("Player", true, false)
+	var spawn_pos: Vector2 = Vector2(400.0, 400.0)
+	if p and p.get("global_position") != null:
+		spawn_pos = p.global_position + Vector2(200.0, 0.0)
+
+	# Get selected enemy type from ExperimentalSettings.
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var selected_idx: int = 0
+	if experimental_settings and experimental_settings.has_method("get_selected_enemy_type_index"):
+		selected_idx = experimental_settings.get_selected_enemy_type_index()
+
+	# Enemy type definitions (must match experimental_menu.gd order).
+	var types: Array[Dictionary] = [
+		{"name": "Rifle (M16)", "weapon_type": 0, "behavior": 1},
+		{"name": "Shotgun", "weapon_type": 1, "behavior": 1},
+		{"name": "UZI (SMG)", "weapon_type": 2, "behavior": 1},
+		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
+		{"name": "Machine Gunner (PKM)", "weapon_type": 4, "behavior": 1},
+		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+	]
+	if selected_idx < 0 or selected_idx >= types.size():
+		selected_idx = 0
+	var meta: Dictionary = types[selected_idx]
+
+	# Instantiate and configure.
+	var enemy: Node = scene.instantiate()
+	enemy.global_position = spawn_pos
+	if enemy.get("weapon_type") != null:
+		enemy.set("weapon_type", meta.get("weapon_type", 0))
+	if enemy.get("behavior_mode") != null:
+		enemy.set("behavior_mode", meta.get("behavior", 1))
+	if enemy.get("destroy_on_death") != null:
+		enemy.set("destroy_on_death", true)
+
+	# Add to Enemies node if it exists, otherwise directly to scene.
+	var enemies_node: Node = current_scene.find_child("Enemies", true, false)
+	if enemies_node:
+		enemies_node.add_child(enemy)
+	else:
+		current_scene.add_child(enemy)
+
+	_log_to_file("F8 spawn: '%s' at %s" % [meta.get("name", "Unknown"), str(spawn_pos)])
 
 
 ## Log a message to the file logger if available.

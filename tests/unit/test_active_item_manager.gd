@@ -120,7 +120,14 @@ class MockActiveItemManager:
 		BREAKER_BULLETS = 6,
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
-		LASER_SIGHT = 9
+		LASER_SIGHT = 9,
+		LOUDSPEAKER = 10,
+		BREACHING_CHARGES = 11,
+		ARMORED_SKIN = 12,
+		AUTO_RELOAD = 13,
+		DRILLING_BULLETS = 14,
+		RECOIL_COMPENSATOR = 15,
+		COMBAT_DISPOSITION = 16
 	}
 
 	## Currently selected active item type
@@ -177,6 +184,42 @@ class MockActiveItemManager:
 			"name": "Laser Sight",
 			"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+		},
+		10: {
+			"name": "Loudspeaker",
+			"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
+			"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle."
+		},
+		11: {
+			"name": "Breaching Charges",
+			"icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
+			"description": "Breaching charges — place on a wall to create a passage."
+		},
+		12: {
+			"name": "Armored Skin",
+			"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
+			"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
+		},
+		13: {
+			"name": "Auto-Reload",
+			"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
+			"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
+		},
+		14: {
+			"name": "Drilling Bullets",
+			"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
+			"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle."
+		},
+		15: {
+			"name": "Recoil Compensator",
+			"icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
+			"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
+			"activation_hint": "Hold Space to activate"
+		},
+		16: {
+			"name": "Combat Disposition",
+			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
+			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
 		}
 	}
 
@@ -265,6 +308,26 @@ class MockActiveItemManager:
 	## Check if laser sight is currently equipped
 	func has_laser_sight() -> bool:
 		return current_active_item == ActiveItemType.LASER_SIGHT
+
+	## Check if armored skin is currently equipped (Issue #1045)
+	func has_armored_skin() -> bool:
+		return current_active_item == ActiveItemType.ARMORED_SKIN
+
+	## Check if auto-reload is currently equipped (Issue #1067)
+	func has_auto_reload() -> bool:
+		return current_active_item == ActiveItemType.AUTO_RELOAD
+
+	## Check if drilling bullets are currently equipped (Issue #751)
+	func has_drilling_bullets() -> bool:
+		return current_active_item == ActiveItemType.DRILLING_BULLETS
+
+	## Check if recoil compensator is currently equipped
+	func has_recoil_compensator() -> bool:
+		return current_active_item == ActiveItemType.RECOIL_COMPENSATOR
+
+	## Check if combat disposition is currently equipped
+	func has_combat_disposition() -> bool:
+		return current_active_item == ActiveItemType.COMBAT_DISPOSITION
 
 
 var manager: MockActiveItemManager
@@ -416,8 +479,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 11,
-		"Should return 11 active item types")
+	assert_eq(types.size(), 14,
+		"Should return 14 active item types (NONE + 13 items including Combat Disposition)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -428,7 +491,10 @@ func test_get_all_active_item_types() -> void:
 	assert_true(7 in types)
 	assert_true(8 in types)
 	assert_true(9 in types)
-	assert_true(10 in types)
+	assert_true(10 in types)  # LOUDSPEAKER (Issue #959)
+	assert_true(11 in types)  # BREACHING_CHARGES (Issue #1043)
+	assert_true(12 in types)  # ARMORED_SKIN (Issue #1045)
+	assert_true(13 in types)  # AUTO_RELOAD (Issue #1067)
 
 
 func test_get_active_item_name_none() -> void:
@@ -627,7 +693,12 @@ class MockArmoryWithActiveItems:
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
-		10: {"name": "Ricochet Points", "description": "Ricochet Points — passive: +30% ricochet chance"}
+		10: {"name": "Loudspeaker", "description": "Loudspeaker — press Space to emit sound cone"},
+		11: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
+		12: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
+		13: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"},
+		14: {"name": "Recoil Compensator", "description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts."},
+		15: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Applied active item type
@@ -954,10 +1025,39 @@ func test_armory_select_trajectory_glasses() -> void:
 
 func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void:
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
-	# Its effect is now part of Trajectory Glasses. Ensure no item at index 10 exists.
+	# Its effect is now part of Trajectory Glasses. Index 10 is now LOUDSPEAKER (Issue #959).
+	# Index 11 is BREACHING_CHARGES (Issue #1043). Index 12 is ARMORED_SKIN (Issue #1045).
+	# Index 13 is AUTO_RELOAD (Issue #1067). Index 14 is DRILLING_BULLETS (Issue #751). Index 15 is RECOIL_COMPENSATOR (Issue #1073). Index 16 is COMBAT_DISPOSITION (Issue #1047).
 	var data := manager.get_active_item_data(10)
-	assert_true(data.is_empty(),
-		"There should be no active item at index 10 — RICOCHET_POINTS was removed (Issue #1028)")
+	assert_false(data.is_empty(),
+		"Index 10 should be LOUDSPEAKER — RICOCHET_POINTS was removed (Issue #1028), LOUDSPEAKER added (Issue #959)")
+	assert_eq(data.get("name", ""), "Loudspeaker",
+		"Item at index 10 should be Loudspeaker (Issue #959)")
+	var armored_data := manager.get_active_item_data(12)
+	assert_false(armored_data.is_empty(),
+		"Index 12 is now ARMORED_SKIN (Issue #1045), not RICOCHET_POINTS")
+	assert_ne(armored_data.get("name", ""), "Ricochet Points",
+		"RICOCHET_POINTS should not exist — removed in Issue #1028")
+	var auto_reload_data := manager.get_active_item_data(13)
+	assert_false(auto_reload_data.is_empty(),
+		"Index 13 should be AUTO_RELOAD (Issue #1067)")
+	assert_eq(auto_reload_data.get("name", ""), "Auto-Reload",
+		"Item at index 13 should be Auto-Reload (Issue #1067)")
+	var drilling_data := manager.get_active_item_data(14)
+	assert_false(drilling_data.is_empty(),
+		"Index 14 should be DRILLING_BULLETS (Issue #751)")
+	assert_eq(drilling_data.get("name", ""), "Drilling Bullets",
+		"Item at index 14 should be Drilling Bullets (Issue #751)")
+	var recoil_data := manager.get_active_item_data(15)
+	assert_false(recoil_data.is_empty(),
+		"Index 15 should be RECOIL_COMPENSATOR (Issue #1073)")
+	assert_eq(recoil_data.get("name", ""), "Recoil Compensator",
+		"Item at index 15 should be Recoil Compensator (Issue #1073)")
+	var combat_data := manager.get_active_item_data(16)
+	assert_false(combat_data.is_empty(),
+		"Index 16 should be COMBAT_DISPOSITION (Issue #1047)")
+	assert_eq(combat_data.get("name", ""), "Combat Disposition",
+		"Item at index 16 should be Combat Disposition (Issue #1047)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
@@ -967,3 +1067,82 @@ func test_trajectory_glasses_description_mentions_passive_boost() -> void:
 		"Trajectory Glasses description should mention 30% passive ricochet boost (Issue #1028)")
 	assert_true(data["description"].contains("passive"),
 		"Trajectory Glasses description should mention passive (Issue #1028)")
+
+
+# ============================================================================
+# Auto-Reload Tests (Issue #1067)
+# ============================================================================
+
+
+func test_active_item_type_auto_reload_value() -> void:
+	# ActiveItemType.AUTO_RELOAD should be 13 (after LOUDSPEAKER=10, BREACHING_CHARGES=11, ARMORED_SKIN=12)
+	assert_eq(13, 13, "AUTO_RELOAD should be the fourteenth active item type (13)")
+
+
+func test_active_item_data_has_auto_reload() -> void:
+	var data := manager.get_active_item_data(13)
+	assert_false(data.is_empty(), "ACTIVE_ITEM_DATA should contain AUTO_RELOAD type")
+	assert_eq(data["name"], "Auto-Reload", "Auto-Reload should have correct name")
+
+
+func test_auto_reload_data_has_icon_path() -> void:
+	var data := manager.get_active_item_data(13)
+	assert_true(data["icon_path"].contains("auto_reload"),
+		"Auto-Reload icon path should contain 'auto_reload'")
+
+
+func test_auto_reload_data_has_description() -> void:
+	var data := manager.get_active_item_data(13)
+	assert_true(data["description"].contains("passive"),
+		"Auto-Reload description should mention passive behavior")
+	assert_true(data["description"].contains("2.1"),
+		"Auto-Reload description should mention 2.1x magazine reduction")
+	assert_true(data["description"].contains("kill"),
+		"Auto-Reload description should mention kill-based refill")
+
+
+func test_no_auto_reload_by_default() -> void:
+	assert_false(manager.has_auto_reload(),
+		"Auto-reload should not be equipped by default")
+
+
+func test_has_auto_reload_after_selection() -> void:
+	manager.set_active_item(13)
+	assert_true(manager.has_auto_reload(),
+		"has_auto_reload should return true after selecting auto-reload")
+
+
+func test_no_auto_reload_after_deselection() -> void:
+	manager.set_active_item(13)
+	manager.set_active_item(0)
+	assert_false(manager.has_auto_reload(),
+		"has_auto_reload should return false after switching back to none")
+
+
+func test_auto_reload_does_not_conflict_with_flashlight() -> void:
+	manager.set_active_item(13)
+	assert_false(manager.has_flashlight(),
+		"Flashlight should not be active when auto-reload is selected")
+	assert_true(manager.has_auto_reload(),
+		"Auto-reload should be active")
+
+
+func test_auto_reload_does_not_conflict_with_breaker_bullets() -> void:
+	manager.set_active_item(13)
+	assert_false(manager.has_breaker_bullets(),
+		"Breaker bullets should not be active when auto-reload is selected")
+	assert_true(manager.has_auto_reload(),
+		"Auto-reload should be active")
+
+
+func test_set_active_item_to_auto_reload() -> void:
+	manager.set_active_item(13)
+	assert_eq(manager.current_active_item, 13,
+		"Active item type should change to AUTO_RELOAD")
+
+
+func test_armory_select_auto_reload() -> void:
+	var armory := MockArmoryWithActiveItems.new()
+	var result := armory.select_active_item(13)
+	assert_true(result, "Should select auto-reload")
+	assert_eq(armory.pending_active_item, 13, "Pending should be auto-reload")
