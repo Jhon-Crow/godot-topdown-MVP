@@ -20,7 +20,7 @@ enum ActiveItemType {
 	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
 	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
-	COMBAT_DISPOSITION # Combat Disposition - passive: +0.7 damage and +1 fire rate on start; on hit: -1.5 damage and -1.8 fire rate (Issue #1047)
+	COMBAT_DISPOSITION # Combat Disposition - passive: +0.7 damage and +1 fire rate on start; on hit: -3.0 damage and -3.6 fire rate (Issue #1047)
 }
 
 ## Currently selected active item type.
@@ -128,7 +128,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
-		"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1.5 and fire rate by 1.8."
+		"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
 	}
 }
 

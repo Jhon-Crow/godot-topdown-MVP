@@ -4,7 +4,7 @@ extends GutTest
 ## Tests the combat disposition item including:
 ## - Registration as active item type (index 13)
 ## - Passive behavior: +0.7 damage and +1 fire rate on start
-## - On-hit penalty: -1.5 damage and -1.8 fire rate per hit
+## - On-hit penalty: -3.0 damage and -3.6 fire rate per hit
 ## - ActiveItemManager detection methods
 ## - No conflict with other items
 
@@ -51,7 +51,7 @@ class MockActiveItemManager:
 		10: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
 		11: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
 		12: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored skin."},
-		13: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1.5 and fire rate by 1.8."}
+		13: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."}
 	}
 
 	## Check if combat disposition is currently equipped (Issue #1047)
@@ -107,9 +107,9 @@ class MockCombatDispositionSystem:
 	var active: bool = false
 	## Whether the hit penalty has already been applied (only applied once per run)
 	var penalty_applied: bool = false
-	## Current damage bonus (starts at +0.7, decreases by 1 on first hit)
+	## Current damage bonus (starts at +0.7, decreases by 3.0 on first hit)
 	var damage_bonus: float = 0.0
-	## Current fire rate bonus (starts at +1, decreases by 1.8 on first hit)
+	## Current fire rate bonus (starts at +1, decreases by 3.6 on first hit)
 	var fire_rate_bonus: float = 0.0
 
 	## Initialize with starting bonuses
@@ -127,8 +127,8 @@ class MockCombatDispositionSystem:
 		if penalty_applied:
 			return
 		penalty_applied = true
-		damage_bonus -= 1.5
-		fire_rate_bonus -= 1.8
+		damage_bonus -= 3.0
+		fire_rate_bonus -= 3.6
 
 	## Get effective damage for a weapon with base damage
 	func get_effective_damage(base_damage: float) -> float:
@@ -319,16 +319,16 @@ func test_combat_disposition_damage_penalty_on_first_hit() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
-	assert_almost_eq(system.damage_bonus, -0.8, 0.001,
-		"After 1 hit: damage bonus should be 0.7 - 1.5 = -0.8")
+	assert_almost_eq(system.damage_bonus, -2.3, 0.001,
+		"After 1 hit: damage bonus should be 0.7 - 3.0 = -2.3")
 
 
 func test_combat_disposition_fire_rate_penalty_on_first_hit() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
-	assert_almost_eq(system.fire_rate_bonus, -0.8, 0.001,
-		"After 1 hit: fire rate bonus should be 1.0 - 1.8 = -0.8")
+	assert_almost_eq(system.fire_rate_bonus, -2.6, 0.001,
+		"After 1 hit: fire rate bonus should be 1.0 - 3.6 = -2.6")
 
 
 func test_combat_disposition_penalty_not_applied_on_second_hit() -> void:
@@ -336,8 +336,8 @@ func test_combat_disposition_penalty_not_applied_on_second_hit() -> void:
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
 	system.apply_hit_penalty()  # second call — should be ignored
-	assert_almost_eq(system.damage_bonus, -0.8, 0.001,
-		"After 2 hits: penalty applied only once, damage bonus should still be 0.7 - 1.5 = -0.8")
+	assert_almost_eq(system.damage_bonus, -2.3, 0.001,
+		"After 2 hits: penalty applied only once, damage bonus should still be 0.7 - 3.0 = -2.3")
 
 
 func test_combat_disposition_fire_rate_penalty_not_applied_on_second_hit() -> void:
@@ -345,8 +345,8 @@ func test_combat_disposition_fire_rate_penalty_not_applied_on_second_hit() -> vo
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
 	system.apply_hit_penalty()  # second call — should be ignored
-	assert_almost_eq(system.fire_rate_bonus, -0.8, 0.001,
-		"After 2 hits: penalty applied only once, fire rate bonus should still be 1.0 - 1.8 = -0.8")
+	assert_almost_eq(system.fire_rate_bonus, -2.6, 0.001,
+		"After 2 hits: penalty applied only once, fire rate bonus should still be 1.0 - 3.6 = -2.6")
 
 
 func test_combat_disposition_hit_penalty_not_applied_when_inactive() -> void:
@@ -365,8 +365,8 @@ func test_combat_disposition_effective_damage_after_hit() -> void:
 	system.apply_hit_penalty()
 	var base_damage := 10.0
 	var effective := system.get_effective_damage(base_damage)
-	# 10.0 + (0.7 - 1.5) = 10.0 - 0.8 = 9.2
-	assert_almost_eq(effective, 9.2, 0.001,
+	# 10.0 + (0.7 - 3.0) = 10.0 - 2.3 = 7.7
+	assert_almost_eq(effective, 7.7, 0.001,
 		"After 1 hit: effective damage should decrease")
 
 
@@ -375,8 +375,8 @@ func test_combat_disposition_effective_fire_rate_floored_above_minimum() -> void
 	system.init_combat_disposition()
 	# Apply penalty (only first call has effect)
 	system.apply_hit_penalty()
-	# After penalty: fire_rate_bonus = 1.0 - 1.8 = -0.8
-	# With a low base rate of 0.1, effective = max(0.1 + (-0.8), 0.1) = max(-0.7, 0.1) = 0.1
+	# After penalty: fire_rate_bonus = 1.0 - 3.6 = -2.6
+	# With a low base rate of 0.1, effective = max(0.1 + (-2.6), 0.1) = max(-2.5, 0.1) = 0.1
 	var base_fire_rate := 0.1
 	var effective := system.get_effective_fire_rate(base_fire_rate)
 	assert_true(effective >= 0.1,
@@ -412,9 +412,9 @@ func test_combat_disposition_penalty_flag_remains_true_after_multiple_hits() -> 
 	assert_true(system.penalty_applied,
 		"penalty_applied should remain true after multiple hits")
 	# Bonuses should only have been reduced once
-	assert_almost_eq(system.damage_bonus, -0.3, 0.001,
+	assert_almost_eq(system.damage_bonus, -2.3, 0.001,
 		"Damage bonus should only decrease once regardless of hit count")
-	assert_almost_eq(system.fire_rate_bonus, -0.2, 0.001,
+	assert_almost_eq(system.fire_rate_bonus, -2.6, 0.001,
 		"Fire rate bonus should only decrease once regardless of hit count")
 
 
