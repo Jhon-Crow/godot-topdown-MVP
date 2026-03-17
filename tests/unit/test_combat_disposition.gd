@@ -30,7 +30,8 @@ class MockActiveItemManager:
 		LOUDSPEAKER = 10,
 		BREACHING_CHARGES = 11,
 		ARMORED_SKIN = 12,
-		COMBAT_DISPOSITION = 13
+		AUTO_RELOAD = 13,
+		COMBAT_DISPOSITION = 14
 	}
 
 	## Currently selected active item type
@@ -51,7 +52,8 @@ class MockActiveItemManager:
 		10: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker."},
 		11: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges."},
 		12: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored skin."},
-		13: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."}
+		13: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
+		14: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."}
 	}
 
 	## Check if combat disposition is currently equipped (Issue #1047)
@@ -155,9 +157,9 @@ func after_each() -> void:
 # ============================================================================
 
 
-func test_combat_disposition_type_value_is_13() -> void:
-	assert_eq(manager.ActiveItemType.COMBAT_DISPOSITION, 13,
-		"COMBAT_DISPOSITION should have value 13 (after ARMORED_SKIN which is 12)")
+func test_combat_disposition_type_value_is_14() -> void:
+	assert_eq(manager.ActiveItemType.COMBAT_DISPOSITION, 14,
+		"COMBAT_DISPOSITION should have value 14 (after AUTO_RELOAD which is 13)")
 
 
 func test_combat_disposition_type_exists_in_data() -> void:
@@ -474,8 +476,8 @@ func test_total_active_items_includes_combat_disposition() -> void:
 		"All active item types should include COMBAT_DISPOSITION")
 
 
-func test_active_item_count_is_fourteen() -> void:
-	# NONE + 13 items = 14 total (including Loudspeaker, Breaching Charges, Armored Skin, and Combat Disposition)
+func test_active_item_count_is_fifteen() -> void:
+	# NONE + 14 items = 15 total (including Auto-Reload and Combat Disposition)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 14,
-		"Should have 14 active item types total (NONE + 13 items including COMBAT_DISPOSITION)")
+	assert_eq(all_types.size(), 15,
+		"Should have 15 active item types total (NONE + 14 items including AUTO_RELOAD and COMBAT_DISPOSITION)")

@@ -2641,6 +2641,15 @@ public partial class Player : BaseCharacter
             CurrentWeapon.IsBreakerBulletActive = true;
         }
 
+        // Propagate Combat Disposition bonuses to new weapon (Issue #1047)
+        // This ensures the penalty persists when the weapon is swapped during a run.
+        if (_combatDispositionActive)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+            LogToFile($"[Player.CombatDisposition] Propagated bonuses to new weapon {CurrentWeapon.Name}: damage {_combatDispositionDamageBonus:F1}, fire rate {_combatDispositionFireRateBonus:F1}");
+        }
+
         // Add weapon as child if not already in scene tree
         if (CurrentWeapon.GetParent() == null)
         {
