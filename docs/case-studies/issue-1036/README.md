@@ -108,6 +108,35 @@ The issue requested a new enemy type characterized by:
   - Added "radio_jammers" group to RadioJammerEnemy.tscn
   - Updated tests with 5 new tests covering the race condition scenario
   - Updated case study with session 4 findings
+
+2026-03-17 20:18 UTC
+  Jhon-Crow reports jamming STILL not working with new game log:
+  game_log_20260317_231612.txt
+  - Reports: "active items are not blocked at all and icon above player is not shown"
+  - Asks to verify 2000px diameter (1000px radius) zone exists around jammer
+
+2026-03-17 ~20:20 UTC
+  AI session started (session 5)
+  - Downloaded and analyzed game_log_20260317_231612.txt (4498 lines)
+  - CRITICAL FINDING: game log contains NO "JammerHUD initialized" message,
+    which is emitted by _init_jammer_hud() in player.gd on every level load.
+    This proves the user's binary predates session 3/4 fixes entirely.
+  - TrajectoryGlasses activated at 23:17:03 with player at ~(783,1030)
+    and jammer firing from (902,1036) — only ~119px apart — block should fire.
+    No block log appeared because the binary is old.
+  - Added comprehensive diagnostic logging:
+    * is_active_item_jammed_verbose() — called on every Space press, logs
+      full jammer group membership, alive status, and exact distances
+    * log_jammer_diagnostics() — called every 2s from radio_wave_effect.gd,
+      logs periodic jam state for passive monitoring
+    * Restructured jammer checks to occur INSIDE is_action_just_pressed()
+      branches for press-based items (homing, BFF, invisibility, trajectory,
+      loudspeaker), so verbose logging only fires when Space is pressed
+    * Added "BLOCKED by Radio Jammer" log lines for each active item handler
+  - Added jammer check to breaching charges handler (was missing!)
+  - Increased JammerHUD prohibition sign size: radius 9→14px, linewidth 3→4px
+    for better in-game visibility
+  - Saved reference images and game logs to docs/case-studies/issue-1036/
 ```
 
 ---
@@ -188,6 +217,24 @@ func is_active_item_jammed() -> bool:
             return true
     return false
 ```
+
+### Observation: User Testing with Stale Builds (Session 5)
+
+When the user reported that jamming was still not working after session 4's race-condition fix, deep analysis of `game_log_20260317_231612.txt` revealed:
+
+1. **Missing "JammerHUD initialized" log line** — this message is emitted in `_ready()` of `player.gd` on every scene load. Its absence is a definitive fingerprint: the binary was built from code that predates session 3 (which added `_init_jammer_hud()`).
+
+2. **Corroborating evidence** — the log also has no "Blocked by Radio Jammer" messages in any active item handler, despite the player being ~119px from the jammer when TrajectoryGlasses activated.
+
+3. **Root cause** — the user had an older game build and was not testing with the latest PR code.
+
+**Resolution** (session 5):
+- Added `is_active_item_jammed_verbose()` — a separate verbose variant called only on Space press events, logging full jammer diagnostics (player/jammer positions, distances, alive state) without log spam
+- Added `log_jammer_diagnostics()` in `ActiveItemManager` called periodically from `RadioWaveEffect._physics_process()`, logging every 2 seconds when jammers are present
+- Restructured all press-based active item handlers to do the jammer check INSIDE the `is_action_just_pressed()` branch, so verbose logging fires exactly when the player presses Space
+- Added "BLOCKED by Radio Jammer" log entries for all 7 active item handlers
+- Fixed missing jammer check in the breaching charges handler (was never added)
+- Enlarged JammerHUD prohibition sign for better visibility (radius 9→14px)
 
 ### Architecture Design Choices
 

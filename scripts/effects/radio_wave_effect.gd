@@ -67,13 +67,14 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	# NOTE (Issue #1036): The authoritative jam check is now in ActiveItemManager.is_active_item_jammed()
 	# which queries the scene tree directly each call, eliminating the physics-process race condition
 	# where player input could be processed before this update ran in the same physics step.
-	# This function is kept to maintain the advisory _is_jammed flag for HUD use (jammer_hud.gd reads
-	# ActiveItemManager.is_active_item_jammed() which now queries directly, so no race condition).
-	pass
+	# Emit periodic diagnostics to help debug jam state in game logs.
+	var active_item_manager := get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("log_jammer_diagnostics"):
+		active_item_manager.log_jammer_diagnostics(delta)
 
 
 func _draw() -> void:

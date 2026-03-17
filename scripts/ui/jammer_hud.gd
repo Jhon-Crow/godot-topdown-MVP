@@ -6,16 +6,16 @@ extends Node2D
 ## Only shown when the player has an active item equipped (not NONE).
 
 ## Vertical offset above the player center (negative = above).
-const OFFSET_Y: float = -52.0
+const OFFSET_Y: float = -56.0
 
 ## Radius of the prohibition circle in pixels.
-const CIRCLE_RADIUS: float = 9.0
+const CIRCLE_RADIUS: float = 14.0
 
-## Color of the prohibition sign.
-const SIGN_COLOR: Color = Color(0.85, 0.1, 0.1, 0.92)
+## Color of the prohibition sign (red, slightly transparent).
+const SIGN_COLOR: Color = Color(0.9, 0.1, 0.05, 0.95)
 
 ## Line width for both the circle and diagonal bar.
-const LINE_WIDTH: float = 3.0
+const LINE_WIDTH: float = 4.0
 
 
 func _ready() -> void:
