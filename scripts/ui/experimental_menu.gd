@@ -61,6 +61,7 @@ func _ready() -> void:
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
 	_setup_enemy_spawner()
+	enemy_type_option.item_selected.connect(_on_enemy_type_selected)
 	spawn_enemy_button.pressed.connect(_on_spawn_enemy_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
@@ -301,6 +302,7 @@ func _on_settings_changed() -> void:
 
 ## Enemy spawner: populate enemy type dropdown.
 ## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=MACHINE_GUN).
+## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
 	var types: Array[Dictionary] = [
@@ -314,6 +316,12 @@ func _setup_enemy_spawner() -> void:
 	for t in types:
 		enemy_type_option.add_item(t["name"])
 		enemy_type_option.set_item_metadata(enemy_type_option.item_count - 1, t)
+	# Restore persisted selection.
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("get_selected_enemy_type_index"):
+		var saved_idx: int = experimental_settings.get_selected_enemy_type_index()
+		if saved_idx >= 0 and saved_idx < enemy_type_option.item_count:
+			enemy_type_option.select(saved_idx)
 
 
 ## Spawn the selected enemy type near the player on the current map.
@@ -358,6 +366,13 @@ func _on_spawn_enemy_pressed() -> void:
 	var type_name: String = enemy_type_option.get_item_text(idx) if idx >= 0 else "Unknown"
 	spawn_status_label.text = "Spawned: %s at (%d, %d)" % [type_name, int(spawn_pos.x), int(spawn_pos.y)]
 	_log("Enemy spawner: spawned '%s' at %s" % [type_name, str(spawn_pos)])
+
+
+## Persist the selected enemy type index when the dropdown selection changes (Issue #1112).
+func _on_enemy_type_selected(index: int) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("set_selected_enemy_type_index"):
+		experimental_settings.set_selected_enemy_type_index(index)
 
 
 ## Log a message to the file logger if available.

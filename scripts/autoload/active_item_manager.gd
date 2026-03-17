@@ -20,7 +20,9 @@ enum ActiveItemType {
 	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
 	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
-	AUTO_RELOAD        # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
+	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
+	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
+	COMBAT_DISPOSITION # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 }
 
 ## Currently selected active item type.
@@ -47,7 +49,9 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
 	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
-	ActiveItemType.AUTO_RELOAD: true           # No unlock condition — freely available from start (Issue #1067)
+	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
+	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
+	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
 }
 
 ## Active item data for UI and selection.
@@ -129,8 +133,27 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Auto-Reload",
 		"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
 		"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
+	},
+	ActiveItemType.DRILLING_BULLETS: {
+		"name": "Drilling Bullets",
+		"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
+		"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle.",
+		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.COMBAT_DISPOSITION: {
+		"name": "Combat Disposition",
+		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
+		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
 	}
 }
+
+## Whether the player's active items are currently jammed by a Radio Jammer enemy (Issue #1036).
+## NOTE: This flag is no longer the source of truth for jam state.
+## is_active_item_jammed() queries the scene tree directly to avoid physics-process race conditions.
+var _is_jammed: bool = false
+
+## Jam radius used by Radio Jammer enemies (pixels). Must match RadioWaveEffect.jammer_radius.
+const JAMMER_RADIUS: float = 1000.0
 
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
@@ -275,6 +298,16 @@ func has_armored_skin() -> bool:
 	return current_active_item == ActiveItemType.ARMORED_SKIN
 
 
+## Check if drilling bullets are currently equipped (Issue #751).
+func has_drilling_bullets() -> bool:
+	return current_active_item == ActiveItemType.DRILLING_BULLETS
+
+
+## Check if combat disposition is currently equipped (Issue #1047).
+func has_combat_disposition() -> bool:
+	return current_active_item == ActiveItemType.COMBAT_DISPOSITION
+
+
 ## Get the laser sight color (purple).
 ## Used by weapons to show purple laser when laser sight item is equipped.
 func get_laser_sight_color() -> Color:
@@ -319,3 +352,102 @@ func unlock_active_item(item_type: int) -> void:
 ## @return: Dictionary of item_type -> bool pairs.
 func get_unlocked_active_items() -> Dictionary:
 	return unlocked_active_items
+
+
+## Set whether the player's active items are jammed by a Radio Jammer enemy (Issue #1036).
+## Kept for backward compatibility — the flag is now advisory only.
+## @param jammed: true to jam active items, false to restore them.
+func set_jammed(jammed: bool) -> void:
+	_is_jammed = jammed
+
+
+## Accumulator used to throttle periodic jammer diagnostics logs (seconds).
+var _jammer_log_timer: float = 0.0
+
+## Interval between periodic jammer diagnostics logs (seconds).
+const JAMMER_LOG_INTERVAL: float = 2.0
+
+## Log a periodic diagnostic about jammer state (called from radio_wave_effect _physics_process).
+## Throttled to once per JAMMER_LOG_INTERVAL to avoid log spam.
+func log_jammer_diagnostics(delta: float) -> void:
+	_jammer_log_timer += delta
+	if _jammer_log_timer < JAMMER_LOG_INTERVAL:
+		return
+	_jammer_log_timer = 0.0
+	var players := get_tree().get_nodes_in_group("player")
+	var jammers := get_tree().get_nodes_in_group("radio_jammers")
+	if jammers.is_empty():
+		return  # No jammers — silent when no jammers present
+	var player_pos_str := "N/A"
+	if not players.is_empty() and is_instance_valid(players[0]):
+		player_pos_str = "(%.0f,%.0f)" % [players[0].global_position.x, players[0].global_position.y]
+	for jammer in jammers:
+		if not is_instance_valid(jammer):
+			continue
+		var alive := "(alive)" if (not jammer.has_method("is_alive") or jammer.is_alive()) else "(dead)"
+		var dist_str := "dist=N/A"
+		if not players.is_empty() and is_instance_valid(players[0]):
+			dist_str = "dist=%.1f" % jammer.global_position.distance_to(players[0].global_position)
+		FileLogger.info("[ActiveItemManager.Jammer] Periodic: jammer='%s' %s player=%s %s radius=%.0f" % [
+			jammer.name, alive, player_pos_str, dist_str, JAMMER_RADIUS
+		])
+
+
+## Check whether the player's active items are currently jammed (Issue #1036).
+## Directly queries the scene tree for living Radio Jammer enemies within JAMMER_RADIUS
+## of the player to avoid physics-process race conditions (root cause of bug reported
+## in comment on 2026-03-17: player could use active item even while inside jammer range).
+## Returns true when at least one living Radio Jammer enemy is within JAMMER_RADIUS.
+func is_active_item_jammed() -> bool:
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return false
+	var player: Node = players[0]
+	if not is_instance_valid(player):
+		return false
+	var jammers := get_tree().get_nodes_in_group("radio_jammers")
+	if jammers.is_empty():
+		return false
+	var player_pos: Vector2 = player.global_position
+	for jammer in jammers:
+		if not is_instance_valid(jammer):
+			continue
+		if jammer.has_method("is_alive") and not jammer.is_alive():
+			continue
+		if jammer.global_position.distance_to(player_pos) <= JAMMER_RADIUS:
+			return true
+	return false
+
+
+## Check whether the player's active items are currently jammed, with detailed logging.
+## Called only when the player actually presses Space (flashlight_toggle action),
+## so logging doesn't flood the log file.
+func is_active_item_jammed_verbose() -> bool:
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: No player in 'player' group")
+		return false
+	var player: Node = players[0]
+	if not is_instance_valid(player):
+		FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: Player invalid")
+		return false
+	var player_pos: Vector2 = player.global_position
+	var jammers := get_tree().get_nodes_in_group("radio_jammers")
+	FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: %d jammer(s) in group, player=(%.0f,%.0f)" % [
+		jammers.size(), player_pos.x, player_pos.y
+	])
+	for jammer in jammers:
+		if not is_instance_valid(jammer):
+			FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: Jammer instance invalid — skip")
+			continue
+		var alive: bool = not jammer.has_method("is_alive") or jammer.is_alive()
+		var dist: float = jammer.global_position.distance_to(player_pos)
+		FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: jammer='%s' alive=%s pos=(%.0f,%.0f) dist=%.1f radius=%.1f => %s" % [
+			jammer.name, str(alive),
+			jammer.global_position.x, jammer.global_position.y,
+			dist, JAMMER_RADIUS,
+			"JAMMED" if (alive and dist <= JAMMER_RADIUS) else "clear"
+		])
+		if alive and dist <= JAMMER_RADIUS:
+			return true
+	return false

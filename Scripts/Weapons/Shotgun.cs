@@ -1581,6 +1581,12 @@ public partial class Shotgun : BaseWeapon
         // Fire all pellets simultaneously with spatial distribution (cloud effect)
         FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
 
+        // Decrement drilling bullets counter once per shot (not per pellet) (Issue #751)
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+        }
+
         // Spawn muzzle flash at the barrel position (same as M16)
         Vector2 muzzleFlashPosition = GlobalPosition + fireDirection * BulletSpawnOffset;
         SpawnMuzzleFlash(muzzleFlashPosition, fireDirection, WeaponData?.Caliber);
@@ -1814,6 +1820,22 @@ public partial class Shotgun : BaseWeapon
             else
             {
                 pellet.Set("is_breaker_bullet", true);
+            }
+        }
+
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Note: each call to SpawnPelletWithOffset is for one pellet of the same shotgun blast.
+        // We only decrement the counter once per Fire() call (not per pellet), so we check
+        // DrillingBulletsRemaining WITHOUT decrementing here — decrement happens in Fire().
+        if (DrillingBulletsRemaining > 0)
+        {
+            if (pellet is GodotTopDownTemplate.Projectiles.ShotgunPellet drillingPellet)
+            {
+                drillingPellet.IsDrillingBullet = true;
+            }
+            else
+            {
+                pellet.Set("is_drilling_bullet", true);
             }
         }
 
