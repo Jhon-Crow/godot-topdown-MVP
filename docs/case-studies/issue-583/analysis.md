@@ -142,3 +142,22 @@ But without a `Sprite2D` texture, the rocket body itself was invisible. The trai
 - `game_log_20260317_010617.txt` - Game log confirming RPG enemies in TestTier but visual sprite was M16 (now fixed)
 - `game_log_20260317_040003.txt` - Game log confirming shoot sound fires (range=2500) but rocket invisible (no texture in scene)
 - `game_log_20260317_044735.txt` - Game log after pool bypass fix - sound still fires but rocket still invisible (texture not yet added)
+
+## Root Cause #6: Programmatic Texture Creation Fails in Exported Build (Fix: External PNG)
+
+**Symptom (game_log_20260317_060727.txt)**: After the spawn immunity fix, the rocket completely disappeared — no static rectangle, no movement.
+
+**Root cause**: The previous fix (commit 49dc37dc) replaced the `PlaceholderTexture2D` in `RpgRocket.tscn` with a programmatically-created texture via `_create_rocket_texture()` in GDScript `_ready()`. This failed silently in exported builds, leaving the `Sprite2D` with no visible texture.
+
+The `Image.create()` + `ImageTexture.create_from_image()` approach works in debug builds but can fail in exported builds if the renderer isn't fully initialized at node `_ready()` time.
+
+**Fix (commit TBD)**: 
+1. Created `assets/sprites/projectiles/rpg_rocket.png` — a 32×10 RGBA PNG showing an RPG rocket (pointing right): yellow exhaust tail → grey fins → grey body → orange nose cone
+2. Updated `RpgRocket.tscn` to use `ext_resource` for the texture (same as `VOGGrenade.tscn`)
+3. Removed programmatic `_create_rocket_texture()` from `rpg_rocket.gd` (no longer needed)
+4. Updated `_fire_rpg_rocket()` logging to use `_log_to_file()` (now visible in game logs)
+
+**Evidence**: 
+- `game_log_20260317_060727.txt`: `Sound emitted: type=GUNSHOT, range=2500` → rocket WAS spawned and moving, but invisible
+- No `[RPG] Rocket spawned` in logs → confirms `_log_to_file` wasn't used (only `print()` which doesn't go to log file)
+- Pattern from `VOGGrenade.tscn`: uses `ext_resource` PNG, always works in exported builds

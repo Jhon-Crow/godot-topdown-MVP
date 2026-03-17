@@ -1,6 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://crpgrocket583k1"]
 
 [ext_resource type="Script" path="res://scripts/projectiles/rpg_rocket.gd" id="1_rpg_rocket"]
+[ext_resource type="Texture2D" path="res://assets/sprites/projectiles/rpg_rocket.png" id="2_rpg_rocket_texture"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_rocket"]
 radius = 6.0
@@ -43,6 +44,7 @@ script = ExtResource("1_rpg_rocket")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(2.0, 2.0)
+texture = ExtResource("2_rpg_rocket_texture")
 
 [node name="Trail" type="Line2D" parent="."]
 width = 6.0
