@@ -328,6 +328,16 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Accelerates the fire cooldown timer by the given extra delta.
+    /// Called by the recoil compensator to apply a 10% fire rate boost (Issue #1073).
+    /// </summary>
+    public void AccelerateFireTimer(float extraDelta)
+    {
+        if (_fireTimer > 0)
+            _fireTimer -= extraDelta;
+    }
+
+    /// <summary>
     /// Attempts to fire the weapon in the specified direction.
     /// </summary>
     /// <param name="direction">Direction to fire.</param>

@@ -358,6 +358,27 @@ autowrap_mode = 2
 [node name="HSeparator14" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="EnemiesTableContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemiesTableLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "View Enemies Table"
+
+[node name="EnemiesTableButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer"]
+layout_mode = 2
+text = "Open"
+
+[node name="EnemiesTableDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Shows which unique enemy types appear on each map."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator14b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="EnemySpawnerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "Enemy Spawner"

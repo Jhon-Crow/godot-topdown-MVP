@@ -23,6 +23,7 @@ enum ActiveItemType {
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
+	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
 	COMBAT_DISPOSITION # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 }
 
@@ -53,6 +54,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
 	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
 	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
+	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
 	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
 }
 
@@ -146,6 +148,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
 		"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle.",
 		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.RECOIL_COMPENSATOR: {
+		"name": "Recoil Compensator",
+		"icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
+		"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
+		"activation_hint": "Hold Space to activate"
 	},
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
@@ -329,6 +337,11 @@ func has_armored_skin() -> bool:
 ## Check if drilling bullets are currently equipped (Issue #751).
 func has_drilling_bullets() -> bool:
 	return current_active_item == ActiveItemType.DRILLING_BULLETS
+
+
+## Check if recoil compensator is currently equipped (Issue #1073).
+func has_recoil_compensator() -> bool:
+	return current_active_item == ActiveItemType.RECOIL_COMPENSATOR
 
 
 ## Check if combat disposition is currently equipped (Issue #1047).
