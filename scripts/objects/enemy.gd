@@ -3332,16 +3332,11 @@ func _find_cover_position() -> void:
 
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
-	if _player == null:
-		return
-
-	var player_pos := _player.global_position
-	var player_to_enemy := (global_position - player_pos).normalized()
-
-	# Use the stored flank side (initialized in _transition_to_flanking)
-	var flank_direction := player_to_enemy.rotated(flank_angle * _flank_side)
-
-	_flank_target = player_pos + flank_direction * flank_distance
+	if _player == null: return
+	var _fp := _player.global_position + (global_position - _player.global_position).normalized().rotated(flank_angle * _flank_side) * flank_distance
+	# Issue #1107: Snap to nearest valid navmesh point — prevents flanking to wall corners
+	if _nav_agent: _flank_target = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), _fp)
+	else: _flank_target = _fp
 	_log_debug("Flank target: %s (side: %s)" % [_flank_target, "right" if _flank_side > 0 else "left"])
 
 ## Choose the best flank side (1.0=right, -1.0=left) based on obstacle presence.
