@@ -3897,14 +3897,13 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 
 ## Fire RPG rocket directly (bypass pool - Issue #583, analogous to AKGL.cs FireGrenadeLauncher).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
-	# Issue #583: preload() guarantees RpgRocket.tscn is in export; has_method() checked AFTER
-	# add_child() because Godot 4 exports don't resolve GDScript methods before scene-tree entry.
+	# Issue #583: preload() is compile-time; call_deferred("launch") fires after full scene-tree
+	# init so GDScript methods are always resolved regardless of export build quirks.
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
 	rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
-	if rocket.has_method("launch"): rocket.call("launch", dir); _log_to_file("[RPG] Rocket at %s dir=%s" % [str(pos), str(dir)])
-	else: rocket.set("direction", dir); rocket.set("_launched", true); _log_to_file("[RPG] Rocket fallback at %s dir=%s" % [str(pos), str(dir)])
+	rocket.call_deferred("launch", dir); _log_to_file("[RPG] Rocket queued launch at %s dir=%s" % [str(pos), str(dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:

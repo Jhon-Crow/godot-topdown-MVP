@@ -51,7 +51,17 @@ Rather than adding a full weapon switching system (which would be overengineered
 | `scenes/levels/CastleLevel.tscn` | Add RPG enemies to level |
 | `tests/unit/test_weapon_config_component.gd` | Tests for RPG config |
 
+## Debug Sessions Summary
+
+| Log | Key Finding | Fix Applied |
+|-----|-------------|-------------|
+| game_log_20260317_074901 | `as RpgRocket` cast returns null in export | Use `has_method`/`call` |
+| game_log_20260317_081404 | `load()` returns null → `bullet_scene` stays Bullet | Use `preload()` directly |
+| game_log_20260317_090725 | `has_method("launch")` false before `add_child()` | Move check to after `add_child()` |
+| game_log_20260317_094557 | `has_method("launch")` still false after `add_child()` — rocket spawns but doesn't fly | Use `call_deferred("launch", dir)` — eliminates `has_method` entirely |
+
 ## References
 - Similar pattern: MACHETE weapon (Issue #579) - weapon type with special behavior
 - Explosion mechanic: FragGrenade (frag_grenade.gd) - impact explosion
 - Enemy grenade system: EnemyGrenadeComponent - projectile spawning by enemies
+- Godot docs: `Object.call_deferred()` — schedules method call via MessageQueue, runs after scene-tree is fully settled
