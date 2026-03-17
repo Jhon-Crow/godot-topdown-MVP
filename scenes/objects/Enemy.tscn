@@ -58,10 +58,10 @@ offset = Vector2(20, 0)
 [node name="ShieldIcon" type="Sprite2D" parent="EnemyModel/WeaponMount"]
 visible = false
 z_index = 5
-scale = Vector2(0.35, 0.35)
+scale = Vector2(0.12, 0.12)
 modulate = Color(0.4, 0.7, 1.0, 1.0)
 texture = ExtResource("10_force_field_icon")
-offset = Vector2(16, 0)
+offset = Vector2(8, 0)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_enemy")
