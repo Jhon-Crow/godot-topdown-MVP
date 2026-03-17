@@ -81,3 +81,49 @@ The explosion should be directional:
 
 1. `scripts/effects/breaching_charges_effect.gd` — main implementation
 2. `tests/unit/test_breaching_charges_effect.gd` — update/add tests
+
+---
+
+## Implementation Summary (Items 2 & 5 — follow-up comment)
+
+The owner's follow-up comments requested:
+- **Item 2** (realistic model) + **Item 5** (passage in thin walls) — implemented in PR #1089
+
+### Item 2 — Realistic Placed Charge Marker
+
+**Problem:** The original `_spawn_placed_charge_marker()` used the existing
+`breaching_charges_icon.png` (a very simple brown rectangle with a red dot)
+as the marker sprite. The issue requests a more realistic visual.
+
+**Solution:**
+- Replaced the single `Sprite2D` with a composite `Node2D` containing multiple `ColorRect` children:
+  - Sandy beige body (C4-like block)
+  - Dark grey housing/frame
+  - Black strap across the middle
+  - Metallic detonator cylinder
+  - Blinking red LED indicator (animated via `Tween`)
+- The LED blinks at ~0.5 s intervals using a looping `Tween` on `modulate.a`
+- The root node is rotated so the charge faces out from the wall
+
+### Item 5 — Passage in Thin Walls (Root Cause)
+
+**Root cause:** `_open_wall_passage()` disabled ALL `CollisionShape2D` children
+and hid ALL `CanvasItem` children of the hit wall node. This caused the entire
+wall `StaticBody2D` to become invisible and passable — even very long walls would
+disappear completely, which is unrealistic.
+
+**Solution — passage carving algorithm:**
+1. Find the first `CollisionShape2D` with a `RectangleShape2D` (the wall's main shape)
+2. Convert the breach world position to the wall's local coordinate space
+3. Determine orientation (horizontal = width ≥ height, vertical = height > width)
+4. Clamp the breach centre so the passage never exceeds the wall boundary
+5. Disable the original shape; add two new `CollisionShape2D` children for the remaining
+   left/right (or top/bottom) segments
+6. Update visuals: hide the original `ColorRect`; add two replacement `ColorRect` nodes
+   sized to match the surviving wall segments, reading the original wall colour
+7. If both surviving segments are < 8 px (wall too short to split), fall back to
+   removing the wall entirely — preserving the original behaviour for small walls
+8. Non-`RectangleShape2D` walls (custom shapes) fall back to the old full-disable path
+
+**Constant added:** `BREACH_PASSAGE_WIDTH = 56.0` px — wide enough for a character
+to walk through, smaller than a typical wall segment.
