@@ -189,8 +189,9 @@ func _setup_exit_zone() -> void:
 		return
 
 	_exit_zone = exit_zone_scene.instantiate()
-	# Position exit on the left wall near player spawn (player starts at 200, 1200)
-	_exit_zone.position = Vector2(120, 1200)
+	# Position exit at the far right end of the map (player starts at 200, 1200 on the left).
+	# The player must traverse the full labyrinth before reaching the exit.
+	_exit_zone.position = Vector2(3200, 1200)
 	_exit_zone.zone_width = 60.0
 	_exit_zone.zone_height = 100.0
 
@@ -202,7 +203,7 @@ func _setup_exit_zone() -> void:
 	else:
 		add_child(_exit_zone)
 
-	print("[Labyrinth2Level] Exit zone created at position (120, 1200)")
+	print("[Labyrinth2Level] Exit zone created at position (3200, 1200)")
 
 
 ## Called when the player reaches the exit zone after clearing the level.
