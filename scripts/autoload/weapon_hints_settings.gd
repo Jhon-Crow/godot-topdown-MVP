@@ -22,7 +22,7 @@ enum HintMode {
 }
 
 ## Current hint display mode.
-var hint_mode: HintMode = HintMode.FIRST_TIME_ONLY
+var hint_mode: HintMode = HintMode.ALWAYS
 
 ## Dictionary tracking which weapons have been seen (for FIRST_TIME_ONLY mode).
 ## Keys: weapon_id (String), Values: true if seen.
@@ -148,7 +148,7 @@ func _load_settings() -> void:
 
 	if error == OK:
 		# Load hint mode
-		hint_mode = config.get_value(SECTION_SETTINGS, KEY_HINT_MODE, HintMode.FIRST_TIME_ONLY)
+		hint_mode = config.get_value(SECTION_SETTINGS, KEY_HINT_MODE, HintMode.ALWAYS)
 
 		# Load weapons seen
 		if config.has_section(SECTION_WEAPONS_SEEN):
@@ -156,7 +156,7 @@ func _load_settings() -> void:
 				weapons_seen[weapon_id] = config.get_value(SECTION_WEAPONS_SEEN, weapon_id, false)
 	else:
 		# File doesn't exist or failed to load - use defaults
-		hint_mode = HintMode.FIRST_TIME_ONLY
+		hint_mode = HintMode.ALWAYS
 		weapons_seen = {}
 
 
