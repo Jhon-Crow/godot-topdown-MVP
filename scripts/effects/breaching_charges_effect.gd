@@ -221,6 +221,9 @@ func detonate() -> bool:
 	for wall_result in walls:
 		_open_wall_passage(wall_result["wall"], wall_result["hit_pos"])
 
+	# Spawn dust/debris cloud at the breach site (Issue #1099)
+	_spawn_wall_dust_effect(det_pos, det_dir)
+
 	# Spawn directional explosion cone effect
 	_spawn_explosion_effect(det_pos, det_dir)
 
@@ -753,6 +756,37 @@ func _remove_placed_charge_marker() -> void:
 	if _placed_charge_marker != null and is_instance_valid(_placed_charge_marker):
 		_placed_charge_marker.queue_free()
 		_placed_charge_marker = null
+
+
+## Spawn a dust/debris cloud at the breach site immediately after wall destruction (Issue #1099).
+## Reuses ImpactEffectsManager.spawn_dust_effect which uses the existing DustEffect.tscn
+## (GPUParticles2D, 25 particles, one-shot, auto-cleanup) — negligible performance cost.
+## Three puffs are spawned: one at the breach centre and one on each side offset by
+## half BREACH_PASSAGE_WIDTH / 3, giving a realistic debris spread along the gap.
+func _spawn_wall_dust_effect(det_pos: Vector2, direction: Vector2) -> void:
+	if _player == null:
+		return
+
+	var impact_manager: Node = _player.get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
+		FileLogger.info("[BreachingCharges] ImpactEffectsManager not available, skipping dust effect")
+		return
+
+	# Surface normal for the dust: particles should billow back toward the player (opposite to det_dir)
+	var surface_normal: Vector2 = -direction
+
+	# Perpendicular axis along the wall face (used for side offset positions)
+	var perp: Vector2 = Vector2(-direction.y, direction.x)
+	var side_offset: float = BREACH_PASSAGE_WIDTH / 3.0
+
+	# Center puff (largest — spawned first for visual priority)
+	impact_manager.call("spawn_dust_effect", det_pos, surface_normal, null)
+
+	# Side puffs at ±side_offset along the wall face
+	impact_manager.call("spawn_dust_effect", det_pos + perp * side_offset, surface_normal, null)
+	impact_manager.call("spawn_dust_effect", det_pos - perp * side_offset, surface_normal, null)
+
+	FileLogger.info("[BreachingCharges] Dust effect spawned at %s (3 puffs)" % str(det_pos))
 
 
 ## Spawn a cone-shaped explosion effect directed toward the wall.
