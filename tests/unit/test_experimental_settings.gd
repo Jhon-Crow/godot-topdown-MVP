@@ -42,6 +42,9 @@ class MockExperimentalSettings:
 	## Whether all weapons are unlocked (Issue #882).
 	var all_weapons_unlocked: bool = false
 
+	## Whether all maps are unlocked (Issue #1075).
+	var all_maps_unlocked: bool = false
+
 	## Signal tracking
 	var settings_changed_emitted: int = 0
 
@@ -158,6 +161,17 @@ class MockExperimentalSettings:
 	func is_all_weapons_unlocked() -> bool:
 		return all_weapons_unlocked
 
+	## Set all maps unlocked enabled/disabled (Issue #1075).
+	func set_all_maps_unlocked(enabled: bool) -> void:
+		if all_maps_unlocked != enabled:
+			all_maps_unlocked = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if all maps unlocked is enabled (Issue #1075).
+	func is_all_maps_unlocked() -> bool:
+		return all_maps_unlocked
+
 	## Save settings (simulated).
 	func _save_settings() -> void:
 		_saved_settings["fov_enabled"] = fov_enabled
@@ -170,6 +184,7 @@ class MockExperimentalSettings:
 		_saved_settings["logging_enabled"] = logging_enabled
 		_saved_settings["enemy_flashlight_blinding_enabled"] = enemy_flashlight_blinding_enabled
 		_saved_settings["all_weapons_unlocked"] = all_weapons_unlocked
+		_saved_settings["all_maps_unlocked"] = all_maps_unlocked
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
@@ -213,6 +228,10 @@ class MockExperimentalSettings:
 			all_weapons_unlocked = _saved_settings["all_weapons_unlocked"]
 		else:
 			all_weapons_unlocked = false
+		if _saved_settings.has("all_maps_unlocked"):
+			all_maps_unlocked = _saved_settings["all_maps_unlocked"]
+		else:
+			all_maps_unlocked = false
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
@@ -226,6 +245,7 @@ class MockExperimentalSettings:
 		logging_enabled = true
 		enemy_flashlight_blinding_enabled = false
 		all_weapons_unlocked = false
+		all_maps_unlocked = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
 
@@ -1381,3 +1401,103 @@ func test_docks_level_replay_button_hidden_by_default() -> void:
 
 	assert_false(should_show,
 		"Docks level: replay button should NOT appear on score screen by default (Issue #1051)")
+
+
+# ============================================================================
+# All Maps Unlocked Setting Tests (Issue #1075)
+# ============================================================================
+
+
+func test_default_all_maps_unlocked_disabled() -> void:
+	assert_false(settings.all_maps_unlocked,
+		"All maps unlocked should be disabled by default")
+
+
+func test_is_all_maps_unlocked_returns_false_by_default() -> void:
+	assert_false(settings.is_all_maps_unlocked(),
+		"is_all_maps_unlocked should return false by default")
+
+
+func test_set_all_maps_unlocked_true() -> void:
+	settings.set_all_maps_unlocked(true)
+
+	assert_true(settings.all_maps_unlocked,
+		"All maps unlocked should be enabled after set_all_maps_unlocked(true)")
+
+
+func test_set_all_maps_unlocked_false() -> void:
+	settings.all_maps_unlocked = true
+	settings.set_all_maps_unlocked(false)
+
+	assert_false(settings.all_maps_unlocked,
+		"All maps unlocked should be disabled after set_all_maps_unlocked(false)")
+
+
+func test_set_all_maps_unlocked_emits_signal() -> void:
+	settings.set_all_maps_unlocked(true)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when enabling all maps unlocked")
+
+
+func test_set_all_maps_unlocked_no_signal_if_same_value() -> void:
+	settings.all_maps_unlocked = false
+	settings.settings_changed_emitted = 0
+
+	settings.set_all_maps_unlocked(false)  # Same value
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if all maps unlocked value unchanged")
+
+
+func test_set_all_maps_unlocked_saves_settings() -> void:
+	settings.set_all_maps_unlocked(true)
+
+	assert_true(settings._saved_settings.has("all_maps_unlocked"),
+		"Settings should contain all_maps_unlocked")
+	assert_true(settings._saved_settings["all_maps_unlocked"],
+		"Saved value should match enabled state")
+
+
+func test_load_settings_restores_all_maps_unlocked() -> void:
+	settings._saved_settings["all_maps_unlocked"] = true
+	settings._load_settings()
+
+	assert_true(settings.all_maps_unlocked,
+		"Load should restore saved all maps unlocked setting")
+
+
+func test_load_settings_all_maps_unlocked_defaults_to_false() -> void:
+	settings.all_maps_unlocked = true
+	settings._saved_settings.clear()
+	settings._load_settings()
+
+	assert_false(settings.all_maps_unlocked,
+		"Load should default all maps unlocked to false when no saved settings")
+
+
+func test_reset_clears_all_maps_unlocked() -> void:
+	settings.set_all_maps_unlocked(true)
+	settings.reset_to_defaults()
+
+	assert_false(settings.all_maps_unlocked,
+		"Reset should disable all maps unlocked")
+
+
+func test_all_maps_unlocked_independent_of_all_weapons_unlocked() -> void:
+	settings.set_all_maps_unlocked(true)
+	assert_true(settings.is_all_maps_unlocked(), "All maps unlocked should be enabled")
+	assert_false(settings.is_all_weapons_unlocked(), "All weapons unlocked should still be disabled")
+
+
+func test_save_and_load_all_maps_unlocked_enabled() -> void:
+	settings.set_all_maps_unlocked(true)
+
+	# Reset in-memory state
+	settings.all_maps_unlocked = false
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_true(settings.is_all_maps_unlocked(),
+		"All maps unlocked enabled state should survive reload")

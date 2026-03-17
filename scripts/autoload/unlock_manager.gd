@@ -443,12 +443,110 @@ func _reset_condition_gated_items() -> void:
 	_log("Reset condition-gated items to locked state")
 
 
-## Reset condition-gated items to locked state on startup.
-## This removes any incorrectly-saved unlock states (e.g. from old buggy save files).
-## Items whose conditions are met will be highlighted in gold in the armory;
-## the player must still hold LMB on the gold slot to permanently unlock them.
+## Reset condition-gated items to locked state on startup, then restore items that
+## the player legitimately unlocked (i.e., they opened the case by holding LMB).
+## PersistManager has already loaded the saved unlock state before this runs (deferred).
+## The reset removes any incorrectly-saved states; the restore brings back valid unlocks.
+## Issue #1052: items were reverting to locked state after game restart.
 func _reset_and_apply_all_unlocks() -> void:
+	# Snapshot which condition-gated items PersistManager already restored from the save file.
+	var saved_weapons: Array[String] = _get_unlocked_condition_gated_weapons()
+	var saved_grenades: Array[int] = _get_unlocked_condition_gated_grenades()
+	var saved_active_items: Array[int] = _get_unlocked_condition_gated_active_items()
+
+	# Reset all condition-gated items to locked (removes corrupt / legacy unlock states).
 	_reset_condition_gated_items()
+
+	# Re-apply only items that were saved AND whose condition is currently met.
+	# Items unlocked without a met condition indicate corrupt data and stay locked.
+	_restore_saved_unlocks(saved_weapons, saved_grenades, saved_active_items)
+
+
+## Collect weapon IDs from UNLOCK_CONDITIONS and MULTI_UNLOCK_CONDITIONS that are
+## currently marked as unlocked in GameManager.
+func _get_unlocked_condition_gated_weapons() -> Array[String]:
+	var result: Array[String] = []
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if not game_manager:
+		return result
+	for condition_key in UNLOCK_CONDITIONS:
+		for weapon_id in UNLOCK_CONDITIONS[condition_key].get("weapons", []):
+			if weapon_id not in result and game_manager.unlocked_weapons.get(weapon_id, false):
+				result.append(weapon_id)
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		for weapon_id in multi_condition.get("weapons", []):
+			if weapon_id not in result and game_manager.unlocked_weapons.get(weapon_id, false):
+				result.append(weapon_id)
+	return result
+
+
+## Collect grenade types from conditions that are currently marked as unlocked.
+func _get_unlocked_condition_gated_grenades() -> Array[int]:
+	var result: Array[int] = []
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	if not grenade_manager:
+		return result
+	for condition_key in UNLOCK_CONDITIONS:
+		for grenade_type in UNLOCK_CONDITIONS[condition_key].get("grenades", []):
+			if grenade_type not in result and grenade_manager.unlocked_grenades.get(grenade_type, false):
+				result.append(grenade_type)
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		for grenade_type in multi_condition.get("grenades", []):
+			if grenade_type not in result and grenade_manager.unlocked_grenades.get(grenade_type, false):
+				result.append(grenade_type)
+	return result
+
+
+## Collect active item types from conditions that are currently marked as unlocked.
+func _get_unlocked_condition_gated_active_items() -> Array[int]:
+	var result: Array[int] = []
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if not active_item_manager:
+		return result
+	for condition_key in UNLOCK_CONDITIONS:
+		for item_type in UNLOCK_CONDITIONS[condition_key].get("active_items", []):
+			if item_type not in result and active_item_manager.unlocked_active_items.get(item_type, false):
+				result.append(item_type)
+	for multi_condition in MULTI_UNLOCK_CONDITIONS:
+		for item_type in multi_condition.get("active_items", []):
+			if item_type not in result and active_item_manager.unlocked_active_items.get(item_type, false):
+				result.append(item_type)
+	return result
+
+
+## Restore saved unlock state for condition-gated items after a reset.
+## Only items whose unlock condition is currently met are restored; others stay locked.
+func _restore_saved_unlocks(
+		weapons: Array[String],
+		grenades: Array[int],
+		active_items: Array[int]) -> void:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+
+	for weapon_id in weapons:
+		if game_manager and is_weapon_condition_met(weapon_id):
+			if weapon_id in game_manager.unlocked_weapons:
+				game_manager.unlocked_weapons[weapon_id] = true
+				_log("Restored saved unlock for weapon: %s" % weapon_id)
+		else:
+			_log("Skipped restore for weapon '%s' (condition not met — treating as corrupt save)" % weapon_id)
+
+	for grenade_type in grenades:
+		if grenade_manager and is_grenade_condition_met(grenade_type):
+			if grenade_type in grenade_manager.unlocked_grenades:
+				grenade_manager.unlocked_grenades[grenade_type] = true
+				_log("Restored saved unlock for grenade type: %d" % grenade_type)
+		else:
+			_log("Skipped restore for grenade type %d (condition not met — treating as corrupt save)" % grenade_type)
+
+	for item_type in active_items:
+		if active_item_manager and is_active_item_condition_met(item_type):
+			if item_type in active_item_manager.unlocked_active_items:
+				active_item_manager.unlocked_active_items[item_type] = true
+				_log("Restored saved unlock for active item type: %d" % item_type)
+		else:
+			_log("Skipped restore for active item type %d (condition not met — treating as corrupt save)" % item_type)
 
 
 ## Get all available difficulty names from DifficultyManager (with static fallback).
