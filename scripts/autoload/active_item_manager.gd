@@ -147,6 +147,14 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	}
 }
 
+## Whether the player's active items are currently jammed by a Radio Jammer enemy (Issue #1036).
+## NOTE: This flag is no longer the source of truth for jam state.
+## is_active_item_jammed() queries the scene tree directly to avoid physics-process race conditions.
+var _is_jammed: bool = false
+
+## Jam radius used by Radio Jammer enemies (pixels). Must match RadioWaveEffect.jammer_radius.
+const JAMMER_RADIUS: float = 1000.0
+
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
 
@@ -344,3 +352,102 @@ func unlock_active_item(item_type: int) -> void:
 ## @return: Dictionary of item_type -> bool pairs.
 func get_unlocked_active_items() -> Dictionary:
 	return unlocked_active_items
+
+
+## Set whether the player's active items are jammed by a Radio Jammer enemy (Issue #1036).
+## Kept for backward compatibility — the flag is now advisory only.
+## @param jammed: true to jam active items, false to restore them.
+func set_jammed(jammed: bool) -> void:
+	_is_jammed = jammed
+
+
+## Accumulator used to throttle periodic jammer diagnostics logs (seconds).
+var _jammer_log_timer: float = 0.0
+
+## Interval between periodic jammer diagnostics logs (seconds).
+const JAMMER_LOG_INTERVAL: float = 2.0
+
+## Log a periodic diagnostic about jammer state (called from radio_wave_effect _physics_process).
+## Throttled to once per JAMMER_LOG_INTERVAL to avoid log spam.
+func log_jammer_diagnostics(delta: float) -> void:
+	_jammer_log_timer += delta
+	if _jammer_log_timer < JAMMER_LOG_INTERVAL:
+		return
+	_jammer_log_timer = 0.0
+	var players := get_tree().get_nodes_in_group("player")
+	var jammers := get_tree().get_nodes_in_group("radio_jammers")
+	if jammers.is_empty():
+		return  # No jammers — silent when no jammers present
+	var player_pos_str := "N/A"
+	if not players.is_empty() and is_instance_valid(players[0]):
+		player_pos_str = "(%.0f,%.0f)" % [players[0].global_position.x, players[0].global_position.y]
+	for jammer in jammers:
+		if not is_instance_valid(jammer):
+			continue
+		var alive := "(alive)" if (not jammer.has_method("is_alive") or jammer.is_alive()) else "(dead)"
+		var dist_str := "dist=N/A"
+		if not players.is_empty() and is_instance_valid(players[0]):
+			dist_str = "dist=%.1f" % jammer.global_position.distance_to(players[0].global_position)
+		FileLogger.info("[ActiveItemManager.Jammer] Periodic: jammer='%s' %s player=%s %s radius=%.0f" % [
+			jammer.name, alive, player_pos_str, dist_str, JAMMER_RADIUS
+		])
+
+
+## Check whether the player's active items are currently jammed (Issue #1036).
+## Directly queries the scene tree for living Radio Jammer enemies within JAMMER_RADIUS
+## of the player to avoid physics-process race conditions (root cause of bug reported
+## in comment on 2026-03-17: player could use active item even while inside jammer range).
+## Returns true when at least one living Radio Jammer enemy is within JAMMER_RADIUS.
+func is_active_item_jammed() -> bool:
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return false
+	var player: Node = players[0]
+	if not is_instance_valid(player):
+		return false
+	var jammers := get_tree().get_nodes_in_group("radio_jammers")
+	if jammers.is_empty():
+		return false
+	var player_pos: Vector2 = player.global_position
+	for jammer in jammers:
+		if not is_instance_valid(jammer):
+			continue
+		if jammer.has_method("is_alive") and not jammer.is_alive():
+			continue
+		if jammer.global_position.distance_to(player_pos) <= JAMMER_RADIUS:
+			return true
+	return false
+
+
+## Check whether the player's active items are currently jammed, with detailed logging.
+## Called only when the player actually presses Space (flashlight_toggle action),
+## so logging doesn't flood the log file.
+func is_active_item_jammed_verbose() -> bool:
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: No player in 'player' group")
+		return false
+	var player: Node = players[0]
+	if not is_instance_valid(player):
+		FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: Player invalid")
+		return false
+	var player_pos: Vector2 = player.global_position
+	var jammers := get_tree().get_nodes_in_group("radio_jammers")
+	FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: %d jammer(s) in group, player=(%.0f,%.0f)" % [
+		jammers.size(), player_pos.x, player_pos.y
+	])
+	for jammer in jammers:
+		if not is_instance_valid(jammer):
+			FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: Jammer instance invalid — skip")
+			continue
+		var alive: bool = not jammer.has_method("is_alive") or jammer.is_alive()
+		var dist: float = jammer.global_position.distance_to(player_pos)
+		FileLogger.info("[ActiveItemManager.Jammer] VERBOSE: jammer='%s' alive=%s pos=(%.0f,%.0f) dist=%.1f radius=%.1f => %s" % [
+			jammer.name, str(alive),
+			jammer.global_position.x, jammer.global_position.y,
+			dist, JAMMER_RADIUS,
+			"JAMMED" if (alive and dist <= JAMMER_RADIUS) else "clear"
+		])
+		if alive and dist <= JAMMER_RADIUS:
+			return true
+	return false
