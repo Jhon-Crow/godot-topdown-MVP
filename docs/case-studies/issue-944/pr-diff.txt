@@ -1,0 +1,313 @@
+diff --git a/scripts/levels/tutorial_level.gd b/scripts/levels/tutorial_level.gd
+index 41f41674..2d9bbabf 100644
+--- a/scripts/levels/tutorial_level.gd
++++ b/scripts/levels/tutorial_level.gd
+@@ -147,6 +147,22 @@ var _hint_labels: Dictionary = {}
+ ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
+ const HINT_SPACING := 60
+ 
++## Issue #944: Animation durations for tutorial hint transitions.
++## Fade-in duration for new hints appearing (seconds).
++const HINT_FADE_IN_DURATION := 0.3
++## Strikethrough display duration before fade-out (seconds).
++const HINT_STRIKETHROUGH_DURATION := 0.4
++## Fade-out duration after strikethrough (seconds).
++const HINT_FADE_OUT_DURATION := 0.3
++
++## Issue #944: Track hints that are currently animating (strikethrough + fade-out).
++## These hints should not be updated or re-dismissed while animating.
++var _animating_hints: Dictionary = {}
++
++## Issue #944: Track whether each hint was dismissed as part of a multi-step action.
++## When true, the hint should just disappear without strikethrough (already shown per-step).
++var _hint_is_multistep_completed: Dictionary = {}
++
+ ## Number of shots fired by the player (Issue #945: reload hint appears after 2 shots).
+ var _shots_fired: int = 0
+ 
+@@ -886,10 +902,11 @@ func _on_reload_sequence_progress(step: int, total: int) -> void:
+ 
+ 
+ ## Build BBCode text for the reload hint based on current step (Issue #945).
+-## The NEXT required button is highlighted in red; completed steps are shown in grey.
++## The NEXT required button is highlighted in red; completed steps are shown in grey with strikethrough.
+ ## Bug fix #2: `step` is the LAST COMPLETED step (0 = nothing done yet, 1 = first press done, etc.).
+ ##   So we highlight step+1 as the next action to perform.
+ ## Bug fix #5: Revolver and shotgun use separate hint builders.
++## Issue #944: Completed steps now use [s] strikethrough tag for visual feedback.
+ func _build_reload_hint_bbcode(step: int, total: int) -> String:
+ 	# Guard: shotgun uses static/ActionState-based hints
+ 	if _has_shotgun:
+@@ -902,9 +919,11 @@ func _build_reload_hint_bbcode(step: int, total: int) -> String:
+ 			0:
+ 				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+ 			1:
+-				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
++				return "[color=#888888][s][R][/s][/color] [color=#ff4444][R][/color] Перезарядись"
+ 			_:
+-				return "[color=#888888][R] [R][/color] Перезарядись"
++				# Mark as multi-step completed when all steps done
++				_hint_is_multistep_completed[HINT_RELOAD] = true
++				return "[color=#888888][s][R] [R][/s][/color] Перезарядись"
+ 	else:
+ 		# Standard 3-step reload: R -> F -> R
+ 		# step=0 → next is R; step=1 → next is F; step=2 → next is R (final); step=3 → done
+@@ -912,11 +931,13 @@ func _build_reload_hint_bbcode(step: int, total: int) -> String:
+ 			0:
+ 				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+ 			1:
+-				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
++				return "[color=#888888][s][R][/s][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+ 			2:
+-				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
++				return "[color=#888888][s][R] [F][/s][/color] [color=#ff4444][R][/color] Перезарядись"
+ 			_:
+-				return "[color=#888888][R] [F] [R][/color] Перезарядись"
++				# Mark as multi-step completed when all steps done
++				_hint_is_multistep_completed[HINT_RELOAD] = true
++				return "[color=#888888][s][R] [F] [R][/s][/color] Перезарядись"
+ 
+ 
+ ## Reveal the bolt-cycle hint after the 1st shot (sniper/shotgun only).
+@@ -1010,17 +1031,26 @@ func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
+ 
+ ## Build BBCode for sniper bolt-cycle hint showing 4-step sequence with NEXT step in red.
+ ## step = last COMPLETED step: 0=nothing done, 1=bolt up done, 2=bolt back done, etc.
++## Issue #944: Completed steps now use [s] strikethrough tag for visual feedback.
+ func _build_sniper_bolt_hint_bbcode(step: int) -> String:
+ 	# 4 steps: ← (bolt up/open), ↓ (bolt back), ↑ (bolt forward), → (bolt down/close)
+ 	const STEPS := ["←", "↓", "↑", "→"]
+ 	var parts: PackedStringArray = []
+ 	for i in range(STEPS.size()):
+ 		if i < step:
+-			parts.append("[color=#888888][%s][/color]" % STEPS[i])
++			# Completed step: grey with strikethrough
++			parts.append("[color=#888888][s][%s][/s][/color]" % STEPS[i])
+ 		elif i == step:
++			# Current step: highlighted in red
+ 			parts.append("[color=#ff4444][%s][/color]" % STEPS[i])
+ 		else:
++			# Future step: grey
+ 			parts.append("[color=#888888][%s][/color]" % STEPS[i])
++
++	# Mark as multi-step completed when all 4 steps done
++	if step >= STEPS.size():
++		_hint_is_multistep_completed[HINT_BOLT_CYCLE] = true
++
+ 	return " ".join(parts) + " Передёрни затвор"
+ 
+ 
+@@ -1047,20 +1077,22 @@ func _get_shotgun_shells_to_load() -> int:
+ ## Build BBCode for the revolver reload hint with step-based highlighting (Bug fix round 4).
+ ## step=1: cylinder opened → highlight insert-cartridge action
+ ## step=3: cylinder closed → all grey (done)
++## Issue #944: Completed steps now use [s] strikethrough tag for visual feedback.
+ func _build_revolver_reload_hint_bbcode(step: int) -> String:
+ 	match step:
+ 		0:
+ 			# Nothing done yet: highlight open-cylinder (R)
+ 			return "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"
+ 		1:
+-			# Cylinder opened: next is insert cartridges
+-			return "[color=#888888][R открыть][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
++			# Cylinder opened: next is insert cartridges (open is completed)
++			return "[color=#888888][s][R открыть][/s][/color] [color=#ff4444][ПКМ↑ патрон][/color] [color=#888888][скролл] [R закрыть][/color]"
+ 		2:
+-			# Scrolled (cylinder rotated): next is close cylinder
+-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл][/color] [color=#ff4444][R закрыть][/color]"
++			# Scrolled (cylinder rotated): next is close cylinder (open and insert completed)
++			return "[color=#888888][s][R открыть] [ПКМ↑ патрон] [скролл][/s][/color] [color=#ff4444][R закрыть][/color]"
+ 		_:
+-			# Done
+-			return "[color=#888888][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/color]"
++			# All steps done - mark as multi-step completed
++			_hint_is_multistep_completed[HINT_RELOAD] = true
++			return "[color=#888888][s][R открыть] [ПКМ↑ патрон] [скролл] [R закрыть][/s][/color]"
+ 
+ 
+ ## Called when the shotgun's action state changes (pump-action between shots).
+@@ -1091,14 +1123,17 @@ func _on_shotgun_action_state_changed(new_state: int) -> void:
+ 
+ ## Build BBCode for the shotgun between-shots pump hint.
+ ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
++## Issue #944: Completed steps now use [s] strikethrough tag for visual feedback.
+ func _build_shotgun_pump_hint_bbcode(state: int) -> String:
+ 	match state:
+-		1:  # NeedsPumpUp
++		1:  # NeedsPumpUp (nothing completed yet)
+ 			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
+-		2:  # NeedsPumpDown
+-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
++		2:  # NeedsPumpDown (pump-up completed)
++			return "[color=#888888][s][ПКМ↑][/s][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+ 		_:
+-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
++			# Both completed
++			_hint_is_multistep_completed[HINT_BOLT_CYCLE] = true
++			return "[color=#888888][s][ПКМ↑] [ПКМ↓][/s][/color] Передёрни затвор"
+ 
+ 
+ ## Called when the shotgun's reload state changes (full shell-by-shell reload).
+@@ -1136,17 +1171,20 @@ func _on_shotgun_reload_state_changed(new_state: int) -> void:
+ ## state=1: WaitingToOpen → highlight open-bolt [ПКМ↑]
+ ## state=2: Loading → highlight load-shells [СКМ+ПКМ↓]
+ ## state=3: WaitingToClose → highlight close-bolt [ПКМ↓]
++## Issue #944: Completed steps now use [s] strikethrough tag for visual feedback.
+ func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
+ 	var shells_needed: int = _get_shotgun_shells_to_load()
+ 	match state:
+ 		0, 1:  # Not reloading or waiting to open
+ 			return "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
+-		2:  # Loading shells
+-			return "[color=#888888][ПКМ↑ открыть][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
+-		3:  # Waiting to close
+-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
++		2:  # Loading shells (open is completed)
++			return "[color=#888888][s][ПКМ↑ открыть][/s][/color] [color=#ff4444][СКМ+ПКМ↓ x%d][/color] [color=#888888][ПКМ↓ закрыть][/color]" % shells_needed
++		3:  # Waiting to close (open and loading completed)
++			return "[color=#888888][s][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d][/s][/color] [color=#ff4444][ПКМ↓ закрыть][/color]" % shells_needed
+ 		_:
+-			return "[color=#888888][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/color]" % shells_needed
++			# All steps completed
++			_hint_is_multistep_completed[HINT_BOLT_CYCLE] = true
++			return "[color=#888888][s][ПКМ↑ открыть] [СКМ+ПКМ↓ x%d] [ПКМ↓ закрыть][/s][/color]" % shells_needed
+ 
+ 
+ ## Called when scope state changes (activated/deactivated).
+@@ -1266,14 +1304,17 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
+ ## step=0: arm grenade (G+ПКМ вправо highlighted)
+ ## step=1: G held, aim with RMB (G+ПКМ→отпусти G highlighted)
+ ## step=2: G released, RMB still held, throw (ПКМ highlighted)
++## Issue #944: Completed steps now use [s] strikethrough tag for visual feedback.
+ func _build_grenade_hint_bbcode(step: int) -> String:
+ 	match step:
+ 		0:
+ 			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
+ 		1:
+-			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
++			# First step completed
++			return "[color=#888888][s][G+ПКМ вправо][/s][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
+ 		_:
+-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
++			# First two steps completed
++			return "[color=#888888][s][G+ПКМ вправо] [G+ПКМ→отпусти G][/s][/color] [color=#ff4444][ПКМ бросок][/color]"
+ 
+ 
+ ## Update the grenade hint step based on current input state (Bug fix round 5).
+@@ -1313,6 +1354,8 @@ func _on_player_grenade_thrown() -> void:
+ 	if not _has_thrown_grenade:
+ 		_has_thrown_grenade = true
+ 		print("Tutorial: Player threw grenade")
++		# Issue #944: Mark grenade hint as multi-step completed (steps already showed strikethrough)
++		_hint_is_multistep_completed[HINT_GRENADE] = true
+ 		# Dismiss only the grenade hint (Issue #808)
+ 		_dismiss_hint(HINT_GRENADE)
+ 		# Bug fix round 5: show M16 fire-mode [B] hint after grenade (as the last training hint).
+@@ -1482,10 +1525,12 @@ func _get_hint_color(hint_key: String) -> Color:
+ 
+ ## Create and register a hint RichTextLabel with the given key and BBCode text.
+ ## Issue #945: Uses RichTextLabel for BBCode color support (per-hint unique colors + red key highlights).
++## Issue #944: Adds fade-in animation when new hints appear.
+ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
+ 	if _hint_labels.has(hint_key):
+-		# Already exists - just update text
+-		_hint_labels[hint_key].text = text
++		# Already exists - just update text (don't animate)
++		if not _animating_hints.has(hint_key):
++			_hint_labels[hint_key].text = text
+ 		return
+ 
+ 	var label := RichTextLabel.new()
+@@ -1503,6 +1548,9 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
+ 	label.fit_content = true
+ 	label.scroll_active = false
+ 
++	# Issue #944: Start transparent for fade-in animation
++	label.modulate.a = 0.0
++
+ 	canvas_layer.add_child(label)
+ 	_hint_labels[hint_key] = label
+ 	print("Tutorial: Added hint '%s': %s" % [hint_key, text])
+@@ -1510,19 +1558,77 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
+ 	# Position immediately
+ 	_update_hint_position(hint_key, label)
+ 
++	# Issue #944: Animate fade-in
++	var tween := create_tween()
++	tween.tween_property(label, "modulate:a", 1.0, HINT_FADE_IN_DURATION).set_ease(Tween.EASE_OUT)
++
+ 
+ ## Dismiss (remove) a single hint by key, leaving other hints visible.
++## Issue #944: Adds strikethrough animation before fade-out for completed actions.
++## For multi-step actions that already showed per-step strikethrough, skips the strikethrough
++## and just fades out.
+ func _dismiss_hint(hint_key: String) -> void:
+ 	if not _hint_labels.has(hint_key):
+ 		return
+ 
++	# Issue #944: Prevent double-dismiss while animating
++	if _animating_hints.has(hint_key):
++		return
++
+ 	var label: RichTextLabel = _hint_labels[hint_key]
+-	# Hide immediately so the label does not overlap new hints during the same frame
+-	# before queue_free() is processed.
+-	label.visible = false
+-	label.queue_free()
++	if not is_instance_valid(label):
++		_hint_labels.erase(hint_key)
++		return
++
++	# Mark as animating to prevent updates during animation
++	_animating_hints[hint_key] = true
++
++	# Issue #944: Check if this is a multi-step hint that already showed per-step strikethrough.
++	# If so, skip the full strikethrough and just fade out.
++	var skip_strikethrough := _hint_is_multistep_completed.get(hint_key, false)
++	_hint_is_multistep_completed.erase(hint_key)
++
++	if skip_strikethrough:
++		# Multi-step action completed - just fade out without additional strikethrough
++		print("Tutorial: Dismissing hint '%s' (multi-step, fade only)" % hint_key)
++		_animate_hint_fade_out(hint_key, label)
++	else:
++		# Single action completed - show strikethrough, then fade out
++		print("Tutorial: Dismissing hint '%s' (with strikethrough animation)" % hint_key)
++		_animate_hint_strikethrough_and_fade(hint_key, label)
++
++
++## Issue #944: Apply strikethrough to the entire hint text, then fade out.
++## Used for single-action hints (fire mode, scope, hammer cock, etc.).
++func _animate_hint_strikethrough_and_fade(hint_key: String, label: RichTextLabel) -> void:
++	# Get the current text and wrap in strikethrough BBCode
++	var current_text: String = label.text
++	# Remove any existing BBCode colors and wrap entire text in strikethrough
++	var strikethrough_text := "[s]" + current_text + "[/s]"
++	label.text = strikethrough_text
++
++	# Wait for strikethrough to be visible, then fade out
++	var tween := create_tween()
++	tween.tween_interval(HINT_STRIKETHROUGH_DURATION)
++	tween.tween_property(label, "modulate:a", 0.0, HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
++	tween.tween_callback(_finalize_hint_dismiss.bind(hint_key, label))
++
++
++## Issue #944: Fade out the hint without adding strikethrough.
++## Used for multi-step hints that already showed per-step strikethrough.
++func _animate_hint_fade_out(hint_key: String, label: RichTextLabel) -> void:
++	var tween := create_tween()
++	tween.tween_property(label, "modulate:a", 0.0, HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
++	tween.tween_callback(_finalize_hint_dismiss.bind(hint_key, label))
++
++
++## Issue #944: Finalize hint dismissal after animation completes.
++func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
++	_animating_hints.erase(hint_key)
+ 	_hint_labels.erase(hint_key)
+-	print("Tutorial: Dismissed hint '%s'" % hint_key)
++	if is_instance_valid(label):
++		label.queue_free()
++	print("Tutorial: Hint '%s' dismissed (animation complete)" % hint_key)
+ 
+ 
+ ## Update positions of all active hints to follow the player.

@@ -13,7 +13,8 @@ enum AIState {
 	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
 	ASSAULT,    ## Coordinated multi-enemy assault (rush player after 5s wait)
 	SEARCHING,  ## Methodically searching area where player was last seen (Issue #322)
-	EVADING_GRENADE  ## Fleeing from grenade danger zone (Issue #407)
+	EVADING_GRENADE,  ## Fleeing from grenade danger zone (Issue #407)
+	PACIFIST    ## Refuses to fight, hides in cover (Issue #959: Loudspeaker effect)
 }
 
 ## Retreat behavior modes based on damage taken.
@@ -29,8 +30,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
+## Weapon types: RIFLE, SHOTGUN, UZI, MACHETE (melee, #579), MACHINE_GUN (PKM belt-fed, #1033).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, MACHINE_GUN }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -80,6 +81,8 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
+@export var is_teleporter: bool = false  ## Whether this enemy can teleport (Issue #752).
+@export var has_force_field: bool = false  ## Whether this enemy has a Force Field (Issue #1034).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -102,6 +105,7 @@ signal reload_finished  ## Reload finished
 signal ammo_depleted  ## All ammo depleted
 signal death_animation_completed  ## Death animation done
 signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade thrown (Issue #363)
+signal became_pacifist  ## Enemy became pacifist (Issue #959: counts as killed for level completion)
 
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
@@ -113,6 +117,7 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm  ## Right arm sprite
 @onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite  ## Weapon sprite
 @onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount  ## Weapon mount
+@onready var _shield_icon: Sprite2D = $EnemyModel/WeaponMount/ShieldIcon  ## Blue shield icon shown on force field enemies (Issue #1079)
 @onready var _raycast: RayCast2D = $RayCast2D  ## Line of sight raycast
 @onready var _debug_label: Label = $DebugLabel  ## Debug state label
 @onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D  ## Pathfinding
@@ -133,7 +138,7 @@ const MODEL_ROTATION_SPEED: float = 3.0  ## Max model rotation speed (3.0 rad/s 
 var _idle_scan_timer: float = 0.0  ## IDLE scanning state for GUARD enemies
 var _idle_scan_target_index: int = 0
 var _idle_scan_targets: Array[float] = []
-const IDLE_SCAN_INTERVAL: float = 10.0
+const IDLE_SCAN_INTERVAL: float = 10.0 / 3.0
 var _base_body_pos: Vector2 = Vector2.ZERO  ## Base positions for animation
 var _base_head_pos: Vector2 = Vector2.ZERO
 var _base_left_arm_pos: Vector2 = Vector2.ZERO
@@ -347,6 +352,10 @@ var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
 
+## [Pacifism - Issue #959] Loudspeaker effect component
+var _pacifist: PacifistComponent = null  ## Pacifism state management
+var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
+
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -366,17 +375,14 @@ var _flashlight_detection: FlashlightDetectionComponent = null
 var _enemy_flashlight: EnemyFlashlightComponent = null  ## [Issue #824] Enemy flashlight for night mode.
 var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phase.
 
-## Last hit direction (used for death animation).
-var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Death animation component reference.
-var _death_animation: Node = null
-
-## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
-var _grenade_component: EnemyGrenadeComponent = null
-
+var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (used for death animation).
+var _death_animation: Node = null  ## Death animation component reference.
+var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (extracted for Issue #377 CI fix).
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
+var _teleport_component: EnemyTeleportComponent = null  ## Teleport component (Issue #752).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
+var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
+var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
 
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
@@ -412,7 +418,9 @@ func _ready() -> void:
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
-	_setup_machete_component()  # Issue #579
+	_pacifist = PacifistComponent.new(self)  # Issue #959
+	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
+	if is_teleporter: _teleport_component = EnemyTeleportComponent.new(); _teleport_component.name = "TeleportComponent"; add_child(_teleport_component); EnemyTeleportComponent.add_backpack(_enemy_model)  # Issue #752
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -421,9 +429,7 @@ func _ready() -> void:
 		_original_hit_area_layer = _hit_area.collision_layer
 		_original_hit_area_mask = _hit_area.collision_mask
 
-	# Log that this enemy is ready (use call_deferred to ensure FileLogger is loaded)
-	call_deferred("_log_spawn_info")
-
+	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
@@ -491,6 +497,8 @@ func _configure_weapon_type() -> void:
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
 	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
+	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033: machine gun belt override
+	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033: machine gun long reload override
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -571,60 +579,33 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
 
-	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
-	# This sound propagates through walls and alerts enemies even behind cover.
+	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable, propagates through walls.
 	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
 		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
-
-		# Set player vulnerability state - reloading
 		_goap_world_state["player_reloading"] = true
 		_last_known_player_position = position
-		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
-
-		# Issue #363: Notify grenade system of vulnerable sound for Trigger 4
-		_on_vulnerable_sound_heard_for_grenade(position)
-
-		# Update memory system with sound-based detection (Issue #297)
-		if _memory:
-			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
-
-		# React to vulnerable player sound - pursue (high-risk for reload actions)
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
+		_on_vulnerable_sound_heard_for_grenade(position)  # Issue #363
+		if _memory: _memory.update_position(position, SOUND_RELOAD_CONFIDENCE)  # Issue #297
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "RELOAD")  # Issue #910
 		return
 
-	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
-	# This sound has shorter range than reload but still propagates through walls.
+	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable, propagates through walls.
 	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
 		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
-
-		# Set player vulnerability state - out of ammo
 		_goap_world_state["player_ammo_empty"] = true
 		_last_known_player_position = position
-		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
-
-		# Issue #363: Notify grenade system of vulnerable sound for Trigger 4
-		_on_vulnerable_sound_heard_for_grenade(position)
-
-		# Update memory system with sound-based detection (Issue #297)
-		if _memory:
-			_memory.update_position(position, SOUND_EMPTY_CLICK_CONFIDENCE)
-
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes empty click sounds a high-risk action when enemies are nearby.
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
-			# Leave cover/defensive/searching state to attack vulnerable player
+		_on_vulnerable_sound_heard_for_grenade(position)  # Issue #363
+		if _memory: _memory.update_position(position, SOUND_EMPTY_CLICK_CONFIDENCE)  # Issue #297
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "EMPTY_CLICK")  # Issue #910
 		return
 
@@ -646,40 +627,26 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
-	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
-	# This sound propagates through walls and signals enemies to become cautious.
+	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player no longer vulnerable.
 	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
 		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, dist=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
-
-		# Clear player vulnerability state - reload finished, player is armed again
 		_goap_world_state["player_reloading"] = false
 		_goap_world_state["player_ammo_empty"] = false
-		# Clear the aggressive pursuit flag - no longer pursuing vulnerable player
 		_pursuing_vulnerability_sound = false
-
-		# React to reload completion - transition to cautious/defensive mode after a short delay.
-		# The 200ms delay gives enemies a brief reaction time before becoming cautious,
-		# making the transition feel more natural and giving player a small window.
-		# Enemies who were pursuing the vulnerable player should now become more cautious.
-		# This makes completing reload a way to "reset" aggressive enemy behavior.
+		# React with 200ms delay to give player a brief window, then transition cautious/defensive.
 		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 			var state_before_delay := _current_state
 			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
 			await get_tree().create_timer(0.2).timeout
-			# After delay, check if still alive and in an aggressive state
-			if not _is_alive:
-				return
-			# Only transition if still in an aggressive state (state might have changed during delay)
+			if not _is_alive: return
 			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
-				# Return to cover/defensive state since player is no longer vulnerable
 				if _has_valid_cover:
 					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
 					_transition_to_retreating()
 				elif enable_cover:
 					_log_to_file("Reload complete sound triggered cover seek - transitioning from %s to SEEKING_COVER (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
 					_transition_to_seeking_cover()
-				# If no cover available, stay in current state but with cleared vulnerability flags
 		return
 
 	# Issue #805: Handle GUNSHOT (0) and EXPLOSION (1) sounds - both alert enemies similarly
@@ -812,6 +779,11 @@ func _physics_process(delta: float) -> void:
 	if _flashbang_status:
 		_flashbang_status.update(delta)
 
+	# Issue #959: Update pacifist retaliation timer
+	if _pacifist and _pacifist.update(delta) and _current_state != AIState.PACIFIST:
+		_log_to_file("[#959] Pacifist retaliation ended, returning to PACIFIST state")
+		_transition_to_pacifist(false)  # Don't emit signal again, already counted as pacifist
+
 	# Update shoot cooldown timer
 	_shoot_timer += delta
 
@@ -870,9 +842,10 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
-	_update_suppression(delta)
+	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null))  # Issue #1034
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
+	if _teleport_component: _teleport_component.update(delta)  # Issue #752: Advance teleport cooldown
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
 
 	if _waiting_for_grenadier:  # Issue #604: Allies wait for grenadier's grenade
@@ -1102,27 +1075,21 @@ func _update_suppression(delta: float) -> void:
 				_threat_reaction_delay_elapsed = true
 				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
 
-		# Only set under_fire after the reaction delay has elapsed
-		if _threat_reaction_delay_elapsed:
+		# Only set under_fire after delay; Issue #1034: ignore if force field is active.
+		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			_under_fire = true
 			_suppression_timer = 0.0
 
 ## Update reload state.
 func _update_reload(delta: float) -> void:
-	if not _is_reloading:
-		return
+	if not _is_reloading: return
 	_reload_timer += delta
-	if _reload_timer >= reload_time:
-		_finish_reload()
+	if _reload_timer >= reload_time: _finish_reload()
 
 ## Start reloading the weapon.
 func _start_reload() -> void:
-	# Can't reload if already reloading or no reserve ammo
-	if _is_reloading or _reserve_ammo <= 0:
-		return
-	_is_reloading = true
-	_reload_timer = 0.0
-	reload_started.emit()
+	if _is_reloading or _reserve_ammo <= 0: return
+	_is_reloading = true; _reload_timer = 0.0; reload_started.emit()
 	_log_debug("Reloading... (%d reserve ammo)" % _reserve_ammo)
 
 ## Finish the reload process.
@@ -1145,23 +1112,89 @@ func _finish_reload() -> void:
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
 	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
-	# Can't shoot if reloading
-	if _is_reloading:
-		return false
+	if _is_reloading: return false
 
-	# Can't shoot if no ammo in magazine
 	if _current_ammo <= 0:
-		# Try to start reload if we have reserve ammo
-		if _reserve_ammo > 0:
-			_start_reload()
+		if _reserve_ammo > 0: _start_reload()
 		else:
-			# No ammo at all - emit depleted signal once
 			if not _goap_world_state.get("ammo_depleted", false):
-				_goap_world_state["ammo_depleted"] = true
-				ammo_depleted.emit()
-				_log_debug("All ammunition depleted!")
+				_goap_world_state["ammo_depleted"] = true; ammo_depleted.emit(); _log_debug("All ammunition depleted!")
+				if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active: _activate_machine_gunner_pm_fallback()  # #1033
 		return false
 	return true
+## [#1033] Machine gunner corridor suppression: fire at last-known player passage without revealing player position.
+## Fires a burst with small spread into the corridor/passage where player was last seen.
+func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
+	if bullet_scene == null: return
+	var to_target := (target_pos - global_position).normalized()
+	if to_target == Vector2.ZERO: return
+	# Face toward the corridor
+	if _enemy_model: _enemy_model.global_rotation = to_target.angle()
+	rotation = to_target.angle()
+	var spawn_pos := _get_bullet_spawn_position(to_target)
+	# Small spread (±5°) to simulate suppressive corridor fire
+	var spread := deg_to_rad(randf_range(-5.0, 5.0))
+	var direction := to_target.rotated(spread)
+	if not _is_bullet_spawn_clear(direction): return
+	_spawn_projectile(direction, spawn_pos)
+	_spawn_muzzle_flash(spawn_pos, direction)
+	_spawn_casing(direction, to_target)
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	var _now_mg := Time.get_ticks_msec() / 1000.0
+	if sp and sp.has_method("emit_sound") and _now_mg - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+		_last_gunshot_propagation_time = _now_mg
+	_play_delayed_shell_sound()
+	_shoot_timer = 0.0
+	_current_ammo -= 1; _shot_count += 1
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	_log_to_file("[#1033] MG corridor suppression: fired at passage %s, ammo=%d" % [target_pos, _current_ammo])
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+	elif _current_ammo <= 0 and _reserve_ammo <= 0 and not _machine_gunner_pm_active: _activate_machine_gunner_pm_fallback()
+
+## [#1033] Machine gunner PM fallback: switch to RIFLE-config sidearm and retreat to distant cover.
+func _activate_machine_gunner_pm_fallback() -> void:
+	_machine_gunner_pm_active = true; _machine_gunner_suppressing_corridor = false
+	weapon_type = WeaponType.RIFLE; _configure_weapon_type()
+	magazine_size = 8; total_magazines = 2; _current_ammo = magazine_size; _reserve_ammo = magazine_size
+	_is_reloading = false; _reload_timer = 0.0; _goap_world_state["ammo_depleted"] = false
+	_find_distant_cover_position()  # [#1033] Retreat to DISTANT cover, not closest
+	_log_to_file("[#1033] Machine gunner belts empty — switched to PM, retreating to distant cover"); _transition_to_retreating()
+
+## [#1033] Find cover position far from the player (for machine gunner PM fallback retreat).
+## Prefers positions that are hidden AND far from player, opposite to normal cover scoring.
+func _find_distant_cover_position() -> void:
+	if _player == null: _has_valid_cover = false; return
+	var player_pos := _player.global_position
+	var best_cover: Vector2 = Vector2.ZERO
+	var best_score: float = -INF
+	var found_hidden: bool = false
+	for i in range(COVER_CHECK_COUNT):
+		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
+		var raycast := _cover_raycasts[i]
+		raycast.target_position = Vector2.from_angle(angle) * COVER_CHECK_DISTANCE
+		raycast.force_raycast_update()
+		if not raycast.is_colliding(): continue
+		var cp := raycast.get_collision_point()
+		var cn := raycast.get_collision_normal()
+		var cover_pos := cp + cn * 35.0
+		if not _can_reach_position(cover_pos): continue
+		var is_hidden := not _is_position_visible_from_player(cover_pos)
+		if not is_hidden and found_hidden: continue
+		# Score: prefer FAR positions (invert distance score) + hidden
+		var dist_to_player := cover_pos.distance_to(player_pos)
+		var far_score := dist_to_player / COVER_CHECK_DISTANCE  # Higher = farther from player
+		var hidden_score: float = 10.0 if is_hidden else 0.0
+		var total_score := hidden_score + far_score
+		if is_hidden and not found_hidden: found_hidden = true; best_score = total_score; best_cover = cover_pos
+		elif (is_hidden or not found_hidden) and total_score > best_score: best_score = total_score; best_cover = cover_pos
+	if best_score > 0:
+		_cover_position = best_cover; _has_valid_cover = true
+		_log_to_file("[#1033] Distant cover found at %s (dist_to_player=%.0f)" % [best_cover, best_cover.distance_to(player_pos)])
+	else:
+		_find_cover_position()  # Fallback to normal cover search
 
 ## Process the AI state machine.
 func _process_ai_state(delta: float) -> void:
@@ -1280,6 +1313,10 @@ func _process_ai_state(delta: float) -> void:
 			_transition_to_pursuing()
 			# Don't return - let the state machine continue to process the PURSUING state
 
+	if _teleport_component and _teleport_component.is_ready() and _under_fire and _current_state != AIState.IN_COVER:  # #752: cover-teleport
+		if not _has_valid_cover: _find_cover_position()
+		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
+	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
 	# GRENADE THROW PRIORITY (Issue #363): Check if we should throw a grenade.
 	# Grenades are thrown based on 6 trigger conditions (see trigger-conditions.md).
 	# This takes priority over normal state actions when conditions are met.
@@ -1301,6 +1338,7 @@ func _process_ai_state(delta: float) -> void:
 		AIState.ASSAULT: _process_assault_state(delta)
 		AIState.SEARCHING: _process_searching_state(delta)
 		AIState.EVADING_GRENADE: _process_evading_grenade_state(delta)
+		AIState.PACIFIST: _process_pacifist_state(delta)
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
 		_log_debug("State changed: %s -> %s" % [AIState.keys()[previous_state], AIState.keys()[_current_state]])
@@ -1355,6 +1393,17 @@ func _process_combat_state(delta: float) -> void:
 		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
 			tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed); return
+	# [#1033] Machine gunner: never retreat while belts have ammo — hold position and suppress.
+	# Fire at last-known player position (corridor suppression) regardless of LOS or under-fire status.
+	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
+		var suppress_target := _player.global_position if (_can_see_player and _player != null) else _last_known_player_position
+		if suppress_target != Vector2.ZERO:
+			_machine_gunner_suppressing_corridor = true
+			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
+				_machine_gunner_fire_at_corridor(suppress_target)
+			return  # Hold position; belt depletion triggers PM fallback + retreat
+		_machine_gunner_suppressing_corridor = false
+
 	# Check suppression (ignore during vulnerability pursuit)
 	# RCA-19: Add minimum combat duration before retreating to prevent rapid COMBAT→RETREATING cycling
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
@@ -2362,7 +2411,13 @@ func _return_from_grenade_evasion() -> void:
 		AIState.PURSUING: _transition_to_pursuing()
 		AIState.ASSAULT: _transition_to_assault()
 		AIState.SEARCHING: _transition_to_searching(global_position)
+		AIState.PACIFIST: _transition_to_pacifist(false)
 		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
+func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover (#959)
+	if not _has_valid_cover: _find_cover_position()
+	if not _has_valid_cover: velocity = Vector2.ZERO; return
+	if global_position.distance_to(_cover_position) > 20.0: velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
+	else: velocity = Vector2.ZERO
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
@@ -2709,80 +2764,52 @@ func _transition_to_retreating() -> void:
 
 	# Find cover position for retreating
 	_find_cover_position()
+## Transition to PACIFIST state (Issue #959). @param emit_signal: emit became_pacifist on first transition
+func _transition_to_pacifist(emit_signal: bool = true) -> void:
+	if _pacifist and _pacifist.is_immune: _log_to_file("Cannot become pacifist - immune"); return
+	var was := _pacifist.is_pacifist if _pacifist else false
+	_current_state = AIState.PACIFIST; _has_left_idle = true; velocity = Vector2.ZERO
+	if _pacifist: _pacifist.start_pacifism()
+	_log_to_file("Transitioned to PACIFIST"); if emit_signal and not was: became_pacifist.emit()
+## Make this enemy a pacifist via loudspeaker. Returns true if successful.
+func apply_pacifism(hc: float = 0.5) -> bool:
+	if not _pacifist or _pacifist.is_immune or _pacifist.is_pacifist or not _is_alive: return false
+	_transition_to_pacifist()
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e != self and e.has_method("on_new_pacifist_created") and e.has_method("is_alive") and e.is_alive(): e.on_new_pacifist_created(self, hc)
+	return true
 
-## Check if PLAYER can see ENEMY. Checks center + corners. Issue #969: per-frame cached.
-func _is_visible_from_player() -> bool:
-	if _player == null: return false
-	var current_frame := Engine.get_physics_frames()  # Issue #969: per-frame cache
-	if current_frame == _visible_from_player_cache_frame: return _cached_visible_from_player
-	var is_visible := false
-	for point in _get_enemy_check_points(global_position):
-		if _is_point_visible_from_player(point): is_visible = true; break
-	_cached_visible_from_player = is_visible; _visible_from_player_cache_frame = current_frame
-	return is_visible
+func was_attacked_by_player() -> bool: return _hits_taken_in_encounter > 0 or _in_alarm_mode
+func is_pacifist() -> bool: return _pacifist.is_pacifist if _pacifist else false
+func is_immune_to_pacifism() -> bool: return _pacifist.is_immune if _pacifist else false
+func set_immune_to_pacifism(immune: bool) -> void:
+	if _pacifist: _pacifist.set_immune(immune); if immune: _log_to_file("Enemy immune to pacifism")
+func on_new_pacifist_created(_e: Node2D, _c: float) -> void:
+	if _pacifist and _pacifist.is_pacifist: return
 
-## Get center + 4 corner points on enemy body for visibility testing.
-func _get_enemy_check_points(center: Vector2) -> Array[Vector2]:
-	# Enemy collision radius is 24, sprite is 48x48
-	# Use a slightly smaller radius to avoid edge cases
-	const ENEMY_RADIUS: float = 22.0
+## Alert this enemy that the loudspeaker was used (Issue #959).
+## Per spec: all enemies on the map hear the player when the loudspeaker is activated.
+func alert_from_loudspeaker(sound_position: Vector2) -> void:
+	if not _is_alive: return
+	if _pacifist and _pacifist.is_pacifist: return  # Pacifists already neutralized
+	_last_known_player_position = sound_position
+	if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
+		_transition_to_pursuing()
+	_log_to_file("Alerted by loudspeaker from position %s" % sound_position)
 
-	var points: Array[Vector2] = []
-	points.append(center)  # Center point
-
-	# 4 corner points (diagonal directions)
-	var diagonal_offset := ENEMY_RADIUS * 0.707  # cos(45°) ≈ 0.707
-	points.append(center + Vector2(diagonal_offset, diagonal_offset))
-	points.append(center + Vector2(-diagonal_offset, diagonal_offset))
-	points.append(center + Vector2(diagonal_offset, -diagonal_offset))
-	points.append(center + Vector2(-diagonal_offset, -diagonal_offset))
-
-	return points
-
-## Check if a single point is visible from the player's position.
-func _is_point_visible_from_player(point: Vector2) -> bool:
-	if _player == null:
-		return false
-
-	var player_pos := _player.global_position
-	var distance := player_pos.distance_to(point)
-
-	# Use direct space state to check line of sight from player to point
-	var space_state := get_world_2d().direct_space_state
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = player_pos
-	query.to = point
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = []
-
-	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		# No obstacle between player and point - point is visible
-		return true
-	else:
-		# Check if we hit an obstacle before reaching the point
-		var hit_position: Vector2 = result["position"]
-		var distance_to_hit := player_pos.distance_to(hit_position)
-
-		# If we hit something closer than the point, the point is hidden
-		if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
-			return false
-		else:
-			return true
-
-## Check if enemy at position would be visible to player. Used to validate cover positions.
-func _is_position_visible_from_player(pos: Vector2) -> bool:
-	if _player == null:
-		return true  # Assume visible if no player
-
-	# Check visibility for all enemy body points at the given position
-	var check_points := _get_enemy_check_points(pos)
-
-	for point in check_points:
-		if _is_point_visible_from_player(point):
-			return true
-
+func _is_visible_from_player() -> bool:  ## PLAYER can see ENEMY (checks center + corners)
+	return _is_position_visible_from_player(global_position) if _player else false
+func _get_enemy_check_points(c: Vector2) -> Array[Vector2]:  ## center + 4 corners for visibility
+	var d := 22.0 * 0.707; return [c, c + Vector2(d, d), c + Vector2(-d, d), c + Vector2(d, -d), c + Vector2(-d, -d)]
+func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Single point visible from player
+	if not _player: return false
+	var q := PhysicsRayQueryParameters2D.new(); q.from = _player.global_position; q.to = pt; q.collision_mask = 4
+	var r := get_world_2d().direct_space_state.intersect_ray(q)
+	return r.is_empty() or _player.global_position.distance_to(r["position"]) >= _player.global_position.distance_to(pt) - 10.0
+func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player
+	if not _player: return true
+	for pt in _get_enemy_check_points(pos):
+		if _is_point_visible_from_player(pt): return true
 	return false
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
@@ -3855,6 +3882,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
+		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0
@@ -4143,6 +4171,11 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0) -> void:
 	if not _is_alive:
 		return
+	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
+
+	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
+	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation).dot(-hit_direction.normalized()) >= 0.9659 and randf() < 0.30:
+		_log_to_file("[#1033] Machine gunner front-arc hit ignored"); hit.emit(); _show_hit_flash(); return
 
 	hit.emit()
 
@@ -4176,6 +4209,12 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
+		# Issue #959: Pacifist retaliation - temporarily attack the attacker
+		if _pacifist and _pacifist.is_pacifist and _current_state == AIState.PACIFIST:
+			_pacifist.start_retaliation(_player)
+			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
+			_log_to_file("[#959] Pacifist hit - retaliating"); _transition_to_combat(); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
 		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
@@ -4570,38 +4609,20 @@ func _draw() -> void:
 	if not debug_label_enabled:
 		return
 
-	# Colors for different debug elements
-	var color_to_cover := Color.CYAN  # Line to cover position
-	var color_to_player := Color.RED  # Line to player (when visible)
-	var color_clear_shot := Color.YELLOW  # Line to clear shot target
-	var color_pursuit := Color.ORANGE  # Line to pursuit cover
-	var color_flank := Color.MAGENTA  # Line to flank position
-	var color_bullet_spawn := Color.GREEN  # Bullet spawn point indicator
-	var color_blocked := Color.RED  # Blocked path indicator
-
-	# Draw FOV cone in debug mode - always visible to show FOV configuration
-	# Color indicates whether FOV is actually active (green) or just visualization (gray)
+	var color_to_cover := Color.CYAN; var color_to_player := Color.RED
+	var color_clear_shot := Color.YELLOW; var color_pursuit := Color.ORANGE
+	var color_flank := Color.MAGENTA; var color_bullet_spawn := Color.GREEN; var color_blocked := Color.RED
+	# FOV cone: green=active, gray=disabled
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	var global_fov_enabled := false
 	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
 		global_fov_enabled = experimental_settings.is_fov_enabled()
-
-	# Determine if FOV is actually active for this enemy
 	var fov_active := global_fov_enabled and fov_enabled and fov_angle > 0.0
-
-	# Choose color based on whether FOV is active
-	# Green = FOV is active (100 degree vision)
-	# Gray = FOV is disabled (360 degree vision, but showing what the cone would be)
-	var color_fov: Color
-	var color_fov_edge: Color
+	var color_fov: Color; var color_fov_edge: Color
 	if fov_active:
-		color_fov = Color(0.2, 0.8, 0.2, 0.3)  # Semi-transparent green (active)
-		color_fov_edge = Color(0.2, 0.8, 0.2, 0.8)  # Bright green edge (active)
+		color_fov = Color(0.2, 0.8, 0.2, 0.3); color_fov_edge = Color(0.2, 0.8, 0.2, 0.8)
 	else:
-		color_fov = Color(0.5, 0.5, 0.5, 0.2)  # Semi-transparent gray (inactive)
-		color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)  # Gray edge (inactive)
-
-	# Always draw FOV cone in debug mode (if fov_angle is set)
+		color_fov = Color(0.5, 0.5, 0.5, 0.2); color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)
 	if fov_angle > 0.0:
 		_draw_fov_cone(color_fov, color_fov_edge)
 
@@ -4732,40 +4753,20 @@ func _is_player_distracted() -> bool:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
 
-## Set a navigation target and get the direction to follow the path.
-## Uses NavigationAgent2D for proper pathfinding around obstacles.
-## Returns the direction to move, or Vector2.ZERO if navigation is not available.
+## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
-	if _nav_agent == null:
-		# Fall back to direct movement if no navigation agent
-		return (target_pos - global_position).normalized()
-
-	# Set the target for navigation
+	if _nav_agent == null: return (target_pos - global_position).normalized()
 	_nav_agent.target_position = target_pos
+	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
+	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
-	# Check if navigation is finished
-	if _nav_agent.is_navigation_finished():
-		return Vector2.ZERO
-
-	# Get the next position in the path
-	var next_pos: Vector2 = _nav_agent.get_next_path_position()
-
-	# Calculate direction to next path position
-	var direction: Vector2 = (next_pos - global_position).normalized()
-	return direction
-
-## Move toward a target position using NavigationAgent2D pathfinding.
-## Primary navigation movement. Returns true if movement applied, false if target reached or nav unavailable.
+## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
-
 	if direction == Vector2.ZERO:
 		velocity = Vector2.ZERO
 		return false
-
-	# Apply additional wall avoidance on top of navigation path for tight corners
 	direction = _apply_wall_avoidance(direction)
-
 	velocity = direction * speed
 	rotation = direction.angle()
 	return true

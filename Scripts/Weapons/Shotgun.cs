@@ -1403,6 +1403,15 @@ public partial class Shotgun : BaseWeapon
         PlayShellLoadSound();
         EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
         LogToFile($"[Shotgun.FIX#243] Shell LOADED - {ShellsInTube}/{TubeMagazineCapacity} shells in tube");
+
+        // Issue #1025: Transition to WaitingToClose when tube is full so the tutorial
+        // hint advances from "load shells" [СКМ+ПКМ↓] to "close bolt" [ПКМ↓].
+        if (ShellsInTube >= TubeMagazineCapacity)
+        {
+            ReloadState = ShotgunReloadState.WaitingToClose;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+            LogToFile($"[Shotgun.FIX#1025] Tube full after loading - transitioning to WaitingToClose");
+        }
     }
 
     /// <summary>
