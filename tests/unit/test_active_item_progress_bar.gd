@@ -373,3 +373,247 @@ func test_teleport_bracers_cannot_go_negative() -> void:
 	var result := bracers.use_charge()
 	assert_false(result, "Should not use charge when empty")
 	assert_eq(bracers.bar_current, 0.0, "Bar should remain at 0")
+
+
+# ============================================================================
+# Combined Mode Tests (Issue #974 - Charge + Timer Display)
+# ============================================================================
+
+
+class MockCombinedProgressBar:
+	## Display modes
+	enum DisplayMode {
+		SEGMENTED,
+		CONTINUOUS,
+		COMBINED
+	}
+
+	## Current display mode
+	var display_mode: int = DisplayMode.SEGMENTED
+
+	## Segmented mode values
+	var current_value: float = 0.0
+	var max_value: float = 1.0
+
+	## Combined mode values
+	var charge_value: int = 0
+	var charge_max: int = 1
+	var timer_value: float = 0.0
+	var timer_max: float = 1.0
+
+	## Visibility
+	var is_visible: bool = false
+
+	## Tracking
+	var redraw_count: int = 0
+
+	func show_bar(mode: int, current: float, maximum: float) -> void:
+		display_mode = mode
+		current_value = current
+		max_value = maxf(maximum, 0.001)
+		is_visible = true
+		redraw_count += 1
+
+	func show_combined_bar(charges_current: int, charges_maximum: int, time_remaining: float, time_maximum: float) -> void:
+		display_mode = DisplayMode.COMBINED
+		charge_value = charges_current
+		charge_max = maxi(charges_maximum, 1)
+		timer_value = time_remaining
+		timer_max = maxf(time_maximum, 0.001)
+		is_visible = true
+		redraw_count += 1
+
+	func update_timer(time_remaining: float) -> void:
+		timer_value = time_remaining
+		if is_visible:
+			redraw_count += 1
+
+	func update_charges(charges_current: int) -> void:
+		charge_value = charges_current
+		if is_visible:
+			redraw_count += 1
+
+	func hide_bar() -> void:
+		is_visible = false
+		redraw_count += 1
+
+	func get_charge_percent() -> float:
+		if charge_max <= 0:
+			return 0.0
+		return clampf(float(charge_value) / float(charge_max), 0.0, 1.0)
+
+	func get_timer_percent() -> float:
+		if timer_max <= 0.0:
+			return 0.0
+		return clampf(timer_value / timer_max, 0.0, 1.0)
+
+
+var combined_bar: MockCombinedProgressBar
+
+
+func test_combined_mode_initial_state() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 1.2, 1.2)
+	assert_true(combined_bar.is_visible, "Combined bar should be visible")
+	assert_eq(combined_bar.display_mode, MockCombinedProgressBar.DisplayMode.COMBINED,
+		"Display mode should be COMBINED")
+
+
+func test_combined_mode_charge_values() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 1.2, 1.2)
+	assert_eq(combined_bar.charge_value, 2, "Charge value should be 2")
+	assert_eq(combined_bar.charge_max, 2, "Charge max should be 2")
+
+
+func test_combined_mode_timer_values() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 1.2, 1.2)
+	assert_almost_eq(combined_bar.timer_value, 1.2, 0.01, "Timer value should be 1.2")
+	assert_almost_eq(combined_bar.timer_max, 1.2, 0.01, "Timer max should be 1.2")
+
+
+func test_combined_mode_timer_update() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 1.2, 1.2)
+	var initial_redraws := combined_bar.redraw_count
+	combined_bar.update_timer(0.6)
+	assert_almost_eq(combined_bar.timer_value, 0.6, 0.01, "Timer should update to 0.6")
+	assert_eq(combined_bar.redraw_count, initial_redraws + 1, "Should trigger redraw on timer update")
+
+
+func test_combined_mode_charge_update() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 1.2, 1.2)
+	combined_bar.update_charges(1)
+	assert_eq(combined_bar.charge_value, 1, "Charges should update to 1")
+
+
+func test_combined_mode_charge_percent_full() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 1.2, 1.2)
+	assert_almost_eq(combined_bar.get_charge_percent(), 1.0, 0.001,
+		"Charge percent should be 100%% with 2/2 charges")
+
+
+func test_combined_mode_charge_percent_half() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(1, 2, 1.2, 1.2)
+	assert_almost_eq(combined_bar.get_charge_percent(), 0.5, 0.001,
+		"Charge percent should be 50%% with 1/2 charges")
+
+
+func test_combined_mode_charge_percent_empty() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(0, 2, 1.2, 1.2)
+	assert_almost_eq(combined_bar.get_charge_percent(), 0.0, 0.001,
+		"Charge percent should be 0%% with 0/2 charges")
+
+
+func test_combined_mode_timer_percent_full() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 10.0, 10.0)
+	assert_almost_eq(combined_bar.get_timer_percent(), 1.0, 0.001,
+		"Timer percent should be 100%% at start")
+
+
+func test_combined_mode_timer_percent_decreasing() -> void:
+	combined_bar = MockCombinedProgressBar.new()
+	combined_bar.show_combined_bar(2, 2, 10.0, 10.0)
+	combined_bar.update_timer(5.0)
+	assert_almost_eq(combined_bar.get_timer_percent(), 0.5, 0.001,
+		"Timer percent should be 50%% at half time")
+	combined_bar.update_timer(0.0)
+	assert_almost_eq(combined_bar.get_timer_percent(), 0.0, 0.001,
+		"Timer percent should be 0%% when expired")
+
+
+# ============================================================================
+# Homing Bullets Combined Bar Tests (Issue #974)
+# ============================================================================
+
+
+class MockHomingBulletsWithCombinedBar:
+	## Simulates homing bullets with combined charge+timer progress bar.
+	const MAX_CHARGES: int = 2
+	const DURATION: float = 1.2
+
+	var charges: int = MAX_CHARGES
+	var is_active: bool = false
+	var timer: float = 0.0
+
+	var bar: MockCombinedProgressBar = null
+
+	func _init() -> void:
+		bar = MockCombinedProgressBar.new()
+
+	func activate() -> bool:
+		if charges <= 0 or is_active:
+			return false
+		charges -= 1
+		is_active = true
+		timer = DURATION
+		# Show combined bar with charge pips AND timer (Issue #974)
+		bar.show_combined_bar(charges, MAX_CHARGES, DURATION, DURATION)
+		return true
+
+	func update(delta: float) -> void:
+		if is_active:
+			timer -= delta
+			bar.update_timer(timer)
+			if timer <= 0.0:
+				deactivate()
+
+	func deactivate() -> void:
+		is_active = false
+		timer = 0.0
+		# Show charge bar briefly
+		bar.show_bar(MockCombinedProgressBar.DisplayMode.SEGMENTED, float(charges), float(MAX_CHARGES))
+
+
+func test_homing_combined_bar_on_activation() -> void:
+	var homing := MockHomingBulletsWithCombinedBar.new()
+	homing.activate()
+	assert_eq(homing.bar.display_mode, MockCombinedProgressBar.DisplayMode.COMBINED,
+		"Should show combined bar on activation")
+	assert_eq(homing.bar.charge_value, 1, "Should show 1 charge remaining after activation")
+	assert_almost_eq(homing.bar.timer_value, 1.2, 0.01, "Should show full timer on activation")
+
+
+func test_homing_combined_bar_timer_depletes() -> void:
+	var homing := MockHomingBulletsWithCombinedBar.new()
+	homing.activate()
+	homing.update(0.6)
+	assert_almost_eq(homing.bar.timer_value, 0.6, 0.01, "Timer should deplete to 0.6")
+
+
+func test_homing_combined_bar_shows_charges_after_deactivation() -> void:
+	var homing := MockHomingBulletsWithCombinedBar.new()
+	homing.activate()
+	homing.update(1.5)  # Timer expires
+	assert_eq(homing.bar.display_mode, MockCombinedProgressBar.DisplayMode.SEGMENTED,
+		"Should switch to segmented mode after deactivation")
+
+
+func test_homing_combined_bar_both_activations() -> void:
+	var homing := MockHomingBulletsWithCombinedBar.new()
+	# First activation
+	homing.activate()
+	assert_eq(homing.bar.charge_value, 1, "First activation: 1 charge remaining")
+	homing.update(1.5)
+	# Second activation
+	homing.activate()
+	assert_eq(homing.bar.charge_value, 0, "Second activation: 0 charges remaining")
+	assert_eq(homing.bar.display_mode, MockCombinedProgressBar.DisplayMode.COMBINED,
+		"Should show combined bar on second activation")
+
+
+func test_homing_cannot_activate_when_empty() -> void:
+	var homing := MockHomingBulletsWithCombinedBar.new()
+	homing.activate()
+	homing.update(1.5)
+	homing.activate()
+	homing.update(1.5)
+	var result := homing.activate()
+	assert_false(result, "Should not activate when charges empty")
+	assert_eq(homing.charges, 0, "Charges should remain at 0")

@@ -290,6 +290,27 @@ autowrap_mode = 2
 [node name="HSeparator12" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="AllMapsUnlockedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AllMapsUnlockedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unlock All Maps"
+
+[node name="AllMapsUnlockedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer"]
+layout_mode = 2
+
+[node name="AllMapsUnlockedDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, all levels are accessible without
+completing previous levels. Disabled by default."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

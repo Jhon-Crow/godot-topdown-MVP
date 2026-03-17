@@ -1,9 +1,10 @@
 extends Node2D
-## Beach level scene (Issue #579).
+## Factory level scene (Issue #1037).
 ##
-## Open outdoor beach environment with scattered cover (rocks, huts, barrels).
-## Features machete-wielding melee enemies alongside ranged enemies.
-## Beach layout: ~2400x2000 pixels with water boundaries on top and right.
+## A building-style map with interconnected rooms and corridors, placed after
+## the Docks level. Features 13 enemies distributed across rooms (at most 2 per
+## room) with 4-6 HP each. No special force-field enemy types.
+## Map layout: ~2400x2000 pixels.
 
 var _enemy_count_label: Label = null
 var _ammo_label: Label = null
@@ -25,9 +26,6 @@ const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
 var _replay_manager: Node = null
 
-## Weapon hints component instance (Issue #809).
-var _weapon_hints_component: Node = null
-
 
 func _get_or_create_replay_manager() -> Node:
 	if _replay_manager != null and is_instance_valid(_replay_manager):
@@ -40,14 +38,15 @@ func _get_or_create_replay_manager() -> Node:
 
 
 func _ready() -> void:
-	print("BeachLevel loaded - Outdoor Beach Combat")
-	print("Beach size: ~2400x2000 pixels")
+	print("FactoryLevel loaded - Building Style (Issue #1037)")
+	print("Factory size: ~2400x2000 pixels")
 	print("Clear all enemies to win!")
 	_setup_navigation()
 	_setup_enemy_tracking()
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -56,9 +55,6 @@ func _ready() -> void:
 	_initialize_score_manager()
 	_setup_exit_zone()
 	_start_replay_recording()
-
-	# Setup weapon hints (Issue #809)
-	_setup_weapon_hints()
 
 
 func _initialize_score_manager() -> void:
@@ -84,7 +80,7 @@ func _setup_exit_zone() -> void:
 		push_warning("ExitZone scene not found")
 		return
 	_exit_zone = exit_zone_scene.instantiate()
-	_exit_zone.position = Vector2(120, 1800)
+	_exit_zone.position = Vector2(120, 1000)
 	_exit_zone.zone_width = 60.0; _exit_zone.zone_height = 100.0
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 	var environment := get_node_or_null("Environment")
@@ -110,33 +106,6 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.name = "RealisticVisibilityComponent"
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
-
-
-## Setup weapon hints component (Issue #809).
-## Shows weapon-specific tutorial hints when player uses a new weapon.
-func _setup_weapon_hints() -> void:
-	if _player == null:
-		return
-
-	var ui: Control = get_node_or_null("CanvasLayer/UI")
-	if ui == null:
-		push_warning("[BeachLevel] UI node not found for weapon hints")
-		return
-
-	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
-	if hints_script == null:
-		push_warning("[BeachLevel] WeaponHintsComponent script not found")
-		return
-
-	_weapon_hints_component = Node.new()
-	_weapon_hints_component.name = "WeaponHintsComponent"
-	_weapon_hints_component.set_script(hints_script)
-	add_child(_weapon_hints_component)
-
-	# Setup the component with player and UI references
-	if _weapon_hints_component.has_method("setup"):
-		_weapon_hints_component.setup(_player, ui)
-		print("[BeachLevel] Weapon hints component added and setup")
 
 
 func _process(_delta: float) -> void:
@@ -173,78 +142,66 @@ func _setup_navigation() -> void:
 		nav_region.bake_navigation_polygon(false)
 
 
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		return
+	camera.limit_left = -10000000
+	camera.limit_top = -10000000
+	camera.limit_right = 10000000
+	camera.limit_bottom = 10000000
+	print("Camera configured: limits removed")
+
+
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		push_warning("Player node not found")
 		return
 
-	# Setup realistic visibility component
 	_setup_realistic_visibility()
-
-	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()
 
-	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
 
-	# Find the ammo label
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
-	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Try to get the player's weapon for C# Player
 	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AKGL")
-	if weapon == null:
-		weapon = _player.get_node_or_null("Revolver")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MakarovPM")
+	if weapon == null: weapon = _player.get_node_or_null("MiniUzi")
+	if weapon == null: weapon = _player.get_node_or_null("SilencedPistol")
+	if weapon == null: weapon = _player.get_node_or_null("SniperRifle")
+	if weapon == null: weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon == null: weapon = _player.get_node_or_null("AKGL")
+	if weapon == null: weapon = _player.get_node_or_null("Revolver")
+	if weapon == null: weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
-		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		if weapon.has_signal("MagazinesChanged"):
 			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
-		# Connect to ShellCountChanged for shotgun
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
-		# Configure silenced pistol ammo based on enemy count
-		_configure_silenced_pistol_ammo(weapon)
-		# Configure 2.5x ammo for MakarovPM (Issue #636)
-		_configure_makarov_pm_ammo(weapon)
 	else:
-		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
-		# Initial ammo display
 		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
 			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
 
-	# Connect reload/ammo depleted signals for enemy aggression behavior
 	if _player.has_signal("ReloadStarted"):
 		_player.ReloadStarted.connect(_on_player_reload_started)
 	elif _player.has_signal("reload_started"):
@@ -261,56 +218,12 @@ func _setup_player_tracking() -> void:
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
-## Configure silenced pistol ammo based on enemy count.
-func _configure_silenced_pistol_ammo(weapon: Node) -> void:
-	if weapon.name != "SilencedPistol":
-		return
-
-	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
-
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
-
-
-## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
-## Applies to all difficulty modes including Hard.
-func _configure_makarov_pm_ammo(weapon: Node) -> void:
-	if weapon == null:
-		return
-
-	if weapon.name != "MakarovPM":
-		return
-
-	var starting_magazines: int = 4
-	if weapon.get("StartingMagazineCount") != null:
-		starting_magazines = weapon.StartingMagazineCount
-
-	var pm_magazines: int = int(round(starting_magazines * 2.5))
-
-	if weapon.has_method("ReinitializeMagazines"):
-		weapon.ReinitializeMagazines(pm_magazines, true)
-		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
-
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
-
-
-## Called when player ammo changes (GDScript Player).
 func _on_player_ammo_changed(current: int, maximum: int) -> void:
 	_update_ammo_label(current, maximum)
 	if GameManager:
 		GameManager.register_shot()
 
 
-## Called when weapon ammo changes (C# Player).
 func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 	_update_ammo_label_magazine(current_ammo, reserve_ammo)
 	if current_ammo <= 0 and reserve_ammo <= 0:
@@ -318,18 +231,15 @@ func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 			_show_game_over_message()
 
 
-## Called when magazine inventory changes (C# Player).
 func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
 	_update_magazines_label(magazine_ammo_counts)
 
 
-## Called when a shot is fired (from C# weapon).
 func _on_shot_fired() -> void:
 	if GameManager:
 		GameManager.register_shot()
 
 
-## Called when shotgun shell count changes.
 func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 	var reserve_ammo: int = 0
 	if _player:
@@ -339,21 +249,18 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 	_update_ammo_label_magazine(shell_count, reserve_ammo)
 
 
-## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
 	_broadcast_player_ammo_empty(true)
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
 			sound_propagation.emit_player_empty_click(_player.global_position, _player)
-
 	if _player and _player.has_method("get_current_ammo"):
 		var current_ammo: int = _player.get_current_ammo()
 		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
 			_show_game_over_message()
 
 
-## Called when player starts reloading.
 func _on_player_reload_started() -> void:
 	_broadcast_player_reloading(true)
 	if _player:
@@ -362,35 +269,29 @@ func _on_player_reload_started() -> void:
 			sound_propagation.emit_player_reload(_player.global_position, _player)
 
 
-## Called when player finishes reloading.
 func _on_player_reload_completed() -> void:
 	_broadcast_player_reloading(false)
 	_broadcast_player_ammo_empty(false)
 
 
-## Broadcast player reloading state to all enemies.
 func _broadcast_player_reloading(is_reloading: bool) -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
 		return
-
 	for enemy in enemies_node.get_children():
 		if enemy.has_method("set_player_reloading"):
 			enemy.set_player_reloading(is_reloading)
 
 
-## Broadcast player ammo empty state to all enemies.
 func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
 		return
-
 	for enemy in enemies_node.get_children():
 		if enemy.has_method("set_player_ammo_empty"):
 			enemy.set_player_ammo_empty(is_empty)
 
 
-## Called when player dies.
 func _on_player_died() -> void:
 	_show_death_message()
 	if GameManager:
@@ -408,15 +309,11 @@ func _setup_enemy_tracking() -> void:
 	_enemies.clear()
 	for child in enemies_node.get_children():
 		var has_died_signal := child.has_signal("died")
-		var script_attached := child.get_script() != null
-		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
 		if has_died_signal:
 			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
-			# Connect to died_with_info for score tracking if available
 			if child.has_signal("died_with_info"):
 				child.died_with_info.connect(_on_enemy_died_with_info)
-		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
 
@@ -429,7 +326,6 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null: return
 
-	# Create kills label
 	_kills_label = Label.new()
 	_kills_label.name = "KillsLabel"
 	_kills_label.text = "Kills: 0"
@@ -440,7 +336,6 @@ func _setup_debug_ui() -> void:
 	_kills_label.offset_bottom = 75
 	ui.add_child(_kills_label)
 
-	# Create accuracy label
 	_accuracy_label = Label.new()
 	_accuracy_label.name = "AccuracyLabel"
 	_accuracy_label.text = "Accuracy: 0%"
@@ -451,7 +346,6 @@ func _setup_debug_ui() -> void:
 	_accuracy_label.offset_bottom = 105
 	ui.add_child(_accuracy_label)
 
-	# Create magazines label
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
 	_magazines_label.text = "MAGS: -"
@@ -462,7 +356,6 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
-	# Create combo label
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
@@ -496,7 +389,6 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	# Register kill with GameManager
 	if GameManager:
 		GameManager.register_kill()
 
@@ -505,14 +397,12 @@ func _on_enemy_died() -> void:
 		call_deferred("_activate_exit_zone")
 
 
-## Called when an enemy dies with special kill information.
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
 
 
-## Called when an enemy is hit (for accuracy tracking).
 func _on_enemy_hit() -> void:
 	if GameManager:
 		GameManager.register_hit()
@@ -522,14 +412,11 @@ func _complete_level_with_score() -> void:
 	if _level_completed: return
 	_level_completed = true
 
-	# Disable player controls immediately
 	_disable_player_controls()
 
-	# Deactivate exit zone to prevent further triggers
 	if _exit_zone and _exit_zone.has_method("deactivate"):
 		_exit_zone.deactivate()
 
-	# Stop replay recording
 	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager and replay_manager.has_method("StopRecording"):
 		replay_manager.StopRecording()
@@ -542,7 +429,6 @@ func _complete_level_with_score() -> void:
 		_show_victory_message()
 
 
-## Show the animated score screen.
 func _show_score_screen(score_data: Dictionary) -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
@@ -559,12 +445,10 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		_show_fallback_score_screen(ui, score_data)
 
 
-## Called when the animated score screen finishes all animations.
 func _on_score_animation_completed(container: VBoxContainer) -> void:
 	_add_score_screen_buttons(container)
 
 
-## Fallback score screen if animated component is not available.
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
 	var _font_loaded := gothic_font != null
@@ -587,7 +471,7 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	ui.add_child(container)
 
 	var title_label := Label.new()
-	title_label.text = "LEVEL CLEARED!"
+	title_label.text = "FACTORY CLEARED!"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 42)
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
@@ -631,21 +515,16 @@ func _update_enemy_count_label() -> void:
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
-
 	if _kills_label:
 		_kills_label.text = "Kills: %d" % GameManager.kills
-
 	if _accuracy_label:
 		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
 
 
-## Update the ammo label with color coding (simple format for GDScript Player).
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
-
 	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
-
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current <= 10:
@@ -654,13 +533,10 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 
 
-## Update the ammo label with magazine format (for C# Player with weapon).
 func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
-
 	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
-
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current_mag <= 10:
@@ -669,22 +545,16 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 
 
-## Update the magazines label showing individual magazine ammo counts.
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-
 	var weapon = null
 	if _player:
 		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AKGL")
-		if weapon == null:
-			weapon = _player.get_node_or_null("Revolver")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
+		if weapon == null: weapon = _player.get_node_or_null("AssaultRifle")
+		if weapon == null: weapon = _player.get_node_or_null("AKGL")
+		if weapon == null: weapon = _player.get_node_or_null("Revolver")
+		if weapon == null: weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
@@ -703,21 +573,16 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 			parts.append("[%d]" % ammo)
 		else:
 			parts.append("%d" % ammo)
-
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
-## Show death message when player dies.
 func _show_death_message() -> void:
 	if _game_over_shown:
 		return
-
 	_game_over_shown = true
-
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
-
 	var death_label := Label.new()
 	death_label.name = "DeathLabel"
 	death_label.text = "YOU DIED"
@@ -725,24 +590,19 @@ func _show_death_message() -> void:
 	death_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	death_label.add_theme_font_size_override("font_size", 64)
 	death_label.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15, 1.0))
-
 	death_label.set_anchors_preset(Control.PRESET_CENTER)
 	death_label.offset_left = -200
 	death_label.offset_right = 200
 	death_label.offset_top = -50
 	death_label.offset_bottom = 50
-
 	ui.add_child(death_label)
 
 
-## Show game over message when player runs out of ammo with enemies remaining.
 func _show_game_over_message() -> void:
 	_game_over_shown = true
-
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
-
 	var game_over_label := Label.new()
 	game_over_label.name = "GameOverLabel"
 	game_over_label.text = "OUT OF AMMO\n%d enemies remaining" % _current_enemy_count
@@ -750,36 +610,30 @@ func _show_game_over_message() -> void:
 	game_over_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	game_over_label.add_theme_font_size_override("font_size", 48)
 	game_over_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
-
 	game_over_label.set_anchors_preset(Control.PRESET_CENTER)
 	game_over_label.offset_left = -250
 	game_over_label.offset_right = 250
 	game_over_label.offset_top = -75
 	game_over_label.offset_bottom = 75
-
 	ui.add_child(game_over_label)
 
 
-## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
-
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
-	victory_label.text = "BEACH CLEARED!"
+	victory_label.text = "FACTORY CLEARED!"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
 	victory_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
-
 	victory_label.set_anchors_preset(Control.PRESET_CENTER)
 	victory_label.offset_left = -200
 	victory_label.offset_right = 200
 	victory_label.offset_top = -50
 	victory_label.offset_bottom = 50
-
 	ui.add_child(victory_label)
 
 	var stats_label := Label.new()
@@ -792,17 +646,14 @@ func _show_victory_message() -> void:
 	stats_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	stats_label.add_theme_font_size_override("font_size", 24)
 	stats_label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.8, 1.0))
-
 	stats_label.set_anchors_preset(Control.PRESET_CENTER)
 	stats_label.offset_left = -200
 	stats_label.offset_right = 200
 	stats_label.offset_top = 50
 	stats_label.offset_bottom = 100
-
 	ui.add_child(stats_label)
 
 
-## Adds Restart, Next Level, Level Select, and Watch Replay buttons to a score screen container.
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
 
@@ -816,7 +667,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Next Level button
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":
 		var next_button := Button.new()
@@ -827,7 +677,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
 		buttons_container.add_child(next_button)
 
-	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
@@ -836,7 +685,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
-	# Level Select button
 	var level_select_button := Button.new()
 	level_select_button.name = "LevelSelectButton"
 	level_select_button.text = "☰ Level Select"
@@ -845,32 +693,24 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
+	var replay_button := Button.new()
+	replay_button.name = "ReplayButton"
+	replay_button.text = "▶ Watch Replay (W)"
+	replay_button.custom_minimum_size = Vector2(200, 40)
+	replay_button.add_theme_font_size_override("font_size", 18)
 
-	if replay_enabled:
-		var replay_button := Button.new()
-		replay_button.name = "ReplayButton"
-		replay_button.text = "▶ Watch Replay (W)"
-		replay_button.custom_minimum_size = Vector2(200, 40)
-		replay_button.add_theme_font_size_override("font_size", 18)
+	var replay_manager: Node = _get_or_create_replay_manager()
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
 
-		var replay_manager: Node = _get_or_create_replay_manager()
-		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
-
-		if has_replay_data:
-			replay_button.pressed.connect(_on_watch_replay_pressed)
-		else:
-			replay_button.disabled = true
-			replay_button.text = "▶ Watch Replay (W) - no data"
-			replay_button.tooltip_text = "Replay recording was not available for this session"
-
-		buttons_container.add_child(replay_button)
+	if has_replay_data:
+		replay_button.pressed.connect(_on_watch_replay_pressed)
 	else:
-		_log_to_file("Watch Replay button not shown (replay viewing disabled in experimental settings)")
+		replay_button.disabled = true
+		replay_button.text = "▶ Watch Replay (W) - no data"
+		replay_button.tooltip_text = "Replay recording was not available for this session"
 
-	# Armory button (Issue #897: shown highlighted when items are available to unlock)
+	buttons_container.add_child(replay_button)
+
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 	if unlock_manager != null and unlock_manager.has_method("has_any_available_unlock") and unlock_manager.has_any_available_unlock():
 		var armory_button := Button.new()
@@ -894,7 +734,6 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		armory_button.pressed.connect(_on_armory_button_pressed)
 		buttons_container.add_child(armory_button)
 
-	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 	if next_level_path != "":
@@ -903,30 +742,21 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		restart_button.grab_focus()
 
 
-## Get the color for a given rank.
 func _get_rank_color(rank: String) -> Color:
 	match rank:
-		"S":
-			return Color(1.0, 0.84, 0.0, 1.0)
-		"A+":
-			return Color(0.0, 1.0, 0.5, 1.0)
-		"A":
-			return Color(0.2, 0.8, 0.2, 1.0)
-		"B":
-			return Color(0.3, 0.7, 1.0, 1.0)
-		"C":
-			return Color(1.0, 1.0, 1.0, 1.0)
-		"D":
-			return Color(1.0, 0.6, 0.2, 1.0)
-		"F":
-			return Color(1.0, 0.2, 0.2, 1.0)
-		_:
-			return Color(1.0, 1.0, 1.0, 1.0)
+		"S": return Color(1.0, 0.84, 0.0, 1.0)
+		"A+": return Color(0.0, 1.0, 0.5, 1.0)
+		"A": return Color(0.2, 0.8, 0.2, 1.0)
+		"B": return Color(0.3, 0.7, 1.0, 1.0)
+		"C": return Color(1.0, 1.0, 1.0, 1.0)
+		"D": return Color(1.0, 0.6, 0.2, 1.0)
+		"F": return Color(1.0, 0.2, 0.2, 1.0)
+		_: return Color(1.0, 1.0, 1.0, 1.0)
 
 
-## Get the next level path for level progression.
+## Get the next level path based on the level ordering from LevelsMenu.
+## Returns empty string if this is the last level or level not found.
 func _get_next_level_path() -> String:
-	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -947,17 +777,14 @@ func _get_next_level_path() -> String:
 	return ""
 
 
-## Handle W key shortcut for Watch Replay when score is shown.
 func _unhandled_input(event: InputEvent) -> void:
 	if not _score_shown:
 		return
-
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_W:
 			_on_watch_replay_pressed()
 
 
-## Called when the Watch Replay button is pressed (or W key).
 func _on_watch_replay_pressed() -> void:
 	_log_to_file("Watch Replay triggered")
 	var replay_manager: Node = _get_or_create_replay_manager()
@@ -968,7 +795,6 @@ func _on_watch_replay_pressed() -> void:
 		_log_to_file("Watch Replay: no replay data available")
 
 
-## Called when the Restart button is pressed.
 func _on_restart_pressed() -> void:
 	_log_to_file("Restart button pressed")
 	if GameManager:
@@ -977,7 +803,6 @@ func _on_restart_pressed() -> void:
 		get_tree().reload_current_scene()
 
 
-## Called when the Next Level button is pressed.
 func _on_next_level_pressed(level_path: String) -> void:
 	_log_to_file("Next Level button pressed: %s" % level_path)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
@@ -987,7 +812,6 @@ func _on_next_level_pressed(level_path: String) -> void:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
-## Called when the Level Select button is pressed.
 func _on_level_select_pressed() -> void:
 	_log_to_file("Level Select button pressed")
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
@@ -1002,14 +826,12 @@ func _on_level_select_pressed() -> void:
 		_log_to_file("ERROR: Could not load levels menu script")
 
 
-## Called when the Armory button is pressed on the score screen (Issue #897).
 func _on_armory_button_pressed() -> void:
 	_log_to_file("Armory button pressed from score screen")
 	var armory_menu_scene = load("res://scenes/ui/ArmoryMenu.tscn")
 	if armory_menu_scene:
 		var armory_menu = armory_menu_scene.instantiate()
 		armory_menu.layer = 100
-		# Issue #1006: Mark as opened from score screen to prevent level restart on Apply
 		armory_menu.opened_from_score_screen = true
 		get_tree().root.add_child(armory_menu)
 		armory_menu.back_pressed.connect(func(): armory_menu.queue_free())
@@ -1017,7 +839,6 @@ func _on_armory_button_pressed() -> void:
 		_log_to_file("ERROR: Could not load armory menu scene")
 
 
-## Setup the weapon based on GameManager's selected weapon.
 func _setup_selected_weapon() -> void:
 	if _player == null:
 		return
@@ -1028,7 +849,6 @@ func _setup_selected_weapon() -> void:
 
 	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
 
-	# Check if C# Player already equipped the correct weapon
 	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
@@ -1048,169 +868,117 @@ func _setup_selected_weapon() -> void:
 
 	if selected_weapon_id == "shotgun":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-
+		if makarov: makarov.queue_free()
 		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
 		if shotgun_scene:
 			var shotgun = shotgun_scene.instantiate()
 			shotgun.name = "Shotgun"
 			_player.add_child(shotgun)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(shotgun)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = shotgun
-
-			_log_to_file("Shotgun equipped successfully")
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(shotgun)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = shotgun
+			_log_to_file("Shotgun equipped")
 		else:
-			push_error("[BeachLevel] Failed to load Shotgun scene!")
+			push_error("[FactoryLevel] Failed to load Shotgun scene!")
 	elif selected_weapon_id == "mini_uzi":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-
+		if makarov: makarov.queue_free()
 		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
 		if mini_uzi_scene:
 			var mini_uzi = mini_uzi_scene.instantiate()
 			mini_uzi.name = "MiniUzi"
 			_player.add_child(mini_uzi)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(mini_uzi)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = mini_uzi
-
-			_log_to_file("Mini UZI equipped successfully")
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = mini_uzi
+			_log_to_file("Mini UZI equipped")
 		else:
-			push_error("[BeachLevel] Failed to load MiniUzi scene!")
+			push_error("[FactoryLevel] Failed to load MiniUzi scene!")
 	elif selected_weapon_id == "silenced_pistol":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-
+		if makarov: makarov.queue_free()
 		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
 		if pistol_scene:
 			var pistol = pistol_scene.instantiate()
 			pistol.name = "SilencedPistol"
 			_player.add_child(pistol)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(pistol)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = pistol
-
-			_log_to_file("Silenced Pistol equipped successfully")
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(pistol)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = pistol
+			_log_to_file("Silenced Pistol equipped")
 		else:
-			push_error("[BeachLevel] Failed to load SilencedPistol scene!")
+			push_error("[FactoryLevel] Failed to load SilencedPistol scene!")
 	elif selected_weapon_id == "sniper":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-
+		if makarov: makarov.queue_free()
 		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
 		if sniper_scene:
 			var sniper = sniper_scene.instantiate()
 			sniper.name = "SniperRifle"
 			_player.add_child(sniper)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(sniper)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = sniper
-
-			_log_to_file("ASVK Sniper Rifle equipped successfully")
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = sniper
+			_log_to_file("Sniper Rifle equipped")
 		else:
-			push_error("[BeachLevel] Failed to load SniperRifle scene!")
+			push_error("[FactoryLevel] Failed to load SniperRifle scene!")
 	elif selected_weapon_id == "m16":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-
+		if makarov: makarov.queue_free()
 		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
 		if m16_scene:
 			var m16 = m16_scene.instantiate()
 			m16.name = "AssaultRifle"
 			_player.add_child(m16)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(m16)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = m16
-
-			_log_to_file("M16 Assault Rifle equipped successfully")
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(m16)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = m16
+			_log_to_file("M16 Assault Rifle equipped")
 		else:
-			push_error("[BeachLevel] Failed to load AssaultRifle scene!")
+			push_error("[FactoryLevel] Failed to load AssaultRifle scene!")
 	elif selected_weapon_id == "ak_gl":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-
+		if makarov: makarov.queue_free()
 		var akgl_scene = load("res://scenes/weapons/csharp/AKGL.tscn")
 		if akgl_scene:
 			var akgl = akgl_scene.instantiate()
 			akgl.name = "AKGL"
 			_player.add_child(akgl)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(akgl)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = akgl
-
-			_log_to_file("AK + GL equipped successfully")
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(akgl)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = akgl
+			_log_to_file("AK + GL equipped")
 		else:
-			push_error("[BeachLevel] Failed to load AKGL scene!")
+			push_error("[FactoryLevel] Failed to load AKGL scene!")
 	elif selected_weapon_id == "revolver":
 		var makarov = _player.get_node_or_null("MakarovPM")
-		if makarov:
-			makarov.queue_free()
-
+		if makarov: makarov.queue_free()
 		var revolver_scene = load("res://scenes/weapons/csharp/Revolver.tscn")
 		if revolver_scene:
 			var revolver = revolver_scene.instantiate()
 			revolver.name = "Revolver"
 			_player.add_child(revolver)
-
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(revolver)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = revolver
-
-			_log_to_file("RSh-12 Revolver equipped successfully")
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(revolver)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = revolver
+			_log_to_file("Revolver equipped")
 		else:
-			push_error("[BeachLevel] Failed to load Revolver scene!")
+			push_error("[FactoryLevel] Failed to load Revolver scene!")
 	else:
-		# For Makarov PM, it's already in the scene
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov and _player.get("CurrentWeapon") == null:
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(makarov)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = makarov
-
-			# Configure 2.5x ammo for MakarovPM (Issue #636)
-			_configure_makarov_pm_ammo(makarov)
+			if _player.has_method("EquipWeapon"): _player.EquipWeapon(makarov)
+			elif _player.get("CurrentWeapon") != null: _player.CurrentWeapon = makarov
 
 
-## Disable player controls after level completion.
 func _disable_player_controls() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
-
 	_player.set_physics_process(false)
 	_player.set_process(false)
 	_player.set_process_input(false)
 	_player.set_process_unhandled_input(false)
-
 	if _player is CharacterBody2D:
 		_player.velocity = Vector2.ZERO
-
 	_log_to_file("Player controls disabled (level completed)")
 
 
 func _log_to_file(message: String) -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
-		file_logger.log_info("[BeachLevel] " + message)
+		file_logger.log_info("[FactoryLevel] " + message)
 	else:
-		print("[BeachLevel] " + message)
+		print("[FactoryLevel] " + message)
