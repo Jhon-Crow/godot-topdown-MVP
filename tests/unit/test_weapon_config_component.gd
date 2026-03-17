@@ -11,9 +11,9 @@ extends GutTest
 # ============================================================================
 
 
-func test_weapon_configs_has_six_entries() -> void:
-	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 6,
-		"WEAPON_CONFIGS should contain exactly 6 weapon types")
+func test_weapon_configs_has_seven_entries() -> void:
+	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 7,
+		"WEAPON_CONFIGS should contain exactly 7 weapon types (RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN)")
 
 
 func test_weapon_configs_has_rifle_key() -> void:
@@ -44,6 +44,11 @@ func test_weapon_configs_has_rpg_key() -> void:
 func test_weapon_configs_has_pm_key() -> void:
 	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(5),
 		"WEAPON_CONFIGS should have key 5 for PM")
+
+
+func test_weapon_configs_has_machine_gun_key() -> void:
+	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(6),
+		"WEAPON_CONFIGS should have key 6 for MACHINE_GUN")
 
 
 func test_weapon_configs_values_are_dictionaries() -> void:
@@ -467,22 +472,31 @@ func test_all_shoot_cooldowns_are_positive() -> void:
 
 
 func test_all_bullet_speeds_are_positive() -> void:
+	# MACHETE (3) has bullet_speed=0 intentionally (melee weapon, no projectiles)
 	for weapon_type in WeaponConfigComponent.WEAPON_CONFIGS:
 		var config := WeaponConfigComponent.WEAPON_CONFIGS[weapon_type]
+		if config.get("is_melee", false):
+			continue  # Skip melee weapons — no projectile speed expected
 		assert_true(config["bullet_speed"] > 0.0,
 			"Weapon type %d bullet_speed should be positive" % weapon_type)
 
 
 func test_all_magazine_sizes_are_positive() -> void:
+	# MACHETE (3) has magazine_size=0 intentionally (melee weapon, no ammo)
 	for weapon_type in WeaponConfigComponent.WEAPON_CONFIGS:
 		var config := WeaponConfigComponent.WEAPON_CONFIGS[weapon_type]
+		if config.get("is_melee", false):
+			continue  # Skip melee weapons — no magazine expected
 		assert_true(config["magazine_size"] > 0,
 			"Weapon type %d magazine_size should be positive" % weapon_type)
 
 
 func test_all_bullet_spawn_offsets_are_positive() -> void:
+	# MACHETE (3) has bullet_spawn_offset=0 intentionally (melee weapon)
 	for weapon_type in WeaponConfigComponent.WEAPON_CONFIGS:
 		var config := WeaponConfigComponent.WEAPON_CONFIGS[weapon_type]
+		if config.get("is_melee", false):
+			continue  # Skip melee weapons — no bullet spawn offset expected
 		assert_true(config["bullet_spawn_offset"] > 0.0,
 			"Weapon type %d bullet_spawn_offset should be positive" % weapon_type)
 
@@ -535,6 +549,10 @@ func test_only_shotgun_has_is_shotgun_true() -> void:
 		"SHOTGUN should be a shotgun")
 	assert_false(WeaponConfigComponent.WEAPON_CONFIGS[2]["is_shotgun"],
 		"UZI should not be a shotgun")
+	assert_false(WeaponConfigComponent.WEAPON_CONFIGS[4]["is_shotgun"],
+		"RPG should not be a shotgun")
+	assert_false(WeaponConfigComponent.WEAPON_CONFIGS[6]["is_shotgun"],
+		"MACHINE_GUN should not be a shotgun")
 
 
 # ============================================================================
@@ -665,10 +683,28 @@ func test_get_config_uzi_matches_constant() -> void:
 # ============================================================================
 
 
-func test_get_config_defaults_to_rifle_for_type_3() -> void:
+func test_get_config_returns_machete_for_type_3() -> void:
 	var config := WeaponConfigComponent.get_config(3)
-	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[0],
-		"get_config(3) should default to RIFLE config")
+	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[3],
+		"get_config(3) should return MACHETE config")
+
+
+func test_get_config_returns_rpg_for_type_4() -> void:
+	var config := WeaponConfigComponent.get_config(4)
+	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[4],
+		"get_config(4) should return RPG config")
+
+
+func test_get_config_returns_pm_for_type_5() -> void:
+	var config := WeaponConfigComponent.get_config(5)
+	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[5],
+		"get_config(5) should return PM config")
+
+
+func test_get_config_returns_machine_gun_for_type_6() -> void:
+	var config := WeaponConfigComponent.get_config(6)
+	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[6],
+		"get_config(6) should return MACHINE_GUN config")
 
 
 func test_get_config_defaults_to_rifle_for_type_negative_1() -> void:
@@ -748,6 +784,11 @@ func test_get_type_name_pm() -> void:
 		"get_type_name(5) should return PM")
 
 
+func test_get_type_name_machine_gun() -> void:
+	assert_eq(WeaponConfigComponent.get_type_name(6), "MACHINE_GUN",
+		"get_type_name(6) should return MACHINE_GUN")
+
+
 # ============================================================================
 # get_type_name() - Invalid/Unknown Weapon Types
 # ============================================================================
@@ -774,7 +815,7 @@ func test_get_type_name_unknown_for_type_negative_100() -> void:
 
 
 func test_get_type_name_returns_string() -> void:
-	for weapon_type in [0, 1, 2, 3, 4, 5, -1, 99]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6, -1, 99]:
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_typeof(name, TYPE_STRING,
 			"get_type_name(%d) should return a String" % weapon_type)
@@ -816,7 +857,7 @@ func test_iterate_all_config_fields() -> void:
 
 
 func test_config_is_not_empty() -> void:
-	for weapon_type in [0, 1, 2, 3]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		assert_true(config.size() > 0,
 			"Config for weapon type %d should not be empty" % weapon_type)
@@ -830,7 +871,7 @@ func test_config_is_not_empty() -> void:
 func test_get_config_and_get_type_name_consistency() -> void:
 	# For all valid types, get_config should return a valid config and
 	# get_type_name should return a non-UNKNOWN name
-	for weapon_type in [0, 1, 2, 3]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_true(config.size() > 0,

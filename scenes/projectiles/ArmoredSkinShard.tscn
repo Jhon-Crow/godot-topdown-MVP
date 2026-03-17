@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3 uid="uid://carmoredskin1045"]
+
+[ext_resource type="Script" path="res://scripts/projectiles/armored_skin_shard.gd" id="1_armored_skin_shard"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_shard"]
+radius = 2.5
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_shard"]
+size = Vector2(7, 2)
+
+[sub_resource type="Gradient" id="Gradient_crystal_trail"]
+offsets = PackedFloat32Array(0, 0.4, 0.8, 1)
+colors = PackedColorArray(0.8, 0.95, 1, 0.95, 0.5, 0.85, 1, 0.6, 0.2, 0.6, 0.9, 0.25, 0, 0.3, 0.6, 0)
+
+[sub_resource type="Curve" id="Curve_crystal_trail"]
+_data = [Vector2(0, 0.4), 0.0, 1.5, 0, 0, Vector2(0.4, 1), 0.0, 0.0, 0, 0, Vector2(0.8, 0.5), 0.0, -1.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[node name="ArmoredSkinShard" type="Area2D"]
+collision_layer = 16
+collision_mask = 39
+script = ExtResource("1_armored_skin_shard")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(0.7, 0.95, 1, 1)
+texture = SubResource("PlaceholderTexture2D_shard")
+
+[node name="Trail" type="Line2D" parent="."]
+width = 3.0
+width_curve = SubResource("Curve_crystal_trail")
+default_color = Color(0.6, 0.9, 1, 0.8)
+gradient = SubResource("Gradient_crystal_trail")
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_shard")

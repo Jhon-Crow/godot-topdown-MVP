@@ -11,6 +11,7 @@ extends RefCounted
 ## for progressive spread on single-bullet weapons (same as player weapons).
 ## Added (Issue #583): RPG (type 4) with "is_rpg", "rpg_explosion_radius", "rpg_explosion_damage", "switch_weapon_type"
 ## and PM pistol (type 5) for RPG enemy weapon switching.
+## Added (Issue #1033): MACHINE_GUN (PKM belt-fed, type 6).
 const WEAPON_CONFIGS := {
 	0: {  # RIFLE (M16) - uses same bullets as player's AssaultRifle
 		"shoot_cooldown": 0.1,
@@ -148,6 +149,29 @@ const WEAPON_CONFIGS := {
 		"spread_increment": 0.8,
 		"max_spread": 5.0,
 		"spread_reset_time": 0.3
+	},
+	6: {  # MACHINE_GUN (PKM) - belt-fed heavy machine gun (Issue #1033)
+		"shoot_cooldown": 0.12,     # Slightly slower than rifle (~8.3 rps)
+		"bullet_speed": 2800.0,     # High muzzle velocity
+		"magazine_size": 500,       # Full belt
+		"total_magazines": 2,       # 500 + 500 (one spare belt)
+		"reload_time": 9.0,         # Long belt reload
+		"bullet_spawn_offset": 40.0,
+		"weapon_loudness": 2200.0,
+		"sprite_path": "res://assets/sprites/weapons/pkm_topdown.png",  # PKM machine gun top-down sprite (#1033)
+		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_762x39.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# Progressive spread: sustained fire degrades accuracy
+		"spread_threshold": 5,
+		"initial_spread": 0.3,
+		"spread_increment": 0.4,
+		"max_spread": 6.0,
+		"spread_reset_time": 0.4
 	}
 }
 
@@ -168,4 +192,5 @@ static func get_type_name(weapon_type: int) -> String:
 		3: return "MACHETE"
 		4: return "RPG"
 		5: return "PM"
+		6: return "MACHINE_GUN"
 		_: return "UNKNOWN"

@@ -9,6 +9,7 @@ extends Node2D
 var _enemy_count_label: Label = null
 var _ammo_label: Label = null
 var _player: Node2D = null
+var _weapon_hints_component: Node = null
 var _initial_enemy_count: int = 0
 var _current_enemy_count: int = 0
 var _game_over_shown: bool = false
@@ -56,6 +57,8 @@ func _ready() -> void:
 	_initialize_score_manager()
 	_setup_exit_zone()
 	_start_replay_recording()
+	# Setup weapon hints (Issue #809)
+	_setup_weapon_hints()
 
 
 func _initialize_score_manager() -> void:
@@ -885,6 +888,27 @@ func _get_rank_color(rank: String) -> Color:
 			return Color(0.8, 0.3, 0.3, 1.0)
 		_:
 			return Color(0.7, 0.7, 0.7, 1.0)
+
+
+## Setup weapon hints component (Issue #809).
+func _setup_weapon_hints() -> void:
+	if _player == null:
+		return
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[DecadenceLevel] CanvasLayer node not found for weapon hints")
+		return
+	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
+	if hints_script == null:
+		push_warning("[DecadenceLevel] WeaponHintsComponent script not found")
+		return
+	_weapon_hints_component = Node.new()
+	_weapon_hints_component.name = "WeaponHintsComponent"
+	_weapon_hints_component.set_script(hints_script)
+	add_child(_weapon_hints_component)
+	if _weapon_hints_component.has_method("setup"):
+		_weapon_hints_component.setup(_player, canvas_layer)
+		print("[DecadenceLevel] Weapon hints component added and setup")
 
 
 func _log_to_file(message: String) -> void:
