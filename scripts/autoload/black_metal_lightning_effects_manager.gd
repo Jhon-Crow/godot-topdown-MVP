@@ -6,8 +6,17 @@ extends Node
 ## jagged bolt streaks from the top of the screen downward, with branches, plus
 ## a brief screen-wide illumination flash — like old horror/black-metal films.
 ##
-## The bolt shader uses an overlay approach (no hint_screen_texture) for compatibility
-## with Godot's gl_compatibility renderer, same as cinema_film.gdshader.
+## The bolt shader uses the OVERLAY approach (no hint_screen_texture), same as
+## cinema_film.gdshader. The shader outputs transparent pixels where there is no bolt
+## and colored (blue-white) pixels with alpha where the bolt appears.
+## Standard alpha blending composites this correctly over the scene in all renderers.
+##
+## Why NOT hint_screen_texture:
+##   Godot's gl_compatibility renderer has known bugs with hint_screen_texture
+##   (GitHub Issues #79914, #66458). When a ColorRect transitions from visible=false
+##   to visible=true, the screen capture can return white/empty on the first frame,
+##   causing the white blink symptom. This was reproducible across all fix attempts.
+##   The overlay approach avoids the problem entirely.
 ##
 ## Features:
 ## - Procedural jagged lightning bolt drawn across the screen
@@ -16,12 +25,7 @@ extends Node
 ## - Visual diversity: randomized bolt origin, path, number of bolts, branches
 ## - Single, double, or triple-bolt sequences for varied intensity
 ## - Respects the existing B&W+red filter (renders at layer 98, above it)
-## - Additive blend on the overlay for correct compositing without screen_texture
 
-
-## Number of frames to wait after a scene transition before showing effects.
-## Matches the pattern from HitEffectsManager and BlackMetalEffectsManager.
-const ACTIVATION_DELAY_FRAMES: int = 3
 
 ## Flash pattern types for visual diversity.
 enum FlashPattern {
@@ -49,6 +53,9 @@ const TRIPLE_FLASH_CHANCE: float = 0.15
 var _flash_layer: CanvasLayer = null
 
 ## ColorRect carrying the bolt shader material.
+## Stays ALWAYS VISIBLE — shader controls appearance via alpha (intensity=0 → alpha=0).
+## This avoids the gl_compatibility hint_screen_texture white-frame bug that occurs
+## when transitioning from visible=false to visible=true.
 var _flash_rect: ColorRect = null
 
 ## Cached shader material reference.
@@ -59,15 +66,6 @@ var _is_active: bool = false
 
 ## Whether a flash animation is currently playing.
 var _is_flashing: bool = false
-
-## Whether we're waiting for delayed activation after a scene change.
-var _waiting_for_activation: bool = false
-
-## Frame counter for delayed activation.
-var _activation_frame_counter: int = 0
-
-## Track the previous scene to detect scene transitions.
-var _previous_scene_root: Node = null
 
 ## Current flash state for animation.
 var _flash_timer: float = 0.0
@@ -85,9 +83,6 @@ var _use_double_bolt: bool = false
 
 func _ready() -> void:
 	_log("BlackMetalLightningEffectsManager initializing...")
-
-	# Connect to scene tree changes to handle scene reloads.
-	get_tree().tree_changed.connect(_on_tree_changed)
 
 	# Create the flash layer at layer 98 — above the Black Metal filter (97) but below hit effects (100).
 	_flash_layer = CanvasLayer.new()
@@ -115,7 +110,11 @@ func _ready() -> void:
 		push_warning("BlackMetalLightningEffectsManager: Could not load lightning_flash.gdshader")
 		_log("WARNING: Could not load lightning_flash.gdshader")
 
-	_flash_rect.visible = false
+	# Keep ColorRect ALWAYS VISIBLE — shader outputs alpha=0 when intensity=0.
+	# This avoids the gl_compatibility bug where transitioning visible=false→true
+	# on a hint_screen_texture ColorRect can produce a white frame.
+	# (The overlay shader doesn't use screen_texture, so it's always safe to be visible.)
+	_flash_rect.visible = true
 	_flash_layer.add_child(_flash_rect)
 
 	# Perform shader warmup to pre-compile the shader.
@@ -132,13 +131,6 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# Handle delayed activation after scene transitions.
-	if _waiting_for_activation:
-		_activation_frame_counter += 1
-		if _activation_frame_counter >= ACTIVATION_DELAY_FRAMES:
-			_waiting_for_activation = false
-			_log("Lightning effects ready (after %d frames delay)" % ACTIVATION_DELAY_FRAMES)
-
 	# Process ongoing flash animation.
 	if _is_flashing:
 		_process_flash(delta)
@@ -146,7 +138,7 @@ func _process(delta: float) -> void:
 
 ## Triggers a lightning bolt strike. Called when player hits an enemy in Black Metal mode.
 func trigger_lightning() -> void:
-	if not _is_active or _waiting_for_activation:
+	if not _is_active:
 		return
 
 	# Don't interrupt an ongoing flash sequence — let it complete naturally.
@@ -199,13 +191,13 @@ func _start_single_flash() -> void:
 	# Occasionally fire two simultaneous bolt streaks for dramatic effect.
 	_use_double_bolt = randf() < 0.3
 
-	# Show the bolt overlay.
-	if _flash_rect and _material:
+	# Show the bolt by setting intensity to 1.0.
+	# The ColorRect is always visible; shader controls appearance via alpha.
+	if _material:
 		_material.set_shader_parameter("seed", _current_seed)
 		_material.set_shader_parameter("bolt_count", 2.0 if _use_double_bolt else 1.0)
 		_material.set_shader_parameter("progress", 0.0)
 		_material.set_shader_parameter("intensity", 1.0)
-		_flash_rect.visible = true
 
 
 ## Processes the bolt animation each frame.
@@ -229,13 +221,11 @@ func _process_flash(delta: float) -> void:
 		_flashes_remaining -= 1
 
 		if _flashes_remaining > 0:
-			# Enter gap before next strike.
+			# Enter gap before next strike — hide bolt by setting intensity=0.
 			_in_gap = true
 			_gap_timer = 0.0
-			# Hide bolt during gap.
-			if _flash_rect and _material:
+			if _material:
 				_material.set_shader_parameter("intensity", 0.0)
-				_flash_rect.visible = false
 		else:
 			_end_flash_sequence()
 	else:
@@ -252,9 +242,8 @@ func _process_flash(delta: float) -> void:
 func _end_flash_sequence() -> void:
 	_is_flashing = false
 	_flashes_remaining = 0
-	if _flash_rect and _material:
+	if _material:
 		_material.set_shader_parameter("intensity", 0.0)
-		_flash_rect.visible = false
 
 
 ## Called when the global difficulty changes.
@@ -270,33 +259,14 @@ func _apply_current_difficulty() -> void:
 		_is_active = difficulty_manager.is_black_metal_mode()
 		if _is_active and not was_active:
 			_log("Lightning effects ENABLED (Black Metal mode)")
-			_start_delayed_activation()
 		elif not _is_active and was_active:
 			_log("Lightning effects DISABLED")
 			_end_flash_sequence()
 
 
-## Called when the scene tree structure changes.
-func _on_tree_changed() -> void:
-	var current_scene := get_tree().current_scene
-	if current_scene != null and current_scene != _previous_scene_root:
-		_previous_scene_root = current_scene
-		_log("Scene changed to: %s" % current_scene.name)
-		# Re-trigger delayed activation on scene changes.
-		if _is_active:
-			_start_delayed_activation()
-			# Also stop any ongoing bolt.
-			_end_flash_sequence()
-
-
-## Hides the overlay and starts the frame counter for delayed activation.
-func _start_delayed_activation() -> void:
-	_end_flash_sequence()
-	_waiting_for_activation = true
-	_activation_frame_counter = 0
-
-
 ## Performs warmup to pre-compile the lightning bolt shader.
+## Since the overlay shader outputs alpha=0 at intensity=0, the ColorRect is
+## always visible but invisible (transparent). Warmup just ensures GPU compilation.
 func _warmup_shader() -> void:
 	if _flash_rect == null or _material == null:
 		return
@@ -304,15 +274,12 @@ func _warmup_shader() -> void:
 	_log("Starting shader warmup (Issue #343 pattern)...")
 	var start_time := Time.get_ticks_msec()
 
-	# Set intensity to 0 so the shader outputs nothing — no visible effect during warmup.
+	# intensity=0.0 → shader outputs alpha=0.0 → fully transparent → no visible effect.
+	# ColorRect is already visible=true, so this is just triggering GPU compilation.
 	_material.set_shader_parameter("intensity", 0.0)
-	_flash_rect.visible = true
 
 	# Wait one frame for GPU to compile and process the shader.
 	await get_tree().process_frame
-
-	# Hide after warmup.
-	_flash_rect.visible = false
 
 	var elapsed := Time.get_ticks_msec() - start_time
 	_log("Shader warmup complete in %d ms" % elapsed)
