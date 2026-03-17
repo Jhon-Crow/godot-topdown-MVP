@@ -66,8 +66,8 @@ func _setup_weapon_hints_option() -> void:
 		var current_mode: int = weapon_hints_settings.get_hint_mode()
 		weapon_hints_option.select(current_mode)
 	else:
-		# Default to "First time only" if settings not available
-		weapon_hints_option.select(1)
+		# Default to "Always" if settings not available
+		weapon_hints_option.select(0)
 
 
 ## Called when weapon hints option is changed.

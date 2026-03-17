@@ -53,6 +53,10 @@ var _hints_showing: bool = false
 ## Whether we are in the process of showing hints for a weapon (tracking shot count etc).
 var _hints_active: bool = false
 
+## Tracks whether the last hint was dismissed by a player action (not auto-dismiss timer or weapon switch).
+## Used to decide whether to call mark_weapon_seen() in FIRST_TIME_ONLY mode.
+var _last_dismiss_was_player_action: bool = false
+
 ## Number of shots fired with current weapon (for sequential hint reveal).
 var _shots_fired: int = 0
 
@@ -236,9 +240,8 @@ func _try_start_hints(weapon_id: String) -> void:
 
 	var settings: Node = get_node_or_null("/root/WeaponHintsSettings")
 	if settings == null or settings.should_show_hints(weapon_id):
+		_last_dismiss_was_player_action = false
 		_start_hint_sequence(weapon_id)
-		if settings:
-			settings.mark_weapon_seen(weapon_id)
 
 
 ## Begin the hint sequence for a weapon.
@@ -442,6 +445,7 @@ func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 		if is_instance_valid(label):
 			label.text = _build_sniper_bolt_hint_bbcode(step)
 	if step >= total_steps:
+		_last_dismiss_was_player_action = true
 		_dismiss_hint(HINT_KEY_BOLT_CYCLE)
 
 
@@ -456,6 +460,7 @@ func _on_shotgun_action_state_changed(new_state: int) -> void:
 	if new_state == 0:
 		# Bolt cycle complete — dismiss pump hint
 		if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+			_last_dismiss_was_player_action = true
 			_dismiss_hint(HINT_KEY_BOLT_CYCLE)
 	elif _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 		var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
@@ -484,6 +489,7 @@ func _on_shotgun_reload_state_changed(new_state: int) -> void:
 ## Called when hammer is cocked on revolver — dismisses hammer-cock hint.
 func _on_hammer_cocked() -> void:
 	_hammer_cocked = true
+	_last_dismiss_was_player_action = true
 	_dismiss_hint(HINT_KEY_HAMMER_COCK)
 	_log_to_file("Hammer cocked — hammer hint dismissed")
 
@@ -493,6 +499,7 @@ func _on_scope_state_changed(is_active: bool) -> void:
 	if not is_active or _scope_used:
 		return
 	_scope_used = true
+	_last_dismiss_was_player_action = true
 	_dismiss_hint(HINT_KEY_SCOPE)
 	_log_to_file("Scope used — scope hint dismissed")
 
@@ -500,12 +507,14 @@ func _on_scope_state_changed(is_active: bool) -> void:
 ## Called when fire mode changes — dismisses fire-mode hint.
 func _on_fire_mode_changed(_new_mode: int) -> void:
 	if _hint_labels.has(HINT_KEY_FIRE_MODE):
+		_last_dismiss_was_player_action = true
 		_dismiss_hint(HINT_KEY_FIRE_MODE)
 		_log_to_file("Fire mode changed — fire mode hint dismissed")
 
 
 ## Called when grenade launcher fires — dismisses launcher hint.
 func _on_grenade_launcher_fired() -> void:
+	_last_dismiss_was_player_action = true
 	_dismiss_hint(HINT_KEY_LAUNCHER)
 	_log_to_file("Grenade launcher fired — launcher hint dismissed")
 
@@ -517,6 +526,7 @@ func _on_grenade_launcher_fired() -> void:
 func _on_reload_completed() -> void:
 	if not _hints_active:
 		return
+	_last_dismiss_was_player_action = true
 	if _hint_labels.has(HINT_KEY_RELOAD):
 		_dismiss_hint(HINT_KEY_RELOAD)
 	if _current_weapon_id == "shotgun":
@@ -904,6 +914,12 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 		_hints_showing = false
 		_hints_active = false
 		_dismiss_timer.stop()
+		# Mark weapon seen only when all hints were dismissed by player completing the training.
+		# Not when dismissed by auto-dismiss timer or weapon switch (_dismiss_hints_immediate).
+		if _last_dismiss_was_player_action and not _current_weapon_id.is_empty():
+			var settings: Node = get_node_or_null("/root/WeaponHintsSettings")
+			if settings:
+				settings.mark_weapon_seen(_current_weapon_id)
 	_log_to_file("Hint '%s' dismissed" % hint_key)
 
 
@@ -986,6 +1002,7 @@ func _reset_hint_state() -> void:
 	_shotgun_full_reload_active = false
 	_shotgun_node = null
 	_ak_gl_launcher_hint_shown = false
+	_last_dismiss_was_player_action = false
 	_disconnect_weapon_signals()
 	# Note: _pending_unlock is NOT cleared here — it is consumed by _on_weapon_selected
 
