@@ -7,10 +7,14 @@ extends Node
 ## - FIRST_TIME_ONLY: Show hints only for first use of each weapon
 ## - NEVER: Never show hints
 ##
-## Visual style exactly matches the Labyrinth level tutorial hints (labyrinth_level.gd):
+## Visual style and behaviour exactly matches the Labyrinth level tutorial hints (labyrinth_level.gd):
 ## - Font size 20 with drop shadows
 ## - Per-hint colors matching Labyrinth palette
 ## - Fade-in animation
+## - Sequential hint display: first hint shown immediately, next hints appear one by one
+##   after player actions (first shot → bolt/pump hint, second shot → reload hint)
+## - Each hint dismissed when player performs the action (Fired, ReloadCompleted,
+##   HammerCocked, ScopeStateChanged, FireModeChanged)
 ## - Progressive strikethrough via Line2D (Issue #944 / #1080 style)
 ## - Strikethrough-then-fade-out dismiss animation
 ## - Positioned via canvas_transform above player
@@ -20,7 +24,8 @@ extends Node
 ## Usage:
 ##   1. Add this component to a level script
 ##   2. Call setup() with the player node and canvas layer
-##   3. Component will automatically show hints when weapon is picked up (GameManager.weapon_selected)
+##   3. Component will automatically show hints when weapon is unlocked and equipped
+##      (GameManager.weapon_unlocked → GameManager.weapon_selected)
 
 class_name WeaponHintsComponent
 
@@ -33,17 +38,47 @@ var _canvas_layer: Node = null
 ## Currently shown weapon ID.
 var _current_weapon_id: String = ""
 
+## Flag: a weapon was just unlocked, so show hints on next weapon_selected even if same ID.
+var _pending_unlock: String = ""
+
+## Reference to the current weapon node attached to the player.
+var _current_weapon_node: Node = null
+
 ## Dictionary of active hint labels: hint_key -> RichTextLabel node.
 var _hint_labels: Dictionary = {}
 
 ## Whether hints are currently being displayed.
 var _hints_showing: bool = false
 
-## Timer for auto-dismissing hints.
+## Whether we are in the process of showing hints for a weapon (tracking shot count etc).
+var _hints_active: bool = false
+
+## Number of shots fired with current weapon (for sequential hint reveal).
+var _shots_fired: int = 0
+
+## Whether the bolt-cycle / pump hint has been revealed (after 1st shot).
+var _bolt_cycle_hint_revealed: bool = false
+
+## Whether the reload hint has been revealed (after 2nd shot).
+var _reload_hint_revealed: bool = false
+
+## Whether the scope hint has been used/dismissed.
+var _scope_used: bool = false
+
+## Whether the hammer has been cocked (revolver).
+var _hammer_cocked: bool = false
+
+## Whether the fire-mode hint is waiting to be shown.
+var _fire_mode_hint_pending: bool = false
+
+## Timer for auto-dismissing all hints after a long idle period.
 var _dismiss_timer: Timer = null
 
-## Duration to show hints before auto-dismiss (seconds).
-const HINT_DURATION: float = 8.0
+## Per-hint auto-dismiss timers: hint_key -> Timer.
+var _hint_timers: Dictionary = {}
+
+## Duration to auto-dismiss individual hints (seconds).
+const HINT_AUTO_DISMISS: float = 8.0
 
 ## Vertical spacing between stacked hints (matches Labyrinth TUTORIAL_HINT_SPACING).
 const HINT_SPACING: float = 60.0
@@ -70,7 +105,6 @@ const HINT_FADE_OUT_DURATION: float = 0.3
 var _animating_hints: Dictionary = {}
 
 ## Issue #944 style: Track Line2D strikethrough nodes for each hint (hint_key -> Array[Line2D]).
-## Each hint has one Line2D per text line so lines animate independently without connectors.
 var _hint_strike_lines: Dictionary = {}
 
 ## Issue #944 style: Track current strikethrough progress for each hint (hint_key -> float 0.0-1.0).
@@ -82,58 +116,37 @@ var _hint_line_counts: Dictionary = {}
 ## Issue #1080 style: Track per-line text widths for each hint (hint_key -> Array[float]).
 var _hint_line_widths: Dictionary = {}
 
-## Per-hint colors matching Labyrinth level color palette (Issue #945 style).
-const HINT_COLORS: Dictionary = {
-	"reload":           Color(0.4, 1.0, 0.5, 1.0),    ## Green — reload
-	"fire_mode":        Color(0.3, 0.9, 1.0, 1.0),    ## Cyan — fire mode switch
-	"bolt_cycle":       Color(0.85, 0.6, 1.0, 1.0),   ## Purple — bolt cycling / pump
-	"scope":            Color(0.3, 0.9, 1.0, 1.0),    ## Cyan — scope aiming
-	"hammer_cock":      Color(1.0, 0.8, 0.3, 1.0),    ## Yellow — hammer cock
-	"launcher":         Color(1.0, 0.4, 0.2, 1.0),    ## Red-orange — grenade launcher
-}
+## Hint keys — mirrors Labyrinth constant names for easy reference.
+const HINT_KEY_RELOAD := "reload"
+const HINT_KEY_BOLT_CYCLE := "bolt_cycle"
+const HINT_KEY_HAMMER_COCK := "hammer_cock"
+const HINT_KEY_SCOPE := "scope"
+const HINT_KEY_FIRE_MODE := "fire_mode"
+const HINT_KEY_LAUNCHER := "launcher"
 
-## Default color for unrecognized hint types.
-const HINT_COLOR_DEFAULT := Color(1.0, 1.0, 0.3, 1.0)  ## Yellow fallback
+## Per-hint colors matching Labyrinth level color palette.
+const HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green
+const HINT_COLOR_BOLT_CYCLE := Color(0.85, 0.6, 1.0, 1.0)         ## Purple
+const HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)         ## Yellow
+const HINT_COLOR_SCOPE := Color(0.3, 0.9, 1.0, 1.0)               ## Cyan
+const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)           ## Cyan
+const HINT_COLOR_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)            ## Red-orange
+const HINT_COLOR_DEFAULT := Color(1.0, 1.0, 0.3, 1.0)             ## Yellow fallback
 
-## Weapon hint definitions.
-## Each weapon has an array of hint objects with "hint_key", "color_key", and "text" fields.
-## Issue #809: Uses same training strings as Labyrinth level (labyrinth_level.gd).
-## Format: [color=#ff4444] for highlighted keys, Russian text only.
-const WEAPON_HINTS: Dictionary = {
-	"makarov_pm": [
-		{"hint_key": "pm_reload",        "color_key": "reload",     "text": "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"}
-	],
-	"m16": [
-		{"hint_key": "m16_fire_mode",    "color_key": "fire_mode",  "text": "[color=#ff4444][B][/color] Переключи режим стрельбы"},
-		{"hint_key": "m16_reload",       "color_key": "reload",     "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
-	],
-	"shotgun": [
-		{"hint_key": "shotgun_pump",     "color_key": "bolt_cycle", "text": "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"},
-		{"hint_key": "shotgun_reload",   "color_key": "reload",     "text": "[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ xN] [ПКМ↓ закрыть][/color]"}
-	],
-	"mini_uzi": [
-		{"hint_key": "uzi_reload",       "color_key": "reload",     "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
-	],
-	"silenced_pistol": [
-		{"hint_key": "silenced_reload",  "color_key": "reload",     "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
-	],
-	"sniper": [
-		{"hint_key": "sniper_scope",     "color_key": "scope",      "text": "[color=#ff4444][ПКМ][/color] Прицелься через оптику"},
-		{"hint_key": "sniper_bolt",      "color_key": "bolt_cycle", "text": "[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] Передёрни затвор"}
-	],
-	"revolver": [
-		{"hint_key": "revolver_cylinder","color_key": "reload",     "text": "[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]"},
-		{"hint_key": "revolver_hammer",  "color_key": "hammer_cock","text": "[color=#ff4444][ПКМ][/color] Взведи курок"}
-	],
-	"ak_gl": [
-		{"hint_key": "akgl_launcher",    "color_key": "launcher",   "text": "[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом"},
-		{"hint_key": "akgl_reload",      "color_key": "reload",     "text": "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"}
-	]
-}
+## Color mapping by hint key.
+func _get_hint_color(hint_key: String) -> Color:
+	match hint_key:
+		HINT_KEY_RELOAD:    return HINT_COLOR_RELOAD
+		HINT_KEY_BOLT_CYCLE: return HINT_COLOR_BOLT_CYCLE
+		HINT_KEY_HAMMER_COCK: return HINT_COLOR_HAMMER_COCK
+		HINT_KEY_SCOPE:     return HINT_COLOR_SCOPE
+		HINT_KEY_FIRE_MODE: return HINT_COLOR_FIRE_MODE
+		HINT_KEY_LAUNCHER:  return HINT_COLOR_LAUNCHER
+		_:                  return HINT_COLOR_DEFAULT
 
 
 func _ready() -> void:
-	# Create dismiss timer
+	# Create main dismiss timer (fallback for all hints)
 	_dismiss_timer = Timer.new()
 	_dismiss_timer.one_shot = true
 	_dismiss_timer.timeout.connect(_on_dismiss_timer_timeout)
@@ -141,10 +154,9 @@ func _ready() -> void:
 
 
 ## Setup the component with required references.
-## Connects to GameManager.weapon_selected to respond to weapon pickup/changes.
-## Issue #809 req 2 & 3: show hints when weapon is picked up, support sequential changes.
+## Connects to GameManager.weapon_unlocked and weapon_selected signals.
 ## @param player: The player node to follow.
-## @param canvas_layer: The CanvasLayer node to add hints to (matches Labyrinth style).
+## @param canvas_layer: The CanvasLayer node to add hints to.
 func setup(player: Node2D, canvas_layer: Node) -> void:
 	_player = player
 	_canvas_layer = canvas_layer
@@ -157,12 +169,6 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 		push_warning("[WeaponHintsComponent] CanvasLayer is null")
 		return
 
-	# Connect to GameManager signals to respond when weapon is picked up or changed.
-	# weapon_unlocked: fired when a weapon pickup object is collected for the first time.
-	#   We reset the "seen" flag here so FIRST_TIME_ONLY mode will show hints on unlock.
-	# weapon_selected: fired when the active weapon changes (after unlock or manual switch).
-	#   We show hints here so the display is triggered on the actual weapon equip event.
-	# This supports showing hints for each weapon taken in sequence (Issue #809 req 2 & 3).
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
 		if game_manager.has_signal("weapon_unlocked"):
@@ -172,7 +178,7 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 			if not game_manager.weapon_selected.is_connected(_on_weapon_selected):
 				game_manager.weapon_selected.connect(_on_weapon_selected)
 
-	# Show hints for the weapon already selected when level starts.
+	# Show hints for the weapon already equipped when level starts.
 	if game_manager and game_manager.has_method("get_selected_weapon"):
 		var weapon_id: String = game_manager.get_selected_weapon()
 		if not weapon_id.is_empty():
@@ -185,78 +191,324 @@ func _process(_delta: float) -> void:
 		_update_hint_positions()
 
 
-## Called when GameManager emits weapon_unlocked (weapon picked up from the game world).
-## Resets the "seen" flag for this weapon so FIRST_TIME_ONLY mode will display hints.
-## Issue #809 req 2: hints appear when weapon is picked up (unlocked) for the first time.
+## Called when GameManager emits weapon_unlocked (weapon opened in armory and taken for first time).
+## Resets the "seen" flag so FIRST_TIME_ONLY mode will show hints on next weapon_selected.
+## Also sets a pending flag so weapon_selected shows hints even if same weapon ID is re-selected.
 func _on_weapon_unlocked(weapon_id: String) -> void:
 	var settings: Node = get_node_or_null("/root/WeaponHintsSettings")
 	if settings and settings.has_method("reset_weapon_seen"):
 		settings.reset_weapon_seen(weapon_id)
-	_log_to_file("Weapon unlocked, reset seen flag: %s" % weapon_id)
+	_pending_unlock = weapon_id
+	_log_to_file("Weapon unlocked, seen flag reset: %s" % weapon_id)
 
 
-## Called when GameManager emits weapon_selected (weapon picked up / changed).
-## Dismisses current hints immediately and shows hints for the new weapon.
-## Issue #809 req 2 & 3: responds to each weapon pickup, supports sequential changes.
+## Called when GameManager emits weapon_selected (weapon becomes the active weapon).
+## Dismisses current hints and starts hint sequence for the new weapon.
 func _on_weapon_selected(weapon_id: String) -> void:
-	if weapon_id == _current_weapon_id:
+	# If this is the same weapon being re-selected after an unlock, still show hints.
+	var is_same_weapon_after_unlock: bool = (weapon_id == _current_weapon_id and _pending_unlock == weapon_id)
+	_pending_unlock = ""
+
+	if weapon_id == _current_weapon_id and not is_same_weapon_after_unlock:
 		return
 
-	# Dismiss any currently showing hints for the previous weapon
-	if _hints_showing:
+	# Dismiss any currently showing hints immediately (new weapon equipped)
+	if _hints_showing or _hints_active:
 		_dismiss_hints_immediate()
 
 	_current_weapon_id = weapon_id
-	_try_show_hints()
+	_try_start_hints(weapon_id)
 
 
-## Try to show hints for the current weapon based on settings.
-func _try_show_hints() -> void:
-	if _current_weapon_id.is_empty():
+## Decide whether to show hints for this weapon based on settings, then start hint sequence.
+func _try_start_hints(weapon_id: String) -> void:
+	if weapon_id.is_empty():
 		return
 
 	var settings: Node = get_node_or_null("/root/WeaponHintsSettings")
-	if settings == null:
-		# Settings not available, default to showing hints
-		_show_weapon_hints(_current_weapon_id)
-		return
-
-	if settings.should_show_hints(_current_weapon_id):
-		_show_weapon_hints(_current_weapon_id)
-		# Mark weapon as seen for FIRST_TIME_ONLY mode
-		settings.mark_weapon_seen(_current_weapon_id)
+	if settings == null or settings.should_show_hints(weapon_id):
+		_start_hint_sequence(weapon_id)
+		if settings:
+			settings.mark_weapon_seen(weapon_id)
 
 
-## Show hints for a specific weapon.
-## Uses Labyrinth-style visuals: strikethrough Line2D, per-hint colors, fade-in/strikethrough/fade-out.
-## @param weapon_id: The weapon identifier.
-func _show_weapon_hints(weapon_id: String) -> void:
-	if not weapon_id in WEAPON_HINTS:
-		_log_to_file("No hints defined for weapon: %s" % weapon_id)
-		return
+## Begin the hint sequence for a weapon.
+## Mirrors Labyrinth: connect to weapon node signals, show first hints immediately,
+## then reveal subsequent hints progressively as player performs actions.
+func _start_hint_sequence(weapon_id: String) -> void:
+	_reset_hint_state()
+	_hints_active = true
 
-	if _canvas_layer == null:
-		push_warning("[WeaponHintsComponent] CanvasLayer is null, cannot show hints")
-		return
+	# Locate the weapon node on the player (same detection logic as labyrinth_level.gd)
+	_current_weapon_node = _find_weapon_node(weapon_id)
+	if _current_weapon_node == null:
+		_log_to_file("Weapon node not found on player for: %s — hints not connected to actions" % weapon_id)
+	else:
+		_connect_weapon_signals(_current_weapon_node, weapon_id)
 
-	_log_to_file("Showing hints for weapon: %s" % weapon_id)
+	# Show the first hints for this weapon immediately
+	_show_initial_hints(weapon_id)
 
-	var hints: Array = WEAPON_HINTS[weapon_id]
-	for hint in hints:
-		_add_hint(hint["hint_key"], hint["color_key"], hint["text"])
+	# Safety: dismiss everything after HINT_AUTO_DISMISS seconds if not already cleared
+	_dismiss_timer.start(HINT_AUTO_DISMISS)
 
+	_log_to_file("Hint sequence started for weapon: %s" % weapon_id)
+
+
+## Find the weapon node on the player by weapon ID.
+## Mirrors the weapon detection in labyrinth_level.gd.
+func _find_weapon_node(weapon_id: String) -> Node:
+	if _player == null:
+		return null
+
+	# Map weapon IDs to the node names used in the player scene (C# PascalCase)
+	var node_name_map: Dictionary = {
+		"makarov_pm": "MakarovPM",
+		"m16": "AssaultRifle",
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"revolver": "Revolver",
+		"ak_gl": "AKGL",
+	}
+
+	var node_name: String = node_name_map.get(weapon_id, "")
+	if not node_name.is_empty():
+		var node: Node = _player.get_node_or_null(node_name)
+		if node != null:
+			return node
+
+	# Fallback: scan player children for matching node
+	for child in _player.get_children():
+		if child.name == node_name:
+			return child
+
+	return null
+
+
+## Connect to weapon-specific action signals so hints can be dismissed when player acts.
+## Mirrors labyrinth_level.gd weapon signal connection logic.
+func _connect_weapon_signals(weapon: Node, weapon_id: String) -> void:
+	# Connect shot-fired signal for sequential hint reveal (bolt/pump after 1st, reload after 2nd)
+	if weapon.has_signal("Fired"):
+		if not weapon.Fired.is_connected(_on_weapon_fired):
+			weapon.Fired.connect(_on_weapon_fired)
+	elif weapon.has_signal("ShotFired"):
+		if not weapon.ShotFired.is_connected(_on_weapon_fired):
+			weapon.ShotFired.connect(_on_weapon_fired)
+
+	# Weapon-type-specific signals
+	match weapon_id:
+		"shotgun":
+			if weapon.has_signal("ActionStateChanged"):
+				if not weapon.ActionStateChanged.is_connected(_on_shotgun_action_state_changed):
+					weapon.ActionStateChanged.connect(_on_shotgun_action_state_changed)
+			if weapon.has_signal("ReloadStateChanged"):
+				if not weapon.ReloadStateChanged.is_connected(_on_shotgun_reload_state_changed):
+					weapon.ReloadStateChanged.connect(_on_shotgun_reload_state_changed)
+		"sniper":
+			if weapon.has_signal("BoltStepChanged"):
+				if not weapon.BoltStepChanged.is_connected(_on_sniper_bolt_step_changed):
+					weapon.BoltStepChanged.connect(_on_sniper_bolt_step_changed)
+			if weapon.has_signal("ScopeStateChanged"):
+				if not weapon.ScopeStateChanged.is_connected(_on_scope_state_changed):
+					weapon.ScopeStateChanged.connect(_on_scope_state_changed)
+		"revolver":
+			if weapon.has_signal("HammerCocked"):
+				if not weapon.HammerCocked.is_connected(_on_hammer_cocked):
+					weapon.HammerCocked.connect(_on_hammer_cocked)
+			if weapon.has_signal("ReloadStateChanged"):
+				if not weapon.ReloadStateChanged.is_connected(_on_revolver_reload_state_changed):
+					weapon.ReloadStateChanged.connect(_on_revolver_reload_state_changed)
+		"m16":
+			if weapon.has_signal("FireModeChanged"):
+				if not weapon.FireModeChanged.is_connected(_on_fire_mode_changed):
+					weapon.FireModeChanged.connect(_on_fire_mode_changed)
+		"ak_gl":
+			if weapon.has_signal("FireModeChanged"):
+				if not weapon.FireModeChanged.is_connected(_on_fire_mode_changed):
+					weapon.FireModeChanged.connect(_on_fire_mode_changed)
+			if weapon.has_signal("GrenadeFired"):
+				if not weapon.GrenadeFired.is_connected(_on_grenade_launcher_fired):
+					weapon.GrenadeFired.connect(_on_grenade_launcher_fired)
+
+	# Connect player-level reload signals
+	if _player.has_signal("ReloadCompleted"):
+		if not _player.ReloadCompleted.is_connected(_on_reload_completed):
+			_player.ReloadCompleted.connect(_on_reload_completed)
+	elif _player.has_signal("reload_completed"):
+		if not _player.reload_completed.is_connected(_on_reload_completed):
+			_player.reload_completed.connect(_on_reload_completed)
+
+	_log_to_file("Connected weapon signals for: %s (node: %s)" % [weapon_id, weapon.name])
+
+
+## Show the first hints for this weapon immediately when equipped.
+## For revolver: show hammer-cock hint immediately (mirrors Labyrinth).
+## For sniper: show scope hint immediately (mirrors Labyrinth Issue #998).
+## For all: bolt-cycle hint after 1st shot, reload hint after 2nd shot.
+func _show_initial_hints(weapon_id: String) -> void:
+	match weapon_id:
+		"revolver":
+			_add_hint(HINT_KEY_HAMMER_COCK,
+				"[color=#ff4444][ПКМ][/color] Взведи курок")
+		"sniper":
+			_add_hint(HINT_KEY_SCOPE,
+				"[color=#ff4444][ПКМ][/color] Прицелься через оптику")
+
+	# All other weapons: bolt-cycle/pump hint appears after 1st shot,
+	# reload hint appears after 2nd shot (see _on_weapon_fired).
 	_hints_showing = true
-	_dismiss_timer.start(HINT_DURATION)
+
+
+## Called when the player fires a shot.
+## Mirrors Labyrinth _on_tutorial_weapon_fired():
+## - After 1st shot: show bolt-cycle hint (sniper/shotgun)
+## - After 2nd shot: show reload hint (all weapons)
+func _on_weapon_fired() -> void:
+	_shots_fired += 1
+	_log_to_file("Shot fired with %s (%d total)" % [_current_weapon_id, _shots_fired])
+
+	# After 1st shot: reveal bolt-cycle/pump hint for weapons that need it
+	if _shots_fired >= 1 and not _bolt_cycle_hint_revealed:
+		match _current_weapon_id:
+			"sniper":
+				_bolt_cycle_hint_revealed = true
+				if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+					_add_hint(HINT_KEY_BOLT_CYCLE,
+						"[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] Передёрни затвор")
+			"shotgun":
+				_bolt_cycle_hint_revealed = true
+				if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+					_add_hint(HINT_KEY_BOLT_CYCLE,
+						"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор")
+
+	# After 2nd shot: reveal reload hint for all weapons
+	if _shots_fired >= 2 and not _reload_hint_revealed:
+		_reload_hint_revealed = true
+		_reveal_reload_hint()
+
+
+## Reveal the reload hint appropriate for the current weapon.
+## Mirrors Labyrinth _add_tutorial_reload_hints().
+func _reveal_reload_hint() -> void:
+	match _current_weapon_id:
+		"shotgun":
+			# Replace pump-action hint with full reload hint
+			if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+				_dismiss_hint(HINT_KEY_BOLT_CYCLE)
+			_add_hint(HINT_KEY_BOLT_CYCLE,
+				"[color=#ff4444][ПКМ↑ открыть][/color] [color=#888888][СКМ+ПКМ↓ xN] [ПКМ↓ закрыть][/color]")
+		"sniper":
+			_add_hint(HINT_KEY_RELOAD,
+				"[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись")
+		"revolver":
+			_add_hint(HINT_KEY_RELOAD,
+				"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]")
+		"makarov_pm":
+			_add_hint(HINT_KEY_RELOAD,
+				"[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись")
+		_:
+			# Standard R → F → R (m16, mini_uzi, silenced_pistol, ak_gl, etc.)
+			_add_hint(HINT_KEY_RELOAD,
+				"[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись")
+
+	_log_to_file("Reload hint revealed for: %s" % _current_weapon_id)
+
+
+## Called when sniper bolt step changes.
+## Mirrors Labyrinth _on_tutorial_sniper_bolt_step_changed(): updates hint text then dismisses on completion.
+func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
+	if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+		var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
+		if is_instance_valid(label):
+			match step:
+				0: label.text = "[color=#ff4444][←][/color] [color=#888888][↓] [↑] [→][/color] Передёрни затвор"
+				1: label.text = "[color=#888888][←][/color] [color=#ff4444][↓][/color] [color=#888888][↑] [→][/color] Передёрни затвор"
+				2: label.text = "[color=#888888][←] [↓][/color] [color=#ff4444][↑][/color] [color=#888888][→][/color] Передёрни затвор"
+				3: label.text = "[color=#888888][←] [↓] [↑][/color] [color=#ff4444][→][/color] Передёрни затвор"
+	if step >= total_steps:
+		_dismiss_hint(HINT_KEY_BOLT_CYCLE)
+
+
+## Called when shotgun action state changes (pump-action cycling).
+## Dismisses the pump-action hint when player cycles the bolt.
+## ShotgunActionState: 0=Ready, 1=NeedsPumpUp, 2=NeedsPumpDown
+func _on_shotgun_action_state_changed(new_state: int) -> void:
+	# State 0 = Ready (bolt cycled) — dismiss the pump hint
+	if new_state == 0 and _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+		# Only dismiss pump hint (not full-reload hint which shares the key)
+		if not _reload_hint_revealed:
+			_dismiss_hint(HINT_KEY_BOLT_CYCLE)
+
+
+## Called when shotgun reload state changes.
+func _on_shotgun_reload_state_changed(_new_state: int) -> void:
+	pass  # Reload completion handled by _on_reload_completed
+
+
+## Called when hammer is cocked on revolver — dismisses hammer-cock hint.
+func _on_hammer_cocked() -> void:
+	_hammer_cocked = true
+	_dismiss_hint(HINT_KEY_HAMMER_COCK)
+	_log_to_file("Hammer cocked — hammer hint dismissed")
+
+
+## Called when scope state changes — dismisses scope hint on first activation.
+func _on_scope_state_changed(is_active: bool) -> void:
+	if not is_active or _scope_used:
+		return
+	_scope_used = true
+	_dismiss_hint(HINT_KEY_SCOPE)
+	_log_to_file("Scope used — scope hint dismissed")
+
+
+## Called when fire mode changes — dismisses fire-mode hint.
+func _on_fire_mode_changed(_new_mode: int) -> void:
+	if _hint_labels.has(HINT_KEY_FIRE_MODE):
+		_dismiss_hint(HINT_KEY_FIRE_MODE)
+		_log_to_file("Fire mode changed — fire mode hint dismissed")
+
+
+## Called when grenade launcher fires — dismisses launcher hint.
+func _on_grenade_launcher_fired() -> void:
+	_dismiss_hint(HINT_KEY_LAUNCHER)
+	_log_to_file("Grenade launcher fired — launcher hint dismissed")
+
+
+## Called when player completes a reload.
+## Mirrors Labyrinth _on_tutorial_reload_completed(): dismisses reload hint.
+## For M16/AK GL: sets flag to show fire-mode hint after reload (shown on next weapon_selected or manually).
+func _on_reload_completed() -> void:
+	if not _hints_active:
+		return
+	if _hint_labels.has(HINT_KEY_RELOAD):
+		_dismiss_hint(HINT_KEY_RELOAD)
+	if _hint_labels.has(HINT_KEY_BOLT_CYCLE) and _current_weapon_id == "shotgun":
+		_dismiss_hint(HINT_KEY_BOLT_CYCLE)
+	# M16: show fire-mode hint after reload (mirrors Labyrinth)
+	if _current_weapon_id == "m16":
+		_fire_mode_hint_pending = true
+		if not _hint_labels.has(HINT_KEY_FIRE_MODE):
+			_add_hint(HINT_KEY_FIRE_MODE,
+				"[color=#ff4444][B][/color] Переключи режим стрельбы")
+	_log_to_file("Reload completed — reload hint dismissed for: %s" % _current_weapon_id)
+
+
+## Called when the global dismiss timer times out — clear all remaining hints.
+func _on_dismiss_timer_timeout() -> void:
+	_log_to_file("Auto-dismiss timer: clearing all remaining hints for %s" % _current_weapon_id)
+	dismiss_hints()
 
 
 ## Add a single hint label with Labyrinth-style BBCode, shadows, fade-in, and strikethrough Line2D.
 ## Mirrors labyrinth_level.gd _add_tutorial_hint().
 ## @param hint_key: Unique identifier for this hint.
-## @param color_key: Key into HINT_COLORS for the label color.
 ## @param text: BBCode-formatted text to display.
-func _add_hint(hint_key: String, color_key: String, text: String) -> void:
+func _add_hint(hint_key: String, text: String) -> void:
 	if hint_key in _hint_labels:
-		# Already showing this hint — update text if not animating
+		# Already showing — update text if not animating
 		if not _animating_hints.has(hint_key):
 			_hint_labels[hint_key].text = text
 		return
@@ -268,30 +520,26 @@ func _add_hint(hint_key: String, color_key: String, text: String) -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("normal_font_size", 20)
 
-	# Per-hint color matching Labyrinth palette
-	var hint_color: Color = HINT_COLORS.get(color_key, HINT_COLOR_DEFAULT)
-	label.add_theme_color_override("default_color", hint_color)
-
-	# Drop shadow matching Labyrinth style
+	label.add_theme_color_override("default_color", _get_hint_color(hint_key))
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
-
 	label.custom_minimum_size = HINT_MIN_SIZE
 	label.fit_content = true
 	label.scroll_active = false
 
-	# Start transparent for fade-in (matching Labyrinth Issue #944 animation)
+	# Start transparent for fade-in
 	label.modulate.a = 0.0
 
 	_canvas_layer.add_child(label)
 	_hint_labels[hint_key] = label
+	_hints_showing = true
 
-	# Initialize strikethrough tracking (matching Labyrinth Issue #944 style)
+	# Initialize strikethrough tracking
 	_hint_strike_lines[hint_key] = []
 	_hint_strike_progress[hint_key] = 0.0
 
-	# Set up Line2D strikethrough nodes after one frame so layout is computed
+	# Set up Line2D strikethrough nodes after one frame
 	_setup_strikethrough_lines.call_deferred(hint_key, label)
 
 	# Position immediately
@@ -301,7 +549,7 @@ func _add_hint(hint_key: String, color_key: String, text: String) -> void:
 	label.custom_minimum_size = HINT_MIN_SIZE
 	label.position = screen_pos + Vector2(HINT_OFFSET_X, HINT_OFFSET_Y - index * HINT_SPACING)
 
-	# Fade-in animation (matching Labyrinth TUTORIAL_HINT_FADE_IN_DURATION)
+	# Fade-in animation
 	var tween := create_tween()
 	tween.tween_property(label, "modulate:a", 1.0, HINT_FADE_IN_DURATION).set_ease(Tween.EASE_OUT)
 
@@ -310,19 +558,16 @@ func _add_hint(hint_key: String, color_key: String, text: String) -> void:
 
 ## Set up one Line2D per text line after label layout is ready (deferred).
 ## Mirrors labyrinth_level.gd _setup_tutorial_strikethrough_lines().
-## Issue #1080 style: computes per-line text widths so strikethrough matches actual text length.
 func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 	if not is_instance_valid(label):
 		return
 
-	# Font size 20 with default line spacing gives ~26px per line.
 	const LINE_HEIGHT := 26.0
 
 	var content_height := label.get_content_height()
 	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
 	_hint_line_counts[hint_key] = line_count
 
-	# Compute per-line text widths using font metrics (Issue #1080 style).
 	var line_widths: Array = []
 	var font: Font = label.get_theme_font("normal_font")
 	var font_size: int = label.get_theme_font_size("normal_font_size")
@@ -331,8 +576,7 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 		var per_line_text: Array = []
 		for _i in range(line_count):
 			per_line_text.append("")
-		var char_count: int = plain_text.length()
-		for char_idx in range(char_count):
+		for char_idx in range(plain_text.length()):
 			var visual_line: int = label.get_character_line(char_idx)
 			if visual_line >= 0 and visual_line < line_count:
 				per_line_text[visual_line] += plain_text[char_idx]
@@ -340,7 +584,6 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 			var w: float = font.get_string_size(per_line_text[line_idx], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 			line_widths.append(maxf(w, 1.0))
 	else:
-		# Fallback: use label content width for all lines.
 		var fallback_width: float = label.get_content_width()
 		if fallback_width <= 0:
 			fallback_width = label.custom_minimum_size.x
@@ -350,7 +593,6 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 			line_widths.append(fallback_width)
 	_hint_line_widths[hint_key] = line_widths
 
-	# Create one Line2D per text line to avoid diagonal connectors between lines.
 	var lines: Array = []
 	for line_idx in range(line_count):
 		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
@@ -365,7 +607,7 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 		lines.append(seg)
 
 	_hint_strike_lines[hint_key] = lines
-	_log_to_file("Setup strikethrough for '%s': %d lines, widths: %s" % [hint_key, line_count, str(line_widths)])
+	_log_to_file("Strikethrough setup '%s': %d lines" % [hint_key, line_count])
 
 
 ## Update per-line Line2D end points for multi-line strikethrough.
@@ -377,18 +619,15 @@ func _update_strikethrough_points(strike_lines: Array, line_count: int, line_wid
 		var seg: Line2D = strike_lines[line_idx]
 		if not is_instance_valid(seg):
 			continue
-
 		var line_start_progress := float(line_idx) / line_count
 		var line_end_progress := float(line_idx + 1) / line_count
 		var line_progress: float
-
 		if progress <= line_start_progress:
 			line_progress = 0.0
 		elif progress >= line_end_progress:
 			line_progress = 1.0
 		else:
 			line_progress = (progress - line_start_progress) / (line_end_progress - line_start_progress)
-
 		var line_width: float = line_widths[line_idx] if line_idx < line_widths.size() else 300.0
 		seg.set_point_position(1, Vector2(line_width * line_progress, seg.get_point_position(0).y))
 
@@ -398,8 +637,6 @@ func _update_strikethrough_points(strike_lines: Array, line_count: int, line_wid
 func _dismiss_hint(hint_key: String) -> void:
 	if not _hint_labels.has(hint_key):
 		return
-
-	# Prevent double-dismiss while animating
 	if _animating_hints.has(hint_key):
 		return
 
@@ -409,26 +646,22 @@ func _dismiss_hint(hint_key: String) -> void:
 		return
 
 	_animating_hints[hint_key] = true
-	_log_to_file("Dismissing hint '%s' (strikethrough animation)" % hint_key)
+	_log_to_file("Dismissing hint '%s'" % hint_key)
 
-	# Get strike lines and widths
 	var strike_lines: Array = _hint_strike_lines.get(hint_key, [])
 	var line_widths: Array = _hint_line_widths.get(hint_key, [])
 	if line_widths.is_empty():
-		var fallback_width: float = label.get_content_width()
-		if fallback_width <= 0:
-			fallback_width = label.custom_minimum_size.x
-		if fallback_width <= 0:
-			fallback_width = 300.0
-		var line_count_fb: int = _hint_line_counts.get(hint_key, 1)
-		for _i in range(line_count_fb):
-			line_widths.append(fallback_width)
+		var fw: float = label.get_content_width()
+		if fw <= 0: fw = label.custom_minimum_size.x
+		if fw <= 0: fw = 300.0
+		var lc: int = _hint_line_counts.get(hint_key, 1)
+		for _i in range(lc):
+			line_widths.append(fw)
 
 	var line_count: int = _hint_line_counts.get(hint_key, 1)
 	var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
 
 	var tween := create_tween()
-
 	if not strike_lines.is_empty():
 		tween.tween_method(
 			func(progress: float):
@@ -436,13 +669,11 @@ func _dismiss_hint(hint_key: String) -> void:
 			current_progress, 1.0, HINT_STRIKETHROUGH_DURATION
 		).set_ease(Tween.EASE_OUT)
 
-	# After strikethrough, fade out the label
 	tween.tween_property(label, "modulate:a", 0.0, HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
 	tween.tween_callback(_finalize_hint_dismiss.bind(hint_key, label))
 
 
 ## Finalize hint removal after animation completes.
-## Mirrors labyrinth_level.gd _finalize_tutorial_hint_dismiss().
 func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_animating_hints.erase(hint_key)
 	_hint_labels.erase(hint_key)
@@ -452,24 +683,26 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_hint_line_widths.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
-	_log_to_file("Hint '%s' dismissed (animation complete)" % hint_key)
+	if _hint_labels.is_empty() and _animating_hints.is_empty():
+		_hints_showing = false
+		_hints_active = false
+		_dismiss_timer.stop()
+	_log_to_file("Hint '%s' dismissed" % hint_key)
 
 
 ## Dismiss all hints with strikethrough-then-fade-out animation.
 func dismiss_hints() -> void:
 	_dismiss_timer.stop()
-	_hints_showing = false
 
-	for hint_key in _hint_labels.keys():
+	for hint_key in _hint_labels.keys().duplicate():
 		_dismiss_hint(hint_key)
-
-	_log_to_file("All hints dismissed")
 
 
 ## Dismiss hints immediately without animation (used when weapon changes mid-display).
 func _dismiss_hints_immediate() -> void:
 	_dismiss_timer.stop()
 	_hints_showing = false
+	_hints_active = false
 
 	for hint_key in _hint_labels.keys():
 		var label: RichTextLabel = _hint_labels[hint_key]
@@ -482,7 +715,57 @@ func _dismiss_hints_immediate() -> void:
 	_hint_line_counts.clear()
 	_hint_line_widths.clear()
 	_animating_hints.clear()
+	_disconnect_weapon_signals()
 	_log_to_file("All hints dismissed immediately")
+
+
+## Disconnect signals from the current weapon node.
+func _disconnect_weapon_signals() -> void:
+	if _current_weapon_node == null or not is_instance_valid(_current_weapon_node):
+		_current_weapon_node = null
+		return
+
+	var weapon := _current_weapon_node
+	_current_weapon_node = null
+
+	if weapon.has_signal("Fired") and weapon.Fired.is_connected(_on_weapon_fired):
+		weapon.Fired.disconnect(_on_weapon_fired)
+	if weapon.has_signal("ShotFired") and weapon.ShotFired.is_connected(_on_weapon_fired):
+		weapon.ShotFired.disconnect(_on_weapon_fired)
+	if weapon.has_signal("ActionStateChanged") and weapon.ActionStateChanged.is_connected(_on_shotgun_action_state_changed):
+		weapon.ActionStateChanged.disconnect(_on_shotgun_action_state_changed)
+	if weapon.has_signal("ReloadStateChanged") and weapon.ReloadStateChanged.is_connected(_on_shotgun_reload_state_changed):
+		weapon.ReloadStateChanged.disconnect(_on_shotgun_reload_state_changed)
+	if weapon.has_signal("ReloadStateChanged") and weapon.ReloadStateChanged.is_connected(_on_revolver_reload_state_changed):
+		weapon.ReloadStateChanged.disconnect(_on_revolver_reload_state_changed)
+	if weapon.has_signal("BoltStepChanged") and weapon.BoltStepChanged.is_connected(_on_sniper_bolt_step_changed):
+		weapon.BoltStepChanged.disconnect(_on_sniper_bolt_step_changed)
+	if weapon.has_signal("ScopeStateChanged") and weapon.ScopeStateChanged.is_connected(_on_scope_state_changed):
+		weapon.ScopeStateChanged.disconnect(_on_scope_state_changed)
+	if weapon.has_signal("HammerCocked") and weapon.HammerCocked.is_connected(_on_hammer_cocked):
+		weapon.HammerCocked.disconnect(_on_hammer_cocked)
+	if weapon.has_signal("FireModeChanged") and weapon.FireModeChanged.is_connected(_on_fire_mode_changed):
+		weapon.FireModeChanged.disconnect(_on_fire_mode_changed)
+	if weapon.has_signal("GrenadeFired") and weapon.GrenadeFired.is_connected(_on_grenade_launcher_fired):
+		weapon.GrenadeFired.disconnect(_on_grenade_launcher_fired)
+
+	if _player and is_instance_valid(_player):
+		if _player.has_signal("ReloadCompleted") and _player.ReloadCompleted.is_connected(_on_reload_completed):
+			_player.ReloadCompleted.disconnect(_on_reload_completed)
+		if _player.has_signal("reload_completed") and _player.reload_completed.is_connected(_on_reload_completed):
+			_player.reload_completed.disconnect(_on_reload_completed)
+
+
+## Reset per-weapon hint tracking state.
+func _reset_hint_state() -> void:
+	_shots_fired = 0
+	_bolt_cycle_hint_revealed = false
+	_reload_hint_revealed = false
+	_scope_used = false
+	_hammer_cocked = false
+	_fire_mode_hint_pending = false
+	_disconnect_weapon_signals()
+	# Note: _pending_unlock is NOT cleared here — it is consumed by _on_weapon_selected
 
 
 ## Update positions of all hint labels to float above the player.
@@ -499,30 +782,27 @@ func _update_hint_positions() -> void:
 		var label: RichTextLabel = _hint_labels[hint_key]
 		if label == null or not is_instance_valid(label):
 			continue
-
 		label.custom_minimum_size = HINT_MIN_SIZE
 		label.position = screen_pos + Vector2(HINT_OFFSET_X, HINT_OFFSET_Y - index * HINT_SPACING)
 		index += 1
 
 
-## Called when the dismiss timer times out — dismiss all with strikethrough animation.
-func _on_dismiss_timer_timeout() -> void:
-	dismiss_hints()
+## Called when revolver reload state changes (for future step-tracking, mirrors Labyrinth).
+func _on_revolver_reload_state_changed(_new_state: int) -> void:
+	pass  # Reload completion handled by _on_reload_completed
 
 
 ## Clean up when component is removed.
 func _exit_tree() -> void:
-	# Disconnect from GameManager to avoid dangling connections
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
-		if game_manager.has_signal("weapon_unlocked"):
-			if game_manager.weapon_unlocked.is_connected(_on_weapon_unlocked):
-				game_manager.weapon_unlocked.disconnect(_on_weapon_unlocked)
-		if game_manager.has_signal("weapon_selected"):
-			if game_manager.weapon_selected.is_connected(_on_weapon_selected):
-				game_manager.weapon_selected.disconnect(_on_weapon_selected)
+		if game_manager.has_signal("weapon_unlocked") and game_manager.weapon_unlocked.is_connected(_on_weapon_unlocked):
+			game_manager.weapon_unlocked.disconnect(_on_weapon_unlocked)
+		if game_manager.has_signal("weapon_selected") and game_manager.weapon_selected.is_connected(_on_weapon_selected):
+			game_manager.weapon_selected.disconnect(_on_weapon_selected)
 
-	# Free hint labels immediately (no animation needed on exit)
+	_disconnect_weapon_signals()
+
 	for hint_key in _hint_labels.keys():
 		var label: RichTextLabel = _hint_labels[hint_key]
 		if label != null and is_instance_valid(label):
