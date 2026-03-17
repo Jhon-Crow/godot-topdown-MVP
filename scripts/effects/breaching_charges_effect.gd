@@ -214,9 +214,12 @@ func detonate() -> bool:
 	# Remove the placed charge marker
 	_remove_placed_charge_marker()
 
-	# Open a passage in each charged wall (supports corners with two walls)
+	# Open a passage in each charged wall using each wall's own hit position.
+	# This is critical at corners: the primary hit_pos is on the nearest wall,
+	# but secondary walls at the corner must be breached at THEIR own hit point
+	# so the passage is carved at the correct end of that wall.
 	for wall_result in walls:
-		_open_wall_passage(wall_result["wall"], det_pos)
+		_open_wall_passage(wall_result["wall"], wall_result["hit_pos"])
 
 	# Spawn directional explosion cone effect
 	_spawn_explosion_effect(det_pos, det_dir)
@@ -307,6 +310,8 @@ func _find_walls_with_hits() -> Array:
 ## collision is disabled entirely and the visual is faded (alpha 0.25) — the wall
 ## remains visible but is passable, fulfilling Issue #1087 item 5.
 ## breach_world_pos: the world-space hit position where the charge was placed.
+## Issue #1093: when the hit is near the wall's end (corner placement), the passage
+## is snapped to the end so both walls at the corner are visibly broken.
 func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	if wall == null or not is_instance_valid(wall):
 		FileLogger.info("[BreachingCharges] WARNING: Wall reference invalid at detonation")
@@ -357,8 +362,17 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			FileLogger.info("[BreachingCharges] Thin wall '%s' breached (fully passable)" % wall.name)
 			return
 
-		# Clamp breach center to wall interior
-		var bx: float = clamp(breach_local.x, -half_w + half_breach, half_w - half_breach)
+		# Snap breach center toward the nearest wall end when the hit is near an end.
+		# This ensures corner placements produce a visible passage at the corner junction
+		# rather than being clamped away from the tip.
+		var bx: float = breach_local.x
+		if bx < -half_w + half_breach:
+			# Hit is beyond or near the left end — snap passage to the left end
+			bx = -half_w + half_breach
+		elif bx > half_w - half_breach:
+			# Hit is beyond or near the right end — snap passage to the right end
+			bx = half_w - half_breach
+
 		var left_end: float = bx - half_breach    # right edge of left segment
 		var right_start: float = bx + half_breach  # left edge of right segment
 
@@ -395,7 +409,7 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			wall.add_child(right_col)
 
 		# Update visuals: split the ColorRect / hide breach section
-		_split_visual_horizontal(wall, breach_local.x, half_w, half_h)
+		_split_visual_horizontal(wall, bx, half_w, half_h)
 
 		FileLogger.info("[BreachingCharges] Horizontal passage carved in '%s' at local x=%.0f (passage %.0fpx)" % [
 			wall.name, bx, BREACH_PASSAGE_WIDTH
@@ -408,8 +422,13 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			FileLogger.info("[BreachingCharges] Thin wall '%s' breached (fully passable)" % wall.name)
 			return
 
-		# Vertical wall — split along Y
-		var by: float = clamp(breach_local.y, -half_h + half_breach, half_h - half_breach)
+		# Snap breach center toward the nearest wall end for corner placements.
+		var by: float = breach_local.y
+		if by < -half_h + half_breach:
+			by = -half_h + half_breach
+		elif by > half_h - half_breach:
+			by = half_h - half_breach
+
 		var top_end: float = by - half_breach
 		var bottom_start: float = by + half_breach
 
@@ -441,7 +460,7 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			bot_col.position = Vector2(0.0, half_h - bottom_height * 0.5)
 			wall.add_child(bot_col)
 
-		_split_visual_vertical(wall, breach_local.y, half_w, half_h)
+		_split_visual_vertical(wall, by, half_w, half_h)
 
 		FileLogger.info("[BreachingCharges] Vertical passage carved in '%s' at local y=%.0f (passage %.0fpx)" % [
 			wall.name, by, BREACH_PASSAGE_WIDTH

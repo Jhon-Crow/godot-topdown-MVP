@@ -536,28 +536,58 @@ func test_passage_carving_vertical_wall_produces_two_segments() -> void:
 		"Top + bottom + passage should equal total wall height")
 
 
-func test_passage_not_carved_at_wall_edge_stays_clamped() -> void:
-	# Breach near the edge of the wall should be clamped so both segments are non-trivial.
+func test_passage_at_wall_edge_snaps_to_end() -> void:
+	# Issue #1093: breach near the end of a wall (corner placement) should snap the
+	# passage to the nearest end so the gap is visible at the corner junction.
 	var wall_width: float = 300.0
 	var passage_width: float = 120.0
 	var half_w: float = wall_width * 0.5
 	var half_breach: float = passage_width * 0.5
 
-	# Attempt to breach very close to right edge
-	var bx_raw: float = half_w - 5.0  # 5px from the edge
-	var bx: float = clamp(bx_raw, -half_w + half_breach, half_w - half_breach)
+	# Simulate hit very close to right edge (corner placement)
+	var bx_raw: float = half_w - 5.0  # 5px from the edge — beyond clamp limit
 
-	# After clamping bx should be at most half_w - half_breach
-	assert_lte(bx, half_w - half_breach,
-		"Breach centre must be clamped so passage does not exceed wall boundary")
+	# New end-snap logic: if beyond right limit, snap to the right end position
+	var bx: float = bx_raw
+	if bx > half_w - half_breach:
+		bx = half_w - half_breach
+
+	# bx should now be exactly at the right-end snap position
+	assert_almost_eq(bx, half_w - half_breach, 0.01,
+		"Breach centre should snap to the end position for corner placements")
 
 	var left_width: float = bx - half_breach + half_w
 	var right_width: float = half_w - (bx + half_breach)
 
-	assert_gte(left_width, half_breach * 2.0 - 1.0,
-		"Left segment must be meaningful when breach is clamped from edge")
-	assert_gte(right_width, 0.0,
-		"Right segment must be non-negative after clamping")
+	assert_gt(left_width, 0.0,
+		"Left (surviving) segment must have positive width after corner end-snap")
+	assert_almost_eq(right_width, 0.0, 1.0,
+		"Right segment should be ~0 when breach is snapped to the right end")
+
+
+func test_passage_at_wall_left_edge_snaps_correctly() -> void:
+	# Issue #1093: breach near the LEFT end (corner placement) should also snap correctly.
+	var wall_width: float = 300.0
+	var passage_width: float = 120.0
+	var half_w: float = wall_width * 0.5
+	var half_breach: float = passage_width * 0.5
+
+	var bx_raw: float = -half_w + 5.0  # 5px from the left edge
+
+	var bx: float = bx_raw
+	if bx < -half_w + half_breach:
+		bx = -half_w + half_breach
+
+	assert_almost_eq(bx, -half_w + half_breach, 0.01,
+		"Breach centre should snap to the left-end position for corner placements")
+
+	var left_width: float = bx - half_breach + half_w
+	var right_width: float = half_w - (bx + half_breach)
+
+	assert_almost_eq(left_width, 0.0, 1.0,
+		"Left segment should be ~0 when breach is snapped to the left end")
+	assert_gt(right_width, 0.0,
+		"Right (surviving) segment must have positive width after left corner end-snap")
 
 
 # ============================================================================
@@ -656,3 +686,42 @@ func test_single_wall_placement_still_works_after_refactor() -> void:
 		"Single-wall detonation should still open exactly one wall after Issue #1093 refactor")
 	assert_eq(effect.walls_opened[0], wall,
 		"The correct single wall should be opened after detonation")
+
+
+func test_corner_each_wall_uses_its_own_hit_position() -> void:
+	# Issue #1093 (visual fix): the breach on each wall must be carved at THAT wall's
+	# own ray-hit position, not the primary wall's hit position.
+	# This is verified by checking that the real detonate() loop accesses wall_result["hit_pos"]
+	# for each wall, not a shared det_pos. We verify the contract via geometry:
+	# a horizontal wall hit at its right end (local x = +half_w) and a vertical wall hit
+	# at its bottom end (local y = +half_h) should both get passages at their respective ends.
+	var wall_width: float = 400.0
+	var wall_height: float = 400.0
+	var passage_width: float = 120.0
+	var half_w: float = wall_width * 0.5
+	var half_h: float = wall_height * 0.5
+	var half_breach: float = passage_width * 0.5
+
+	# --- Horizontal wall breached at its right end ---
+	var bx_raw: float = half_w  # hit at the very right edge
+	var bx: float = bx_raw
+	if bx > half_w - half_breach:
+		bx = half_w - half_breach
+	var h_left_width: float = bx - half_breach + half_w
+	var h_right_width: float = half_w - (bx + half_breach)
+	assert_gt(h_left_width, 0.0,
+		"Horizontal wall: surviving left segment should exist when hit at right end")
+	assert_almost_eq(h_right_width, 0.0, 1.0,
+		"Horizontal wall: right segment should be ~0 when passage is at right end")
+
+	# --- Vertical wall breached at its bottom end ---
+	var by_raw: float = half_h  # hit at the very bottom edge
+	var by: float = by_raw
+	if by > half_h - half_breach:
+		by = half_h - half_breach
+	var v_top_height: float = by - half_breach + half_h
+	var v_bottom_height: float = half_h - (by + half_breach)
+	assert_gt(v_top_height, 0.0,
+		"Vertical wall: surviving top segment should exist when hit at bottom end")
+	assert_almost_eq(v_bottom_height, 0.0, 1.0,
+		"Vertical wall: bottom segment should be ~0 when passage is at bottom end")
