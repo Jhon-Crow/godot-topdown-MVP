@@ -335,6 +335,14 @@ func _spawn_enemy() -> void:
 	_enemies_alive += 1
 	_update_enemy_count_label()
 
+	# Force enemy into SEARCHING state immediately after spawn so it actively
+	# hunts the player instead of standing idle staring at the wall.
+	# Use call_deferred so the enemy's _ready() runs first and all components
+	# are initialized before we transition state.
+	if _player != null and is_instance_valid(_player):
+		var search_center: Vector2 = _player.global_position
+		enemy.call_deferred("_transition_to_searching", search_center)
+
 
 ## Configure enemy properties based on wave number.
 func _configure_enemy_for_wave(enemy: Node, wave: int) -> void:
@@ -380,23 +388,22 @@ func _configure_enemy_for_wave(enemy: Node, wave: int) -> void:
 		enemy.set("enable_flanking", false)
 
 
-## Return a random enemy spawn position (away from player).
+## Return a random enemy spawn position distributed along the arena walls.
+## Picks randomly from the top half of spawn points sorted by distance from player,
+## so enemies spread out rather than all clustering at the single farthest corner.
 func _pick_random_enemy_spawn() -> Vector2:
 	if _enemy_spawn_points.is_empty():
 		return Vector2(960, 540)
 
-	# Prefer spawn points far from player.
 	if _player != null and is_instance_valid(_player):
 		var player_pos: Vector2 = _player.global_position
-		var best_pos: Vector2 = _enemy_spawn_points[0]
-		var best_dist: float = 0.0
-		for sp in _enemy_spawn_points:
-			var dist: float = sp.distance_to(player_pos)
-			if dist > best_dist:
-				best_dist = dist
-				best_pos = sp
-		# Add small random scatter.
-		return best_pos + Vector2(randf_range(-40, 40), randf_range(-40, 40))
+		# Sort spawn points by distance from player (farthest first).
+		var sorted: Array = _enemy_spawn_points.duplicate()
+		sorted.sort_custom(func(a, b): return a.distance_to(player_pos) > b.distance_to(player_pos))
+		# Pick randomly from the farthest half to distribute around walls.
+		var pool_size: int = max(1, sorted.size() / 2)
+		var chosen: Vector2 = sorted[randi() % pool_size]
+		return chosen + Vector2(randf_range(-40, 40), randf_range(-40, 40))
 
 	return _enemy_spawn_points[randi() % _enemy_spawn_points.size()]
 
@@ -608,18 +615,8 @@ func _find_player_weapon(player: Node2D) -> Node:
 
 ## Re-connect weapon ammo/fire signals after a weapon swap.
 func _reconnect_weapon_signals(player: Node2D) -> void:
-	var weapon := _find_player_weapon(player)
-	if weapon == null:
-		return
-	if weapon.has_signal("AmmoChanged"):
-		if not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
-			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
-	if weapon.has_signal("MagazinesChanged"):
-		if not weapon.MagazinesChanged.is_connected(_on_magazines_changed):
-			weapon.MagazinesChanged.connect(_on_magazines_changed)
-	if weapon.has_signal("Fired"):
-		if not weapon.Fired.is_connected(_on_shot_fired):
-			weapon.Fired.connect(_on_shot_fired)
+	# Use deferred reconnect so the new weapon node is fully initialized.
+	call_deferred("_connect_weapon_signals_deferred")
 
 # ---------------------------------------------------------------------------
 # Setup Functions
@@ -679,25 +676,43 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 
-	# Connect weapon signals (C# player).
-	var weapon := _find_player_weapon(_player)
-	if weapon != null:
-		if weapon.has_signal("AmmoChanged"):
-			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
-		if weapon.has_signal("MagazinesChanged"):
-			weapon.MagazinesChanged.connect(_on_magazines_changed)
-		if weapon.has_signal("Fired"):
-			weapon.Fired.connect(_on_shot_fired)
-		if weapon.has_signal("ShellCountChanged"):
-			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-
-		# Show initial ammo.
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			_update_magazines_label(weapon.GetMagazineAmmoCounts())
+	# Connect weapon signals after a deferred frame so the C# Player has finished
+	# its own _ready and ApplySelectedWeaponFromGameManager — otherwise we may
+	# connect to the old default weapon node that gets replaced on the next frame.
+	call_deferred("_connect_weapon_signals_deferred")
 
 	print("[ArenaLevel] Player tracking setup complete")
+
+
+## Connect weapon signals after a deferred frame so the C# Player has finished
+## its own _ready and swapped in the correct weapon node.
+## This fixes the counters (ammo, magazines) not updating in arena mode.
+func _connect_weapon_signals_deferred() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var weapon := _find_player_weapon(_player)
+	if weapon == null:
+		push_warning("[ArenaLevel] _connect_weapon_signals_deferred: no weapon found")
+		return
+	if weapon.has_signal("AmmoChanged"):
+		if not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
+			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+	if weapon.has_signal("MagazinesChanged"):
+		if not weapon.MagazinesChanged.is_connected(_on_magazines_changed):
+			weapon.MagazinesChanged.connect(_on_magazines_changed)
+	if weapon.has_signal("Fired"):
+		if not weapon.Fired.is_connected(_on_shot_fired):
+			weapon.Fired.connect(_on_shot_fired)
+	if weapon.has_signal("ShellCountChanged"):
+		if not weapon.ShellCountChanged.is_connected(_on_shell_count_changed):
+			weapon.ShellCountChanged.connect(_on_shell_count_changed)
+	# Refresh initial display values.
+	if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		_update_magazines_label(weapon.GetMagazineAmmoCounts())
+	_update_health_label()
+	print("[ArenaLevel] Weapon signals connected: %s" % weapon.name)
 
 
 ## Add realistic visibility component to player.
