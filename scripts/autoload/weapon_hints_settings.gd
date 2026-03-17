@@ -94,6 +94,16 @@ func is_weapon_seen(weapon_id: String) -> bool:
 	return weapons_seen.get(weapon_id, false)
 
 
+## Reset seen tracking for a single weapon (e.g. when it is unlocked for the first time).
+## This allows hints to reappear for a weapon that was previously seen if it is newly unlocked.
+## @param weapon_id: The weapon identifier to reset.
+func reset_weapon_seen(weapon_id: String) -> void:
+	if weapons_seen.get(weapon_id, false):
+		weapons_seen.erase(weapon_id)
+		_save_settings()
+		_log_to_file("Weapon seen data cleared for: %s" % weapon_id)
+
+
 ## Reset all weapons seen tracking (for "first time" mode).
 ## Called when user wants to see all hints again.
 func reset_weapons_seen() -> void:

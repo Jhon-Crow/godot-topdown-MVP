@@ -136,12 +136,20 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 		push_warning("[WeaponHintsComponent] CanvasLayer is null")
 		return
 
-	# Connect to GameManager.weapon_selected to respond when weapon is picked up or changed.
-	# This supports showing hints for each weapon taken in sequence (Issue #809 req 3).
+	# Connect to GameManager signals to respond when weapon is picked up or changed.
+	# weapon_unlocked: fired when a weapon pickup object is collected for the first time.
+	#   We reset the "seen" flag here so FIRST_TIME_ONLY mode will show hints on unlock.
+	# weapon_selected: fired when the active weapon changes (after unlock or manual switch).
+	#   We show hints here so the display is triggered on the actual weapon equip event.
+	# This supports showing hints for each weapon taken in sequence (Issue #809 req 2 & 3).
 	var game_manager: Node = get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_signal("weapon_selected"):
-		if not game_manager.weapon_selected.is_connected(_on_weapon_selected):
-			game_manager.weapon_selected.connect(_on_weapon_selected)
+	if game_manager:
+		if game_manager.has_signal("weapon_unlocked"):
+			if not game_manager.weapon_unlocked.is_connected(_on_weapon_unlocked):
+				game_manager.weapon_unlocked.connect(_on_weapon_unlocked)
+		if game_manager.has_signal("weapon_selected"):
+			if not game_manager.weapon_selected.is_connected(_on_weapon_selected):
+				game_manager.weapon_selected.connect(_on_weapon_selected)
 
 	# Show hints for the weapon already selected when level starts.
 	if game_manager and game_manager.has_method("get_selected_weapon"):
@@ -154,6 +162,16 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 func _process(_delta: float) -> void:
 	if _hints_showing:
 		_update_hint_positions()
+
+
+## Called when GameManager emits weapon_unlocked (weapon picked up from the game world).
+## Resets the "seen" flag for this weapon so FIRST_TIME_ONLY mode will display hints.
+## Issue #809 req 2: hints appear when weapon is picked up (unlocked) for the first time.
+func _on_weapon_unlocked(weapon_id: String) -> void:
+	var settings: Node = get_node_or_null("/root/WeaponHintsSettings")
+	if settings and settings.has_method("reset_weapon_seen"):
+		settings.reset_weapon_seen(weapon_id)
+	_log_to_file("Weapon unlocked, reset seen flag: %s" % weapon_id)
 
 
 ## Called when GameManager emits weapon_selected (weapon picked up / changed).
@@ -312,9 +330,13 @@ func _on_dismiss_timer_timeout() -> void:
 func _exit_tree() -> void:
 	# Disconnect from GameManager to avoid dangling connections
 	var game_manager: Node = get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_signal("weapon_selected"):
-		if game_manager.weapon_selected.is_connected(_on_weapon_selected):
-			game_manager.weapon_selected.disconnect(_on_weapon_selected)
+	if game_manager:
+		if game_manager.has_signal("weapon_unlocked"):
+			if game_manager.weapon_unlocked.is_connected(_on_weapon_unlocked):
+				game_manager.weapon_unlocked.disconnect(_on_weapon_unlocked)
+		if game_manager.has_signal("weapon_selected"):
+			if game_manager.weapon_selected.is_connected(_on_weapon_selected):
+				game_manager.weapon_selected.disconnect(_on_weapon_selected)
 
 	# Free hint labels immediately (no animation needed on exit)
 	for hint_key in _hint_labels.keys():
