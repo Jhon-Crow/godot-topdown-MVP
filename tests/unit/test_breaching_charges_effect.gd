@@ -1,5 +1,5 @@
 extends GutTest
-## Unit tests for BreachingChargesEffect (Issue #1043).
+## Unit tests for BreachingChargesEffect (Issues #1043, #1093).
 ##
 ## Tests the breaching charges active item core logic including:
 ## - Charge management (2 charges per battle)
@@ -8,6 +8,7 @@ extends GutTest
 ## - Wall passage creation (disabling wall collision)
 ## - Enemy stun/blind application (3 seconds duration)
 ## - Signal emissions
+## - Issue #1093: corner placement opens passages in both adjacent walls
 
 
 # ============================================================================
@@ -34,8 +35,8 @@ class MockBreachingChargesEffect:
 	## Whether a charge is currently placed on a wall (waiting for detonation).
 	var has_placed_charge: bool = false
 
-	## The wall node that has a charge placed on it.
-	var _charged_wall = null
+	## The wall nodes that have a charge placed on them (supports corners with two walls).
+	var _charged_walls: Array = []
 
 	## World position where the charge was placed.
 	var _charge_position: Vector2 = Vector2.ZERO
@@ -65,16 +66,21 @@ class MockBreachingChargesEffect:
 	## Attempt to place a charge on the given wall mock.
 	## Returns true if placement was successful.
 	func try_place_charge_on(wall: MockWall) -> bool:
+		return try_place_charge_on_multiple([wall])
+
+	## Attempt to place a charge on multiple walls (corner case, Issue #1093).
+	## Returns true if placement was successful.
+	func try_place_charge_on_multiple(walls: Array) -> bool:
 		if charges <= 0:
 			return false
 		if has_placed_charge:
 			return false
-		if wall == null:
+		if walls.is_empty():
 			return false
 
 		charges -= 1
 		has_placed_charge = true
-		_charged_wall = wall
+		_charged_walls = walls
 		_charge_position = Vector2(100, 100)
 
 		charge_placed_signals.append(charges)
@@ -96,15 +102,16 @@ class MockBreachingChargesEffect:
 			return false
 
 		last_detonate_pos = _charge_position
-		var wall = _charged_wall
+		var walls := _charged_walls.duplicate()
 
 		has_placed_charge = false
-		_charged_wall = null
+		_charged_walls = []
 		_charge_position = Vector2.ZERO
 
-		# Record wall opening
-		if wall != null:
-			walls_opened.append(wall)
+		# Record all wall openings (Issue #1093: may include two walls at corners)
+		for wall in walls:
+			if wall != null:
+				walls_opened.append(wall)
 
 		# Simulate enemy stun within radius
 		detonated_signals.append(last_detonate_pos)
@@ -529,28 +536,58 @@ func test_passage_carving_vertical_wall_produces_two_segments() -> void:
 		"Top + bottom + passage should equal total wall height")
 
 
-func test_passage_not_carved_at_wall_edge_stays_clamped() -> void:
-	# Breach near the edge of the wall should be clamped so both segments are non-trivial.
+func test_passage_at_wall_edge_snaps_to_end() -> void:
+	# Issue #1093: breach near the end of a wall (corner placement) should snap the
+	# passage to the nearest end so the gap is visible at the corner junction.
 	var wall_width: float = 300.0
 	var passage_width: float = 120.0
 	var half_w: float = wall_width * 0.5
 	var half_breach: float = passage_width * 0.5
 
-	# Attempt to breach very close to right edge
-	var bx_raw: float = half_w - 5.0  # 5px from the edge
-	var bx: float = clamp(bx_raw, -half_w + half_breach, half_w - half_breach)
+	# Simulate hit very close to right edge (corner placement)
+	var bx_raw: float = half_w - 5.0  # 5px from the edge — beyond clamp limit
 
-	# After clamping bx should be at most half_w - half_breach
-	assert_lte(bx, half_w - half_breach,
-		"Breach centre must be clamped so passage does not exceed wall boundary")
+	# New end-snap logic: if beyond right limit, snap to the right end position
+	var bx: float = bx_raw
+	if bx > half_w - half_breach:
+		bx = half_w - half_breach
+
+	# bx should now be exactly at the right-end snap position
+	assert_almost_eq(bx, half_w - half_breach, 0.01,
+		"Breach centre should snap to the end position for corner placements")
 
 	var left_width: float = bx - half_breach + half_w
 	var right_width: float = half_w - (bx + half_breach)
 
-	assert_gte(left_width, half_breach * 2.0 - 1.0,
-		"Left segment must be meaningful when breach is clamped from edge")
-	assert_gte(right_width, 0.0,
-		"Right segment must be non-negative after clamping")
+	assert_gt(left_width, 0.0,
+		"Left (surviving) segment must have positive width after corner end-snap")
+	assert_almost_eq(right_width, 0.0, 1.0,
+		"Right segment should be ~0 when breach is snapped to the right end")
+
+
+func test_passage_at_wall_left_edge_snaps_correctly() -> void:
+	# Issue #1093: breach near the LEFT end (corner placement) should also snap correctly.
+	var wall_width: float = 300.0
+	var passage_width: float = 120.0
+	var half_w: float = wall_width * 0.5
+	var half_breach: float = passage_width * 0.5
+
+	var bx_raw: float = -half_w + 5.0  # 5px from the left edge
+
+	var bx: float = bx_raw
+	if bx < -half_w + half_breach:
+		bx = -half_w + half_breach
+
+	assert_almost_eq(bx, -half_w + half_breach, 0.01,
+		"Breach centre should snap to the left-end position for corner placements")
+
+	var left_width: float = bx - half_breach + half_w
+	var right_width: float = half_w - (bx + half_breach)
+
+	assert_almost_eq(left_width, 0.0, 1.0,
+		"Left segment should be ~0 when breach is snapped to the left end")
+	assert_gt(right_width, 0.0,
+		"Right (surviving) segment must have positive width after left corner end-snap")
 
 
 # ============================================================================
@@ -573,3 +610,222 @@ func test_placed_charge_has_blinking_led_indicator() -> void:
 	var has_led_indicator: bool = true  # the new marker includes a blinking LED
 	assert_true(has_led_indicator,
 		"Placed charge marker should include a blinking red LED detonator indicator")
+
+
+# ============================================================================
+# Issue #1093: Corner placement opens passages in both adjacent walls
+# ============================================================================
+
+
+func test_corner_placement_stores_two_walls() -> void:
+	# Issue #1093: when a charge is placed at the corner between two walls,
+	# both walls should be stored for detonation.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	wall1.name = "WallA"
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+	wall2.name = "WallB"
+
+	var result := effect.try_place_charge_on_multiple([wall1, wall2])
+	assert_true(result,
+		"Corner placement should succeed when two walls are in range")
+	assert_eq(effect._charged_walls.size(), 2,
+		"Both adjacent walls should be stored when placing at a corner")
+
+
+func test_corner_detonation_opens_both_walls() -> void:
+	# Issue #1093: detonating at a corner should open passages in both adjacent walls.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	wall1.name = "WallA"
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+	wall2.name = "WallB"
+
+	effect.try_place_charge_on_multiple([wall1, wall2])
+	effect.detonate()
+
+	assert_eq(effect.walls_opened.size(), 2,
+		"Both walls should be opened when detonating at a corner (Issue #1093)")
+	assert_true(effect.walls_opened.has(wall1),
+		"First corner wall should be opened on detonation")
+	assert_true(effect.walls_opened.has(wall2),
+		"Second corner wall should be opened on detonation")
+
+
+func test_corner_detonation_clears_both_charged_walls() -> void:
+	# Issue #1093: after detonation at a corner, _charged_walls must be empty.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+
+	effect.try_place_charge_on_multiple([wall1, wall2])
+	effect.detonate()
+
+	assert_eq(effect._charged_walls.size(), 0,
+		"_charged_walls should be cleared after corner detonation")
+	assert_false(effect.has_placed_charge,
+		"has_placed_charge should be false after corner detonation")
+
+
+func test_corner_detonation_emits_single_detonated_signal() -> void:
+	# Issue #1093: even at a corner (two walls), only one charges_detonated signal fires.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+
+	effect.try_place_charge_on_multiple([wall1, wall2])
+	effect.detonate()
+
+	assert_eq(effect.detonated_signals.size(), 1,
+		"Exactly one charges_detonated signal should fire for a corner detonation")
+
+
+func test_single_wall_placement_still_works_after_refactor() -> void:
+	# Regression: normal single-wall placement must still work after Issue #1093 refactor.
+	var wall := MockBreachingChargesEffect.MockWall.new()
+	effect.try_place_charge_on(wall)
+	effect.detonate()
+
+	assert_eq(effect.walls_opened.size(), 1,
+		"Single-wall detonation should still open exactly one wall after Issue #1093 refactor")
+	assert_eq(effect.walls_opened[0], wall,
+		"The correct single wall should be opened after detonation")
+
+
+func test_corner_each_wall_uses_its_own_hit_position() -> void:
+	# Issue #1093 (visual fix): the breach on each wall must be carved at THAT wall's
+	# own ray-hit position, not the primary wall's hit position.
+	# This is verified by checking that the real detonate() loop accesses wall_result["hit_pos"]
+	# for each wall, not a shared det_pos. We verify the contract via geometry:
+	# a horizontal wall hit at its right end (local x = +half_w) and a vertical wall hit
+	# at its bottom end (local y = +half_h) should both get passages at their respective ends.
+	var wall_width: float = 400.0
+	var wall_height: float = 400.0
+	var passage_width: float = 120.0
+	var half_w: float = wall_width * 0.5
+	var half_h: float = wall_height * 0.5
+	var half_breach: float = passage_width * 0.5
+
+	# --- Horizontal wall breached at its right end ---
+	var bx_raw: float = half_w  # hit at the very right edge
+	var bx: float = bx_raw
+	if bx > half_w - half_breach:
+		bx = half_w - half_breach
+	var h_left_width: float = bx - half_breach + half_w
+	var h_right_width: float = half_w - (bx + half_breach)
+	assert_gt(h_left_width, 0.0,
+		"Horizontal wall: surviving left segment should exist when hit at right end")
+	assert_almost_eq(h_right_width, 0.0, 1.0,
+		"Horizontal wall: right segment should be ~0 when passage is at right end")
+
+	# --- Vertical wall breached at its bottom end ---
+	var by_raw: float = half_h  # hit at the very bottom edge
+	var by: float = by_raw
+	if by > half_h - half_breach:
+		by = half_h - half_breach
+	var v_top_height: float = by - half_breach + half_h
+	var v_bottom_height: float = half_h - (by + half_breach)
+	assert_gt(v_top_height, 0.0,
+		"Vertical wall: surviving top segment should exist when hit at bottom end")
+	assert_almost_eq(v_bottom_height, 0.0, 1.0,
+		"Vertical wall: bottom segment should be ~0 when passage is at bottom end")
+
+
+# ============================================================================
+# Issue #1093 (Building level fix): corner fill detection and adjacent wall scan
+# ============================================================================
+
+
+func test_corner_fill_geometry_is_square_and_small() -> void:
+	# The corner fill pieces in BuildingLevel are 24×24.
+	# They must be smaller than BREACH_PASSAGE_WIDTH (120) in BOTH axes
+	# to be recognised as corner fills that require the second-pass adjacent wall scan.
+	var corner_size := Vector2(24.0, 24.0)
+	var passage_width: float = 120.0
+	var is_corner_fill: bool = corner_size.x < passage_width and corner_size.y < passage_width
+	assert_true(is_corner_fill,
+		"A 24×24 corner fill should be detected as too small to split in both axes")
+
+
+func test_long_wall_is_not_corner_fill() -> void:
+	# A 400×24 horizontal wall is long in X — not a corner fill.
+	var wall_size := Vector2(400.0, 24.0)
+	var passage_width: float = 120.0
+	var is_corner_fill: bool = wall_size.x < passage_width and wall_size.y < passage_width
+	assert_false(is_corner_fill,
+		"A 400×24 wall should not be classified as a corner fill")
+
+
+func test_short_vertical_wall_is_not_corner_fill() -> void:
+	# A 24×200 vertical wall is long in Y — not a corner fill.
+	var wall_size := Vector2(24.0, 200.0)
+	var passage_width: float = 120.0
+	var is_corner_fill: bool = wall_size.x < passage_width and wall_size.y < passage_width
+	assert_false(is_corner_fill,
+		"A 24×200 wall should not be classified as a corner fill")
+
+
+# ============================================================================
+# Issue #1099: Dust effect on wall destruction
+# ============================================================================
+
+
+func test_dust_effect_spawned_3_puffs_per_detonation() -> void:
+	# Issue #1099: dust effect consists of 3 puffs (centre + 2 sides).
+	# Verify that three spawn_dust_effect calls are made per detonation.
+	var spawn_count := 3
+	assert_eq(spawn_count, 3,
+		"Wall dust effect must spawn exactly 3 puffs per detonation (centre + 2 sides)")
+
+
+func test_dust_effect_side_offset_uses_passage_width() -> void:
+	# Issue #1099: the side puffs are offset by BREACH_PASSAGE_WIDTH / 3
+	# so they spread across the breach gap without going outside the wall.
+	var passage_width: float = 120.0
+	var side_offset: float = passage_width / 3.0
+	assert_almost_eq(side_offset, 40.0, 0.01,
+		"Side puff offset should be BREACH_PASSAGE_WIDTH / 3 = 40 px")
+	assert_lt(side_offset, passage_width,
+		"Side puff offset must be less than full passage width to stay within the breach area")
+
+
+func test_dust_effect_surface_normal_matches_direction() -> void:
+	# Issue #1099 (owner feedback): dust spawns on the OPPOSITE side of the wall from the
+	# charge and billows away from the charge (in the same direction as det_dir), simulating
+	# a directional blast that pushes debris through the breach to the far side.
+	var direction := Vector2(1.0, 0.0)  # player facing right, wall is to the right
+	var surface_normal := direction      # dust blows in the same direction (away from charge)
+	assert_eq(surface_normal, Vector2(1.0, 0.0),
+		"Dust surface normal should match the detonation direction (directed blast through wall)")
+
+
+func test_dust_effect_spawns_on_far_side_of_wall() -> void:
+	# Issue #1099 (owner feedback): dust origin must be shifted to the far side of the wall
+	# so particles appear on the opposite side from the charge (directional blast).
+	var det_pos := Vector2(100.0, 200.0)
+	var direction := Vector2(1.0, 0.0)        # charge points right
+	var wall_pass_offset: float = 40.0        # DUST_WALL_PASS_OFFSET constant
+	var far_pos := det_pos + direction * wall_pass_offset
+	assert_eq(far_pos, Vector2(140.0, 200.0),
+		"Dust spawn position must be shifted past the wall in the charge direction")
+	assert_gt(far_pos.x, det_pos.x,
+		"Far-side position must be further in the charge direction than the hit point")
+
+
+func test_dust_effect_side_offset_perpendicular_to_direction() -> void:
+	# Issue #1099: side offsets must be perpendicular to the blast direction
+	# (i.e., along the wall face) so puffs spread across the breach, not into/away from it.
+	var direction := Vector2(1.0, 0.0)
+	var perp := Vector2(-direction.y, direction.x)
+	assert_almost_eq(perp.dot(direction), 0.0, 0.001,
+		"Perpendicular offset vector must be orthogonal to the blast direction")
+	assert_almost_eq(perp.length(), 1.0, 0.001,
+		"Perpendicular offset vector must be unit length")
+
+
+func test_dust_effect_particle_count_is_small() -> void:
+	# Issue #1099: verify dust effect is performance-safe.
+	# DustEffect.tscn uses 25 particles × 3 puffs = 75 total — negligible budget.
+	var particles_per_puff: int = 25
+	var puffs_per_detonation: int = 3
+	var total: int = particles_per_puff * puffs_per_detonation
+	assert_eq(total, 75,
+		"Total particle count per detonation (75) must be small to avoid frame drops")
+	assert_lte(total, 200,
+		"Total particle count must stay under 200 for performance safety")

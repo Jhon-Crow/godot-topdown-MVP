@@ -64,7 +64,11 @@ class MockActiveItemManager:
 		6: true,   # BREAKER_BULLETS — no condition, freely available from start
 		7: true,   # FORCE_FIELD — no condition, freely available from start
 		8: true,   # TRAJECTORY_GLASSES — no condition, freely available from start (Issue #744)
-		9: true    # LASER_SIGHT — no condition, freely available from start (Issue #947)
+		9: true,   # LASER_SIGHT — no condition, freely available from start (Issue #947)
+		10: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
+		11: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
+		12: true,  # ARMORED_SKIN — no condition, freely available from start (Issue #1045)
+		13: true   # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
 	}
 
 	var unlocked_signals: Array = []

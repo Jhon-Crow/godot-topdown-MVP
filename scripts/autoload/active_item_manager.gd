@@ -20,6 +20,7 @@ enum ActiveItemType {
 	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
 	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
+	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
 	COMBAT_DISPOSITION # Combat Disposition - passive: +0.7 damage and +1 fire rate on start; on hit: -3.0 damage and -3.6 fire rate (Issue #1047)
 }
 
@@ -47,6 +48,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
 	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
+	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
 	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
 }
 
@@ -124,6 +126,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Armored Skin",
 		"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
 		"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
+	},
+	ActiveItemType.AUTO_RELOAD: {
+		"name": "Auto-Reload",
+		"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
+		"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
 	},
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
@@ -290,6 +297,11 @@ func get_laser_sight_color() -> Color:
 ## Returns true when laser sight active item is equipped (Issue #947).
 func should_force_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if auto-reload is currently equipped (Issue #1067).
+func has_auto_reload() -> bool:
+	return current_active_item == ActiveItemType.AUTO_RELOAD
 
 
 ## Check if an active item type is unlocked.
