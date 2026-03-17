@@ -3897,11 +3897,12 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 
 ## Fire RPG rocket directly (bypass pool - Issue #583, analogous to AKGL.cs FireGrenadeLauncher).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
-	if bullet_scene == null: _log_to_file("[RPG] bullet_scene is null, cannot spawn rocket!"); return
-	# Issue #583: instantiate and verify via has_method — "as RpgRocket" cast fails in exported builds.
-	var rocket: Node2D = bullet_scene.instantiate() as Node2D
-	if rocket == null: _log_to_file("[RPG] ERROR: bullet_scene did not instantiate as Node2D!"); return
-	if not rocket.has_method("launch"): _log_to_file("[RPG] ERROR: rocket has no launch() method!"); rocket.queue_free(); return
+	# Issue #583: use preload() so RpgRocket.tscn is always available in exported builds.
+	# load() fails silently in exports if the path isn't included; preload() guarantees inclusion.
+	var rpg_scene: PackedScene = preload("res://scenes/projectiles/RpgRocket.tscn")
+	var rocket: Node2D = rpg_scene.instantiate() as Node2D
+	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket.tscn did not instantiate as Node2D!"); return
+	if not rocket.has_method("launch"): _log_to_file("[RPG] ERROR: rocket has no launch() method! (script not attached?)"); rocket.queue_free(); return
 	rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
 	rocket.call("launch", dir)  # Issue #583: call AFTER add_child so _ready() has run; use call() for export safety
