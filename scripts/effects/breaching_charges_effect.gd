@@ -221,6 +221,9 @@ func detonate() -> bool:
 	for wall_result in walls:
 		_open_wall_passage(wall_result["wall"], wall_result["hit_pos"])
 
+	# Spawn dust/debris cloud at the breach site (Issue #1099)
+	_spawn_wall_dust_effect(det_pos, det_dir)
+
 	# Spawn directional explosion cone effect
 	_spawn_explosion_effect(det_pos, det_dir)
 
@@ -753,6 +756,47 @@ func _remove_placed_charge_marker() -> void:
 	if _placed_charge_marker != null and is_instance_valid(_placed_charge_marker):
 		_placed_charge_marker.queue_free()
 		_placed_charge_marker = null
+
+
+## Offset to push dust spawn point to the far side of the wall (past the wall thickness).
+## Typical walls in this game are 32 px thick; 40 px ensures the dust origin clears
+## the wall body regardless of exact geometry.
+const DUST_WALL_PASS_OFFSET: float = 40.0
+
+## Spawn a dust/debris cloud at the breach site immediately after wall destruction (Issue #1099).
+## Reuses ImpactEffectsManager.spawn_dust_effect which uses the existing DustEffect.tscn
+## (GPUParticles2D, 25 particles, one-shot, auto-cleanup) — negligible performance cost.
+## Three puffs are spawned on the OPPOSITE side of the wall from the charge (as if the
+## explosion was directional and blew through the wall).  Each puff billows further away
+## from the charge in the same direction, simulating debris flying out of the breach.
+func _spawn_wall_dust_effect(det_pos: Vector2, direction: Vector2) -> void:
+	if _player == null:
+		return
+
+	var impact_manager: Node = _player.get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
+		FileLogger.info("[BreachingCharges] ImpactEffectsManager not available, skipping dust effect")
+		return
+
+	# Dust spawns on the far side of the wall: shift origin past the wall in the charge direction.
+	var far_pos: Vector2 = det_pos + direction * DUST_WALL_PASS_OFFSET
+
+	# Surface normal: particles billow in the same direction as the charge (away from the charge,
+	# through the breach) — simulating directional blast pushing debris to the opposite side.
+	var surface_normal: Vector2 = direction
+
+	# Perpendicular axis along the wall face (used for side offset positions)
+	var perp: Vector2 = Vector2(-direction.y, direction.x)
+	var side_offset: float = BREACH_PASSAGE_WIDTH / 3.0
+
+	# Center puff (largest — spawned first for visual priority)
+	impact_manager.call("spawn_dust_effect", far_pos, surface_normal, null)
+
+	# Side puffs at ±side_offset along the wall face
+	impact_manager.call("spawn_dust_effect", far_pos + perp * side_offset, surface_normal, null)
+	impact_manager.call("spawn_dust_effect", far_pos - perp * side_offset, surface_normal, null)
+
+	FileLogger.info("[BreachingCharges] Dust effect spawned on far side at %s (3 puffs)" % str(far_pos))
 
 
 ## Spawn a cone-shaped explosion effect directed toward the wall.
