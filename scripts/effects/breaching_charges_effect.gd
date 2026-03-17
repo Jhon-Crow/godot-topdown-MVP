@@ -182,7 +182,7 @@ func _find_nearest_wall() -> Node:
 		var query := PhysicsRayQueryParameters2D.create(
 			player_pos,
 			player_pos + dir * PLACEMENT_RADIUS,
-			1 << (WALL_COLLISION_LAYER - 1)  # Layer 4 = bit 3
+			WALL_COLLISION_LAYER  # bitmask value 4 matches collision_layer = 4 on wall bodies
 		)
 		query.exclude = [_player.get_rid()]
 		var result := space_state.intersect_ray(query)
