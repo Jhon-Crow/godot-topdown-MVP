@@ -1218,6 +1218,26 @@ public partial class Revolver : BaseWeapon
     public int CylinderCapacity => CylinderSize;
 
     /// <summary>
+    /// Rebuilds the _chamberOccupied tracking array to match the current CylinderSize.
+    /// Called by the auto-reload system (Issue #1067) after CylinderSize is reduced so that
+    /// the per-chamber display and reload logic use the new (smaller) cylinder capacity.
+    /// Marks the first CurrentAmmo chambers as occupied (same logic as _Ready).
+    /// </summary>
+    public void ReinitializeCylinder()
+    {
+        int cylinderCapacity = CylinderCapacity;
+        _chamberOccupied = new bool[cylinderCapacity];
+        int ammo = CurrentAmmo;
+        for (int i = 0; i < cylinderCapacity; i++)
+        {
+            _chamberOccupied[i] = i < ammo;
+        }
+        _currentChamberIndex = 0;
+        GD.Print($"[Revolver] ReinitializeCylinder: cylinderCapacity={cylinderCapacity}, ammo={ammo}");
+        EmitSignal(SignalName.CylinderStateChanged);
+    }
+
+    /// <summary>
     /// Whether the cylinder can be opened for reloading.
     /// Can open when not already reloading and either cylinder is not full or has spent casings.
     /// </summary>

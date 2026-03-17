@@ -55,6 +55,7 @@ func shoot(target_pos: Vector2) -> void:
 	var audio: Node = _enemy.get_node_or_null("/root/AudioManager")
 	if audio:
 		if _enemy._is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(_enemy.global_position)
+		elif _enemy.weapon_type == 4 and audio.has_method("play_ak_shot"): audio.play_ak_shot(_enemy.global_position)  # [#1033] MACHINE_GUN(4) = AK sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(_enemy.global_position)
 	var sp: Node = _enemy.get_node_or_null("/root/SoundPropagation")
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, _enemy.global_position, 1, _enemy, _enemy.weapon_loudness)

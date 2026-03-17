@@ -1,0 +1,1765 @@
+[01:03:25] [INFO] ============================================================
+[01:03:25] [INFO] GAME LOG STARTED
+[01:03:25] [INFO] ============================================================
+[01:03:25] [INFO] Timestamp: 2026-03-17T01:03:25
+[01:03:25] [INFO] Log file: I:/Загрузки/godot exe/новая сложность/game_log_20260317_010325.txt
+[01:03:25] [INFO] Executable: I:/Загрузки/godot exe/новая сложность/Godot-Top-Down-Template.exe
+[01:03:25] [INFO] OS: Windows
+[01:03:25] [INFO] Debug build: false
+[01:03:25] [INFO] Engine version: 4.3-stable (official)
+[01:03:25] [INFO] Project: Godot Top-Down Template
+[01:03:25] [INFO] ------------------------------------------------------------
+[01:03:25] [INFO] [GameManager] GameManager ready
+[01:03:25] [INFO] [ScoreManager] ScoreManager ready
+[01:03:25] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[01:03:25] [INFO] [DifficultyManager] Loaded difficulty: Normal (value: 1)
+[01:03:25] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[01:03:25] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[01:03:25] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[01:03:25] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[01:03:25] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:03:25] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[01:03:25] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[01:03:25] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[01:03:25] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[01:03:25] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[01:03:25] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[01:03:25] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[01:03:25] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:03:25] [INFO] [LastChance] Last chance shader loaded successfully
+[01:03:25] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[01:03:25] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[01:03:25] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[01:03:25] [INFO] [LastChance]   Sepia intensity: 0.70
+[01:03:25] [INFO] [LastChance]   Brightness: 0.60
+[01:03:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[01:03:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[01:03:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[01:03:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[01:03:25] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: false, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true, All weapons unlocked: false
+[01:03:25] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[01:03:25] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[01:03:25] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[01:03:25] [INFO] [CinemaEffects] Created effects layer at layer 99
+[01:03:25] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[01:03:25] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[01:03:25] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[01:03:25] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[01:03:25] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[01:03:25] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[01:03:25] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[01:03:25] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[01:03:25] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[01:03:25] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[01:03:25] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[01:03:25] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[01:03:26] [INFO] [GrenadeTimerHelper] Autoload ready
+[01:03:26] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[01:03:26] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[01:03:26] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[01:03:26] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[01:03:26] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[01:03:26] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[01:03:26] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:26] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[01:03:26] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[01:03:26] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[01:03:26] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[01:03:26] [INFO] [BlackMetalLightningEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:26] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt shader loaded
+[01:03:26] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[01:03:26] [INFO] [ProgressManager] ProgressManager ready, loaded 9 entries
+[01:03:26] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[01:03:26] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[01:03:26] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[01:03:26] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[01:03:26] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[01:03:26] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[01:03:26] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[01:03:26] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[01:03:26] [INFO] [PersistManager] Restored unlocked weapon: m16
+[01:03:26] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+[01:03:26] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+[01:03:26] [INFO] [GameManager] Weapon selected: silenced_pistol
+[01:03:26] [INFO] [PersistManager] Restored selected weapon: silenced_pistol
+[01:03:26] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[01:03:26] [INFO] [PersistManager] Restored unlocked grenade type: 1
+[01:03:26] [INFO] [PersistManager] Restored unlocked grenade type: 2
+[01:03:26] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[01:03:26] [INFO] [GrenadeManager] Grenade type changed from Flashbang to F-1 Grenade
+[01:03:26] [INFO] [PersistManager] Restored selected grenade type: 2
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 0
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 2
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 4
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 5
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 6
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 7
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 8
+[01:03:26] [INFO] [PersistManager] Restored unlocked active item type: 9
+[01:03:26] [INFO] [ActiveItemManager] Active item changed from None to Homing Bullets
+[01:03:26] [INFO] [PersistManager] Restored selected active item type: 2
+[01:03:26] [INFO] [PersistManager] State loaded successfully
+[01:03:26] [INFO] [PersistManager] PersistManager ready
+[01:03:26] [INFO] [UnlockManager] UnlockManager ready
+[01:03:26] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:26] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[01:03:26] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[01:03:26] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[01:03:26] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[01:03:26] [ENEMY] [Enemy1] Death animation component initialized
+[01:03:26] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:26] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[01:03:26] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[01:03:26] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[01:03:26] [ENEMY] [Enemy2] Death animation component initialized
+[01:03:26] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:26] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[01:03:26] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[01:03:26] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[01:03:26] [ENEMY] [Enemy3] Death animation component initialized
+[01:03:26] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:26] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[01:03:26] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[01:03:26] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[01:03:26] [ENEMY] [Enemy4] Death animation component initialized
+[01:03:26] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:26] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[01:03:26] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[01:03:26] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[01:03:26] [ENEMY] [Enemy5] Death animation component initialized
+[01:03:26] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:26] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[01:03:26] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[01:03:26] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[01:03:26] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[01:03:26] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:03:26] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+[01:03:26] [INFO] [Player.Weapon] Removed default MakarovPM
+[01:03:26] [INFO] [Player.Weapon] Equipped SilencedPistol (ammo: 13/13)
+[01:03:26] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:03:26] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:03:26] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:03:26] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:03:26] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:03:26] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:03:26] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[01:03:26] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[01:03:26] [INFO] [Player.Homing] Homing activation sound loaded
+[01:03:26] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[01:03:26] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[01:03:26] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[01:03:26] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[01:03:26] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[01:03:26] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[01:03:26] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[01:03:26] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[01:03:26] [INFO] [Player] Ready! Ammo: 13/13, Grenades: 1/3, Health: 2/4
+[01:03:26] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:03:26] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[01:03:26] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[01:03:26] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:03:26] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:03:26] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:03:26] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:03:26] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:03:26] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[01:03:26] [INFO] [LabyrinthLevel] Setting up weapon: silenced_pistol
+[01:03:26] [INFO] [LabyrinthLevel] SilencedPistol already equipped by C# Player - skipping GDScript weapon swap
+[01:03:26] [INFO] [ScoreManager] Level started with 5 enemies
+[01:03:26] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[01:03:26] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[01:03:26] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[01:03:26] [INFO] [ReplayManager] Replay data cleared
+[01:03:26] [INFO] [LabyrinthLevel] Previous replay data cleared
+[01:03:26] [INFO] [ReplayManager] Detected player weapon: Silenced Pistol
+[01:03:26] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[01:03:26] [INFO] [ReplayManager] Level: LabyrinthLevel
+[01:03:26] [INFO] [ReplayManager] Player: Player (valid: True)
+[01:03:26] [INFO] [ReplayManager] Enemies count: 5
+[01:03:26] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/silenced_pistol_topdown.png
+[01:03:26] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[01:03:26] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[01:03:26] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[01:03:26] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[01:03:26] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[01:03:26] [INFO] [LabyrinthLevel] Replay recording started successfully
+[01:03:26] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [INFO] [CinemaEffects] Found player node: Player
+[01:03:26] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[01:03:26] [INFO] [PersistManager] Already at last played level: res://scenes/levels/LabyrinthLevel.tscn
+[01:03:26] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[01:03:26] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[01:03:26] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[01:03:26] [ENEMY] [Enemy1] Registered as sound listener
+[01:03:26] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[01:03:26] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[01:03:26] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[01:03:26] [ENEMY] [Enemy2] Registered as sound listener
+[01:03:26] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[01:03:26] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[01:03:26] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[01:03:26] [ENEMY] [Enemy3] Registered as sound listener
+[01:03:26] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[01:03:26] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[01:03:26] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[01:03:26] [ENEMY] [Enemy4] Registered as sound listener
+[01:03:26] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[01:03:26] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[01:03:26] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[01:03:26] [ENEMY] [Enemy5] Registered as sound listener
+[01:03:26] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[01:03:26] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:26] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:26] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:03:26] [INFO] [Player] Detected weapon: Silenced Pistol (Pistol pose)
+[01:03:26] [INFO] [Player] Applied Pistol arm pose: Left=(16, 6), Right=(4, 6)
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:26] [INFO] [PenultimateHit] Shader warmup complete in 660 ms
+[01:03:26] [INFO] [LastChance] Shader warmup complete in 659 ms
+[01:03:26] [INFO] [CinemaEffects] Cinema shader warmup complete in 570 ms
+[01:03:26] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 562 ms
+[01:03:26] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 558 ms
+[01:03:26] [INFO] [FlashbangPlayer] Shader warmup complete in 554 ms
+[01:03:26] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:03:26] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:03:26] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:03:26] [INFO] [LastChance] Found player: Player
+[01:03:26] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:03:26] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:03:26] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:03:26] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 1229 ms
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [EnemyGrenade] Throw path blocked to (198.1982, 865.0451)
+[01:03:27] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[01:03:28] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[01:03:29] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[01:03:30] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[01:03:31] [INFO] [PauseMenu] Armory button pressed
+[01:03:31] [INFO] [PauseMenu] Creating new armory menu instance
+[01:03:31] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[01:03:31] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[01:03:31] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[01:03:31] [INFO] [PauseMenu] back_pressed signal exists on instance
+[01:03:31] [INFO] [PauseMenu] back_pressed signal connected
+[01:03:31] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[01:03:31] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[01:03:31] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
+[01:03:32] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=5
+[01:03:33] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=5
+[01:03:34] [INFO] [PersistManager] State saved to user://game_state.cfg
+[01:03:34] [INFO] [GameManager] Weapon selected: ak_gl
+[01:03:34] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:03:34] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:34] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[01:03:34] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[01:03:34] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[01:03:34] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:03:34] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:03:34] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:03:34] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[01:03:34] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[01:03:34] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:34] [INFO] [BlackMetalLightningEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:34] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[01:03:34] [ENEMY] [Enemy1] Death animation component initialized
+[01:03:34] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:34] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[01:03:34] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[01:03:34] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[01:03:34] [ENEMY] [Enemy2] Death animation component initialized
+[01:03:34] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:34] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[01:03:34] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[01:03:34] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[01:03:34] [ENEMY] [Enemy3] Death animation component initialized
+[01:03:34] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:34] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[01:03:34] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[01:03:34] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[01:03:34] [ENEMY] [Enemy4] Death animation component initialized
+[01:03:34] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:34] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[01:03:34] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[01:03:34] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[01:03:34] [ENEMY] [Enemy5] Death animation component initialized
+[01:03:34] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:34] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[01:03:34] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[01:03:34] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[01:03:34] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[01:03:34] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:03:34] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[01:03:34] [INFO] [Player.Weapon] Removed default MakarovPM
+[01:03:34] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[01:03:34] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:03:34] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:03:34] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:03:34] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:03:34] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:03:34] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:03:34] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[01:03:34] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[01:03:34] [INFO] [Player.Homing] Homing activation sound loaded
+[01:03:34] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[01:03:34] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[01:03:34] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[01:03:34] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[01:03:34] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[01:03:34] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[01:03:34] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[01:03:34] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[01:03:34] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[01:03:34] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:03:34] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[01:03:34] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:03:34] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:03:34] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:03:34] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:03:34] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:03:34] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[01:03:34] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+[01:03:34] [INFO] [LabyrinthLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[01:03:34] [INFO] [ScoreManager] Level started with 5 enemies
+[01:03:34] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[01:03:34] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[01:03:34] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[01:03:34] [INFO] [ReplayManager] Replay data cleared
+[01:03:34] [INFO] [LabyrinthLevel] Previous replay data cleared
+[01:03:34] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[01:03:34] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[01:03:34] [INFO] [ReplayManager] Level: LabyrinthLevel
+[01:03:34] [INFO] [ReplayManager] Player: Player (valid: True)
+[01:03:34] [INFO] [ReplayManager] Enemies count: 5
+[01:03:34] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[01:03:34] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[01:03:34] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[01:03:34] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[01:03:34] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[01:03:34] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[01:03:34] [INFO] [LabyrinthLevel] Replay recording started successfully
+[01:03:34] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[01:03:34] [INFO] [CinemaEffects] Found player node: Player
+[01:03:34] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[01:03:34] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 6)
+[01:03:34] [ENEMY] [Enemy1] Registered as sound listener
+[01:03:34] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 2, behavior: GUARD
+[01:03:34] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[01:03:34] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 7)
+[01:03:34] [ENEMY] [Enemy2] Registered as sound listener
+[01:03:34] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 2, behavior: GUARD
+[01:03:34] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[01:03:34] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 8)
+[01:03:34] [ENEMY] [Enemy3] Registered as sound listener
+[01:03:34] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 1, behavior: PATROL
+[01:03:34] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[01:03:34] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 9)
+[01:03:34] [ENEMY] [Enemy4] Registered as sound listener
+[01:03:34] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[01:03:34] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[01:03:34] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 10)
+[01:03:34] [ENEMY] [Enemy5] Registered as sound listener
+[01:03:34] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 3, behavior: GUARD
+[01:03:34] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[01:03:34] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[01:03:34] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:34] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:34] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:34] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=236.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:34] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:03:34] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[01:03:34] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[01:03:34] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:03:34] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:03:34] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:03:34] [INFO] [LastChance] Found player: Player
+[01:03:34] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:03:34] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:03:34] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:03:34] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[01:03:35] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[01:03:36] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[01:03:37] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[01:03:38] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[01:03:39] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
+[01:03:39] [INFO] [DifficultyManager] Difficulty changed: Normal -> Black Metal
+[01:03:39] [INFO] [BlackMetalEffectsManager] Black Metal filter ENABLED (will show after 3 frames)
+[01:03:39] [INFO] [BlackMetalLightningEffectsManager] Lightning effects ENABLED (Black Metal mode)
+[01:03:40] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=5
+[01:03:41] [INFO] [BlackMetalEffectsManager] Black Metal filter now visible (after 3 frames delay)
+[01:03:41] [INFO] [BlackMetalLightningEffectsManager] Lightning effects ready (after 3 frames delay)
+[01:03:41] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=5
+[01:03:41] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:03:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:41] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[01:03:41] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[01:03:41] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[01:03:41] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:03:41] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:03:41] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:03:41] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[01:03:41] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[01:03:41] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:41] [INFO] [BlackMetalLightningEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:41] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[01:03:41] [ENEMY] [Enemy1] Death animation component initialized
+[01:03:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:41] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[01:03:41] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[01:03:41] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[01:03:41] [ENEMY] [Enemy2] Death animation component initialized
+[01:03:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:41] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[01:03:41] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[01:03:41] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[01:03:41] [ENEMY] [Enemy3] Death animation component initialized
+[01:03:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:41] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[01:03:41] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[01:03:41] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[01:03:41] [ENEMY] [Enemy4] Death animation component initialized
+[01:03:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:41] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[01:03:41] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[01:03:41] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[01:03:41] [ENEMY] [Enemy5] Death animation component initialized
+[01:03:41] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:41] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[01:03:41] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[01:03:41] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[01:03:41] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[01:03:41] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:03:41] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[01:03:41] [INFO] [Player.Weapon] Removed default MakarovPM
+[01:03:41] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[01:03:41] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:03:41] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:03:41] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:03:41] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:03:41] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:03:41] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:03:41] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[01:03:41] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[01:03:41] [INFO] [Player.Homing] Homing activation sound loaded
+[01:03:41] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[01:03:41] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[01:03:41] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[01:03:41] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[01:03:41] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[01:03:41] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[01:03:41] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[01:03:41] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[01:03:41] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/3
+[01:03:41] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:03:41] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[01:03:41] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:03:41] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:03:41] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:03:41] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:03:41] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:03:41] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[01:03:41] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+[01:03:41] [INFO] [LabyrinthLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[01:03:41] [INFO] [ScoreManager] Level started with 5 enemies
+[01:03:41] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[01:03:41] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[01:03:41] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[01:03:41] [INFO] [ReplayManager] Replay data cleared
+[01:03:41] [INFO] [LabyrinthLevel] Previous replay data cleared
+[01:03:41] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[01:03:41] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[01:03:41] [INFO] [ReplayManager] Level: LabyrinthLevel
+[01:03:41] [INFO] [ReplayManager] Player: Player (valid: True)
+[01:03:41] [INFO] [ReplayManager] Enemies count: 5
+[01:03:41] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[01:03:41] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[01:03:41] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[01:03:41] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[01:03:41] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[01:03:41] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[01:03:41] [INFO] [LabyrinthLevel] Replay recording started successfully
+[01:03:41] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[01:03:41] [INFO] [CinemaEffects] Found player node: Player
+[01:03:41] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[01:03:41] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[01:03:41] [ENEMY] [Enemy1] Registered as sound listener
+[01:03:41] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[01:03:41] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[01:03:41] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[01:03:41] [ENEMY] [Enemy2] Registered as sound listener
+[01:03:41] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[01:03:41] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[01:03:41] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[01:03:41] [ENEMY] [Enemy3] Registered as sound listener
+[01:03:41] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 1, behavior: PATROL
+[01:03:41] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[01:03:41] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[01:03:41] [ENEMY] [Enemy4] Registered as sound listener
+[01:03:41] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[01:03:41] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[01:03:41] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[01:03:41] [ENEMY] [Enemy5] Registered as sound listener
+[01:03:41] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 3, behavior: GUARD
+[01:03:41] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[01:03:41] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[01:03:41] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:41] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:41] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=315.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:41] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=236.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:41] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:03:41] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[01:03:41] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[01:03:41] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:03:41] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:03:41] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:03:41] [INFO] [LastChance] Found player: Player
+[01:03:41] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:03:41] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:03:41] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:03:41] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[01:03:41] [INFO] [BlackMetalEffectsManager] Black Metal filter now visible (after 3 frames delay)
+[01:03:41] [INFO] [BlackMetalLightningEffectsManager] Lightning effects ready (after 3 frames delay)
+[01:03:42] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[01:03:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(251.3554, 1111.933), source=PLAYER (AKGL), range=1600, listeners=15
+[01:03:42] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[01:03:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(276.21, 1121.665), source=NEUTRAL (null), range=900, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(289.0795, 1111.925), source=PLAYER (AKGL), range=1600, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(275.8441, 1121.154), source=NEUTRAL (null), range=900, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(275.1028, 1121.107), source=NEUTRAL (null), range=900, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(273.8485, 1121.32), source=NEUTRAL (null), range=900, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:43] [ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[01:03:43] [ENEMY] [Enemy3] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-90.0°, current=0.0°, player=(304,1111), corner_timer=0.30
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(312.1643, 1121.131), source=NEUTRAL (null), range=900, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(309.3037, 1111.925), source=PLAYER (AKGL), range=1600, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(312.0148, 1121.06), source=NEUTRAL (null), range=900, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(311.7379, 1121.075), source=NEUTRAL (null), range=900, listeners=5
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:43] [ENEMY] [Enemy3] Hit: dmg=2, hp=1/1->-1/1
+[01:03:43] [INFO] [ImpactEffects] spawn_blood_effect called at (1229.333, 1000), dir=(1, 0), lethal=true
+[01:03:43] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:03:43] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[01:03:43] [INFO] [ImpactEffects] Blood effect spawned at (1229.333, 1000) (scale=1.5)
+[01:03:43] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[01:03:43] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[01:03:43] [ENEMY] [Enemy2] [AllyDeath] Witnessed at (1229.333, 1000), entering SEARCHING
+[01:03:43] [ENEMY] [Enemy2] SEARCHING started: center=(1229.333, 1000), radius=100, waypoints=5
+[01:03:43] [ENEMY] [Enemy3] [AllyDeath] Notified 1 enemies
+[01:03:43] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 4)
+[01:03:43] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:03:43] [ENEMY] [Enemy3] Death animation started with hit direction: (1, 0)
+[01:03:43] [INFO] [BlackMetalLightningEffectsManager] Starting TRIPLE lightning strike
+[01:03:43] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=SEARCHING, target=164.6°, current=11.3°, player=(311,1111), corner_timer=0.00
+[01:03:43] [ENEMY] [Enemy2] SEARCHING corner check: angle 98.6°
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(311.0609, 1120.891), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(310.9315, 1120.827), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(310.7892, 1120.863), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(309.1749, 1111.761), source=PLAYER (AKGL), range=1600, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=4
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(310.5497, 1120.924), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(310.6355, 1120.898), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(310.962, 1120.826), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(311.3889, 1120.996), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(311.5796, 1121.031), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(311.7881, 1120.974), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(312.1958, 1120.875), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(312.8396, 1120.758), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(313.5959, 1120.689), source=NEUTRAL (null), range=900, listeners=4
+[01:03:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(289.0795, 1111.9253), shooter_id=164836148883, bullet_pos=(1455.589, 925.3677)
+[01:03:43] [INFO] [Bullet] Using shooter_position, distance=1181,3333
+[01:03:43] [INFO] [Bullet] Distance to wall: 1181,3333 (80,439156% of viewport)
+[01:03:43] [INFO] [Bullet] Distance-based penetration chance: 52,820988%
+[01:03:43] [INFO] [Bullet] Starting wall penetration at (1455.589, 925.3677)
+[01:03:43] [INFO] [Bullet] Raycast backward hit penetrating body at distance 35,840855
+[01:03:43] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:43] [INFO] [Bullet] Exiting penetration at (1497.3911, 918.6823) after traveling 37,333332 pixels through wall
+[01:03:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(289.0795, 1111.9253), shooter_id=164836148883, bullet_pos=(1497.3911, 918.6823)
+[01:03:43] [INFO] [Bullet] Using shooter_position, distance=1223,6666
+[01:03:43] [INFO] [Bullet] Distance to wall: 1223,6666 (83,32172% of viewport)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1271.661, 1025.667) (added to group)
+[01:03:43] [INFO] [ReplayManager] Recording frame 120 (1,9s): player_valid=True, enemies=5
+[01:03:43] [ENEMY] [Enemy2] SEARCHING corner check: angle -81.4°
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1335.446, 989.9285) (added to group)
+[01:03:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(309.3037, 1111.9253), shooter_id=164836148883, bullet_pos=(1505.6614, 879.81354)
+[01:03:43] [INFO] [Bullet] Using shooter_position, distance=1218,6663
+[01:03:43] [INFO] [Bullet] Distance to wall: 1218,6663 (82,98123% of viewport)
+[01:03:43] [INFO] [Bullet] Distance-based penetration chance: 49,85524%
+[01:03:43] [INFO] [Bullet] Penetration failed (distance roll)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1341.986, 1016.669) (added to group)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1332.098, 1054.613) (added to group)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1300.845, 1023.218) (added to group)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1309.54, 1068.496) (added to group)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1296.009, 1067.486) (added to group)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1313.518, 1023.735) (added to group)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1308.659, 1055.082) (added to group)
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1322.287, 1028.674) (added to group)
+[01:03:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(309.1749, 1111.7609), shooter_id=164836148883, bullet_pos=(1505.0178, 931.632)
+[01:03:43] [INFO] [Bullet] Using shooter_position, distance=1209,3331
+[01:03:43] [INFO] [Bullet] Distance to wall: 1209,3331 (82,34572% of viewport)
+[01:03:43] [INFO] [Bullet] Distance-based penetration chance: 50,596664%
+[01:03:43] [INFO] [Bullet] Penetration failed (distance roll)
+[01:03:43] [ENEMY] [Enemy3] Ragdoll activated
+[01:03:43] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:03:43] [INFO] [BloodDecal] Blood puddle created at (1301.006, 1027.296) (added to group)
+[01:03:44] [INFO] [BloodDecal] Blood puddle created at (1392.101, 1025.049) (added to group)
+[01:03:44] [INFO] [BloodDecal] Blood puddle created at (1368.714, 1027.938) (added to group)
+[01:03:44] [INFO] [BloodDecal] Blood puddle created at (1345.383, 1115.532) (added to group)
+[01:03:44] [INFO] [BloodDecal] Blood puddle created at (1401.284, 1043.975) (added to group)
+[01:03:44] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=SEARCHING, target=174.1°, current=130.2°, player=(252,1066), corner_timer=-0.01
+[01:03:44] [ENEMY] [Enemy2] SEARCHING: Player spotted! Transitioning to COMBAT
+[01:03:44] [ENEMY] [Enemy2] State: SEARCHING -> COMBAT
+[01:03:44] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[01:03:44] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[01:03:44] [INFO] [BloodDecal] Blood puddle created at (1391.74, 1024.602) (added to group)
+[01:03:44] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[01:03:44] [INFO] [BloodDecal] Blood puddle created at (1353.909, 1122.826) (added to group)
+[01:03:44] [INFO] [ReplayManager] Recording frame 180 (2,7s): player_valid=True, enemies=5
+[01:03:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:03:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:45] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[01:03:45] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[01:03:45] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[01:03:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:03:45] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:03:45] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:03:45] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[01:03:45] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[01:03:45] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:45] [INFO] [BlackMetalLightningEffectsManager] Scene changed to: LabyrinthLevel
+[01:03:45] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[01:03:45] [ENEMY] [Enemy1] Death animation component initialized
+[01:03:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:45] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[01:03:45] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[01:03:45] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[01:03:45] [ENEMY] [Enemy2] Death animation component initialized
+[01:03:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:45] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[01:03:45] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[01:03:45] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[01:03:45] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[01:03:45] [ENEMY] [Enemy3] Death animation component initialized
+[01:03:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:45] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[01:03:45] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[01:03:45] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[01:03:45] [ENEMY] [Enemy4] Death animation component initialized
+[01:03:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:45] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[01:03:45] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[01:03:45] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[01:03:45] [ENEMY] [Enemy5] Death animation component initialized
+[01:03:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[01:03:45] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[01:03:45] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[01:03:45] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[01:03:45] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: F-1 Grenade
+[01:03:45] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:03:45] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[01:03:45] [INFO] [Player.Weapon] Removed default MakarovPM
+[01:03:45] [INFO] [Player.Weapon] Equipped AKGL (ammo: 30/30)
+[01:03:45] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:03:45] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:03:45] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:03:45] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:03:45] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:03:45] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:03:45] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[01:03:45] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[01:03:45] [INFO] [Player.Homing] Homing activation sound loaded
+[01:03:45] [INFO] [Player.Homing] Homing scanner loop ready (Issue #890), samples=88200
+[01:03:45] [INFO] [Player.Homing] Homing bullets equipped, charges: 2/2
+[01:03:45] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[01:03:45] [INFO] [Player.InvisibilitySuit] No invisibility suit selected in ActiveItemManager
+[01:03:45] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[01:03:45] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[01:03:45] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[01:03:45] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[01:03:45] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/3
+[01:03:45] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:03:45] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[01:03:45] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:03:45] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:03:45] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:03:45] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:03:45] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:03:45] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[01:03:45] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+[01:03:45] [INFO] [LabyrinthLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+[01:03:45] [INFO] [ScoreManager] Level started with 5 enemies
+[01:03:45] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[01:03:45] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[01:03:45] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[01:03:45] [INFO] [ReplayManager] Replay data cleared
+[01:03:45] [INFO] [LabyrinthLevel] Previous replay data cleared
+[01:03:45] [INFO] [ReplayManager] Detected player weapon: AK-GL
+[01:03:45] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[01:03:45] [INFO] [ReplayManager] Level: LabyrinthLevel
+[01:03:45] [INFO] [ReplayManager] Player: Player (valid: True)
+[01:03:45] [INFO] [ReplayManager] Enemies count: 5
+[01:03:45] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+[01:03:45] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[01:03:45] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[01:03:45] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[01:03:45] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[01:03:45] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[01:03:45] [INFO] [LabyrinthLevel] Replay recording started successfully
+[01:03:45] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[01:03:45] [INFO] [CinemaEffects] Found player node: Player
+[01:03:45] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[01:03:45] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 5)
+[01:03:45] [ENEMY] [Enemy1] Registered as sound listener
+[01:03:45] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[01:03:45] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[01:03:45] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 6)
+[01:03:45] [ENEMY] [Enemy2] Registered as sound listener
+[01:03:45] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 1, behavior: GUARD
+[01:03:45] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[01:03:45] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 7)
+[01:03:45] [ENEMY] [Enemy3] Registered as sound listener
+[01:03:45] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 1, behavior: PATROL
+[01:03:45] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[01:03:45] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 8)
+[01:03:45] [ENEMY] [Enemy4] Registered as sound listener
+[01:03:45] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[01:03:45] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[01:03:45] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 9)
+[01:03:45] [ENEMY] [Enemy5] Registered as sound listener
+[01:03:45] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 1, behavior: GUARD
+[01:03:45] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[01:03:45] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:45] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:45] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:03:45] [INFO] [Player] Detected weapon: AK + GL (Rifle pose)
+[01:03:45] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:03:45] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:03:45] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:03:45] [INFO] [LastChance] Found player: Player
+[01:03:45] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:03:45] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:03:45] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:03:45] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [BlackMetalEffectsManager] Black Metal filter now visible (after 3 frames delay)
+[01:03:45] [INFO] [BlackMetalLightningEffectsManager] Lightning effects ready (after 3 frames delay)
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 1000) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 1000) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600, 999.8095) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600, 999.8095) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0003, 999.4286) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0003, 999.4286) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0011, 998.8571) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0011, 998.8571) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.003, 998.0953) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.003, 998.0953) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0068, 997.1429) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0068, 997.1429) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0134, 996.0001) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0134, 996.0001) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0237, 994.6669) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0237, 994.6669) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0392, 993.1433) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0392, 993.1433) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0612, 991.4294) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0612, 991.4294) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.0914, 989.5254) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0914, 989.5254) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.1317, 987.4313) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.1317, 987.4313) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.1839, 985.1474) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.1839, 985.1474) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.2502, 982.6739) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.2502, 982.6739) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.333, 980.0111) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.333, 980.0111) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.4349, 977.1594) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.4349, 977.1594) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.5584, 974.1194) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.5584, 974.1194) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.7065, 970.8915) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.7065, 970.8915) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (600.8821, 967.4764) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.8821, 967.4764) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (601.0885, 963.8752) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.0885, 963.8752) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (601.3289, 960.0886) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.3289, 960.0886) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (601.6017, 956.1887) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.6017, 956.1887) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (601.8995, 952.2944) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.8995, 952.2944) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (602.2224, 948.4061) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.2224, 948.4061) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (602.5701, 944.5244) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.5701, 944.5244) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (602.9426, 940.6497) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.9426, 940.6497) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (603.3397, 936.7824) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.3397, 936.7824) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (603.7612, 932.9232) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.7612, 932.9232) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (604.1885, 929.2277) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.1885, 929.2277) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (604.6187, 925.6954) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.6187, 925.6954) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (605.049, 922.3258) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.049, 922.3258) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (605.4766, 919.118) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.4766, 919.118) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (605.899, 916.0714) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.899, 916.0714) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (606.3139, 913.1852) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.3139, 913.1852) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (606.7191, 910.4585) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.7191, 910.4585) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (607.1122, 907.8906) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.1122, 907.8906) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (607.4868, 905.5114) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.4868, 905.5114) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (607.8405, 903.3198) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.8405, 903.3198) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (608.1712, 901.3149) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (608.1712, 901.3149) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (608.4774, 899.496) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (608.4774, 899.496) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (608.7573, 897.8621) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (608.7573, 897.8621) - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target (609.0096, 896.4125) not in enemy FOV - skipping throw
+[01:03:45] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.0096, 896.4125) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.233, 895.1467) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.233, 895.1467) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.4261, 894.0638) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.4261, 894.0638) - skipping throw
+[01:03:46] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[01:03:46] [INFO] [EnemyGrenade] Target (609.5883, 893.1636) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.5883, 893.1636) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.7187, 892.4454) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.7187, 892.4454) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.8167, 891.9091) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.8167, 891.9091) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.8818, 891.5541) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.8818, 891.5541) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.9138, 891.3805) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.9138, 891.3805) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.9123, 891.388) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.9123, 891.388) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.8776, 891.5768) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.8776, 891.5768) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.8098, 891.9468) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.8098, 891.9468) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.709, 892.4984) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.709, 892.4984) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.576, 893.2318) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.576, 893.2318) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.4111, 894.1472) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.4111, 894.1472) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (609.2155, 895.2452) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (609.2155, 895.2452) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (608.9897, 896.5264) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (608.9897, 896.5264) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (608.735, 897.9912) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (608.735, 897.9912) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (608.4529, 899.6405) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (608.4529, 899.6405) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (608.1446, 901.475) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (608.1446, 901.475) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (607.8118, 903.4954) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.8118, 903.4954) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (607.4563, 905.7026) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.4563, 905.7026) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (607.0801, 908.0975) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (607.0801, 908.0975) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (606.6855, 910.6812) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.6855, 910.6812) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (606.2746, 913.4544) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.2746, 913.4544) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (605.8501, 916.4183) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.8501, 916.4183) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (605.4148, 919.5738) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.4148, 919.5738) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (604.9714, 922.9219) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.9714, 922.9219) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (604.5234, 926.4635) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.5234, 926.4635) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (604.0739, 930.1995) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.0739, 930.1995) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (603.6352, 934.0529) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.6352, 934.0529) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (603.2208, 937.9146) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.2208, 937.9146) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (602.8309, 941.7841) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.8309, 941.7841) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (602.4657, 945.6608) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.4657, 945.6608) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (602.1252, 949.5446) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.1252, 949.5446) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.8097, 953.4346) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.8097, 953.4346) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.5192, 957.3306) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.5192, 957.3306) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.2538, 961.2321) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.2538, 961.2321) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.0136, 965.1385) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.0136, 965.1385) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.7988, 969.0493) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.7988, 969.0493) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.6094, 972.9641) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.6094, 972.9641) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.4456, 976.8824) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.4456, 976.8824) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.3072, 980.8036) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.3072, 980.8036) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.1944, 984.7273) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.1944, 984.7273) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.1073, 988.653) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.1073, 988.653) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.0459, 992.5801) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0459, 992.5801) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.0102, 996.5081) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0102, 996.5081) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.0001, 1000.437) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0001, 1000.437) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.0153, 1004.293) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0153, 1004.293) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.0544, 1008.081) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.0544, 1008.081) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.1161, 1011.803) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.1161, 1011.803) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.1992, 1015.462) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.1992, 1015.462) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.3029, 1019.06) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.3029, 1019.06) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.4258, 1022.601) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.4258, 1022.601) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.5673, 1026.085) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.5673, 1026.085) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.7264, 1029.517) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.7264, 1029.517) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (600.9026, 1032.899) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (600.9026, 1032.899) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.095, 1036.233) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.095, 1036.233) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.303, 1039.521) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.303, 1039.521) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.5261, 1042.766) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.5261, 1042.766) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (601.7637, 1045.97) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (601.7637, 1045.97) - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target (602.0153, 1049.135) not in enemy FOV - skipping throw
+[01:03:46] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.0153, 1049.135) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (602.2807, 1052.265) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.2807, 1052.265) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (602.5607, 1055.373) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.5607, 1055.373) - skipping throw
+[01:03:47] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[01:03:47] [INFO] [EnemyGrenade] Target (602.8593, 1058.507) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.8593, 1058.507) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (603.1774, 1061.666) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.1774, 1061.666) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (603.5151, 1064.851) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.5151, 1064.851) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (603.8083, 1067.494) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.8083, 1067.494) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (603.8456, 1067.823) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.8456, 1067.823) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (603.8835, 1068.156) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.8835, 1068.156) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (603.922, 1068.491) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.922, 1068.491) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (603.9637, 1068.853) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.9637, 1068.853) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.0089, 1069.243) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.0089, 1069.243) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.0571, 1069.657) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.0571, 1069.657) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.1096, 1070.104) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.1096, 1070.104) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(255.153, 1111.925), source=PLAYER (AKGL), range=1600, listeners=9
+[01:03:47] [INFO] [SoundPropagation] Cleaned up 4 invalid listeners
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[01:03:47] [INFO] [EnemyGrenade] Target (604.166, 1070.582) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.166, 1070.582) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.2264, 1071.091) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.2264, 1071.091) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.2885, 1071.608) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.2885, 1071.608) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.3518, 1072.133) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.3518, 1072.133) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.4165, 1072.666) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.4165, 1072.666) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.4827, 1073.206) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.4827, 1073.206) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.5504, 1073.755) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.5504, 1073.755) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.6196, 1074.312) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.6196, 1074.312) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(283.6663, 1119.061), source=NEUTRAL (null), range=900, listeners=5
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(310.1393, 1111.925), source=PLAYER (AKGL), range=1600, listeners=5
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[01:03:47] [INFO] [EnemyGrenade] Target (604.6905, 1074.877) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.6905, 1074.877) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.7629, 1075.451) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.7629, 1075.451) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.837, 1076.034) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.837, 1076.034) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.913, 1076.625) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.913, 1076.625) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.9906, 1077.226) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.9906, 1077.226) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.0701, 1077.836) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.0701, 1077.836) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.1516, 1078.456) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.1516, 1078.456) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.2349, 1079.086) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.2349, 1079.086) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(342.381, 1118.22), source=NEUTRAL (null), range=900, listeners=5
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=3
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(365.1393, 1111.925), source=PLAYER (AKGL), range=1600, listeners=5
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[01:03:47] [INFO] [EnemyGrenade] Target (605.3204, 1079.725) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.3204, 1079.725) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(341.8589, 1119.969), source=NEUTRAL (null), range=900, listeners=5
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=3
+[01:03:47] [INFO] [EnemyGrenade] Target (605.4079, 1080.376) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.4079, 1080.376) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.4976, 1081.036) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.4976, 1081.036) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.5895, 1081.708) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.5895, 1081.708) - skipping throw
+[01:03:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(310.1393, 1111.9253), shooter_id=197165844148, bullet_pos=(892.10974, 922.5729)
+[01:03:47] [INFO] [Bullet] Using shooter_position, distance=612
+[01:03:47] [INFO] [Bullet] Distance to wall: 612 (41,672207% of viewport)
+[01:03:47] [INFO] [Bullet] Distance-based penetration chance: 98,049095%
+[01:03:47] [INFO] [Bullet] Starting wall penetration at (892.10974, 922.5729)
+[01:03:47] [INFO] [EnemyGrenade] Target (605.6837, 1082.391) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.6837, 1082.391) - skipping throw
+[01:03:47] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:03:47] [INFO] [Bullet] Exiting penetration at (941.2412, 906.5872) after traveling 46,66667 pixels through wall
+[01:03:47] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:47] [INFO] [EnemyGrenade] Target (605.7804, 1083.085) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.7804, 1083.085) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.8795, 1083.791) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.8795, 1083.791) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.9812, 1084.508) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.9812, 1084.508) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(396.2226, 1119.637), source=NEUTRAL (null), range=900, listeners=5
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=3
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(420.1393, 1111.925), source=PLAYER (AKGL), range=1600, listeners=5
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[01:03:47] [INFO] [EnemyGrenade] Target (606.0855, 1085.238) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.0855, 1085.238) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.1926, 1085.981) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.1926, 1085.981) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.3024, 1086.737) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.3024, 1086.737) - skipping throw
+[01:03:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(365.1393, 1111.9253), shooter_id=197165844148, bullet_pos=(898.00525, 923.098)
+[01:03:47] [INFO] [Bullet] Using shooter_position, distance=565,33344
+[01:03:47] [INFO] [Bullet] Distance to wall: 565,33344 (38,494595% of viewport)
+[01:03:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:47] [ENEMY] [Enemy2] Hit: dmg=1, hp=1/1->0/1
+[01:03:47] [INFO] [ImpactEffects] spawn_blood_effect called at (900, 950), dir=(1, 0), lethal=true
+[01:03:47] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:03:47] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[01:03:47] [INFO] [ImpactEffects] Blood effect spawned at (900, 950) (scale=1.5)
+[01:03:47] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false)
+[01:03:47] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[01:03:47] [ENEMY] [Enemy2] [AllyDeath] Notified 1 enemies
+[01:03:47] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 4)
+[01:03:47] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:03:47] [ENEMY] [Enemy2] Death animation started with hit direction: (1, 0)
+[01:03:47] [INFO] [BlackMetalLightningEffectsManager] Starting DOUBLE lightning strike
+[01:03:47] [INFO] [EnemyGrenade] Target (606.4153, 1087.505) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.4153, 1087.505) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.5311, 1088.288) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.5311, 1088.288) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.626, 1088.924) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.626, 1088.924) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.6984, 1089.405) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.6984, 1089.405) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.7472, 1089.728) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.7472, 1089.728) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(454.2395, 1114.613), source=NEUTRAL (null), range=900, listeners=4
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:47] [INFO] [EnemyGrenade] Target (606.7716, 1089.889) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.7716, 1089.889) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(454.1396, 1115.981), source=NEUTRAL (null), range=900, listeners=4
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(474.323, 1109.954), source=PLAYER (AKGL), range=1600, listeners=4
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=4
+[01:03:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(255.15295, 1111.9253), shooter_id=197165844148, bullet_pos=(1694.4961, 549.47754)
+[01:03:47] [INFO] [Bullet] Using shooter_position, distance=1545,3336
+[01:03:47] [INFO] [Bullet] Distance to wall: 1545,3336 (105,22461% of viewport)
+[01:03:47] [INFO] [EnemyGrenade] Target (606.7711, 1089.886) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.7711, 1089.886) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(453.0825, 1117.579), source=NEUTRAL (null), range=900, listeners=4
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:47] [INFO] [EnemyGrenade] Target (606.745, 1089.714) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.745, 1089.714) - skipping throw
+[01:03:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(420.1393, 1111.9253), shooter_id=197165844148, bullet_pos=(880.6563, 917.1846)
+[01:03:47] [INFO] [Bullet] Using shooter_position, distance=499,99985
+[01:03:47] [INFO] [Bullet] Distance to wall: 499,99985 (34,04591% of viewport)
+[01:03:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:47] [INFO] [EnemyGrenade] Target (606.6931, 1089.369) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.6931, 1089.369) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.6149, 1088.849) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.6149, 1088.849) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.5105, 1088.149) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.5105, 1088.149) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.3799, 1087.266) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.3799, 1087.266) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.2236, 1086.195) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.2236, 1086.195) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (606.0418, 1084.933) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (606.0418, 1084.933) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.8353, 1083.477) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.8353, 1083.477) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(502.2613, 1113.745), source=NEUTRAL (null), range=900, listeners=4
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:47] [INFO] [EnemyGrenade] Target (605.6052, 1081.822) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.6052, 1081.822) - skipping throw
+[01:03:47] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(502.0833, 1115.899), source=NEUTRAL (null), range=900, listeners=4
+[01:03:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=2
+[01:03:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(474.32297, 1109.9543), shooter_id=197165844148, bullet_pos=(855.4635, 921.1674)
+[01:03:47] [INFO] [Bullet] Using shooter_position, distance=425,33353
+[01:03:47] [INFO] [Bullet] Distance to wall: 425,33353 (28,961742% of viewport)
+[01:03:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(255.15295, 1111.9253), shooter_id=197165844148, bullet_pos=(1980.645, 697.8608)
+[01:03:47] [INFO] [Bullet] Using shooter_position, distance=1774,478
+[01:03:47] [INFO] [Bullet] Distance to wall: 1774,478 (120,82747% of viewport)
+[01:03:47] [INFO] [Bullet] Distance-based penetration chance: 25,834507%
+[01:03:47] [INFO] [Bullet] Penetration failed (distance roll)
+[01:03:47] [INFO] [EnemyGrenade] Target (605.3524, 1079.964) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.3524, 1079.964) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (605.0783, 1077.899) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (605.0783, 1077.899) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.7849, 1075.623) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.7849, 1075.623) - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target (604.4738, 1073.134) not in enemy FOV - skipping throw
+[01:03:47] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.4738, 1073.134) - skipping throw
+[01:03:47] [INFO] [BloodDecal] Blood puddle created at (944.5034, 972.172) (added to group)
+[01:03:48] [INFO] [EnemyGrenade] Target (604.1474, 1070.425) not in enemy FOV - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (604.1474, 1070.425) - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target (603.8083, 1067.495) not in enemy FOV - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.8083, 1067.495) - skipping throw
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (975.1224, 978.039) (added to group)
+[01:03:48] [INFO] [ReplayManager] Recording frame 180 (2,9s): player_valid=True, enemies=5
+[01:03:48] [INFO] [EnemyGrenade] Target (603.4648, 1064.388) not in enemy FOV - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.4648, 1064.388) - skipping throw
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1000.019, 963.4879) (added to group)
+[01:03:48] [INFO] [EnemyGrenade] Target (603.1333, 1061.238) not in enemy FOV - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (603.1333, 1061.238) - skipping throw
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (988.9236, 1004.825) (added to group)
+[01:03:48] [INFO] [EnemyGrenade] Target (602.8326, 1058.233) not in enemy FOV - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.8326, 1058.233) - skipping throw
+[01:03:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(420.1393, 1111.9253), shooter_id=197165844148, bullet_pos=(1380.4583, 1133.1532)
+[01:03:48] [INFO] [Bullet] Using shooter_position, distance=960,5535
+[01:03:48] [INFO] [Bullet] Distance to wall: 960,5535 (65,40586% of viewport)
+[01:03:48] [INFO] [EnemyGrenade] Target (602.5609, 1055.375) not in enemy FOV - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.5609, 1055.375) - skipping throw
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (967.0482, 990.9757) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (971.5512, 1005.892) (added to group)
+[01:03:48] [INFO] [EnemyGrenade] Target (602.316, 1052.667) not in enemy FOV - skipping throw
+[01:03:48] [INFO] [EnemyGrenade] Target not visible to enemy (in wall/unseen area) at (602.316, 1052.667) - skipping throw
+[01:03:48] [ENEMY] [Enemy3] Hit: dmg=1, hp=1/1->0/1
+[01:03:48] [INFO] [ImpactEffects] spawn_blood_effect called at (1200, 1000), dir=(1, 0), lethal=true
+[01:03:48] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:03:48] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[01:03:48] [INFO] [ImpactEffects] Blood effect spawned at (1200, 1000) (scale=1.5)
+[01:03:48] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[01:03:48] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[01:03:48] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 3)
+[01:03:48] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:03:48] [ENEMY] [Enemy3] Death animation started with hit direction: (1, 0)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (978.9633, 989.4026) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (989.5987, 985.6985) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1029.693, 959.9355) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1028.958, 1015.142) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1037.245, 1015.918) (added to group)
+[01:03:48] [ENEMY] [Enemy2] Ragdoll activated
+[01:03:48] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1013.003, 1010.375) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1034.481, 1064.824) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1003.211, 990.7399) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1008.307, 1058.261) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1013.349, 984.6378) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1257.296, 999.9794) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1279.879, 1026.467) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1091.316, 1084.854) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1002.673, 1095.098) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1284.881, 1028.286) (added to group)
+[01:03:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(420.1393, 1111.9253), shooter_id=197165844148, bullet_pos=(1983.9628, 969.1688)
+[01:03:48] [INFO] [Bullet] Using shooter_position, distance=1570,3259
+[01:03:48] [INFO] [Bullet] Distance to wall: 1570,3259 (106,926384% of viewport)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1265.596, 1010.598) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1073.147, 1003.772) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1306.864, 977.9586) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1264.828, 1030.802) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1334.194, 1040.659) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1302.403, 1024.722) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1313.659, 1027.614) (added to group)
+[01:03:48] [ENEMY] [Enemy3] Ragdoll activated
+[01:03:48] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1299.7, 1014.882) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1362.238, 1020.439) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1377.651, 1004.659) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1294.169, 1118.733) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1319.841, 1087.332) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1330.189, 1046.652) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1315.388, 1100.221) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1389.345, 1070.847) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1418.717, 1011.413) (added to group)
+[01:03:48] [INFO] [BloodDecal] Blood puddle created at (1426.358, 1083.509) (added to group)
+[01:03:49] [INFO] [ReplayManager] Recording frame 240 (3,7s): player_valid=True, enemies=5
+[01:03:49] [ENEMY] [Enemy2] Death animation completed
+[01:03:49] [ENEMY] [Enemy3] Death animation completed
+[01:03:50] [INFO] [ReplayManager] Recording frame 300 (4,5s): player_valid=True, enemies=5
+[01:03:50] [ENEMY] [Enemy5] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=156.7°, current=-168.8°, player=(601,686), corner_timer=0.00
+[01:03:50] [ENEMY] [Enemy5] State: IDLE -> COMBAT
+[01:03:50] [ENEMY] [Enemy5] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=158.5°, current=-6.0°, player=(603,654), corner_timer=0.00
+[01:03:51] [INFO] [ReplayManager] Recording frame 360 (5,3s): player_valid=True, enemies=5
+[01:03:51] [ENEMY] [Enemy5] State: COMBAT -> PURSUING
+[01:03:51] [ENEMY] [Enemy5] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=157.0°, current=122.1°, player=(841,568), corner_timer=0.00
+[01:03:51] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[01:03:51] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[01:03:51] [INFO] [GrenadeBase] Grenade created at (879.579, 557.5382) (frozen)
+[01:03:51] [INFO] [VOGGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[01:03:51] [INFO] [VOGGrenade] Launched - waiting for impact (no timer, impact-triggered only)
+[01:03:51] [INFO] [VOGGrenade] Grenade launched from underbarrel - impact detection enabled
+[01:03:51] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 337
+[01:03:51] [INFO] [GrenadeTimerHelper] Attached GrenadeTimer to VOGGrenade (type: Frag)
+[01:03:51] [INFO] [GrenadeTimer] Timer activated! 4 seconds until explosion
+[01:03:51] [INFO] [GrenadeTimer] Grenade marked as thrown - impact detection enabled
+[01:03:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(930.502, 568.0667), source=PLAYER (AKGL), range=1600, listeners=3
+[01:03:51] [ENEMY] [Enemy5] Heard gunshot at (930.502, 568.0667), intensity=0.02, distance=404
+[01:03:51] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=2
+[01:03:51] [INFO] [Player] AKGL grenade launcher fired!
+[01:03:52] [INFO] [ReplayManager] Recording frame 420 (6,3s): player_valid=True, enemies=5
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1215.994, 426.4391), source=ENEMY (Enemy5), range=1469, listeners=3
+[01:03:52] [ENEMY] [Enemy4] Heard gunshot at (1215.994, 426.4391), intensity=0.01, distance=488
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=1
+[01:03:52] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-173.8°, current=-157.5°, player=(1047,585), corner_timer=0.00
+[01:03:52] [INFO] [LastChance] Threat detected: Bullet
+[01:03:52] [INFO] [LastChance] Black Metal mode - last chance effect disabled (Issue #985)
+[01:03:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1215.994, 426.4391), source=ENEMY (Enemy5), range=1469, listeners=3
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=1
+[01:03:52] [INFO] [GrenadeBase] Collision detected with WallLeft (type: StaticBody2D)
+[01:03:52] [INFO] [VOGGrenade] Impact detected! Body: WallLeft (type: StaticBody2D), triggering explosion
+[01:03:52] [INFO] [VOGGrenade] Impact detected - exploding immediately!
+[01:03:52] [INFO] [GrenadeBase] EXPLODED at (59.27032, 384.8978)!
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(59.27032, 384.8978), source=NEUTRAL (VOGGrenade), range=2937, listeners=3
+[01:03:52] [ENEMY] [Enemy1] Heard EXPLOSION at (59.27032, 384.8978), intensity=0.02, distance=351
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=2
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #1 at angle 17.2 degrees
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #2 at angle 67.3 degrees
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #3 at angle 107.1 degrees
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #4 at angle 140.4 degrees
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #5 at angle 199.4 degrees
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #6 at angle 220.7 degrees
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #7 at angle 285.0 degrees
+[01:03:52] [INFO] [VOGGrenade] Spawned shrapnel #8 at angle 291.2 degrees
+[01:03:52] [INFO] [GrenadeTimer] Impact detected with WallLeft - EXPLODING!
+[01:03:52] [INFO] [GrenadeTimer] GDScript already handled Frag explosion - skipping C# duplicate (Issue #886)
+[01:03:52] [INFO] [LastChance] Threat detected: Bullet
+[01:03:52] [INFO] [LastChance] Black Metal mode - last chance effect disabled (Issue #985)
+[01:03:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:03:52] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=24.9°, current=168.8°, player=(1087,619), corner_timer=0.00
+[01:03:52] [ENEMY] [Enemy5] State: COMBAT -> RETREATING
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1189.104, 413.661), source=NEUTRAL (null), range=900, listeners=3
+[01:03:52] [ENEMY] [Enemy4] Heard CASING_KICK at (1189.104, 413.661), intensity=0.01, dist=449
+[01:03:52] [ENEMY] [Enemy5] Heard CASING_KICK at (1189.104, 413.661), intensity=1.00, dist=33
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1187.734, 412.2786), source=NEUTRAL (null), range=900, listeners=3
+[01:03:52] [ENEMY] [Enemy4] Heard CASING_KICK at (1187.734, 412.2786), intensity=0.01, dist=446
+[01:03:52] [ENEMY] [Enemy5] Heard CASING_KICK at (1187.734, 412.2786), intensity=1.00, dist=39
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1195.181, 433.2801), source=NEUTRAL (null), range=900, listeners=3
+[01:03:52] [ENEMY] [Enemy4] Heard CASING_KICK at (1195.181, 433.2801), intensity=0.01, dist=429
+[01:03:52] [ENEMY] [Enemy5] Heard CASING_KICK at (1195.181, 433.2801), intensity=1.00, dist=27
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1193.323, 432.849), source=NEUTRAL (null), range=900, listeners=3
+[01:03:52] [ENEMY] [Enemy4] Heard CASING_KICK at (1193.323, 432.849), intensity=0.01, dist=427
+[01:03:52] [ENEMY] [Enemy5] Heard CASING_KICK at (1193.323, 432.849), intensity=1.00, dist=32
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[01:03:52] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1190.853, 432.4388), source=NEUTRAL (null), range=900, listeners=3
+[01:03:52] [ENEMY] [Enemy4] Heard CASING_KICK at (1190.853, 432.4388), intensity=0.01, dist=425
+[01:03:52] [ENEMY] [Enemy5] Heard CASING_KICK at (1190.853, 432.4388), intensity=1.00, dist=37
+[01:03:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[01:03:52] [ENEMY] [Enemy5] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=38.9°, current=112.9°, player=(1131,663), corner_timer=0.00
+[01:03:52] [ENEMY] [Enemy5] State: RETREATING -> IN_COVER
+[01:03:52] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[01:03:52] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[01:03:52] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[01:03:53] [INFO] [ReplayManager] Recording frame 480 (7,3s): player_valid=True, enemies=5
+[01:03:53] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[01:03:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1144.199, 486.091), source=PLAYER (AKGL), range=1600, listeners=3
+[01:03:53] [ENEMY] [Enemy4] Heard gunshot at (1144.199, 486.091), intensity=0.01, distance=423
+[01:03:53] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[01:03:53] [INFO] [ScoreManager] Combo ended at 2. Max combo: 2
+[01:03:53] [ENEMY] [Enemy5] Hit: dmg=2, hp=1/1->-1/1
+[01:03:53] [INFO] [ImpactEffects] spawn_blood_effect called at (1271.065, 427.4478), dir=(1, 0), lethal=true
+[01:03:53] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:03:53] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[01:03:53] [INFO] [ImpactEffects] Blood effect spawned at (1271.065, 427.4478) (scale=1.5)
+[01:03:53] [ENEMY] [Enemy5] Enemy died (ricochet: false, penetration: false)
+[01:03:53] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[01:03:53] [ENEMY] [Enemy5] [AllyDeath] Notified 1 enemies
+[01:03:53] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 2)
+[01:03:53] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:03:53] [ENEMY] [Enemy5] Death animation started with hit direction: (1, 0)
+[01:03:53] [INFO] [BlackMetalLightningEffectsManager] Starting SINGLE lightning strike
+[01:03:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1107.385, 449.2819), source=PLAYER (AKGL), range=1600, listeners=2
+[01:03:53] [ENEMY] [Enemy4] Heard gunshot at (1107.385, 449.2819), intensity=0.01, distance=458
+[01:03:53] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1085.43, 408.1983), source=PLAYER (AKGL), range=1600, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard gunshot at (1085.43, 408.1983), intensity=0.01, distance=489
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [ReplayManager] Recording frame 540 (8,3s): player_valid=True, enemies=5
+[01:03:54] [INFO] [BloodDecal] Blood puddle created at (1319.344, 431.1588) (added to group)
+[01:03:54] [INFO] [BloodDecal] Blood puddle created at (1353.59, 440.0643) (added to group)
+[01:03:54] [INFO] [BloodDecal] Blood puddle created at (1333.288, 453.5782) (added to group)
+[01:03:54] [INFO] [BloodDecal] Blood puddle created at (1337.146, 466.7197) (added to group)
+[01:03:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1085.4299, 408.19833), shooter_id=197165844148, bullet_pos=(1469.023, 466.51382)
+[01:03:54] [INFO] [Bullet] Using shooter_position, distance=388,0004
+[01:03:54] [INFO] [Bullet] Distance to wall: 388,0004 (26,41966% of viewport)
+[01:03:54] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1107.3855, 449.2819), shooter_id=197165844148, bullet_pos=(1970.4397, 315.6775)
+[01:03:54] [INFO] [Bullet] Using shooter_position, distance=873,3342
+[01:03:54] [INFO] [Bullet] Distance to wall: 873,3342 (59,466934% of viewport)
+[01:03:54] [INFO] [Bullet] Distance-based penetration chance: 77,28858%
+[01:03:54] [INFO] [Bullet] Penetration failed (distance roll)
+[01:03:54] [INFO] [BloodDecal] Blood puddle created at (1408.443, 441.2932) (added to group)
+[01:03:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1085.4299, 408.19833), shooter_id=197165844148, bullet_pos=(1664.4219, 467.07718)
+[01:03:54] [INFO] [Bullet] Using shooter_position, distance=581,97797
+[01:03:54] [INFO] [Bullet] Distance to wall: 581,97797 (39,627953% of viewport)
+[01:03:54] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:54] [INFO] [Bullet] Starting wall penetration at (1664.4219, 467.07718)
+[01:03:54] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:03:54] [INFO] [Bullet] Exiting penetration at (1701.155, 467.18307) after traveling 31,733332 pixels through wall
+[01:03:54] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[01:03:54] [INFO] [BloodDecal] Blood puddle created at (1345.226, 454.8806) (added to group)
+[01:03:54] [ENEMY] [Enemy5] Ragdoll activated
+[01:03:54] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:03:54] [ENEMY] [Enemy1] PURSUING corner check: angle -0.0°
+[01:03:54] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[01:03:54] [ENEMY] [Enemy1] PURSUING corner check: angle -122.2°
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1132.013, 423.8971), source=NEUTRAL (null), range=900, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard CASING_KICK at (1132.013, 423.8971), intensity=0.01, dist=433
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1133.009, 423.913), source=NEUTRAL (null), range=900, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard CASING_KICK at (1133.009, 423.913), intensity=0.01, dist=432
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1095.175, 447.9388), source=NEUTRAL (null), range=900, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard CASING_KICK at (1095.175, 447.9388), intensity=0.01, dist=460
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1094.165, 448.6261), source=NEUTRAL (null), range=900, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard CASING_KICK at (1094.165, 448.6261), intensity=0.01, dist=460
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1092.163, 449.4931), source=NEUTRAL (null), range=900, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard CASING_KICK at (1092.163, 449.4931), intensity=0.01, dist=462
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1089.192, 450.2385), source=NEUTRAL (null), range=900, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard CASING_KICK at (1089.192, 450.2385), intensity=0.01, dist=465
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:54] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1085.334, 450.6508), source=NEUTRAL (null), range=900, listeners=2
+[01:03:54] [ENEMY] [Enemy4] Heard CASING_KICK at (1085.334, 450.6508), intensity=0.01, dist=468
+[01:03:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [ENEMY] [Enemy4] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-165.4°, current=-164.8°, player=(1110,478), corner_timer=0.00
+[01:03:55] [INFO] [ReplayManager] Recording frame 600 (9,1s): player_valid=True, enemies=5
+[01:03:55] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-0.3°, current=30.6°, player=(1111,483), corner_timer=0.18
+[01:03:55] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[01:03:55] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[01:03:55] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=2.4°, current=-110.7°, player=(1118,513), corner_timer=0.18
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1140.014, 548.3516), source=PLAYER (AKGL), range=1600, listeners=2
+[01:03:55] [ENEMY] [Enemy4] Heard gunshot at (1140.014, 548.3516), intensity=0.02, distance=374
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [ENEMY] [Enemy4] Hit: dmg=2, hp=1/1->-1/1
+[01:03:55] [INFO] [ImpactEffects] spawn_blood_effect called at (1512.706, 576.0229), dir=(1, 0), lethal=true
+[01:03:55] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:03:55] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[01:03:55] [INFO] [ImpactEffects] Blood effect spawned at (1512.706, 576.0229) (scale=1.5)
+[01:03:55] [ENEMY] [Enemy4] Enemy died (ricochet: false, penetration: false)
+[01:03:55] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[01:03:55] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 1)
+[01:03:55] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:03:55] [ENEMY] [Enemy4] Death animation started with hit direction: (1, 0)
+[01:03:55] [INFO] [BlackMetalLightningEffectsManager] Starting SINGLE lightning strike
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1168.57, 562.8159), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1168.454, 563.0908), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1167.839, 562.5831), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1182.724, 580.1478), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1166.652, 561.3914), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [ENEMY] [Enemy5] Death animation completed
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1211.064, 595.7721), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1210.345, 597.3882), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1208.715, 599.1237), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=10.3°, current=-33.8°, player=(1235,595), corner_timer=0.18
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1206.202, 600.9271), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(544.7593, 467.885), source=ENEMY (Enemy1), range=1469, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1588.62, 603.2389) (added to group)
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1598.17, 567.2811) (added to group)
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1556.299, 609.9478) (added to group)
+[01:03:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1182.7236, 580.1478), shooter_id=197165844148, bullet_pos=(1981.3076, 591.60675)
+[01:03:55] [INFO] [Bullet] Using shooter_position, distance=798,6662
+[01:03:55] [INFO] [Bullet] Distance to wall: 798,6662 (54,382652% of viewport)
+[01:03:55] [INFO] [Bullet] Distance-based penetration chance: 83,220245%
+[01:03:55] [INFO] [Bullet] Starting wall penetration at (1981.3076, 591.60675)
+[01:03:55] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23,63903
+[01:03:55] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:55] [INFO] [Bullet] Exiting penetration at (2023.6366, 592.2141) after traveling 37,333332 pixels through wall
+[01:03:55] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1562.577, 595.0911) (added to group)
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(578.2026, 467.7885), source=ENEMY (Enemy1), range=1469, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(554.225, 486.712), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [ENEMY] [Enemy1] Heard CASING_KICK at (554.225, 486.712), intensity=1.00, dist=37
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1583.593, 639.5172) (added to group)
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1645.804, 646.4484) (added to group)
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1591.721, 580.5548) (added to group)
+[01:03:55] [ENEMY] [Enemy1] State: COMBAT -> RETREATING
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(611.5718, 470.3674), source=ENEMY (Enemy1), range=1469, listeners=1
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[01:03:55] [INFO] [BloodDecal] Blood puddle created at (1645.823, 604.7708) (added to group)
+[01:03:55] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(589.7308, 485.8531), source=NEUTRAL (null), range=900, listeners=1
+[01:03:55] [ENEMY] [Enemy1] Heard CASING_KICK at (589.7308, 485.8531), intensity=1.00, dist=33
+[01:03:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:56] [INFO] [LastChance] Threat detected: @Area2D@925
+[01:03:56] [INFO] [LastChance] Black Metal mode - last chance effect disabled (Issue #985)
+[01:03:56] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(588.991, 487.5205), source=NEUTRAL (null), range=900, listeners=1
+[01:03:56] [ENEMY] [Enemy1] Heard CASING_KICK at (588.991, 487.5205), intensity=1.00, dist=37
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:56] [ENEMY] [Enemy4] Ragdoll activated
+[01:03:56] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:03:56] [INFO] [ReplayManager] Recording frame 660 (9,9s): player_valid=True, enemies=5
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1668.374, 690.8046) (added to group)
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(629.4966, 454.5691), source=ENEMY (Enemy1), range=1469, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1694.423, 696.4749) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1646.552, 686.1416) (added to group)
+[01:03:56] [INFO] [LastChance] Threat detected: Bullet
+[01:03:56] [INFO] [LastChance] Black Metal mode - last chance effect disabled (Issue #985)
+[01:03:56] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:03:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(614.33734, 487.62866), shooter_id=194934474283, bullet_pos=(1498.9697, 653.2311)
+[01:03:56] [INFO] [Bullet] Using shooter_position, distance=899,9992
+[01:03:56] [INFO] [Bullet] Distance to wall: 899,9992 (61,282604% of viewport)
+[01:03:56] [INFO] [Bullet] Distance-based penetration chance: 75,170296%
+[01:03:56] [INFO] [Bullet] Starting wall penetration at (1498.9697, 653.2311)
+[01:03:56] [INFO] [Bullet] Raycast backward hit penetrating body at distance 25,076729
+[01:03:56] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:56] [INFO] [Bullet] Exiting penetration at (1536.6486, 660.28455) after traveling 33,333336 pixels through wall
+[01:03:56] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1665.9, 723.6188) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1661.919, 667.5544) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1689.416, 602.3248) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1711.199, 569.3194) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1662.595, 733.0939) (added to group)
+[01:03:56] [INFO] [LastChance] Threat detected: @Area2D@937
+[01:03:56] [INFO] [LastChance] Black Metal mode - last chance effect disabled (Issue #985)
+[01:03:56] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(647.4214, 438.7708), source=ENEMY (Enemy1), range=1469, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1669.105, 629.2508) (added to group)
+[01:03:56] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P3:corner, state=RETREATING, target=-122.2°, current=19.4°, player=(1274,656), corner_timer=0.18
+[01:03:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(644.76, 490.10052), shooter_id=194934474283, bullet_pos=(1492.1221, 671.9991)
+[01:03:56] [INFO] [Bullet] Using shooter_position, distance=866,6657
+[01:03:56] [INFO] [Bullet] Distance to wall: 866,6657 (59,012867% of viewport)
+[01:03:56] [INFO] [Bullet] Distance-based penetration chance: 77,81832%
+[01:03:56] [INFO] [Bullet] Starting wall penetration at (1492.1221, 671.9991)
+[01:03:56] [INFO] [Bullet] Raycast backward hit penetrating body at distance 18,002544
+[01:03:56] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:56] [INFO] [Bullet] Exiting penetration at (1529.6016, 680.0446) after traveling 33,333336 pixels through wall
+[01:03:56] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1699.272, 682.5748) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1623.22, 742.3467) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1759.719, 726.7303) (added to group)
+[01:03:56] [INFO] [LastChance] Threat detected: @Area2D@952
+[01:03:56] [INFO] [LastChance] Black Metal mode - last chance effect disabled (Issue #985)
+[01:03:56] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:03:56] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[01:03:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(675.28076, 494.17676), shooter_id=194934474283, bullet_pos=(1437.0317, 738.5874)
+[01:03:56] [INFO] [Bullet] Using shooter_position, distance=800,00073
+[01:03:56] [INFO] [Bullet] Distance to wall: 800,00073 (54,473526% of viewport)
+[01:03:56] [INFO] [Bullet] Distance-based penetration chance: 83,11422%
+[01:03:56] [INFO] [Bullet] Starting wall penetration at (1437.0317, 738.5874)
+[01:03:56] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:03:56] [INFO] [Bullet] Raycast backward hit penetrating body at distance 12,111422
+[01:03:56] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:56] [INFO] [Bullet] Exiting penetration at (1473.5323, 750.29877) after traveling 33,333336 pixels through wall
+[01:03:56] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:56] [INFO] [Player] Spawning blood effect at (1252.8644, 647.796), dir=(1, 0), lethal=False (C#)
+[01:03:56] [INFO] [ImpactEffects] spawn_blood_effect called at (1252.864, 647.796), dir=(1, 0), lethal=false
+[01:03:56] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:03:56] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[01:03:56] [INFO] [ImpactEffects] Blood effect spawned at (1252.864, 647.796) (scale=1)
+[01:03:56] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[01:03:56] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1219.738, 622.1871), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(708.69635, 468.2793), shooter_id=194934474283, bullet_pos=(1441.9832, 788.10754)
+[01:03:56] [INFO] [Bullet] Using shooter_position, distance=799,9998
+[01:03:56] [INFO] [Bullet] Distance to wall: 799,9998 (54,47346% of viewport)
+[01:03:56] [INFO] [Bullet] Distance-based penetration chance: 83,1143%
+[01:03:56] [INFO] [Bullet] Starting wall penetration at (1441.9832, 788.10754)
+[01:03:56] [INFO] [Bullet] Raycast backward hit penetrating body at distance 16,495323
+[01:03:56] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:56] [INFO] [Bullet] Exiting penetration at (1477.1198, 803.4326) after traveling 33,333336 pixels through wall
+[01:03:56] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1197.188, 605.1801), source=NEUTRAL (null), range=900, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1198.387, 604.0306), source=NEUTRAL (null), range=900, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1175.143, 606.6286), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1310.291, 693.3721) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1296.002, 683.5478) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1367.966, 637.3421) (added to group)
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=CASING_KICK, pos=(1149.948, 590.6845), source=NEUTRAL (null), range=900, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[01:03:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1120.985, 605.3704), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:56] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1175.1432, 606.6286), shooter_id=197165844148, bullet_pos=(680.6211, 532.8216)
+[01:03:56] [INFO] [Bullet] Using shooter_position, distance=499,99957
+[01:03:56] [INFO] [Bullet] Distance to wall: 499,99957 (34,04589% of viewport)
+[01:03:56] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:56] [INFO] [Bullet] Starting wall penetration at (680.6211, 532.8216)
+[01:03:56] [INFO] [Bullet] Raycast backward hit penetrating body at distance 9,670021
+[01:03:56] [INFO] [Bullet] Max penetration distance exceeded: 74,666664 >= 48
+[01:03:56] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:56] [INFO] [Bullet] Exiting penetration at (601.82715, 521.06165) after traveling 74,666664 pixels through wall
+[01:03:56] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1388.986, 651.0986) (added to group)
+[01:03:56] [INFO] [BloodDecal] Blood puddle created at (1377.001, 714.7065) (added to group)
+[01:03:57] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[01:03:57] [INFO] [BloodDecal] Blood puddle created at (1355.319, 741.097) (added to group)
+[01:03:57] [INFO] [ReplayManager] Recording frame 720 (10,7s): player_valid=True, enemies=5
+[01:03:57] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[01:03:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1065.985, 605.3704), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:57] [ENEMY] [Enemy1] Heard gunshot at (1065.985, 605.3704), intensity=0.01, distance=431
+[01:03:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1120.9847, 605.37036), shooter_id=197165844148, bullet_pos=(702.04474, 531.9016)
+[01:03:57] [INFO] [Bullet] Using shooter_position, distance=425,33325
+[01:03:57] [INFO] [Bullet] Distance to wall: 425,33325 (28,961723% of viewport)
+[01:03:57] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:57] [ENEMY] [Enemy1] ROT_CHANGE: P3:corner -> P2:combat_state, state=COMBAT, target=25.4°, current=-115.3°, player=(1065,605), corner_timer=0.18
+[01:03:57] [ENEMY] [Enemy1] State: COMBAT -> RETREATING
+[01:03:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1219.7375, 622.1871), shooter_id=197165844148, bullet_pos=(37.97559, 365.42664)
+[01:03:57] [INFO] [Bullet] Using shooter_position, distance=1209,3334
+[01:03:57] [INFO] [Bullet] Distance to wall: 1209,3334 (82,34573% of viewport)
+[01:03:57] [INFO] [Bullet] Distance-based penetration chance: 50,59664%
+[01:03:57] [INFO] [Bullet] Starting wall penetration at (37.97559, 365.42664)
+[01:03:57] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P3:corner, state=RETREATING, target=-122.2°, current=-113.0°, player=(1060,605), corner_timer=0.18
+[01:03:57] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[01:03:57] [INFO] [Bullet] Raycast backward hit penetrating body at distance 19,845034
+[01:03:57] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:57] [INFO] [Bullet] Exiting penetration at (-3.3925896, 356.4386) after traveling 37,333332 pixels through wall
+[01:03:57] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:57] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:03:57] [INFO] [BloodDecal] Blood puddle created at (1367.618, 765.5546) (added to group)
+[01:03:57] [INFO] [BloodDecal] Blood puddle created at (1395.057, 716.1133) (added to group)
+[01:03:57] [ENEMY] [Enemy4] Death animation completed
+[01:03:57] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[01:03:57] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[01:03:57] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:03:57] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[01:03:57] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[01:03:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1065.9847, 605.37036), shooter_id=197165844148, bullet_pos=(17.014755, 283.18564)
+[01:03:57] [INFO] [Bullet] Using shooter_position, distance=1097,3336
+[01:03:57] [INFO] [Bullet] Distance to wall: 1097,3336 (74,71947% of viewport)
+[01:03:57] [INFO] [Bullet] Distance-based penetration chance: 59,493958%
+[01:03:57] [INFO] [Bullet] Starting wall penetration at (17.014755, 283.18564)
+[01:03:57] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:03:57] [INFO] [Bullet] Raycast backward hit penetrating body at distance 41,271797
+[01:03:57] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:57] [INFO] [Bullet] Exiting penetration at (-23.452787, 270.75626) after traveling 37,333336 pixels through wall
+[01:03:57] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:57] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[01:03:57] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[01:03:57] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:03:57] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[01:03:57] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[01:03:57] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:03:57] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[01:03:58] [INFO] [ReplayManager] Recording frame 780 (11,5s): player_valid=True, enemies=5
+[01:03:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(707.0189, 489.405), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:58] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(664.8285, 448.5211), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:58] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(707.0189, 489.40497), shooter_id=197165844148, bullet_pos=(615.9653, 45.31009)
+[01:03:58] [INFO] [Bullet] Using shooter_position, distance=453,33325
+[01:03:58] [INFO] [Bullet] Distance to wall: 453,33325 (30,868296% of viewport)
+[01:03:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(619.3046, 425.6441), source=PLAYER (AKGL), range=1600, listeners=1
+[01:03:58] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[01:03:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(664.8285, 448.52106), shooter_id=197165844148, bullet_pos=(693.15155, 24.131813)
+[01:03:58] [INFO] [Bullet] Using shooter_position, distance=425,3333
+[01:03:58] [INFO] [Bullet] Distance to wall: 425,3333 (28,961727% of viewport)
+[01:03:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:58] [INFO] [Bullet] Starting wall penetration at (693.15155, 24.131813)
+[01:03:58] [INFO] [Bullet] Raycast backward hit penetrating body at distance 43,51677
+[01:03:58] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:58] [INFO] [Bullet] Exiting penetration at (696.59204, -27.420177) after traveling 46,666668 pixels through wall
+[01:03:58] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:58] [ENEMY] [Enemy1] Hit: dmg=2, hp=1/1->-1/1
+[01:03:58] [INFO] [ImpactEffects] spawn_blood_effect called at (702.9993, 307.9611), dir=(1, 0), lethal=true
+[01:03:58] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:03:58] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[01:03:58] [INFO] [ImpactEffects] Wall found for blood splatter at (738, 307.9611) (dist=35 px)
+[01:03:58] [INFO] [BloodDecal] Blood puddle created at (737, 307.9611) (added to group)
+[01:03:58] [INFO] [ImpactEffects] Blood effect spawned at (702.9993, 307.9611) (scale=1.5)
+[01:03:58] [ENEMY] [Enemy1] Enemy died (ricochet: false, penetration: false)
+[01:03:58] [INFO] [ScoreManager] Kill registered. Combo: 3 (points: 3000)
+[01:03:58] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 0)
+[01:03:58] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:03:58] [ENEMY] [Enemy1] Death animation started with hit direction: (1, 0)
+[01:03:58] [INFO] [BlackMetalLightningEffectsManager] Starting DOUBLE lightning strike
+[01:03:58] [INFO] [BloodyFeet:Enemy1] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[01:03:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(572.9913, 421.2703), source=PLAYER (AKGL), range=1600, listeners=0
+[01:03:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[01:03:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(572.9913, 421.27026), shooter_id=197165844148, bullet_pos=(761.2877, 349.9994)
+[01:03:58] [INFO] [Bullet] Using shooter_position, distance=201,33328
+[01:03:58] [INFO] [Bullet] Distance to wall: 201,33328 (13,709153% of viewport)
+[01:03:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(519.2975, 424.4238), source=PLAYER (AKGL), range=1600, listeners=0
+[01:03:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[01:03:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(519.29755, 424.42377), shooter_id=197165844148, bullet_pos=(750.20483, 364.06174)
+[01:03:58] [INFO] [Bullet] Using shooter_position, distance=238,66661
+[01:03:58] [INFO] [Bullet] Distance to wall: 238,66661 (16,25125% of viewport)
+[01:03:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:03:58] [INFO] [Bullet] Starting wall penetration at (750.20483, 364.06174)
+[01:03:58] [INFO] [Bullet] Raycast backward hit penetrating body at distance 30,141806
+[01:03:58] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:03:58] [INFO] [Bullet] Exiting penetration at (791.16187, 353.35507) after traveling 37,333332 pixels through wall
+[01:03:58] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:03:59] [INFO] [ReplayManager] Recording frame 840 (12,3s): player_valid=True, enemies=5
+[01:03:59] [ENEMY] [Enemy1] Ragdoll activated
+[01:03:59] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:04:00] [INFO] [ReplayManager] Recording frame 900 (13,1s): player_valid=True, enemies=5
+[01:04:00] [INFO] ------------------------------------------------------------
+[01:04:00] [INFO] GAME LOG ENDED: 2026-03-17T01:04:00
+[01:04:00] [INFO] ============================================================

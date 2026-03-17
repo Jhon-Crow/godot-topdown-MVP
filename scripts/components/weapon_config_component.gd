@@ -100,6 +100,29 @@ const WEAPON_CONFIGS := {
 		"dodge_speed": 400.0,
 		"dodge_distance": 120.0,
 		"sneak_speed_multiplier": 0.6
+	},
+	4: {  # MACHINE_GUN (PKM) - belt-fed heavy machine gun (Issue #1033)
+		"shoot_cooldown": 0.12,     # Slightly slower than rifle (~8.3 rps)
+		"bullet_speed": 2800.0,     # High muzzle velocity
+		"magazine_size": 500,       # Full belt
+		"total_magazines": 2,       # 500 + 500 (one spare belt)
+		"reload_time": 9.0,         # Long belt reload
+		"bullet_spawn_offset": 40.0,
+		"weapon_loudness": 2200.0,
+		"sprite_path": "res://assets/sprites/weapons/pkm_topdown.png",  # PKM machine gun top-down sprite (#1033)
+		"bullet_scene_path": "res://scenes/projectiles/csharp/Bullet.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_762x39.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# Progressive spread: sustained fire degrades accuracy
+		"spread_threshold": 5,
+		"initial_spread": 0.3,
+		"spread_increment": 0.4,
+		"max_spread": 6.0,
+		"spread_reset_time": 0.4
 	}
 }
 
@@ -118,4 +141,5 @@ static func get_type_name(weapon_type: int) -> String:
 		1: return "SHOTGUN"
 		2: return "UZI"
 		3: return "MACHETE"
+		4: return "MACHINE_GUN"
 		_: return "UNKNOWN"
