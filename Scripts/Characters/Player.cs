@@ -5753,6 +5753,8 @@ public partial class Player : BaseCharacter
         if (Input.IsActionJustReleased("flashlight_toggle") && _breachingHoldingForPlacement)
         {
             _breachingHoldingForPlacement = false;
+            // Notify effect: no longer holding (hides in-hand sprite)
+            _breachingChargesEffect.Call("set_holding_for_placement", false);
             bool placed = (bool)_breachingChargesEffect.Call("try_place_charge");
             if (placed)
             {
@@ -5762,14 +5764,21 @@ public partial class Player : BaseCharacter
         else if (Input.IsActionPressed("flashlight_toggle"))
         {
             int charges = (int)_breachingChargesEffect.Call("get_charges");
-            if (charges > 0)
+            if (charges > 0 && !_breachingHoldingForPlacement)
             {
                 _breachingHoldingForPlacement = true;
+                // Notify effect: started holding (shows in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", true);
             }
         }
         else if (Input.IsActionJustReleased("flashlight_toggle"))
         {
-            _breachingHoldingForPlacement = false;
+            if (_breachingHoldingForPlacement)
+            {
+                _breachingHoldingForPlacement = false;
+                // Notify effect: released without placing (hides in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", false);
+            }
         }
     }
 
