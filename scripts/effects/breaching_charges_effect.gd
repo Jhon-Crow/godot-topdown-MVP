@@ -231,6 +231,7 @@ func detonate() -> bool:
 	_apply_blast_effects(det_pos)
 
 	_play_detonate_sound()
+	_emit_explosion_sound_event(det_pos)
 	charges_detonated.emit(det_pos)
 	charges_changed.emit(charges, MAX_CHARGES)
 	return true
@@ -905,6 +906,8 @@ func _play_place_sound() -> void:
 
 ## Play the detonation sound.
 ## Uses AudioManager to play the F-1 (defensive) grenade explosion sound (Issue #1087).
+## Also emits an EXPLOSION sound event via SoundPropagation so enemies hear the blast
+## and react, matching the F-1 grenade behaviour (Issue #1103).
 func _play_detonate_sound() -> void:
 	# Prefer AudioManager for consistent spatial audio (same as F-1 grenade)
 	var audio_manager: Node = Engine.get_singleton("AudioManager") if Engine.has_singleton("AudioManager") else null
@@ -918,3 +921,20 @@ func _play_detonate_sound() -> void:
 	# Fallback: use local audio player
 	if _detonate_audio_player and is_instance_valid(_detonate_audio_player):
 		_detonate_audio_player.play()
+
+
+## Emit an explosion sound event so enemies hear the breaching charge detonation
+## and react, just as they react to F-1 grenade explosions (Issue #1103).
+func _emit_explosion_sound_event(det_pos: Vector2) -> void:
+	if _player == null:
+		return
+
+	var sound_propagation: Node = _player.get_node_or_null("/root/SoundPropagation")
+	if sound_propagation == null or not sound_propagation.has_method("emit_sound"):
+		FileLogger.info("[BreachingCharges] SoundPropagation not available, enemies will not hear blast")
+		return
+
+	# SoundType.EXPLOSION = 1, SourceType.PLAYER = 0
+	# Use default EXPLOSION propagation distance (2200 px) — same loudness as grenade explosions.
+	sound_propagation.emit_sound(1, det_pos, 0, _player)
+	FileLogger.info("[BreachingCharges] Explosion sound event emitted at %s for enemy awareness" % str(det_pos))

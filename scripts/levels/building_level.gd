@@ -762,6 +762,14 @@ func _apply_building_ammo_config(weapon: Node, weapon_id: String) -> void:
 			weapon.ReinitializeMagazines(base_magazines, true)
 			print("BuildingLevel: MiniUzi magazines reinitialized to %d (C# weapon)" % base_magazines)
 
+	# After any ammo reinitialization, reapply auto-reload magazine size reduction
+	# if the player has the auto-reload passive item active (Issue #1067).
+	# ReinitializeMagazines resets to full magazine size, overriding the reduction
+	# that Player._Ready() applied. We must re-reduce after each level ammo setup.
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
+		_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+
 
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
