@@ -20,6 +20,7 @@ signal back_pressed
 @onready var fps_counter_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer/FpsCounterCheckbox
 @onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
 @onready var all_weapons_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer/AllWeaponsUnlockedCheckbox
+@onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
@@ -45,6 +46,7 @@ func _ready() -> void:
 	fps_counter_checkbox.toggled.connect(_on_fps_counter_toggled)
 	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
 	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
+	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	back_button.pressed.connect(_on_back_pressed)
@@ -79,6 +81,7 @@ func _update_ui() -> void:
 	fps_counter_checkbox.button_pressed = experimental_settings.is_fps_counter_enabled()
 	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
 	all_weapons_unlocked_checkbox.button_pressed = experimental_settings.is_all_weapons_unlocked()
+	all_maps_unlocked_checkbox.button_pressed = experimental_settings.is_all_maps_unlocked()
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -104,6 +107,8 @@ func _update_ui() -> void:
 		status_parts.append("FPS drop logging")
 	if experimental_settings.is_all_weapons_unlocked():
 		status_parts.append("All weapons unlocked")
+	if experimental_settings.is_all_maps_unlocked():
+		status_parts.append("All maps unlocked")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -198,6 +203,13 @@ func _on_all_weapons_unlocked_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_all_weapons_unlocked(enabled)
+	_update_ui()
+
+
+func _on_all_maps_unlocked_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_all_maps_unlocked(enabled)
 	_update_ui()
 
 

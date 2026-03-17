@@ -21,7 +21,10 @@ const LEVEL_NAMES: Dictionary = {
 	"res://scenes/levels/LabyrinthLevel.tscn": "Labyrinth",
 	"res://scenes/levels/BuildingLevel.tscn": "Building",
 	"res://scenes/levels/TestTier.tscn": "Polygon",
-	"res://scenes/levels/CastleLevel.tscn": "Castle"
+	"res://scenes/levels/CastleLevel.tscn": "Castle",
+	"res://scenes/levels/RevolverLevel.tscn": "Double Corridor",
+	"res://scenes/levels/BeachLevel.tscn": "Beach",
+	"res://scenes/levels/DocksLevel.tscn": "Docks"
 }
 
 ## Weapon ID to display name mapping.
@@ -216,10 +219,14 @@ func _populate_table() -> void:
 	var grenades_with_conditions: Array[int] = []
 	var active_items_with_conditions: Array[int] = []
 
-	# Add a row for each level with unlock conditions
-	for level_path in unlock_conditions:
-		var condition: Dictionary = unlock_conditions[level_path]
-		var level_name: String = LEVEL_NAMES.get(level_path, _extract_level_name(level_path))
+	# Add a row for each condition key (may include rank-suffix keys like "Path:S")
+	for condition_key in unlock_conditions:
+		var condition: Dictionary = unlock_conditions[condition_key]
+		# Extract the actual scene path (strip rank suffix if present)
+		var scene_path: String = condition_key
+		if unlock_manager.has_method("_extract_scene_path"):
+			scene_path = unlock_manager._extract_scene_path(condition_key)
+		var level_name: String = LEVEL_NAMES.get(scene_path, _extract_level_name(scene_path))
 		var min_rank: String = condition.get("min_rank", "D")
 
 		# Build items list
@@ -248,14 +255,54 @@ func _populate_table() -> void:
 
 		# Check if condition is met (show green checkmark)
 		var condition_met: bool = false
-		if unlock_manager.has_method("is_level_condition_met"):
-			condition_met = unlock_manager.is_level_condition_met(level_path)
+		if unlock_manager.has_method("is_condition_key_met"):
+			condition_met = unlock_manager.is_condition_key_met(condition_key)
 
 		var level_display: String = level_name
 		if condition_met:
 			level_display = level_name + " ✓"
 
 		_add_table_row(level_display, min_rank, ", ".join(items_list), false, condition_met)
+
+	# Add rows for multi-level conditions
+	var multi_unlock_conditions: Array = []
+	if "MULTI_UNLOCK_CONDITIONS" in unlock_manager:
+		multi_unlock_conditions = unlock_manager.MULTI_UNLOCK_CONDITIONS
+
+	for multi_condition in multi_unlock_conditions:
+		var levels_list: Array[String] = []
+		for level_entry in multi_condition.get("levels", []):
+			var entry_path: String = level_entry.get("path", "")
+			var entry_rank: String = level_entry.get("min_rank", "S")
+			var entry_name: String = LEVEL_NAMES.get(entry_path, _extract_level_name(entry_path))
+			levels_list.append(entry_name + " " + entry_rank)
+		var map_display: String = " + ".join(levels_list)
+
+		var items_list: Array[String] = []
+		for weapon_id in multi_condition.get("weapons", []):
+			var weapon_name: String = WEAPON_NAMES.get(weapon_id, weapon_id)
+			items_list.append(weapon_name)
+			if weapon_id not in weapons_with_conditions:
+				weapons_with_conditions.append(weapon_id)
+		for grenade_type in multi_condition.get("grenades", []):
+			var grenade_name: String = GRENADE_NAMES.get(grenade_type, "Grenade %d" % grenade_type)
+			items_list.append(grenade_name)
+			if grenade_type not in grenades_with_conditions:
+				grenades_with_conditions.append(grenade_type)
+		for item_type in multi_condition.get("active_items", []):
+			var item_name: String = ACTIVE_ITEM_NAMES.get(item_type, "Item %d" % item_type)
+			items_list.append(item_name)
+			if item_type not in active_items_with_conditions:
+				active_items_with_conditions.append(item_type)
+
+		var condition_met: bool = false
+		if unlock_manager.has_method("is_multi_condition_met"):
+			condition_met = unlock_manager.is_multi_condition_met(multi_condition)
+
+		if condition_met:
+			map_display = map_display + " ✓"
+
+		_add_table_row(map_display, "All S", ", ".join(items_list), false, condition_met)
 
 	# Add separator before unallocated items
 	var sep := HSeparator.new()
