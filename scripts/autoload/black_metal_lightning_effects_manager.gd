@@ -6,29 +6,23 @@ extends Node
 ## jagged bolt streaks from the top of the screen downward, with branches, plus
 ## a brief screen-wide illumination flash — like old horror/black-metal films.
 ##
-## APPROACH (v7): hint_screen_texture + correct startup sequence
+## APPROACH (v8): hint_screen_texture, rect hidden between flashes
 ##
-## Startup sequence (mirrors black_metal_effects_manager):
-##   _ready():     _flash_rect.visible = false  (hidden on first frame to avoid white flash)
-##   warmup:       _flash_rect.visible = true   (show for warmup frame, GPU compiles shader)
-##   after warmup: _flash_rect.visible = true   (stays visible PERMANENTLY, never toggled again)
-##   "off" state:  intensity = 0.0              (passthrough: COLOR = original scene)
-##   "on" state:   intensity = 1.0 → 0.0       (bolt visible, fades out)
+## Key design: visible=false is the normal off-state (unlike v6/v7 where it was always visible).
+##   _ready():         visible=true + intensity=0 for warmup frame, then visible=false
+##   between flashes:  visible=false — rect not in rendering pipeline, no sampling
+##   scene changes:    detected via tree_changed; any in-progress flash is aborted
+##   "on" state:       visible=true, intensity = 1.0 → 0.0 (bolt visible, fades out)
+##   after flash:      visible=false again
 ##
-## Why start visible=false in _ready():
-##   hint_screen_texture samples the GL framebuffer. On the very first render frame,
-##   the framebuffer has not been populated yet and returns white. Setting visible=true
-##   before warmup (as in v6) causes the passthrough to output white on that first frame.
-##   Starting visible=false avoids this: the ColorRect is off-screen for the first
-##   frame, then turned on during warmup when the GPU has had a chance to compile the
-##   shader and the framebuffer is valid.
-##
-## Why keep visible=true permanently after warmup (never toggle):
-##   Godot's gl_compatibility renderer has known bugs where toggling a hint_screen_texture
-##   ColorRect from visible=false to visible=true can produce a white frame on the first
-##   frame after the transition (GitHub Issues #79914, #66458). By keeping visible=true
-##   permanently and using intensity=0 as the "off" state, we eliminate this risk
-##   entirely during gameplay (only one controlled toggle at startup).
+## Why scene-transition delay is required (v7 failure):
+##   v7 set visible=true permanently after warmup. When PersistManager navigates
+##   to the last played level immediately on startup (within 600ms), a new scene
+##   loads and the GL framebuffer resets. On the FIRST frame of the new scene,
+##   hint_screen_texture returns white/empty. With visible=true + intensity=0,
+##   the passthrough outputs COLOR = white → white blink visible to the user.
+##   (Confirmed in game_log_20260317_054351.txt: warmup at 05:43:52, scene change
+##    to CityLevel at 05:43:52, white blink at startup.)
 ##
 ## Why NOT the pure overlay approach (no screen_texture, transparent output):
 ##   A full-screen transparent ColorRect at layer 98 causes visual corruption on ALL
@@ -69,9 +63,9 @@ const TRIPLE_FLASH_CHANCE: float = 0.15
 var _flash_layer: CanvasLayer = null
 
 ## ColorRect carrying the bolt shader material.
-## Stays ALWAYS VISIBLE — shader controls appearance via intensity (intensity=0 → passthrough).
-## This avoids the gl_compatibility hint_screen_texture white-frame bug that occurs
-## when transitioning from visible=false to visible=true.
+## Hidden between flashes — only visible=true for the duration of a bolt strike.
+## This is the key fix for v8: the rect is NOT a persistent overlay (unlike v6/v7),
+## so hint_screen_texture is only sampled during active flashes, never at scene changes.
 var _flash_rect: ColorRect = null
 
 ## Cached shader material reference.
@@ -82,6 +76,9 @@ var _is_active: bool = false
 
 ## Whether a flash animation is currently playing.
 var _is_flashing: bool = false
+
+## Track the previous scene to detect scene transitions (for flash-abort on scene change).
+var _previous_scene_root: Node = null
 
 ## Current flash state for animation.
 var _flash_timer: float = 0.0
@@ -99,6 +96,10 @@ var _use_double_bolt: bool = false
 
 func _ready() -> void:
 	_log("BlackMetalLightningEffectsManager initializing...")
+
+	# Connect to scene tree changes to handle scene reloads.
+	# Mirrors black_metal_effects_manager._on_tree_changed pattern.
+	get_tree().tree_changed.connect(_on_tree_changed)
 
 	# Create the flash layer at layer 98 — above the Black Metal filter (97) but below hit effects (100).
 	_flash_layer = CanvasLayer.new()
@@ -126,15 +127,10 @@ func _ready() -> void:
 		push_warning("BlackMetalLightningEffectsManager: Could not load lightning_flash.gdshader")
 		_log("WARNING: Could not load lightning_flash.gdshader")
 
-	# Start INVISIBLE — the framebuffer is not yet populated on the first frame.
-	# hint_screen_texture returns white/empty if sampled before the scene renders,
-	# so we keep the ColorRect hidden until warmup has run and the GPU has
-	# a valid framebuffer to read. After warmup we set visible=true permanently
-	# and never toggle it again; intensity=0 acts as the "off" state from then on.
 	_flash_rect.visible = false
 	_flash_layer.add_child(_flash_rect)
 
-	# Perform shader warmup to pre-compile the shader and then reveal permanently.
+	# Perform shader warmup to pre-compile the shader.
 	_warmup_shader()
 
 	# Connect to difficulty changes to enable/disable the effects.
@@ -208,8 +204,9 @@ func _start_single_flash() -> void:
 	# Occasionally fire two simultaneous bolt streaks for dramatic effect.
 	_use_double_bolt = randf() < 0.3
 
-	# Show the bolt by setting intensity to 1.0.
-	# The ColorRect is always visible; shader controls appearance via intensity.
+	# Make the ColorRect visible and set intensity to 1.0 to show the bolt.
+	if _flash_rect:
+		_flash_rect.visible = true
 	if _material:
 		_material.set_shader_parameter("seed", _current_seed)
 		_material.set_shader_parameter("bolt_count", 2.0 if _use_double_bolt else 1.0)
@@ -261,6 +258,8 @@ func _end_flash_sequence() -> void:
 	_flashes_remaining = 0
 	if _material:
 		_material.set_shader_parameter("intensity", 0.0)
+	if _flash_rect:
+		_flash_rect.visible = false
 
 
 ## Called when the global difficulty changes.
@@ -279,24 +278,35 @@ func _apply_current_difficulty() -> void:
 		elif not _is_active and was_active:
 			_log("Lightning effects DISABLED")
 			_end_flash_sequence()
+			if _flash_rect:
+				_flash_rect.visible = false
+
+
+## Called when the scene tree structure changes.
+## Aborts any in-progress flash and hides the overlay immediately.
+## The new scene's framebuffer is not populated yet — we must not sample hint_screen_texture.
+## Since visible=false is the normal "off" state between flashes, no delayed re-show is needed.
+func _on_tree_changed() -> void:
+	var current_scene := get_tree().current_scene
+	if current_scene != null and current_scene != _previous_scene_root:
+		_previous_scene_root = current_scene
+		_log("Scene changed to: %s" % current_scene.name)
+		# Abort any in-progress flash and hide the overlay.
+		_is_flashing = false
+		_flashes_remaining = 0
+		if _material:
+			_material.set_shader_parameter("intensity", 0.0)
+		if _flash_rect:
+			_flash_rect.visible = false
 
 
 ## Performs warmup to pre-compile the lightning bolt shader.
 ##
-## WARMUP SEQUENCE:
-##   1. visible=false + intensity=0.0: wait 1 frame (ColorRect hidden, scene renders).
-##      This ensures the GL framebuffer is populated before hint_screen_texture is first
-##      sampled. On frame 0, the framebuffer may be empty/white; we must not read it.
-##   2. After the frame: set visible=true PERMANENTLY.
-##      intensity=0.0 is the "off" state — pure passthrough, no visible change.
-##      We NEVER toggle visible again after warmup, so the screen-capture
-##      first-frame bug (Godot Issues #79914, #66458) cannot trigger during gameplay.
-##
-## Key difference from black_metal_effects_manager:
-##   BM manager hides the rect during scene transitions (delayed activation).
-##   We do NOT do this — once visible=true is set after warmup, it stays forever.
-##   Scene transitions are safe because intensity=0 outputs passthrough (original scene)
-##   regardless of what hint_screen_texture returns.
+## WARMUP SEQUENCE (mirrors black_metal_effects_manager):
+##   1. visible=true + intensity=0.0: wait 1 frame (GPU compiles shader; even if
+##      hint_screen_texture returns white, intensity=0 outputs passthrough so no blink).
+##   2. After the frame: visible=false (rect hidden, no rendering, no sampling).
+##      The rect stays hidden until trigger_lightning() fires a bolt.
 func _warmup_shader() -> void:
 	if _flash_rect == null or _material == null:
 		return
@@ -304,22 +314,19 @@ func _warmup_shader() -> void:
 	_log("Starting shader warmup (Issue #343 pattern)...")
 	var start_time := Time.get_ticks_msec()
 
-	# intensity=0.0 → passthrough (original scene).
+	# intensity=0.0 → even if hint_screen_texture returns white, output is passthrough.
 	_material.set_shader_parameter("intensity", 0.0)
-
-	# Wait one frame. The ColorRect is still HIDDEN (visible=false) during this frame.
-	# This lets the scene render at least one full frame before we show the overlay,
-	# ensuring the GL framebuffer is populated and hint_screen_texture won't return white.
-	await get_tree().process_frame
-
-	# Now set visible=true PERMANENTLY after the scene has rendered once.
-	# The framebuffer is populated: hint_screen_texture returns the actual scene.
-	# intensity=0.0 → pure passthrough → no visual change on any difficulty.
-	# We NEVER toggle visible again — intensity=0 is the "off" state for gameplay.
 	_flash_rect.visible = true
 
+	# Wait one frame for GPU to compile and process the shader.
+	await get_tree().process_frame
+
+	# Hide after warmup — same as black_metal_effects_manager.
+	# The overlay only becomes visible when trigger_lightning() fires a bolt.
+	_flash_rect.visible = false
+
 	var elapsed := Time.get_ticks_msec() - start_time
-	_log("Shader warmup complete in %d ms (ColorRect now permanently visible, intensity=0 = passthrough)" % elapsed)
+	_log("Shader warmup complete in %d ms" % elapsed)
 
 
 ## Returns whether lightning effects are currently active.

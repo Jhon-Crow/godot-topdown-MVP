@@ -2,24 +2,22 @@ shader_type canvas_item;
 
 // Lightning flash shader for Black Metal difficulty mode.
 //
-// APPROACH v7: hint_screen_texture + correct startup sequence.
+// APPROACH v8: hint_screen_texture + scene-transition-aware visibility.
 //
-// The ColorRect starts HIDDEN (visible=false) in _ready(). After one warmup frame,
-// it becomes permanently visible (visible=true, never toggled again). At intensity=0,
-// the shader outputs the original scene unchanged (pure passthrough). This guarantees:
-//   - No white flash on game startup (framebuffer populated before first sample)
-//   - No white flash during gameplay (visible never toggled after warmup)
-//   - No corruption of other shaders (passthrough, not transparent overlay)
+// The ColorRect is hidden between scene transitions. The manager (v8) mirrors
+// black_metal_effects_manager: it listens to tree_changed, hides the rect on
+// every scene change, and re-shows it after ACTIVATION_DELAY_FRAMES (3 frames)
+// to ensure the GL framebuffer is populated before hint_screen_texture is sampled.
 //
-// Why NOT starting visible=true immediately (v6):
-//   On the very first game frame, the GL framebuffer is not yet populated and
-//   hint_screen_texture returns white. Starting visible=true in _ready() before
-//   the scene renders causes the passthrough to output white → white flash at startup.
+// At intensity=0: outputs original scene unchanged (pure passthrough).
+// At intensity=1: adds additive blue-white lightning contribution to scene.
 //
-// Why NOT toggling visible during gameplay (v1-v4):
-//   Toggling visible=false→true on a hint_screen_texture ColorRect during gameplay
-//   can produce a white frame on the first frame after the transition.
-//   v7 avoids this by NEVER toggling after the initial warmup frame.
+// Why scene-transition delay is required (v7 failure):
+//   v7 set visible=true permanently after startup warmup. PersistManager immediately
+//   navigates to the last played level, triggering a scene change within 600ms. On
+//   the first frame of the new scene, hint_screen_texture returns white/empty.
+//   With visible=true + intensity=0, passthrough outputs white → white blink.
+//   (game_log_20260317_054351.txt: warmup at 05:43:52, CityLevel change at 05:43:52)
 //
 // Why NOT the pure overlay approach (v5, no screen_texture):
 //   A full-screen transparent ColorRect at layer 98 causes visual corruption on ALL
@@ -47,9 +45,10 @@ uniform float seed : hint_range(0.0, 100.0) = 0.0;
 uniform float bolt_count : hint_range(1.0, 2.0) = 1.0;
 
 // Screen texture sampler for reading the rendered scene.
-// hint_screen_texture is safe here because the ColorRect is ALWAYS VISIBLE —
-// we never toggle visible=false→true, so the white-frame bug never triggers.
-// At intensity=0.0: output = original (pure passthrough, identical to black_metal.gdshader warmup).
+// hint_screen_texture is safe here because the manager (v8) hides this ColorRect on
+// every scene transition and delays re-showing it by 3 frames — ensuring the framebuffer
+// is fully populated before the first sample. Mirrors black_metal_effects_manager.
+// At intensity=0.0: output = original (pure passthrough, no visible effect).
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 // ============================================================================

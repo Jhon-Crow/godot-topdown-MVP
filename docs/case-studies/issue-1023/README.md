@@ -174,6 +174,33 @@ This is a different but related manifestation of the same underlying issue: hint
 
 ---
 
+## Phase 8: v7 STILL shows white blink (game_log_20260317_054351.txt)
+
+**User reported:** "всё та же проблема сразу после запуска" — "same problem right after launch"
+
+**Game log analysis** (`game_log_20260317_054351.txt`):
+```
+[05:43:52] [BlackMetalLightningEffectsManager] Shader warmup complete in 607 ms (ColorRect now permanently visible, intensity=0 = passthrough)
+[05:43:52] [PersistManager] Navigating to last played level: res://scenes/levels/CityLevel.tscn
+[05:43:52] [BlackMetalEffectsManager] Scene changed to: CityLevel
+```
+(No scene-changed log for `BlackMetalLightningEffectsManager` — because v7 didn't listen to `tree_changed`)
+
+**Timeline reconstruction:**
+1. `05:43:51` — Game starts, both managers initialize
+2. `05:43:52` — Warmup frame completes — `_flash_rect.visible = true` set **permanently**
+3. `05:43:52` — `PersistManager` navigates to `CityLevel` (last played level redirect)
+4. `05:43:52` — New scene loads, GL framebuffer **resets** for the new scene
+5. `05:43:52` — On the first frame of `CityLevel`: `hint_screen_texture` returns **white** (framebuffer not yet populated for this scene)
+6. With `visible=true` + `intensity=0`: shader outputs `COLOR = original = WHITE` → **white blink**
+
+**Root cause of v7 failure:**
+v7 set `visible=true` permanently after warmup, but **did not listen for scene transitions**. The warmup runs in `LabyrinthLevel` (the initial scene). `PersistManager` immediately redirects to `CityLevel`. On the first frame of `CityLevel`, `hint_screen_texture` returns white. With the ColorRect permanently visible and `intensity=0` passthrough, this white is output to the screen.
+
+This is fundamentally the same bug that `black_metal_effects_manager` solved with its `_on_tree_changed` handler and `ACTIVATION_DELAY_FRAMES` — but v7 did not implement this.
+
+---
+
 ## Root Cause Summary
 
 | Version | Root Cause | Visual Result |
@@ -184,35 +211,43 @@ This is a different but related manifestation of the same underlying issue: hint
 | v4 shader | `hint_screen_texture` captures white on first frame after `visible=false→true` transition during gameplay | White blink on flash |
 | v5 shader | Transparent ColorRect always-visible at layer 98 corrupts other shaders | White screen on ALL difficulties |
 | v6 shader | `visible=true` set in `_ready()` before framebuffer populated → white passthrough on startup frame | White blink at startup |
-| **v7 shader** | **`visible=false` in `_ready()`, `visible=true` set after 1 warmup frame (permanently)** | **Lightning bolt, no regression** |
+| v7 shader | `visible=true` set permanently after warmup; PersistManager scene redirect causes framebuffer reset → white on first frame of new scene | White blink at startup (scene change) |
+| **v8 manager** | **`visible=false` between flashes; `tree_changed` aborts in-progress flashes on scene change** | **No white blink; lightning bolt on hits** |
 
 ---
 
-## Fix: v7 Shader — hint_screen_texture with Correct Startup Sequence (Final Solution)
+## Fix: v8 Manager — visible=false Between Flashes (Final Solution)
 
-The fix corrects the startup sequence: start `visible=false`, show after one warmup frame.
+The definitive fix: the ColorRect is `visible=false` between flashes. It is only made `visible=true` at the moment a bolt fires, and hidden again when the flash sequence ends. This means `hint_screen_texture` is only sampled when the bolt is actually rendering — at which point the framebuffer is fully populated for the current scene.
 
-**Manager startup sequence:**
+**Manager design:**
 ```gdscript
 func _ready():
-    # HIDDEN: framebuffer not yet populated on frame 0
-    _flash_rect.visible = false
-    _warmup_shader()  # async
+    get_tree().tree_changed.connect(_on_tree_changed)
+    _flash_rect.visible = false    # hidden initially
+    _warmup_shader()               # warmup: visible=true for 1 frame, then hidden
 
-func _warmup_shader():
+func _on_tree_changed():
+    # On scene change: abort any in-progress flash, ensure rect is hidden
+    if current_scene != _previous_scene_root:
+        _is_flashing = false
+        _flash_rect.visible = false   # safe: no hint_screen_texture sampling
+
+func _start_single_flash():
+    _flash_rect.visible = true         # show only when bolt fires
+    _material.set_shader_parameter("intensity", 1.0)
+
+func _end_flash_sequence():
+    _flash_rect.visible = false        # hide when done
     _material.set_shader_parameter("intensity", 0.0)
-    # Wait 1 frame: scene renders once, framebuffer populated
-    await get_tree().process_frame
-    # PERMANENTLY VISIBLE: hint_screen_texture now returns valid scene pixels
-    _flash_rect.visible = true
-    # Never toggle visible again — intensity=0 is the "off" state
 ```
 
 **Why this definitively fixes all observed failures:**
-1. **No white blink at startup**: `visible=false` on frame 0 → framebuffer populates without sampling
-2. **No white blink on flash**: `visible` never toggles after warmup → no screen-capture bug
-3. **No white screen on all difficulties**: `intensity=0` → `COLOR = original` (pure passthrough)
-4. **Correct lightning visuals**: additive brightening shows bolt over scene
+1. **No white blink at startup**: rect hidden by default — no hint_screen_texture sampling at startup
+2. **No white blink on scene transitions**: `_on_tree_changed` keeps rect hidden between scenes
+3. **No white blink on flash**: rect becomes visible inside an already-rendered scene → framebuffer populated
+4. **No white screen on all difficulties**: rect not visible between flashes → no pipeline interference
+5. **Correct lightning visuals**: additive brightening shows bolt over scene during flash
 
 ---
 
@@ -224,15 +259,17 @@ func _warmup_shader():
 - At `intensity=1.0`: additive brightening at bolt pixels — lightning glows over scene
 
 ### `scripts/autoload/black_metal_lightning_effects_manager.gd`
-- **v7**: `visible=false` in `_ready()`, permanently `visible=true` after 1 warmup frame
-- Manager only sets `intensity` after warmup — never toggles `visible` during gameplay
+- **v8**: `visible=false` between flashes (not a persistent overlay)
+- Connects to `tree_changed` to abort in-progress flashes on scene transitions
+- `_start_single_flash()` sets `visible=true`, `_end_flash_sequence()` sets `visible=false`
+- Warmup: visible=true for 1 frame (at intensity=0), then hidden
 
 ---
 
 ## References
 
 - **`cinema_film.gdshader`**: Overlay approach (no screen_texture) for subtle vignette/grain effects
-- **`black_metal_effects_manager.gd`**: Reference pattern for hint_screen_texture + startup delay
+- **`black_metal_effects_manager.gd`**: Reference pattern for hint_screen_texture + startup delay + tree_changed
 - **Issue #958 case study** (`docs/case-studies/issue-958/README.md`): gl_compatibility white screen issues
 - **Godot Issue #79914:** `hint_screen_texture` glitches in Compatibility mode
 - **Godot Issue #66458:** OpenGL Compatibility renderer issues tracker
@@ -249,3 +286,4 @@ func _warmup_shader():
 | `game_log_20260317_025412.txt` | Fourth test after v4 hint_screen_texture shader — lightning fires correctly, STILL white blink (visible=false→true transition) |
 | `game_log_20260317_032119.txt` | Fifth test after v5 overlay shader — white screen on ALL difficulties (transparent overlay regression) |
 | `game_log_20260317_050932.txt` | Sixth test after v6 — no lightning triggered; white blink is at startup (visible=true set before framebuffer ready) |
+| `game_log_20260317_054351.txt` | Seventh test after v7 — warmup completes, PersistManager redirects to CityLevel; white blink on scene change (rect permanently visible, framebuffer reset) |
