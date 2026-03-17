@@ -3,7 +3,7 @@
 ## Overview
 
 The "Drilling Bullets" active item was implemented in PR #1058 (commit `9d57ef19`).
-After initial implementation, the item **failed to work** with the following weapons:
+After initial testing by the owner, the item **failed to work** with the following weapons:
 - Makarov PM
 - Shotgun
 - Mini UZI
@@ -13,108 +13,107 @@ After initial implementation, the item **failed to work** with the following wea
 
 It worked only with the Assault Rifle (M16) and AK-GL.
 
+After a first fix pass (session 2026-03-17 19:05), the Sniper Rifle was confirmed working
+but PM, Shotgun, UZI, Silenced Pistol, and Revolver remained broken.
+
 ## Timeline
 
 | Time | Event |
 |------|-------|
 | 2026-03-16 20:34 | Initial implementation committed (PR #1058) |
 | 2026-03-16 20:37 | AI agent marks PR "Ready to merge" |
-| 2026-03-17 18:25 | Repo owner Jhon-Crow reports the item doesn't work for 6 weapons |
-| 2026-03-17 19:05 | New AI work session started to investigate |
+| 2026-03-17 18:25 | Repo owner Jhon-Crow reports the item doesn't work for 6 weapons, provides logs |
+| 2026-03-17 19:05 | Second AI work session: TileMapLayer + SniperRifle hitscan fix |
+| 2026-03-17 19:17 | Session 2 marked ready; owner tests the new build |
+| 2026-03-17 20:25 | Owner confirms sniper fixed, but PM/Shotgun/UZI/Pistol/Revolver still broken |
+| 2026-03-17 20:26 | Third AI work session: GDScript bullet.gd root cause found and fixed |
 
 ## Root Cause Analysis
 
-### Bug 1: `TileMap` vs `TileMapLayer` (Primary — affects all weapons)
+### Bug 1: GDScript `bullet.gd` missing drilling support (Primary — affects PM, UZI, Silenced Pistol, Revolver)
 
-**File**: `Scripts/Projectiles/Bullet.cs`, `Scripts/Projectiles/ShotgunPellet.cs`
+**File**: `scripts/projectiles/bullet.gd`
 
-**Code before fix**:
-```csharp
-if (IsDrillingBullet && (body is StaticBody2D || body is TileMap))
-{
-    return; // Wall ignored
-}
-```
+**Root cause**: Multiple weapons use **GDScript** bullet scenes instead of the C# `Bullet.cs`:
+- `MakarovPM` → `Bullet9mm.tscn` → `scripts/projectiles/bullet.gd`
+- `SilencedPistol` → `Bullet9mm.tscn` → `scripts/projectiles/bullet.gd`
+- `MiniUzi` → `Bullet9mm.tscn` → `scripts/projectiles/bullet.gd`
+- `Revolver` → `Bullet12p7mm.tscn` → `scripts/projectiles/bullet.gd`
 
-**Root cause**: In Godot 4.3+, the `TileMap` node was deprecated and replaced with `TileMapLayer`.
-The LabyrinthLevel and BuildingLevel use `TileMapLayer` for their wall tiles. Since `TileMapLayer`
-is a different C# type from `TileMap`, the `body is TileMap` check always evaluated to `false`
-for the actual wall nodes in the game.
+The GDScript `bullet.gd` had **no `is_drilling_bullet` variable, no setter, and no wall
+bypass logic**. When `BaseWeapon.SpawnBullet()` called `bullet.Call("set_is_drilling_bullet", true)`,
+the GDScript bullet had no such method — the call silently failed, leaving
+`is_drilling_bullet` unchecked and the bullet stopping at walls as normal.
 
-This caused ALL bullets to stop at TileMapLayer walls regardless of the `IsDrillingBullet` flag.
-The `StaticBody2D` check still worked for static body obstacles, but the level walls are
-implemented as `TileMapLayer` nodes.
+**Evidence**:
+- `AssaultRifle` uses `csharp/Bullet.tscn` → `Scripts/Projectiles/Bullet.cs` → **has drilling support → works**
+- `MakarovPM` uses `Bullet9mm.tscn` → `scripts/projectiles/bullet.gd` → **no drilling support → fails**
+- Log `game_log_20260317_232211.txt` shows PM and UZI both activated drilling but bullets
+  stopped at walls; Sniper (hitscan) worked after the hitscan fix.
 
-**Evidence from GrenadeTimer.cs** (line 378-379 already had the fix):
-```csharp
-// Note: Check TileMap for legacy Godot 4 and TileMapLayer for newer versions
-if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
-```
+**Fix**:
+1. Added `var is_drilling_bullet: bool = false` variable to `bullet.gd`
+2. Added `func set_is_drilling_bullet(drilling: bool) -> void` setter to `bullet.gd`
+3. Added drilling bypass check in `_on_body_entered()` before the wall hit logic:
+   ```gdscript
+   if is_drilling_bullet and (body is StaticBody2D or body is TileMap or body is TileMapLayer):
+       return  # Wall ignored — bullet continues with full damage
+   ```
 
-**Fix**: Added `|| body is TileMapLayer` to all drilling-bullet wall bypass checks in:
-- `Bullet.cs`
-- `ShotgunPellet.cs`
-- `SniperRifle.cs` (all 4 hitscan loop instances)
+### Bug 2: `TileMap` vs `TileMapLayer` in C# bullet/pellet (Affects C# bullets in tile-based levels)
 
-### Bug 2: SniperRifle hitscan bypass (Affects Sniper Rifle)
+**Files**: `Scripts/Projectiles/Bullet.cs`, `Scripts/Projectiles/ShotgunPellet.cs`
+
+**Root cause**: In Godot 4.3+, `TileMap` was deprecated and replaced with `TileMapLayer`.
+The original drilling bypass check used `body is TileMap` which evaluates to `false` for
+`TileMapLayer` nodes. Levels using tile-map walls would not be penetrated even for C# bullets.
+
+Note: `LabyrinthLevel.tscn` (where testing was done) uses hand-crafted `StaticBody2D` walls,
+so `StaticBody2D` check was sufficient there. The `TileMapLayer` fix matters for other levels.
+
+**Fix**: Added `|| body is TileMapLayer` to drilling bypass in `Bullet.cs` and `ShotgunPellet.cs`.
+
+### Bug 3: SniperRifle hitscan bypass (Affects Sniper Rifle)
 
 **File**: `Scripts/Weapons/SniperRifle.cs`
 
-**Root cause**: The Sniper Rifle uses hitscan (instant raycast) instead of spawning actual
-bullet projectiles. When firing, `_skipBulletSpawn = true` is set, causing `base.SpawnBullet()`
-to return immediately without:
-1. Setting `IsDrillingBullet` on any projectile (no projectile is spawned)
-2. Decrementing `DrillingBulletsRemaining`
-3. Checking whether walls should be bypassed
-
-The `PerformHitscan()` method independently raycasts through the scene. It was not aware of
-the drilling bullets state and always applied normal wall-penetration logic.
+**Root cause**: The ASVK sniper rifle uses hitscan (instant raycast) instead of spawning
+actual bullet projectiles. `SpawnBullet()` is skipped entirely, so:
+1. `DrillingBulletsRemaining` was never decremented
+2. Hitscan code never checked drilling state
 
 **Fix**:
-1. Modified `PerformHitscan()` and `ComputeHitscanEndpoint()` to skip wall stopping when
-   `DrillingBulletsRemaining > 0`
-2. Added explicit `DrillingBulletsRemaining--` decrement in `Fire()` after a successful shot,
-   since `SpawnBullet()` is bypassed
+- `PerformHitscan()`: Skip walls when `DrillingBulletsRemaining > 0`
+- `ComputeHitscanEndpoint()`: Same for dry-run
+- `Fire()`: Explicit `DrillingBulletsRemaining--` for hitscan path
 
-## Why AssaultRifle and AKGL Worked
+## Weapon Code Path Summary
 
-These weapons do NOT override `SpawnBullet()`. They use `base.Fire()` → `base.SpawnBullet()`.
-The base `SpawnBullet()` sets `IsDrillingBullet = true` on the bullet.
-
-For bullets to actually pass through walls, the `OnBodyEntered` handler needs to check
-`IsDrillingBullet`. For TileMapLayer walls, this check failed (Bug 1).
-
-So actually, AssaultRifle and AKGL were also broken — the bullets got the flag but still
-stopped at `TileMapLayer` walls. The fix for Bug 1 fixes all weapons simultaneously.
-
-## Weapons and Their Code Paths
-
-| Weapon | Override? | Fix needed |
-|--------|-----------|------------|
-| AssaultRifle | No | Bug 1 (TileMapLayer in Bullet.cs) |
-| AKGL | No | Bug 1 |
-| MiniUzi | No | Bug 1 |
-| MakarovPM | `SpawnBullet()` override | Bug 1 |
-| SilencedPistol | `SpawnBullet()` override | Bug 1 |
-| Shotgun | Custom `Fire()` + `SpawnPelletWithOffset()` | Bug 1 (ShotgunPellet.cs) |
-| Revolver | No `SpawnBullet()` override | Bug 1 |
-| SniperRifle | `_skipBulletSpawn = true` + hitscan | Bug 1 + Bug 2 |
+| Weapon | Bullet Scene | Bullet Script | Fix Session |
+|--------|-------------|---------------|-------------|
+| AssaultRifle (M16) | `csharp/Bullet.tscn` | C# `Bullet.cs` | None (worked from start) |
+| AKGL | `csharp/Bullet.tscn` | C# `Bullet.cs` | Bug 2 only (tile levels) |
+| MakarovPM | `Bullet9mm.tscn` | GDScript `bullet.gd` | **Bug 1** (session 3) |
+| SilencedPistol | `Bullet9mm.tscn` | GDScript `bullet.gd` | **Bug 1** (session 3) |
+| MiniUzi | `Bullet9mm.tscn` | GDScript `bullet.gd` | **Bug 1** (session 3) |
+| Revolver (RSh-12) | `Bullet12p7mm.tscn` | GDScript `bullet.gd` | **Bug 1** (session 3) |
+| Shotgun | `ShotgunPellet.tscn` | C# `ShotgunPellet.cs` | Bug 2 only |
+| SniperRifle (ASVK) | N/A (hitscan) | N/A | **Bug 3** (session 2) |
 
 ## Changes Made
 
+### Session 2 (2026-03-17 19:05)
 1. `Scripts/Projectiles/Bullet.cs` — Added `|| body is TileMapLayer` to drilling bypass check
 2. `Scripts/Projectiles/ShotgunPellet.cs` — Added `|| body is TileMapLayer` to drilling bypass check
-3. `Scripts/Weapons/SniperRifle.cs`:
-   - `PerformHitscan()`: Skip walls when `DrillingBulletsRemaining > 0`
-   - `ComputeHitscanEndpoint()`: Same for dry-run (time-stop support)
-   - `ComputeBreakerHitscanEndpoint()`: Added `TileMapLayer` support
-   - `PerformBreakerHitscan()`: Added `TileMapLayer` support
-   - `Fire()`: Explicit `DrillingBulletsRemaining--` for hitscan path
-4. `assets/sprites/weapons/drilling_bullets_icon.png` — Replaced placeholder with unique
-   64×64 icon depicting a bullet with a drill tip (brass body + steel drill cone + cyan accents)
+3. `Scripts/Weapons/SniperRifle.cs` — Hitscan drilling support + DrillingBulletsRemaining decrement
+4. `assets/sprites/weapons/drilling_bullets_icon.png` — Unique 64×64 icon (drill-tip bullet)
+
+### Session 3 (2026-03-17 20:26)
+5. `scripts/projectiles/bullet.gd` — Added `is_drilling_bullet` variable, setter, and wall bypass
 
 ## Attached Evidence
 
-- `game_log_20260317_212405.txt` — Log showing drilling bullets used with AssaultRifle
-- `game_log_20260317_212630.txt` — Log showing drilling bullets used with Shotgun, MiniUzi,
-  SilencedPistol, SniperRifle, Revolver, and AKGL
+- `game_log_20260317_212405.txt` — Session 1 log: AssaultRifle + various weapons (all failing)
+- `game_log_20260317_212630.txt` — Session 2 pre-fix: PM/Shotgun/UZI/Pistol/Revolver failing
+- `game_log_20260317_232211.txt` — Session 3 evidence: Sniper works; PM/UZI/Pistol/Revolver still fail
+  (confirms bullet.gd root cause; weapons that use GDScript bullets were not yet fixed)
