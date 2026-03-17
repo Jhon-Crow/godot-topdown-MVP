@@ -253,22 +253,16 @@ var _flank_last_position: Vector2 = Vector2.ZERO  ## Last pos for progress
 var _flank_stuck_timer: float = 0.0  ## Stuck check timer
 const FLANK_STUCK_MAX_TIME: float = 2.0  ## Max time without progress
 const FLANK_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
-var _flank_fail_count: int = 0  ## Consecutive flank failures
-const FLANK_FAIL_MAX_COUNT: int = 2  ## Max failures before cooldown
-var _flank_cooldown_timer: float = 0.0  ## Cooldown after failures
-const FLANK_COOLDOWN_DURATION: float = 5.0  ## Failure cooldown (sec)
-var _global_stuck_timer: float = 0.0  ## Stuck timer (Issue #367: Global stuck detection)
-var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Last position
-const GLOBAL_STUCK_MAX_TIME: float = 4.0  ## Max stuck time
-const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Min move distance
-var _assault_wait_timer: float = 0.0  ## Assault wait timer (Assault State)
-const ASSAULT_WAIT_DURATION: float = 5.0  ## Pre-assault wait (sec)
-var _assault_ready: bool = false  ## Assault wait complete
-var _in_assault: bool = false  ## In assault
-var _search_center: Vector2 = Vector2.ZERO  ## Search center (Search State - Issue #322)
-var _search_radius: float = 100.0  ## Current radius
-const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius
-const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Radius expansion
+var _flank_fail_count: int = 0; const FLANK_FAIL_MAX_COUNT: int = 2  ## Consecutive flank failures / max before cooldown
+var _flank_cooldown_timer: float = 0.0; const FLANK_COOLDOWN_DURATION: float = 5.0  ## Cooldown timer / duration (sec) after failures
+var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Stuck timer (Issue #367) / last position
+const GLOBAL_STUCK_MAX_TIME: float = 1.5; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance  ## Issue #1107: reduced 4.0→1.5 to bail out of wall faster
+var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
+const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
+var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
+var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
+var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
+const SEARCH_INITIAL_RADIUS: float = 100.0; const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Initial radius / radius expansion
 const SEARCH_MAX_RADIUS: float = 2000.0  ## Max radius before relocating center (Issue #405: search continues indefinitely)
 var _search_waypoints: Array[Vector2] = []  ## Search waypoints
 var _search_current_waypoint_index: int = 0  ## Current waypoint index
@@ -1390,11 +1384,17 @@ func _process_combat_state(delta: float) -> void:
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
 		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player):  # Issue #1083: block melee through walls
-			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; return
+			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; return
 		var tp := _player.global_position
-		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
-			tp = _machete.get_backstab_approach_position(_player, 60.0)
-		_move_to_target_nav(tp, combat_move_speed); return
+		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player): tp = _machete.get_backstab_approach_position(_player, 60.0)
+		_move_to_target_nav(tp, combat_move_speed)
+		if global_position.distance_to(_machete_combat_stuck_last_pos) < MACHETE_COMBAT_STUCK_DIST_THRESHOLD:  # Issue #1107: Wall-stuck detection
+			_machete_combat_stuck_timer += delta
+			if _machete_combat_stuck_timer >= MACHETE_COMBAT_STUCK_MAX_TIME:
+				_log_to_file("[#1107] Machete COMBAT stuck (%.1fs), rerouting" % _machete_combat_stuck_timer)
+				_machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position; _transition_to_pursuing()
+		else: _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position
+		return
 	# [#1033] Machine gunner: never retreat while belts have ammo — hold position and suppress.
 	# Fire at last-known player position (corridor suppression) regardless of LOS or under-fire status.
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active:
@@ -2565,8 +2565,10 @@ func _transition_to_combat() -> void:
 	_combat_exposed = false; _combat_approaching = false
 	_combat_shoot_timer = 0.0; _combat_approach_timer = 0.0; _combat_state_timer = 0.0
 	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
-	_witnessed_ally_death = false; _suspected_directions.clear()  # Issue #409
-	_pursuing_vulnerability_sound = false; if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
+	# Issue #409: Clear witnessed ally death flag when engaging player
+	_witnessed_ally_death = false; _suspected_directions.clear()
+	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
+	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
@@ -3338,16 +3340,11 @@ func _find_cover_position() -> void:
 
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
-	if _player == null:
-		return
-
-	var player_pos := _player.global_position
-	var player_to_enemy := (global_position - player_pos).normalized()
-
-	# Use the stored flank side (initialized in _transition_to_flanking)
-	var flank_direction := player_to_enemy.rotated(flank_angle * _flank_side)
-
-	_flank_target = player_pos + flank_direction * flank_distance
+	if _player == null: return
+	var _fp := _player.global_position + (global_position - _player.global_position).normalized().rotated(flank_angle * _flank_side) * flank_distance
+	# Issue #1107: Snap to nearest valid navmesh point — prevents flanking to wall corners
+	if _nav_agent: _flank_target = NavigationServer2D.map_get_closest_point(_nav_agent.get_navigation_map(), _fp)
+	else: _flank_target = _fp
 	_log_debug("Flank target: %s (side: %s)" % [_flank_target, "right" if _flank_side > 0 else "left"])
 
 ## Choose the best flank side (1.0=right, -1.0=left) based on obstacle presence.
@@ -4748,12 +4745,15 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
-	if direction == Vector2.ZERO:
-		velocity = Vector2.ZERO
-		return false
+	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
-	velocity = direction * speed
-	rotation = direction.angle()
+	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
+	var _esc: Vector2 = Vector2.ZERO
+	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
+	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
+	elif velocity.length_squared() < 1.0:
+		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
+	velocity = direction * speed; rotation = direction.angle()
 	return true
 
 ## Check if the navigation agent has a valid path to the target.

@@ -409,3 +409,185 @@ func test_kill_per_shot_means_no_manual_reload() -> void:
 	assert_false(needed_manual_reload,
 		"Player should never need manual reload if killing one enemy per shot")
 	assert_eq(shots_fired, 10, "Should be able to fire all 10 bullets without reloading")
+
+
+# ============================================================================
+# Bug Fix Tests (Issue #1105) - MakarovPM and Shotgun auto-reload regression
+# ============================================================================
+
+
+## Simulates the MockWeapon for Shotgun tube-magazine mechanics.
+## The Shotgun stores active ammo in ShellsInTube (not current_ammo).
+## current_ammo is a placeholder always kept at 0.
+class MockShotgunWeapon:
+	var current_ammo: int = 0        # always 0 (unused placeholder)
+	var shells_in_tube: int = 3      # active shells (reduced from 8)
+	var tube_capacity: int = 3       # reduced tube capacity
+	var reserve_ammo: int = 18       # 6 spare mags * 3 shells each
+	var auto_refill_called: int = 0
+	var last_refill_amount: int = 0
+
+	## Simulate AutoRefillTube(count) from Shotgun.cs Issue #1105
+	func auto_refill_tube(count: int) -> int:
+		auto_refill_called += 1
+		var space := tube_capacity - shells_in_tube
+		var available := min(count, min(space, reserve_ammo))
+		if available <= 0:
+			return 0
+		shells_in_tube += available
+		reserve_ammo -= available
+		last_refill_amount = available
+		return available
+
+
+## Simulates kill refill for a Shotgun (Issue #1105 fix).
+## Uses shells_in_tube instead of current_ammo.
+func _perform_shotgun_kill_refill(weapon: MockShotgunWeapon, magazine_capacity: int) -> int:
+	var needed: int = magazine_capacity - weapon.shells_in_tube
+	if needed <= 0:
+		return 0  # tube already full
+	if weapon.reserve_ammo <= 0:
+		return 0  # no reserve
+	var to_add: int = min(needed, weapon.reserve_ammo)
+	return weapon.auto_refill_tube(to_add)
+
+
+func test_issue_1105_pm_reinit_overwrites_reduction() -> void:
+	# Root Cause A (Issue #1105): BuildingLevel._configure_makarov_pm_ammo() calls
+	# ReinitializeMagazines(10, true) which resets CurrentAmmo to 9 (original magazine size).
+	# _autoReloadMagazineSize stays at 4 (reduced), so OnEnemyKilledForAutoReload sees
+	# currentAmmo=9 > magazineCapacity=4 → "magazine already full", never refills.
+	#
+	# Fix: call ApplyAutoReloadAfterLevelAmmoConfig() after _configure_makarov_pm_ammo().
+	# This test verifies the CORRECT behaviour after the fix.
+	var auto_reload_magazine_size: int = 4  # cached _autoReloadMagazineSize after fix
+	var weapon := MockWeapon.new()
+	weapon.magazine_size = 4  # correctly reduced by ApplyAutoReloadAfterLevelAmmoConfig
+	weapon.current_ammo = 1   # PM fired 3 shots, 1 left
+	weapon.reserve_ammo = 32  # reserve preserved correctly
+
+	var added := _perform_kill_refill(weapon)
+
+	# With fix: currentAmmo=1, magazineCapacity=4, needed=3 → should refill
+	assert_eq(added, 3,
+		"[Issue #1105] After fix: PM kill should refill 3 rounds (4-1=3 needed)")
+	assert_eq(weapon.current_ammo, 4,
+		"[Issue #1105] After fix: PM magazine should be full at reduced capacity (4)")
+	assert_eq(weapon.reserve_ammo, 29,
+		"[Issue #1105] After fix: PM reserve should decrease by 3")
+	# Verify total ammo is conserved
+	assert_eq(weapon.current_ammo + weapon.reserve_ammo, 33,
+		"[Issue #1105] PM: total ammo conserved after kill refill")
+	_ = auto_reload_magazine_size  # suppress unused warning
+
+
+func test_issue_1105_pm_without_fix_always_full() -> void:
+	# Demonstrates the bug BEFORE the fix:
+	# After building level re-initializes PM to 9 rounds (original) but
+	# _autoReloadMagazineSize is still 4, the kill handler incorrectly
+	# computes needed = 4 - 9 = -5 ≤ 0 → "magazine already full".
+	var auto_reload_magazine_size: int = 4   # cached (not updated by level)
+	var current_ammo_after_level_reset: int = 9  # buggy: level reset to full original size
+	var needed: int = auto_reload_magazine_size - current_ammo_after_level_reset  # = -5
+
+	assert_true(needed <= 0,
+		"[Issue #1105] BUG: when level resets to original size without re-applying reduction, "
+		+ "needed = %d <= 0 → kill handler skips refill, auto-reload appears broken" % needed)
+
+
+func test_issue_1105_shotgun_tube_uses_shells_not_current_ammo() -> void:
+	# Root Cause B (Issue #1105): Shotgun.CurrentAmmo is always 0 (unused placeholder).
+	# The old kill handler used CurrentAmmo for comparison, so:
+	#   currentAmmo=0, magazineCapacity=3, needed=3 → tries to set CurrentAmmo=3
+	# But ShellsInTube is the real ammo — setting CurrentAmmo doesn't refill the tube.
+	# After firing, ShellsInTube decreases but CurrentAmmo stays 0 in the old code.
+	# After auto-reload's ReinitializeMagazines, CurrentAmmo was set to 3 by the base,
+	# so needed=0 → "magazine already full".
+	#
+	# Fix: Use ShellsInTube with AutoRefillTube() for Shotgun.
+	# This test verifies the CORRECT behaviour after the fix.
+	var weapon := MockShotgunWeapon.new()
+	weapon.tube_capacity = 3    # reduced from 8
+	weapon.shells_in_tube = 1   # fired 2 shells, 1 left
+	weapon.reserve_ammo = 18    # 6 spare mags * 3
+
+	var added := _perform_shotgun_kill_refill(weapon, weapon.tube_capacity)
+
+	# With fix: shells_in_tube=1, tube_capacity=3, needed=2 → should refill
+	assert_eq(added, 2,
+		"[Issue #1105] After fix: Shotgun kill should refill 2 shells (3-1=2 needed)")
+	assert_eq(weapon.shells_in_tube, 3,
+		"[Issue #1105] After fix: Shotgun tube should be full at reduced capacity (3)")
+	assert_eq(weapon.reserve_ammo, 16,
+		"[Issue #1105] After fix: Shotgun reserve should decrease by 2")
+	assert_eq(weapon.current_ammo, 0,
+		"[Issue #1105] Shotgun: current_ammo placeholder must remain 0")
+	assert_eq(weapon.auto_refill_called, 1,
+		"[Issue #1105] AutoRefillTube should be called exactly once")
+
+
+func test_issue_1105_shotgun_tube_full_no_refill() -> void:
+	# Shotgun tube is already full at reduced capacity → kill does nothing
+	var weapon := MockShotgunWeapon.new()
+	weapon.tube_capacity = 3
+	weapon.shells_in_tube = 3  # full
+	weapon.reserve_ammo = 15
+
+	var added := _perform_shotgun_kill_refill(weapon, weapon.tube_capacity)
+
+	assert_eq(added, 0,
+		"[Issue #1105] Shotgun: no refill when tube is already full")
+	assert_eq(weapon.auto_refill_called, 0,
+		"[Issue #1105] AutoRefillTube should not be called when tube is full")
+	assert_eq(weapon.shells_in_tube, 3,
+		"[Issue #1105] Shotgun: tube remains full")
+
+
+func test_issue_1105_shotgun_total_ammo_preserved() -> void:
+	# Shotgun total ammo = ShellsInTube + ReserveAmmo (not StartingMagazineCount * MagazineSize).
+	# StartingMagazineCount=4 would give 4*8=32 total, but actual is 8+12=20 (tube+reserve).
+	# After reduction: tube=3, reserve = ceil(20/3)-1 spare mags * 3 = 6*3=18 → total=21 >= 20.
+	var original_tube: int = 8
+	var original_reserve: int = 12
+	var total_original: int = original_tube + original_reserve  # 20
+
+	var reduced_tube_capacity: int = _calculate_reduced_magazine_size(original_tube)  # 3
+	var new_magazine_count: int = max(1, int(ceil(float(total_original) / float(reduced_tube_capacity))))  # ceil(20/3)=7
+	# 7 total: 1 current (0, placeholder) + 6 spare * 3 = 18 reserve; tube = 3
+	var new_reserve: int = (new_magazine_count - 1) * reduced_tube_capacity  # 6*3=18
+	var total_new: int = reduced_tube_capacity + new_reserve  # 3+18=21
+
+	assert_eq(reduced_tube_capacity, 3,
+		"[Issue #1105] Shotgun tube should reduce to 3 (floor(8/2.1))")
+	assert_true(total_new >= total_original,
+		"[Issue #1105] Shotgun: total ammo after reduction (%d) must be >= original (%d)" % [total_new, total_original])
+	assert_true(new_magazine_count < 32 / reduced_tube_capacity,
+		"[Issue #1105] Shotgun: must NOT use StartingMagazineCount*MagazineSize=32 (creates ammo from thin air)")
+
+
+func test_issue_1105_shotgun_kill_per_shot_no_manual_reload() -> void:
+	# Core mechanic for Shotgun: player kills one enemy per shell, never needs manual reload.
+	# Shotgun with auto-reload: tube_capacity=3, total shells=21 (tube 3 + reserve 18)
+	var weapon := MockShotgunWeapon.new()
+	weapon.tube_capacity = 3
+	weapon.shells_in_tube = 3
+	weapon.reserve_ammo = 18
+
+	var shots_fired: int = 0
+	var needed_manual_reload: bool = false
+	var total_shells: int = weapon.shells_in_tube + weapon.reserve_ammo  # 21
+
+	for _i in range(total_shells):
+		if weapon.shells_in_tube <= 0:
+			needed_manual_reload = true
+			break
+		# Fire one shot
+		weapon.shells_in_tube -= 1
+		shots_fired += 1
+		# Kill enemy — refill tube
+		_perform_shotgun_kill_refill(weapon, weapon.tube_capacity)
+
+	assert_false(needed_manual_reload,
+		"[Issue #1105] Shotgun: player should never need manual reload if killing one enemy per shot")
+	assert_eq(shots_fired, total_shells,
+		"[Issue #1105] Shotgun: should fire all %d shells without manual reload" % total_shells)

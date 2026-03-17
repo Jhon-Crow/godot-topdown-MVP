@@ -1,6 +1,6 @@
 [gd_scene load_steps=8 format=3 uid="uid://crpgrocket583k1"]
 
-[ext_resource type="Script" path="res://scripts/projectiles/rpg_rocket.gd" id="1_rpg_rocket"]
+[ext_resource type="Script" path="res://scripts/projectiles/bullet.gd" id="1_bullet"]
 [ext_resource type="Texture2D" path="res://assets/sprites/projectiles/rpg_rocket.png" id="2_rpg_rocket_texture"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_rocket"]
@@ -40,7 +40,17 @@ color = Color(1, 0.7, 0.1, 1)
 [node name="RpgRocket" type="Area2D"]
 collision_layer = 16
 collision_mask = 39
-script = ExtResource("1_rpg_rocket")
+script = ExtResource("1_bullet")
+is_rpg_rocket = true
+speed = 300.0
+lifetime = 5.0
+trail_length = 20
+rpg_speed_initial = 300.0
+rpg_speed_max = 800.0
+rpg_accel_distance = 1000.0
+rpg_explosion_radius = 150.0
+rpg_explosion_damage = 3
+rpg_spawn_immunity = 0.3
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(2.0, 2.0)

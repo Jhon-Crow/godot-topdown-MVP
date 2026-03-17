@@ -1166,6 +1166,12 @@ public partial class Player : BaseCharacter
         // Initialize breaker bullets if active item manager has them selected (Issue #678)
         InitBreakerBullets();
 
+        // Initialize drilling bullets if active item manager has them selected (Issue #751)
+        InitDrillingBullets();
+
+        // Initialize combat disposition if active item manager has it selected (Issue #1047)
+        InitCombatDisposition();
+
         // Initialize force field if active item manager has it selected (Issue #676)
         InitForceField();
 
@@ -1183,6 +1189,9 @@ public partial class Player : BaseCharacter
 
         // Initialize auto-reload if active item manager has it selected (Issue #1067)
         InitAutoReload();
+
+        // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
+        InitJammerHud();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1490,6 +1499,15 @@ public partial class Player : BaseCharacter
 
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
+
+        // Handle drilling bullets input (press Space to activate, Issue #751)
+        HandleDrillingBulletsInput();
+
+        // Update drilling bullets charge bar auto-hide timer (Issue #751)
+        UpdateDrillingBarTimer((float)delta);
+
+        // Update jammer HUD visibility (Issue #1036)
+        UpdateJammerHud();
     }
 
     /// <summary>
@@ -2419,6 +2437,10 @@ public partial class Player : BaseCharacter
             bullet.Set("is_breaker_bullet", true);
         }
 
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Note: direct SpawnBullet is only used when CurrentWeapon == null (no weapon system)
+        // so we don't decrement DrillingBulletsRemaining here; BaseWeapon.SpawnBullet handles it.
+
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
 
@@ -2541,6 +2563,9 @@ public partial class Player : BaseCharacter
         }
 
         base.TakeDamage(amount);
+
+        // Apply combat disposition hit penalty (Issue #1047)
+        ApplyCombatDispositionHitPenalty();
     }
 
     /// <summary>
@@ -2633,6 +2658,15 @@ public partial class Player : BaseCharacter
         if (_breakerBulletsActive)
         {
             CurrentWeapon.IsBreakerBulletActive = true;
+        }
+
+        // Propagate Combat Disposition bonuses to new weapon (Issue #1047)
+        // This ensures the penalty persists when the weapon is swapped during a run.
+        if (_combatDispositionActive)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+            LogToFile($"[Player.CombatDisposition] Propagated bonuses to new weapon {CurrentWeapon.Name}: damage {_combatDispositionDamageBonus:F1}, fire rate {_combatDispositionFireRateBonus:F1}");
         }
 
         // Add weapon as child if not already in scene tree
@@ -4364,6 +4398,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_on");
@@ -4499,6 +4540,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             // Space held — enter/continue aiming mode
             if (!_teleportAiming && _teleportCharges > 0)
             {
@@ -4840,6 +4888,13 @@ public partial class Player : BaseCharacter
         // Activate on Space press (only if not already active and has charges)
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.Homing] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             if (_homingCharges > 0 && !_homingActive)
             {
                 _homingActive = true;
@@ -5095,6 +5150,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.BffPendant] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             SummonBffCompanion();
         }
     }
@@ -5382,6 +5444,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.InvisibilitySuit] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
             if (!isActive)
             {
@@ -5562,6 +5631,14 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use verbose variant so the log records detailed jammer diagnostics on every Space press
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.TrajectoryGlasses] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
             if (!isActive)
             {
@@ -5662,6 +5739,317 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Drilling Bullets System (Issue #751)
+
+    /// <summary>
+    /// Whether drilling bullets item is equipped.
+    /// </summary>
+    private bool _drillingBulletsEquipped = false;
+
+    /// <summary>
+    /// Whether the single charge has been used this battle.
+    /// </summary>
+    private bool _drillingBulletsUsed = false;
+
+    /// <summary>
+    /// Whether the charge bar auto-hide is pending (shown briefly after activation).
+    /// </summary>
+    private bool _drillingChargeBarPending = false;
+
+    /// <summary>
+    /// Timer for auto-hiding the drilling charge bar after activation.
+    /// </summary>
+    private float _drillingChargeBarHideTimer = 0.0f;
+
+    /// <summary>
+    /// Delay in seconds before hiding the drilling charge bar.
+    /// </summary>
+    private const float DrillingChargeBarHideDelay = 0.3f;
+
+    /// <summary>
+    /// Initialize drilling bullets if the ActiveItemManager has them selected (Issue #751).
+    /// One charge per battle — press Space to apply wall-piercing to current magazine.
+    /// </summary>
+    private void InitDrillingBullets()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.DrillingBullets] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_drilling_bullets"))
+        {
+            LogToFile("[Player.DrillingBullets] ActiveItemManager missing has_drilling_bullets method");
+            return;
+        }
+
+        bool hasDrilling = (bool)activeItemManager.Call("has_drilling_bullets");
+        if (!hasDrilling)
+        {
+            LogToFile("[Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager");
+            return;
+        }
+
+        _drillingBulletsEquipped = true;
+        _drillingBulletsUsed = false;
+        LogToFile("[Player.DrillingBullets] Drilling bullets equipped — 1 charge: press Space to apply to current magazine");
+    }
+
+    /// <summary>
+    /// Handle drilling bullets input: press Space to activate once per battle (Issue #751).
+    /// Sets DrillingBulletsRemaining on the current weapon to current magazine ammo count.
+    /// </summary>
+    private void HandleDrillingBulletsInput()
+    {
+        if (!_drillingBulletsEquipped)
+        {
+            return;
+        }
+
+        if (Input.IsActionJustPressed("flashlight_toggle"))
+        {
+            if (!_drillingBulletsUsed)
+            {
+                // Issue #751: Shotgun uses ShellsInTube as its active ammo count;
+                // CurrentAmmo is always 0 for the Shotgun (placeholder for reserve shells only).
+                // We must check ShellsInTube for the Shotgun, just like Issue #842 does elsewhere.
+                int activeAmmo = CurrentWeapon is Shotgun shotgunDrilling
+                    ? shotgunDrilling.ShellsInTube
+                    : (CurrentWeapon?.CurrentAmmo ?? 0);
+
+                if (CurrentWeapon != null && activeAmmo > 0)
+                {
+                    _drillingBulletsUsed = true;
+                    int magazineAmmo = activeAmmo;
+                    CurrentWeapon.DrillingBulletsRemaining = magazineAmmo;
+                    LogToFile($"[Player.DrillingBullets] Activated! Magazine has {magazineAmmo} drilling bullets. Charge consumed.");
+
+                    // Show charge bar briefly (now empty — charge spent)
+                    _drillingChargeBarPending = true;
+                    _drillingChargeBarHideTimer = DrillingChargeBarHideDelay;
+                    QueueRedraw();
+                }
+                else
+                {
+                    LogToFile("[Player.DrillingBullets] Cannot activate — no ammo in current magazine");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update drilling bullets progress bar auto-hide timer (Issue #751).
+    /// </summary>
+    private void UpdateDrillingBarTimer(float delta)
+    {
+        if (_drillingChargeBarPending)
+        {
+            _drillingChargeBarHideTimer -= delta;
+            if (_drillingChargeBarHideTimer <= 0.0f)
+            {
+                _drillingChargeBarPending = false;
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Draw the drilling bullets single-charge indicator.
+    /// Cyan = charge available, dark = charge used.
+    /// </summary>
+    private void DrawDrillingChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float borderWidth = 1.0f;
+
+        bool chargeAvailable = !_drillingBulletsUsed;
+        Color fillColor = chargeAvailable
+            ? new Color(0.2f, 0.8f, 0.9f, 0.85f)   // Cyan — charge available
+            : new Color(0.2f, 0.2f, 0.2f, 0.4f);    // Dark grey — charge spent
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        Rect2 bgRect = new Rect2(-barWidth / 2.0f, barYOffset, barWidth, barHeight);
+        DrawRect(bgRect, bgColor);
+        DrawRect(bgRect, fillColor);
+        DrawRect(bgRect, borderColor, false, borderWidth);
+    }
+
+    #endregion
+
+    #region Combat Disposition System (Issue #1047)
+
+    /// <summary>
+    /// Whether the Combat Disposition passive item is active.
+    /// When active, player damage and fire rate are boosted on start,
+    /// and reduced once after the first hit per run.
+    /// </summary>
+    private bool _combatDispositionActive = false;
+
+    /// <summary>
+    /// Whether the hit penalty has already been applied this run.
+    /// The penalty is applied only once (on the first hit taken).
+    /// </summary>
+    private bool _combatDispositionPenaltyApplied = false;
+
+    /// <summary>
+    /// Current damage bonus from Combat Disposition.
+    /// Starts at +0.77, decreases by 6.0 on first hit taken.
+    /// </summary>
+    private float _combatDispositionDamageBonus = 0.0f;
+
+    /// <summary>
+    /// Current fire rate bonus from Combat Disposition.
+    /// Starts at +1.1, decreases by 7.2 on first hit taken.
+    /// </summary>
+    private float _combatDispositionFireRateBonus = 0.0f;
+
+    /// <summary>Sword icon shown near the player when the positive effect is active.</summary>
+    private Sprite2D? _combatDispositionSwordIcon = null;
+
+    /// <summary>Broken sword icon shown near the player when the negative effect is active.</summary>
+    private Sprite2D? _combatDispositionBrokenSwordIcon = null;
+
+    /// <summary>
+    /// Initialize Combat Disposition if the ActiveItemManager has it selected (Issue #1047).
+    /// Sets the initial damage and fire rate bonuses on the current weapon.
+    /// </summary>
+    private void InitCombatDisposition()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.CombatDisposition] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_combat_disposition"))
+        {
+            LogToFile("[Player.CombatDisposition] ActiveItemManager missing has_combat_disposition method");
+            return;
+        }
+
+        bool hasCombatDisposition = (bool)activeItemManager.Call("has_combat_disposition");
+        if (!hasCombatDisposition)
+        {
+            LogToFile("[Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager");
+            return;
+        }
+
+        _combatDispositionActive = true;
+        _combatDispositionPenaltyApplied = false;
+        _combatDispositionDamageBonus = 0.77f;
+        _combatDispositionFireRateBonus = 1.1f;
+
+        // Apply bonuses to current weapon
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+            LogToFile($"[Player.CombatDisposition] Initialized on weapon {CurrentWeapon.Name}: +{_combatDispositionDamageBonus} damage, +{_combatDispositionFireRateBonus} fire rate");
+        }
+
+        // Show sword icon (positive effect active)
+        UpdateCombatDispositionIcons();
+
+        LogToFile($"[Player.CombatDisposition] Active — damage bonus: +{_combatDispositionDamageBonus}, fire rate bonus: +{_combatDispositionFireRateBonus}");
+    }
+
+    /// <summary>
+    /// Called when Combat Disposition is active and the player takes damage.
+    /// Applies the damage and fire rate penalty only on the first hit per run.
+    /// </summary>
+    private void ApplyCombatDispositionHitPenalty()
+    {
+        if (!_combatDispositionActive)
+            return;
+
+        // Penalty is applied only once per run (on the first hit)
+        if (_combatDispositionPenaltyApplied)
+            return;
+
+        _combatDispositionPenaltyApplied = true;
+        _combatDispositionDamageBonus -= 6.0f;
+        _combatDispositionFireRateBonus -= 7.2f;
+
+        // Apply updated bonuses to current weapon
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.DamageBonus = _combatDispositionDamageBonus;
+            CurrentWeapon.FireRateBonus = _combatDispositionFireRateBonus;
+        }
+
+        // Switch icon to broken sword (negative effect active)
+        UpdateCombatDispositionIcons();
+
+        LogToFile($"[Player.CombatDisposition] First hit — penalty applied once: damage bonus: {_combatDispositionDamageBonus:F1}, fire rate bonus: {_combatDispositionFireRateBonus:F1}");
+    }
+
+    /// <summary>
+    /// Creates or updates the sword / broken-sword icons displayed near the player.
+    /// Shows the intact sword icon while the positive bonus is active (before first hit),
+    /// and the broken sword icon after the penalty has been applied.
+    /// </summary>
+    private void UpdateCombatDispositionIcons()
+    {
+        const string SwordIconPath = "res://assets/sprites/weapons/combat_disposition_icon.png";
+        const string BrokenSwordIconPath = "res://assets/sprites/weapons/combat_disposition_broken_sword_icon.png";
+        // Position slightly above and to the right of the player
+        var iconOffset = new Vector2(20, -40);
+
+        // --- Sword icon (positive effect) ---
+        if (_combatDispositionSwordIcon == null)
+        {
+            var tex = GD.Load<Texture2D>(SwordIconPath);
+            if (tex != null)
+            {
+                _combatDispositionSwordIcon = new Sprite2D();
+                _combatDispositionSwordIcon.Name = "CombatDispositionSwordIcon";
+                _combatDispositionSwordIcon.Texture = tex;
+                _combatDispositionSwordIcon.Scale = new Vector2(0.5f, 0.5f);
+                _combatDispositionSwordIcon.Position = iconOffset;
+                AddChild(_combatDispositionSwordIcon);
+            }
+            else
+            {
+                LogToFile($"[Player.CombatDisposition] WARNING: Failed to load sword icon: {SwordIconPath}");
+            }
+        }
+
+        // --- Broken sword icon (negative effect) ---
+        if (_combatDispositionBrokenSwordIcon == null)
+        {
+            var tex = GD.Load<Texture2D>(BrokenSwordIconPath);
+            if (tex != null)
+            {
+                _combatDispositionBrokenSwordIcon = new Sprite2D();
+                _combatDispositionBrokenSwordIcon.Name = "CombatDispositionBrokenSwordIcon";
+                _combatDispositionBrokenSwordIcon.Texture = tex;
+                _combatDispositionBrokenSwordIcon.Scale = new Vector2(0.5f, 0.5f);
+                _combatDispositionBrokenSwordIcon.Position = iconOffset;
+                AddChild(_combatDispositionBrokenSwordIcon);
+            }
+            else
+            {
+                LogToFile($"[Player.CombatDisposition] WARNING: Failed to load broken sword icon: {BrokenSwordIconPath}");
+            }
+        }
+
+        // Show/hide based on penalty state
+        bool penaltyApplied = _combatDispositionPenaltyApplied;
+        if (_combatDispositionSwordIcon != null)
+            _combatDispositionSwordIcon.Visible = !penaltyApplied;
+        if (_combatDispositionBrokenSwordIcon != null)
+            _combatDispositionBrokenSwordIcon.Visible = penaltyApplied;
+    }
+
+    #endregion
+
     #region Force Field System (Issue #676)
 
     /// <summary>
@@ -5727,6 +6115,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             bool isActive = (bool)_forceFieldEffect.Get("is_active");
             if (!isActive)
             {
@@ -5880,11 +6275,25 @@ public partial class Player : BaseCharacter
         // not WeaponData.MagazineSize which remains at the original unreduced value.
         _autoReloadMagazineSize = reducedSize;
 
-        // Preserve total ammo: calculate how many smaller magazines equal the original total.
-        // E.g. 4 magazines of 30 = 120 bullets → ceil(120 / 14) = 9 magazines of 14 = 126 bullets.
-        // This ensures the player is NOT penalized in total ammo count.
-        int currentMagazineCount = CurrentWeapon.StartingMagazineCount;
-        int totalBullets = currentMagazineCount * originalSize;
+        // Issue #1105: The Shotgun stores its total ammo as ShellsInTube + ReserveAmmo, not as
+        // StartingMagazineCount × MagazineSize. Using StartingMagazineCount (= 4, the base default)
+        // would compute 4 × 8 = 32 total bullets, far exceeding the actual 8 + 12 = 20 available.
+        // This would create ammo from thin air.  Use the weapon's actual current ammo for Shotgun.
+        int totalBullets;
+        int currentMagazineCount;
+        if (CurrentWeapon is Shotgun shotgunForAmmoCalc)
+        {
+            totalBullets = shotgunForAmmoCalc.ShellsInTube + CurrentWeapon.ReserveAmmo;
+            currentMagazineCount = CurrentWeapon.StartingMagazineCount; // used only for log
+        }
+        else
+        {
+            // Preserve total ammo: calculate how many smaller magazines equal the original total.
+            // E.g. 4 magazines of 30 = 120 bullets → ceil(120 / 14) = 9 magazines of 14 = 126 bullets.
+            // This ensures the player is NOT penalized in total ammo count.
+            currentMagazineCount = CurrentWeapon.StartingMagazineCount;
+            totalBullets = currentMagazineCount * originalSize;
+        }
         int newMagazineCount = Math.Max(1, (int)Math.Ceiling((double)totalBullets / reducedSize));
 
         LogToFile($"[Player.AutoReload] Reducing magazine size: {originalSize} -> {reducedSize}, magazines: {currentMagazineCount} -> {newMagazineCount} (total bullets preserved: {totalBullets})");
@@ -5904,6 +6313,17 @@ public partial class Player : BaseCharacter
                 CurrentWeapon.Call("ReinitializeCylinder");
             }
             LogToFile($"[Player.AutoReload] Revolver CylinderSize updated to {reducedSize}, cylinder reinitialized");
+        }
+
+        // Issue #1105: For the Shotgun, also reduce TubeMagazineCapacity and trim ShellsInTube.
+        // ReinitializeMagazines only affects the MagazineInventory (reserve shells); the tube
+        // is tracked separately via ShellsInTube/TubeMagazineCapacity. Without this update,
+        // the kill handler compares ShellsInTube=8 against magazineCapacity=3 and always
+        // concludes "tube already full", never triggering the auto-reload refill.
+        if (CurrentWeapon is Shotgun shotgunForAutoReload)
+        {
+            shotgunForAutoReload.SetAutoReloadTubeCapacity(reducedSize);
+            LogToFile($"[Player.AutoReload] Shotgun TubeMagazineCapacity updated to {reducedSize}");
         }
     }
 
@@ -5960,10 +6380,33 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        int currentAmmo = CurrentWeapon.CurrentAmmo;
-        int needed = magazineCapacity - currentAmmo;
+        // Issue #1105: Shotgun uses ShellsInTube as its active ammo count; CurrentAmmo is
+        // always 0 (an unused placeholder in its MagazineInventory). Use the dedicated
+        // AutoRefillTube() method to top up the tube from the reserve.
+        if (CurrentWeapon is Shotgun shotgun)
+        {
+            int shellsInTube = shotgun.ShellsInTube;
+            int needed = magazineCapacity - shellsInTube;
+            if (needed <= 0)
+            {
+                LogToFile($"[Player.AutoReload] Kill — shotgun tube already full ({shellsInTube}/{magazineCapacity}), no refill needed");
+                return;
+            }
+            if (shotgun.ReserveAmmo <= 0)
+            {
+                LogToFile("[Player.AutoReload] Kill — no reserve shells left to refill shotgun tube");
+                return;
+            }
+            int shellsToAdd = Math.Min(needed, shotgun.ReserveAmmo);
+            int added = shotgun.AutoRefillTube(shellsToAdd);
+            LogToFile($"[Player.AutoReload] Kill — refilled {added} shells ({shellsInTube} -> {shotgun.ShellsInTube}/{magazineCapacity}), reserve: {shotgun.ReserveAmmo}");
+            return;
+        }
 
-        if (needed <= 0)
+        int currentAmmo = CurrentWeapon.CurrentAmmo;
+        int ammoNeeded = magazineCapacity - currentAmmo;
+
+        if (ammoNeeded <= 0)
         {
             LogToFile("[Player.AutoReload] Kill — magazine already full, no refill needed");
             return;
@@ -5980,7 +6423,7 @@ public partial class Player : BaseCharacter
         // reserve magazines into the current magazine. This is a pure transfer: the amount
         // added to the current magazine equals the amount removed from the reserve, so total
         // ammo is conserved (no ammo is created or destroyed).
-        int toAdd = Math.Min(needed, reserve);
+        int toAdd = Math.Min(ammoNeeded, reserve);
         CurrentWeapon.CurrentAmmo = currentAmmo + toAdd;
         // Remove the transferred rounds from the reserve magazines.
         CurrentWeapon.ConsumeReserveAmmo(toAdd);
@@ -6078,6 +6521,13 @@ public partial class Player : BaseCharacter
         {
             if (Input.IsActionJustPressed("flashlight_toggle"))
             {
+                // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+                if (IsActiveItemJammedVerbose())
+                {
+                    LogToFile("[Player.BreachingCharges] Space blocked by Radio Jammer (Issue #1036)");
+                    return;
+                }
+
                 bool detonated = (bool)_breachingChargesEffect.Call("detonate");
                 if (detonated)
                 {
@@ -6101,6 +6551,13 @@ public partial class Player : BaseCharacter
         }
         else if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             int charges = (int)_breachingChargesEffect.Call("get_charges");
             if (charges > 0 && !_breachingHoldingForPlacement)
             {
@@ -6349,6 +6806,13 @@ public partial class Player : BaseCharacter
 
         if (!Input.IsActionJustPressed("flashlight_toggle"))
             return;
+
+        // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.Loudspeaker] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
 
         bool canActivate = (bool)_loudspeakerProgress.Call("can_activate");
         if (!canActivate)
@@ -6655,6 +7119,11 @@ public partial class Player : BaseCharacter
         // Charge pips are shown by TrajectoryGlassesHUD for 300ms, then auto-hide.
         // The trajectory ray blinks during the last 2 seconds as a low-time warning.
 
+        // Draw drilling bullets charge bar (Issue #751)
+        if (_drillingBulletsEquipped && (_drillingChargeBarPending || !_drillingBulletsUsed))
+        {
+            DrawDrillingChargeBar();
+        }
 
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
@@ -7379,4 +7848,76 @@ public partial class Player : BaseCharacter
     }
 
     #endregion
+
+    // =========================================================================
+    // Radio Jammer HUD (Issue #1036)
+    // =========================================================================
+
+    /// <summary>Reference to the GDScript JammerHUD node shown above the player.</summary>
+    private Node2D _jammerHud = null;
+
+    /// <summary>
+    /// Initialize the jammer HUD prohibition-sign icon.
+    /// Always created; visibility is toggled each physics frame.
+    /// </summary>
+    private void InitJammerHud()
+    {
+        var jammerHudScript = GD.Load<Script>("res://scripts/ui/jammer_hud.gd");
+        if (jammerHudScript == null)
+        {
+            LogToFile("[Player.Jammer] WARNING: Failed to load jammer_hud.gd");
+            return;
+        }
+
+        _jammerHud = new Node2D();
+        _jammerHud.SetScript(jammerHudScript);
+        _jammerHud.Name = "JammerHUD";
+        AddChild(_jammerHud);
+        LogToFile("[Player.Jammer] JammerHUD initialized");
+    }
+
+    /// <summary>
+    /// Show the jammer HUD only when the player is jammed AND has an active item equipped.
+    /// Called every physics frame.
+    /// </summary>
+    private void UpdateJammerHud()
+    {
+        if (_jammerHud == null || !IsInstanceValid(_jammerHud))
+            return;
+
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+            return;
+
+        bool isJammed = (bool)activeItemManager.Call("is_active_item_jammed");
+        int currentItem = (int)activeItemManager.Get("current_active_item");
+        bool hasItem = currentItem != 0; // 0 = ActiveItemType.NONE
+        _jammerHud.Call("set_jammed_visible", isJammed && hasItem);
+    }
+
+    /// <summary>
+    /// Check whether active items are currently jammed by a Radio Jammer enemy.
+    /// Calls is_active_item_jammed_verbose() on the GDScript autoload so that
+    /// detailed diagnostics are logged whenever Space is pressed (Issue #1036).
+    /// Use only for single-press actions (not hold); for hold-based actions use IsActiveItemJammedSilent().
+    /// </summary>
+    private bool IsActiveItemJammedVerbose()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+            return false;
+        return (bool)activeItemManager.Call("is_active_item_jammed_verbose");
+    }
+
+    /// <summary>
+    /// Check whether active items are currently jammed, without verbose logging.
+    /// Used for hold-based input actions (Space held) to avoid log flooding (Issue #1036).
+    /// </summary>
+    private bool IsActiveItemJammedSilent()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+            return false;
+        return (bool)activeItemManager.Call("is_active_item_jammed");
+    }
 }

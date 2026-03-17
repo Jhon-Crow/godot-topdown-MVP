@@ -1,0 +1,783 @@
+4f4abc15 feat: add RadioJammerEnemy to DecadenceLevel map (Issue #1036)
+af88be71 Merge remote-tracking branch 'origin/main' into issue-1036-9750cc238363
+f7a66d5c fix(#1103): emit explosion sound event on breaching charge detonation so enemies react
+6aaa40d8 Initial commit with task details
+987984a6 fix: compact enemy.gd to 5000 lines to pass CI arch check (Issue #583)
+f63d1235 fix: double Combat Disposition penalties (2x stronger) per feedback (Issue #1047)
+24fd7d97 fix: revert to RigidBody2D rocket (linear_velocity pattern, Issue #583)
+8fe0157f fix(issue-1067): fix auto-reload item bugs — total ammo preservation, level override, revolver cylinder
+a11c42e5 merge: resolve conflicts with main branch (Issue #1047)
+23349949 fix: increase Combat Disposition penalties by 50% (Issue #1047)
+06d7f1c8 fix: set rocket direction after add_child (mirrors bullet.gd pattern, Issue #583)
+eb29e6cb merge: resolve conflicts with main branch and fix auto-reload bugs (Issue #1067)
+f66f121f fix: convert RpgRocket to Area2D with kinematic movement and RPG-7 motor acceleration (Issue #583)
+cac9e301 docs: add game_log_20260317_101421.txt and analysis of round 4 test (Issue #959)
+e48c36e5 fix: convert RpgRocket to RigidBody2D with linear_velocity (Issue #583)
+bccb73b3 fix: set rocket direction as property before add_child (fix rocket not flying, Issue #583)
+8a2afa06 fix: use call_deferred for rocket launch to fix rocket not flying in exports (Issue #583)
+8401e484 fix: preserve used_this_level across respawns and fix level progression (Issue #959)
+08e5cd1d fix: compact _fire_rpg_rocket to stay within 5000-line CI limit (Issue #583)
+c0f7a02b fix: call launch() after add_child() to fix rocket in exports; add enemy spawner to experimental menu (Issue #583)
+115faa7c fix: limit first use to 1 enemy and gate level-up on all-charges-used (Issue #959)
+a6df55bd Revert "Initial commit with task details"
+fb1fd1cb fix: fix loudspeaker progression reset bug and wire up level completion (Issue #959)
+f675dfc4 Initial commit with task details
+38ed72ea fix: use preload() for RpgRocket.tscn to fix launch() not found in exports (Issue #583)
+843238b2 fix: use has_method/call instead of as RpgRocket cast for export safety (Issue #583)
+11a6d6af docs: add game log from 2026-03-17 session (Issue #583 case study)
+fd65b31e fix: compact _fire_rpg_rocket to stay within 5000-line limit (Issue #583)
+fc763f7f fix: RPG rocket now launches - use direct RpgRocket cast instead of has_method (Issue #583)
+0bc84ea6 fix: RPG rocket now moves - use launch() after add_child for reliable direction (Issue #583)
+2600c194 fix: throttle O(n²) group query and stagger companion vision (Issue #1027 Fix 26)
+d61235ea fix: RPG rocket now visible - use external PNG sprite instead of programmatic texture (Issue #583)
+59d9b236 Merge branch 'main' of https://github.com/Jhon-Crow/godot-topdown-MVP into issue-583-9c3a50bce842
+49dc37dc fix: RPG rocket now moves and looks like a proper rocket (Issue #583)
+4d3fe7c7 fix: RPG rocket now visible - add PlaceholderTexture2D to RpgRocket.tscn (Issue #583)
+7202f9c3 Revert "Initial commit with task details"
+0651d305 fix: prevent machete enemy from attacking through walls (Issue #1083)
+a835200f Initial commit with task details
+131bf9d0 fix: RPG enemy now fires actual rocket - bypass ProjectilePoolManager (Issue #583)
+7c66b2ea fix: RPG enemy now fires immediately on first sight - timer pre-initialized on COMBAT entry (Issue #583)
+f384dd01 Merge remote-tracking branch 'upstream/main' into issue-583-9c3a50bce842
+faac32b9 fix: remove per-puddle Area2D physics and raise blood cap to 300 (Issue #1027)
+724428dc docs: add game log from testing session (Issue #583)
+8386a38a fix: compact RPG combat block to stay within 5000 line limit (Issue #583)
+380d366d fix: RPG enemy now fires rocket - timer was reset every frame before shot (Issue #583)
+e2296167 fix: cap blood decals at 150 and revert instant restart (Issue #1027)
+d2fd7db2 fix: compact enemy.gd RPG code to keep under 5000 lines (Issue #583)
+8e2984df chore: add game-logs/ to .gitignore
+40e46d00 fix: address RPG enemy feedback - sprite switch, rocket exhaust, max-range fire (Issue #583)
+a928a956 fix: add minimum loading screen duration and route restarts via SceneLoader (Issue #1027)
+f4b89381 fix: condense _exit_tree comment to stay within 5000-line CI limit (Issue #650)
+2c09741f merge: sync with upstream/main + analyze eleventh crash log (Issue #650)
+f89d4d29 fix: add RPG topdown sprite so enemy visually shows rocket launcher (Issue #583)
+7d33e270 Merge remote-tracking branch 'upstream/main' into issue-583-9c3a50bce842
+697da60b Revert "Initial commit with task details"
+d28a0cd9 Revert "Initial commit with task details"
+152fe2a6 feat: add Recoil Compensator active item (Issue #1073)
+10fd0953 Revert "Initial commit with task details"
+00ca7b0a feat: add Dash active item (Issue #1071)
+d9ab3b04 Revert "Initial commit with task details"
+9f1ce199 feat: add Dead Eye passive item (Issue #1069)
+2124dcfb Revert "Initial commit with task details"
+12e60fdb feat: add roguelike mode with procedural generation (Issue #1061)
+f661dab0 Revert "Initial commit with task details"
+38e90928 feat: add auto-reload passive item (Issue #1067)
+484dc3d0 Revert "Initial commit with task details"
+4e2a715f Initial commit with task details
+271d57bd feat: add arena mode with wave spawning, pickups, and endless survival (Issue #1063)
+33a8cce9 feat: add Extended Magazine passive item (Issue #1065)
+50688472 Initial commit with task details
+381fd9e7 Initial commit with task details
+03cc8060 Initial commit with task details
+6f0c2f22 Initial commit with task details
+8ebe64d4 fix: apply Combat Disposition penalty once, add sword status icons (Issue #1047)
+81c96c01 Initial commit with task details
+d2617e09 Initial commit with task details
+283407a6 refactor: move Radio Jammer logic to RadioWaveEffect child node to stay under CI line limit
+2c04ee1b Revert "Initial commit with task details"
+9d57ef19 feat: add Drilling Bullets active item (Issue #751)
+1013212d Revert "Initial commit with task details"
+42af79b4 feat: add Radio Jammer enemy that blocks player active items (Issue #1036)
+1aee1de4 docs: update case study with second game log analysis (Issue #583)
+b75e1876 fix: compact _switch_to_secondary_weapon to keep enemy.gd under 5000 lines
+4233436d Revert "Initial commit with task details"
+9aed9817 fix: hide replay button on score screen when replay viewing is disabled (Issue #1051)
+d56fe523 merge: resolve conflicts with main branch (Issue #583)
+cc5b1877 Initial commit with task details
+c5b96d5e Initial commit with task details
+9cca7f6d Initial commit with task details
+521449cd Revert "Initial commit with task details"
+26f6d472 feat: add Combat Disposition passive item (Issue #1047)
+432417a9 Initial commit with task details
+5bfe0693 fix: reduce enemy.gd line count below 5000-line architecture limit
+32a21a70 Revert "Initial commit with task details"
+733c0737 fix: further optimize FPS drops during 20-enemy shootouts (Issue #1027)
+2fad1457 Initial commit with task details
+7ce07858 feat: add "ЗОНА ЧИСТА" center screen message for 2 seconds (Issue #957)
+9be7855c debug: add detailed logging to trace progress bar initialization
+73b7617a fix: add UnlockTableMenu to scene root to avoid CanvasLayer nesting issues
+397c66d0 fix: instantiate UnlockTableMenu dynamically to avoid nested CanvasLayer issue
+1b1322c4 Revert "Initial commit with task details"
+ede618a4 feat: show segmented charge bar for homing bullets and trajectory glasses on activation
+79ceed79 Initial commit with task details
+a8e9751d fix: use show()/hide() for UnlockTableMenu and refresh data on open
+14bb44d2 Revert "Initial commit with task details"
+9389b9a3 Add unlock table to Experimental menu
+93b88365 Initial commit with task details
+14b796d4 Merge pull request #999 from Jhon-Crow/main
+1cf1a9a4 Revert "Initial commit with task details"
+5344ce1d fix: add missing fallback score screen and rank color to city_level.gd (Issue #957)
+cb26cbf3 Initial commit with task details
+a5922d1d docs(case-study): add fifth game log and complete root cause analysis for Issue #887
+8985d66f docs(case-study): add third and fourth game logs for Issue #887
+ece9c23b docs(case-study): add second game log and expand root cause analysis for Issue #887
+88ee324a docs(case-study): add root cause analysis for Issue #887 homing bullets charges
+83a9b51a fix(ci): replace wget with curl wrapper to fix 403 on GitHub release downloads
+00761de9 fix(homing-bullets): update charges to 2 and duration to 1.2s (Issue #887)
+a3e3f59b docs: add comprehensive case study for FPS drops issue #966
+828d4867 Revert "perf: optimize blood decal spawning with object pooling and batch processing (Issue #966)"
+8fb71efb Revert "Initial commit with task details"
+2491096b perf: optimize blood decal spawning with object pooling and batch processing (Issue #966)
+4c8822ed Initial commit with task details
+9770d056 fix: crash on grenade explosion + shrapnel pool reset (Issue #937)
+b158603d Merge main into issue-937-8be48e66f3c9
+2bf1d1ce Revert "Initial commit with task details"
+3be2222a Initial commit with task details
+05283bc1 Revert "Initial commit with task details"
+2c57505d Initial commit with task details
+5faba52d Revert "Initial commit with task details"
+336b90c5 docs(case-study): add FPS performance analysis for issue #953
+b06d12ec Initial commit with task details
+55d746d0 Revert "Initial commit with task details"
+55c7654a fix HIGH: F-1 grenade lag in enclosed spaces (Issue #937)
+e358cd55 Initial commit with task details
+76838bfa Revert "Initial commit with task details"
+fdf36317 fix: early exit in emit_sound() when no listeners registered (Issue #884)
+25523340 Initial commit with task details
+de7832d4 Add unit tests for MuzzleFlashDetectionComponent (Issue #754)
+5f0caefe Fix muzzle flash detection: add suppressive fire in cover/suppressed states (Issue #754)
+de45c11f Merge main into issue-754-2ebdf3326f41
+6f583831 docs: add tenth crash investigation — stale SoundPropagation listeners (Issue #650)
+14a3f380 merge: sync with upstream/main + fix #9: _exit_tree unregisters sound listener (Issue #650)
+687c1867 fix: eliminate NavigationServer2D race condition in search + optimize GOAP (Issue #650)
+d284b002 Trim enemy.gd to 5000 lines to pass Architecture CI check (Issue #862)
+37bf2977 Update issue-862 case study with game log analysis and new bottlenecks
+c9a20390 Gate Enemy AI FileLogger writes behind debug_logging flag (Issue #862)
+2b5283e5 Gate EnemyGrenade FileLogger writes behind debug_logging flag (Issue #862)
+3c9cb61d Gate SoundPropagation FileLogger writes behind _file_logging_enabled flag (Issue #862)
+1d9c6e3e Add real game log and update case study with FPS measurements (Issue #862)
+c9873250 Fix per-bullet FileLogger I/O and add footprint cap (Issue #862)
+f55fe9d1 Revert "Initial commit with task details"
+c72bc5d1 Reduce homing bullets charges from 6 to 1 per battle (issue #766)
+2ab7f70d Initial commit with task details
+e12355b6 Revert "Initial commit with task details"
+53f2ff94 Initial commit with task details
+3f5b3ff5 Revert "Initial commit with task details"
+2d326b0b Initial commit with task details
+8cfde164 Merge upstream/main: add enemy penetration (Issue #829), preserve pool fixes (Issue #862)
+45006c3e Enrich issue-862 case study with online research findings
+d735d62b Revert "Initial commit with task details"
+97e8fa18 Add performance case study for issue #862 (bullet hell FPS drops)
+04e2f895 Add BulletPool autoload for GDScript bullet node reuse (Issue #862)
+da28d37f Cap blood decals (300) and bullet holes (200) to prevent node accumulation (Issue #862)
+d7454e3a Disable DebugPenetration logging in Bullet.cs and bullet.gd (Issue #862)
+47b453ce Initial commit with task details
+63397e6f Merge pull request #854 from Jhon-Crow/main
+f6d76986 Revert "Initial commit with task details"
+8d0c762b Initial commit with task details
+76156f35 Revert "Initial commit with task details"
+3e958968 Initial commit with task details
+b5e9cbc2 Revert "Initial commit with task details"
+c0735ebb Initial commit with task details
+543da9b4 Revert "Initial commit with task details"
+05b055a0 Initial commit with task details
+f91f82c9 Add diagnostic logging and analyze second test session for Issue #761
+9eeeee38 Revert "Initial commit with task details"
+623fdc02 Initial commit with task details
+5cc74042 Add comprehensive case study analysis for Issue #781
+d9e515d0 Remove auto-generated .gitkeep file
+d60855b1 Change homing bullets from 6 to 1 charge per battle (Issue #766)
+8eda614e Fix muzzle flash detection not working (Issue #754)
+b0a5a9d2 Add comprehensive case study for Issue #761 (shotgun dry fire sound)
+fdc8ebce Add case study documentation for Issue #781 (homing bullets on pistol weapons)
+2144a249 Revert "Initial commit with task details"
+b62ae37b Fix homing bullets not working for pistol weapons (Issue #781)
+fe825ba2 Initial commit with task details
+2419908e Implement muzzle flash detection for enemy AI (Issue #754)
+3aa9632f Fix pistol bullets: use Call() setters instead of Set() (Issue #781)
+3e2c82d1 Update case study with successful fix verification
+07816e7c Fix Windows Export CI failure by enabling caching
+8f315f35 Revert "Initial commit with task details"
+88f44b2d Revert "Initial commit with task details"
+6f91b06b Add comprehensive case study for muzzle flash shooting behavior (Issue #754)
+230a6b4b Fix GDScript bullets: set properties AFTER AddChild() (Issue #781)
+a73c448d Add new large Docks map (Issue #753)
+ba3366b8 Merge branch 'main' into issue-761-a0caf45f6eba
+da891846 Initial commit with task details
+8105be82 Initial commit with task details
+4b1b4eb6 Revert "Initial commit with task details"
+d83b6aa5 feat: Add animated case opening for armory items (Issue #785)
+9af137f0 Initial commit with task details
+2b71df04 fix(armory): defer UI building to fix visibility issue (Issue #785)
+a743b54a Revert "Initial commit with task details"
+a411f16b Remove sniper rifle (ASVK) from game
+1c87ab75 docs(armory): update investigation report with log analysis
+ece21718 debug(armory): add diagnostic logging and save user-provided logs
+5cd283b9 Initial commit with task details
+fac23341 fix(armory): set correct process_mode in ArmoryMenu scene
+574b2c98 fix(armory): preserve locked style in _highlight_selected_items
+1e2f7d17 Revert "Initial commit with task details"
+dfd66d12 feat(armory): implement hold-to-unlock case opening system (Issue #785)
+49734962 Initial commit with task details
+b27e1264 merge: resolve conflicts with upstream/main (Issue #700 progress bar + force field coexist)
+79ec0d8a Improve C# to GDScript bullet interop with diagnostic logging (Issue #781)
+eca4ca4b Fix bullets not flying: add @export for C# interop (Issue #781)
+08360f8c Add debug logging for bullet spawn diagnosis (Issue #781)
+96030107 Add case study documentation for Issue #781
+76061238 Revert "Initial commit with task details"
+37bbfd7c Add tests for GDScript bullet aim-line homing (Issue #781)
+1419510c Fix homing bullets for pistol weapons (Issue #781)
+1f5a828b Initial commit with task details
+7f364e09 Initial commit with task details
+2c58850e fix: homing bullets case sensitivity bug in _is_player_bullet() (Issue #704)
+54957a63 Initial commit with task details
+6038fcb3 Merge remote-tracking branch 'origin/main' into issue-704-7670241cec95
+c237d294 Revert "Initial commit with task details"
+a893350d Add PM empty click sound when attempting to fire without ammo
+92400328 Initial commit with task details
+5585b4bb Revert "Initial commit with task details"
+08375197 Add dry fire sound to shotgun when not ready to fire (Issue #761)
+d8ea35b3 Initial commit with task details
+829b3584 Revert "Initial commit with task details"
+284b3187 Initial commit with task details
+a4215a19 Initial commit with task details
+265a1f36 Update test_projectile_pool for increased shrapnel pool size
+f840dd0c Fix ProjectilePool integration - resolve missing shrapnel and F-1 lag (Issue #724)
+74ec6710 Revert "Initial commit with task details"
+82be7bee Initial commit with task details
+f7478dda Revert "Initial commit with task details"
+65cf7cf3 Initial commit with task details
+21b371aa Revert "Initial commit with task details"
+7f6de797 Initial commit with task details
+9edbd91e Revert "Initial commit with task details"
+90178193 Initial commit with task details
+b1f8cd2b Revert "Initial commit with task details"
+9a231722 Initial commit with task details
+d4a25b45 Revert "Initial commit with task details"
+1d3b8897 Initial commit with task details
+09f7001c Revert "Initial commit with task details"
+788d2323 Optimize projectiles for bullet-hell scenarios (Issue #724)
+881dc94b Initial commit with task details
+de76c7aa docs: add game log from 2026-02-10 showing build version issue (#665)
+acbf60fd docs: add root cause analysis for GDScript bullet detection bug
+10fcd9f4 fix: correct GDScript bullet detection for pistols (Issue #704)
+60c333e8 Revert "Initial commit with task details"
+561db15c fix: keep enemy.gd under 5000 line limit (#665)
+d22e2af7 feat: add explosive ammo for silenced pistol (#714)
+62773ede docs: update case study with tracer visibility analysis (#665)
+c0c874d0 fix: enhance sniper smoke tracers visibility and add diagnostics (#665)
+617c9dbf Initial commit with task details
+53871d61 refactor(ai): extract SuppressionFireComponent and reduce enemy.gd to <5000 lines (Issue #711)
+c9fd5e1c Revert "Initial commit with task details"
+52c1ad5a Revert "Initial commit with task details"
+6e09324f fix: increase trail length for homing bullets to show curved path (#739)
+fd782ceb fix: use method call instead of Node.Set() for GDScript bullet initialization (Issue #704)
+42aedd9d feat: make homing sound quieter and add teleport sound (Issue #719)
+f1b099f3 feat: add City level (Город) with sniper enemies (#665)
+ca3c27a7 Merge upstream/main with AI Helmet + all new active items
+a1765e9d docs: add diagnostic findings for GDScript bullet issue (Issue #704)
+dfb35f58 debug: add diagnostic logging to GDScript bullet.gd (Issue #704)
+b53bec65 docs: add investigation of eighth crash report (Issue #650)
+81ee5197 fix: reduce enemy.gd to 5000 lines (CI architecture check)
+5d4cbcae Initial commit with task details
+50a20860 fix: armory UI — 8 active items per row, white accordion border, add game logs
+3c9ccf03 Initial commit with task details
+bb0f34a4 docs: add case study documentation for Issue #711
+9cb9dd08 test: add unit tests for MuzzleFlashDetectionComponent (Issue #711)
+5a38f324 feat(ai): implement enemy suppression fire toward sound/flash (Issue #711)
+5eec1893 feat(player): emit muzzle flash with source info (Issue #711)
+fc49b818 feat(effects): add muzzle_flash_spawned signal for enemy detection (Issue #711)
+efa2d19f feat(ai): add MuzzleFlashDetectionComponent for enemy suppression fire (Issue #711)
+589bdc64 merge: resolve conflicts with upstream/main (breaker bullets + force field coexist)
+fc5deb96 Merge remote-tracking branch 'upstream/main' into issue-650-d3781da6a323
+aa28c2ca docs: add extended testing logs for homing bullets case study (Issue #704)
+3ec86283 Merge upstream/main: resolve conflict in enemy.gd for aggression component
+d7d85b2f merge: resolve conflicts with main branch (Issue #678 breaker bullets + Issue #704 homing)
+fdd82db9 fix: add aim-line targeting to GDScript bullet for pistols/SMGs (Issue #704)
+76fa88ca merge: resolve conflicts with main branch (Issue #709 wall-blocking + #704 homing)
+220a106e fix: add C# teleport effect for exported builds (Issue #721)
+47c3531d fix: resolve merge conflicts - integrate progress bars (Issue #700) with invisibility suit (Issue #673)
+64bd7c3d Fix aggression gas grenade - enemies now move and flank properly (Issue #729)
+d0d2529e Revert "Initial commit with task details"
+6d4ed2fb feat: add visual teleportation effect for level transitions (Issue #721)
+24f45fee Initial commit with task details
+882e2315 Add syntax check test for AggressionComponent
+e97075b4 Revert "Initial commit with task details"
+edc99deb Fix gas grenade aggression - enemies now move and flank (Issue #729)
+ed9390d2 Initial commit with task details
+272f5575 Implement teleport bracers functionality and make homing sound quieter (Issue #719)
+4231df7b Add teleportation sound file and generation script
+dd22b785 Revert "Initial commit with task details"
+a7bd1f24 Initial commit with task details
+19589018 Add issue #719 fix summary documentation and debug script
+fc48f30e Fix teleport sound initialization in C# Player.cs
+a3a61131 Add unit test for teleport sound initialization fix
+c6ab977d Add case study analysis and test script for issue #719
+3005215d Fix teleport sound initialization by connecting to ActiveItemManager signals
+9837a716 Revert "Initial commit with task details"
+b19ede71 Make homing activation sound quieter and add teleport sound
+11b44a1b Initial commit with task details
+e8cc8a5e Revert "Initial commit with task details"
+70bafd47 Initial commit with task details
+065158cd Auto-commit: Changes made by Claude during problem-solving session
+97ace07f merge: resolve conflicts with upstream/main, add invisibility suit + force field
+cbcaed46 refactor: extract shared aim-line targeting to HomingUtils (Issue #704)
+e948113e fix: enable homing bullets on MakarovPM and SilencedPistol (Issue #704)
+d29b74d5 Fix sniper enemies: add hitscan, smoke tracer, cover behavior, and damage
+3713c522 Merge remote-tracking branch 'upstream/main' into issue-671-1f348d76a56c
+9cc92076 docs: add crash analysis (bug report #3) to issue-671 case study
+4b1146d2 fix: prevent crash on AI Helmet activation in exported builds (Issue #671)
+31cb709a fix: extend homing bullets to shotgun pellets and sniper rifle (Issue #704)
+2b2e511e fix: skip NavigationAgent2D queries in _update_goap_state during SEARCHING to prevent crash (Issue #650)
+7c78d24f Merge remote-tracking branch 'origin/main' into issue-650-d3781da6a323
+1971c1da fix: show progress bar on activation with 300ms auto-hide for charge items (Issue #700)
+f9f903f1 Revert "Initial commit with task details"
+d3a667c6 Initial commit with task details
+6f130331 Revert "Initial commit with task details"
+a20e578f Initial commit with task details
+38a86509 merge: resolve conflicts with upstream/main, keep homing bullets + force field + icon fix (Issue #676)
+0d50c20e fix: improve AI Helmet ghost visibility and add diagnostics (Issue #671)
+2ab49a7b Add Round 4 game log and update case study README (Issue #665)
+2825da58 Fix sniper damage, cover-seeking, bolt cycling & hitscan mask (Issue #665 Round 4)
+3a972abd Merge remote-tracking branch 'upstream/main' into issue-665-4f2447514623
+8457e666 Revert "Initial commit with task details"
+fdce7e8e docs: add sixth crash analysis to case study (Issue #650)
+15ea8a90 Merge remote-tracking branch 'origin/main' into issue-650-d3781da6a323
+674c78a8 feat: add progress bars for limited activatable items (Issue #700)
+87c5f128 fix: replace NavigationAgent2D with direct movement during SEARCHING to prevent crash (Issue #650)
+81510517 Initial commit with task details
+36ad7fe3 fix: correct weapon display in replay for all player weapons and enemies (#667)
+2013c7ed Merge remote-tracking branch 'upstream/main' into issue-676-f66b7d66e728
+4ceb8bc2 docs: add user game log to case study (Issue #671)
+fa579df4 Fix snipers exposed in fake cover & hitscan missing through walls (Issue #665)
+cd945a7b fix: update stale comment to match hold-to-activate behavior
+c9e3430a Merge remote-tracking branch 'upstream/main' into issue-671-1f348d76a56c
+cab45b0d feat: redesign force field to hold-to-activate with depletable charge and progress bar (Issue #676)
+21b7653c merge: resolve conflict with upstream/main, keep both teleport bracers and force field
+086d3839 fix: add AI Helmet integration to C# Player (Issue #671)
+f7967b38 fix: disable avoidance + cache nav target + defer waypoint regen to prevent crash (Issue #650)
+876cba12 Reduce enemy.gd to 4985 lines (under 5000 CI limit)
+72307505 Fix snipers stuck in COMBAT: inline state logic to avoid call() failures (Issue #665)
+0eb3600d Merge upstream/main into issue-665-4f2447514623
+636fd1a6 Merge remote-tracking branch 'origin/main' into issue-650-d3781da6a323
+33f48803 docs: add fourth crash analysis to case study (Issue #650)
+4906a5b0 fix: defer waypoint generation to prevent NavigationServer2D segfault (Issue #650)
+8e3c162e Revert "Initial commit with task details"
+1bd70e2d feat: add force field active item that reflects all projectiles (Issue #676)
+74d6f819 Revert "Initial commit with task details"
+172ea1bd feat: add AI Helmet active item with enemy position prediction (Issue #671)
+70941355 fix: defer coordinator setup and replace instance_from_id to prevent crash (Issue #650)
+e9314219 Initial commit with task details
+9734d73f Merge remote-tracking branch 'upstream/main' into issue-665-4f2447514623
+72774634 Add City map (Город) with sniper enemies from PR #582 (Issue #665)
+3fe7c54a Revert "Initial commit with task details"
+bd166f0b Initial commit with task details
+b2af275e fix: move RPG enemies from CastleLevel to TestTier/Полигон (Issue #583)
+aad72f25 Add script to create backup branch from main
+21fce7f7 Initial commit with task details
+d5b79bab Revert "Initial commit with task details"
+c7960a84 fix: record and display correct weapons in replay for player and enemies (#667)
+c4b2e280 Initial commit with task details
+d3523c48 Revert "Initial commit with task details"
+70f2414b Fix sniper enemy bugs: hiding, smoke trail, and damage (Issue #665)
+6f7e5235 Merge remote-tracking branch 'upstream/main' into issue-665-4f2447514623
+9ad16c51 Initial commit with task details
+36d9831a refactor: condense variable declarations to stay under 5000-line limit (Issue #650)
+6120f0ad Add round 9 case study analysis for sniper bugs
+a947791d Fix sniper hitscan self-collision, cover thrashing, and laser visibility (round 9)
+ed46a5b8 Merge remote-tracking branch 'origin/main' into issue-650-d3781da6a323
+dae30f7c docs: add second crash analysis to case study (Issue #650)
+5b353416 docs: add crash log from second report (Issue #650)
+3e4678f3 fix: prevent native crash on bulk SEARCHING transition (Issue #650)
+aadaddf4 Merge remote-tracking branch 'origin/main' into issue-581-7de135d6bace
+17756130 Merge remote-tracking branch 'origin/main' into issue-650-d3781da6a323
+0767f9cb docs: add crash root cause analysis to case study (Issue #650)
+f33a7d77 fix: unregister from group search coordinator on all state transitions and death (Issue #650)
+6ca9f7b6 fix: apply deferred enemy setup to all level scripts
+e5f94a7f Fix sniper IN_COVER state, laser visibility, tracer, and snap-aim bypass (round 8)
+a1fbca62 Merge remote-tracking branch 'origin/main' into issue-581-7de135d6bace
+157c528e fix: defer enemy setup to fix initialization during scene transitions
+772c9001 Revert "Initial commit with task details"
+9f8610c2 test: update enemy actions tests for CoordinatedSearchAction (Issue #650)
+e0ea57e4 feat: add CoordinatedSearchAction and unit tests (Issue #650)
+9c633727 feat: add group search coordination and realistic scanning (Issue #650)
+775337e0 Merge remote-tracking branch 'origin/main' into issue-610-4213ac33f77b
+d5dc41b8 fix: move 2 enemies into starting room for immediate combat
+069948b1 fix: replace overly aggressive wall-blocked timer with improved GLOBAL STUCK detection (Issue #612)
+09e2eceb docs: add case study for improved enemy search behavior (Issue #650)
+7cc2bf1d Initial commit with task details
+e4b0d781 fix: detect wall-blocked pursuit and break PURSUING loop (Issue #612)
+285507b0 Merge remote-tracking branch 'origin/main' into issue-581-7de135d6bace
+ade9dc72 Fix hitscan player damage, state thrashing, corner drift, and log formatting (round 7)
+ad9d70ad Revert "Initial commit with task details"
+088ad2e3 Merge remote-tracking branch 'origin/main' into issue-583-9c3a50bce842
+d801d1b1 Revert "Initial commit with task details"
+998b7872 tests: add RPG and PM weapon config and enemy tests (Issue #583)
+f25b1adf Merge main + fix sniper state thrashing, hitscan damage, laser, and aim (round 6)
+012fb547 feat: add RPG enemies to CastleLevel (Issue #583)
+aedbc5a4 feat: add 2.5x ammo multiplier for Polygon level (Issue #630)
+ad4481c8 feat: implement RPG weapon switching in enemy AI (Issue #583)
+38a29026 fix: abort flanking when both sides behind walls, improve wall avoidance (Issue #612)
+c4495063 refactor: redesign TechnicalLevel as narrow corridor (4000x600)
+8347d0c1 feat: add RPG rocket projectile (Issue #583)
+f410f5d0 feat: add RPG and PM weapon configs (Issue #583)
+b7f1eb87 Merge remote-tracking branch 'origin/main' into issue-612-6a34db9e405f
+1c49fc45 Initial commit with task details
+fd630631 docs: add round 5 analysis to case study
+7d05f6f4 Merge main into issue-581 branch (resolve comment conflict in enemy.gd)
+e784bd36 Fix sniper not shooting: inline state logic and fix aim tolerance (round 5)
+6bb08008 Merge main and reduce enemy.gd to 4977 lines (under 5000 limit)
+2037e083 Merge remote-tracking branch 'origin/main' into issue-581-7de135d6bace
+87720e0b docs: add round 4 analysis to case study
+c1274ad7 Fix sniper not shooting: EnemyMemory.get_position() does not exist
+6ffeabb3 docs: add round 3 game log to case study
+474e9c16 Fix sniper never shooting: detection delay timer was never updated in sniper states
+ea4f341c Revert "Initial commit with task details"
+9b8909f3 Merge remote-tracking branch 'origin/main' into issue-610-4213ac33f77b
+0f118821 tests: add missing Beach enemy count assertion
+d9b26dc4 tests: update all tests for new TechnicalLevel (first level)
+96ee030a Revert "Initial commit with task details"
+882d8bf2 feat: add new TechnicalLevel as first level (labyrinth of technical rooms)
+034d4adf tests: add unit tests for wall avoidance fixes (Issue #612)
+b2fe89e8 fix: prevent enemy wall jitter via smoothed avoidance and deduplicated movement (Issue #612)
+78161516 docs: add case study for issue #612 (enemy wall jitter)
+8fc4d17f Initial commit with task details
+baf47bc0 Initial commit with task details
+bfd659df Fix sniper enemies: shooting through walls, laser visibility, and cover behavior
+ebc37ddb Merge remote-tracking branch 'origin/main' into issue-581-7de135d6bace
+be28177a Initial commit with task details
+1ab6f41c Merge main: resolve conflicts between MACHETE (#579) and SNIPER (#581)
+90e67db2 Add case study documentation with bug fix analysis and game logs
+321fb0cf Make City buildings enterable with doorways and shooting slits
+ee41336b Fix sniper enemies not shooting and camera not reaching map edges
+f0097b60 Revert "Initial commit with task details"
+a8e3699e Merge remote-tracking branch 'origin/main' into issue-581-7de135d6bace
+7d024f57 Extract sniper utilities to SniperComponent to keep enemy.gd under 5000 lines (Issue #581)
+d205b85f Add City level with sniper enemies and urban buildings (Issue #581)
+74d7848f Implement sniper enemy AI with hitscan, red laser, wall penetration (Issue #581)
+41bad87e Add SNIPER weapon type to WeaponConfigComponent (Issue #581)
+cb8d1121 Initial commit with task details
+d1fe5a78 Merge remote-tracking branch 'origin/main' into issue-555-8c6f4dc8e387
+da4fb88b feat: add replay playback UI and status logging to CastleLevel
+36ab7962 Revert "Initial commit with task details"
+76908570 Merge remote-tracking branch 'origin/main' into issue-555-8c6f4dc8e387
+650b1578 fix: sniper rifle missing 2x ammo on CastleLevel + weapon detection logging
+2c980a31 fix: add replay recording to CastleLevel (replays only worked on BuildingLevel)
+52ffac7a fix: C# GrenadeTimer.Explode() now triggers PowerFantasy time-freeze effect
+e3605381 Initial commit with task details
+0e33cbab Revert "Initial commit with task details"
+b7c35f26 test: add collision detection validation script
+7386d776 fix: enable collision detection between player and enemies
+3b293b36 Initial commit with task details
+a51fd4ea fix: repair broken enemy AI caused by GDScript indentation parse error (Issue #349)
+3e2833aa fix: improve grenade accuracy and add wall-aware throw validation (Issue #382)
+6616e6fb refactor: compact advanced targeting code to minimize enemy.gd line count
+569c3165 feat: implement snap-shooting at suspected positions (Issue #349)
+f78fbefe merge: resolve conflicts with main branch
+17bba8f2 docs: add game log showing enemy grenade friendly fire (Issue #382)
+de65f0ae Merge remote-tracking branch 'upstream/main' into issue-382-21d590e7da26
+d10e3364 fix: prevent enemy grenade friendly fire - grenades pass through and don't damage allies (Issue #382)
+7e009b06 fix: compress GameManager notification to stay within 5000 line CI limit
+08c36a9c fix: minimal enemy death tracking fix - revert broken changes (Issue #382)
+7e5775d2 Merge remote-tracking branch 'upstream/main' into issue-382-21d590e7da26
+cf390ffa docs: add game logs for enemy tracking bug analysis (Issue #382)
+738de53b fix: reduce enemy.gd to stay within 5000 line CI limit
+cfae7aaa fix: enemy death tracking via GameManager bypass (Issue #382)
+d6daa53b Merge remote-tracking branch 'upstream/main' into issue-382-21d590e7da26
+52809562 fix: enemy tracking uses group membership + call_deferred (Issue #382)
+a64b10b8 fix: remove static declarations and use Color.html() to bypass binary tokens bug (Issue #415)
+1f3e3e1e Merge branch 'main' into issue-382-21d590e7da26
+1731e456 fix: convert Color const to static var to bypass binary tokens parse bug (Issue #415)
+e548256a fix: add Release configuration to solution file for CI compatibility
+91d89f57 fix: use ExportRelease configuration for .NET build in CI workflow
+f6ca5eb5 Merge origin/main into issue-415-09cb02795a63
+a50cce63 fix: resolve CI failures from merge
+9e92d02e fix: remove typed array declarations causing GDScript parse failure (Issue #415)
+9845ac63 chore: merge main branch to resolve conflicts
+d50a23c1 Merge origin/main into issue-415-09cb02795a63 (fixes missing data folder)
+6b2a7cf0 docs: add Session 8 case study for inline score screen fix (Issue #415)
+e65bad51 Merge origin/main into issue-415-09cb02795a63
+7cc84b50 fix: implement inline animated score screen to bypass Godot 4.x binary tokens export bug (Issue #415)
+d37f45c4 fix: force script re-attachment workaround for binary tokens export bug (Issue #415)
+eeca679d fix: use preload() for AnimatedScoreScreen to ensure script attachment (Issue #415)
+5d6f53fe fix: position forearm directly relative to shoulder to eliminate lerp drift (Issue #448)
+3c4cc1cb fix: use relative positioning for forearm to prevent arm separation (Issue #448)
+85dc0982 fix: use scene file instantiation for AnimatedScoreScreen (Issue #415)
+f93a3075 fix: prevent arm parts from separating during animations (Issue #448)
+c653ba8c fix: reposition left arm to grip weapon foregrip (Issue #448)
+714eb4d9 chore: remove task configuration file
+d3d340af fix: connect left shoulder and forearm on same Y plane (Issue #448)
+8e7d0e9b docs: add case study analysis for issue #462
+3745b1be fix: use Control.new() + set_script() for proper node instantiation (Issue #415)
+cb24efdb Initial commit with task details
+92a7c9aa fix: set left arm z_index to 1 for proper visibility under weapon barrel (Issue #448)
+9429aebe fix: reposition left forearm to grip weapon foregrip at angle (Issue #448)
+b1f46f7d docs: update case study with bug fix details and logs (Issue #448)
+993f28a5 fix: correct left arm positioning - arms should extend in same direction (Issue #448)
+f3ffbfc5 fix: use dedicated CanvasLayer (layer 100) for score screen visibility (Issue #415)
+97ca42c7 docs: update case study with second bug investigation session (Issue #415)
+8d5f392f fix: add debug logging and hide out-of-ammo message on level completion (Issue #415)
+04d75291 Revert "Initial commit with task details"
+469e049d chore: optimize enemy.gd to stay within line limit
+0c8f10ad fix: add 4-part arm structure with proper naming for player and enemy models (Issue #448)
+f7689511 Initial commit with task details
+34f12531 fix: resolve score screen visibility and positioning issues (Issue #415)
+24fcb302 Revert "Initial commit with task details"
+82bd6df6 feat: add animated score screen with Hotline Miami 2 style effects (Issue #415)
+83b237ce Initial commit with task details
+abe4e1a8 fix: only update memory for PLAYER gunshots, not enemy gunshots (Issue #395 Phase 5)
+1451d383 fix: enemy snaps to face target on combat entry (Issue #395 Phase 4)
+3438710f Merge main branch to resolve conflicts
+8a1afc65 fix: debug indicator uses wrong rotation (model vs body) (Issue #395 Phase 3)
+226e5e35 chore: consolidate comments to stay under 5000 line limit
+325c393d fix: debug indicator shows wrong direction due to coordinate system bug (Issue #395)
+417ae39c Revert "Initial commit with task details"
+e8df90f0 fix: enemy faces sound source position instead of actual player position (Issue #395)
+c638f075 Initial commit with task details
+726efaec Revert "Initial commit with task details"
+18cbc97b fix(ci): reduce enemy.gd line count to stay under 5000 limit
+14a10426 Revert "Initial commit with task details"
+18c295ff docs: add implementation status section to case study
+b2957ae5 feat: implement tactical enemy grenade throwing (#382)
+89b08a87 feat: add C# component templates for Player.cs refactoring
+b2b110b8 feat: add GDScript component templates for enemy.gd refactoring
+c099e5a3 ci: reduce max file size from 5000 to 2500 lines
+5b696764 docs: add case study for issue #336 file size limits
+7f2975ea docs(case-study): document GDScript 4 type inference parse errors (Issue #369)
+5b4f9aec fix(enemy): add explicit type annotations to fix GDScript 4 parse errors (Issue #369)
+6c70c78b fix: enemy faces attacker for 0.8s after being hit (Issue #390)
+430af7f5 docs: update case study with fix #11 analysis (Issue #373)
+e7d643fe fix: natural rotation toward player + CI compliance (Issue #373 fix #11)
+c13c9735 Initial commit with task details
+6b0b547a Revert "Initial commit with task details"
+0629fc7c docs: add case study for issue #382 tactical enemy grenade throwing
+999898e6 fix(enemy): condense rotation logic to stay under 5000 lines after main merge
+fe9694be Initial commit with task details
+63098081 Merge remote-tracking branch 'origin/main' into issue-369-523c173e52fb
+3231a48c feat(enemy): implement FOV-based coverage tracking for search behavior (Issue #369)
+ae08739d Initial commit with task details
+5739be2b fix: delayed flip at boundary to eliminate turn-away glitch (Issue #373 tenth attempt)
+ead750f6 merge: integrate upstream main with grenade system (Issue #369)
+54b7edab fix: snap to boundary on Y-scale flip to eliminate turn-away glitch (Issue #373 ninth attempt)
+20287203 refactor(enemy): condense functions to stay under 5000 lines
+42ad41fb fix: work in visual space for rotation math (Issue #373 eighth attempt)
+0757f6ac fix: revert enemy.gd to working state (Issue #369)
+848e96aa fix: compensate rotation when flipping sprite Y-scale (Issue #373)
+c10deb96 fix(ui): use top_level property to keep debug label upright (Issue #383)
+4de25955 feat: implement enemy ricochet and wallbang targeting (Issue #349)
+7f6f25ca docs: update case study with sixth fix - actual root cause found
+41443c1a fix: replace direct autoload references with get_node_or_null (Issue #369)
+c2ef4d65 fix: flip sprite based on TARGET angle, not current rotation (Issue #373)
+f5a2d5e6 Revert "Initial commit with task details"
+c33bad5a fix(ui): keep debug label upright when enemy rotates (Issue #383)
+623a989e docs: update case study with fifth investigation details
+1a85a53b debug: add rotation tracing to diagnose turn-away behavior (Issue #373)
+8a67952f Initial commit with task details
+d66ae9ab fix: face player directly in active combat states, use memory only for tracking (Issue #373)
+a4d06247 Revert "Initial commit with task details"
+8e7ddc84 docs: correct Session 4 root cause analysis (Issue #369)
+3f293ee1 docs: add case study for issue #349 enemy mechanics understanding
+eec71a55 fix: remove EnemyMemory typed reference to fix export build (Issue #369)
+696d9db2 refactor(enemy): condense grenade functions to stay under 5000 lines
+89269e73 Initial commit with task details
+b1a7e26c fix: remove class_name from BloodyFeetComponent to fix export build (Issue #369)
+8d561b52 fix: add player fallback in combat rotation to prevent turn-away (Issue #373)
+0db36fb8 Merge remote-tracking branch 'origin/main' into issue-369-523c173e52fb
+9658bc6e Merge main into issue-373 branch
+3ece1dca docs: add Session 3 bug investigation to case study (Issue #369)
+2f75d142 refactor(enemy): reduce enemy.gd to 4993 lines (below 5000 limit)
+502407f3 fix: prevent turn-away by using target position in combat rotation (Issue #373)
+df118510 Merge remote-tracking branch 'origin/main' into issue-369-523c173e52fb
+93ded010 feat: add coordinated search system with Voronoi-like partitioning (Issue #369)
+acd2d8f8 chore: remove AI solver configuration file
+cf2fb4e1 refactor: condense Issue #373 fix to stay under 5000 line limit
+0ea96d17 fix: skip FOV check in combat states to prevent turn-away behavior (Issue #373)
+f049dde1 Initial commit with task details
+858a4174 feat: implement player position prediction for enemy search (Issue #369)
+5367ede3 Revert "Initial commit with task details"
+d77e024e docs: add case study for Issue #369 - enemy search state with player prediction
+468e2091 Initial commit with task details
+34b1ead3 feat: restore floppy ragdoll effect for death animations
+81c12dd0 fix(enemy): cancel corner check when player has clear LOS #357
+7c58eac4 Auto-commit: Changes made by Claude during problem-solving session
+9173d4c5 fix(enemy): prevent turn-away on visibility loss and enhance corner scanning #357
+42c322af feat: add weapon persistence and quick restart cleanup
+a6a13441 fix: persist ragdoll bodies across scene reload using RagdollManager autoload
+404558b3 fix(enemy): implement target-aware corner checking for issue #357
+e4db8491 Merge remote-tracking branch 'upstream/main' into issue-267-6a8a83767bee
+d6d70db8 fix: disable respawn for test enemies to persist dead bodies
+c7680ef4 feat: add post-death bullet reactions for ragdoll bodies
+0ed9bf08 Revert "Initial commit with task details"
+b7c8284c docs: add case study analysis for issue #357
+814c8cb5 Initial commit with task details
+b2cbee18 fix: simplify caliber checking to prevent Resource type errors (Issue #341)
+4e78d8f6 chore: reduce enemy.gd to 4999 lines to pass CI check
+aee0b935 fix: resolve game crash from invalid .has() on Resource objects (Issue #341)
+38fe49de fix: resolve script errors breaking enemies
+a0e8d65b Merge upstream/main: resolve conflicts in enemy.gd
+eae2e9ef docs: update case study with Godot 4 Area2D detection issue (Issue #341)
+29d221e2 fix: improve casing kick detection with larger area and fallback (Issue #341)
+f2158606 docs: add user test game log for case study (Issue #341)
+a1bbd4f7 docs: update case study with implementation results (Issue #341)
+dc70a163 feat: implement interactive shell casings (Issue #341)
+fdbf1d50 Merge remote-tracking branch 'origin/main' into issue-341-9704ef182b3c
+d6c93cea Revert "Initial commit with task details"
+2a67db32 docs: add comprehensive case study for interactive shell casings (Issue #341)
+6e8a8775 Initial commit with task details
+ec4e47f7 docs: add case study analysis for grenade system debugging (Issue #304)
+239f85a9 feat: add grenade throwing system for enemies (Issue #304)
+36caf2ea Revert "Initial commit with task details"
+8c81707b fix: improve enemy sound detection at longer distances (Issue #337)
+c2a4b735 Initial commit with task details
+9d5ffe97 docs: add missing sounds root cause analysis to case study (issue #310)
+161ae4a2 fix: preserve GDScript type on grenade instantiation to enable method calls and sounds (issue #310)
+1b5c37b6 fix: add C# fallback to unfreeze grenade when GDScript method fails (issue #310)
+8737492a fix: remove flush() from per-frame logging to prevent game freezing (issue #310)
+2a86857f fix: add F8 grenade debug logging to C# Player (issue #310)
+d7b76431 Revert "Initial commit with task details"
+a6ba37dd feat: add detailed grenade throw debug logging (F8 toggle)
+a8435a32 Initial commit with task details
+36285602 docs: Update case study with CI fix details and FOV clarification
+99fcc86b fix: Reduce enemy.gd to 5000 lines (CI compliance) and improve FOV code clarity
+c666927c fix(grenade): critical triggers (low HP, suppressed) bypass distance check
+dce51968 Round 12: Fix rectangular blood puddles - correct fill_to parameter
+f5b2d1f4 fix: Correct FOV rotation, add smooth turning, and IDLE scanning behavior
+17d1a723 Round 11: Restore Round 5 complete gradient (RGB + alpha) for circular blood puddles
+a805614d feat(grenade): add continuous gunfire tracking for trigger #5
+fe64965c Round 10: Fix rectangular blood puddles - match Round 5 alpha progression
+baccdf60 docs: Add comprehensive case study for issue #66 with fixes
+7a771018 fix(grenade): add grenade throw checks to COMBAT, RETREATING, SEEKING_COVER states
+578b2e0e Round 9: Fix rectangular blood puddles regression
+0ed973be docs(case-study): add Godot cache persistence analysis
+829a00f4 Round 8: Fix rectangular blood puddles with smoother gradient
+fb5f2ba7 fix(tutorial): use correct Enemy.tscn instead of C# placeholder
+533f7752 Merge upstream main and fix enemy visibility issues
+443b341e refactor(tutorial): move tutorial enemy to Tutorial map (Обучение)
+ecc29433 Round 7: Flat matte blood drops, smaller puddles, better satellite placement
+aea77fbc feat(grenade): add ricochet calculation, cooldown scaling, and tutorial enemy
+4cdd9685 Round 6: Fix blood decal not visible - remove Unicode characters
+cefa8cc3 feat(enemy): add solo grenade throw before cover entry and normal difficulty flashbangs
+00608175 docs(case-study): add grenade throw fix analysis and new game logs
+8decadcf fix(grenade): improve wall-blocking detection for effective throws
+bc08bc15 Round 5: Fix rectangular blood drops - proper circular gradient
+39942573 docs(case-study): update issue #295 analysis with root cause resolution
+b1a0976c fix(scripts): resolve GDScript parse errors breaking enemy scripts
+246a1986 Round 4 blood effect improvements: circular drops, smooth color transitions, blood aging
+bd584738 debug(building-level): add comprehensive debug logging for enemy tracking
+e370e525 Round 3 blood effect improvements: edge scaling, no overlap, matte drops, unlimited decals
+69d0f8a0 docs: add case study for issue #295 (tactical grenade debug)
+be0c971f Revert "Initial commit with task details"
+c7a8654e refactor(enemy): condense doc comments to reduce file below 5000 lines
+b24bc785 Add case study documentation for issue #293
+44a580e1 Add realistic blood effects: satellite drops, complex merged puddles, crown effect
+8144be2c Fix wall-blocking and implement tactical grenade behaviors (issue #295)
+b98347f5 Merge remote-tracking branch 'origin/issue-273-56e967c72775' into issue-295-98a06014d84f
+def5b184 Initial commit with task details
+3a57225e Revert "Initial commit with task details"
+1992b185 Improve blood effects: match particle count, merge overlapping drops, add directional deformation
+a990de7e Initial commit with task details
+31b395eb Fix grenade throw distance, self-damage, and distribution bugs (issue #273)
+41f54552 Remove duplicate empty lines from enemy.gd to pass CI
+b4721f5a Fix grenade self-damage and debug display issues (issue #273)
+701c94f8 Merge remote-tracking branch 'origin/main' into issue-273-56e967c72775
+9723ca8f Fix grenade system not initializing due to Godot lifecycle timing
+66e7cd9e Refactor grenade throwing into component to fix CI line limit
+af4616f3 Implement tactical grenade throwing for enemies (issue #273)
+6638928b Add case study analysis for issue #273 (tactical grenade throwing)
+30fd6290 docs: add experiment script for death animation testing
+792dadd0 fix: prevent bodies from falling apart and disappearing
+bf3ea14b fix: adjust joint_bias for stiffer ragdoll joints
+e98b9581 Fix death animation issues: prevent bodies disappearing, adjust ragdoll collision, add animation speed for testing
+b1d3275e Add initial research data for issue 267
+e49e2687 Fix death animations: prevent bodies disappearing, add weapon-based variations, add test enemies
+af5d7a05 Revert "Initial commit with task details"
+2da83469 Initial commit with task details
+6d95dce0 Revert "Initial commit with task details"
+6b567ce4 Initial commit with task details
+03b8b926 Merge upstream/main into issue-249-3d784d6c86b3
+18fb8713 Add round elbow joint sprites to fix arm disconnection
+cd101a4c Merge upstream/main into issue-249-3d784d6c86b3
+a7461477 Fix arm joint disconnection by using sprite offset for shoulder pivot
+d0631e13 Revert "Initial commit with task details"
+d37603da Fix player model arm joint issues when walking with assault rifle
+27596fe9 Initial commit with task details
+1e92333b Merge remote-tracking branch 'origin/main' into issue-232-5205289e4453
+d1b48fe1 Fix CI workflow: use default Debug configuration for dotnet build
+2602e757 Add explicit C# build step to CI workflow, save user log
+946589b8 Fix shotgun reload: MMB held blocks bolt close, add version identifier
+bc60a5f0 Add deep case study analysis and comprehensive reload logging
+5436f843 Revert "Initial commit with task details"
+ce75ec15 Fix shotgun reload: bolt closes instead of loading shell
+3d18d47c Initial commit with task details
+0f0d3c19 Fix player orientation - rotate sprites 90° to face rifle direction
+d0aa6dbd Revert "Initial commit with task details"
+7ee92bc5 Update player model with tactical appearance and aim-based rotation
+48acabcc Initial commit with task details
+2583280b Добавлен звук на нажатие кнопки B (смена режима стрельбы)
+2941c339 Revert "Initial commit with task details"
+e8d5ebc2 Initial commit with task details
+d250a49b Add script loading diagnostics (static init, _init, version tracking)
+eb0ab1ba Add enhanced debugging and third log analysis for counter issues
+7c41b676 Update case study with counter issues investigation
+89a33df9 Add comprehensive FileLogger tracing to diagnose counter issues
+fccb7187 Update case study with ricochet/penetration scoring documentation
+801c70e4 Add ricochet and wall penetration scoring bonuses
+6dd5372b Merge upstream/main - integrate ricochet and penetration features
+6f55c58a Revert "Initial commit with task details"
+c8ce1caa Fix premature body_exited signal causing unexpected penetrations
+d6d4db0c Initial commit with task details
+518be634 Move FOV functionality to Experimental settings menu (disabled by default)
+22c0772f Fix cover tracking requiring direct visual confirmation
+2a22535f Add experimental FOV setting and fix cover tracking flickering
+6a46b7df Fix enemy shooting at player behind cover instead of exit points
+55a03996 Merge FOV implementation from PR #156 into cover aiming branch
+ef4afce9 Revert "Initial commit with task details"
+93f78344 Add cover exit aiming when player hides behind obstacles
+97630c52 Initial commit with task details
+e5cbebe4 Rotate enemies in BuildingLevel to face room entrances
+ae53de2f Revert "Initial commit with task details"
+422fbdd5 Add 100-degree field of view (FOV) limitation for enemies
+c5df3de0 Initial commit with task details
+e4bac9dd Replace hybrid blood system with fully procedural approach
+b4cc361e Fix blood effects: reduce spread, fix wall collision, add contextual patterns
+e9faad71 Revert "Initial commit with task details"
+99507e00 Fix assert_le to assert_true in blood particle tests
+28cf0719 Fix type inference in blood particle tests
+fe87d242 Enhance blood effects with wall collision and realistic physics
+da996e68 Initial commit with task details
+3b16f71b Fix missing SUPPORTING_OFFSET and SUPPORTING_ANGLE_OFFSET constants
+e9eaa7af Fix duplicate _suppression_timer variable declaration causing script parse error
+c02d9912 Fix duplicate is_alive() function definition causing script parse error
+2d52c5ff Fix critical syntax error in _process_flanking_state
+5ca16683 Revert "Initial commit with task details"
+c9a9b4b5 Add group tactical AI system with squad coordination
+04837b0d Initial commit with task details
+75007665 Fix duplicate function definitions causing enemy script compilation failure
+3ffb34ef Revert "Initial commit with task details"
+7ecd4281 Add coordinated flanking system for tactical squad maneuvers
+cf97174e Initial commit with task details
+865da13f Add debug logging for fire mode toggle sound and merge upstream
+8d0c6b60 Merge remote-tracking branch 'upstream/main' into issue-64-6db5a4a1532f
+5ac0c734 Use preload() for fire mode toggle sound to fix export issue
+846de4a1 Hide score UI by default, update case study with stale export diagnosis
+59151fb4 Address PR feedback: S rank, scoring balance, settings menu, debug logging
+7814f6f8 Revert "Initial commit with task details"
+f9958df1 Add Hotline Miami-style scoring system
+3cf5422e Initial commit with task details
+7401a7d1 Revert "Initial commit with task details"
+7814aed4 Fix COMBAT AI standing still and FLANKING rapid state cycling
+f5452f81 Initial commit with task details
+dde20080 Fix regression: restore PURSUING behavior when player escapes view
+17432a33 Revert "Initial commit with task details"
+8e924fb8 Add SEARCHING state for enemy AI search behavior
+5904996d Initial commit with task details
+814cee44 fix: Improve enemy movement and prevent getting stuck
+bf0d9c99 fix: Stop recalculating flank position every frame
+43401944 fix: Allow cover tracking to re-establish after flanking
+d6fd0de3 fix: Enemy now aims at cover edges instead of tracking player behind cover
+62f868e7 Revert "Initial commit with task details"
+7a1e423e Add cover-edge aiming when player hides behind obstacles
+d39bc5bc Initial commit with task details
+44d02d23 Fix fire mode toggle sound not playing in export
+9bd664a8 Remove CLAUDE.md task file
+760ced96 Add sound effect for fire mode toggle (B key)
+551c63ac Initial commit with task details
+cb527b68 Fix exe crash by removing unused C# resource file
+6e1ae7ad Update case study with additional C# export research
+8cb076bc Restore AssaultRifleData.tres to fix exe launch crash
+00a8f078 Fix C# resource errors, add gradual enemy rotation, and increase ammo
+302efdb6 Improve gameplay feel with faster speeds and progressive spread
+7f405fd6 Revert "Initial commit with task details"
+3c467b5c Implement ammo economy and balance for tactical arena
+ef066b73 Initial commit with task details

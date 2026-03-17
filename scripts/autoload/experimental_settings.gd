@@ -77,6 +77,10 @@ var all_weapons_unlocked: bool = false
 ## When disabled (default), levels must be unlocked by completing the previous level.
 var all_maps_unlocked: bool = false
 
+## Selected enemy type index for the enemy spawner (Issue #1112).
+## Persists the last chosen enemy type in the experimental menu across menu open/close and scene reloads.
+var selected_enemy_type_index: int = 0
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -277,6 +281,19 @@ func is_all_maps_unlocked() -> bool:
 	return all_maps_unlocked
 
 
+## Set selected enemy type index (Issue #1112).
+func set_selected_enemy_type_index(index: int) -> void:
+	if selected_enemy_type_index != index:
+		selected_enemy_type_index = index
+		_save_settings()
+		_log_to_file("Selected enemy type index set to %d" % index)
+
+
+## Get selected enemy type index (Issue #1112).
+func get_selected_enemy_type_index() -> int:
+	return selected_enemy_type_index
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -293,6 +310,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "fps_drop_logging_enabled", fps_drop_logging_enabled)
 	config.set_value("experimental", "all_weapons_unlocked", all_weapons_unlocked)
 	config.set_value("experimental", "all_maps_unlocked", all_maps_unlocked)
+	config.set_value("experimental", "selected_enemy_type_index", selected_enemy_type_index)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -316,6 +334,7 @@ func _load_settings() -> void:
 		fps_drop_logging_enabled = config.get_value("experimental", "fps_drop_logging_enabled", false)
 		all_weapons_unlocked = config.get_value("experimental", "all_weapons_unlocked", false)
 		all_maps_unlocked = config.get_value("experimental", "all_maps_unlocked", false)
+		selected_enemy_type_index = config.get_value("experimental", "selected_enemy_type_index", 0)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -331,6 +350,7 @@ func _load_settings() -> void:
 		fps_drop_logging_enabled = false
 		all_weapons_unlocked = false
 		all_maps_unlocked = false
+		selected_enemy_type_index = 0
 
 
 ## Log a message to the file logger if available.

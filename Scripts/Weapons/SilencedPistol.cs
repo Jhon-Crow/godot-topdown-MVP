@@ -740,6 +740,20 @@ public partial class SilencedPistol : BaseWeapon
             }
         }
 
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+            if (bullet != null)
+            {
+                bullet.IsDrillingBullet = true;
+            }
+            else
+            {
+                bulletNode.Call("set_is_drilling_bullet", true);
+            }
+        }
+
         GetTree().CurrentScene.AddChild(bulletNode);
 
         // Enable homing AFTER AddChild() - requires scene tree for physics raycasts (Issue #704, #781)

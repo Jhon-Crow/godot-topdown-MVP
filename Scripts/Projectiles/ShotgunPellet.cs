@@ -61,6 +61,15 @@ public partial class ShotgunPellet : Area2D
     [Export]
     public bool IsBreakerBullet { get; set; } = false;
 
+    /// <summary>
+    /// Whether this pellet ignores walls (Issue #751).
+    /// When true, the pellet passes through walls with full damage and no ricochet.
+    /// Set via Node.Set("is_drilling_bullet", true) by Shotgun.SpawnPelletWithOffset().
+    /// Exported to allow setting via snake_case name.
+    /// </summary>
+    [Export]
+    public bool IsDrillingBullet { get; set; } = false;
+
     // =========================================================================
     // Ricochet Configuration (Shotgun Pellet - limited to 35 degrees)
     // =========================================================================
@@ -644,6 +653,13 @@ public partial class ShotgunPellet : Area2D
             {
                 return;
             }
+        }
+
+        // Drilling pellets pass through walls completely (Issue #751)
+        // TileMapLayer is checked alongside TileMap for Godot 4.3+ compatibility
+        if (IsDrillingBullet && (body is StaticBody2D || body is TileMap || body is TileMapLayer))
+        {
+            return; // Wall ignored — pellet continues with full damage
         }
 
         // Try to ricochet off static bodies (walls/obstacles)
