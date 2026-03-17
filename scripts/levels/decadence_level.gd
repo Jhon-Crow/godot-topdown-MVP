@@ -398,6 +398,9 @@ func _setup_enemy_tracking() -> void:
 				child.died_with_info.connect(_on_enemy_died_with_info)
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
+		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
+		if child.has_signal("became_pacifist"):
+			child.became_pacifist.connect(_on_enemy_became_pacifist)
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
@@ -477,6 +480,26 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+func _on_enemy_became_pacifist() -> void:
+	# Issue #959: Pacifists count as eliminated for level completion
+	_current_enemy_count -= 1
+	_update_enemy_count_label()
+	_log_to_file("[DecadenceLevel] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 func _on_enemy_hit() -> void:

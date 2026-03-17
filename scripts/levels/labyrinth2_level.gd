@@ -421,6 +421,9 @@ func _setup_enemy_tracking() -> void:
 		if enemy.has_signal("died"):
 			enemy.died.connect(_on_enemy_died)
 			_enemies.append(enemy)
+		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
+		if enemy.has_signal("became_pacifist"):
+			enemy.became_pacifist.connect(_on_enemy_became_pacifist)
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -508,6 +511,27 @@ func _on_enemy_died() -> void:
 		_level_cleared = true
 		_activate_exit_zone()
 		print("[Labyrinth2Level] All enemies eliminated! Go to exit.")
+
+
+## Called when an enemy becomes a pacifist (Issue #959).
+func _on_enemy_became_pacifist() -> void:
+	_current_enemy_count -= 1
+	_update_enemy_count_label()
+	print("[Labyrinth2Level] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		_level_cleared = true
+		_activate_exit_zone()
+		print("[Labyrinth2Level] All enemies eliminated or pacified! Go to exit.")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 ## Called by GameManager when an enemy is killed (for score tracking).

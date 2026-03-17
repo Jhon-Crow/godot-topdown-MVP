@@ -226,47 +226,61 @@ func test_hostility_level5_is_zero() -> void:
 # ============================================================================
 
 
+## Helper: simulate completing a level with all charges used.
+func _complete_level_full(had_kills: bool) -> void:
+	progress.all_charges_used_this_level = true
+	progress.on_level_completed(had_kills)
+	progress.reset_for_new_level()
+
+
 func test_complete_one_level_with_kills_advances_to_level2() -> void:
 	watch_signals(progress)
-	progress.on_level_completed(true)
+	_complete_level_full(true)
 	assert_eq(progress.current_level, 2,
-		"Completing 1 level with kills should advance to level 2")
+		"Completing 1 level (all charges used) with kills should advance to level 2")
 	assert_signal_emitted(progress, "level_changed")
 
 
+func test_level_does_not_advance_without_all_charges_used() -> void:
+	# Do NOT set all_charges_used_this_level
+	progress.on_level_completed(true)
+	assert_eq(progress.current_level, 1,
+		"Level should NOT advance if not all charges were used")
+
+
 func test_complete_two_levels_advances_to_level3() -> void:
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
 	assert_eq(progress.current_level, 3,
-		"Completing 2 levels should advance to level 3")
+		"Completing 2 levels (all charges used each time) should advance to level 3")
 
 
 func test_complete_three_levels_advances_to_level4() -> void:
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
 	assert_eq(progress.current_level, 4,
 		"Completing 3 levels should advance to level 4")
 
 
 func test_completing_level_without_kills_unlocks_level6() -> void:
 	# First reach level 5 (need 4 completed levels)
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
 	assert_eq(progress.current_level, 5)
-	# Now complete a level without kills
-	progress.on_level_completed(false)
+	# Now complete a level without kills (all charges used)
+	_complete_level_full(false)
 	assert_eq(progress.current_level, 6,
-		"Completing a level without kills should trigger level 6")
+		"Completing a level without kills (all charges used) should trigger level 6")
 
 
 func test_pacifist_level_jumps_to_6_directly() -> void:
-	# Even at level 1, completing pacifist advances to 6
-	progress.on_level_completed(false)
+	# Even at level 1, completing pacifist (all charges used) advances to 6
+	_complete_level_full(false)
 	assert_eq(progress.current_level, 6,
-		"Completing any level without kills should jump to level 6")
+		"Completing any level without kills (all charges used) should jump to level 6")
 
 
 func test_killing_immune_enemy_advances_to_level7() -> void:
@@ -278,14 +292,14 @@ func test_killing_immune_enemy_advances_to_level7() -> void:
 func test_level_capped_at_5_via_normal_completion() -> void:
 	# Complete 10 levels — should cap at 5 (not 6), since no pacifist run
 	for i in range(10):
-		progress.on_level_completed(true)
+		_complete_level_full(true)
 	assert_eq(progress.current_level, 5,
 		"Normal completion path caps at level 5")
 
 
 func test_level_changed_signal_emitted_on_advancement() -> void:
 	watch_signals(progress)
-	progress.on_level_completed(true)
+	_complete_level_full(true)
 	assert_signal_emitted(progress, "level_changed",
 		"level_changed signal should fire when level increases")
 
@@ -295,6 +309,8 @@ func test_level_changed_signal_not_emitted_when_no_change() -> void:
 	progress.current_level = 5
 	progress.levels_completed_with_loudspeaker = 10
 	watch_signals(progress)
+	# Call with all_charges_used = true (so on_level_completed runs), but level is already at max
+	progress.all_charges_used_this_level = true
 	progress.on_level_completed(true)
 	assert_signal_not_emitted(progress, "level_changed",
 		"level_changed should not fire when level stays the same")
@@ -378,8 +394,8 @@ func test_to_dict_contains_expected_keys() -> void:
 
 func test_from_dict_restores_level() -> void:
 	var other := LoudspeakerProgress.new()
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
 	var data: Dictionary = progress.to_dict()
 	other.from_dict(data)
 	assert_eq(other.current_level, progress.current_level,
@@ -388,9 +404,9 @@ func test_from_dict_restores_level() -> void:
 
 func test_from_dict_restores_levels_completed() -> void:
 	var other := LoudspeakerProgress.new()
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
-	progress.on_level_completed(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
+	_complete_level_full(true)
 	var data: Dictionary = progress.to_dict()
 	other.from_dict(data)
 	assert_eq(other.levels_completed_with_loudspeaker, 3,
@@ -399,7 +415,7 @@ func test_from_dict_restores_levels_completed() -> void:
 
 func test_from_dict_restores_pacifist_flag() -> void:
 	var other := LoudspeakerProgress.new()
-	progress.on_level_completed(false)  # No kills — pacifist run
+	_complete_level_full(false)  # No kills — pacifist run
 	var data: Dictionary = progress.to_dict()
 	other.from_dict(data)
 	assert_true(other.has_completed_pacifist_level,
@@ -472,3 +488,40 @@ func test_no_immune_enemy_at_level7() -> void:
 	progress.current_level = 7
 	assert_false(progress.has_immune_enemy(),
 		"Level 7 should not have an immune enemy (already killed)")
+
+
+# ============================================================================
+# All Charges Used Gate
+# ============================================================================
+
+
+func test_all_charges_used_set_on_last_charge() -> void:
+	progress.use()  # 1 of 2 used
+	assert_false(progress.all_charges_used_this_level,
+		"all_charges_used should be false after 1 of 2 charges used")
+	progress.use()  # 2 of 2 used
+	assert_true(progress.all_charges_used_this_level,
+		"all_charges_used should be true after all charges used")
+
+
+func test_level_does_not_advance_if_charges_not_exhausted() -> void:
+	# Only use 1 of 2 charges, then complete level
+	progress.use()
+	progress.on_level_completed(true)
+	assert_eq(progress.current_level, 1,
+		"Level should NOT advance if player didn't exhaust all charges")
+
+
+func test_all_charges_used_resets_on_respawn() -> void:
+	progress.all_charges_used_this_level = true
+	progress.reset_for_respawn()
+	assert_false(progress.all_charges_used_this_level,
+		"reset_for_respawn should clear all_charges_used (new run required)")
+
+
+func test_level4_unlimited_counts_as_all_used_after_first_activation() -> void:
+	progress.current_level = 4
+	progress.charges_remaining = -1
+	progress.use()
+	assert_true(progress.all_charges_used_this_level,
+		"Unlimited level: all_charges_used should be true after any activation")

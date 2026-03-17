@@ -595,13 +595,23 @@ func _on_enemy_became_pacifist() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies neutralized! Arena cleared!")
 		var replay_manager: Node = _get_or_create_replay_manager()
 		if replay_manager and replay_manager.has_method("StopRecording"):
 			replay_manager.StopRecording()
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 ## Called when an enemy is hit (for accuracy tracking).

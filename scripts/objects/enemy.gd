@@ -348,6 +348,8 @@ var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas comp
 
 ## [Pacifism - Issue #959] Loudspeaker effect component
 var _pacifist: PacifistComponent = null  ## Pacifism state management
+## Set of pacifist enemies already evaluated for pacifism-spreading (Level 5+). Prevents re-rolling every frame.
+var _evaluated_pacifists: Array = []
 var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
@@ -841,6 +843,7 @@ func _physics_process(delta: float) -> void:
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _teleport_component: _teleport_component.update(delta)  # Issue #752: Advance teleport cooldown
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
+	_check_pacifism_spread()  # Issue #959: Level 5+ — spread pacifism on first sight of a pacifist
 
 	if _waiting_for_grenadier:  # Issue #604: Allies wait for grenadier's grenade
 		_grenadier_wait_timer -= delta
@@ -1314,7 +1317,8 @@ func _process_ai_state(delta: float) -> void:
 	# GRENADE THROW PRIORITY (Issue #363): Check if we should throw a grenade.
 	# Grenades are thrown based on 6 trigger conditions (see trigger-conditions.md).
 	# This takes priority over normal state actions when conditions are met.
-	if _goap_world_state.get("ready_to_throw_grenade", false):
+	# Issue #959: Pacifists do not throw grenades.
+	if _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
 		if try_throw_grenade():
 			# Grenade was thrown - return early to skip normal state processing this frame
 			return
@@ -2781,11 +2785,77 @@ func apply_pacifism(hc: float = 0.5) -> bool:
 
 func was_attacked_by_player() -> bool: return _hits_taken_in_encounter > 0 or _in_alarm_mode
 func is_pacifist() -> bool: return _pacifist.is_pacifist if _pacifist else false
+## Returns true if this pacifist is currently retaliating (temporarily attacking back after being hit).
+## A retaliating enemy is still a threat — level should not complete while any enemy retaliates.
+func is_retaliating() -> bool: return _pacifist.is_retaliating() if _pacifist else false
 func is_immune_to_pacifism() -> bool: return _pacifist.is_immune if _pacifist else false
 func set_immune_to_pacifism(immune: bool) -> void:
 	if _pacifist: _pacifist.set_immune(immune); if immune: _log_to_file("Enemy immune to pacifism")
-func on_new_pacifist_created(_e: Node2D, _c: float) -> void:
-	if _pacifist and _pacifist.is_pacifist: return
+## Called when a nearby enemy becomes pacifist via loudspeaker (Issue #959).
+## @param pacifist_enemy: The enemy that became pacifist.
+## @param hostility_chance: Per-level probability (0.0-1.0) that this enemy becomes hostile to the pacifist.
+## Hostility is determined per-enemy at the moment of pacifism creation (permanent relation).
+func on_new_pacifist_created(pacifist_enemy: Node2D, hostility_chance: float) -> void:
+	if not _is_alive: return
+	if _pacifist and _pacifist.is_pacifist: return  # Already pacifist - no hostility reaction
+	if hostility_chance <= 0.0: return
+
+	# Each enemy independently rolls hostility toward this pacifist
+	if randf() < hostility_chance:
+		_log_to_file("[#959] Hostile toward new pacifist at %s (chance=%.0f%%)" % [
+			pacifist_enemy.global_position, hostility_chance * 100.0
+		])
+		# Direct aggression toward the pacifist's position
+		_last_known_player_position = pacifist_enemy.global_position
+		_in_alarm_mode = true
+		if _current_state != AIState.COMBAT:
+			_transition_to_combat()
+		_log_to_file("[#959] Now pursuing pacifist")
+
+## Level 5+ pacifism spread: when this enemy first sees a pacifist (line of sight),
+## it rolls effect_chance to become pacifist itself (Issue #959).
+## Called each physics frame. Uses _evaluated_pacifists to avoid re-rolling.
+func _check_pacifism_spread() -> void:
+	if not _is_alive: return
+	if _pacifist and _pacifist.is_pacifist: return  # Already pacifist
+
+	# Check if loudspeaker is equipped and at level 5+
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim == null or not aim.has_method("has_loudspeaker") or not aim.has_loudspeaker():
+		return
+	var lp: LoudspeakerProgress = aim.get("loudspeaker_progress") if aim else null
+	if lp == null or not lp.can_pacifism_spread():
+		return
+
+	var spread_chance: float = lp.get_effect_chance()
+
+	# Scan for pacifist enemies we haven't evaluated yet
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e) or e == self: continue
+		if not e.has_method("is_pacifist") or not e.is_pacifist(): continue
+		if e in _evaluated_pacifists: continue  # Already evaluated this pacifist
+
+		# Mark as evaluated (regardless of outcome — relation fixed at first sight)
+		_evaluated_pacifists.append(e)
+
+		# Check direct line of sight to this pacifist
+		var space_state := get_world_2d().direct_space_state
+		var ray := PhysicsRayQueryParameters2D.new()
+		ray.from = global_position
+		ray.to = e.global_position
+		ray.collision_mask = 4  # Wall layer
+		ray.exclude = [self]
+		var hit := space_state.intersect_ray(ray)
+		if not hit.is_empty():
+			continue  # Wall in the way — no line of sight
+
+		# Roll pacifism spread
+		if randf() < spread_chance:
+			_log_to_file("[#959] Pacifism spread from %s (chance=%.0f%%)" % [
+				e.global_position, spread_chance * 100.0
+			])
+			apply_pacifism(0.0)  # No additional hostility from spread
+
 
 ## Alert this enemy that the loudspeaker was used (Issue #959).
 ## Per spec: all enemies on the map hear the player when the loudspeaker is activated.
@@ -4332,6 +4402,15 @@ func _on_death() -> void:
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
+
+	# Issue #959: If this was the immune enemy (Level 6), notify loudspeaker progress → triggers Level 7
+	if _pacifist and _pacifist.is_immune:
+		var aim: Node = get_node_or_null("/root/ActiveItemManager")
+		if aim and aim.has_method("has_loudspeaker") and aim.has_loudspeaker():
+			var lp: LoudspeakerProgress = aim.get("loudspeaker_progress") if aim else null
+			if lp:
+				lp.on_immune_enemy_killed()
+				_log_to_file("[#959] Immune enemy killed — loudspeaker progress updated to Level %d" % lp.current_level)
 	var pfm = get_node_or_null("/root/PowerFantasyEffectsManager")  # Issue #492: Power Fantasy effect
 	if pfm and pfm.has_method("on_enemy_killed"): pfm.on_enemy_killed()
 	_notify_nearby_enemies_of_death()  # Issue #409

@@ -4022,6 +4022,10 @@ func _init_loudspeaker() -> void:
 		_loudspeaker_progress.all_charges_used_this_level
 	])
 
+	# Apply level start states for levels 6 and 7 (Issue #959)
+	if _loudspeaker_progress.should_start_with_pacifists() or _loudspeaker_progress.is_victory_state():
+		call_deferred("_apply_loudspeaker_level_start_state")
+
 
 ## Handle loudspeaker input: press Space to emit sound cone (Issue #959).
 func _handle_loudspeaker_input() -> void:
@@ -4204,6 +4208,77 @@ func _alert_all_enemies_loudspeaker() -> void:
 			enemy.alert(global_position)
 			alerted += 1
 	FileLogger.info("[Player.Loudspeaker] Alerted %d enemies" % alerted)
+
+
+## Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
+## Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
+## Level 7: ALL enemies start as pacifists; show victory message.
+## Called deferred from _init_loudspeaker so all enemy nodes are ready.
+func _apply_loudspeaker_level_start_state() -> void:
+	if _loudspeaker_progress == null:
+		return
+
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return
+
+	if _loudspeaker_progress.is_victory_state():
+		# Level 7: ALL enemies become pacifists
+		FileLogger.info("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!")
+		for enemy in enemies:
+			if enemy.has_method("apply_pacifism") and enemy.has_method("is_alive") and enemy.is_alive():
+				enemy.apply_pacifism(0.0)
+		# Show victory message via a label in the UI
+		_show_loudspeaker_victory_message()
+
+	elif _loudspeaker_progress.should_start_with_pacifists():
+		# Level 6: 50% enemies start as pacifists; designate 1 as immune
+		var alive_enemies: Array = []
+		for enemy in enemies:
+			if enemy.has_method("is_alive") and enemy.is_alive():
+				alive_enemies.append(enemy)
+
+		# Pick 1 random immune enemy first (before pacifying others)
+		if not alive_enemies.is_empty() and _loudspeaker_progress.has_immune_enemy():
+			var immune_idx := randi() % alive_enemies.size()
+			var immune_enemy: Node = alive_enemies[immune_idx]
+			if immune_enemy.has_method("set_immune_to_pacifism"):
+				immune_enemy.set_immune_to_pacifism(true)
+				FileLogger.info("[Player.Loudspeaker] Level 6: enemy at %s is immune to pacifism" % immune_enemy.global_position)
+			alive_enemies.remove_at(immune_idx)
+
+		# Pacify 50% of remaining enemies
+		alive_enemies.shuffle()
+		var pacify_count: int = int(alive_enemies.size() * 0.5)
+		var pacified := 0
+		for i in range(pacify_count):
+			var enemy: Node = alive_enemies[i]
+			if enemy.has_method("apply_pacifism"):
+				enemy.apply_pacifism(0.0)
+				pacified += 1
+		FileLogger.info("[Player.Loudspeaker] Level 6: %d/%d enemies start as pacifists" % [pacified, alive_enemies.size() + 1])
+
+
+## Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+func _show_loudspeaker_victory_message() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.name = "LoudspeakerVictoryCanvas"
+	canvas.layer = 100
+	add_child(canvas)
+
+	var label := Label.new()
+	label.text = "Все враги теперь пацифисты.\nВы победили без единого выстрела.\nСпасибо за игру!"
+	label.add_theme_font_size_override("font_size", 36)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_preset(Control.PRESET_CENTER)
+	label.set_anchor(SIDE_LEFT, 0.0)
+	label.set_anchor(SIDE_RIGHT, 1.0)
+	label.set_anchor(SIDE_TOP, 0.3)
+	label.set_anchor(SIDE_BOTTOM, 0.7)
+	canvas.add_child(label)
+
+	FileLogger.info("[Player.Loudspeaker] Victory message shown (Level 7)")
 
 
 ## Check if the loudspeaker is equipped (Issue #959).

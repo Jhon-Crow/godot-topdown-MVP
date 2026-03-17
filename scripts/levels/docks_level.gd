@@ -542,10 +542,20 @@ func _on_enemy_became_pacifist() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 	print("[Docks] Enemy became pacifist - counting as eliminated")
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated or pacified! Level cleared!")
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 func _on_enemy_hit() -> void:
