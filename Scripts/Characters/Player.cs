@@ -2504,8 +2504,21 @@ public partial class Player : BaseCharacter
         if (_armoredSkinActive && HealthComponent.CurrentHealth <= 2)
         {
             _armoredSkinActive = false;
+            _armoredSkinImmune = true;
             SpawnArmoredSkinShards();
-            // Absorb the hit — triggering projectile deals no damage
+            // Start 0.1s immunity window to absorb remaining calls from multi-hit explosions.
+            // Explosion sources (GrenadeTimer, BreakerDetonation) call on_hit_with_info in a
+            // loop (up to 99 times) — all calls after the trigger must also be absorbed (Issue #1095).
+            GetTree().CreateTimer(0.1f).Timeout += () => _armoredSkinImmune = false;
+            // Absorb the triggering hit — no damage applied
+            return;
+        }
+
+        // Absorb damage while post-trigger immunity is active (Issue #1095).
+        // This covers the remaining loop iterations from multi-hit explosion damage.
+        if (_armoredSkinImmune)
+        {
+            LogToFile("[Player.ArmoredSkin] Damage absorbed by post-trigger immunity");
             return;
         }
 
@@ -5868,6 +5881,15 @@ public partial class Player : BaseCharacter
     /// When true, 20 glass/crystal shards will be spawned when player is at ≤2 HP and hit.
     /// </summary>
     private bool _armoredSkinActive = false;
+
+    /// <summary>
+    /// Whether armored skin post-trigger immunity is active (Issue #1095).
+    /// Set to true when shards are spawned; cleared after 0.1 seconds.
+    /// Absorbs all subsequent damage calls from the same multi-hit explosion event
+    /// (e.g., GrenadeTimer calls on_hit_with_info 99 times in a loop — only the first
+    /// triggers shards, but all remaining calls must also be absorbed).
+    /// </summary>
+    private bool _armoredSkinImmune = false;
 
     /// <summary>
     /// Path to the ArmoredSkinShard scene.
