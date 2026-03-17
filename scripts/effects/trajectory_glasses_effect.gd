@@ -40,6 +40,13 @@ const INVALID_RICOCHET_COLOR: Color = Color(1.0, 0.0, 0.0, 0.8)  # Bright red
 ## Maximum ricochet angle in degrees (same as bullet.gd DEFAULT_MAX_RICOCHET_ANGLE).
 const MAX_RICOCHET_ANGLE: float = 90.0
 
+## Low time warning threshold in seconds — trajectory ray starts blinking below this value.
+## Matches the force field LOW_CHARGE_WARNING pattern (Issue #1049).
+const LOW_TIME_WARNING: float = 2.0
+
+## Flash frequency when time is low (Hz).
+const WARNING_FLASH_FREQUENCY: float = 3.0
+
 ## Activation sound path.
 const ACTIVATION_SOUND_PATH: String = "res://assets/audio/trajectory_glasses_activate.wav"
 
@@ -66,6 +73,13 @@ var _viewport_diagonal: float = 2203.0
 
 ## Audio player for activation sounds.
 var _audio_player: AudioStreamPlayer = null
+
+## Warning flash timer for the trajectory ray (Issue #1049).
+var _warning_flash_timer: float = 0.0
+
+## Whether the trajectory ray should be visible this frame (used for blinking, Issue #1049).
+## True when time is not low, or when in the "on" phase of the blink cycle.
+var trajectory_ray_visible: bool = true
 
 ## Trajectory points in LOCAL player coordinates (for player._draw()).
 ## Updated every frame when active.
@@ -172,6 +186,8 @@ func deactivate() -> void:
 
 	is_active = false
 	_effect_timer = 0.0
+	_warning_flash_timer = 0.0
+	trajectory_ray_visible = true
 
 	# Clear trajectory points so player._draw() stops rendering
 	trajectory_local_points.clear()
@@ -205,6 +221,16 @@ func _process(delta: float) -> void:
 
 	# Update trajectory visualization every frame
 	_update_trajectory()
+
+	# Blink the trajectory ray when time is low (Issue #1049).
+	# Mirrors the force field LOW_CHARGE_WARNING flash pattern.
+	if _effect_timer <= LOW_TIME_WARNING:
+		_warning_flash_timer += delta
+		var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
+		trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
+	else:
+		_warning_flash_timer = 0.0
+		trajectory_ray_visible = true
 
 	# Request player redraw so _draw() picks up new trajectory points
 	if _player and is_instance_valid(_player):
