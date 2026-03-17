@@ -714,6 +714,13 @@ public partial class SniperRifle : BaseWeapon
 
         if (result)
         {
+            // Decrement drilling bullets counter for hitscan shot (Issue #751)
+            // base.SpawnBullet() is skipped (_skipBulletSpawn=true), so we must do this manually.
+            if (DrillingBulletsRemaining > 0)
+            {
+                DrillingBulletsRemaining--;
+            }
+
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
             _hasCasingToEject = true;
@@ -903,8 +910,16 @@ public partial class SniperRifle : BaseWeapon
                 continue;
             }
 
-            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            if (hitCollider is StaticBody2D || hitCollider is TileMap || hitCollider is TileMapLayer)
             {
+                // Drilling bullets pass through walls in dry-run (Issue #751)
+                if (DrillingBulletsRemaining > 0)
+                {
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
                 if (wallsPenetrated < MaxWallPenetrations)
                 {
                     wallsPenetrated++;
@@ -985,7 +1000,7 @@ public partial class SniperRifle : BaseWeapon
             }
 
             // Breaker: stop BreakerDetonationDistance before first wall
-            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            if (hitCollider is StaticBody2D || hitCollider is TileMap || hitCollider is TileMapLayer)
             {
                 Vector2 detonationPoint = hitPosition - direction * BreakerDetonationDistance;
                 return detonationPoint;
@@ -1195,8 +1210,17 @@ public partial class SniperRifle : BaseWeapon
             }
 
             // Check if this is a wall/obstacle
-            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            if (hitCollider is StaticBody2D || hitCollider is TileMap || hitCollider is TileMapLayer)
             {
+                // Drilling bullets pass through walls completely (Issue #751)
+                if (DrillingBulletsRemaining > 0)
+                {
+                    GD.Print($"[SniperRifle] Drilling hitscan: passing through wall at {hitPosition}");
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
                 // Spawn dust effect at wall hit point
                 SpawnWallHitEffectAt(hitPosition, direction);
 
@@ -1374,7 +1398,7 @@ public partial class SniperRifle : BaseWeapon
             }
 
             // Wall/obstacle: trigger breaker detonation
-            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            if (hitCollider is StaticBody2D || hitCollider is TileMap || hitCollider is TileMapLayer)
             {
                 // Detonation point is 60px before the wall (or at current pos if too close)
                 float distToWall = currentPos.DistanceTo(hitPosition);

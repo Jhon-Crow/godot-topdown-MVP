@@ -156,6 +156,11 @@ var _homing_aim_direction: Vector2 = Vector2.ZERO
 ## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
 var is_breaker_bullet: bool = false
 
+## Whether this bullet ignores walls (Issue #751).
+## When true, the bullet passes through walls with full damage and no ricochet.
+## Set via BaseWeapon.SpawnBullet() → bullet.Call("set_is_drilling_bullet", true).
+var is_drilling_bullet: bool = false
+
 ## Whether this bullet penetrates through enemies (Issue #829).
 ## When true, the bullet deals damage to enemies but continues flying through them.
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
@@ -376,6 +381,11 @@ func _on_body_entered(body: Node2D) -> void:
 	if _is_inside_penetration_hole():
 		_log_penetration("Inside existing penetration hole, passing through")
 		return
+
+	# Drilling bullets pass through walls completely (Issue #751)
+	# StaticBody2D covers hand-crafted walls; TileMap/TileMapLayer cover tile-based levels
+	if is_drilling_bullet and (body is StaticBody2D or body is TileMap or body is TileMapLayer):
+		return  # Wall ignored — bullet continues with full damage
 
 	# Hit a static body (wall or obstacle) or alive enemy body
 	# Try to ricochet off static bodies (walls/obstacles)
@@ -1117,6 +1127,12 @@ func set_stun_duration(duration: float) -> void:
 ## NOTE: Call this BEFORE AddChild() so _ready() loads the shrapnel scene.
 func set_is_breaker_bullet(is_breaker: bool) -> void:
 	is_breaker_bullet = is_breaker
+
+
+## Sets whether this bullet ignores walls (Issue #751).
+## Called by BaseWeapon.SpawnBullet() when DrillingBulletsRemaining > 0.
+func set_is_drilling_bullet(drilling: bool) -> void:
+	is_drilling_bullet = drilling
 
 
 ## Sets whether this bullet penetrates through enemies (Issue #829).
