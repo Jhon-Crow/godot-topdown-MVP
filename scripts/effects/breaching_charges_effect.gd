@@ -1,5 +1,5 @@
 extends Node
-## Breaching charges active item effect controller (Issue #1043).
+## Breaching charges active item effect controller (Issues #1043, #1087).
 ##
 ## Manages the breaching charge placement and detonation mechanics.
 ## The player holds Space near a wall to attach a charge; releasing Space
@@ -10,19 +10,24 @@ extends Node
 ## - 2 charges per battle (resets on level restart)
 ## - Hold Space near a wall → charge attaches to the nearest wall surface
 ## - Once a charge is placed, press Space to detonate
-## - Detonation disables the wall's collision (creates passage) in a small radius
+## - Detonation carves a BREACH_PASSAGE_WIDTH passage in the wall (Issue #1087 item 5)
+##   — long thin walls are split into two remaining segments; only short walls disappear
 ## - Enemies within STUN_RADIUS on the far side of the wall are stunned + blinded for 3 s
 ##
-## Visual features (Issue #1043):
+## Visual features (Issues #1043, #1087):
 ## - While holding Space: breaching charge sprite appears in player's hands
-## - After placement: charge marker remains on the wall surface
-## - On detonation: cone-shaped explosion toward the wall
+## - After placement: realistic C4-like composite marker with blinking LED (Issue #1087 item 2)
+## - On detonation: directional cone explosion toward the wall (Issue #1087 item 1)
 
 ## Maximum charges per battle.
 const MAX_CHARGES: int = 2
 
 ## Radius to search for a wall when placing a charge (pixels).
 const PLACEMENT_RADIUS: float = 40.0
+
+## Width of the passage carved through a wall (pixels).
+## Walls shorter than this in both dimensions will be removed entirely.
+const BREACH_PASSAGE_WIDTH: float = 56.0
 
 ## Stun/blind radius from detonation point (pixels).
 const STUN_RADIUS: float = 150.0
@@ -269,33 +274,211 @@ func _find_nearest_wall_with_hit() -> Dictionary:
 	return {"wall": nearest_wall, "hit_pos": nearest_hit_pos, "direction": nearest_dir}
 
 
-## Disable the wall node's collision shape to create a passable opening.
+## Carve a passage through the wall at the breach position.
+## For long walls this splits the wall into two segments with a gap.
+## For short walls (smaller than BREACH_PASSAGE_WIDTH) the wall is removed entirely.
+## Issue #1087: long thin walls must not disappear completely — only a passage is carved.
 func _open_wall_passage(wall: Node) -> void:
 	if wall == null or not is_instance_valid(wall):
 		FileLogger.info("[BreachingCharges] WARNING: Wall reference invalid at detonation")
 		return
 
-	# Disable all CollisionShape2D children of the wall StaticBody2D
-	var disabled_count := 0
+	# Find the first RectangleShape2D collision child to determine wall dimensions
+	var col_shape: CollisionShape2D = null
 	for child in wall.get_children():
-		if child is CollisionShape2D:
-			(child as CollisionShape2D).disabled = true
-			disabled_count += 1
-		elif child is CollisionPolygon2D:
-			(child as CollisionPolygon2D).disabled = true
-			disabled_count += 1
+		if child is CollisionShape2D and (child as CollisionShape2D).shape is RectangleShape2D:
+			col_shape = child as CollisionShape2D
+			break
 
-	if disabled_count > 0:
-		FileLogger.info("[BreachingCharges] Opened passage: disabled %d collision shape(s) on '%s'" % [
-			disabled_count, wall.name
+	# If no RectangleShape2D found, fall back to disabling all shapes (old behaviour)
+	if col_shape == null:
+		var disabled_count := 0
+		for child in wall.get_children():
+			if child is CollisionShape2D:
+				(child as CollisionShape2D).disabled = true
+				disabled_count += 1
+			elif child is CollisionPolygon2D:
+				(child as CollisionPolygon2D).disabled = true
+				disabled_count += 1
+		for child in wall.get_children():
+			if child is CanvasItem:
+				(child as CanvasItem).visible = false
+		FileLogger.info("[BreachingCharges] Fallback: disabled all shapes on '%s'" % wall.name)
+		return
+
+	var rect_shape: RectangleShape2D = col_shape.shape as RectangleShape2D
+	var wall_size: Vector2 = rect_shape.size  # full width x height
+
+	# Breach point in wall-local coordinates
+	var breach_world: Vector2 = _charge_position
+	var breach_local: Vector2 = wall.to_local(breach_world)
+
+	# Half-sizes for convenience
+	var half_w: float = wall_size.x * 0.5
+	var half_h: float = wall_size.y * 0.5
+	var half_breach: float = BREACH_PASSAGE_WIDTH * 0.5
+
+	# Determine orientation: horizontal (wide) vs vertical (tall)
+	# and which axis to split along
+	var is_horizontal: bool = wall_size.x >= wall_size.y  # wide wall → split along X
+
+	if is_horizontal:
+		# Clamp breach center to wall interior
+		var bx: float = clamp(breach_local.x, -half_w + half_breach, half_w - half_breach)
+		var left_end: float = bx - half_breach    # right edge of left segment
+		var right_start: float = bx + half_breach  # left edge of right segment
+
+		var left_width: float = left_end + half_w   # from -half_w to left_end
+		var right_width: float = half_w - right_start  # from right_start to half_w
+
+		if left_width < 8.0 and right_width < 8.0:
+			# Wall is short — remove entirely
+			col_shape.disabled = true
+			_hide_wall_visuals(wall)
+			FileLogger.info("[BreachingCharges] Short wall '%s' removed entirely" % wall.name)
+			return
+
+		# Disable the original shape
+		col_shape.disabled = true
+
+		# Spawn left segment if large enough
+		if left_width >= 8.0:
+			var left_shape := RectangleShape2D.new()
+			left_shape.size = Vector2(left_width, wall_size.y)
+			var left_col := CollisionShape2D.new()
+			left_col.shape = left_shape
+			# Center the segment: its center is at -half_w + left_width/2
+			left_col.position = Vector2(-half_w + left_width * 0.5, 0.0)
+			wall.add_child(left_col)
+
+		# Spawn right segment if large enough
+		if right_width >= 8.0:
+			var right_shape := RectangleShape2D.new()
+			right_shape.size = Vector2(right_width, wall_size.y)
+			var right_col := CollisionShape2D.new()
+			right_col.shape = right_shape
+			right_col.position = Vector2(half_w - right_width * 0.5, 0.0)
+			wall.add_child(right_col)
+
+		# Update visuals: split the ColorRect / hide breach section
+		_split_visual_horizontal(wall, breach_local.x, half_w, half_h)
+
+		FileLogger.info("[BreachingCharges] Horizontal passage carved in '%s' at local x=%.0f (passage %.0fpx)" % [
+			wall.name, bx, BREACH_PASSAGE_WIDTH
 		])
 	else:
-		FileLogger.info("[BreachingCharges] WARNING: No collision shapes found on wall '%s'" % wall.name)
+		# Vertical wall — split along Y
+		var by: float = clamp(breach_local.y, -half_h + half_breach, half_h - half_breach)
+		var top_end: float = by - half_breach
+		var bottom_start: float = by + half_breach
 
-	# Also hide any Sprite2D / Polygon2D visuals on the wall for visual feedback
+		var top_height: float = top_end + half_h
+		var bottom_height: float = half_h - bottom_start
+
+		if top_height < 8.0 and bottom_height < 8.0:
+			col_shape.disabled = true
+			_hide_wall_visuals(wall)
+			FileLogger.info("[BreachingCharges] Short wall '%s' removed entirely" % wall.name)
+			return
+
+		col_shape.disabled = true
+
+		if top_height >= 8.0:
+			var top_shape := RectangleShape2D.new()
+			top_shape.size = Vector2(wall_size.x, top_height)
+			var top_col := CollisionShape2D.new()
+			top_col.shape = top_shape
+			top_col.position = Vector2(0.0, -half_h + top_height * 0.5)
+			wall.add_child(top_col)
+
+		if bottom_height >= 8.0:
+			var bot_shape := RectangleShape2D.new()
+			bot_shape.size = Vector2(wall_size.x, bottom_height)
+			var bot_col := CollisionShape2D.new()
+			bot_col.shape = bot_shape
+			bot_col.position = Vector2(0.0, half_h - bottom_height * 0.5)
+			wall.add_child(bot_col)
+
+		_split_visual_vertical(wall, breach_local.y, half_w, half_h)
+
+		FileLogger.info("[BreachingCharges] Vertical passage carved in '%s' at local y=%.0f (passage %.0fpx)" % [
+			wall.name, by, BREACH_PASSAGE_WIDTH
+		])
+
+
+## Hide all CanvasItem children of a wall (used when wall is too short to split).
+func _hide_wall_visuals(wall: Node) -> void:
 	for child in wall.get_children():
 		if child is CanvasItem:
 			(child as CanvasItem).visible = false
+
+
+## Split horizontal wall visuals: hide the ColorRect in the breach zone and
+## add two replacement ColorRects for the surviving segments.
+func _split_visual_horizontal(wall: Node, breach_cx: float, half_w: float, half_h: float) -> void:
+	# Find and hide existing ColorRect(s)
+	var wall_color := Color(0.35, 0.28, 0.22, 1.0)  # default wall colour
+	for child in wall.get_children():
+		if child is ColorRect:
+			wall_color = (child as ColorRect).color
+			(child as ColorRect).visible = false
+		elif child is Sprite2D:
+			(child as Sprite2D).visible = false
+
+	var half_breach: float = BREACH_PASSAGE_WIDTH * 0.5
+	var bx: float = clamp(breach_cx, -half_w + half_breach, half_w - half_breach)
+
+	var left_width: float = bx - half_breach + half_w
+	var right_width: float = half_w - (bx + half_breach)
+
+	var wall_height: float = half_h * 2.0
+
+	if left_width >= 8.0:
+		var cr := ColorRect.new()
+		cr.size = Vector2(left_width, wall_height)
+		cr.position = Vector2(-half_w, -half_h)
+		cr.color = wall_color
+		wall.add_child(cr)
+
+	if right_width >= 8.0:
+		var cr := ColorRect.new()
+		cr.size = Vector2(right_width, wall_height)
+		cr.position = Vector2(half_w - right_width, -half_h)
+		cr.color = wall_color
+		wall.add_child(cr)
+
+
+## Split vertical wall visuals into top and bottom segments.
+func _split_visual_vertical(wall: Node, breach_cy: float, half_w: float, half_h: float) -> void:
+	var wall_color := Color(0.35, 0.28, 0.22, 1.0)
+	for child in wall.get_children():
+		if child is ColorRect:
+			wall_color = (child as ColorRect).color
+			(child as ColorRect).visible = false
+		elif child is Sprite2D:
+			(child as Sprite2D).visible = false
+
+	var half_breach: float = BREACH_PASSAGE_WIDTH * 0.5
+	var by: float = clamp(breach_cy, -half_h + half_breach, half_h - half_breach)
+
+	var top_height: float = by - half_breach + half_h
+	var bottom_height: float = half_h - (by + half_breach)
+
+	var wall_width: float = half_w * 2.0
+
+	if top_height >= 8.0:
+		var cr := ColorRect.new()
+		cr.size = Vector2(wall_width, top_height)
+		cr.position = Vector2(-half_w, -half_h)
+		cr.color = wall_color
+		wall.add_child(cr)
+
+	if bottom_height >= 8.0:
+		var cr := ColorRect.new()
+		cr.size = Vector2(wall_width, bottom_height)
+		cr.position = Vector2(-half_w, half_h - bottom_height)
+		cr.color = wall_color
+		wall.add_child(cr)
 
 
 ## Apply stun and blind effects to enemies near the detonation point.
@@ -382,27 +565,65 @@ func _hide_charge_in_hands() -> void:
 	FileLogger.info("[BreachingCharges] Charge sprite hidden, weapon restored")
 
 
-## Spawn a marker sprite on the wall surface at the placement position.
+## Spawn a marker representing a placed breaching charge on the wall surface.
+## Issue #1087 item 2: more realistic model — draws a C4-like block with straps and detonator.
 func _spawn_placed_charge_marker(hit_pos: Vector2, direction: Vector2) -> void:
 	if _player == null:
 		return
 
-	var texture: Texture2D = load("res://assets/sprites/weapons/breaching_charges_icon.png")
-	if texture == null:
-		FileLogger.info("[BreachingCharges] WARNING: Could not load icon for placed charge marker")
-		return
+	# Root node for the charge assembly, rotated so +X points away from wall
+	var root := Node2D.new()
+	root.global_position = hit_pos
+	# Rotate so the charge faces out from the wall (direction points toward wall, flip it)
+	root.rotation = direction.angle() + PI
 
-	_placed_charge_marker = Sprite2D.new()
-	_placed_charge_marker.texture = texture
-	_placed_charge_marker.scale = PLACED_CHARGE_SCALE
-	_placed_charge_marker.z_index = 4
-	# Rotate the marker to face the wall (point inward)
-	_placed_charge_marker.rotation = direction.angle()
-	_placed_charge_marker.modulate = Color(1.0, 0.8, 0.2, 1.0)  # Yellow-orange tint for visibility
-	_placed_charge_marker.global_position = hit_pos
+	root.z_index = 4
 
-	# Add to the scene root so it stays at the wall position even if player moves
-	_player.get_tree().current_scene.add_child(_placed_charge_marker)
+	# --- Explosive block body (sandy/beige like C4/PE4) ---
+	var body := ColorRect.new()
+	body.size = Vector2(18.0, 12.0)
+	body.position = Vector2(-9.0, -6.0)  # centered
+	body.color = Color(0.85, 0.78, 0.60, 1.0)  # sandy beige
+	root.add_child(body)
+
+	# --- Dark grey housing/frame around the block ---
+	var frame := ColorRect.new()
+	frame.size = Vector2(20.0, 14.0)
+	frame.position = Vector2(-10.0, -7.0)
+	frame.color = Color(0.25, 0.22, 0.18, 1.0)
+	frame.z_index = -1  # render behind body
+	root.add_child(frame)
+
+	# --- Strap / band across the middle ---
+	var strap := ColorRect.new()
+	strap.size = Vector2(20.0, 3.0)
+	strap.position = Vector2(-10.0, -1.5)
+	strap.color = Color(0.20, 0.20, 0.20, 1.0)
+	root.add_child(strap)
+
+	# --- Small detonator cylinder on top-right corner ---
+	var det := ColorRect.new()
+	det.size = Vector2(3.0, 7.0)
+	det.position = Vector2(6.0, -10.0)
+	det.color = Color(0.40, 0.40, 0.44, 1.0)  # metallic grey
+	root.add_child(det)
+
+	# --- Blinking red LED indicator (small red dot) ---
+	var led := ColorRect.new()
+	led.size = Vector2(3.0, 3.0)
+	led.position = Vector2(-4.0, -5.5)
+	led.color = Color(1.0, 0.08, 0.08, 1.0)
+	root.add_child(led)
+
+	# Animate the LED: blink every 0.5 s using a Tween
+	var tween: Tween = root.create_tween()
+	tween.set_loops()
+	tween.tween_property(led, "modulate:a", 0.0, 0.4)
+	tween.tween_property(led, "modulate:a", 1.0, 0.1)
+	tween.tween_interval(0.4)
+
+	_placed_charge_marker = root
+	_player.get_tree().current_scene.add_child(root)
 
 	FileLogger.info("[BreachingCharges] Placed charge marker spawned at %s" % str(hit_pos))
 
