@@ -501,6 +501,9 @@ func _configure_castle_weapon_ammo(weapon: Node) -> void:
 			_update_magazines_label(mag_counts)
 	else:
 		push_warning("[CastleLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -528,6 +531,9 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+	# Reapply auto-reload magazine size reduction if active (Issue #1067).
+	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 
 
 ## Setup debug UI elements for kills and accuracy.

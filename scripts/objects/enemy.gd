@@ -138,7 +138,7 @@ const MODEL_ROTATION_SPEED: float = 3.0  ## Max model rotation speed (3.0 rad/s 
 var _idle_scan_timer: float = 0.0  ## IDLE scanning state for GUARD enemies
 var _idle_scan_target_index: int = 0
 var _idle_scan_targets: Array[float] = []
-const IDLE_SCAN_INTERVAL: float = 10.0
+const IDLE_SCAN_INTERVAL: float = 10.0 / 3.0
 var _base_body_pos: Vector2 = Vector2.ZERO  ## Base positions for animation
 var _base_head_pos: Vector2 = Vector2.ZERO
 var _base_left_arm_pos: Vector2 = Vector2.ZERO
@@ -1389,7 +1389,7 @@ func _process_combat_state(delta: float) -> void:
 				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
-		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown:
+		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown and _machete.is_melee_path_clear(_player):  # Issue #1083: block melee through walls
 			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; return
 		var tp := _player.global_position
 		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):

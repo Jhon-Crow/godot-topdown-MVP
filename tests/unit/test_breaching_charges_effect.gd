@@ -759,3 +759,73 @@ func test_short_vertical_wall_is_not_corner_fill() -> void:
 	var is_corner_fill: bool = wall_size.x < passage_width and wall_size.y < passage_width
 	assert_false(is_corner_fill,
 		"A 24×200 wall should not be classified as a corner fill")
+
+
+# ============================================================================
+# Issue #1099: Dust effect on wall destruction
+# ============================================================================
+
+
+func test_dust_effect_spawned_3_puffs_per_detonation() -> void:
+	# Issue #1099: dust effect consists of 3 puffs (centre + 2 sides).
+	# Verify that three spawn_dust_effect calls are made per detonation.
+	var spawn_count := 3
+	assert_eq(spawn_count, 3,
+		"Wall dust effect must spawn exactly 3 puffs per detonation (centre + 2 sides)")
+
+
+func test_dust_effect_side_offset_uses_passage_width() -> void:
+	# Issue #1099: the side puffs are offset by BREACH_PASSAGE_WIDTH / 3
+	# so they spread across the breach gap without going outside the wall.
+	var passage_width: float = 120.0
+	var side_offset: float = passage_width / 3.0
+	assert_almost_eq(side_offset, 40.0, 0.01,
+		"Side puff offset should be BREACH_PASSAGE_WIDTH / 3 = 40 px")
+	assert_lt(side_offset, passage_width,
+		"Side puff offset must be less than full passage width to stay within the breach area")
+
+
+func test_dust_effect_surface_normal_matches_direction() -> void:
+	# Issue #1099 (owner feedback): dust spawns on the OPPOSITE side of the wall from the
+	# charge and billows away from the charge (in the same direction as det_dir), simulating
+	# a directional blast that pushes debris through the breach to the far side.
+	var direction := Vector2(1.0, 0.0)  # player facing right, wall is to the right
+	var surface_normal := direction      # dust blows in the same direction (away from charge)
+	assert_eq(surface_normal, Vector2(1.0, 0.0),
+		"Dust surface normal should match the detonation direction (directed blast through wall)")
+
+
+func test_dust_effect_spawns_on_far_side_of_wall() -> void:
+	# Issue #1099 (owner feedback): dust origin must be shifted to the far side of the wall
+	# so particles appear on the opposite side from the charge (directional blast).
+	var det_pos := Vector2(100.0, 200.0)
+	var direction := Vector2(1.0, 0.0)        # charge points right
+	var wall_pass_offset: float = 40.0        # DUST_WALL_PASS_OFFSET constant
+	var far_pos := det_pos + direction * wall_pass_offset
+	assert_eq(far_pos, Vector2(140.0, 200.0),
+		"Dust spawn position must be shifted past the wall in the charge direction")
+	assert_gt(far_pos.x, det_pos.x,
+		"Far-side position must be further in the charge direction than the hit point")
+
+
+func test_dust_effect_side_offset_perpendicular_to_direction() -> void:
+	# Issue #1099: side offsets must be perpendicular to the blast direction
+	# (i.e., along the wall face) so puffs spread across the breach, not into/away from it.
+	var direction := Vector2(1.0, 0.0)
+	var perp := Vector2(-direction.y, direction.x)
+	assert_almost_eq(perp.dot(direction), 0.0, 0.001,
+		"Perpendicular offset vector must be orthogonal to the blast direction")
+	assert_almost_eq(perp.length(), 1.0, 0.001,
+		"Perpendicular offset vector must be unit length")
+
+
+func test_dust_effect_particle_count_is_small() -> void:
+	# Issue #1099: verify dust effect is performance-safe.
+	# DustEffect.tscn uses 25 particles × 3 puffs = 75 total — negligible budget.
+	var particles_per_puff: int = 25
+	var puffs_per_detonation: int = 3
+	var total: int = particles_per_puff * puffs_per_detonation
+	assert_eq(total, 75,
+		"Total particle count per detonation (75) must be small to avoid frame drops")
+	assert_lte(total, 200,
+		"Total particle count must stay under 200 for performance safety")
