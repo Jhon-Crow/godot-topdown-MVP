@@ -23,6 +23,7 @@ signal back_pressed
 @onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
+@onready var enemies_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer/EnemiesTableButton
 @onready var enemy_type_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer/EnemyTypeOption
 @onready var spawn_enemy_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SpawnEnemyButton
 @onready var spawn_status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SpawnStatusLabel
@@ -34,6 +35,12 @@ var unlock_table_menu_scene: PackedScene = preload("res://scenes/ui/UnlockTableM
 
 ## The instantiated unlock table menu.
 var unlock_table_menu: CanvasLayer = null
+
+## Reference to the enemies table menu scene.
+var enemies_table_menu_scene: PackedScene = preload("res://scenes/ui/EnemiesTableMenu.tscn")
+
+## The instantiated enemies table menu.
+var enemies_table_menu: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -52,6 +59,7 @@ func _ready() -> void:
 	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
+	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
 	_setup_enemy_spawner()
 	enemy_type_option.item_selected.connect(_on_enemy_type_selected)
 	spawn_enemy_button.pressed.connect(_on_spawn_enemy_pressed)
@@ -253,6 +261,35 @@ func _on_unlock_table_back_pressed() -> void:
 	_log("Unlock table back button pressed")
 	if unlock_table_menu:
 		unlock_table_menu.hide()
+
+
+func _on_enemies_table_pressed() -> void:
+	# Instantiate enemies table menu on first use.
+	# IMPORTANT: Add to /root to avoid nested CanvasLayer visibility issues in Godot 4.
+	# When a CanvasLayer is instanced as a child of another CanvasLayer,
+	# visibility does not work correctly. See: https://github.com/godotengine/godot/issues/84912
+	_log("Enemies table button pressed")
+	if enemies_table_menu == null:
+		_log("Creating new enemies table menu instance")
+		enemies_table_menu = enemies_table_menu_scene.instantiate()
+		enemies_table_menu.back_pressed.connect(_on_enemies_table_back_pressed)
+		# Add to root node to avoid any CanvasLayer nesting issues
+		get_tree().root.add_child(enemies_table_menu)
+		_log("Enemies table menu added to /root, calling show()")
+		# Explicitly show after adding to tree
+		enemies_table_menu.show()
+	else:
+		_log("Showing existing enemies table menu")
+		# Refresh and show existing instance
+		if enemies_table_menu.has_method("refresh"):
+			enemies_table_menu.refresh()
+		enemies_table_menu.show()
+
+
+func _on_enemies_table_back_pressed() -> void:
+	_log("Enemies table back button pressed")
+	if enemies_table_menu:
+		enemies_table_menu.hide()
 
 
 func _on_back_pressed() -> void:
