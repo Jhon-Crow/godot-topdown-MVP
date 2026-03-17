@@ -24,7 +24,11 @@ class MockActiveItemManager:
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
 		LASER_SIGHT = 9,
-		RECOIL_COMPENSATOR = 10
+		LOUDSPEAKER = 10,
+		BREACHING_CHARGES = 11,
+		ARMORED_SKIN = 12,
+		AUTO_RELOAD = 13,
+		RECOIL_COMPENSATOR = 14
 	}
 
 	var current_active_item: int = ActiveItemType.NONE
@@ -55,7 +59,17 @@ class MockActiveItemManager:
 			"activation_hint": "Press Space to activate"},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
-		10: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
+		10: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
+			"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+			"activation_hint": "Press Space to activate"},
+		11: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
+			"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate.",
+			"activation_hint": "Hold Space near wall to place, press Space to detonate"},
+		12: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
+			"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."},
+		13: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
+			"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
+		14: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
 			"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
 			"activation_hint": "Hold Space to activate"}
 	}
@@ -119,15 +133,15 @@ func after_each() -> void:
 # ============================================================================
 
 
-func test_recoil_compensator_type_value_is_10() -> void:
-	assert_eq(MockActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR, 10,
-		"RECOIL_COMPENSATOR should be active item type 10 (Issue #1073)")
+func test_recoil_compensator_type_value_is_14() -> void:
+	assert_eq(MockActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR, 14,
+		"RECOIL_COMPENSATOR should be active item type 14 (Issue #1073)")
 
 
 func test_recoil_compensator_type_is_distinct_from_laser_sight() -> void:
 	assert_ne(MockActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR,
 		MockActiveItemManager.ActiveItemType.LASER_SIGHT,
-		"RECOIL_COMPENSATOR (10) must differ from LASER_SIGHT (9)")
+		"RECOIL_COMPENSATOR (14) must differ from LASER_SIGHT (9)")
 
 
 # ============================================================================
@@ -136,49 +150,49 @@ func test_recoil_compensator_type_is_distinct_from_laser_sight() -> void:
 
 
 func test_active_item_data_has_recoil_compensator() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_false(data.is_empty(),
-		"ACTIVE_ITEM_DATA should contain RECOIL_COMPENSATOR (type 10)")
+		"ACTIVE_ITEM_DATA should contain RECOIL_COMPENSATOR (type 14)")
 
 
 func test_recoil_compensator_name() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_eq(data["name"], "Recoil Compensator",
 		"Recoil Compensator should have correct name")
 
 
 func test_recoil_compensator_icon_path_contains_recoil() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_true(data["icon_path"].contains("recoil_compensator"),
 		"Recoil Compensator icon path should contain 'recoil_compensator'")
 
 
 func test_recoil_compensator_description_mentions_space() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_true(data["description"].contains("Space"),
 		"Recoil Compensator description should mention Space key activation")
 
 
 func test_recoil_compensator_description_mentions_15_seconds() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_true(data["description"].contains("15"),
 		"Recoil Compensator description should mention 15 second charge (Issue #1073)")
 
 
 func test_recoil_compensator_description_mentions_recoil() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_true(data["description"].contains("recoil"),
 		"Recoil Compensator description should mention recoil suppression")
 
 
 func test_recoil_compensator_description_mentions_fire_rate_boost() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_true(data["description"].contains("10%"),
 		"Recoil Compensator description should mention 10% fire rate boost (Issue #1073)")
 
 
 func test_recoil_compensator_has_activation_hint() -> void:
-	var data := manager.get_active_item_data(10)
+	var data := manager.get_active_item_data(14)
 	assert_true(data.has("activation_hint"),
 		"Recoil Compensator should have an activation_hint key")
 	assert_true(data["activation_hint"].contains("Space"),
@@ -186,32 +200,32 @@ func test_recoil_compensator_has_activation_hint() -> void:
 
 
 func test_get_active_item_name_recoil_compensator() -> void:
-	assert_eq(manager.get_active_item_name(10), "Recoil Compensator",
-		"get_active_item_name(10) should return 'Recoil Compensator'")
+	assert_eq(manager.get_active_item_name(14), "Recoil Compensator",
+		"get_active_item_name(14) should return 'Recoil Compensator'")
 
 
 func test_get_active_item_description_recoil_compensator_not_empty() -> void:
-	var desc := manager.get_active_item_description(10)
+	var desc := manager.get_active_item_description(14)
 	assert_false(desc.is_empty(),
-		"get_active_item_description(10) should not be empty")
+		"get_active_item_description(14) should not be empty")
 
 
 func test_get_active_item_icon_path_recoil_compensator_not_empty() -> void:
-	var path := manager.get_active_item_icon_path(10)
+	var path := manager.get_active_item_icon_path(14)
 	assert_false(path.is_empty(),
-		"get_active_item_icon_path(10) should not be empty")
+		"get_active_item_icon_path(14) should not be empty")
 
 
 func test_get_all_active_item_types_includes_recoil_compensator() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_true(10 in types,
-		"get_all_active_item_types() should include RECOIL_COMPENSATOR (10)")
+	assert_true(14 in types,
+		"get_all_active_item_types() should include RECOIL_COMPENSATOR (14)")
 
 
-func test_get_all_active_item_types_count_is_11() -> void:
+func test_get_all_active_item_types_count_is_15() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 11,
-		"There should be 11 active item types (0-10) including RECOIL_COMPENSATOR")
+	assert_eq(types.size(), 15,
+		"There should be 15 active item types (0-14) including RECOIL_COMPENSATOR")
 
 
 # ============================================================================
@@ -225,26 +239,26 @@ func test_no_recoil_compensator_by_default() -> void:
 
 
 func test_has_recoil_compensator_after_selection() -> void:
-	manager.set_active_item(10)
+	manager.set_active_item(14)
 	assert_true(manager.has_recoil_compensator(),
 		"has_recoil_compensator() should return true after selecting it")
 
 
 func test_no_recoil_compensator_after_deselection() -> void:
-	manager.set_active_item(10)
+	manager.set_active_item(14)
 	manager.set_active_item(0)
 	assert_false(manager.has_recoil_compensator(),
 		"has_recoil_compensator() should return false after switching back to none")
 
 
 func test_recoil_compensator_is_selected_after_setting() -> void:
-	manager.set_active_item(10)
-	assert_true(manager.is_selected(10),
-		"is_selected(10) should be true after selecting recoil compensator")
+	manager.set_active_item(14)
+	assert_true(manager.is_selected(14),
+		"is_selected(14) should be true after selecting recoil compensator")
 
 
 func test_recoil_compensator_does_not_conflict_with_flashlight() -> void:
-	manager.set_active_item(10)
+	manager.set_active_item(14)
 	assert_false(manager.has_flashlight(),
 		"Flashlight should not be active when recoil compensator is selected")
 	assert_true(manager.has_recoil_compensator(),
@@ -260,7 +274,7 @@ func test_flashlight_does_not_conflict_with_recoil_compensator() -> void:
 
 
 func test_recoil_compensator_does_not_conflict_with_force_field() -> void:
-	manager.set_active_item(10)
+	manager.set_active_item(14)
 	assert_false(manager.has_force_field(),
 		"Force field should not be active when recoil compensator is selected")
 	assert_true(manager.has_recoil_compensator(),
@@ -268,9 +282,9 @@ func test_recoil_compensator_does_not_conflict_with_force_field() -> void:
 
 
 func test_set_active_item_to_recoil_compensator() -> void:
-	manager.set_active_item(10)
-	assert_eq(manager.current_active_item, 10,
-		"current_active_item should be 10 (RECOIL_COMPENSATOR) after selection")
+	manager.set_active_item(14)
+	assert_eq(manager.current_active_item, 14,
+		"current_active_item should be 14 (RECOIL_COMPENSATOR) after selection")
 
 
 # ============================================================================
@@ -598,7 +612,7 @@ func test_fire_rate_boost_is_exactly_10_percent() -> void:
 
 
 class MockActiveItemManagerWithUnlocks:
-	const RECOIL_COMPENSATOR: int = 10
+	const RECOIL_COMPENSATOR: int = 14
 
 	## Unlocked states — recoil compensator is freely available from start
 	var unlocked_items: Dictionary = {
@@ -612,7 +626,11 @@ class MockActiveItemManagerWithUnlocks:
 		7: true,   # FORCE_FIELD
 		8: true,   # TRAJECTORY_GLASSES
 		9: true,   # LASER_SIGHT
-		10: true   # RECOIL_COMPENSATOR
+		10: true,  # LOUDSPEAKER
+		11: true,  # BREACHING_CHARGES
+		12: true,  # ARMORED_SKIN
+		13: true,  # AUTO_RELOAD
+		14: true   # RECOIL_COMPENSATOR
 	}
 
 	func is_active_item_unlocked(item_type: int) -> bool:
@@ -621,11 +639,11 @@ class MockActiveItemManagerWithUnlocks:
 
 func test_recoil_compensator_is_unlocked_by_default() -> void:
 	var mgr := MockActiveItemManagerWithUnlocks.new()
-	assert_true(mgr.is_active_item_unlocked(10),
+	assert_true(mgr.is_active_item_unlocked(14),
 		"Recoil compensator should be freely available from start (Issue #1073)")
 
 
 func test_unlocked_items_dictionary_contains_recoil_compensator() -> void:
 	var mgr := MockActiveItemManagerWithUnlocks.new()
-	assert_true(10 in mgr.unlocked_items,
-		"Unlocked items dictionary should have a key for RECOIL_COMPENSATOR (10)")
+	assert_true(14 in mgr.unlocked_items,
+		"Unlocked items dictionary should have a key for RECOIL_COMPENSATOR (14)")

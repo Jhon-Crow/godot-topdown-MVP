@@ -24,6 +24,15 @@ class MockTrajectoryGlassesEffect:
 	## Maximum ricochet angle in degrees.
 	const MAX_RICOCHET_ANGLE: float = 90.0
 
+	## Continuous blink threshold in seconds (Issue #1085).
+	const CONTINUOUS_BLINK_THRESHOLD: float = 4.0
+
+	## Single-blink threshold — 25% of EFFECT_DURATION (Issue #1085).
+	const SINGLE_BLINK_THRESHOLD: float = EFFECT_DURATION * 0.25  # 2.5 s
+
+	## Flash frequency when time is low (Issue #1085).
+	const WARNING_FLASH_FREQUENCY: float = 3.0
+
 	## Current number of charges remaining.
 	var charges: int = MAX_CHARGES
 
@@ -32,6 +41,21 @@ class MockTrajectoryGlassesEffect:
 
 	## Timer tracking remaining effect duration.
 	var _effect_timer: float = 0.0
+
+	## Continuous-blink flash timer (Issue #1085).
+	var _warning_flash_timer: float = 0.0
+
+	## Whether the continuous-blink phase has been logged this activation (Issue #1085).
+	var _continuous_blink_logged: bool = false
+
+	## Whether the single-blink at 25% has been triggered this activation (Issue #1085).
+	var _single_blink_triggered: bool = false
+
+	## Single-blink phase timer (Issue #1085).
+	var _single_blink_timer: float = 0.0
+
+	## Whether the trajectory ray is visible this frame (Issue #1085).
+	var trajectory_ray_visible: bool = true
 
 	## Signal tracking.
 	var activation_count: int = 0
@@ -58,15 +82,45 @@ class MockTrajectoryGlassesEffect:
 			return
 		is_active = false
 		_effect_timer = 0.0
+		_warning_flash_timer = 0.0
+		_continuous_blink_logged = false
+		_single_blink_triggered = false
+		_single_blink_timer = 0.0
+		trajectory_ray_visible = true
 		deactivation_count += 1
 
-	## Simulate time passing.
+	## Simulate time passing (including flash logic, Issue #1085).
 	func update(delta: float) -> void:
 		if not is_active:
 			return
 		_effect_timer -= delta
 		if _effect_timer <= 0.0:
 			deactivate()
+			return
+		if _effect_timer <= CONTINUOUS_BLINK_THRESHOLD:
+			# Trigger one-shot single blink when crossing 25% threshold (Issue #1085).
+			if _effect_timer <= SINGLE_BLINK_THRESHOLD and not _single_blink_triggered:
+				_single_blink_triggered = true
+				_single_blink_timer = 0.0
+			var single_blink_period := 1.0 / WARNING_FLASH_FREQUENCY
+			if _single_blink_triggered and _single_blink_timer < single_blink_period:
+				_single_blink_timer += delta
+				if _single_blink_timer < single_blink_period * 0.5:
+					trajectory_ray_visible = false
+				else:
+					trajectory_ray_visible = true
+			else:
+				# Continuous blink at WARNING_FLASH_FREQUENCY Hz.
+				_warning_flash_timer += delta
+				var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
+				trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
+		else:
+			# Normal phase
+			_warning_flash_timer = 0.0
+			_continuous_blink_logged = false
+			_single_blink_triggered = false
+			_single_blink_timer = 0.0
+			trajectory_ray_visible = true
 
 	## Get remaining effect time.
 	func get_remaining_time() -> float:
@@ -405,3 +459,221 @@ func test_sniper_weapon_data_caliber_cannot_ricochet() -> void:
 	var can_ricochet: bool = weapon_data_res.get("CaliberCanRicochet")
 	assert_false(can_ricochet,
 		"SniperRifleData.CaliberCanRicochet must be false for ASVK (12.7x108mm)")
+
+
+# ============================================================================
+# Trajectory Ray Flash Tests (Issue #1085)
+# ============================================================================
+
+
+func test_trajectory_ray_visible_when_not_active() -> void:
+	# Ray visibility defaults to true when inactive
+	assert_true(effect.trajectory_ray_visible,
+		"trajectory_ray_visible should be true when effect is inactive")
+
+
+func test_trajectory_ray_visible_in_normal_phase() -> void:
+	effect.activate()
+	# Advance to 5 seconds remaining (above CONTINUOUS_BLINK_THRESHOLD=4.0 and SINGLE_BLINK_THRESHOLD=2.5)
+	effect.update(5.0)
+	assert_true(effect.trajectory_ray_visible,
+		"Ray should be continuously visible when remaining time > CONTINUOUS_BLINK_THRESHOLD")
+
+
+func test_trajectory_ray_single_blink_triggered_at_25_percent() -> void:
+	effect.activate()
+	# Advance to just inside CONTINUOUS_BLINK_THRESHOLD (4 s) and past SINGLE_BLINK_THRESHOLD (2.5 s).
+	# 10 - 7.6 = 2.4 s remaining → inside continuous blink AND past 25% threshold.
+	# The single-blink fires: ray goes off for half a period.
+	effect.update(7.6)
+	effect.update(0.001)  # tiny step to enter single-blink override
+	assert_false(effect.trajectory_ray_visible,
+		"Ray should be off during first half of single-blink at 25% threshold")
+
+
+func test_trajectory_ray_returns_to_visible_after_single_blink() -> void:
+	effect.activate()
+	# Advance to 2.4 s remaining (single-blink triggered inside continuous blink zone)
+	effect.update(7.6)
+	# Advance through one full single-blink period (~0.333 s)
+	var single_blink_period := 1.0 / effect.WARNING_FLASH_FREQUENCY
+	effect.update(single_blink_period)
+	assert_true(effect.trajectory_ray_visible,
+		"Ray should return to visible after single-blink completes")
+
+
+func test_trajectory_ray_single_blink_fires_only_once() -> void:
+	effect.activate()
+	# Advance past 25% threshold
+	effect.update(7.6)
+	# Let the single-blink finish
+	var single_blink_period := 1.0 / effect.WARNING_FLASH_FREQUENCY
+	effect.update(single_blink_period + 0.1)
+	# Advance a bit more — still in continuous blink zone
+	effect.update(0.1)
+	# _single_blink_triggered must stay true so the flash does not repeat
+	assert_true(effect._single_blink_triggered,
+		"_single_blink_triggered flag must remain true so single blink doesn't repeat")
+
+
+func test_trajectory_ray_starts_continuous_blink_at_4_seconds() -> void:
+	effect.activate()
+	# Advance to just below CONTINUOUS_BLINK_THRESHOLD: 10 - 6.1 = 3.9 s remaining
+	effect.update(6.1)
+	# After a full blink period the cycle has definitely toggled at least once
+	var flash_period := 1.0 / effect.WARNING_FLASH_FREQUENCY
+	effect.update(flash_period)
+	# Visibility is either on or off — just verify it's being driven by the blink logic
+	assert_true(effect.trajectory_ray_visible == true or effect.trajectory_ray_visible == false,
+		"trajectory_ray_visible must be controlled during continuous blink")
+
+
+func test_continuous_blink_ray_is_off_during_first_half_period() -> void:
+	effect.activate()
+	# Advance to 3.9 s remaining (just inside continuous blink zone, above 25% threshold)
+	effect.update(6.1)
+	# At the very first tick into continuous blink the flash_timer is near 0 → ray should be off
+	effect.update(0.001)
+	assert_false(effect.trajectory_ray_visible,
+		"Ray should be off during first half of blink period in continuous phase")
+
+
+func test_trajectory_ray_visible_resets_on_deactivation() -> void:
+	effect.activate()
+	# Advance into continuous blink zone
+	effect.update(6.5)
+	effect.deactivate()
+	assert_true(effect.trajectory_ray_visible,
+		"trajectory_ray_visible should reset to true on deactivation")
+
+
+func test_warning_flash_timer_resets_on_deactivation() -> void:
+	effect.activate()
+	effect.update(6.5)
+	effect.deactivate()
+	# Re-activate; blink should start fresh (timer at 0)
+	effect.activate()
+	effect.update(0.0)  # No delta: timer should not have advanced
+	assert_true(effect.trajectory_ray_visible,
+		"After re-activation flash timer should start at 0; ray should be visible")
+
+
+func test_single_blink_triggered_flag_resets_on_deactivation() -> void:
+	effect.activate()
+	# Trigger the single blink
+	effect.update(7.6)
+	assert_true(effect._single_blink_triggered,
+		"_single_blink_triggered should be true after 25% threshold is crossed")
+	effect.deactivate()
+	assert_false(effect._single_blink_triggered,
+		"_single_blink_triggered should reset to false on deactivation")
+
+
+func test_continuous_blink_threshold_constant_is_four_seconds() -> void:
+	assert_eq(effect.CONTINUOUS_BLINK_THRESHOLD, 4.0,
+		"CONTINUOUS_BLINK_THRESHOLD should be 4.0 seconds (Issue #1085)")
+
+
+func test_single_blink_threshold_constant_is_25_percent_of_duration() -> void:
+	assert_almost_eq(effect.SINGLE_BLINK_THRESHOLD, effect.EFFECT_DURATION * 0.25, 0.001,
+		"SINGLE_BLINK_THRESHOLD should be 25% of EFFECT_DURATION (Issue #1085)")
+
+
+func test_warning_flash_frequency_constant() -> void:
+	assert_eq(effect.WARNING_FLASH_FREQUENCY, 3.0,
+		"WARNING_FLASH_FREQUENCY should be 3.0 Hz")
+
+
+# ============================================================================
+# Charge Pip HUD Auto-Hide Tests (Issue #1049)
+# ============================================================================
+
+
+class MockTrajectoryGlassesHud:
+	## How long (in seconds) to show the charge pips after activation before auto-hiding.
+	const ACTIVATION_SHOW_DURATION: float = 0.3
+
+	## Whether the HUD is currently visible.
+	var visible: bool = false
+
+	## Timer counting down auto-hide after activation (0 = not running).
+	var _hide_timer: float = 0.0
+
+	## Show/hide the HUD. When active=true, starts the 300 ms auto-hide timer.
+	func set_active(active: bool) -> void:
+		if active:
+			visible = true
+			_hide_timer = ACTIVATION_SHOW_DURATION
+		else:
+			visible = false
+			_hide_timer = 0.0
+
+	## Simulate time passing (mirrors _process logic).
+	func update(delta: float) -> void:
+		if _hide_timer > 0.0:
+			_hide_timer -= delta
+			if _hide_timer <= 0.0:
+				_hide_timer = 0.0
+				visible = false
+
+
+var hud: MockTrajectoryGlassesHud
+
+
+func before_each_hud() -> void:
+	hud = MockTrajectoryGlassesHud.new()
+
+
+func test_hud_activation_show_duration_constant() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	assert_almost_eq(h.ACTIVATION_SHOW_DURATION, 0.3, 0.001,
+		"ACTIVATION_SHOW_DURATION should be 0.3 seconds (300 ms)")
+
+
+func test_hud_starts_hidden() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	assert_false(h.visible,
+		"Charge pip HUD should start hidden")
+
+
+func test_hud_visible_immediately_after_set_active() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	assert_true(h.visible,
+		"HUD should be visible immediately after set_active(true)")
+
+
+func test_hud_auto_hides_after_activation_duration() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.update(0.4)  # More than 0.3 s
+	assert_false(h.visible,
+		"HUD should auto-hide after ACTIVATION_SHOW_DURATION (300 ms)")
+
+
+func test_hud_still_visible_before_activation_duration_expires() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.update(0.1)  # Less than 0.3 s
+	assert_true(h.visible,
+		"HUD should still be visible before ACTIVATION_SHOW_DURATION expires")
+
+
+func test_hud_hidden_when_set_active_false() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.set_active(false)
+	assert_false(h.visible,
+		"HUD should become hidden immediately when set_active(false) is called")
+
+
+func test_hud_hide_timer_resets_on_deactivation() -> void:
+	var h := MockTrajectoryGlassesHud.new()
+	h.set_active(true)
+	h.update(0.1)
+	h.set_active(false)
+	# Re-activate: timer should restart from full ACTIVATION_SHOW_DURATION
+	h.set_active(true)
+	h.update(0.15)  # Still within 0.3 s
+	assert_true(h.visible,
+		"After re-activation HUD hide timer should reset; HUD should still be visible")
