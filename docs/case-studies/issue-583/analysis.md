@@ -161,3 +161,33 @@ The `Image.create()` + `ImageTexture.create_from_image()` approach works in debu
 - `game_log_20260317_060727.txt`: `Sound emitted: type=GUNSHOT, range=2500` → rocket WAS spawned and moving, but invisible
 - No `[RPG] Rocket spawned` in logs → confirms `_log_to_file` wasn't used (only `print()` which doesn't go to log file)
 - Pattern from `VOGGrenade.tscn`: uses `ext_resource` PNG, always works in exported builds
+
+## Root Cause #7: Rocket Stationary After PNG Sprite Fix (2026-03-17, 03:37)
+
+**Symptom (game_log_20260317_063521.txt)**: After the PNG sprite fix, rocket now appears visually but doesn't move — it spawns at the muzzle position and stays stationary.
+
+**Evidence from log**:
+- Line 1469: `[RpgEnemy2] [RPG] Rocket spawned at (1670.17, 1818.453) dir=(-0.952475, -0.304616)` ✅
+- No explosion events logged → rocket never hit a wall (confirming it's truly stationary, not just fast)
+- Rocket direction is non-zero (-0.952, -0.304) → direction IS being passed correctly
+- User screenshot shows rocket at horizontal orientation (rotation=0°) despite direction being ~162° from +X
+
+**Root cause analysis**:
+The rocket direction was being set BEFORE `add_child()` in `_fire_rpg_rocket()`. While this works for simple property assignments, the `launch()` method (which sets rotation and exhaust direction) was not being called — and the `_ready()` method ran with an already-set `direction` but there may have been a race condition or exported build difference in how the physics process started.
+
+The key observations:
+1. Direction `(-0.952, -0.304)` corresponds to ~162° from +X axis, not 0° (horizontal)
+2. Screenshot shows horizontal rocket → rotation was NOT applied → `direction.angle()` wasn't called correctly
+3. No explosion in 3-12 seconds → rocket truly not moving (at 800px/s would travel 2400-9600px and hit walls)
+
+**Fix Applied (2026-03-17)**:
+1. Added `launch(dir)` method to `RpgRocket` that sets direction, rotation, and exhaust orientation
+2. Changed `_fire_rpg_rocket()` to call `launch()` AFTER `add_child()` (same pattern as bullet direction setting)
+3. Added `_launched` flag - `_physics_process` doesn't move until `launch()` is called
+4. Changed movement from `position +=` to `global_position +=` for robustness
+5. Increased `spawn_immunity_time` from 0.15s to 0.3s to prevent immediate wall collision
+6. Added explicit `set_physics_process(true)` in `_ready()`
+7. Added logging to `launch()` and `_explode()` for future debugging
+
+**Logs**:
+- `game_log_20260317_063521.txt` - RPG rockets spawn but are stationary (this fix addresses this)

@@ -23,9 +23,9 @@ class_name RpgRocket
 @export var trail_length: int = 20
 
 ## Seconds after spawn during which collisions are ignored (avoids immediate explosion near shooter).
-@export var spawn_immunity_time: float = 0.15
+@export var spawn_immunity_time: float = 0.3
 
-## Direction the rocket travels (set by the shooter).
+## Direction the rocket travels (set by the shooter via launch()).
 var direction: Vector2 = Vector2.RIGHT
 
 ## Instance ID of the node that shot this rocket.
@@ -40,6 +40,9 @@ var _time_alive: float = 0.0
 ## Whether the rocket has exploded.
 var _has_exploded: bool = false
 
+## Whether launch() has been called with the real direction.
+var _launched: bool = false
+
 ## Reference to the trail Line2D node (if present).
 var _trail: Line2D = null
 
@@ -49,9 +52,11 @@ var _exhaust: GPUParticles2D = null
 ## History of global positions for the trail effect.
 var _position_history: Array[Vector2] = []
 
+
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	set_physics_process(true)  # Issue #583: explicitly enable physics processing
 
 	_trail = get_node_or_null("Trail")
 	if _trail:
@@ -59,22 +64,37 @@ func _ready() -> void:
 		_trail.top_level = true
 		_trail.global_position = Vector2.ZERO
 
-	# Issue #583: Orient exhaust particles to emit backward from rocket direction
 	_exhaust = get_node_or_null("ExhaustParticles")
+
+
+## Called by the shooter after add_child to set the travel direction (Issue #583).
+## Sets direction, rotation, and exhaust particle orientation.
+func launch(dir: Vector2) -> void:
+	direction = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
+	_launched = true
+
+	# Orient rocket sprite and node to travel direction
+	rotation = direction.angle()
+
+	# Orient exhaust particles to emit backward from rocket direction
 	if _exhaust and _exhaust.process_material is ParticleProcessMaterial:
 		var mat := _exhaust.process_material as ParticleProcessMaterial
-		# Emit opposite to travel direction (in local space, -X is behind the rocket)
 		var back := -direction
 		mat.direction = Vector3(back.x, back.y, 0.0)
 
-	rotation = direction.angle()
+	var fl := get_node_or_null("/root/FileLogger")
+	if fl and fl.has_method("log_enemy"):
+		fl.log_enemy("RpgRocket", "Launched: pos=%s dir=%s speed=%.0f" % [str(global_position), str(direction), speed])
 
 
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
 
-	position += direction * speed * delta
+	if not _launched:
+		return  # Wait until launch() is called with real direction
+
+	global_position += direction * speed * delta  # Issue #583: use global_position for reliable movement
 	_update_trail()
 
 	_time_alive += delta
@@ -127,6 +147,10 @@ func _explode() -> void:
 	if _has_exploded:
 		return
 	_has_exploded = true
+
+	var fl := get_node_or_null("/root/FileLogger")
+	if fl and fl.has_method("log_enemy"):
+		fl.log_enemy("RpgRocket", "Exploded at pos=%s after %.2fs travel" % [str(global_position), _time_alive])
 
 	# Issue #583: Stop exhaust particles on explosion
 	if _exhaust:

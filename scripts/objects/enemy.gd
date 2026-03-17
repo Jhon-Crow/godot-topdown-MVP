@@ -3898,11 +3898,14 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 ## Fire RPG rocket directly (bypass pool - Issue #583, analogous to AKGL.cs FireGrenadeLauncher).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
 	if bullet_scene == null: _log_to_file("[RPG] bullet_scene is null, cannot spawn rocket!"); return
-	var rocket := bullet_scene.instantiate(); rocket.global_position = pos
-	if rocket.get("direction") != null: rocket.direction = dir
+	var rocket := bullet_scene.instantiate()
 	if rocket.get("shooter_id") != null: rocket.shooter_id = get_instance_id()
 	if rocket.get("shooter_position") != null: rocket.shooter_position = pos
+	rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
+	# Issue #583: call launch() AFTER add_child so _ready() has run and direction is set reliably
+	if rocket.has_method("launch"): rocket.launch(dir)
+	elif rocket.get("direction") != null: rocket.direction = dir
 	_log_to_file("[RPG] Rocket spawned at %s dir=%s" % [str(pos), str(dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
