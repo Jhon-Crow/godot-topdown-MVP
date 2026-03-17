@@ -10,6 +10,10 @@
 > Lightning should illuminate the entire screen.
 > Make it look cooler.
 
+**Updated requirement (2026-03-17, PR comment):**
+> "хорошо работает. но сделай чтоб молнии появлялись не при нанесении урона врагу, а после убийства."
+> Translation: "Works well. But make lightning appear not when dealing damage to an enemy, but after killing them."
+
 ---
 
 ## Timeline / Sequence of Events
@@ -384,3 +388,47 @@ void fragment() {
 | `game_log_20260317_032119.txt` | Fifth test after v5 overlay shader — white screen on ALL difficulties (transparent overlay regression) |
 | `game_log_20260317_050932.txt` | Sixth test after v6 — no lightning triggered; white blink is at startup (visible=true set before framebuffer ready) |
 | `game_log_20260317_054351.txt` | Seventh test after v7 — warmup completes, PersistManager redirects to CityLevel; white blink on scene change (rect permanently visible, framebuffer reset) |
+| `game_log_20260317_063247.txt` | Eighth test after v8 — game visible, but still white blink on every flash (hint_screen_texture returns white on visible=false→true transition during gameplay) |
+| `game_log_20260317_071747.txt` | Ninth test after v9 (blend_add always-visible) — white screen from startup (blend_add not supported in gl_compatibility; always-visible black ColorRect corrupts pipeline) |
+
+---
+
+## Phase 10: v9 causes white screen at startup (game_log_20260317_071747.txt)
+
+**User reported (2026-03-17 04:18):** "опять с самого начала белый экран" — "white screen from the very start again"
+
+**Game log analysis** (`game_log_20260317_071747.txt`):
+- Game started, warmup logged ✅
+- No shots fired, no Black Metal mode, no lightning
+- White screen immediately at startup ❌
+
+**Root cause:**
+`render_mode blend_add` is NOT supported in Godot's gl_compatibility renderer. It falls back to standard alpha blending. The always-visible ColorRect with `COLOR = vec4(0,0,0,1)` (opaque black) corrupts the rendering pipeline — a full-screen opaque black quad at layer 98 blocks all rendering.
+
+---
+
+## Fix: v10 — No Shader at All (Definitive Solution)
+
+**User confirmed (2026-03-17 05:36):** "хорошо работает." — "Works well."
+
+The definitive fix: **eliminate the shader entirely**. Draw the bolt using GDScript's canvas draw API:
+
+- `LightningBoltDrawer`: a `Node2D` with `_draw()` that calls `draw_polyline()` and `draw_circle()` — no shader
+- `IlluminationFlash`: a plain `ColorRect` with NO shader — just a semi-transparent color
+- Both nodes are `visible=false` when not flashing — toggling `visible` on a plain `Node2D` (no shader) is completely safe in all renderers
+
+---
+
+## Phase 11: Kill-based trigger (v10 + kill signal)
+
+**User requirement (2026-03-17 05:36):** "сделай чтоб молнии появлялись не при нанесении урона врагу, а после убийства" — "make lightning appear after killing, not when dealing damage"
+
+**Previous design (on hit):**
+- Every projectile class (`Bullet.gd`, `Bullet.cs`, `SniperBullet.cs`, `ShotgunPellet.cs`, `SniperRifle.cs`, `ReplayManager.cs`) called `trigger_lightning()` in their `TriggerPlayerHitEffects()` methods on every hit.
+- This meant lightning could fire multiple times per enemy (one flash per hit) and fired even if the enemy survived.
+
+**New design (on kill):**
+- `BlackMetalLightningEffectsManager` connects directly to `GameManager.enemy_killed` signal in `_ready()`.
+- When `GameManager.enemy_killed` fires (after an enemy's health reaches 0 and `_on_death()` runs), the manager's `_on_enemy_killed()` handler calls `trigger_lightning()`.
+- All `trigger_lightning()` call sites removed from projectile files.
+- Lightning now fires exactly once per kill, not on each hit.

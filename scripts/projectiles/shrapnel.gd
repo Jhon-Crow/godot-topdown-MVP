@@ -162,13 +162,6 @@ func _on_area_entered(area: Area2D) -> void:
 		else:
 			area.on_hit()
 
-		# Issue #1023: Trigger lightning flash in Black Metal mode for player-thrown grenades.
-		# Player grenades have thrower_id == -1 (enemies have positive thrower_id).
-		if thrower_id < 0:
-			var lightning_manager: Node = get_node_or_null("/root/BlackMetalLightningEffectsManager")
-			if lightning_manager and lightning_manager.has_method("trigger_lightning"):
-				lightning_manager.trigger_lightning()
-
 		_destroy()
 
 

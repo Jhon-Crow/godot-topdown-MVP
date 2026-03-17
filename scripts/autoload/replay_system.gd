@@ -646,10 +646,6 @@ func _trigger_replay_hit_effect() -> void:
 		hit_effects.on_player_hit_enemy()
 		Engine.time_scale = saved_time_scale
 
-	# Issue #1023: Trigger lightning flash effect in Black Metal mode.
-	var lightning_manager: Node = get_node_or_null("/root/BlackMetalLightningEffectsManager")
-	if lightning_manager and lightning_manager.has_method("trigger_lightning"):
-		lightning_manager.trigger_lightning()
 
 
 ## Triggers penultimate hit visual effects during replay (Issue #544 fix 4).

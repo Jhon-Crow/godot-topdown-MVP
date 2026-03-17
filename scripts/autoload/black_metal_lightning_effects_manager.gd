@@ -2,7 +2,7 @@ extends Node
 ## BlackMetalLightningEffectsManager - Thunder and lightning effects for Black Metal difficulty.
 ##
 ## Issue #1023: Adds dramatic horror-film style lightning bolt effects when the player
-## hits an enemy in Black Metal difficulty mode. Each strike draws actual visible
+## kills an enemy in Black Metal difficulty mode. Each kill draws actual visible
 ## jagged bolt streaks from the top of the screen downward, with branches, plus
 ## a brief screen-wide illumination flash — like old horror/black-metal films.
 ##
@@ -129,6 +129,14 @@ func _ready() -> void:
 	else:
 		_log("WARNING: DifficultyManager not found - effects will not activate automatically")
 
+	# Connect to enemy kills — lightning fires on kill, not on hit.
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_signal("enemy_killed"):
+		game_manager.enemy_killed.connect(_on_enemy_killed)
+		_log("Connected to GameManager.enemy_killed signal")
+	else:
+		_log("WARNING: GameManager not found or missing enemy_killed signal")
+
 	_log("Starting shader warmup (Issue #343 pattern)...")
 	await get_tree().process_frame
 	_log("Shader warmup complete in 0 ms")
@@ -139,7 +147,12 @@ func _process(delta: float) -> void:
 		_process_flash(delta)
 
 
-## Triggers a lightning bolt strike. Called when player hits an enemy in Black Metal mode.
+## Called when the player kills an enemy. Triggers a lightning bolt in Black Metal mode.
+func _on_enemy_killed() -> void:
+	trigger_lightning()
+
+
+## Triggers a lightning bolt strike. Called when an enemy is killed in Black Metal mode.
 func trigger_lightning() -> void:
 	if not _is_active:
 		return

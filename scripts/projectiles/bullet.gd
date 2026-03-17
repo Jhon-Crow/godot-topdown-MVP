@@ -768,16 +768,10 @@ func _is_player_bullet() -> bool:
 
 ## Triggers hit effects via the HitEffectsManager autoload.
 ## Effects: time slowdown to 0.9 for 3 seconds, saturation boost for 400ms.
-## Issue #1023: Also triggers lightning flash in Black Metal mode.
 func _trigger_player_hit_effects() -> void:
 	var hit_effects_manager: Node = get_node_or_null("/root/HitEffectsManager")
 	if hit_effects_manager and hit_effects_manager.has_method("on_player_hit_enemy"):
 		hit_effects_manager.on_player_hit_enemy()
-
-	# Issue #1023: Trigger lightning flash effect in Black Metal mode.
-	var lightning_manager: Node = get_node_or_null("/root/BlackMetalLightningEffectsManager")
-	if lightning_manager and lightning_manager.has_method("trigger_lightning"):
-		lightning_manager.trigger_lightning()
 
 
 ## Applies stun effect to the hit enemy via StatusEffectsManager.

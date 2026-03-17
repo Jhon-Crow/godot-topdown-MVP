@@ -467,12 +467,5 @@ public partial class SniperBullet : Area2D
         {
             hitEffectsManager.Call("on_player_hit_enemy");
         }
-
-        // Issue #1023: Trigger lightning flash effect in Black Metal mode.
-        var lightningManager = GetNodeOrNull("/root/BlackMetalLightningEffectsManager");
-        if (lightningManager != null && lightningManager.HasMethod("trigger_lightning"))
-        {
-            lightningManager.Call("trigger_lightning");
-        }
     }
 }

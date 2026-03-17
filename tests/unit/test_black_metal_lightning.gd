@@ -2,7 +2,7 @@ extends GutTest
 ## Unit tests for Black Metal lightning effects (Issue #1023).
 ##
 ## Tests the BlackMetalLightningEffectsManager autoload that provides
-## screen-wide lightning flash effects when hitting enemies in Black Metal mode.
+## screen-wide lightning flash effects when killing enemies in Black Metal mode.
 
 
 var _lightning_manager: Node = null
@@ -81,6 +81,40 @@ func test_constants_are_reasonable() -> void:
 		var max_intensity: float = constants["MAX_INTENSITY"]
 		assert_gte(max_intensity, 0.0, "MAX_INTENSITY should be >= 0")
 		assert_lte(max_intensity, 1.0, "MAX_INTENSITY should be <= 1")
+
+
+func test_lightning_triggers_on_enemy_kill_not_on_hit() -> void:
+	## Lightning should fire via GameManager.enemy_killed signal, not projectile hit callbacks.
+	if _lightning_manager == null:
+		pending("BlackMetalLightningEffectsManager not found")
+		return
+
+	# Verify the manager has the _on_enemy_killed handler.
+	assert_true(_lightning_manager.has_method("_on_enemy_killed"),
+		"Manager should have _on_enemy_killed method for kill-based triggering")
+
+	# Verify trigger_lightning still exists (used internally by _on_enemy_killed).
+	assert_true(_lightning_manager.has_method("trigger_lightning"),
+		"Manager should have trigger_lightning method")
+
+	# Verify the manager is connected to GameManager.enemy_killed.
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager == null:
+		pending("GameManager not found")
+		return
+
+	if not game_manager.has_signal("enemy_killed"):
+		pending("GameManager.enemy_killed signal not found")
+		return
+
+	var connections := game_manager.get_signal_connection_list("enemy_killed")
+	var found_connection := false
+	for conn in connections:
+		if conn["callable"].get_object() == _lightning_manager:
+			found_connection = true
+			break
+	assert_true(found_connection,
+		"BlackMetalLightningEffectsManager should be connected to GameManager.enemy_killed")
 
 
 func test_lightning_only_triggers_in_black_metal_mode() -> void:
