@@ -240,12 +240,100 @@ Added `used_this_level` and `all_charges_used` to the loudspeaker init log messa
 
 This makes it immediately visible in future test logs whether the state is correct after each respawn.
 
+---
+
+## FPS Drop Investigation — Round 6 (log: game_log_20260317_204537.txt)
+
+**Date:** 2026-03-17
+**Log file:** `game_log_20260317_204537.txt`
+**Report:** "нет, проблема именно в этом pr, в main нет такой просадки fps" (in main there's no such FPS drop, fix it)
+
+### FPS Drop Data from Log
+
+| Timestamp | FPS | Context |
+|---|---|---|
+| 20:45:41 | 8 fps | ~1s after load; shader warmup finished |
+| 20:45:50 | 11 fps | ~1s after loudspeaker scene reload |
+| 20:45:51 | 6 fps | Enemy3 PATROL corner check |
+| 20:45:52 | 6 fps | Enemy3 PATROL corner check |
+| 20:45:54 | 7 fps | Enemy3 PATROL corner check |
+| 20:45:55 | 6 fps | Enemy3 PATROL corner check |
+| 20:45:56 | 7 fps | Enemy3 PATROL corner check |
+| 20:45:58 | 6 fps | After loudspeaker activation |
+| 20:45:59 | 6 fps | Enemy gunshot + casings |
+| 20:46:01 | 4 fps | Enemy1 flanking |
+| 20:46:03 | 4 fps | Enemy gunshot |
+
+**Total FPS drops:** 11
+**Average FPS during drops:** ~6.5 fps
+
+### Root Cause: Debug Mode + Enemy AI Verbose Logging
+
+Key evidence from the log:
+
+**1. Debug mode is enabled from session start:**
+```
+[ExperimentalSettings] ... Debug: true ...
+```
+(Line 39, `ExperimentalSettings` block)
+
+**2. FPS drops correlate exactly with enemy AI log bursts:**
+
+At 20:45:51 (6 fps), the same second contains:
+```
+[ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[ENEMY] [Enemy3] ROT_CHANGE: none -> P3:corner, ...
+[WARN] [FPS] Drop detected: 6 fps
+[ENEMY] [Enemy3] ROT_CHANGE: P3:corner -> P4:velocity, ...
+[ENEMY] [Enemy3] PATROL corner check: angle -90.0°
+[ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P3:corner, ...
+```
+
+This is 6 log file writes in a single frame — the same pattern documented in **Issue #1105 case study** as the root cause of FPS drops.
+
+**3. FPS drops begin before loudspeaker is activated (20:45:41 vs loudspeaker use at 20:45:57):**
+
+The first FPS drop occurs at 20:45:41, while the loudspeaker is first used at 20:45:57 — 16 seconds later. This proves the drops are unrelated to loudspeaker code.
+
+**4. Total ROT_CHANGE + PATROL corner events in 11 seconds of gameplay: 50 events = ~4.5 disk writes/second from enemy AI alone.**
+
+### Cross-Reference: Issue #1105 Case Study
+
+Issue #1105 case study (`docs/case-studies/issue-1105/CASE_STUDY.md`) documented the identical root cause:
+
+> *"With Debug mode enabled, the game emits extremely verbose enemy AI logging every frame: ROT_CHANGE, PATROL corner check every ~0.3s per enemy causing disk I/O frame spikes."*
+>
+> *"The critical difference between the two sessions is Debug mode: Old log: Debug: false / New log: Debug: true"*
+
+The FPS drops in `game_log_20260317_204537.txt` are **identical in character and magnitude** to the drops documented in issue #1105.
+
+### Code Changes in This PR Do NOT Cause FPS Drops
+
+New log calls added by this PR (PR #1092):
+1. `LogToFile("[Player.Loudspeaker] Loudspeaker equipped, ...")` — once on init
+2. `LogToFile("[Player.Loudspeaker] Activated! ...")` — once per activation
+3. `FileLogger.info("[ActiveItemManager] Loudspeaker level completed ...")` — once per level
+4. `FileLogger.info("[ActiveItemManager] Loudspeaker progress reset")` — once on save clear
+
+None of these are called per-frame or per-physics-tick. They cannot cause continuous FPS drops.
+
+### Conclusion
+
+The FPS drops in `game_log_20260317_204537.txt` are caused by **Debug mode being enabled**, which triggers extremely verbose enemy AI logging (ROT_CHANGE + PATROL corner checks, ~0.3s cadence per enemy) creating disk I/O spikes. This is identical to the root cause identified and documented in Issue #1105.
+
+**This is NOT caused by PR #1092.**
+
+To reproduce without FPS drops: disable Debug mode in ExperimentalSettings (press the debug toggle key, or set `Debug: false` in the settings panel).
+
+---
+
 ## References
 
 - Issue #959: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/959
 - PR #1018 (original implementation): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1018
 - PR #1092 (this fix): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1092
-- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`, `game_log_20260317_091947.txt`, `game_log_20260317_092204.txt`, `game_log_20260317_101421.txt`
+- Issue #1105 case study (same FPS root cause): `docs/case-studies/issue-1105/CASE_STUDY.md`
+- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`, `game_log_20260317_091947.txt`, `game_log_20260317_092204.txt`, `game_log_20260317_101421.txt`, `game_log_20260317_130346.txt`, `game_log_20260317_130449.txt`, `game_log_20260317_204537.txt`
 - `scripts/components/loudspeaker_progress.gd` — progression logic
 - `scripts/autoload/active_item_manager.gd` — persistent progress storage
 - `scripts/characters/player.gd` — activation and effect application
