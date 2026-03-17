@@ -38,12 +38,23 @@ The full implementation was broken into the following stages:
 - Slow movement speed for machine gunner instances (configurable via export)
 - Add machine gunner enemy instance to BuildingLevel
 
-### Stage 1b (PR #1060 - revision, 2026-03-17)
+### Stage 1b (PR #1060 - revision, 2026-03-17 session 1)
 - Added MachineGunner to Labyrinth2Level.tscn (Лабиринт Комплекс) at position (1600, 2200)
 - Updated enemy count from 14→15 in Labyrinth2Level.tscn, levels_menu.gd, and labyrinth2_level.gd
 - Merged upstream/main (including Issue #1034 force field fix) to resolve conflicts
 - Feedback from owner: enemy was not visible on map; original placement was in BuildingLevel (Здание),
   but owner requested placement in Labyrinth Complex (Лабиринт Комплекс) specifically
+
+### Stage 1c (PR #1060 - revision, 2026-03-17 session 2)
+Game log `game_log_20260317_094909.txt` confirmed MachineGunner worked in Labyrinth2Level (line 460).
+Additional owner feedback (4 points):
+1. **Removed MachineGunner from BuildingLevel.tscn** — only in Лабиринт Комплекс now
+2. **Machine gunner visible in Labyrinth2Level** — confirmed by log, no scene change needed
+3. **Added Enemy Spawner from PR #599** — integrated into ExperimentalMenu.tscn and experimental_menu.gd;
+   OptionButton lets you select enemy type (including Machine Gunner) and spawn near player
+4. **Added PKM machine gun sprite** (`assets/sprites/weapons/pkm_topdown.png`);
+   updated `weapon_config_component.gd` sprite_path to use actual PKM graphic instead of M16 placeholder;
+   casings already work via existing Casing.tscn + caliber_762x39.tres
 
 ### Stage 2 (future)
 - Belt-fire suppression toward passages where player was last seen (extend `SuppressiveFireComponent`)
@@ -71,11 +82,14 @@ The existing enemy system already has excellent infrastructure for this new type
 | File | Change |
 |------|--------|
 | `scripts/objects/enemy.gd` | Add `MACHINE_GUN` to `WeaponType` enum; add front-arc damage resistance in `on_hit_with_bullet_info()`; add PM fallback on ammo depletion in `_can_shoot()` |
-| `scripts/components/weapon_config_component.gd` | Add weapon config for `MACHINE_GUN` (type 4): 500-round belt, 7.62x39 caliber, slow fire rate, long reload |
-| `scenes/levels/BuildingLevel.tscn` | Add machine gunner enemy instance with slow speed and MACHINE_GUN weapon type |
+| `scripts/components/weapon_config_component.gd` | Add weapon config for `MACHINE_GUN` (type 4): 500-round belt, 7.62x39 caliber, slow fire rate, long reload; sprite updated to pkm_topdown.png |
+| `scenes/levels/BuildingLevel.tscn` | ~~Add machine gunner~~ → Removed (only in Labyrinth Complex) |
 | `scenes/levels/Labyrinth2Level.tscn` | Add MachineGunner enemy at (1600, 2200); update enemy count to 15 |
 | `scripts/ui/levels_menu.gd` | Update Labyrinth Complex enemy_count (14→15) and description |
 | `scripts/levels/labyrinth2_level.gd` | Update header comment to reflect 15 enemies |
+| `scenes/ui/ExperimentalMenu.tscn` | Add Enemy Spawner section (from PR #599) |
+| `scripts/ui/experimental_menu.gd` | Add `_setup_enemy_spawner()` and `_on_spawn_enemy_pressed()` (from PR #599) |
+| `assets/sprites/weapons/pkm_topdown.png` | New PKM machine gun top-down sprite (64×16 RGBA) |
 | `tests/unit/test_machine_gunner.gd` | Unit tests for front-arc resistance and ammo fallback behavior |
 
 ---
@@ -156,7 +170,9 @@ New method `_activate_machine_gunner_pm_fallback()`:
 | 2026-03-16 | PR marked ready to merge |
 | 2026-03-17 | Owner feedback: machine gunner not visible; requested placement in Лабиринт Комплекс (Labyrinth Complex) |
 | 2026-03-17 | Root cause: machine gunner was placed in BuildingLevel (Здание), not Labyrinth Complex (Labyrinth2Level.tscn) |
-| 2026-03-17 | Fix: merged upstream/main (resolved conflict with Issue #1034 force field), added MachineGunner to Labyrinth2Level at position (1600, 2200) |
+| 2026-03-17 | Fix (session 1): merged upstream/main (resolved conflict with Issue #1034 force field), added MachineGunner to Labyrinth2Level at position (1600, 2200) |
+| 2026-03-17 | Game log `game_log_20260317_094909.txt` confirms MachineGunner spawned at (1600,2200) in Labyrinth2Level; also confirms spurious instance in BuildingLevel |
+| 2026-03-17 | Fix (session 2): removed MachineGunner from BuildingLevel; added Enemy Spawner (PR #599); created PKM sprite; updated weapon config sprite_path |
 
 ## Root Cause of Visibility Issue
 

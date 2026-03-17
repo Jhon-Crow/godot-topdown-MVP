@@ -23,6 +23,9 @@ signal back_pressed
 @onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
+@onready var enemy_type_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer/EnemyTypeOption
+@onready var spawn_enemy_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SpawnEnemyButton
+@onready var spawn_status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SpawnStatusLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 
@@ -49,6 +52,8 @@ func _ready() -> void:
 	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
+	_setup_enemy_spawner()
+	spawn_enemy_button.pressed.connect(_on_spawn_enemy_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -255,6 +260,67 @@ func _on_back_pressed() -> void:
 
 func _on_settings_changed() -> void:
 	_update_ui()
+
+
+## Enemy spawner: populate enemy type dropdown.
+## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=MACHINE_GUN).
+func _setup_enemy_spawner() -> void:
+	enemy_type_option.clear()
+	var types: Array[Dictionary] = [
+		{"name": "Rifle (M16)", "weapon_type": 0, "behavior": 1},
+		{"name": "Shotgun", "weapon_type": 1, "behavior": 1},
+		{"name": "UZI (SMG)", "weapon_type": 2, "behavior": 1},
+		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
+		{"name": "Machine Gunner (PKM)", "weapon_type": 4, "behavior": 1},
+		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+	]
+	for t in types:
+		enemy_type_option.add_item(t["name"])
+		enemy_type_option.set_item_metadata(enemy_type_option.item_count - 1, t)
+
+
+## Spawn the selected enemy type near the player on the current map.
+func _on_spawn_enemy_pressed() -> void:
+	var scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
+	if scene == null:
+		spawn_status_label.text = "Error: Enemy.tscn not found."
+		return
+
+	var current_scene: Node = get_tree().current_scene
+	if current_scene == null:
+		spawn_status_label.text = "Error: No active scene."
+		return
+
+	# Find player position for spawn offset.
+	var player: Node = get_node_or_null("/root/Player")
+	if player == null:
+		player = current_scene.find_child("Player", true, false)
+	var spawn_pos: Vector2 = Vector2(400.0, 400.0)
+	if player and player.get("global_position") != null:
+		spawn_pos = player.global_position + Vector2(200.0, 0.0)
+
+	# Instantiate and configure.
+	var idx: int = enemy_type_option.selected
+	var meta: Dictionary = enemy_type_option.get_item_metadata(idx) if idx >= 0 else {"weapon_type": 0, "behavior": 1}
+	var enemy: Node = scene.instantiate()
+	enemy.global_position = spawn_pos
+	if enemy.get("weapon_type") != null:
+		enemy.set("weapon_type", meta.get("weapon_type", 0))
+	if enemy.get("behavior_mode") != null:
+		enemy.set("behavior_mode", meta.get("behavior", 1))
+	if enemy.get("destroy_on_death") != null:
+		enemy.set("destroy_on_death", true)
+
+	# Add to Environment/Enemies node if it exists, otherwise directly to scene.
+	var enemies_node: Node = current_scene.find_child("Enemies", true, false)
+	if enemies_node:
+		enemies_node.add_child(enemy)
+	else:
+		current_scene.add_child(enemy)
+
+	var type_name: String = enemy_type_option.get_item_text(idx) if idx >= 0 else "Unknown"
+	spawn_status_label.text = "Spawned: %s at (%d, %d)" % [type_name, int(spawn_pos.x), int(spawn_pos.y)]
+	_log("Enemy spawner: spawned '%s' at %s" % [type_name, str(spawn_pos)])
 
 
 ## Log a message to the file logger if available.

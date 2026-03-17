@@ -353,6 +353,44 @@ which levels at what rank."
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="HSeparator14" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemySpawnerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Enemy Spawner"
+label_settings = ExtResource("2_neon_label")
+horizontal_alignment = 1
+
+[node name="EnemySpawnerDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "Spawn any enemy type on the current map near the player."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EnemySpawnerContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyTypeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enemy Type"
+
+[node name="EnemyTypeOption" type="OptionButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer"]
+layout_mode = 2
+
+[node name="SpawnEnemyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Spawn Enemy"
+
+[node name="SpawnStatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "FOV enabled: Enemies see in 100 degree cone"
