@@ -3917,7 +3917,6 @@ func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
 	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
 	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
-	rocket.set("linear_velocity", rocket_dir * (rocket.get("speed") if rocket.get("speed") != null else 800.0))
 	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
