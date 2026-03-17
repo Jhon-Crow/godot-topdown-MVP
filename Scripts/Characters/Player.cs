@@ -5592,8 +5592,8 @@ public partial class Player : BaseCharacter
             return;
 
         _combatDispositionPenaltyApplied = true;
-        _combatDispositionDamageBonus -= 1.0f;
-        _combatDispositionFireRateBonus -= 1.2f;
+        _combatDispositionDamageBonus -= 1.5f;
+        _combatDispositionFireRateBonus -= 1.8f;
 
         // Apply updated bonuses to current weapon
         if (CurrentWeapon != null)

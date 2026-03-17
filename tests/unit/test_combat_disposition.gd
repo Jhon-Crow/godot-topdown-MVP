@@ -4,7 +4,7 @@ extends GutTest
 ## Tests the combat disposition item including:
 ## - Registration as active item type (index 10)
 ## - Passive behavior: +0.7 damage and +1 fire rate on start
-## - On-hit penalty: -1 damage and -1.2 fire rate per hit
+## - On-hit penalty: -1.5 damage and -1.8 fire rate per hit
 ## - ActiveItemManager detection methods
 ## - No conflict with other items
 
@@ -45,7 +45,7 @@ class MockActiveItemManager:
 		7: {"name": "Force Field", "icon_path": "res://assets/sprites/weapons/force_field_icon.png", "description": "Force field."},
 		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
-		10: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1 and fire rate by 1.2."}
+		10: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1.5 and fire rate by 1.8."}
 	}
 
 	## Check if combat disposition is currently equipped (Issue #1047)
@@ -103,7 +103,7 @@ class MockCombatDispositionSystem:
 	var penalty_applied: bool = false
 	## Current damage bonus (starts at +0.7, decreases by 1 on first hit)
 	var damage_bonus: float = 0.0
-	## Current fire rate bonus (starts at +1, decreases by 1.2 on first hit)
+	## Current fire rate bonus (starts at +1, decreases by 1.8 on first hit)
 	var fire_rate_bonus: float = 0.0
 
 	## Initialize with starting bonuses
@@ -121,8 +121,8 @@ class MockCombatDispositionSystem:
 		if penalty_applied:
 			return
 		penalty_applied = true
-		damage_bonus -= 1.0
-		fire_rate_bonus -= 1.2
+		damage_bonus -= 1.5
+		fire_rate_bonus -= 1.8
 
 	## Get effective damage for a weapon with base damage
 	func get_effective_damage(base_damage: float) -> float:
@@ -313,16 +313,16 @@ func test_combat_disposition_damage_penalty_on_first_hit() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
-	assert_almost_eq(system.damage_bonus, -0.3, 0.001,
-		"After 1 hit: damage bonus should be 0.7 - 1.0 = -0.3")
+	assert_almost_eq(system.damage_bonus, -0.8, 0.001,
+		"After 1 hit: damage bonus should be 0.7 - 1.5 = -0.8")
 
 
 func test_combat_disposition_fire_rate_penalty_on_first_hit() -> void:
 	var system := MockCombatDispositionSystem.new()
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
-	assert_almost_eq(system.fire_rate_bonus, -0.2, 0.001,
-		"After 1 hit: fire rate bonus should be 1.0 - 1.2 = -0.2")
+	assert_almost_eq(system.fire_rate_bonus, -0.8, 0.001,
+		"After 1 hit: fire rate bonus should be 1.0 - 1.8 = -0.8")
 
 
 func test_combat_disposition_penalty_not_applied_on_second_hit() -> void:
@@ -330,8 +330,8 @@ func test_combat_disposition_penalty_not_applied_on_second_hit() -> void:
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
 	system.apply_hit_penalty()  # second call — should be ignored
-	assert_almost_eq(system.damage_bonus, -0.3, 0.001,
-		"After 2 hits: penalty applied only once, damage bonus should still be 0.7 - 1.0 = -0.3")
+	assert_almost_eq(system.damage_bonus, -0.8, 0.001,
+		"After 2 hits: penalty applied only once, damage bonus should still be 0.7 - 1.5 = -0.8")
 
 
 func test_combat_disposition_fire_rate_penalty_not_applied_on_second_hit() -> void:
@@ -339,8 +339,8 @@ func test_combat_disposition_fire_rate_penalty_not_applied_on_second_hit() -> vo
 	system.init_combat_disposition()
 	system.apply_hit_penalty()
 	system.apply_hit_penalty()  # second call — should be ignored
-	assert_almost_eq(system.fire_rate_bonus, -0.2, 0.001,
-		"After 2 hits: penalty applied only once, fire rate bonus should still be 1.0 - 1.2 = -0.2")
+	assert_almost_eq(system.fire_rate_bonus, -0.8, 0.001,
+		"After 2 hits: penalty applied only once, fire rate bonus should still be 1.0 - 1.8 = -0.8")
 
 
 func test_combat_disposition_hit_penalty_not_applied_when_inactive() -> void:
@@ -359,8 +359,8 @@ func test_combat_disposition_effective_damage_after_hit() -> void:
 	system.apply_hit_penalty()
 	var base_damage := 10.0
 	var effective := system.get_effective_damage(base_damage)
-	# 10.0 + (0.7 - 1.0) = 10.0 - 0.3 = 9.7
-	assert_almost_eq(effective, 9.7, 0.001,
+	# 10.0 + (0.7 - 1.5) = 10.0 - 0.8 = 9.2
+	assert_almost_eq(effective, 9.2, 0.001,
 		"After 1 hit: effective damage should decrease")
 
 
@@ -369,8 +369,8 @@ func test_combat_disposition_effective_fire_rate_floored_above_minimum() -> void
 	system.init_combat_disposition()
 	# Apply penalty (only first call has effect)
 	system.apply_hit_penalty()
-	# After penalty: fire_rate_bonus = 1.0 - 1.2 = -0.2
-	# With a low base rate of 0.1, effective = max(0.1 + (-0.2), 0.1) = max(-0.1, 0.1) = 0.1
+	# After penalty: fire_rate_bonus = 1.0 - 1.8 = -0.8
+	# With a low base rate of 0.1, effective = max(0.1 + (-0.8), 0.1) = max(-0.7, 0.1) = 0.1
 	var base_fire_rate := 0.1
 	var effective := system.get_effective_fire_rate(base_fire_rate)
 	assert_true(effective >= 0.1,

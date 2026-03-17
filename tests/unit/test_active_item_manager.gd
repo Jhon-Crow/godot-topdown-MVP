@@ -182,7 +182,7 @@ class MockActiveItemManager:
 		10: {
 			"name": "Combat Disposition",
 			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
-			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1 and fire rate by 1.2."
+			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1.5 and fire rate by 1.8."
 		}
 	}
 

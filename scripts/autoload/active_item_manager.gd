@@ -17,7 +17,7 @@ enum ActiveItemType {
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
-	COMBAT_DISPOSITION # Combat Disposition - passive: +0.7 damage and +1 fire rate on start; on hit: -1 damage and -1.2 fire rate (Issue #1047)
+	COMBAT_DISPOSITION # Combat Disposition - passive: +0.7 damage and +1 fire rate on start; on hit: -1.5 damage and -1.8 fire rate (Issue #1047)
 }
 
 ## Currently selected active item type.
@@ -104,7 +104,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
-		"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1 and fire rate by 1.2."
+		"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1.5 and fire rate by 1.8."
 	}
 }
 
