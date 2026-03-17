@@ -119,10 +119,49 @@ Add save/load of `loudspeaker_progress.to_dict()` / `from_dict()` in `PersistMan
 | `scripts/levels/docks_level.gd` | Same |
 | `scripts/levels/factory_level.gd` | Same |
 
+## Follow-Up Bugs (PR #1092 — 2026-03-17)
+
+After the primary three-bug fix was applied, the user reported two additional issues via game log `game_log_20260317_085835.txt`:
+
+### Bug 4 — First use pacifies multiple enemies instead of exactly 1 (at level 1)
+
+**Reported:** "First use (even if a map was already completed with loudspeaker) makes enemies in the damage zone pacifists — only the first use should affect only one enemy."
+
+**Evidence from log:**
+```
+[08:58:47] [ENEMY] [Enemy2] Transitioned to PACIFIST
+[08:58:47] [ENEMY] [Enemy3] Transitioned to PACIFIST
+[08:58:47] [INFO] [Player.Loudspeaker] Effect applied: 2/5 enemies pacified
+[08:58:47] [INFO] [Player.Loudspeaker] Activated! Direction: ..., Effect chance: 100%, Charges: 1/2
+```
+
+**Root cause:** In `player.gd`, `effect_chance = 1.0` when `is_first_use = true`. Then in `_apply_loudspeaker_effect()`, `randf() > 1.0` is never true, so all eligible enemies in the cone get pacified. The spec says: "the first use — only ONE enemy that fell under the effect becomes pacifist."
+
+**Fix:** Pass `max_pacify = 1` to `_apply_loudspeaker_effect()` when it is the first use at level 1. After pacifying 1 enemy, the loop breaks.
+
+### Bug 5 — Level advances even when not all charges were used
+
+**Reported:** "Loudspeaker level should only advance if the player used all charges and then completed the level (in one run)."
+
+**Evidence from log:**
+```
+[08:58:54] [INFO] [Player.Loudspeaker] Activated! ..., Effect chance: 100%, Charges: 1/2
+[08:58:54] [INFO] [Player.Loudspeaker] Activated! ..., Effect chance: 2%, Charges: 0/2
+[08:59:58] [INFO] [ActiveItemManager] Loudspeaker level completed (had_kills=true). New level: 2
+```
+
+The first run used both charges (0/2 remaining) and then the level completed → level advanced to 2. This specific case was correct. However, the `on_level_completed()` in `loudspeaker_progress.gd` did NOT gate on charge exhaustion — it advanced on every level completion regardless. The log also shows subsequent runs where the player completed the level without using all charges.
+
+**Root cause:** `on_level_completed()` always increments `levels_completed_with_loudspeaker` and calls `_update_level()` regardless of whether all charges were used.
+
+**Fix:** Add `all_charges_used_this_level: bool` flag to `LoudspeakerProgress`. Set it to `true` in `use()` when charges drop to 0 (or for unlimited-charge levels, when any charge is spent). In `on_level_completed()`, only advance if `all_charges_used_this_level = true`. Reset the flag in `reset_for_new_level()`.
+
 ## References
 
 - Issue #959: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/959
 - PR #1018 (original implementation): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1018
-- Game log: `game_log_20260317_082332.txt`
-- `scripts/components/loudspeaker_progress.gd` — progression logic (correct, but never properly connected)
-- `scripts/autoload/active_item_manager.gd` — correct place to store persistent progress
+- PR #1092 (this fix): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1092
+- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`
+- `scripts/components/loudspeaker_progress.gd` — progression logic
+- `scripts/autoload/active_item_manager.gd` — persistent progress storage
+- `scripts/characters/player.gd` — activation and effect application

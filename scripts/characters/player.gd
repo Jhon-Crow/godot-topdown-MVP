@@ -3989,15 +3989,17 @@ func _handle_loudspeaker_input() -> void:
 	if _loudspeaker_cone and is_instance_valid(_loudspeaker_cone):
 		_loudspeaker_cone.play(aim_dir)
 
-	# Effect chance: first use is always 100%, subsequent uses depend on level
+	# Effect chance: first use at level 1 is 100% but limited to 1 enemy; subsequent uses depend on level
 	var effect_chance := 1.0 if is_first_use else _loudspeaker_progress.get_effect_chance()
+	# At level 1, first use pacifies exactly 1 enemy; all other uses have no per-use limit
+	var max_pacify := 1 if (is_first_use and _loudspeaker_progress.current_level == 1) else -1
 
 	# Notify all enemies on the map that a loud sound was made (they all hear it)
 	_alert_all_enemies_loudspeaker()
 
 	# Apply pacifism effect to enemies in the cone sector (Stage 5)
 	var hostility_chance := _loudspeaker_progress.get_hostility_chance()
-	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance)
+	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance, max_pacify)
 
 	# Emit signal so level scripts can track loudspeaker activations
 	loudspeaker_activated.emit(global_position, aim_dir, effect_chance)
@@ -4034,7 +4036,8 @@ func _get_aim_direction() -> Vector2:
 ## - Only enemies NOT previously attacked by player (not wounded/suppressed)
 ## - Effect chance: 100% on first use, per-level chance on subsequent uses
 ## - Hostility: each enemy independently rolls hostility toward any pacifist created
-func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float) -> void:
+## - max_pacify: maximum enemies to pacify this activation (-1 = unlimited)
+func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float, max_pacify: int = -1) -> void:
 	const CONE_HALF_ANGLE: float = 0.872664625997  # 50 degrees in radians
 	const COVER_MAX_DISTANCE: float = 500.0
 	var wall_mask: int = 4  # Physics layer for walls
@@ -4089,6 +4092,9 @@ func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostili
 			FileLogger.info("[Player.Loudspeaker] Pacified enemy at %s (dist=%.0f, cover=%s)" % [
 				enemy.global_position, dist, str(behind_wall)
 			])
+			# Stop after reaching the per-activation limit (e.g. 1 on very first use at level 1)
+			if max_pacify != -1 and pacified_count >= max_pacify:
+				break
 
 	FileLogger.info("[Player.Loudspeaker] Effect applied: %d/%d enemies pacified" % [
 		pacified_count, enemies.size()

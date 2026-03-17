@@ -34,6 +34,9 @@ var has_killed_immune_enemy: bool = false
 ## Whether the loudspeaker has been used this level (for first-use 100% effect).
 var used_this_level: bool = false
 
+## Whether all charges were spent this level (required for level progression).
+var all_charges_used_this_level: bool = false
+
 ## Number of charges remaining for current battle.
 var charges_remaining: int = 2
 
@@ -140,8 +143,13 @@ func use() -> bool:
 	var max_charges := get_max_charges()
 	if max_charges == -1:  # Unlimited, use cooldown
 		cooldown_timer = get_cooldown_duration()
+		# Unlimited charges count as "all used" once any charge is spent
+		all_charges_used_this_level = true
 	else:
 		charges_remaining -= 1
+		# Track when all charges have been exhausted this level
+		if charges_remaining <= 0:
+			all_charges_used_this_level = true
 
 	if is_first_use:
 		first_use_triggered.emit()
@@ -161,17 +169,21 @@ func reset_for_new_level() -> void:
 	charges_remaining = max_charges if max_charges != -1 else 0
 	cooldown_timer = 0.0
 	used_this_level = false
+	all_charges_used_this_level = false
 
 
 ## Called when a level is completed with loudspeaker equipped.
 ## @param had_kills: Whether the player killed any enemies (not pacifists).
+## Note: Level progression only advances if all charges were spent this level (per issue spec).
 func on_level_completed(had_kills: bool) -> void:
-	levels_completed_with_loudspeaker += 1
+	# Level only counts toward progression if all charges were used in this run
+	if all_charges_used_this_level:
+		levels_completed_with_loudspeaker += 1
 
-	if not had_kills:
-		has_completed_pacifist_level = true
+		if not had_kills:
+			has_completed_pacifist_level = true
 
-	_update_level()
+		_update_level()
 
 
 ## Called when the immune enemy is killed (level 6 special enemy).
