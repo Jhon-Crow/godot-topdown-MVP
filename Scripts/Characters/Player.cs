@@ -7038,6 +7038,18 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle") && _recoilCompensatorCharge > 0.0f)
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                if (_recoilCompensatorActive)
+                {
+                    _recoilCompensatorActive = false;
+                    QueueRedraw();
+                }
+                return;
+            }
+
             // Activate: deplete charge
             if (!_recoilCompensatorActive)
             {
