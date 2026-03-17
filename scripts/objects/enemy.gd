@@ -371,8 +371,7 @@ var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phas
 
 var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (used for death animation).
 var _death_animation: Node = null  ## Death animation component reference.
-## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
-var _grenade_component: EnemyGrenadeComponent = null
+var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (extracted for Issue #377 CI fix).
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _teleport_component: EnemyTeleportComponent = null  ## Teleport component (Issue #752).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
