@@ -1,15 +1,13 @@
-[gd_scene load_steps=9 format=3 uid="uid://crpgrocket583k1"]
+[gd_scene load_steps=8 format=3 uid="uid://crpgrocket583k1"]
 
 [ext_resource type="Script" path="res://scripts/projectiles/rpg_rocket.gd" id="1_rpg_rocket"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_rocket"]
 radius = 6.0
 
-[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_rocket"]
-size = Vector2(20, 6)
-
 [sub_resource type="Gradient" id="Gradient_trail"]
-colors = PackedColorArray(1, 0.4, 0.1, 1, 1, 0.6, 0.2, 0)
+offsets = PackedFloat32Array(0, 0.4, 1)
+colors = PackedColorArray(1, 0.9, 0.3, 1, 1, 0.4, 0.1, 0.8, 0.8, 0.2, 0.0, 0)
 
 [sub_resource type="Curve" id="Curve_trail"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -28,19 +26,15 @@ particle_flag_disable_z = true
 emission_shape = 1
 emission_sphere_radius = 2.0
 direction = Vector3(-1, 0, 0)
-spread = 20.0
-initial_velocity_min = 60.0
-initial_velocity_max = 140.0
+spread = 25.0
+initial_velocity_min = 80.0
+initial_velocity_max = 180.0
 gravity = Vector3(0, 0, 0)
-damping_min = 80.0
-damping_max = 160.0
-scale_min = 0.15
-scale_max = 0.4
-color = Color(1, 0.6, 0.1, 1)
-
-[sub_resource type="Gradient" id="Gradient_exhaust_color"]
-offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
-colors = PackedColorArray(1, 1, 0.8, 1, 1, 0.6, 0.1, 0.9, 1, 0.3, 0.05, 0.5, 0.4, 0.1, 0.0, 0)
+damping_min = 60.0
+damping_max = 120.0
+scale_min = 0.2
+scale_max = 0.5
+color = Color(1, 0.7, 0.1, 1)
 
 [node name="RpgRocket" type="Area2D"]
 collision_layer = 16
@@ -48,24 +42,22 @@ collision_mask = 39
 script = ExtResource("1_rpg_rocket")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(1, 0.4, 0.1, 1)
-scale = Vector2(1.5, 1.5)
-texture = SubResource("PlaceholderTexture2D_rocket")
+scale = Vector2(2.0, 2.0)
 
 [node name="Trail" type="Line2D" parent="."]
-width = 4.0
+width = 6.0
 width_curve = SubResource("Curve_trail")
-default_color = Color(1, 0.4, 0.1, 1)
+default_color = Color(1, 0.6, 0.1, 1)
 gradient = SubResource("Gradient_trail")
 begin_cap_mode = 2
 end_cap_mode = 2
 
 [node name="ExhaustParticles" type="GPUParticles2D" parent="."]
 emitting = true
-amount = 18
+amount = 24
 process_material = SubResource("ParticleProcessMaterial_exhaust")
 texture = SubResource("GradientTexture2D_exhaust")
-lifetime = 0.25
+lifetime = 0.3
 one_shot = false
 explosiveness = 0.0
 randomness = 0.5

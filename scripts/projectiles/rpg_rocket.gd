@@ -5,6 +5,7 @@ class_name RpgRocket
 ## Travels in a direction and explodes on hitting walls, enemies, or player.
 ## Deals area-of-effect damage within explosion radius.
 ## No ricochet or penetration - always explodes on first contact.
+## Has a short spawn immunity window to avoid exploding immediately near the shooter.
 
 ## Speed of the rocket in pixels per second.
 @export var speed: float = 800.0
@@ -19,7 +20,10 @@ class_name RpgRocket
 @export var explosion_damage: int = 3
 
 ## Maximum number of trail points.
-@export var trail_length: int = 12
+@export var trail_length: int = 20
+
+## Seconds after spawn during which collisions are ignored (avoids immediate explosion near shooter).
+@export var spawn_immunity_time: float = 0.15
 
 ## Direction the rocket travels (set by the shooter).
 var direction: Vector2 = Vector2.RIGHT
@@ -45,16 +49,24 @@ var _exhaust: GPUParticles2D = null
 ## History of global positions for the trail effect.
 var _position_history: Array[Vector2] = []
 
+## Reference to the rocket body Sprite2D.
+var _sprite: Sprite2D = null
+
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
 
+	_sprite = get_node_or_null("Sprite2D")
+	if _sprite:
+		_sprite.texture = _create_rocket_texture()
+		_sprite.modulate = Color(1, 1, 1, 1)
+
 	_trail = get_node_or_null("Trail")
 	if _trail:
 		_trail.clear_points()
 		_trail.top_level = true
-		_trail.position = Vector2.ZERO
+		_trail.global_position = Vector2.ZERO
 
 	# Issue #583: Orient exhaust particles to emit backward from rocket direction
 	_exhaust = get_node_or_null("ExhaustParticles")
@@ -90,8 +102,55 @@ func _update_trail() -> void:
 		_trail.add_point(pos)
 
 
+## Create a rocket body texture: elongated shape with nose cone and fin details.
+func _create_rocket_texture() -> ImageTexture:
+	# Rocket: 32px wide (along flight direction), 8px tall
+	var w := 32
+	var h := 8
+	var image := Image.create(w, h, false, Image.FORMAT_RGBA8)
+
+	var nose_color := Color(0.9, 0.5, 0.1, 1.0)     # Orange nose tip
+	var body_color := Color(0.7, 0.7, 0.7, 1.0)     # Grey metallic body
+	var fin_color  := Color(0.5, 0.5, 0.55, 1.0)    # Darker fin
+	var exhaust_color := Color(1.0, 0.9, 0.2, 1.0)  # Yellow exhaust ring
+
+	var cx := h / 2  # Center y = 4
+
+	for x in range(w):
+		for y in range(h):
+			var dist_from_center := abs(y - cx)
+			var t := float(x) / float(w - 1)  # 0=nose, 1=tail
+
+			# Nose cone (left 25%): tapers to a point
+			if t < 0.25:
+				var nose_t := t / 0.25  # 0=tip, 1=base
+				var half_h := nose_t * float(cx)
+				if dist_from_center <= half_h:
+					image.set_pixel(x, y, nose_color)
+
+			# Main body (25%-75%): cylindrical, radius = cx-1
+			elif t < 0.75:
+				if dist_from_center <= cx - 1:
+					image.set_pixel(x, y, body_color)
+
+			# Fin section (75%-90%): slightly wider
+			elif t < 0.90:
+				if dist_from_center <= cx:
+					image.set_pixel(x, y, fin_color)
+
+			# Exhaust ring (90%-100%): bright yellow ring
+			else:
+				if dist_from_center <= cx - 1:
+					image.set_pixel(x, y, exhaust_color)
+
+	return ImageTexture.create_from_image(image)
+
+
 func _on_body_entered(body: Node2D) -> void:
 	if _has_exploded:
+		return
+	# Ignore collisions during spawn immunity to avoid exploding near shooter
+	if _time_alive < spawn_immunity_time:
 		return
 	if shooter_id == body.get_instance_id():
 		return
@@ -103,6 +162,9 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _on_area_entered(area: Area2D) -> void:
 	if _has_exploded:
+		return
+	# Ignore collisions during spawn immunity to avoid exploding near shooter
+	if _time_alive < spawn_immunity_time:
 		return
 	if not area.has_method("on_hit"):
 		return
