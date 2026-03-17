@@ -2040,6 +2040,10 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;

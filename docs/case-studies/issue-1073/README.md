@@ -104,3 +104,81 @@ Screenshot `screenshot_armory_missing_icon.png` shows the Recoil Compensator wit
 
 - `game_log_20260317_214250.txt` — owner's game session log showing the bugs
 - `screenshot_armory_missing_icon.png` — screenshot showing missing icon in Armory
+
+---
+
+## Second Incident — 2026-03-17 23:57 (PR comment)
+
+### Owner Feedback
+
+> предмет не работает при зажатом пробела (возможно сломал отдачу m16)
+> ("Item doesn't work when Space is held; may have broken M16 recoil")
+
+Two new game logs were provided:
+- `game_log_20260317_235743.txt` — session with Loudspeaker first, then switching to Recoil Compensator
+- `game_log_20260317_235852.txt` — session directly with Recoil Compensator selected
+
+### Root Cause Analysis
+
+#### Root Cause #3: Implementation in Wrong Script (C# vs GDScript)
+
+The recoil compensator was implemented in `scripts/characters/player.gd` (GDScript), but **all game levels use `scenes/characters/csharp/Player.tscn`** which attaches `Scripts/Characters/Player.cs` (C#). The GDScript player (`scenes/characters/Player.tscn`) is never instantiated in any level.
+
+**Evidence from `game_log_20260317_235852.txt`:**
+
+```
+[23:58:52] [INFO] [ActiveItemManager] Active item changed from None to Recoil Compensator
+[23:58:52] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[23:58:52] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[23:58:52] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[23:58:52] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+```
+
+After `AutoReload` init, there is **no `[Player.RecoilCompensator]` log at all** — the C# player has no recoil compensator code, so it never initializes it. Even though the `active_item_manager.gd` (GDScript autoload) correctly registered RECOIL_COMPENSATOR at index 14 and selected it, the C# Player had no handler.
+
+The log also showed `AKGL already equipped by C# Player` and `C# autoload - verified OK`, confirming the C# player path is used.
+
+**Level scene file check:**
+```
+scenes/levels/LabyrinthLevel.tscn → scenes/characters/csharp/Player.tscn → Scripts/Characters/Player.cs
+```
+All 10 game levels reference `scenes/characters/csharp/Player.tscn`.
+
+#### Why M16 Recoil Appeared Broken
+
+The GDScript `player.gd` was modified to suppress M16 spread in `_get_current_spread()` and shake in `_trigger_screen_shake()`. However, since the GDScript player is never used in actual gameplay, this had no effect on M16. The M16 recoil was always fine — the owner may have been testing with the compensator selected but noticed spread wasn't suppressed, and mistakenly attributed it to a regression.
+
+### Fix Applied
+
+Implemented the recoil compensator fully in the C# Player (`Scripts/Characters/Player.cs`):
+
+1. **`InitRecoilCompensator()`** — called from `_Ready()` after `InitAutoReload()`. Checks `ActiveItemManager.has_recoil_compensator()` and sets `_recoilCompensatorEquipped = true`, `_recoilCompensatorCharge = 15.0`.
+
+2. **`HandleRecoilCompensatorInput(delta)`** — called from `_PhysicsProcess()`. Checks `Input.IsActionPressed("flashlight_toggle")`, depletes charge, sets `_recoilCompensatorActive`, logs activation/deactivation.
+
+3. **`IsRecoilCompensatorActive()`** — public method called by weapon scripts to check if spread/shake should be suppressed.
+
+4. **Fire rate boost** — calls `CurrentWeapon.AccelerateFireTimer(delta * 0.1f)` each frame while active, giving a 10% fire rate boost by advancing the fire cooldown timer 10% faster.
+
+5. **Progress bar** — `DrawRecoilCompensatorBar()` in `_Draw()`, renders a continuous amber/orange bar above the player while active or after partial depletion.
+
+6. **`AccelerateFireTimer(float extraDelta)`** added to `BaseWeapon.cs` (the shared base class for all weapons).
+
+7. **All 8 weapon scripts updated** to call `IsRecoilCompensatorActive()` from the parent Player in both `ApplySpread()` and `TriggerScreenShake()`:
+   - `AssaultRifle.cs` (M16)
+   - `AKGL.cs`
+   - `MakarovPM.cs`
+   - `MiniUzi.cs`
+   - `SilencedPistol.cs`
+   - `Revolver.cs`
+   - `Shotgun.cs`
+   - `SniperRifle.cs`
+
+---
+
+## Artifacts
+
+- `game_log_20260317_214250.txt` — owner's game session log showing the bugs (Session 1)
+- `screenshot_armory_missing_icon.png` — screenshot showing missing icon in Armory
+- `game_log_20260317_235743.txt` — owner's game session log (Session 2 — Loudspeaker then RC)
+- `game_log_20260317_235852.txt` — owner's game session log (Session 3 — RC directly selected)
