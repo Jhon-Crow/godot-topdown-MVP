@@ -255,9 +255,9 @@ func _setup_weapon_hints() -> void:
 	if _player == null:
 		return
 
-	var ui: Control = get_node_or_null("CanvasLayer/UI")
-	if ui == null:
-		push_warning("[TestTier] UI node not found for weapon hints")
+	var canvas_layer: Node = get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		push_warning("[TestTier] CanvasLayer node not found for weapon hints")
 		return
 
 	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
@@ -270,9 +270,9 @@ func _setup_weapon_hints() -> void:
 	_weapon_hints_component.set_script(hints_script)
 	add_child(_weapon_hints_component)
 
-	# Setup the component with player and UI references
+	# Setup the component with player and CanvasLayer references (Issue #809)
 	if _weapon_hints_component.has_method("setup"):
-		_weapon_hints_component.setup(_player, ui)
+		_weapon_hints_component.setup(_player, canvas_layer)
 		print("[TestTier] Weapon hints component added and setup")
 
 
