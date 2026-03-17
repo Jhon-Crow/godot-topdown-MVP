@@ -240,3 +240,84 @@ func test_reduced_magazine_for_sniper_5_round() -> void:
 	var reduced := _calculate_reduced_magazine_size(5)
 	assert_eq(reduced, 2,
 		"5-round sniper magazine should reduce to 2 rounds (floor(5/2.1))")
+
+
+# ============================================================================
+# Bug Fix Tests (Issue #1067 v2)
+# ============================================================================
+
+
+func test_kill_refill_uses_reduced_size_not_original() -> void:
+	# Bug fix: refill must use the cached reduced magazine size, NOT WeaponData.MagazineSize.
+	# Before fix, magazineCapacity = WeaponData.MagazineSize = 30 (original),
+	# causing the refill to overflow: current_ammo could exceed actual MaxCapacity.
+	# After fix, magazineCapacity = _autoReloadMagazineSize = 14 (reduced).
+	var weapon := MockWeapon.new()
+	weapon.magazine_size = 14  # reduced size (cached _autoReloadMagazineSize)
+	weapon.current_ammo = 3
+	weapon.reserve_ammo = 30
+
+	var added := _perform_kill_refill(weapon)
+
+	# Should fill to 14 (reduced), not 30 (original WeaponData.MagazineSize)
+	assert_eq(weapon.current_ammo, 14,
+		"Magazine should fill to reduced capacity (14), not original WeaponData.MagazineSize (30)")
+	assert_eq(added, 11, "Should add exactly 11 rounds (14-3)")
+	assert_eq(weapon.reserve_ammo, 19, "Reserve should decrease by exactly 11 (30-11=19)")
+
+
+func test_kill_refill_conserves_total_ammo() -> void:
+	# Bug fix: ammo conservation — the total ammo (current + reserve) must not change.
+	# Refill is a pure transfer: bullets move from reserve to magazine, nothing is created.
+	var weapon := MockWeapon.new()
+	weapon.magazine_size = 14
+	weapon.current_ammo = 5
+	weapon.reserve_ammo = 28
+
+	var total_before := weapon.current_ammo + weapon.reserve_ammo  # 33
+
+	_perform_kill_refill(weapon)
+
+	var total_after := weapon.current_ammo + weapon.reserve_ammo
+	assert_eq(total_after, total_before,
+		"Total ammo (current + reserve) must be conserved after kill refill — it is a transfer, not creation")
+
+
+func test_kill_refill_revolver_cylinder_reduced() -> void:
+	# Bug fix: revolver support — CylinderSize 5 reduces to 2, refill uses 2.
+	# Before fix, magazineCapacity = WeaponData.MagazineSize = 5 (unchanged),
+	# and _chamberOccupied was not updated, causing stale cylinder HUD.
+	# After fix, _autoReloadMagazineSize = 2 and CylinderSize = 2.
+	var weapon := MockWeapon.new()
+	weapon.magazine_size = 2  # reduced cylinder size (floor(5/2.1)=2)
+	weapon.current_ammo = 0
+	weapon.reserve_ammo = 6   # 3 spare cylinders * 2 rounds each
+
+	var total_before := weapon.current_ammo + weapon.reserve_ammo  # 6
+
+	var added := _perform_kill_refill(weapon)
+
+	assert_eq(added, 2, "Revolver kill should add 2 rounds (reduced cylinder size)")
+	assert_eq(weapon.current_ammo, 2, "Revolver cylinder should fill to 2 (reduced size, not original 5)")
+	assert_eq(weapon.reserve_ammo, 4, "Reserve should decrease by 2")
+	var total_after := weapon.current_ammo + weapon.reserve_ammo
+	assert_eq(total_after, total_before, "Revolver: total ammo must be conserved")
+
+
+func test_kill_refill_does_not_overflow_reduced_magazine() -> void:
+	# Bug fix: magazine must never exceed the reduced MaxCapacity.
+	# Before fix: magazineCapacity = 30 (original) caused current_ammo to be set to e.g. 30
+	# even though the actual MagazineData.MaxCapacity was only 14.
+	var weapon := MockWeapon.new()
+	weapon.magazine_size = 14  # reduced size is the cap
+	weapon.current_ammo = 13   # almost full
+	weapon.reserve_ammo = 20
+
+	var total_before := weapon.current_ammo + weapon.reserve_ammo  # 33
+
+	var added := _perform_kill_refill(weapon)
+
+	assert_eq(added, 1, "Should only add 1 round to top up to reduced capacity")
+	assert_eq(weapon.current_ammo, 14, "Should not overflow beyond reduced capacity")
+	var total_after := weapon.current_ammo + weapon.reserve_ammo
+	assert_eq(total_after, total_before, "Total ammo must be conserved (no overflow = no creation)")

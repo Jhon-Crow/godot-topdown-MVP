@@ -4221,6 +4221,14 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+[node name="TeleporterEnemy" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2400, 2800)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+is_teleporter = true
+
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_city")
 

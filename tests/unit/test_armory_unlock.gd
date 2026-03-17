@@ -84,6 +84,9 @@ class MockActiveItemManager:
 		FORCE_FIELD,
 		TRAJECTORY_GLASSES, # Issue #744
 		LASER_SIGHT,        # Issue #947
+		LOUDSPEAKER,        # Issue #959
+		BREACHING_CHARGES,  # Issue #1043
+		ARMORED_SKIN,       # Issue #1045
 		AUTO_RELOAD         # Issue #1067
 	}
 
@@ -100,6 +103,9 @@ class MockActiveItemManager:
 		ActiveItemType.FORCE_FIELD: true,          # No condition — freely available from start
 		ActiveItemType.TRAJECTORY_GLASSES: true,   # No condition — freely available from start (Issue #744)
 		ActiveItemType.LASER_SIGHT: true,          # No condition — freely available from start (Issue #947)
+		ActiveItemType.LOUDSPEAKER: true,          # No condition — freely available from start (Issue #959)
+		ActiveItemType.BREACHING_CHARGES: true,    # No condition — freely available from start (Issue #1043)
+		ActiveItemType.ARMORED_SKIN: true,         # No condition — freely available from start (Issue #1045)
 		ActiveItemType.AUTO_RELOAD: true           # No condition — freely available from start (Issue #1067)
 	}
 
