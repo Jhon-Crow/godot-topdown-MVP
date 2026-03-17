@@ -790,19 +790,18 @@ public partial class AssaultRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Applies recoil offset to the shooting direction and adds new recoil.
-    /// The bullet is fired in the same direction shown by the laser sight,
-    /// then recoil is added for the next shot.
+    /// Applies recoil offset and random spread to the shooting direction, then updates recoil for next shot.
+    /// The laser sight shows the accumulated recoil direction; each bullet also gets additional
+    /// random spread within the configured SpreadAngle, restoring visible bullet dispersion.
     /// </summary>
     /// <param name="direction">Original direction.</param>
-    /// <returns>Direction with current recoil applied.</returns>
+    /// <returns>Direction with current recoil and random spread applied.</returns>
     private Vector2 ApplySpread(Vector2 direction)
     {
         // Apply the current recoil offset to the direction
         // This matches where the laser is pointing
         Vector2 result = direction.Rotated(_recoilOffset);
 
-        // Add recoil for the next shot
         if (WeaponData != null && WeaponData.SpreadAngle > 0)
         {
             // Convert spread angle from degrees to radians
@@ -817,11 +816,13 @@ public partial class AssaultRifle : BaseWeapon
                 spreadRadians *= recoilMultiplier;
             }
 
-            // Generate random recoil direction (-1 or 1) with small variation
+            // Apply random spread for this bullet so each shot has visible dispersion
+            float randomSpread = (float)GD.RandRange(-spreadRadians, spreadRadians);
+            result = result.Rotated(randomSpread * 0.5f);
+
+            // Also update recoil accumulator for the next shot (affects laser sight)
             float recoilDirection = (float)GD.RandRange(-1.0, 1.0);
             float recoilAmount = spreadRadians * Mathf.Abs(recoilDirection);
-
-            // Add to current recoil, clamped to maximum
             _recoilOffset += recoilDirection * recoilAmount * 0.5f;
             _recoilOffset = Mathf.Clamp(_recoilOffset, -MaxRecoilOffset, MaxRecoilOffset);
         }
