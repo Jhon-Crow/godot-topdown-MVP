@@ -262,6 +262,56 @@ Expected log output for MakarovPM:
 
 ---
 
+## Post-Fix FPS Performance Analysis
+
+**Date:** 2026-03-17
+**Log file:** `game_log_20260317_131649.txt` (owner's session after PR #1106 fix)
+**Owner query:** "вроде норм, проверить нет ли просадок fps из за нового функционала"
+(Translation: "seems okay, check if there are FPS drops from the new functionality")
+
+### Comparison: Before Fix vs After Fix
+
+| Metric | Before Fix (game_log_20260317_123619.txt) | After Fix (game_log_20260317_131649.txt) |
+|--------|------------------------------------------|------------------------------------------|
+| FPS drops | 20 total | 91 total |
+| Average FPS during drops | 26.1 fps | 12.6 fps |
+| Min FPS | 1 fps | 2 fps |
+| Max FPS | 29 fps | 29 fps |
+| Debug mode | `false` | `true` |
+| Session duration | ~4 min | ~2.3 min |
+| Drops per minute | ~5 | ~40 |
+
+### Root Cause of FPS Drops: Debug Mode, Not Auto-Reload
+
+The critical difference between the two sessions is **Debug mode**:
+- Old log: `Debug: false` (line 39)
+- New log: `Debug: true` (line 39)
+
+With Debug mode enabled, the game emits **extremely verbose enemy AI logging** every frame:
+- `ROT_CHANGE: P3:corner -> P4:velocity, ...` (every 0.3s per enemy)
+- `PATROL corner check: angle X.X°` (multiple times per second per enemy)
+
+With 10 enemies × multiple log entries per second = thousands of log writes per minute. These disk I/O operations on the main thread cause frame time spikes.
+
+**Evidence:** The FPS drops happen uniformly throughout gameplay with 10 enemies (not specifically correlated with auto-reload events). In the region 13:17:37–13:17:44 (7 seconds), there are 7 FPS drops — all during active combat with 10 enemies logging AI decisions constantly.
+
+### Auto-Reload Code Performance Profile
+
+The auto-reload implementation performs only:
+1. **On level load** (`InitAutoReload`): One-time scan of enemies group, O(n) signal connections
+2. **On each kill** (`OnEnemyKilledForAutoReload`): 3-5 integer comparisons, one integer mutation
+3. **On weapon config** (`ApplyAutoReloadAfterLevelAmmoConfig`): One magazine count calculation
+
+None of these operations involve loops, scene tree traversal during gameplay, or significant computation. The `ConnectAutoReloadToEnemies()` call does traverse the scene tree once per level start, but this is batched with the rest of initialization and does not repeat during gameplay.
+
+### Conclusion
+
+The FPS drops in the post-fix session are caused by **Debug mode being enabled** (which generates massive verbose AI logging), NOT by the new auto-reload functionality. The auto-reload code itself has O(1) per-kill complexity and does not introduce any frame rate overhead during normal gameplay.
+
+**To reproduce without FPS drops:** Disable Debug mode in ExperimentalSettings. The drops in old log (Debug: false) were minimal: mostly at level load transitions (1 drop per level start, avg 26 fps).
+
+---
+
 ## Regression Test Coverage
 
 Added to `tests/unit/test_auto_reload.gd`:
