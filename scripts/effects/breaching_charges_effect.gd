@@ -1,5 +1,5 @@
 extends Node
-## Breaching charges active item effect controller (Issues #1043, #1087).
+## Breaching charges active item effect controller (Issues #1043, #1087, #1093).
 ##
 ## Manages the breaching charge placement and detonation mechanics.
 ## The player holds Space near a wall to attach a charge; releasing Space
@@ -14,6 +14,7 @@ extends Node
 ##   — long walls are split into two segments with a gap; thin/short walls become fully
 ##   passable but are faded (alpha 0.25) rather than removed, so they remain visible
 ## - Enemies within STUN_RADIUS on the far side of the wall are stunned + blinded for 3 s
+## - Issue #1093: charges placed at wall corners now open passages in both adjacent walls
 ##
 ## Visual features (Issues #1043, #1087):
 ## - While holding Space: breaching charge sprite appears in player's hands
@@ -66,8 +67,8 @@ var charges: int = MAX_CHARGES
 ## Whether a charge is currently placed on a wall (waiting for detonation).
 var has_placed_charge: bool = false
 
-## The wall node that has a charge placed on it.
-var _charged_wall: Node = null
+## The wall nodes that have a charge placed on them (supports corners with two walls).
+var _charged_walls: Array = []
 
 ## World position where the charge was placed (wall surface hit point).
 var _charge_position: Vector2 = Vector2.ZERO
@@ -156,25 +157,29 @@ func try_place_charge() -> bool:
 	if _player == null:
 		return false
 
-	# Search for the nearest wall body within placement radius
-	var wall_result := _find_nearest_wall_with_hit()
-	if wall_result.is_empty():
+	# Search for all wall bodies within placement radius (supports corners with two walls)
+	var wall_results := _find_walls_with_hits()
+	if wall_results.is_empty():
 		FileLogger.info("[BreachingCharges] No wall found within %.0f px" % PLACEMENT_RADIUS)
 		return false
 
-	var wall: Node = wall_result["wall"]
-	var hit_pos: Vector2 = wall_result["hit_pos"]
-	var hit_dir: Vector2 = wall_result["direction"]
+	# Use the primary (nearest) wall's hit position and direction for the charge marker
+	var primary: Dictionary = wall_results[0]
+	var hit_pos: Vector2 = primary["hit_pos"]
+	var hit_dir: Vector2 = primary["direction"]
 
-	# Attach charge to the wall
+	# Attach charge to all found walls (may be two walls at a corner)
 	charges -= 1
 	has_placed_charge = true
-	_charged_wall = wall
+	_charged_walls = wall_results
 	_charge_position = hit_pos
 	_charge_wall_direction = hit_dir
 
-	FileLogger.info("[BreachingCharges] Charge placed on wall '%s' at %s. Charges remaining: %d/%d" % [
-		wall.name, str(_charge_position), charges, MAX_CHARGES
+	var wall_names: Array = []
+	for wr in wall_results:
+		wall_names.append(wr["wall"].name)
+	FileLogger.info("[BreachingCharges] Charge placed on wall(s) %s at %s. Charges remaining: %d/%d" % [
+		str(wall_names), str(_charge_position), charges, MAX_CHARGES
 	])
 
 	# Hide held-charge sprite and show placed-charge marker on wall
@@ -196,11 +201,11 @@ func detonate() -> bool:
 
 	var det_pos := _charge_position
 	var det_dir := _charge_wall_direction
-	var wall := _charged_wall
+	var walls := _charged_walls.duplicate()
 
 	# Clear state before applying effects (prevent double-detonation)
 	has_placed_charge = false
-	_charged_wall = null
+	_charged_walls = []
 	_charge_position = Vector2.ZERO
 	_charge_wall_direction = Vector2.ZERO
 
@@ -209,8 +214,12 @@ func detonate() -> bool:
 	# Remove the placed charge marker
 	_remove_placed_charge_marker()
 
-	# Disable the wall's collision to create a passage
-	_open_wall_passage(wall, det_pos)
+	# Open a passage in each charged wall using each wall's own hit position.
+	# This is critical at corners: the primary hit_pos is on the nearest wall,
+	# but secondary walls at the corner must be breached at THEIR own hit point
+	# so the passage is carved at the correct end of that wall.
+	for wall_result in walls:
+		_open_wall_passage(wall_result["wall"], wall_result["hit_pos"])
 
 	# Spawn directional explosion cone effect
 	_spawn_explosion_effect(det_pos, det_dir)
@@ -229,18 +238,22 @@ func get_charges() -> int:
 	return charges
 
 
-## Find the nearest StaticBody2D wall within PLACEMENT_RADIUS of the player.
-## Returns an empty dict if none found, or {"wall": Node, "hit_pos": Vector2, "direction": Vector2}.
-func _find_nearest_wall_with_hit() -> Dictionary:
+## Find all unique StaticBody2D walls within PLACEMENT_RADIUS of the player.
+## Returns an empty array if none found, or an Array of {"wall": Node, "hit_pos": Vector2,
+## "direction": Vector2} dictionaries sorted by distance (nearest first).
+## Issue #1093: returns all walls so that charges placed at corners affect both adjacent walls.
+## When a thin corner fill piece is hit, performs a second-pass ray cast excluding that piece
+## to find the adjacent walls that connect at the corner.
+func _find_walls_with_hits() -> Array:
 	if _player == null:
-		return {}
+		return []
 
 	var space_state := _player.get_world_2d().direct_space_state
 	if space_state == null:
 		FileLogger.info("[BreachingCharges] WARNING: Could not get physics space state")
-		return {}
+		return []
 
-	# Cast a short ray in each cardinal + diagonal direction to find a wall surface
+	# Cast a short ray in each cardinal + diagonal direction to find wall surfaces
 	var directions := [
 		Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN,
 		Vector2(1, 1).normalized(), Vector2(-1, 1).normalized(),
@@ -248,10 +261,9 @@ func _find_nearest_wall_with_hit() -> Dictionary:
 	]
 
 	var player_pos := _player.global_position
-	var nearest_wall: Node = null
-	var nearest_hit_pos: Vector2 = Vector2.ZERO
-	var nearest_dir: Vector2 = Vector2.ZERO
-	var nearest_dist: float = PLACEMENT_RADIUS + 1.0
+
+	# Collect the nearest hit per unique wall node
+	var walls_by_node: Dictionary = {}  # Node -> {hit_pos, direction, dist}
 
 	for dir in directions:
 		var query := PhysicsRayQueryParameters2D.create(
@@ -265,16 +277,81 @@ func _find_nearest_wall_with_hit() -> Dictionary:
 		if result.size() > 0 and result.has("collider"):
 			var collider: Node = result["collider"]
 			var dist: float = player_pos.distance_to(result["position"])
-			if dist < nearest_dist:
-				nearest_dist = dist
-				nearest_wall = collider
-				nearest_hit_pos = result["position"]
-				nearest_dir = dir
 
-	if nearest_wall == null:
-		return {}
+			# Keep only the closest hit for each unique wall node
+			if not walls_by_node.has(collider) or dist < walls_by_node[collider]["dist"]:
+				walls_by_node[collider] = {
+					"wall": collider,
+					"hit_pos": result["position"],
+					"direction": dir,
+					"dist": dist
+				}
 
-	return {"wall": nearest_wall, "hit_pos": nearest_hit_pos, "direction": nearest_dir}
+	# Second pass: for any thin corner-fill pieces found (small in both axes),
+	# re-cast the same rays excluding those pieces to find the actual adjacent walls
+	# they would otherwise occlude. Corner fills are typically square and smaller than
+	# BREACH_PASSAGE_WIDTH — their presence at a corner blocks rays from reaching
+	# the larger walls on both sides of the junction.
+	var corner_fill_rids: Array = []
+	for node in walls_by_node.keys():
+		if _is_corner_fill(node):
+			corner_fill_rids.append(node.get_rid())
+			FileLogger.info("[BreachingCharges] Corner fill detected: '%s' — scanning for adjacent walls" % node.name)
+
+	if not corner_fill_rids.is_empty():
+		var exclude_list: Array = [_player.get_rid()] + corner_fill_rids
+		# Use a slightly larger radius so rays reach walls behind the corner fill
+		var extended_radius: float = PLACEMENT_RADIUS * 1.5
+		for dir in directions:
+			var query2 := PhysicsRayQueryParameters2D.create(
+				player_pos,
+				player_pos + dir * extended_radius,
+				WALL_COLLISION_LAYER
+			)
+			query2.exclude = exclude_list
+			var result2 := space_state.intersect_ray(query2)
+
+			if result2.size() > 0 and result2.has("collider"):
+				var collider: Node = result2["collider"]
+				var dist: float = player_pos.distance_to(result2["position"])
+
+				if not walls_by_node.has(collider) or dist < walls_by_node[collider]["dist"]:
+					walls_by_node[collider] = {
+						"wall": collider,
+						"hit_pos": result2["position"],
+						"direction": dir,
+						"dist": dist
+					}
+
+	if walls_by_node.is_empty():
+		return []
+
+	# Convert to array and sort by distance (nearest first)
+	var found: Array = walls_by_node.values()
+	found.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a["dist"] < b["dist"]
+	)
+
+	var wall_names: Array = []
+	for entry in found:
+		wall_names.append(entry["wall"].name)
+	FileLogger.info("[BreachingCharges] Found %d wall(s) within %.0f px: %s" % [
+		found.size(), PLACEMENT_RADIUS, str(wall_names)
+	])
+
+	return found
+
+
+## Returns true if the wall node is a thin corner-fill piece (small in both dimensions).
+## Corner fills are square blocks used to close gaps at wall junctions; they are too small
+## to split (both axes < BREACH_PASSAGE_WIDTH) and their presence occludes adjacent walls.
+func _is_corner_fill(wall: Node) -> bool:
+	for child in wall.get_children():
+		if child is CollisionShape2D and (child as CollisionShape2D).shape is RectangleShape2D:
+			var size: Vector2 = ((child as CollisionShape2D).shape as RectangleShape2D).size
+			# A corner fill is small in BOTH dimensions (unlike a wall that is long in one axis)
+			return size.x < BREACH_PASSAGE_WIDTH and size.y < BREACH_PASSAGE_WIDTH
+	return false
 
 
 ## Carve a passage through the wall at the breach position.
@@ -283,6 +360,8 @@ func _find_nearest_wall_with_hit() -> Dictionary:
 ## collision is disabled entirely and the visual is faded (alpha 0.25) — the wall
 ## remains visible but is passable, fulfilling Issue #1087 item 5.
 ## breach_world_pos: the world-space hit position where the charge was placed.
+## Issue #1093: when the hit is near the wall's end (corner placement), the passage
+## is snapped to the end so both walls at the corner are visibly broken.
 func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	if wall == null or not is_instance_valid(wall):
 		FileLogger.info("[BreachingCharges] WARNING: Wall reference invalid at detonation")
@@ -333,8 +412,17 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			FileLogger.info("[BreachingCharges] Thin wall '%s' breached (fully passable)" % wall.name)
 			return
 
-		# Clamp breach center to wall interior
-		var bx: float = clamp(breach_local.x, -half_w + half_breach, half_w - half_breach)
+		# Snap breach center toward the nearest wall end when the hit is near an end.
+		# This ensures corner placements produce a visible passage at the corner junction
+		# rather than being clamped away from the tip.
+		var bx: float = breach_local.x
+		if bx < -half_w + half_breach:
+			# Hit is beyond or near the left end — snap passage to the left end
+			bx = -half_w + half_breach
+		elif bx > half_w - half_breach:
+			# Hit is beyond or near the right end — snap passage to the right end
+			bx = half_w - half_breach
+
 		var left_end: float = bx - half_breach    # right edge of left segment
 		var right_start: float = bx + half_breach  # left edge of right segment
 
@@ -371,7 +459,7 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			wall.add_child(right_col)
 
 		# Update visuals: split the ColorRect / hide breach section
-		_split_visual_horizontal(wall, breach_local.x, half_w, half_h)
+		_split_visual_horizontal(wall, bx, half_w, half_h)
 
 		FileLogger.info("[BreachingCharges] Horizontal passage carved in '%s' at local x=%.0f (passage %.0fpx)" % [
 			wall.name, bx, BREACH_PASSAGE_WIDTH
@@ -384,8 +472,13 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			FileLogger.info("[BreachingCharges] Thin wall '%s' breached (fully passable)" % wall.name)
 			return
 
-		# Vertical wall — split along Y
-		var by: float = clamp(breach_local.y, -half_h + half_breach, half_h - half_breach)
+		# Snap breach center toward the nearest wall end for corner placements.
+		var by: float = breach_local.y
+		if by < -half_h + half_breach:
+			by = -half_h + half_breach
+		elif by > half_h - half_breach:
+			by = half_h - half_breach
+
 		var top_end: float = by - half_breach
 		var bottom_start: float = by + half_breach
 
@@ -417,7 +510,7 @@ func _open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			bot_col.position = Vector2(0.0, half_h - bottom_height * 0.5)
 			wall.add_child(bot_col)
 
-		_split_visual_vertical(wall, breach_local.y, half_w, half_h)
+		_split_visual_vertical(wall, by, half_w, half_h)
 
 		FileLogger.info("[BreachingCharges] Vertical passage carved in '%s' at local y=%.0f (passage %.0fpx)" % [
 			wall.name, by, BREACH_PASSAGE_WIDTH
