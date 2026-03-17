@@ -37,7 +37,8 @@ const WALL_COLLISION_LAYER: int = 4
 const PLACE_SOUND_PATH: String = "res://assets/audio/breaching_charge_place.wav"
 
 ## Path to the breaching charge detonation sound.
-const DETONATE_SOUND_PATH: String = "res://assets/audio/breaching_charge_detonate.wav"
+## Uses the F-1 (defensive) grenade explosion sound as requested in Issue #1087.
+const DETONATE_SOUND_PATH: String = "res://assets/audio/взрыв оборонительной гранаты.wav"
 
 ## Volume in dB for breaching charge sounds.
 const SOUND_VOLUME_DB: float = 0.0
@@ -457,12 +458,13 @@ func _spawn_explosion_effect(det_pos: Vector2, direction: Vector2) -> void:
 		_apply_cone_direction(effect2, direction)
 
 
-## Adjust particle direction on the explosion flash to create a cone toward the wall.
+## Adjust particle direction on the explosion flash to create a directional cone toward the wall.
+## Issue #1087: explosion should be directed toward the wall like a flashlight beam but wider.
 func _apply_cone_direction(effect: Node2D, direction: Vector2) -> void:
 	# Rotate the entire effect node so particles spray toward the wall
 	effect.rotation = direction.angle()
 
-	# Narrow the particle spread to simulate a directional cone
+	# Narrow the particle spread to simulate a directional cone toward the wall
 	var particles: GPUParticles2D = effect.get_node_or_null("GPUParticles2D")
 	if particles == null:
 		return
@@ -471,14 +473,18 @@ func _apply_cone_direction(effect: Node2D, direction: Vector2) -> void:
 	if mat == null or not (mat is ParticleProcessMaterial):
 		return
 
-	var pmat: ParticleProcessMaterial = mat as ParticleProcessMaterial
-	# Direction: forward (local +X after rotation becomes world direction)
+	# Duplicate the material to avoid modifying the shared resource used by other explosions
+	var pmat: ParticleProcessMaterial = mat.duplicate() as ParticleProcessMaterial
+	particles.process_material = pmat
+
+	# Direction: forward along local +X axis (effect node is already rotated toward wall)
 	pmat.direction = Vector3(1, 0, 0)
-	# Narrow spread to 45 degrees for a directional cone
-	pmat.spread = 45.0
+	# Issue #1087: wider sector than flashlight — 90° spread creates a ~180° total cone,
+	# wider than a flashlight but still clearly directional toward the wall
+	pmat.spread = 90.0
 	# Increase velocity for a more dramatic breach effect
-	pmat.initial_velocity_min = 80.0
-	pmat.initial_velocity_max = 200.0
+	pmat.initial_velocity_min = 100.0
+	pmat.initial_velocity_max = 250.0
 
 
 ## Set up audio players for place and detonate sounds.
@@ -513,6 +519,17 @@ func _play_place_sound() -> void:
 
 
 ## Play the detonation sound.
+## Uses AudioManager to play the F-1 (defensive) grenade explosion sound (Issue #1087).
 func _play_detonate_sound() -> void:
+	# Prefer AudioManager for consistent spatial audio (same as F-1 grenade)
+	var audio_manager: Node = Engine.get_singleton("AudioManager") if Engine.has_singleton("AudioManager") else null
+	if audio_manager == null and _player != null:
+		audio_manager = _player.get_node_or_null("/root/AudioManager")
+	if audio_manager != null and audio_manager.has_method("play_defensive_grenade_explosion"):
+		var pos := _player.global_position if _player != null else Vector2.ZERO
+		audio_manager.play_defensive_grenade_explosion(pos)
+		FileLogger.info("[BreachingCharges] Played F-1 explosion sound via AudioManager")
+		return
+	# Fallback: use local audio player
 	if _detonate_audio_player and is_instance_valid(_detonate_audio_player):
 		_detonate_audio_player.play()
