@@ -163,13 +163,20 @@ func update(delta: float) -> void:
 		cooldown_timer = maxf(0.0, cooldown_timer - delta)
 
 
-## Reset charges for a new level/battle.
-func reset_for_new_level() -> void:
+## Reset charges and per-run state on player respawn (death/restart within same level).
+## Does NOT reset used_this_level — the first-use 100% only fires once per level map visit.
+func reset_for_respawn() -> void:
 	var max_charges := get_max_charges()
 	charges_remaining = max_charges if max_charges != -1 else 0
 	cooldown_timer = 0.0
-	used_this_level = false
 	all_charges_used_this_level = false
+
+
+## Reset the first-use flag when transitioning to a genuinely new level map.
+## Call this after on_level_completed() so the next map starts fresh.
+func reset_for_new_level() -> void:
+	reset_for_respawn()
+	used_this_level = false
 
 
 ## Called when a level is completed with loudspeaker equipped.

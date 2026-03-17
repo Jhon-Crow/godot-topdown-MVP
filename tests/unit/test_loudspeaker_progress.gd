@@ -334,6 +334,35 @@ func test_reset_does_not_change_current_level() -> void:
 		"reset_for_new_level should NOT reset the progression level")
 
 
+# reset_for_respawn: only resets charges/cooldown/all_charges_used, NOT used_this_level
+func test_reset_for_respawn_restores_charges() -> void:
+	progress.charges_remaining = 0
+	progress.reset_for_respawn()
+	assert_eq(progress.charges_remaining, 2,
+		"reset_for_respawn should restore charges to max for level 1")
+
+
+func test_reset_for_respawn_preserves_used_this_level() -> void:
+	progress.used_this_level = true
+	progress.reset_for_respawn()
+	assert_true(progress.used_this_level,
+		"reset_for_respawn should NOT reset used_this_level — persists across deaths")
+
+
+func test_reset_for_respawn_clears_all_charges_used() -> void:
+	progress.all_charges_used_this_level = true
+	progress.reset_for_respawn()
+	assert_false(progress.all_charges_used_this_level,
+		"reset_for_respawn should reset all_charges_used_this_level")
+
+
+func test_reset_for_respawn_clears_cooldown() -> void:
+	progress.cooldown_timer = 2.0
+	progress.reset_for_respawn()
+	assert_eq(progress.cooldown_timer, 0.0,
+		"reset_for_respawn should clear the cooldown timer")
+
+
 # ============================================================================
 # Persistence (to_dict / from_dict)
 # ============================================================================

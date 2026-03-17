@@ -3904,8 +3904,10 @@ func _init_loudspeaker() -> void:
 	# Reuse the persistent progress tracker from ActiveItemManager (Issue #959).
 	# Do NOT create a new one here — that would reset all progression on every scene load.
 	_loudspeaker_progress = active_item_manager.loudspeaker_progress
-	# Reset only the per-battle state (charges / cooldown / used_this_level).
-	_loudspeaker_progress.reset_for_new_level()
+	# Reset only per-run state (charges/cooldown/all_charges_used) on respawn.
+	# used_this_level is NOT reset here — it persists across deaths on the same map
+	# so the first-use 100% only fires once per level visit (Issue #959).
+	_loudspeaker_progress.reset_for_respawn()
 
 	# Create the cone visual effect node
 	_loudspeaker_cone = LoudspeakerConeEffectScript.new()
@@ -3989,10 +3991,10 @@ func _handle_loudspeaker_input() -> void:
 	if _loudspeaker_cone and is_instance_valid(_loudspeaker_cone):
 		_loudspeaker_cone.play(aim_dir)
 
-	# Effect chance: first use at level 1 is 100% but limited to 1 enemy; subsequent uses depend on level
-	var effect_chance := 1.0 if is_first_use else _loudspeaker_progress.get_effect_chance()
-	# At level 1, first use pacifies exactly 1 enemy; all other uses have no per-use limit
-	var max_pacify := 1 if (is_first_use and _loudspeaker_progress.current_level == 1) else -1
+	# Effect chance: only first use at level 1 gets 100% (exactly 1 enemy); all other uses use level chance
+	var is_level1_first_use: bool = is_first_use and _loudspeaker_progress.current_level == 1
+	var effect_chance := 1.0 if is_level1_first_use else _loudspeaker_progress.get_effect_chance()
+	var max_pacify := 1 if is_level1_first_use else -1
 
 	# Notify all enemies on the map that a loud sound was made (they all hear it)
 	_alert_all_enemies_loudspeaker()
@@ -4009,8 +4011,9 @@ func _handle_loudspeaker_input() -> void:
 	var current_charges := _loudspeaker_progress.charges_remaining
 	loudspeaker_charges_changed.emit(current_charges, max_charges if max_charges != -1 else 0)
 
-	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%" % [
-		aim_dir, effect_chance * 100.0
+	var charges_str := "%d/%d" % [current_charges, max_charges] if max_charges != -1 else "unlimited"
+	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%, Charges: %s" % [
+		aim_dir, effect_chance * 100.0, charges_str
 	])
 
 

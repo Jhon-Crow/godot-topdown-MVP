@@ -156,12 +156,56 @@ The first run used both charges (0/2 remaining) and then the level completed →
 
 **Fix:** Add `all_charges_used_this_level: bool` flag to `LoudspeakerProgress`. Set it to `true` in `use()` when charges drop to 0 (or for unlimited-charge levels, when any charge is spent). In `on_level_completed()`, only advance if `all_charges_used_this_level = true`. Reset the flag in `reset_for_new_level()`.
 
+## Round 3 Bugs (PR #1092 — 2026-03-17, logs game_log_20260317_091947.txt and game_log_20260317_092204.txt)
+
+After commits `fb1fd1cb` and `115faa7c`, the user reported two more issues:
+
+### Bug 6 — First activation on every new-level visit still gets 100% effect chance
+
+**Reported:** "First use on all maps (even if 1 map was already completed with loudspeaker use) makes enemies in the zone pacifists — should only be the first use globally at level 1."
+
+**Evidence from game_log_20260317_092204.txt:**
+```
+[09:22:42] [INFO] [Player.Loudspeaker] Activated! Effect chance: 100%, Charges: 1/2  ← Level 2
+[09:23:33] [INFO] [Player.Loudspeaker] Activated! Effect chance: 100%, Charges: 1/2  ← Level 3
+[09:23:42] [INFO] [Player.Loudspeaker] Activated! Effect chance: 100%, Charges: 1/2  ← after respawn
+... (repeated for every new level and every respawn)
+```
+
+**Root cause:** `reset_for_new_level()` in `loudspeaker_progress.gd` resets `used_this_level = false`. It was being called from `player.gd`'s `_init_loudspeaker()`, which runs on every `_ready()` — including player deaths/respawns. So `used_this_level` resets to `false` on every death, making every post-respawn first activation look like a "first use" triggering the 100% effect.
+
+Additionally, `player.gd` line 3995 used `is_first_use` (any first use in any run) to decide the 100% chance, without checking if `current_level == 1`. At levels 2+ there should be no "100% first use" mechanic.
+
+**Fix:**
+1. Added `reset_for_respawn()` to `LoudspeakerProgress` that resets only charges, cooldown, and `all_charges_used_this_level` — NOT `used_this_level`.
+2. `player.gd` now calls `reset_for_respawn()` instead of `reset_for_new_level()` in `_init_loudspeaker()`.
+3. `reset_for_new_level()` (full reset including `used_this_level`) is called once after level completion in `ActiveItemManager.notify_level_completed()`.
+4. `player.gd` condition for 100% / max_pacify=1 now checks both `is_first_use AND current_level == 1`.
+
+### Bug 7 — Level progression never advances (level stays at 1 after multiple completions)
+
+**Reported:** "Level system not working at all (completed almost all levels fully using loudspeaker, but its behavior didn't change)."
+
+**Evidence from game_log_20260317_092204.txt:**
+```
+[09:22:35] [INFO] [ActiveItemManager] Loudspeaker level completed (had_kills=true). New level: 1
+[09:23:25] [INFO] [ActiveItemManager] Loudspeaker level completed (had_kills=true). New level: 1
+[09:27:12] [INFO] [ActiveItemManager] Loudspeaker level completed (had_kills=true). New level: 1
+... (8 more completions, all "New level: 1")
+```
+
+**Root cause:** `all_charges_used_this_level` flag was gating progression but was reset on every player death/respawn by `reset_for_new_level()`. Players commonly die during levels. After a respawn, the player starts with fresh charges. If they do not use ALL charges in the final run before level completion, `all_charges_used_this_level` is `false` at the time `on_level_completed()` is called → level never advances.
+
+Key evidence — in the 3rd level (CastleLevel), the player activated the loudspeaker once (09:23:33, Charges: 1/2), was then re-initialized (respawn at 09:23:37, Charges: 2/2 again), used 1 of 2 new charges (09:23:42, Charges: 1/2), got re-initialized AGAIN (09:23:44), etc. The `all_charges_used_this_level` flag was being reset on EVERY respawn so it was almost impossible to complete a level with the flag set to `true`.
+
+**Fix:** Same as Bug 6 fix — `reset_for_respawn()` preserves `all_charges_used_this_level` within a single run. After the player uses all charges in their current run (from last respawn), the flag is set and will remain `true` unless they die again. If they complete the level without dying after exhausting charges, the gate passes and the level advances.
+
 ## References
 
 - Issue #959: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/959
 - PR #1018 (original implementation): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1018
 - PR #1092 (this fix): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1092
-- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`
+- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`, `game_log_20260317_091947.txt`, `game_log_20260317_092204.txt`
 - `scripts/components/loudspeaker_progress.gd` — progression logic
 - `scripts/autoload/active_item_manager.gd` — persistent progress storage
 - `scripts/characters/player.gd` — activation and effect application

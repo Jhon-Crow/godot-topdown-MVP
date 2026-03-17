@@ -283,6 +283,8 @@ func notify_level_completed(had_kills: bool) -> void:
 		FileLogger.info("[ActiveItemManager] Loudspeaker level completed (had_kills=%s). New level: %d" % [
 			had_kills, loudspeaker_progress.current_level
 		])
+		# Reset used_this_level so the next map's first activation is tracked fresh.
+		loudspeaker_progress.reset_for_new_level()
 
 
 ## Reset loudspeaker progression (called from PersistManager.clear_all_saves) (Issue #959).
