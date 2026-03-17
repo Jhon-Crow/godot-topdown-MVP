@@ -346,7 +346,11 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 
 	# Spawn small blood decals that simulate where particles land
 	# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates
-	var num_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
+	# Issue #1090: scale by GameplaySettings blood_amount multiplier
+	var base_decals := BLOOD_DECALS_PER_LETHAL_HIT if is_lethal else BLOOD_DECALS_PER_NONLETHAL_HIT
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var blood_multiplier: float = gameplay_settings.get_blood_amount() if gameplay_settings else 1.0
+	var num_decals := maxi(0, roundi(base_decals * blood_multiplier))
 	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
 	# Check for nearby walls and spawn wall splatters
