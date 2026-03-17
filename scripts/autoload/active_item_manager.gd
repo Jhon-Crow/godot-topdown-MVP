@@ -20,7 +20,8 @@ enum ActiveItemType {
 	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
 	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
-	AUTO_RELOAD        # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
+	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
+	COMBAT_DISPOSITION # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 }
 
 ## Currently selected active item type.
@@ -47,7 +48,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
 	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
-	ActiveItemType.AUTO_RELOAD: true           # No unlock condition — freely available from start (Issue #1067)
+	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
+	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
 }
 
 ## Active item data for UI and selection.
@@ -129,6 +131,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Auto-Reload",
 		"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
 		"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
+	},
+	ActiveItemType.COMBAT_DISPOSITION: {
+		"name": "Combat Disposition",
+		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
+		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
 	}
 }
 
@@ -273,6 +280,11 @@ func has_breaching_charges() -> bool:
 ## Check if armored skin is currently equipped (Issue #1045).
 func has_armored_skin() -> bool:
 	return current_active_item == ActiveItemType.ARMORED_SKIN
+
+
+## Check if combat disposition is currently equipped (Issue #1047).
+func has_combat_disposition() -> bool:
+	return current_active_item == ActiveItemType.COMBAT_DISPOSITION
 
 
 ## Get the laser sight color (purple).
