@@ -176,6 +176,48 @@ Implemented the recoil compensator fully in the C# Player (`Scripts/Characters/P
 
 ---
 
+## Third Incident — 2026-03-17 22:05 (PR conflict)
+
+### Owner Feedback
+
+> разреши конфликт.
+> ("Resolve the conflict.")
+
+After the C# fix was merged, a new upstream PR (#1058 — Drilling Bullets, Issue #751) was merged into main, introducing another `ActiveItemType` enum collision:
+
+| Commit | Change |
+|---|---|
+| Our PR | `RECOIL_COMPENSATOR = 14` (after AUTO_RELOAD=13) |
+| upstream/main | `DRILLING_BULLETS = 14` (after AUTO_RELOAD=13) |
+
+Both items claimed index 14.
+
+### Root Cause #4: Enum Index Collision with DRILLING_BULLETS
+
+`DRILLING_BULLETS` (Issue #751) was merged into main and claimed index 14, the same slot our RECOIL_COMPENSATOR occupied.
+
+### Fix Applied (2026-03-17)
+
+1. Merged `upstream/main` into the branch.
+2. Resolved all 4 conflicted files:
+   - `scripts/autoload/active_item_manager.gd`
+   - `scripts/characters/player.gd`
+   - `Scripts/Characters/Player.cs`
+   - `tests/unit/test_active_item_manager.gd`
+3. Final enum ordering:
+   - `DRILLING_BULLETS = 14` (Issue #751 — from upstream)
+   - `RECOIL_COMPENSATOR = 15` (Issue #1073 — our addition)
+   - `COMBAT_DISPOSITION = 16` (Issue #1047)
+4. All tests and mocks updated to use new indices.
+
+### Root Cause #5: Missing Jammer Block in Recoil Compensator
+
+While reviewing the code, a secondary bug was found: `HandleRecoilCompensatorInput()` was missing the Radio Jammer blocking check (Issue #1036) that ALL other hold-Space active items have. When a Radio Jammer enemy was in range, the recoil compensator would still activate despite being jammed.
+
+**Fix:** Added `IsActiveItemJammedSilent()` check inside the `Input.IsActionPressed("flashlight_toggle")` branch, consistent with other hold-Space items (Flashlight, TeleportBracers, ForceField).
+
+---
+
 ## Artifacts
 
 - `game_log_20260317_214250.txt` — owner's game session log showing the bugs (Session 1)
