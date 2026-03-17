@@ -93,8 +93,52 @@ Despite the RPG enemy logic working correctly (firing rockets, switching to PM),
 
 This ensures RPG enemies visually display the rocket launcher weapon instead of the M16 rifle.
 
+## Fourth Feedback (2026-03-17, ~04:00)
+
+User reported "враг всё ещё не стреляет из РПГ (выстрел не летит)" (enemy still not firing from RPG - the shot doesn't fly). Provided `game_log_20260317_040003.txt`.
+
+### Analysis of game_log_20260317_040003.txt
+
+The log confirms:
+- RPG enemies spawn at (3700,1400) and (2000,2200) ✅
+- `Sound emitted: ... range=2500` (RPG shot sound) - `_execute_shoot` IS being called ✅
+- `State: COMBAT -> RETREATING` immediately after shot ✅
+- Second shots from RpgEnemy1 at `range=1469` = PM pistol after weapon switch ✅
+
+**Previous hypothesis (root cause #4):** The bug from commit `131bf9d0` was that `ProjectilePoolManager.get_bullet()` was returning a pooled regular bullet ignoring `bullet_scene = RpgRocket.tscn`. Fix was to bypass the pool in `_fire_rpg_rocket()`.
+
+### Analysis of game_log_20260317_044735.txt
+
+After bypass fix was applied, user still reports "РПГ всё ещё не стреляет ракетой" (RPG still not firing rocket). Sound is still emitted at `range=2500`, proving `_execute_shoot` is called and the bypass function runs.
+
+**Root Cause #5 (CONFIRMED): Rocket is spawned but invisible - missing texture in RpgRocket.tscn**
+
+Evidence:
+1. `_execute_shoot` → `_fire_rpg_rocket()` runs (confirmed by sound emission at lines in log)
+2. Rocket IS added to scene (`get_tree().current_scene.add_child(rocket)`)
+3. BUT `RpgRocket.tscn` `Sprite2D` node has **no texture set** - `texture` property was missing
+4. Without a texture, `Sprite2D` renders as nothing - rocket is completely invisible
+5. Comparison: `Bullet9mm.tscn` correctly uses `PlaceholderTexture2D` with `size = Vector2(12, 3)`
+
+**Fix Applied (2026-03-17):**
+- Added `PlaceholderTexture2D` sub-resource with `size = Vector2(20, 6)` to `RpgRocket.tscn`
+- Set `texture = SubResource("PlaceholderTexture2D_rocket")` on the `Sprite2D` node
+- Added unconditional `print()` logging in `_fire_rpg_rocket()` so future logs confirm rocket spawning
+
+### Why This Was Missed
+
+The rocket was being spawned and moving correctly - it had working:
+- `_physics_process` movement (`position += direction * speed * delta`)
+- `ExhaustParticles` GPUParticles2D (very small orange particles, hard to see)
+- `Trail` Line2D (draws from position history, starts empty)
+- Collision detection (could hit walls and explode)
+
+But without a `Sprite2D` texture, the rocket body itself was invisible. The trail Line2D starts empty and fills as the rocket moves, but because the rocket moves fast (800 px/s), by the time a few trail points accumulated the rocket may have already hit a wall or faded out.
+
 ## Logs
 
 - `game_log_20260208_193502.txt` - Game log from user testing showing RPG enemies in CastleLevel (wrong level)
 - `game_log_20260209_110330.txt` - Game log confirming RPG enemies working correctly in TestTier
 - `game_log_20260317_010617.txt` - Game log confirming RPG enemies in TestTier but visual sprite was M16 (now fixed)
+- `game_log_20260317_040003.txt` - Game log confirming shoot sound fires (range=2500) but rocket invisible (no texture in scene)
+- `game_log_20260317_044735.txt` - Game log after pool bypass fix - sound still fires but rocket still invisible (texture not yet added)
