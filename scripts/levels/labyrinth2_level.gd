@@ -6,7 +6,7 @@ extends Node2D
 ## making navigation more maze-like and challenging.
 ## Features:
 ## - Larger labyrinth layout (~3200x2400 pixels) for more exploration
-## - 14 enemies distributed across many rooms (more than BuildingLevel)
+## - 15 enemies distributed across many rooms (more than BuildingLevel), including a machine gunner
 ## - More rooms with narrower corridors for a true labyrinth feel
 ## - Score tracking with Hotline Miami style ranking system
 
