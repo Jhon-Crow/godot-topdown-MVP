@@ -298,15 +298,11 @@ var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
 const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Max time to find clear shot (seconds)
 const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0  ## Distance to move when exiting cover to find clear shot
 ## --- Sound-Based Detection ---
-## Last known sound source position (for investigation when player not visible).
-var _last_known_player_position: Vector2 = Vector2.ZERO
-## Pursuing vulnerability sound (reload/empty click) without line of sight.
-var _pursuing_vulnerability_sound: bool = false
+var _last_known_player_position: Vector2 = Vector2.ZERO  ## Last known sound source (for investigation when player not visible).
+var _pursuing_vulnerability_sound: bool = false  ## Pursuing vulnerability sound (reload/empty click) without LOS.
 var _suppressive_fire: SuppressiveFireComponent = null  ## Issue #910: Suppressive fire component.
 
-## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
-var _memory: EnemyMemory = null
-
+var _memory: EnemyMemory = null  ## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 ## Confidence values for different detection sources.
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
@@ -315,16 +311,11 @@ const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const SOUND_CASING_KICK_CONFIDENCE: float = 0.5  ## Issue #693: Casing kick - lower than reload
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
 
-## Communication range for intel sharing: 660px w/ LOS, 300px without.
-const INTEL_SHARE_RANGE_LOS: float = 660.0
-const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
-
-## Timer for periodic intel sharing (to avoid per-frame overhead).
-var _intel_share_timer: float = 0.0
+const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel sharing range with LOS (px).
+const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel sharing range without LOS (px).
+var _intel_share_timer: float = 0.0  ## Timer for periodic intel sharing (to avoid per-frame overhead).
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
-
-## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
-var _memory_reset_confusion_timer: float = 0.0
+var _memory_reset_confusion_timer: float = 0.0  ## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
 
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -333,12 +324,8 @@ const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing de
 var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
 var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
 
-## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
-var _killed_by_ricochet: bool = false
-
-## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
-var _killed_by_penetration: bool = false
-
+var _killed_by_ricochet: bool = false  ## [Score Tracking] Whether the last kill hit was from a ricochet.
+var _killed_by_penetration: bool = false  ## Whether the last kill hit was from a wall-penetrating bullet.
 ## [Status Effects] Component handles blindness and stun (Issue #432, #328)
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
@@ -348,25 +335,18 @@ var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas comp
 
 ## [Pacifism - Issue #959] Loudspeaker effect component
 var _pacifist: PacifistComponent = null  ## Pacifism state management
-## Set of pacifist enemies already evaluated for pacifism-spreading (Level 5+). Prevents re-rolling every frame.
-var _evaluated_pacifists: Array = []
+var _evaluated_pacifists: Array = []  ## Pacifists already evaluated for spread (Level 5+), prevents re-rolling
 var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
 
-## [Grenade Avoidance - Issue #407] Component handles avoidance logic
-var _grenade_avoidance: GrenadeAvoidanceComponent = null
+var _grenade_avoidance: GrenadeAvoidanceComponent = null  ## [Grenade Avoidance - Issue #407] Component handles avoidance logic.
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
-
-## Maximum time to spend evading before giving up (seconds).
-const GRENADE_EVASION_MAX_TIME: float = 4.0
-
-## State to return to after grenade evasion completes.
-var _pre_evasion_state: AIState = AIState.IDLE
+const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Maximum time to spend evading before giving up (seconds).
+var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion completes.
 
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
 
-## [Issue #574] Flashlight detection component — detects player flashlight beam.
-var _flashlight_detection: FlashlightDetectionComponent = null
+var _flashlight_detection: FlashlightDetectionComponent = null  ## [Issue #574] Flashlight detection component — detects player flashlight beam.
 
 var _enemy_flashlight: EnemyFlashlightComponent = null  ## [Issue #824] Enemy flashlight for night mode.
 var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phase.
@@ -1314,13 +1294,9 @@ func _process_ai_state(delta: float) -> void:
 		if not _has_valid_cover: _find_cover_position()
 		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
 	if _teleport_component and _teleport_component.is_ready() and not _can_see_player and _current_state == AIState.FLANKING: _teleport_component.try_teleport(_flank_target)  # #752: flank-teleport
-	# GRENADE THROW PRIORITY (Issue #363): Check if we should throw a grenade.
-	# Grenades are thrown based on 6 trigger conditions (see trigger-conditions.md).
-	# This takes priority over normal state actions when conditions are met.
-	# Issue #959: Pacifists do not throw grenades.
+	# GRENADE THROW PRIORITY (Issue #363, #959): Non-pacifists check grenade triggers.
 	if _goap_world_state.get("ready_to_throw_grenade", false) and not (_pacifist and _pacifist.is_pacifist):
 		if try_throw_grenade():
-			# Grenade was thrown - return early to skip normal state processing this frame
 			return
 
 	# State transitions based on conditions
@@ -2785,77 +2761,31 @@ func apply_pacifism(hc: float = 0.5) -> bool:
 
 func was_attacked_by_player() -> bool: return _hits_taken_in_encounter > 0 or _in_alarm_mode
 func is_pacifist() -> bool: return _pacifist.is_pacifist if _pacifist else false
-## Returns true if this pacifist is currently retaliating (temporarily attacking back after being hit).
-## A retaliating enemy is still a threat — level should not complete while any enemy retaliates.
-func is_retaliating() -> bool: return _pacifist.is_retaliating() if _pacifist else false
+func is_retaliating() -> bool: return _pacifist != null and _pacifist.is_retaliating()  ## True if pacifist is temporarily retaliating (#959)
 func is_immune_to_pacifism() -> bool: return _pacifist.is_immune if _pacifist else false
 func set_immune_to_pacifism(immune: bool) -> void:
 	if _pacifist: _pacifist.set_immune(immune); if immune: _log_to_file("Enemy immune to pacifism")
-## Called when a nearby enemy becomes pacifist via loudspeaker (Issue #959).
-## @param pacifist_enemy: The enemy that became pacifist.
-## @param hostility_chance: Per-level probability (0.0-1.0) that this enemy becomes hostile to the pacifist.
-## Hostility is determined per-enemy at the moment of pacifism creation (permanent relation).
-func on_new_pacifist_created(pacifist_enemy: Node2D, hostility_chance: float) -> void:
-	if not _is_alive: return
-	if _pacifist and _pacifist.is_pacifist: return  # Already pacifist - no hostility reaction
-	if hostility_chance <= 0.0: return
+## Issue #959: On new pacifist created nearby, roll hostility; if hostile, pursue pacifist.
+func on_new_pacifist_created(p: Node2D, hc: float) -> void:
+	if not _is_alive or (_pacifist and _pacifist.is_pacifist) or hc <= 0.0 or randf() >= hc: return
+	_last_known_player_position = p.global_position; _in_alarm_mode = true
+	if _current_state != AIState.COMBAT: _transition_to_combat()
+	_log_to_file("[#959] Hostile toward pacifist at %s" % p.global_position)
 
-	# Each enemy independently rolls hostility toward this pacifist
-	if randf() < hostility_chance:
-		_log_to_file("[#959] Hostile toward new pacifist at %s (chance=%.0f%%)" % [
-			pacifist_enemy.global_position, hostility_chance * 100.0
-		])
-		# Direct aggression toward the pacifist's position
-		_last_known_player_position = pacifist_enemy.global_position
-		_in_alarm_mode = true
-		if _current_state != AIState.COMBAT:
-			_transition_to_combat()
-		_log_to_file("[#959] Now pursuing pacifist")
-
-## Level 5+ pacifism spread: when this enemy first sees a pacifist (line of sight),
-## it rolls effect_chance to become pacifist itself (Issue #959).
-## Called each physics frame. Uses _evaluated_pacifists to avoid re-rolling.
+## Issue #959: Level 5+ pacifism spread — on first LoS to a pacifist, roll to become pacifist.
 func _check_pacifism_spread() -> void:
-	if not _is_alive: return
-	if _pacifist and _pacifist.is_pacifist: return  # Already pacifist
-
-	# Check if loudspeaker is equipped and at level 5+
+	if not _is_alive or (_pacifist and _pacifist.is_pacifist): return
 	var aim: Node = get_node_or_null("/root/ActiveItemManager")
-	if aim == null or not aim.has_method("has_loudspeaker") or not aim.has_loudspeaker():
-		return
-	var lp: LoudspeakerProgress = aim.get("loudspeaker_progress") if aim else null
-	if lp == null or not lp.can_pacifism_spread():
-		return
-
-	var spread_chance: float = lp.get_effect_chance()
-
-	# Scan for pacifist enemies we haven't evaluated yet
+	if aim == null or not aim.has_loudspeaker(): return
+	var lp: LoudspeakerProgress = aim.get("loudspeaker_progress")
+	if lp == null or not lp.can_pacifism_spread(): return
+	var sc: float = lp.get_effect_chance()
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if not is_instance_valid(e) or e == self: continue
-		if not e.has_method("is_pacifist") or not e.is_pacifist(): continue
-		if e in _evaluated_pacifists: continue  # Already evaluated this pacifist
-
-		# Mark as evaluated (regardless of outcome — relation fixed at first sight)
+		if not is_instance_valid(e) or e == self or not e.has_method("is_pacifist") or not e.is_pacifist() or e in _evaluated_pacifists: continue
 		_evaluated_pacifists.append(e)
-
-		# Check direct line of sight to this pacifist
-		var space_state := get_world_2d().direct_space_state
-		var ray := PhysicsRayQueryParameters2D.new()
-		ray.from = global_position
-		ray.to = e.global_position
-		ray.collision_mask = 4  # Wall layer
-		ray.exclude = [self]
-		var hit := space_state.intersect_ray(ray)
-		if not hit.is_empty():
-			continue  # Wall in the way — no line of sight
-
-		# Roll pacifism spread
-		if randf() < spread_chance:
-			_log_to_file("[#959] Pacifism spread from %s (chance=%.0f%%)" % [
-				e.global_position, spread_chance * 100.0
-			])
-			apply_pacifism(0.0)  # No additional hostility from spread
-
+		var ray := PhysicsRayQueryParameters2D.create(global_position, e.global_position, 4, [self])
+		if not get_world_2d().direct_space_state.intersect_ray(ray).is_empty() or randf() >= sc: continue
+		_log_to_file("[#959] Pacifism spread from %s" % e.global_position); apply_pacifism(0.0)
 
 ## Alert this enemy that the loudspeaker was used (Issue #959).
 ## Per spec: all enemies on the map hear the player when the loudspeaker is activated.
@@ -3790,8 +3720,7 @@ func _share_intel_with_nearby_enemies() -> void:
 			if _prediction and _prediction.has_predictions and other_enemy.has_method("receive_prediction_from_ally"):  # [#298]
 				var bh := _prediction.get_best_hypothesis(); if bh: other_enemy.receive_prediction_from_ally(bh)
 
-## Receive intelligence from an allied enemy (Issue #297).
-## Called by other enemies when they share intel.
+## Receive intelligence from an allied enemy (Issue #297). Called by other enemies when they share intel.
 func receive_intel_from_ally(ally_memory: EnemyMemory) -> void:
 	if _memory == null or ally_memory == null:
 		return
@@ -4403,14 +4332,11 @@ func _on_death() -> void:
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
 
-	# Issue #959: If this was the immune enemy (Level 6), notify loudspeaker progress → triggers Level 7
+	# Issue #959: Immune enemy killed → triggers Level 7
 	if _pacifist and _pacifist.is_immune:
 		var aim: Node = get_node_or_null("/root/ActiveItemManager")
-		if aim and aim.has_method("has_loudspeaker") and aim.has_loudspeaker():
-			var lp: LoudspeakerProgress = aim.get("loudspeaker_progress") if aim else null
-			if lp:
-				lp.on_immune_enemy_killed()
-				_log_to_file("[#959] Immune enemy killed — loudspeaker progress updated to Level %d" % lp.current_level)
+		var lp: LoudspeakerProgress = aim.get("loudspeaker_progress") if (aim and aim.has_loudspeaker()) else null
+		if lp: lp.on_immune_enemy_killed(); _log_to_file("[#959] Immune enemy killed → Level %d" % lp.current_level)
 	var pfm = get_node_or_null("/root/PowerFantasyEffectsManager")  # Issue #492: Power Fantasy effect
 	if pfm and pfm.has_method("on_enemy_killed"): pfm.on_enemy_killed()
 	_notify_nearby_enemies_of_death()  # Issue #409
@@ -4519,8 +4445,7 @@ func _reset() -> void:
 	# Re-register for sound propagation after respawning
 	_register_sound_listener()
 
-## Disables hit area collision so bullets pass through dead enemies.
-## Uses multiple approaches due to Godot engine limitations with Area2D collision toggling.
+## Disables hit area collision so bullets pass through dead enemies (multiple approaches due to Godot Area2D limits).
 func _disable_hit_area_collision() -> void:
 	# Approach 1: Disable the CollisionShape2D itself
 	# This is the most reliable way to prevent collision detection
@@ -4539,8 +4464,7 @@ func _disable_hit_area_collision() -> void:
 		_hit_area.set_deferred("monitorable", false)
 		_hit_area.set_deferred("monitoring", false)
 
-## Re-enables hit area collision after respawning.
-## Restores all collision properties to their original values.
+## Re-enables hit area collision after respawning (restores all collision properties).
 func _enable_hit_area_collision() -> void:
 	# Re-enable CollisionShape2D
 	if _hit_collision_shape:
@@ -4556,8 +4480,7 @@ func _enable_hit_area_collision() -> void:
 		_hit_area.monitorable = true
 		_hit_area.monitoring = true
 
-## Returns whether this enemy is currently alive.
-## Used by bullets to check if they should pass through or hit.
+## Returns whether this enemy is currently alive (used by bullets to check pass-through).
 func is_alive() -> bool:
 	return _is_alive
 
@@ -4672,13 +4595,11 @@ func is_reloading() -> bool:
 func has_ammo() -> bool:
 	return _current_ammo > 0 or _reserve_ammo > 0
 
-## Get current player visibility ratio (for debugging).
-## Returns 0.0 if player is completely hidden, 1.0 if fully visible.
+## Get current player visibility ratio (0.0=hidden, 1.0=fully visible, for debugging).
 func get_player_visibility_ratio() -> float:
 	return _player_visibility_ratio
 
-## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
+## Draw debug visualization (when debug mode enabled): target lines, bullet spawn status.
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
