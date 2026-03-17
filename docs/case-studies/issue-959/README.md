@@ -5,11 +5,13 @@
 **Issue:** Add a Loudspeaker active item to the game that emits a sound cone and can pacify enemies.
 
 **Reported Problems (PR comment, 2026-03-17):**
-1. Item doesn't work — no effect when activated
-2. Item has no icon in the armory UI
-3. Player should hold the loudspeaker instead of their weapon during activation
+1. Item doesn't work — no effect when activated (after icon fix)
+2. Merge conflicts still present in PR
+3. *(Previously fixed: icon missing, weapon swap visual)*
 
-**Log File:** `game_log_20260317_011120.txt` (provided by reporter)
+**Log Files:**
+- `game_log_20260317_011120.txt` — first report (no icon, item not working)
+- `game_log_20260317_050705.txt` — second report (icon good, item still not working, conflicts)
 
 ---
 
@@ -45,60 +47,100 @@
 
 ## Root Cause Analysis
 
-### Root Cause 1: Build is older than the PR implementation
+### Root Cause 1: Loudspeaker code added to wrong player script (GDScript vs C#)
 
-The game log shows the user tested a Windows EXE build that was built **before** the loudspeaker implementation was added to the branch. The build does not contain:
-- `_init_loudspeaker()` call in `_ready()`
-- `_handle_loudspeaker_input()` call in `_physics_process()`
-- Loudspeaker progress tracker
-- Loudspeaker cone effect
+**This is the critical root cause reported in game log `game_log_20260317_050705.txt`.**
 
-**Evidence:**
-- The `[Player.Ready]` log shows initialization in the order: Flashlight, TeleportBracers, Homing, BffPendant, InvisibilitySuit, BreakerBullets, ForceField, TrajectoryGlasses — but NO Loudspeaker check.
-- This matches the `_ready()` function from BEFORE the loudspeaker implementation commit `5439be63`.
+The project has **two** player scripts:
+- `Scripts/Characters/Player.cs` — the **actual** C# player used at runtime
+- `scripts/characters/player.gd` — a GDScript file that is NOT the active player
 
-### Root Cause 2: Missing loudspeaker_icon.png asset
+All other active items (Flashlight, TrajectoryGlasses, ForceField, BreachingCharges, etc.) are implemented in **C# `Player.cs`**, not in GDScript. The initial loudspeaker implementation mistakenly added the code only to `player.gd`.
 
-The `active_item_manager.gd` references:
+**Evidence from `game_log_20260317_050705.txt`:**
 ```
-"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png"
+[05:07:05] [ActiveItemManager] Active item changed from None to Loudspeaker
+...
+[05:07:05] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[05:07:05] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[05:07:05] [Player.Homing] No homing bullets selected in ActiveItemManager
+...
+[05:07:05] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
 ```
+Loudspeaker IS selected (line 97), but `[Player.Loudspeaker]` is **never logged** — because the GDScript code never runs. The C# Player.cs is the one executing `_Ready()`.
 
-But this file **did not exist** in the repository. This would cause:
-- No icon shown in the armory UI
-- Possible error when the armory tries to load the icon texture
+This is confirmed by:
+```
+[LabyrinthLevel] AssaultRifle already equipped by C# Player - skipping GDScript weapon swap
+```
+The level script explicitly acknowledges that the C# player is the active one.
 
-**Evidence:** `ls assets/sprites/weapons/` shows no `loudspeaker_icon.png` file.
+### Root Cause 2: Merge conflicts kept PR behind main
 
-### Root Cause 3: RICOCHET_POINTS enum conflict
+The PR branch was 65+ commits behind `origin/main`, causing merge conflicts. The dirty merge state made GitHub show conflicts in the PR, blocking review.
 
-After merging `main`, the `active_item_manager.gd` had merge conflicts because:
-- Our branch added `RICOCHET_POINTS` (index 10) and `LOUDSPEAKER` (index 11)
-- Main branch removed `RICOCHET_POINTS` (issue #1028: its effect merged into Trajectory Glasses)
-- This created conflicts and wrong enum values
+### Root Cause 3: Missing loudspeaker_icon.png asset (previously fixed)
 
-### Root Cause 4: Player weapon not swapped to loudspeaker during use
+The `active_item_manager.gd` references `res://assets/sprites/weapons/loudspeaker_icon.png` but the file was missing. **Fixed in previous session** (2026-03-16).
 
-The issue description specifically requests: *"в момент использования у игрока вместо оружия в руках должен быть громкоговоритель"* (during use, player should hold loudspeaker instead of weapon).
+### Root Cause 4: RICOCHET_POINTS enum conflict (previously fixed)
 
-This feature was not implemented in the original PR — the loudspeaker activation only showed the cone effect, but the player's visual still showed their weapon.
+After merging `main`, enum indices shifted due to `RICOCHET_POINTS` removal. **Fixed in previous session**.
 
 ---
 
 ## Solutions Implemented
 
-### Fix 1: Create loudspeaker_icon.png
+### Fix 1 (2026-03-17): Add Loudspeaker to C# Player.cs — ROOT CAUSE FIX
+
+Added complete loudspeaker implementation to `Scripts/Characters/Player.cs`:
+
+**Member variables** (`#region Loudspeaker System`):
+- `_loudspeakerEquipped`: whether item is active
+- `_loudspeakerConeEffect`: `Node2D?` reference to GDScript cone effect
+- `_loudspeakerProgress`: `Node?` reference to GDScript progress tracker
+- `_loudspeakerHandSprite`: `Sprite2D?` in-hand visual during activation
+- `_loudspeakerHoldTimer`: float timer for 0.6s visual duration
+
+**`InitLoudspeaker()`** (called from `_Ready()`):
+- Loads `loudspeaker_progress.gd` → creates Node child
+- Loads `loudspeaker_cone_effect.gd` → creates Node2D child, calls `initialize(this)`
+- Creates `Sprite2D` from `loudspeaker_icon.png`, attaches to `_weaponMount`
+- Logs `[Player.Loudspeaker] Loudspeaker equipped, charges: N`
+
+**`HandleLoudspeakerInput(float delta)`** (called from `_PhysicsProcess()`):
+- Updates cooldown via `_loudspeakerProgress.Call("update", delta)`
+- Manages hold-timer for weapon↔loudspeaker sprite swap
+- On `flashlight_toggle` press: checks `can_activate()`, calls `use()`, plays cone, alerts enemies, applies pacifism
+
+**`LoudspeakerApplyEffect()`**:
+- 50° half-angle cone check
+- Line-of-sight raycast (wall mask = 4)
+- Cover-within-500px exception
+- Skips attacked enemies, rolls `effectChance`, calls `apply_pacifism(hostilityChance)`
+
+**`LoudspeakerAlertAllEnemies()`**:
+- Calls `alert_from_loudspeaker(global_position)` on all enemies in group "enemies"
+
+### Fix 2 (2026-03-17): Merge main into PR branch
+
+Resolved conflicts in:
+- `scripts/autoload/active_item_manager.gd`: kept LOUDSPEAKER + BREACHING_CHARGES enum entries
+- `scripts/characters/player.gd`: kept both loudspeaker + breaching charges init/handle calls
+- `scripts/objects/enemy.gd`: kept PacifistComponent + EnemyForceFieldComponent
+
+### Fix 3 (2026-03-16): Create loudspeaker_icon.png
 - Created pixel-art loudspeaker icon (32×32 px) at `assets/sprites/weapons/loudspeaker_icon.png`
 - Icon shows a classic megaphone/loudspeaker shape with sound wave arcs
 
-### Fix 2: Resolve RICOCHET_POINTS merge conflict
+### Fix 4 (2026-03-16): Resolve RICOCHET_POINTS merge conflict
 - Removed `RICOCHET_POINTS` from the enum (was removed in main via Issue #1028)
 - `LOUDSPEAKER` now occupies index 10 (replacing `RICOCHET_POINTS`)
-- Updated unlock conditions to match main branch (HOMING_BULLETS, TELEPORT_BRACERS, INVISIBILITY_SUIT now locked by default)
-- Updated test file to expect LOUDSPEAKER at index 10, not RICOCHET_POINTS
+- Updated unlock conditions to match main branch
+- Updated test file to expect LOUDSPEAKER at index 10
 
-### Fix 3: Implement loudspeaker-in-hands visual during activation
-Added to `scripts/characters/player.gd`:
+### Fix 5 (2026-03-16): Implement loudspeaker-in-hands visual during activation
+Added to `scripts/characters/player.gd` (for completeness, though C# is the active player):
 - `_loudspeaker_hand_sprite`: Sprite2D created from loudspeaker icon, attached to WeaponMount
 - `_loudspeaker_hold_timer`: 0.6 second timer during which loudspeaker is shown
 - On activation: hides all other WeaponMount children, shows `_loudspeaker_hand_sprite`
@@ -108,15 +150,16 @@ Added to `scripts/characters/player.gd`:
 
 ## Technical Details
 
-### Affected Files
+### Affected Files (2026-03-17 fix)
 | File | Change |
 |------|--------|
-| `scripts/autoload/active_item_manager.gd` | Remove RICOCHET_POINTS, fix unlock conditions |
-| `scripts/characters/player.gd` | Add loudspeaker-in-hands sprite, hold timer |
-| `assets/sprites/weapons/loudspeaker_icon.png` | Created new icon asset |
-| `tests/unit/test_active_item_manager.gd` | Update mock data and assertions |
+| `Scripts/Characters/Player.cs` | **Add complete loudspeaker implementation** (root cause fix) |
+| `scripts/autoload/active_item_manager.gd` | Merge conflict resolved (LOUDSPEAKER + BREACHING_CHARGES) |
+| `scripts/characters/player.gd` | Merge conflict resolved (both loudspeaker + breaching charges) |
+| `scripts/objects/enemy.gd` | Merge conflict resolved |
+| `docs/case-studies/issue-959/game_log_20260317_050705.txt` | New game log added |
 
-### Active Item Enum (after fix)
+### Active Item Enum (current)
 ```gdscript
 enum ActiveItemType {
     NONE = 0,              # No item
@@ -129,27 +172,37 @@ enum ActiveItemType {
     FORCE_FIELD = 7,       # Force field
     TRAJECTORY_GLASSES = 8, # Trajectory glasses
     LASER_SIGHT = 9,       # Laser sight
-    LOUDSPEAKER = 10       # Loudspeaker (Issue #959)
+    LOUDSPEAKER = 10,      # Loudspeaker (Issue #959)
+    BREACHING_CHARGES = 11 # Breaching charges (Issue #1043)
 }
 ```
 
-### Loudspeaker Activation Flow
-1. Player presses Space
-2. Cone visual effect plays (0.55s expansion animation)
-3. **NEW:** Weapon hidden, loudspeaker sprite shown in player's hands (0.6s)
-4. All enemies on map alerted (hear loud sound)
-5. Enemies in cone sector checked for pacifism eligibility
-6. After 0.6s: weapon restored, loudspeaker sprite hidden
+### Loudspeaker Activation Flow (C# Player.cs)
+1. `InitLoudspeaker()` called in `_Ready()`:
+   - Loads `loudspeaker_progress.gd` and `loudspeaker_cone_effect.gd` as GDScript nodes
+   - Creates in-hand sprite from `loudspeaker_icon.png`, attaches to WeaponMount
+   - Logs `[Player.Loudspeaker] Loudspeaker equipped, charges: N`
+2. `HandleLoudspeakerInput(delta)` called each `_PhysicsProcess()`:
+   - Updates cooldown timer via GDScript progress tracker
+   - On Space press: checks `can_activate()`, calls `use()`, gets aim direction
+   - Hides weapon, shows loudspeaker sprite for 0.6s
+   - Plays cone visual, alerts all enemies, applies pacifism to cone sector
+   - Logs `[Player.Loudspeaker] Activated!`
 
 ---
 
-## Key Observations from Game Log
+## Key Observations from Game Logs
 
-- The build tested was from before the loudspeaker implementation
-- `[Player.Loudspeaker]` was never logged in the session
-- No errors about missing files in the game log (the missing icon would cause silent failure in UI only)
-- Gameplay continued normally with the loudspeaker "selected" but non-functional
-- The issue manifested as: item appears in UI, can be selected, but does nothing on Space press
+### game_log_20260317_050705.txt (second report)
+- Loudspeaker selected at startup: `[ActiveItemManager] Active item changed from None to Loudspeaker`
+- Player.Ready() shows ALL other item checks but NO `[Player.Loudspeaker]` line
+- User switches to Laser Sight then back to Loudspeaker — still no loudspeaker initialization
+- Gameplay continues with loudspeaker "selected" but completely non-functional
+- `[LabyrinthLevel] AssaultRifle already equipped by C# Player` — confirms C# player is active
+- **The game is using `Scripts/Characters/Player.cs`, NOT `scripts/characters/player.gd`**
+
+### Diagnostic: Why the error was missed previously
+The previous analysis assumed Godot EXE builds embed scripts (making GDScript unrunnable in old builds). In reality, Godot 4 EXE exports **do** embed `.gd` scripts. The real reason `_init_loudspeaker()` never runs is that `Player.cs` is the active player, and Player.cs never had loudspeaker code at all.
 
 ---
 
@@ -157,4 +210,4 @@ enum ActiveItemType {
 - Issue #959: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/959
 - PR #1018: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1018
 - Issue #1028 (RICOCHET_POINTS removal): referenced in test file
-- Game log: `game_log_20260317_011120.txt` (this directory)
+- Game logs: `game_log_20260317_011120.txt`, `game_log_20260317_050705.txt` (this directory)
