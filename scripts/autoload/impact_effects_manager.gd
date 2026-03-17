@@ -46,13 +46,16 @@ const WALL_COLLISION_LAYER: int = 4
 const MAX_BULLET_HOLES: int = 0
 
 ## Number of blood decals spawned per lethal hit.
-## Restored to 20 (matching backup branch) per Issue #1090.
+## Issue #1090 Round 2: Increased to 30 (50% above the Feb 16 backup value of 20)
+## per owner request for more visible blood on floor.
 ## Note: Issue #1027 removed per-puddle Area2D physics, eliminating the main FPS bottleneck.
-const BLOOD_DECALS_PER_LETHAL_HIT: int = 20
+## 30 Sprite2D decals are trivially cheap to render.
+const BLOOD_DECALS_PER_LETHAL_HIT: int = 30
 
 ## Number of blood decals spawned per non-lethal hit.
-## Restored to 10 (matching backup branch) per Issue #1090.
-const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 10
+## Issue #1090 Round 2: Increased to 15 (50% above the Feb 16 backup value of 10)
+## per owner request for more visible blood on floor.
+const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 15
 
 ## Active blood decals for cleanup management.
 var _blood_decals = []
@@ -597,9 +600,9 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
 		decals_scheduled += 1
 
-	# Issue #969: gate per-hit log behind debug flag
+	# Log scheduled count unconditionally (matches Feb 16 backup behavior, enables log verification)
+	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 	if _debug_effects:
-		_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
 		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
 
 
