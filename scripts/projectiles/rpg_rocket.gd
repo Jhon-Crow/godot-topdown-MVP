@@ -40,9 +40,6 @@ var _time_alive: float = 0.0
 ## Whether the rocket has exploded.
 var _has_exploded: bool = false
 
-## Whether launch() has been called with the real direction.
-var _launched: bool = false
-
 ## Reference to the trail Line2D node (if present).
 var _trail: Line2D = null
 
@@ -66,14 +63,7 @@ func _ready() -> void:
 
 	_exhaust = get_node_or_null("ExhaustParticles")
 
-
-## Called by the shooter after add_child to set the travel direction (Issue #583).
-## Sets direction, rotation, and exhaust particle orientation.
-func launch(dir: Vector2) -> void:
-	direction = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
-	_launched = true
-
-	# Orient rocket sprite and node to travel direction
+	# Issue #583: orient to direction (set before add_child by shooter, like regular bullets)
 	rotation = direction.angle()
 
 	# Orient exhaust particles to emit backward from rocket direction
@@ -90,9 +80,6 @@ func launch(dir: Vector2) -> void:
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
-
-	if not _launched:
-		return  # Wait until launch() is called with real direction
 
 	global_position += direction * speed * delta  # Issue #583: use global_position for reliable movement
 	_update_trail()

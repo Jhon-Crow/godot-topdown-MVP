@@ -3897,13 +3897,14 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 
 ## Fire RPG rocket directly (bypass pool - Issue #583, analogous to AKGL.cs FireGrenadeLauncher).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
-	# Issue #583: preload() is compile-time; call_deferred("launch") fires after full scene-tree
-	# init so GDScript methods are always resolved regardless of export build quirks.
+	# Issue #583: set direction property before add_child (same pattern as regular bullets).
+	# rpg_rocket._ready() reads direction to set rotation and exhaust orientation.
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
+	rocket.set("direction", dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT)
 	rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
-	rocket.call_deferred("launch", dir); _log_to_file("[RPG] Rocket queued launch at %s dir=%s" % [str(pos), str(dir)])
+	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
