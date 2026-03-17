@@ -30,19 +30,25 @@ The owner described the following requirements:
 
 The full implementation was broken into the following stages:
 
-### Stage 1 (this PR)
+### Stage 1 (PR #1060 - initial)
 - Add `MACHINE_GUN` weapon type to `WeaponType` enum in `enemy.gd`
 - Configure the machine gun in `WeaponConfigComponent` (7.62x39 caliber, 500-round belt, slow fire rate)
 - Implement front-arc damage resistance (30% chance to ignore hits within ±15° of facing direction)
 - Implement PM fallback behavior on ammo depletion (swap to RIFLE-equivalent PM, transition to RETREATING)
 - Slow movement speed for machine gunner instances (configurable via export)
-- Add machine gunner enemy instance to an existing level scene (BuildingLevel or CityLevel)
+- Add machine gunner enemy instance to BuildingLevel
+
+### Stage 1b (PR #1060 - revision, 2026-03-17)
+- Added MachineGunner to Labyrinth2Level.tscn (Лабиринт Комплекс) at position (1600, 2200)
+- Updated enemy count from 14→15 in Labyrinth2Level.tscn, levels_menu.gd, and labyrinth2_level.gd
+- Merged upstream/main (including Issue #1034 force field fix) to resolve conflicts
+- Feedback from owner: enemy was not visible on map; original placement was in BuildingLevel (Здание),
+  but owner requested placement in Labyrinth Complex (Лабиринт Комплекс) specifically
 
 ### Stage 2 (future)
 - Belt-fire suppression toward passages where player was last seen (extend `SuppressiveFireComponent`)
 - Ammo carrier companion integration (when companion system is extended)
 - Dedicated machine gunner scene with visual distinction (PKM sprite, bipod animation)
-- Add to the new map from issue #1032 (when that map is implemented)
 
 ---
 
@@ -67,6 +73,9 @@ The existing enemy system already has excellent infrastructure for this new type
 | `scripts/objects/enemy.gd` | Add `MACHINE_GUN` to `WeaponType` enum; add front-arc damage resistance in `on_hit_with_bullet_info()`; add PM fallback on ammo depletion in `_can_shoot()` |
 | `scripts/components/weapon_config_component.gd` | Add weapon config for `MACHINE_GUN` (type 4): 500-round belt, 7.62x39 caliber, slow fire rate, long reload |
 | `scenes/levels/BuildingLevel.tscn` | Add machine gunner enemy instance with slow speed and MACHINE_GUN weapon type |
+| `scenes/levels/Labyrinth2Level.tscn` | Add MachineGunner enemy at (1600, 2200); update enemy count to 15 |
+| `scripts/ui/levels_menu.gd` | Update Labyrinth Complex enemy_count (14→15) and description |
+| `scripts/levels/labyrinth2_level.gd` | Update header comment to reflect 15 enemies |
 | `tests/unit/test_machine_gunner.gd` | Unit tests for front-arc resistance and ammo fallback behavior |
 
 ---
@@ -139,9 +148,28 @@ New method `_activate_machine_gunner_pm_fallback()`:
 
 ---
 
+## Timeline of Events
+
+| Date | Event |
+|------|-------|
+| 2026-03-16 | Stage 1 implemented: MACHINE_GUN type added, BuildingLevel instance added, PR #1060 opened |
+| 2026-03-16 | PR marked ready to merge |
+| 2026-03-17 | Owner feedback: machine gunner not visible; requested placement in Лабиринт Комплекс (Labyrinth Complex) |
+| 2026-03-17 | Root cause: machine gunner was placed in BuildingLevel (Здание), not Labyrinth Complex (Labyrinth2Level.tscn) |
+| 2026-03-17 | Fix: merged upstream/main (resolved conflict with Issue #1034 force field), added MachineGunner to Labyrinth2Level at position (1600, 2200) |
+
+## Root Cause of Visibility Issue
+
+The original Stage 1 placement was in `BuildingLevel.tscn` (Здание map). The owner expected to find
+the machine gunner in the "Лабиринт Комплекс" map (Labyrinth Complex / `Labyrinth2Level.tscn`).
+This was a misinterpretation of the original requirement "добавь этого врага на карту" — the owner
+linked to issue #1032 which describes the Labyrinth Complex map. Since Labyrinth Complex (`Labyrinth2Level.tscn`)
+was only added to `upstream/main` after our branch diverged, it was not accessible during Stage 1.
+
 ## Related Issues
 
-- **Issue #1032** — New map where machine gunner will be placed (future stage)
+- **Issue #1032** — Labyrinth Complex map where machine gunner is now placed
 - **Issue #910** — Suppressive fire component (will be extended for belt-fire behavior in Stage 2)
 - **Issue #579** — Machete component (reference for per-weapon-type component pattern)
 - **Issue #934** — BFF companion system (future ammo-carrier companion integration)
+- **Issue #1034** — Force field (merged fix: force field check before machine gunner front-arc check)
