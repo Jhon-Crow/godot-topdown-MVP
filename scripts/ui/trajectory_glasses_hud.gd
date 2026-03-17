@@ -25,7 +25,7 @@ const PIP_FILLED_COLOR: Color = Color(0.0, 1.0, 0.5, 0.9)  # Greenish
 const PIP_EMPTY_COLOR: Color = Color(0.3, 0.3, 0.3, 0.5)
 
 ## How long (in seconds) to show the charge pips after activation before auto-hiding.
-const ACTIVATION_SHOW_DURATION: float = 0.4
+const ACTIVATION_SHOW_DURATION: float = 0.3
 
 ## Current charges.
 var _charges: int = 2

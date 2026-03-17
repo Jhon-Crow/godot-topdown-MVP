@@ -502,7 +502,7 @@ func test_warning_flash_frequency_constant() -> void:
 
 class MockTrajectoryGlassesHud:
 	## How long (in seconds) to show the charge pips after activation before auto-hiding.
-	const ACTIVATION_SHOW_DURATION: float = 0.4
+	const ACTIVATION_SHOW_DURATION: float = 0.3
 
 	## Whether the HUD is currently visible.
 	var visible: bool = false
@@ -510,7 +510,7 @@ class MockTrajectoryGlassesHud:
 	## Timer counting down auto-hide after activation (0 = not running).
 	var _hide_timer: float = 0.0
 
-	## Show/hide the HUD. When active=true, starts the 400 ms auto-hide timer.
+	## Show/hide the HUD. When active=true, starts the 300 ms auto-hide timer.
 	func set_active(active: bool) -> void:
 		if active:
 			visible = true
@@ -537,8 +537,8 @@ func before_each_hud() -> void:
 
 func test_hud_activation_show_duration_constant() -> void:
 	var h := MockTrajectoryGlassesHud.new()
-	assert_almost_eq(h.ACTIVATION_SHOW_DURATION, 0.4, 0.001,
-		"ACTIVATION_SHOW_DURATION should be 0.4 seconds (400 ms)")
+	assert_almost_eq(h.ACTIVATION_SHOW_DURATION, 0.3, 0.001,
+		"ACTIVATION_SHOW_DURATION should be 0.3 seconds (300 ms)")
 
 
 func test_hud_starts_hidden() -> void:
@@ -557,15 +557,15 @@ func test_hud_visible_immediately_after_set_active() -> void:
 func test_hud_auto_hides_after_activation_duration() -> void:
 	var h := MockTrajectoryGlassesHud.new()
 	h.set_active(true)
-	h.update(0.5)  # More than 0.4 s
+	h.update(0.4)  # More than 0.3 s
 	assert_false(h.visible,
-		"HUD should auto-hide after ACTIVATION_SHOW_DURATION (400 ms)")
+		"HUD should auto-hide after ACTIVATION_SHOW_DURATION (300 ms)")
 
 
 func test_hud_still_visible_before_activation_duration_expires() -> void:
 	var h := MockTrajectoryGlassesHud.new()
 	h.set_active(true)
-	h.update(0.2)  # Less than 0.4 s
+	h.update(0.1)  # Less than 0.3 s
 	assert_true(h.visible,
 		"HUD should still be visible before ACTIVATION_SHOW_DURATION expires")
 
@@ -585,6 +585,6 @@ func test_hud_hide_timer_resets_on_deactivation() -> void:
 	h.set_active(false)
 	# Re-activate: timer should restart from full ACTIVATION_SHOW_DURATION
 	h.set_active(true)
-	h.update(0.2)  # Still within 0.4 s
+	h.update(0.15)  # Still within 0.3 s
 	assert_true(h.visible,
 		"After re-activation HUD hide timer should reset; HUD should still be visible")
