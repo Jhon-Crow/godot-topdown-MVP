@@ -17,6 +17,7 @@ enum ActiveItemType {
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
 	BREACHING_CHARGES  # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 }
 
@@ -41,6 +42,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
 	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true     # No unlock condition — freely available from start (Issue #1043)
 }
 
@@ -101,6 +103,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Laser Sight",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+	},
+	ActiveItemType.LOUDSPEAKER: {
+		"name": "Loudspeaker",
+		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
+		"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
 	},
 	ActiveItemType.BREACHING_CHARGES: {
 		"name": "Breaching Charges",
@@ -236,6 +244,11 @@ func has_trajectory_glasses() -> bool:
 ## Check if laser sight is currently equipped (Issue #947).
 func has_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if loudspeaker is currently equipped (Issue #959).
+func has_loudspeaker() -> bool:
+	return current_active_item == ActiveItemType.LOUDSPEAKER
 
 
 ## Check if breaching charges are currently equipped (Issue #1043).
