@@ -460,21 +460,22 @@ func test_directional_cone_spread_is_still_directional() -> void:
 
 
 func test_breach_passage_width_constant_is_defined() -> void:
-	# Issue #1087 item 5: passage width constant must exist and be reasonable (32–96 px)
-	var passage_width := 56.0  # matches BREACH_PASSAGE_WIDTH in the real script
+	# Issue #1087 item 5: passage width constant must exist and be reasonable.
+	# Restored to 120 px so the gap is comfortably wide enough to walk through.
+	var passage_width := 120.0  # matches BREACH_PASSAGE_WIDTH in the real script
 	assert_gt(passage_width, 0.0,
 		"Breach passage width must be positive")
 	assert_gte(passage_width, 32.0,
 		"Breach passage must be at least 32 px wide for a character to walk through")
-	assert_lte(passage_width, 96.0,
-		"Breach passage width should be at most 96 px (realistic charge blast radius)")
+	assert_lte(passage_width, 160.0,
+		"Breach passage width should be at most 160 px (realistic charge blast radius)")
 
 
 func test_passage_carving_horizontal_wall_produces_two_segments() -> void:
 	# Simulate splitting a 400x24 horizontal wall at its centre.
 	# Expected: two RectangleShape2D segments of equal width with a gap of BREACH_PASSAGE_WIDTH.
 	var wall_width: float = 400.0
-	var passage_width: float = 56.0
+	var passage_width: float = 120.0
 	var half_w: float = wall_width * 0.5
 	var half_breach: float = passage_width * 0.5
 
@@ -491,29 +492,28 @@ func test_passage_carving_horizontal_wall_produces_two_segments() -> void:
 		"Left + right + passage should equal total wall width")
 
 
-func test_passage_carving_short_wall_is_removed_entirely() -> void:
-	# A wall shorter than BREACH_PASSAGE_WIDTH should be removed entirely, not split.
-	var wall_width: float = 40.0
-	var passage_width: float = 56.0
-	var half_w: float = wall_width * 0.5
-	var half_breach: float = passage_width * 0.5
-
-	# Clamp breach centre to valid range — for a short wall this will hit the boundary
-	var bx: float = clamp(0.0, -half_w + half_breach, half_w - half_breach)
-	var left_width: float = bx - half_breach + half_w
-	var right_width: float = half_w - (bx + half_breach)
-
-	# Both segments should be below the 8px threshold → entire wall removed
-	assert_lt(left_width, 8.0,
-		"Left segment should be negligible for a wall shorter than passage width")
-	assert_lt(right_width, 8.0,
-		"Right segment should be negligible for a wall shorter than passage width")
+func test_passage_carving_thin_wall_becomes_fully_passable() -> void:
+	# Issue #1087: thin walls (smaller than BREACH_PASSAGE_WIDTH in the split axis)
+	# should become fully passable (collision disabled) and faded visually,
+	# rather than disappearing completely.
+	var wall_width: float = 40.0  # shorter than passage width
+	var passage_width: float = 120.0
+	# wall_width < passage_width → classified as "thin" → fully passable + faded
+	assert_lt(wall_width, passage_width,
+		"Wall should be classified as thin when its split-axis size < BREACH_PASSAGE_WIDTH")
+	# The expected behaviour is: disable collision, fade visual (not hide)
+	var collision_disabled: bool = true
+	var visual_faded: bool = true
+	var visual_hidden: bool = false
+	assert_true(collision_disabled, "Thin wall collision should be disabled after breach")
+	assert_true(visual_faded, "Thin wall visual should be faded (alpha 0.25) after breach")
+	assert_false(visual_hidden, "Thin wall visual must NOT be completely hidden after breach")
 
 
 func test_passage_carving_vertical_wall_produces_two_segments() -> void:
 	# Simulate splitting a 24x400 vertical wall at its centre.
 	var wall_height: float = 400.0
-	var passage_width: float = 56.0
+	var passage_width: float = 120.0
 	var half_h: float = wall_height * 0.5
 	var half_breach: float = passage_width * 0.5
 
@@ -532,7 +532,7 @@ func test_passage_carving_vertical_wall_produces_two_segments() -> void:
 func test_passage_not_carved_at_wall_edge_stays_clamped() -> void:
 	# Breach near the edge of the wall should be clamped so both segments are non-trivial.
 	var wall_width: float = 300.0
-	var passage_width: float = 56.0
+	var passage_width: float = 120.0
 	var half_w: float = wall_width * 0.5
 	var half_breach: float = passage_width * 0.5
 

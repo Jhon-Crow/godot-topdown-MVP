@@ -11,7 +11,8 @@ extends Node
 ## - Hold Space near a wall → charge attaches to the nearest wall surface
 ## - Once a charge is placed, press Space to detonate
 ## - Detonation carves a BREACH_PASSAGE_WIDTH passage in the wall (Issue #1087 item 5)
-##   — long thin walls are split into two remaining segments; only short walls disappear
+##   — long walls are split into two segments with a gap; thin/short walls become fully
+##   passable but are faded (alpha 0.25) rather than removed, so they remain visible
 ## - Enemies within STUN_RADIUS on the far side of the wall are stunned + blinded for 3 s
 ##
 ## Visual features (Issues #1043, #1087):
@@ -26,8 +27,10 @@ const MAX_CHARGES: int = 2
 const PLACEMENT_RADIUS: float = 40.0
 
 ## Width of the passage carved through a wall (pixels).
-## Walls shorter than this in both dimensions will be removed entirely.
-const BREACH_PASSAGE_WIDTH: float = 56.0
+## Restoring to 120 px so the breach is large enough to walk through comfortably.
+## Walls whose minor axis is smaller than this threshold are treated as "thin" —
+## their collision is disabled and their visual is faded rather than split.
+const BREACH_PASSAGE_WIDTH: float = 120.0
 
 ## Stun/blind radius from detonation point (pixels).
 const STUN_RADIUS: float = 150.0
@@ -275,9 +278,10 @@ func _find_nearest_wall_with_hit() -> Dictionary:
 
 
 ## Carve a passage through the wall at the breach position.
-## For long walls this splits the wall into two segments with a gap.
-## For short walls (smaller than BREACH_PASSAGE_WIDTH) the wall is removed entirely.
-## Issue #1087: long thin walls must not disappear completely — only a passage is carved.
+## For long walls this splits the wall into two collision segments with a gap.
+## For thin/short walls (smaller than BREACH_PASSAGE_WIDTH in the split axis) the
+## collision is disabled entirely and the visual is faded (alpha 0.25) — the wall
+## remains visible but is passable, fulfilling Issue #1087 item 5.
 func _open_wall_passage(wall: Node) -> void:
 	if wall == null or not is_instance_valid(wall):
 		FileLogger.info("[BreachingCharges] WARNING: Wall reference invalid at detonation")
@@ -290,7 +294,7 @@ func _open_wall_passage(wall: Node) -> void:
 			col_shape = child as CollisionShape2D
 			break
 
-	# If no RectangleShape2D found, fall back to disabling all shapes (old behaviour)
+	# If no RectangleShape2D found, fall back to disabling all shapes
 	if col_shape == null:
 		var disabled_count := 0
 		for child in wall.get_children():
@@ -300,9 +304,7 @@ func _open_wall_passage(wall: Node) -> void:
 			elif child is CollisionPolygon2D:
 				(child as CollisionPolygon2D).disabled = true
 				disabled_count += 1
-		for child in wall.get_children():
-			if child is CanvasItem:
-				(child as CanvasItem).visible = false
+		_fade_wall_visuals(wall)
 		FileLogger.info("[BreachingCharges] Fallback: disabled all shapes on '%s'" % wall.name)
 		return
 
@@ -323,6 +325,14 @@ func _open_wall_passage(wall: Node) -> void:
 	var is_horizontal: bool = wall_size.x >= wall_size.y  # wide wall → split along X
 
 	if is_horizontal:
+		# For walls thinner than the passage in the split axis, treat as "thin":
+		# disable collision but keep visual (faded) instead of splitting or hiding entirely.
+		if wall_size.x < BREACH_PASSAGE_WIDTH:
+			col_shape.disabled = true
+			_fade_wall_visuals(wall)
+			FileLogger.info("[BreachingCharges] Thin wall '%s' breached (fully passable)" % wall.name)
+			return
+
 		# Clamp breach center to wall interior
 		var bx: float = clamp(breach_local.x, -half_w + half_breach, half_w - half_breach)
 		var left_end: float = bx - half_breach    # right edge of left segment
@@ -332,10 +342,10 @@ func _open_wall_passage(wall: Node) -> void:
 		var right_width: float = half_w - right_start  # from right_start to half_w
 
 		if left_width < 8.0 and right_width < 8.0:
-			# Wall is short — remove entirely
+			# Wall is short — make passable but keep faded visual
 			col_shape.disabled = true
-			_hide_wall_visuals(wall)
-			FileLogger.info("[BreachingCharges] Short wall '%s' removed entirely" % wall.name)
+			_fade_wall_visuals(wall)
+			FileLogger.info("[BreachingCharges] Short wall '%s' breached (fully passable)" % wall.name)
 			return
 
 		# Disable the original shape
@@ -367,6 +377,13 @@ func _open_wall_passage(wall: Node) -> void:
 			wall.name, bx, BREACH_PASSAGE_WIDTH
 		])
 	else:
+		# For walls thinner than the passage in the split axis, treat as "thin".
+		if wall_size.y < BREACH_PASSAGE_WIDTH:
+			col_shape.disabled = true
+			_fade_wall_visuals(wall)
+			FileLogger.info("[BreachingCharges] Thin wall '%s' breached (fully passable)" % wall.name)
+			return
+
 		# Vertical wall — split along Y
 		var by: float = clamp(breach_local.y, -half_h + half_breach, half_h - half_breach)
 		var top_end: float = by - half_breach
@@ -376,9 +393,10 @@ func _open_wall_passage(wall: Node) -> void:
 		var bottom_height: float = half_h - bottom_start
 
 		if top_height < 8.0 and bottom_height < 8.0:
+			# Wall is short — make passable but keep faded visual
 			col_shape.disabled = true
-			_hide_wall_visuals(wall)
-			FileLogger.info("[BreachingCharges] Short wall '%s' removed entirely" % wall.name)
+			_fade_wall_visuals(wall)
+			FileLogger.info("[BreachingCharges] Short wall '%s' breached (fully passable)" % wall.name)
 			return
 
 		col_shape.disabled = true
@@ -406,7 +424,16 @@ func _open_wall_passage(wall: Node) -> void:
 		])
 
 
-## Hide all CanvasItem children of a wall (used when wall is too short to split).
+## Fade all CanvasItem children of a wall to show it has been breached
+## without making it disappear entirely.  Alpha 0.25 (25%) looks destroyed
+## but keeps the wall outline visible so players understand what happened.
+func _fade_wall_visuals(wall: Node) -> void:
+	for child in wall.get_children():
+		if child is CanvasItem:
+			(child as CanvasItem).modulate = Color(1.0, 1.0, 1.0, 0.25)
+
+
+## Hide all CanvasItem children of a wall (kept for internal fallback use).
 func _hide_wall_visuals(wall: Node) -> void:
 	for child in wall.get_children():
 		if child is CanvasItem:
