@@ -1,7 +1,9 @@
 extends CanvasLayer
-## Enemies Table Menu — shows which unique enemy types appear on each map.
+## Enemies Table Menu — shows which unique enemy types appear on each map,
+## along with special abilities/features present on that map.
 ##
-## Displays a read-only table with columns: Map, Rifle, Shotgun, UZI, Machete, Machine Gun.
+## Displays a read-only table with columns: Map, Rifle, Shotgun, UZI, Machete,
+## Machine Gun, and feature columns: Grenadier, Teleport, Force Field, Jammer.
 ## Follows the same programmatic UI pattern as UnlockTableMenu.
 ##
 ## Issue #1111: добавь таблицу уникальных врагов в experimental
@@ -46,6 +48,22 @@ const ENEMY_COUNTS: Dictionary = {
 	"res://scenes/levels/FactoryLevel.tscn": [13, 0, 0, 0, 0],
 }
 
+## Enemy features per level: [Grenadier, Teleport, Force Field, Jammer]
+## true = feature present on this map.
+const ENEMY_FEATURES: Dictionary = {
+	"res://scenes/levels/LabyrinthLevel.tscn":  [false, false, false, false],
+	"res://scenes/levels/BuildingLevel.tscn":   [true,  false, false, false],
+	"res://scenes/levels/CastleLevel.tscn":     [false, false, false, false],
+	"res://scenes/levels/BeachLevel.tscn":      [false, false, false, false],
+	"res://scenes/levels/DocksLevel.tscn":      [true,  false, false, false],
+	"res://scenes/levels/Labyrinth2Level.tscn": [true,  false, false, false],
+	"res://scenes/levels/CityLevel.tscn":       [false, true,  false, false],
+	"res://scenes/levels/DecadenceLevel.tscn":  [false, false, false, true],
+	"res://scenes/levels/TestTier.tscn":        [false, false, false, false],
+	"res://scenes/levels/RevolverLevel.tscn":   [false, false, true,  false],
+	"res://scenes/levels/FactoryLevel.tscn":    [false, false, false, false],
+}
+
 
 func _ready() -> void:
 	# Build the entire UI programmatically
@@ -72,7 +90,7 @@ func _build_ui() -> void:
 	bg.color = Color(0.0, 0.0, 0.0, 0.75)
 	root_control.add_child(bg)
 
-	# Main panel
+	# Main panel — wider to accommodate feature columns
 	var panel := PanelContainer.new()
 	panel.name = "MainPanel"
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -80,10 +98,10 @@ func _build_ui() -> void:
 	panel.anchor_top = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_bottom = 0.5
-	panel.offset_left = -480
-	panel.offset_top = -320
-	panel.offset_right = 480
-	panel.offset_bottom = 320
+	panel.offset_left = -580
+	panel.offset_top = -340
+	panel.offset_right = 580
+	panel.offset_bottom = 340
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 
@@ -130,7 +148,7 @@ func _build_ui() -> void:
 
 	# Description
 	var desc := Label.new()
-	desc.text = "Enemy types present on each map."
+	desc.text = "Enemy types and special abilities present on each map."
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc.add_theme_font_size_override("font_size", 12)
 	desc.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
@@ -182,18 +200,24 @@ func _populate_table() -> void:
 		child.queue_free()
 
 	# Add header row
-	_add_table_row("MAP", "Rifle", "Shotgun", "UZI", "Machete", "PKM", true)
+	_add_table_row(
+		"MAP",
+		"Rifle", "Shotgun", "UZI", "Machete", "PKM",
+		"Grenadier", "Teleport", "Force Field", "Jammer",
+		true
+	)
 
 	# Add a row for each level
 	for scene_path in ENEMY_COUNTS:
 		var level_name: String = LEVEL_NAMES.get(scene_path, _extract_level_name(scene_path))
 		var counts: Array = ENEMY_COUNTS[scene_path]
-		var rifle: int = counts[0]
-		var shotgun: int = counts[1]
-		var uzi: int = counts[2]
-		var machete: int = counts[3]
-		var machine_gun: int = counts[4]
-		_add_table_row(level_name, _count_text(rifle), _count_text(shotgun), _count_text(uzi), _count_text(machete), _count_text(machine_gun))
+		var features: Array = ENEMY_FEATURES.get(scene_path, [false, false, false, false])
+		_add_table_row(
+			level_name,
+			_count_text(counts[0]), _count_text(counts[1]), _count_text(counts[2]),
+			_count_text(counts[3]), _count_text(counts[4]),
+			features[0], features[1], features[2], features[3]
+		)
 
 
 ## Convert count to display text: show count if > 0, dash otherwise.
@@ -204,7 +228,18 @@ func _count_text(count: int) -> String:
 
 
 ## Add a row to the table.
-func _add_table_row(map_text: String, rifle_text: String, shotgun_text: String, uzi_text: String, machete_text: String, pkm_text: String, is_header: bool = false) -> void:
+## count_* are string values for enemy type columns.
+## feat_* are bool values for special-feature columns.
+func _add_table_row(
+	map_text: String,
+	rifle_text: String, shotgun_text: String, uzi_text: String,
+	machete_text: String, pkm_text: String,
+	feat_grenadier,  # bool or String (header)
+	feat_teleport,
+	feat_force_field,
+	feat_jammer,
+	is_header: bool = false
+) -> void:
 	var row_panel := PanelContainer.new()
 	row_panel.layout_mode = 2
 	row_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -223,45 +258,98 @@ func _add_table_row(map_text: String, rifle_text: String, shotgun_text: String, 
 
 	var row_hbox := HBoxContainer.new()
 	row_hbox.layout_mode = 2
-	row_hbox.add_theme_constant_override("separation", 8)
+	row_hbox.add_theme_constant_override("separation", 4)
 	row_panel.add_child(row_hbox)
 
 	# Map column
 	var map_label := Label.new()
 	map_label.text = map_text
-	map_label.custom_minimum_size.x = 130
+	map_label.custom_minimum_size.x = 120
 	map_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if is_header:
-		map_label.add_theme_font_size_override("font_size", 14)
+		map_label.add_theme_font_size_override("font_size", 13)
 		map_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
 	else:
-		map_label.add_theme_font_size_override("font_size", 13)
+		map_label.add_theme_font_size_override("font_size", 12)
 		map_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85, 1.0))
 	row_hbox.add_child(map_label)
 
-	# Enemy type columns
-	var col_defs: Array[Dictionary] = [
-		{"text": rifle_text, "color": Color(0.4, 0.7, 1.0, 1.0)},   # Rifle - blue
-		{"text": shotgun_text, "color": Color(1.0, 0.6, 0.2, 1.0)}, # Shotgun - orange
-		{"text": uzi_text, "color": Color(0.4, 1.0, 0.6, 1.0)},     # UZI - green
-		{"text": machete_text, "color": Color(1.0, 0.3, 0.3, 1.0)}, # Machete - red
-		{"text": pkm_text, "color": Color(1.0, 0.9, 0.2, 1.0)},     # PKM - gold
+	# Vertical divider between map name and enemy type counts
+	var div1 := VSeparator.new()
+	div1.custom_minimum_size.x = 2
+	row_hbox.add_child(div1)
+
+	# Enemy type columns (count-based)
+	var count_cols: Array[Dictionary] = [
+		{"text": rifle_text,   "color": Color(0.4, 0.7, 1.0, 1.0)},   # Rifle — blue
+		{"text": shotgun_text, "color": Color(1.0, 0.6, 0.2, 1.0)},   # Shotgun — orange
+		{"text": uzi_text,     "color": Color(0.4, 1.0, 0.6, 1.0)},   # UZI — green
+		{"text": machete_text, "color": Color(1.0, 0.3, 0.3, 1.0)},   # Machete — red
+		{"text": pkm_text,     "color": Color(1.0, 0.9, 0.2, 1.0)},   # PKM — gold
 	]
 
-	for col in col_defs:
+	for col in count_cols:
 		var label := Label.new()
 		label.text = col["text"]
-		label.custom_minimum_size.x = 64
+		label.custom_minimum_size.x = 58
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if is_header:
-			label.add_theme_font_size_override("font_size", 14)
+			label.add_theme_font_size_override("font_size", 13)
 			label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
 		else:
-			label.add_theme_font_size_override("font_size", 13)
+			label.add_theme_font_size_override("font_size", 12)
 			if col["text"] == "—":
 				label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45, 1.0))
 			else:
 				label.add_theme_color_override("font_color", col["color"])
+		row_hbox.add_child(label)
+
+	# Vertical divider between counts and features
+	var div2 := VSeparator.new()
+	div2.custom_minimum_size.x = 2
+	row_hbox.add_child(div2)
+
+	# Feature columns (boolean — shown as icon or dash)
+	# feat_* values: bool for data rows, String (header label) for header
+	var feat_defs: Array[Dictionary] = [
+		{
+			"value": feat_grenadier,
+			"label": "Grenadier",
+			"color": Color(1.0, 0.5, 0.1, 1.0),  # orange-red
+		},
+		{
+			"value": feat_teleport,
+			"label": "Teleport",
+			"color": Color(0.6, 0.4, 1.0, 1.0),  # purple
+		},
+		{
+			"value": feat_force_field,
+			"label": "ForceField",
+			"color": Color(0.3, 0.8, 1.0, 1.0),  # cyan
+		},
+		{
+			"value": feat_jammer,
+			"label": "Jammer",
+			"color": Color(0.2, 1.0, 0.5, 1.0),  # teal-green
+		},
+	]
+
+	for feat in feat_defs:
+		var label := Label.new()
+		label.custom_minimum_size.x = 72
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if is_header:
+			label.text = feat["label"]
+			label.add_theme_font_size_override("font_size", 11)
+			label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
+		else:
+			var has_feat: bool = feat["value"] == true
+			label.text = "YES" if has_feat else "—"
+			label.add_theme_font_size_override("font_size", 12)
+			if has_feat:
+				label.add_theme_color_override("font_color", feat["color"])
+			else:
+				label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45, 1.0))
 		row_hbox.add_child(label)
 
 
