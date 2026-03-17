@@ -321,3 +321,91 @@ func test_kill_refill_does_not_overflow_reduced_magazine() -> void:
 	assert_eq(weapon.current_ammo, 14, "Should not overflow beyond reduced capacity")
 	var total_after := weapon.current_ammo + weapon.reserve_ammo
 	assert_eq(total_after, total_before, "Total ammo must be conserved (no overflow = no creation)")
+
+
+# ============================================================================
+# Bug Fix Tests (Issue #1067 v3) - Total ammo preservation
+# ============================================================================
+
+
+## Replicates the new magazine count calculation from Player.cs ReduceMagazineSizeForAutoReload()
+## that preserves total ammo by using more (smaller) magazines.
+func _calculate_new_magazine_count(original_count: int, original_size: int, reduced_size: int) -> int:
+	var total_bullets: int = original_count * original_size
+	return max(1, int(ceil(float(total_bullets) / float(reduced_size))))
+
+
+func test_total_ammo_preserved_m16() -> void:
+	# M16: 4 magazines of 30 = 120 bullets
+	# Reduced size = 14, new count = ceil(120/14) = ceil(8.57) = 9
+	# Total bullets after = 9 * 14 = 126 (>= 120, closest multiple of 14)
+	var original_count: int = 4
+	var original_size: int = 30
+	var reduced_size: int = _calculate_reduced_magazine_size(original_size)
+	var new_count: int = _calculate_new_magazine_count(original_count, original_size, reduced_size)
+	var total_original: int = original_count * original_size
+	var total_new: int = new_count * reduced_size
+
+	assert_eq(reduced_size, 14, "M16 reduced size should be 14")
+	assert_eq(new_count, 9, "M16 should get 9 magazines of 14 to preserve ~120 bullets")
+	assert_true(total_new >= total_original,
+		"Total bullets after reduction must be >= original total (no ammo loss)")
+
+
+func test_total_ammo_preserved_revolver() -> void:
+	# Revolver: 4 cylinders of 5 = 20 bullets
+	# Reduced size = 2, new count = ceil(20/2) = 10
+	# Total bullets after = 10 * 2 = 20 (exactly preserved)
+	var original_count: int = 4
+	var original_size: int = 5
+	var reduced_size: int = _calculate_reduced_magazine_size(original_size)
+	var new_count: int = _calculate_new_magazine_count(original_count, original_size, reduced_size)
+	var total_original: int = original_count * original_size
+	var total_new: int = new_count * reduced_size
+
+	assert_eq(reduced_size, 2, "Revolver reduced size should be 2")
+	assert_eq(new_count, 10, "Revolver should get 10 cylinders of 2 to preserve 20 bullets")
+	assert_true(total_new >= total_original,
+		"Revolver: total bullets must be preserved (no ammo loss)")
+
+
+func test_total_ammo_preserved_makarov_pm() -> void:
+	# Makarov PM: 4 magazines of 9 = 36 bullets
+	# Reduced size = 4, new count = ceil(36/4) = 9
+	var original_count: int = 4
+	var original_size: int = 9
+	var reduced_size: int = _calculate_reduced_magazine_size(original_size)
+	var new_count: int = _calculate_new_magazine_count(original_count, original_size, reduced_size)
+	var total_original: int = original_count * original_size
+	var total_new: int = new_count * reduced_size
+
+	assert_eq(reduced_size, 4, "Makarov PM reduced size should be 4")
+	assert_true(total_new >= total_original,
+		"Makarov PM: total bullets must be preserved")
+
+
+func test_kill_per_shot_means_no_manual_reload() -> void:
+	# Core mechanic: if player kills one enemy per shot, they should never need to reload.
+	# Scenario: magazine_size=2 (revolver), reserve=8, player fires 1 shot then kills 1 enemy.
+	var weapon := MockWeapon.new()
+	weapon.magazine_size = 2
+	weapon.current_ammo = 2   # full cylinder
+	weapon.reserve_ammo = 8   # 4 spare cylinders
+
+	# Shoot, then kill, shoot, then kill — 10 cycles total (2+8=10 bullets)
+	var shots_fired: int = 0
+	var needed_manual_reload: bool = false
+
+	for _i in range(10):
+		if weapon.current_ammo <= 0:
+			needed_manual_reload = true
+			break
+		# Fire one shot
+		weapon.current_ammo -= 1
+		shots_fired += 1
+		# Kill enemy — refill from reserve
+		_perform_kill_refill(weapon)
+
+	assert_false(needed_manual_reload,
+		"Player should never need manual reload if killing one enemy per shot")
+	assert_eq(shots_fired, 10, "Should be able to fire all 10 bullets without reloading")

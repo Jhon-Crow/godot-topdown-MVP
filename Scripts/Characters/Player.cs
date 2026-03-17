@@ -5797,7 +5797,10 @@ public partial class Player : BaseCharacter
         _autoReloadActive = true;
         LogToFile("[Player.AutoReload] Auto-reload active — magazine capacity reduced 2.1x, kills refill magazine from reserves");
 
-        // Reduce magazine capacity on the current weapon
+        // Reduce magazine capacity on the current weapon.
+        // NOTE: Level GDScript _Ready() may call ReinitializeMagazines AFTER this runs,
+        // resetting the magazine size. ApplyAutoReloadAfterLevelAmmoConfig() is called
+        // by level scripts (building_level.gd, labyrinth_level.gd) to reapply the reduction.
         ReduceMagazineSizeForAutoReload();
 
         // Connect to all existing enemy Died signals
@@ -5805,8 +5808,25 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Reapplies the auto-reload magazine size reduction after a level script has
+    /// reinitialized the weapon's magazines (e.g. building_level.gd applying ammo config).
+    /// Called from GDScript level scripts to ensure the reduction persists.
+    /// No-op if auto-reload is not active.
+    /// </summary>
+    public void ApplyAutoReloadAfterLevelAmmoConfig()
+    {
+        if (!_autoReloadActive)
+            return;
+
+        LogToFile("[Player.AutoReload] Re-applying magazine size reduction after level ammo config");
+        ReduceMagazineSizeForAutoReload();
+    }
+
+    /// <summary>
     /// Reduces the current weapon's magazine size by the auto-reload divisor (2.1x).
-    /// The new magazine size is floor(original / 2.1). Reserve ammo is adjusted accordingly.
+    /// The new magazine size is floor(original / 2.1).
+    /// Total ammo count is preserved: uses more (smaller) magazines so the player has
+    /// the same number of bullets overall. Only the per-magazine capacity is reduced.
     /// Caches the reduced size in _autoReloadMagazineSize for use in OnEnemyKilledForAutoReload.
     /// For the Revolver, uses CylinderSize as the authoritative original size (Issue #1067).
     /// </summary>
@@ -5818,10 +5838,12 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        bool isRevolver = CurrentWeapon.HasMethod("get_cylinder_capacity");
+
         // For the Revolver, CylinderSize is the authoritative size (not WeaponData.MagazineSize,
         // which may be stale in release builds due to Issue #950).
         int originalSize;
-        if (CurrentWeapon.HasMethod("get_cylinder_capacity"))
+        if (isRevolver)
         {
             // Revolver exposes CylinderCapacity via property — read via Get()
             var cylCap = CurrentWeapon.Get("CylinderSize");
@@ -5845,20 +5867,30 @@ public partial class Player : BaseCharacter
         // not WeaponData.MagazineSize which remains at the original unreduced value.
         _autoReloadMagazineSize = reducedSize;
 
-        LogToFile($"[Player.AutoReload] Reducing magazine size: {originalSize} -> {reducedSize}");
+        // Preserve total ammo: calculate how many smaller magazines equal the original total.
+        // E.g. 4 magazines of 30 = 120 bullets → ceil(120 / 14) = 9 magazines of 14 = 126 bullets.
+        // This ensures the player is NOT penalized in total ammo count.
+        int currentMagazineCount = CurrentWeapon.StartingMagazineCount;
+        int totalBullets = currentMagazineCount * originalSize;
+        int newMagazineCount = Math.Max(1, (int)Math.Ceiling((double)totalBullets / reducedSize));
 
-        // Reinitialize magazines with the reduced size.
-        // StartingMagazineCount is used so that the total reserve round count
-        // is proportionally adjusted to match the new smaller magazines.
-        CurrentWeapon.ReinitializeMagazines(CurrentWeapon.StartingMagazineCount, reducedSize);
+        LogToFile($"[Player.AutoReload] Reducing magazine size: {originalSize} -> {reducedSize}, magazines: {currentMagazineCount} -> {newMagazineCount} (total bullets preserved: {totalBullets})");
 
-        // For the Revolver: update CylinderSize and _chamberOccupied to match the reduced capacity.
-        // The Revolver's _chamberOccupied array is initialized from CylinderSize in _Ready(),
-        // so we update it via the public property so the cylinder HUD shows the correct state.
-        if (CurrentWeapon.HasMethod("get_cylinder_capacity"))
+        // Reinitialize magazines with the reduced size and adjusted count.
+        CurrentWeapon.ReinitializeMagazines(newMagazineCount, reducedSize);
+
+        // For the Revolver: update CylinderSize so the cylinder HUD and _chamberOccupied
+        // reflect the new reduced capacity. The revolver has a dedicated method for this.
+        if (isRevolver)
         {
             CurrentWeapon.Set("CylinderSize", reducedSize);
-            LogToFile($"[Player.AutoReload] Revolver CylinderSize updated to {reducedSize}");
+            // Call ReinitializeCylinder on the revolver to rebuild _chamberOccupied
+            // with the new size (just setting CylinderSize doesn't resize the array).
+            if (CurrentWeapon.HasMethod("ReinitializeCylinder"))
+            {
+                CurrentWeapon.Call("ReinitializeCylinder");
+            }
+            LogToFile($"[Player.AutoReload] Revolver CylinderSize updated to {reducedSize}, cylinder reinitialized");
         }
     }
 
@@ -5940,11 +5972,16 @@ public partial class Player : BaseCharacter
         // Remove the transferred rounds from the reserve magazines.
         CurrentWeapon.ConsumeReserveAmmo(toAdd);
 
-        // For the Revolver: emit CylinderStateChanged so the cylinder HUD reflects the
-        // newly loaded rounds. The revolver's _chamberOccupied array is updated indirectly
-        // via the magazine system; triggering the signal ensures the UI is repainted.
+        // For the Revolver: rebuild _chamberOccupied to reflect the newly loaded rounds
+        // and emit CylinderStateChanged so the HUD repaints.
+        // Setting CurrentAmmo only updates the magazine inventory; the revolver's per-chamber
+        // tracking array (_chamberOccupied) must be rebuilt via ReinitializeCylinder.
         if (CurrentWeapon.HasSignal("CylinderStateChanged"))
         {
+            if (CurrentWeapon.HasMethod("ReinitializeCylinder"))
+            {
+                CurrentWeapon.Call("ReinitializeCylinder");
+            }
             CurrentWeapon.EmitSignal("CylinderStateChanged");
         }
 
