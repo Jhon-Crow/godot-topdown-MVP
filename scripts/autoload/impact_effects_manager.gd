@@ -45,20 +45,14 @@ const WALL_COLLISION_LAYER: int = 4
 ## Set to 0 to disable cleanup limit.
 const MAX_BULLET_HOLES: int = 0
 
-## Number of blood decals spawned per lethal hit (Issue #969 optimization).
-## Reduced from 20 to 8 to limit file-write and node-add overhead at high fire rates.
-## Each decal add triggers SceneTree.tree_changed, causing scene-change checks in all managers.
-const BLOOD_DECALS_PER_LETHAL_HIT: int = 8
+## Number of blood decals spawned per lethal hit.
+## Restored to 20 (matching backup branch) per Issue #1090.
+## Note: Issue #1027 removed per-puddle Area2D physics, eliminating the main FPS bottleneck.
+const BLOOD_DECALS_PER_LETHAL_HIT: int = 20
 
-## Number of blood decals spawned per non-lethal hit (Issue #969 optimization).
-## Reduced from 10 to 4 to limit overhead at high fire rates.
-const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 4
-
-## Issue #997 RCA-16: Per-second rate limiting for blood decals.
-## When multiple enemies die in the same second, limit total decals to prevent tree_changed floods.
-const MAX_BLOOD_DECALS_PER_SECOND: int = 20
-var _blood_decals_this_second: int = 0
-var _blood_decal_rate_limit_frame: int = -1
+## Number of blood decals spawned per non-lethal hit.
+## Restored to 10 (matching backup branch) per Issue #1090.
+const BLOOD_DECALS_PER_NONLETHAL_HIT: int = 10
 
 ## Active blood decals for cleanup management.
 var _blood_decals = []
@@ -642,18 +636,6 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	if not result.is_empty():
 		# Wall detected between origin and landing - skip this decal
 		return
-
-	# Issue #997 RCA-16: rate limit blood decals per second to prevent tree_changed floods
-	var current_frame := Engine.get_physics_frames()
-	# Reset counter every ~60 frames (approximately 1 second at 60fps)
-	if current_frame - _blood_decal_rate_limit_frame >= 60:
-		_blood_decals_this_second = 0
-		_blood_decal_rate_limit_frame = current_frame
-
-	if _blood_decals_this_second >= MAX_BLOOD_DECALS_PER_SECOND:
-		# Rate limit exceeded, skip this decal
-		return
-	_blood_decals_this_second += 1
 
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
