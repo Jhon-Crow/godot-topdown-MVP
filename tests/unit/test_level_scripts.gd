@@ -220,6 +220,7 @@ class MockBuildingLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -275,6 +276,7 @@ class MockCastleLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -334,6 +336,7 @@ class MockTestTier extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -388,6 +391,7 @@ class MockBeachLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
 	]
 
 	## Initialize with default enemy configuration.
