@@ -210,7 +210,7 @@ class MockBuildingLevel extends MockLevelBase:
 	## Next level path for building level.
 	var _next_level_path: String = "res://scenes/levels/TestTier.tscn"
 
-	## Level ordering (matching LevelsMenu.LEVELS).
+	## Level ordering (matching LevelsMenu.LEVELS) — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -220,6 +220,9 @@ class MockBuildingLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -265,7 +268,7 @@ class MockCastleLevel extends MockLevelBase:
 	func get_pm_magazine_count(starting_magazines: int) -> int:
 		return int(round(starting_magazines * pm_ammo_multiplier))
 
-	## Level ordering.
+	## Level ordering — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -275,6 +278,9 @@ class MockCastleLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -324,7 +330,7 @@ class MockTestTier extends MockLevelBase:
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
 
-	## Level ordering.
+	## Level ordering — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -334,6 +340,9 @@ class MockTestTier extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -378,7 +387,7 @@ class MockBeachLevel extends MockLevelBase:
 	## Whether the score screen is currently shown.
 	var _score_shown: bool = false
 
-	## Level ordering.
+	## Level ordering — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -388,6 +397,9 @@ class MockBeachLevel extends MockLevelBase:
 		"res://scenes/levels/CityLevel.tscn",
 		"res://scenes/levels/BeachLevel.tscn",
 		"res://scenes/levels/DocksLevel.tscn",
+		"res://scenes/levels/FactoryLevel.tscn",
+		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 
 	## Initialize with default enemy configuration.
@@ -714,11 +726,11 @@ func test_building_level_prevents_duplicate_completion() -> void:
 # ============================================================================
 
 
-func test_building_level_next_is_test_tier() -> void:
+func test_building_level_next_is_testtier() -> void:
 	var next := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
 
 	assert_eq(next, "res://scenes/levels/TestTier.tscn",
-		"Next level after BuildingLevel should be TestTier")
+		"Next level after BuildingLevel should be TestTier (Labyrinth Complex is now last)")
 
 
 func test_building_level_unknown_scene_returns_empty() -> void:
@@ -1403,10 +1415,10 @@ func test_all_levels_track_accuracy_consistently() -> void:
 # ============================================================================
 
 
-func test_level_order_building_to_testtier_to_castle_to_revolver() -> void:
+func test_level_order_building_to_testtier_to_castle_to_revolver_labyrinth2_is_last() -> void:
 	var first := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
 	assert_eq(first, "res://scenes/levels/TestTier.tscn",
-		"BuildingLevel -> TestTier")
+		"BuildingLevel -> TestTier (Labyrinth Complex moved to last)")
 
 	var second := test_tier.get_next_level_path("res://scenes/levels/TestTier.tscn")
 	assert_eq(second, "res://scenes/levels/CastleLevel.tscn",
@@ -1415,6 +1427,10 @@ func test_level_order_building_to_testtier_to_castle_to_revolver() -> void:
 	var third := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
 	assert_eq(third, "res://scenes/levels/RevolverLevel.tscn",
 		"CastleLevel -> Double Corridor (RevolverLevel) — Issue #952")
+
+	var last := building_level.get_next_level_path("res://scenes/levels/DecadenceLevel.tscn")
+	assert_eq(last, "res://scenes/levels/Labyrinth2Level.tscn",
+		"DecadenceLevel -> Labyrinth2Level (Labyrinth Complex is last in progression)")
 
 
 # ============================================================================
