@@ -741,6 +741,16 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void HomingDeactivatedEventHandler();
 
+    // Progress bar state for homing bullets (Issue #974)
+    /// <summary>Whether the homing combined progress bar is visible.</summary>
+    private bool _homingBarVisible = false;
+    /// <summary>Whether the homing charge bar should show briefly after deactivation.</summary>
+    private bool _homingChargeBarPending = false;
+    /// <summary>Timer for auto-hiding homing charge bar after deactivation (300ms).</summary>
+    private float _homingChargeBarHideTimer = 0.0f;
+    /// <summary>Duration to show charge bar after deactivation before auto-hiding.</summary>
+    private const float HomingChargeBarHideDelay = 0.3f;
+
     #endregion
 
     #region BFF Pendant System (Issue #674)
@@ -803,6 +813,59 @@ public partial class Player : BaseCharacter
     /// Reference to the GDScript force field effect node.
     /// </summary>
     private Node? _forceFieldEffect = null;
+
+    #endregion
+
+    #region Breaching Charges System (Issue #1043)
+
+    /// <summary>
+    /// Whether breaching charges are equipped (active item selected in armory).
+    /// </summary>
+    private bool _breachingChargesEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript breaching charges effect node.
+    /// </summary>
+    private Node? _breachingChargesEffect = null;
+
+    /// <summary>
+    /// Whether Space is currently held for placement detection.
+    /// </summary>
+    private bool _breachingHoldingForPlacement = false;
+
+    #endregion
+
+    #region Loudspeaker System (Issue #959)
+
+    /// <summary>
+    /// Whether the loudspeaker is equipped (active item selected in armory).
+    /// </summary>
+    private bool _loudspeakerEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript loudspeaker cone visual effect node.
+    /// </summary>
+    private Node2D? _loudspeakerConeEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript loudspeaker progress tracker.
+    /// </summary>
+    private Node? _loudspeakerProgress = null;
+
+    /// <summary>
+    /// Sprite shown in player's hands while loudspeaker is held after activation.
+    /// </summary>
+    private Sprite2D? _loudspeakerHandSprite = null;
+
+    /// <summary>
+    /// Timer controlling how long the loudspeaker sprite stays visible.
+    /// </summary>
+    private float _loudspeakerHoldTimer = 0.0f;
+
+    /// <summary>
+    /// Duration (seconds) the loudspeaker sprite is shown after activation.
+    /// </summary>
+    private const float LoudspeakerHoldDuration = 0.6f;
 
     #endregion
 
@@ -875,6 +938,22 @@ public partial class Player : BaseCharacter
 
             // Connect to health changed signal for visual feedback
             HealthComponent.HealthChanged += OnPlayerHealthChanged;
+
+            // Apply Armored Skin +1 HP bonus if selected (Issue #1045)
+            // Must be applied after InitializeHealth() so we add on top of the rolled value
+            var activeItemManagerForHp = GetNodeOrNull("/root/ActiveItemManager");
+            if (activeItemManagerForHp != null && activeItemManagerForHp.HasMethod("has_armored_skin"))
+            {
+                bool hasArmoredSkin = (bool)activeItemManagerForHp.Call("has_armored_skin");
+                if (hasArmoredSkin)
+                {
+                    float newMax = HealthComponent.MaxHealth + 1;
+                    float newCurrent = HealthComponent.CurrentHealth + 1;
+                    HealthComponent.MaxHealth = newMax;
+                    HealthComponent.SetHealth(newCurrent);
+                    LogToFile($"[Player.ArmoredSkin] +1 HP bonus applied, health now {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth}");
+                }
+            }
         }
 
         // Update visual based on initial health
@@ -1095,6 +1174,15 @@ public partial class Player : BaseCharacter
 
         // Initialize trajectory glasses if active item manager has them selected (Issue #744)
         InitTrajectoryGlasses();
+
+        // Initialize breaching charges if active item manager has them selected (Issue #1043)
+        InitBreachingCharges();
+
+        // Initialize armored skin if active item manager has it selected (Issue #1045)
+        InitArmoredSkin();
+
+        // Initialize loudspeaker if active item manager has it selected (Issue #959)
+        InitLoudspeaker();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1379,6 +1467,9 @@ public partial class Player : BaseCharacter
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
 
+        // Update homing progress bar auto-hide timer (Issue #974)
+        UpdateHomingBarTimer((float)delta);
+
         // Handle BFF pendant input (press Space to summon companion) (Issue #674)
         HandleBffPendantInput();
 
@@ -1390,6 +1481,15 @@ public partial class Player : BaseCharacter
 
         // Handle trajectory glasses input (press Space to activate) (Issue #744)
         HandleTrajectoryGlassesInput();
+
+        // Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
+        HandleBreachingChargesInput();
+
+        // Handle loudspeaker input (press Space to emit sound cone) (Issue #959)
+        HandleLoudspeakerInput((float)delta);
+
+        // Update trajectory glasses progress bar auto-hide timer (Issue #974)
+        UpdateTrajectoryBarTimer((float)delta);
     }
 
     /// <summary>
@@ -2400,6 +2500,30 @@ public partial class Player : BaseCharacter
 
         // Show hit flash effect
         ShowHitFlash();
+
+        // Armored Skin: spawn glass/crystal shards when at low HP (Issue #1045)
+        // One-time trigger: deactivate after spawning so it only fires once per life.
+        // The triggering projectile's damage is fully absorbed (return early).
+        if (_armoredSkinActive && HealthComponent.CurrentHealth <= 2)
+        {
+            _armoredSkinActive = false;
+            _armoredSkinImmune = true;
+            SpawnArmoredSkinShards();
+            // Start 0.1s immunity window to absorb remaining calls from multi-hit explosions.
+            // Explosion sources (GrenadeTimer, BreakerDetonation) call on_hit_with_info in a
+            // loop (up to 99 times) — all calls after the trigger must also be absorbed (Issue #1095).
+            GetTree().CreateTimer(0.1f).Timeout += () => _armoredSkinImmune = false;
+            // Absorb the triggering hit — no damage applied
+            return;
+        }
+
+        // Absorb damage while post-trigger immunity is active (Issue #1095).
+        // This covers the remaining loop iterations from multi-hit explosion damage.
+        if (_armoredSkinImmune)
+        {
+            LogToFile("[Player.ArmoredSkin] Damage absorbed by post-trigger immunity");
+            return;
+        }
 
         // Determine if this hit will be lethal before applying damage
         bool willBeFatal = HealthComponent.CurrentHealth <= amount;
@@ -4706,6 +4830,11 @@ public partial class Player : BaseCharacter
                 _homingActive = false;
                 _homingTimer = 0.0f;
                 StopHomingScanner();
+                // Show charge bar briefly after deactivation, then hide (Issue #974)
+                _homingBarVisible = false;
+                _homingChargeBarPending = true;
+                _homingChargeBarHideTimer = HomingChargeBarHideDelay;
+                QueueRedraw();
                 EmitSignal(SignalName.HomingDeactivated);
                 LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
             }
@@ -4721,6 +4850,10 @@ public partial class Player : BaseCharacter
                 _homingCharges--;
                 PlayHomingSound();
                 StartHomingScanner();
+                // Show combined progress bar (charge pips + timer) on activation (Issue #974)
+                _homingBarVisible = true;
+                _homingChargeBarPending = false;
+                QueueRedraw();
                 EmitSignal(SignalName.HomingActivated);
                 EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
                 LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
@@ -5320,6 +5453,22 @@ public partial class Player : BaseCharacter
     /// </summary>
     private Node? _trajectoryGlassesHud = null;
 
+    // Progress bar state for trajectory glasses (Issue #974)
+    /// <summary>Whether the trajectory glasses combined progress bar is visible.</summary>
+    private bool _trajectoryBarVisible = false;
+    /// <summary>Current charges remaining for trajectory glasses (cached for drawing).</summary>
+    private int _trajectoryBarCharges = 0;
+    /// <summary>Whether the trajectory charge bar should show briefly after deactivation.</summary>
+    private bool _trajectoryChargeBarPending = false;
+    /// <summary>Timer for auto-hiding trajectory charge bar after deactivation (300ms).</summary>
+    private float _trajectoryChargeBarHideTimer = 0.0f;
+    /// <summary>Duration to show charge bar after deactivation before auto-hiding.</summary>
+    private const float TrajectoryChargeBarHideDelay = 0.3f;
+    /// <summary>Effect duration for trajectory glasses (must match trajectory_glasses_effect.gd).</summary>
+    private const float TrajectoryGlassesDuration = 10.0f;
+    /// <summary>Max charges for trajectory glasses (must match trajectory_glasses_effect.gd).</summary>
+    private const int TrajectoryGlassesMaxCharges = 2;
+
     /// <summary>
     /// Initialize trajectory glasses if the ActiveItemManager has them selected (Issue #744).
     /// Loads and instantiates the GDScript trajectory_glasses_effect.gd controller.
@@ -5435,18 +5584,34 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Called when trajectory glasses activate.
+    /// Called when trajectory glasses activate (Issue #1049).
+    /// Shows charge pips via the HUD for 300ms, then auto-hides — no progress bar.
     /// </summary>
     private void OnTrajectoryActivated(int chargesRemaining)
     {
+        _trajectoryBarCharges = chargesRemaining;
+        // Show HUD charge pips briefly via the GDScript HUD node (Issue #1049)
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+        {
+            _trajectoryGlassesHud.Call("update_charges", chargesRemaining, TrajectoryGlassesMaxCharges);
+            _trajectoryGlassesHud.Call("set_active", true);
+        }
         QueueRedraw();
     }
 
     /// <summary>
-    /// Called when trajectory glasses deactivate.
+    /// Called when trajectory glasses deactivate (Issue #1049).
+    /// Hides the HUD immediately — no lingering charge bar.
     /// </summary>
     private void OnTrajectoryDeactivated(int chargesRemaining)
     {
+        _trajectoryBarCharges = chargesRemaining;
+        // Hide HUD immediately on deactivation (Issue #1049)
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+        {
+            _trajectoryGlassesHud.Call("update_charges", chargesRemaining, TrajectoryGlassesMaxCharges);
+            _trajectoryGlassesHud.Call("set_active", false);
+        }
         QueueRedraw();
     }
 
@@ -5764,6 +5929,506 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Breaching Charges Methods (Issue #1043)
+
+    /// <summary>
+    /// Initialize breaching charges if the ActiveItemManager has them selected (Issue #1043).
+    /// Loads and instantiates the GDScript breaching_charges_effect.gd controller.
+    /// </summary>
+    private void InitBreachingCharges()
+    {
+        LogToFile("[Player.BreachingCharges] Checking breaching charges...");
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BreachingCharges] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_breaching_charges"))
+        {
+            LogToFile("[Player.BreachingCharges] ActiveItemManager missing has_breaching_charges method");
+            return;
+        }
+
+        bool hasBreachingCharges = (bool)activeItemManager.Call("has_breaching_charges");
+        if (!hasBreachingCharges)
+        {
+            LogToFile("[Player.BreachingCharges] No breaching charges selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.BreachingCharges] Breaching charges selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/breaching_charges_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.BreachingCharges] WARNING: Failed to load breaching_charges_effect.gd");
+            return;
+        }
+
+        _breachingChargesEffect = new Node();
+        _breachingChargesEffect.SetScript(effectScript);
+        _breachingChargesEffect.Name = "BreachingChargesEffect";
+        AddChild(_breachingChargesEffect);
+
+        // Initialize with player reference
+        _breachingChargesEffect.Call("initialize", this);
+
+        _breachingChargesEquipped = true;
+        int charges = (int)_breachingChargesEffect.Call("get_charges");
+        LogToFile($"[Player.BreachingCharges] Breaching charges equipped, charges: {charges}");
+    }
+
+    /// <summary>
+    /// Handle breaching charges input:
+    /// - Hold Space near a wall and release → place a charge
+    /// - Press Space when a charge is placed → detonate
+    /// </summary>
+    private void HandleBreachingChargesInput()
+    {
+        if (!_breachingChargesEquipped || _breachingChargesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_breachingChargesEffect))
+        {
+            return;
+        }
+
+        // If a charge is placed, press Space to detonate
+        bool hasPlacedCharge = (bool)_breachingChargesEffect.Get("has_placed_charge");
+        if (hasPlacedCharge)
+        {
+            if (Input.IsActionJustPressed("flashlight_toggle"))
+            {
+                bool detonated = (bool)_breachingChargesEffect.Call("detonate");
+                if (detonated)
+                {
+                    LogToFile("[Player.BreachingCharges] Charge detonated");
+                }
+            }
+            return;
+        }
+
+        // No charge placed yet: hold Space near a wall, release to place
+        if (Input.IsActionJustReleased("flashlight_toggle") && _breachingHoldingForPlacement)
+        {
+            _breachingHoldingForPlacement = false;
+            // Notify effect: no longer holding (hides in-hand sprite)
+            _breachingChargesEffect.Call("set_holding_for_placement", false);
+            bool placed = (bool)_breachingChargesEffect.Call("try_place_charge");
+            if (placed)
+            {
+                LogToFile("[Player.BreachingCharges] Charge placed");
+            }
+        }
+        else if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            int charges = (int)_breachingChargesEffect.Call("get_charges");
+            if (charges > 0 && !_breachingHoldingForPlacement)
+            {
+                _breachingHoldingForPlacement = true;
+                // Notify effect: started holding (shows in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", true);
+            }
+        }
+        else if (Input.IsActionJustReleased("flashlight_toggle"))
+        {
+            if (_breachingHoldingForPlacement)
+            {
+                _breachingHoldingForPlacement = false;
+                // Notify effect: released without placing (hides in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", false);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Armored Skin System (Issue #1045)
+
+    /// <summary>
+    /// Whether armored skin is active (passive item, Issue #1045).
+    /// When true, 20 glass/crystal shards will be spawned when player is at ≤2 HP and hit.
+    /// </summary>
+    private bool _armoredSkinActive = false;
+
+    /// <summary>
+    /// Whether armored skin post-trigger immunity is active (Issue #1095).
+    /// Set to true when shards are spawned; cleared after 0.1 seconds.
+    /// Absorbs all subsequent damage calls from the same multi-hit explosion event
+    /// (e.g., GrenadeTimer calls on_hit_with_info 99 times in a loop — only the first
+    /// triggers shards, but all remaining calls must also be absorbed).
+    /// </summary>
+    private bool _armoredSkinImmune = false;
+
+    /// <summary>
+    /// Path to the ArmoredSkinShard scene.
+    /// </summary>
+    private const string ArmoredSkinShardScenePath = "res://scenes/projectiles/ArmoredSkinShard.tscn";
+
+    /// <summary>
+    /// Number of shards to spawn on trigger.
+    /// </summary>
+    private const int ArmoredSkinShardCount = 20;
+
+    /// <summary>
+    /// Initialize armored skin if the ActiveItemManager has it selected (Issue #1045).
+    /// Armored skin is a passive item — no special nodes needed,
+    /// just a flag that triggers shard spawning at low HP.
+    /// </summary>
+    private void InitArmoredSkin()
+    {
+        LogToFile("[Player.ArmoredSkin] Checking armored skin...");
+
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ArmoredSkin] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_armored_skin"))
+        {
+            LogToFile("[Player.ArmoredSkin] ActiveItemManager missing has_armored_skin method");
+            return;
+        }
+
+        bool hasArmoredSkin = (bool)activeItemManager.Call("has_armored_skin");
+        if (!hasArmoredSkin)
+        {
+            LogToFile("[Player.ArmoredSkin] No armored skin selected in ActiveItemManager");
+            return;
+        }
+
+        _armoredSkinActive = true;
+        LogToFile("[Player.ArmoredSkin] Armored skin active — shards will spawn when HP ≤2 and hit");
+    }
+
+    /// <summary>
+    /// Spawn 20 glass/crystal shards in all directions from the player position (Issue #1045).
+    /// Called when armored skin is active and player is at ≤2 HP while being hit.
+    /// </summary>
+    private void SpawnArmoredSkinShards()
+    {
+        if (!ResourceLoader.Exists(ArmoredSkinShardScenePath))
+        {
+            LogToFile($"[Player.ArmoredSkin] WARNING: Shard scene not found: {ArmoredSkinShardScenePath}");
+            return;
+        }
+
+        var shardScene = GD.Load<PackedScene>(ArmoredSkinShardScenePath);
+        if (shardScene == null)
+        {
+            LogToFile("[Player.ArmoredSkin] WARNING: Failed to load shard scene");
+            return;
+        }
+
+        var parent = GetParent();
+        if (parent == null)
+        {
+            return;
+        }
+
+        LogToFile($"[Player.ArmoredSkin] Spawning {ArmoredSkinShardCount} glass shards (HP: {HealthComponent?.CurrentHealth ?? 0})");
+
+        for (int i = 0; i < ArmoredSkinShardCount; i++)
+        {
+            var shard = shardScene.Instantiate<Node2D>();
+
+            // Set direction and source_id before add_child so _ready() uses the correct values
+            float baseAngle = ((float)i / ArmoredSkinShardCount) * Mathf.Tau;
+            float angleDeviation = (float)GD.RandRange(-Mathf.Pi / ArmoredSkinShardCount, Mathf.Pi / ArmoredSkinShardCount);
+            float angle = baseAngle + angleDeviation;
+            shard.Set("direction", new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)).Normalized());
+            shard.Set("source_id", GetInstanceId());
+
+            parent.AddChild(shard);
+            shard.GlobalPosition = GlobalPosition;
+        }
+    }
+
+    #endregion
+
+    #region Loudspeaker Methods (Issue #959)
+
+    /// <summary>
+    /// Initialize the loudspeaker if the ActiveItemManager has it selected (Issue #959).
+    /// Loads and instantiates the GDScript loudspeaker_progress and loudspeaker_cone_effect controllers.
+    /// </summary>
+    private void InitLoudspeaker()
+    {
+        LogToFile("[Player.Loudspeaker] Checking loudspeaker...");
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Loudspeaker] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_loudspeaker"))
+        {
+            LogToFile("[Player.Loudspeaker] ActiveItemManager missing has_loudspeaker method");
+            return;
+        }
+
+        bool hasLoudspeaker = (bool)activeItemManager.Call("has_loudspeaker");
+        if (!hasLoudspeaker)
+        {
+            LogToFile("[Player.Loudspeaker] No loudspeaker selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.Loudspeaker] Loudspeaker selected, initializing...");
+
+        // Load and instantiate the progress tracker
+        var progressScript = GD.Load<Script>("res://scripts/components/loudspeaker_progress.gd");
+        if (progressScript == null)
+        {
+            LogToFile("[Player.Loudspeaker] WARNING: Failed to load loudspeaker_progress.gd");
+            return;
+        }
+
+        _loudspeakerProgress = new Node();
+        _loudspeakerProgress.SetScript(progressScript);
+        _loudspeakerProgress.Name = "LoudspeakerProgress";
+        AddChild(_loudspeakerProgress);
+
+        // Load and instantiate the cone visual effect
+        var coneScript = GD.Load<Script>("res://scripts/effects/loudspeaker_cone_effect.gd");
+        if (coneScript == null)
+        {
+            LogToFile("[Player.Loudspeaker] WARNING: Failed to load loudspeaker_cone_effect.gd");
+            return;
+        }
+
+        _loudspeakerConeEffect = new Node2D();
+        _loudspeakerConeEffect.SetScript(coneScript);
+        _loudspeakerConeEffect.Name = "LoudspeakerConeEffect";
+        _loudspeakerConeEffect.ZIndex = 1;
+        AddChild(_loudspeakerConeEffect);
+        _loudspeakerConeEffect.Call("initialize", this);
+
+        _loudspeakerEquipped = true;
+
+        // Initialize charges for the current level (Issue #959)
+        _loudspeakerProgress.Call("reset_for_new_level");
+
+        // Create in-hand sprite shown during activation
+        const string LoudspeakerTexturePath = "res://assets/sprites/weapons/loudspeaker_icon.png";
+        if (ResourceLoader.Exists(LoudspeakerTexturePath))
+        {
+            _loudspeakerHandSprite = new Sprite2D();
+            _loudspeakerHandSprite.Texture = GD.Load<Texture2D>(LoudspeakerTexturePath);
+            _loudspeakerHandSprite.Name = "LoudspeakerHandSprite";
+            _loudspeakerHandSprite.Visible = false;
+            _loudspeakerHandSprite.Scale = new Vector2(0.6f, 0.6f);
+            _loudspeakerHandSprite.Position = new Vector2(10, 0);
+            _loudspeakerHandSprite.ZIndex = 2;
+
+            if (_weaponMount != null)
+                _weaponMount.AddChild(_loudspeakerHandSprite);
+            else
+                AddChild(_loudspeakerHandSprite);
+        }
+
+        int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
+        int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
+        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}");
+    }
+
+    /// <summary>
+    /// Handle loudspeaker input and hold-timer each frame (Issue #959).
+    /// Press Space to emit a sound cone that pacifies nearby enemies.
+    /// </summary>
+    private void HandleLoudspeakerInput(float delta)
+    {
+        if (!_loudspeakerEquipped || _loudspeakerProgress == null)
+            return;
+
+        // Update cooldown timer every frame
+        _loudspeakerProgress.Call("update", (double)delta);
+
+        // Update in-hand sprite hold timer
+        if (_loudspeakerHoldTimer > 0.0f)
+        {
+            _loudspeakerHoldTimer -= delta;
+            if (_loudspeakerHoldTimer <= 0.0f)
+            {
+                _loudspeakerHoldTimer = 0.0f;
+                // Restore weapon visibility and hide loudspeaker sprite
+                if (_weaponMount != null)
+                {
+                    foreach (Node child in _weaponMount.GetChildren())
+                    {
+                        if (child != _loudspeakerHandSprite && child is CanvasItem canvasItem)
+                            canvasItem.Visible = true;
+                    }
+                }
+                if (_loudspeakerHandSprite != null && IsInstanceValid(_loudspeakerHandSprite))
+                    _loudspeakerHandSprite.Visible = false;
+            }
+        }
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+            return;
+
+        bool canActivate = (bool)_loudspeakerProgress.Call("can_activate");
+        if (!canActivate)
+        {
+            LogToFile("[Player.Loudspeaker] Cannot activate: no charges or cooldown active");
+            return;
+        }
+
+        // Determine if this is the first use before consuming the charge
+        bool usedThisLevel = (bool)_loudspeakerProgress.Get("used_this_level");
+        bool isFirstUse = !usedThisLevel;
+
+        // Consume charge / start cooldown
+        _loudspeakerProgress.Call("use");
+
+        // Get aim direction (toward mouse cursor)
+        Vector2 aimDir = LoudspeakerGetAimDirection();
+
+        // Show loudspeaker in player's hands: hide weapon, show loudspeaker sprite
+        if (_loudspeakerHandSprite != null && IsInstanceValid(_loudspeakerHandSprite))
+        {
+            _loudspeakerHandSprite.Visible = true;
+            if (_weaponMount != null)
+            {
+                foreach (Node child in _weaponMount.GetChildren())
+                {
+                    if (child != _loudspeakerHandSprite && child is CanvasItem canvasItem)
+                        canvasItem.Visible = false;
+                }
+            }
+            _loudspeakerHoldTimer = LoudspeakerHoldDuration;
+        }
+
+        // Show the cone visual effect
+        if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
+            _loudspeakerConeEffect.Call("play", aimDir);
+
+        // Effect chance: first use is always 100%, subsequent uses depend on level
+        float effectChance = isFirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+
+        // Notify all enemies on the map that a loud sound was made
+        LoudspeakerAlertAllEnemies();
+
+        // Apply pacifism effect to enemies in the cone sector
+        float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
+        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
+
+        int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
+        int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
+        LogToFile($"[Player.Loudspeaker] Activated! Direction: {aimDir}, Effect chance: {effectChance * 100.0f:F0}%, Charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "∞")}");
+    }
+
+    /// <summary>
+    /// Returns the current aim direction (toward mouse cursor).
+    /// </summary>
+    private Vector2 LoudspeakerGetAimDirection()
+    {
+        var mousePos = GetGlobalMousePosition();
+        var diff = mousePos - GlobalPosition;
+        if (diff.Length() > 1.0f)
+            return diff.Normalized();
+        if (Velocity.Length() > 1.0f)
+            return Velocity.Normalized();
+        return Vector2.Right;
+    }
+
+    /// <summary>
+    /// Alert all enemies on the map that the loudspeaker was used (Issue #959).
+    /// Per spec: all enemies on the whole map hear the player when this item is used.
+    /// </summary>
+    private void LoudspeakerAlertAllEnemies()
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int alerted = 0;
+        foreach (var enemy in enemies)
+        {
+            if (enemy.HasMethod("alert_from_loudspeaker"))
+            {
+                enemy.Call("alert_from_loudspeaker", GlobalPosition);
+                alerted++;
+            }
+            else if (enemy.HasMethod("alert"))
+            {
+                enemy.Call("alert", GlobalPosition);
+                alerted++;
+            }
+        }
+        LogToFile($"[Player.Loudspeaker] Alerted {alerted} enemies");
+    }
+
+    /// <summary>
+    /// Apply the loudspeaker pacifism effect to enemies in the cone sector (Issue #959, Stage 5).
+    /// Rules: 50° half-angle cone, line-of-sight check, cover-within-500px exception,
+    /// only unattacked enemies, effect_chance roll, hostility_chance roll per enemy.
+    /// </summary>
+    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance)
+    {
+        const float ConeHalfAngle = 0.872664625997f; // 50 degrees in radians
+        const float CoverMaxDistance = 500.0f;
+        const int WallMask = 4; // Physics layer for walls
+
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int pacifiedCount = 0;
+        var spaceState = GetWorld2D().DirectSpaceState;
+
+        foreach (var enemy in enemies)
+        {
+            if (!enemy.HasMethod("apply_pacifism"))
+                continue;
+            if (!enemy.HasMethod("is_alive") || !(bool)enemy.Call("is_alive"))
+                continue;
+            if (enemy.HasMethod("is_pacifist") && (bool)enemy.Call("is_pacifist"))
+                continue; // Already pacifist
+            if (enemy.HasMethod("was_attacked_by_player") && (bool)enemy.Call("was_attacked_by_player"))
+                continue; // Only unattacked enemies can be pacified
+
+            var enemyNode2D = (Node2D)enemy;
+            var toEnemy = enemyNode2D.GlobalPosition - GlobalPosition;
+            float dist = toEnemy.Length();
+            if (dist < 0.1f)
+                continue;
+
+            // Check cone angle
+            float angleToEnemy = Math.Abs(direction.AngleTo(toEnemy.Normalized()));
+            if (angleToEnemy > ConeHalfAngle)
+                continue;
+
+            // Line-of-sight check (raycast to enemy)
+            var ray = PhysicsRayQueryParameters2D.Create(GlobalPosition, enemyNode2D.GlobalPosition, WallMask);
+            ray.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+            var result = spaceState.IntersectRay(ray);
+            bool behindWall = result.Count > 0;
+
+            // If behind a wall, skip — unless within 500px (cover rule)
+            if (behindWall && dist > CoverMaxDistance)
+                continue;
+
+            // Roll effect chance
+            if (GD.Randf() > effectChance)
+                continue;
+
+            // Apply pacifism
+            if ((bool)enemy.Call("apply_pacifism", hostilityChance))
+            {
+                pacifiedCount++;
+                LogToFile($"[Player.Loudspeaker] Pacified enemy at {enemyNode2D.GlobalPosition} (dist={dist:F0}, cover={behindWall})");
+            }
+        }
+
+        LogToFile($"[Player.Loudspeaker] Effect applied: {pacifiedCount}/{enemies.Count} enemies pacified");
+    }
+
+    #endregion
+
     #region Logging
 
     /// <summary>
@@ -5897,6 +6562,26 @@ public partial class Player : BaseCharacter
     /// </summary>
     public override void _Draw()
     {
+        // Draw homing bullets progress bar (Issue #974)
+        if (_homingBulletsEquipped)
+        {
+            if (_homingBarVisible)
+            {
+                // Show combined bar (charge pips + timer) while active
+                DrawHomingCombinedBar();
+            }
+            else if (_homingChargeBarPending)
+            {
+                // Show charge-only bar briefly after deactivation
+                DrawHomingChargeBar();
+            }
+        }
+
+        // Trajectory glasses progress bar removed (Issue #1049).
+        // Charge pips are shown by TrajectoryGlassesHUD for 300ms, then auto-hide.
+        // The trajectory ray blinks during the last 2 seconds as a low-time warning.
+
+
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
         if (_teleportAiming && _teleportBracersEquipped)
@@ -6099,6 +6784,278 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Draw combined charge pips + timer bar for homing bullets (Issue #974).
+    /// Layout: charge pips on top (showing remaining uses), timer bar below (depleting over activation).
+    /// </summary>
+    private void DrawHomingCombinedBar()
+    {
+        const float barWidth = 40.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+        const float pipHeight = 4.0f;
+        const float combinedGap = 2.0f;
+        const float timerBarHeight = 3.0f;
+
+        int chargeMax = MaxHomingCharges;
+        int chargeValue = _homingCharges;
+        float timerValue = _homingTimer;
+        float timerMax = HomingDuration;
+
+        if (chargeMax <= 0)
+            return;
+
+        float pipY = barYOffset;
+        float timerY = barYOffset + pipHeight + combinedGap;
+
+        // Draw charge pips
+        float totalGaps = segmentGap * (chargeMax - 1);
+        float pipWidth = (barWidth - totalGaps) / chargeMax;
+        if (pipWidth < 2.0f) pipWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float chargePercent = (float)chargeValue / chargeMax;
+        Color pipFillColor;
+        if (chargePercent > 0.5f)
+            pipFillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (chargePercent > 0.25f)
+            pipFillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            pipFillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+        Color timerFillColor = new Color(0.0f, 0.9f, 0.7f, 0.9f);
+
+        for (int i = 0; i < chargeMax; i++)
+        {
+            float segX = startX + i * (pipWidth + segmentGap);
+            Rect2 pipRect = new Rect2(segX, pipY, pipWidth, pipHeight);
+
+            DrawRect(pipRect, bgColor);
+            if (i < chargeValue)
+                DrawRect(pipRect, pipFillColor);
+            else
+                DrawRect(pipRect, emptyColor);
+            DrawRect(pipRect, borderColor, false, borderWidth);
+        }
+
+        // Draw timer bar below pips
+        Rect2 timerRect = new Rect2(-barWidth / 2.0f, timerY, barWidth, timerBarHeight);
+        DrawRect(timerRect, bgColor);
+        if (timerMax > 0.0f && timerValue > 0.0f)
+        {
+            float fillRatio = Mathf.Clamp(timerValue / timerMax, 0.0f, 1.0f);
+            Rect2 fillRect = new Rect2(-barWidth / 2.0f, timerY, barWidth * fillRatio, timerBarHeight);
+            DrawRect(fillRect, timerFillColor);
+        }
+        DrawRect(timerRect, borderColor, false, borderWidth);
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar for homing bullets (shown briefly after deactivation, Issue #974).
+    /// </summary>
+    private void DrawHomingChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxHomingCharges;
+        int filledCount = _homingCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Draw combined charge pips + timer bar for trajectory glasses (Issue #974).
+    /// Layout: charge pips on top (showing remaining uses), timer bar below (depleting over activation).
+    /// </summary>
+    private void DrawTrajectoryGlassesCombinedBar()
+    {
+        const float barWidth = 40.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+        const float pipHeight = 4.0f;
+        const float combinedGap = 2.0f;
+        const float timerBarHeight = 3.0f;
+
+        int chargeMax = TrajectoryGlassesMaxCharges;
+        int chargeValue = _trajectoryBarCharges;
+        float timerValue = 0.0f;
+        float timerMax = TrajectoryGlassesDuration;
+
+        // Get live timer from effect if available
+        if (_trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            timerValue = (float)_trajectoryGlassesEffect.Call("get_remaining_time");
+        }
+
+        if (chargeMax <= 0)
+            return;
+
+        float pipY = barYOffset;
+        float timerY = barYOffset + pipHeight + combinedGap;
+
+        float totalGaps = segmentGap * (chargeMax - 1);
+        float pipWidth = (barWidth - totalGaps) / chargeMax;
+        if (pipWidth < 2.0f) pipWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float chargePercent = (float)chargeValue / chargeMax;
+        Color pipFillColor;
+        if (chargePercent > 0.5f)
+            pipFillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (chargePercent > 0.25f)
+            pipFillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            pipFillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+        Color timerFillColor = new Color(0.0f, 0.9f, 0.7f, 0.9f);
+
+        for (int i = 0; i < chargeMax; i++)
+        {
+            float segX = startX + i * (pipWidth + segmentGap);
+            Rect2 pipRect = new Rect2(segX, pipY, pipWidth, pipHeight);
+
+            DrawRect(pipRect, bgColor);
+            if (i < chargeValue)
+                DrawRect(pipRect, pipFillColor);
+            else
+                DrawRect(pipRect, emptyColor);
+            DrawRect(pipRect, borderColor, false, borderWidth);
+        }
+
+        // Draw timer bar below pips
+        Rect2 timerRect = new Rect2(-barWidth / 2.0f, timerY, barWidth, timerBarHeight);
+        DrawRect(timerRect, bgColor);
+        if (timerMax > 0.0f && timerValue > 0.0f)
+        {
+            float fillRatio = Mathf.Clamp(timerValue / timerMax, 0.0f, 1.0f);
+            Rect2 fillRect = new Rect2(-barWidth / 2.0f, timerY, barWidth * fillRatio, timerBarHeight);
+            DrawRect(fillRect, timerFillColor);
+        }
+        DrawRect(timerRect, borderColor, false, borderWidth);
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar for trajectory glasses (shown briefly after deactivation, Issue #974).
+    /// </summary>
+    private void DrawTrajectoryGlassesChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = TrajectoryGlassesMaxCharges;
+        int filledCount = _trajectoryBarCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Update homing progress bar auto-hide timer (Issue #974).
+    /// Hides the charge bar 300ms after homing deactivation.
+    /// </summary>
+    private void UpdateHomingBarTimer(float delta)
+    {
+        if (_homingChargeBarPending)
+        {
+            _homingChargeBarHideTimer -= delta;
+            if (_homingChargeBarHideTimer <= 0.0f)
+            {
+                _homingChargeBarPending = false;
+                QueueRedraw();
+            }
+        }
+
+        // While homing is active, keep redrawing to update the timer bar
+        if (_homingBarVisible)
+        {
+            QueueRedraw();
+        }
+    }
+
+    /// <summary>
+    /// Update trajectory glasses progress bar auto-hide timer (Issue #974).
+    /// Hides the charge bar 300ms after trajectory deactivation.
+    /// </summary>
+    private void UpdateTrajectoryBarTimer(float delta)
+    {
+        // Trajectory glasses progress bar removed (Issue #1049).
+        // The HUD node (trajectory_glasses_hud.gd) handles its own 300ms auto-hide timer.
+        // No redraw loop needed here anymore.
+        _ = delta; // suppress unused-parameter warning
+    }
+
+    /// <summary>
     /// Draw the teleport targeting reticle with player silhouette at target position (Issue #672).
     /// Shows a dashed line from player to target and a player-shaped outline at the destination.
     /// </summary>
@@ -6265,6 +7222,13 @@ public partial class Player : BaseCharacter
 
         bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
         if (!isActive)
+        {
+            return;
+        }
+
+        // Skip drawing during the "off" phase of the blink cycle (Issue #1085).
+        bool rayVisible = (bool)_trajectoryGlassesEffect.Get("trajectory_ray_visible");
+        if (!rayVisible)
         {
             return;
         }

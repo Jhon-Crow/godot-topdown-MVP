@@ -40,6 +40,16 @@ const INVALID_RICOCHET_COLOR: Color = Color(1.0, 0.0, 0.0, 0.8)  # Bright red
 ## Maximum ricochet angle in degrees (same as bullet.gd DEFAULT_MAX_RICOCHET_ANGLE).
 const MAX_RICOCHET_ANGLE: float = 90.0
 
+## Continuous blink threshold in seconds — trajectory ray blinks continuously below this value (Issue #1085).
+const CONTINUOUS_BLINK_THRESHOLD: float = 4.0
+
+## Single-blink threshold — ray blinks once when remaining time first crosses this value (Issue #1085).
+## Equal to 25% of EFFECT_DURATION (10 s × 25% = 2.5 s).
+const SINGLE_BLINK_THRESHOLD: float = EFFECT_DURATION * 0.25
+
+## Flash frequency when time is low (Hz).
+const WARNING_FLASH_FREQUENCY: float = 3.0
+
 ## Activation sound path.
 const ACTIVATION_SOUND_PATH: String = "res://assets/audio/trajectory_glasses_activate.wav"
 
@@ -66,6 +76,23 @@ var _viewport_diagonal: float = 2203.0
 
 ## Audio player for activation sounds.
 var _audio_player: AudioStreamPlayer = null
+
+## Warning flash timer for the trajectory ray continuous blink phase (Issue #1085).
+var _warning_flash_timer: float = 0.0
+
+## Whether the continuous-blink phase has been logged this activation (Issue #1085).
+var _continuous_blink_logged: bool = false
+
+## Whether the single-blink at 25% has already been triggered this activation (Issue #1085).
+var _single_blink_triggered: bool = false
+
+## Single-blink phase timer — counts up during the one-shot flash (Issue #1085).
+## Negative/zero when the single blink is not in progress.
+var _single_blink_timer: float = 0.0
+
+## Whether the trajectory ray should be visible this frame (used for blinking, Issue #1085).
+## True when time is not low, or when in the "on" phase of the blink cycle.
+var trajectory_ray_visible: bool = true
 
 ## Trajectory points in LOCAL player coordinates (for player._draw()).
 ## Updated every frame when active.
@@ -172,6 +199,11 @@ func deactivate() -> void:
 
 	is_active = false
 	_effect_timer = 0.0
+	_warning_flash_timer = 0.0
+	_continuous_blink_logged = false
+	_single_blink_triggered = false
+	_single_blink_timer = 0.0
+	trajectory_ray_visible = true
 
 	# Clear trajectory points so player._draw() stops rendering
 	trajectory_local_points.clear()
@@ -205,6 +237,55 @@ func _process(delta: float) -> void:
 
 	# Update trajectory visualization every frame
 	_update_trajectory()
+
+	# Blink logic (Issue #1085).
+	# Timeline (10 s total):
+	#   10 s → 4 s  : ray solid (normal phase)
+	#    4 s → 0 s  : continuous blinking at WARNING_FLASH_FREQUENCY Hz
+	#   At 2.5 s    : single extra blink (ray off for half-period) injected into the
+	#                 continuous-blink stream as an additional one-shot flash.
+	#
+	# Because SINGLE_BLINK_THRESHOLD (2.5 s) < CONTINUOUS_BLINK_THRESHOLD (4 s),
+	# the single blink fires while continuous blinking is already active.
+	if _effect_timer <= CONTINUOUS_BLINK_THRESHOLD:
+		if not _continuous_blink_logged:
+			_continuous_blink_logged = true
+			FileLogger.info("[TrajectoryGlasses] Continuous blink phase started at %.2fs remaining (threshold=%.2fs, freq=%.1fHz)" % [
+				_effect_timer, CONTINUOUS_BLINK_THRESHOLD, WARNING_FLASH_FREQUENCY
+			])
+		# Trigger the one-shot single blink the first time we cross 25% (Issue #1085).
+		if _effect_timer <= SINGLE_BLINK_THRESHOLD and not _single_blink_triggered:
+			_single_blink_triggered = true
+			_single_blink_timer = 0.0
+			FileLogger.info("[TrajectoryGlasses] Single-blink triggered at %.2fs remaining (threshold=%.2fs)" % [
+				_effect_timer, SINGLE_BLINK_THRESHOLD
+			])
+
+		# During the single-blink window, override with a clean off→on half-period.
+		var single_blink_period := 1.0 / WARNING_FLASH_FREQUENCY
+		var prev_visible := trajectory_ray_visible
+		if _single_blink_triggered and _single_blink_timer < single_blink_period:
+			_single_blink_timer += delta
+			if _single_blink_timer < single_blink_period * 0.5:
+				trajectory_ray_visible = false  # ray off
+			else:
+				trajectory_ray_visible = true   # ray back on
+		else:
+			# Continuous blink: toggle at WARNING_FLASH_FREQUENCY Hz.
+			_warning_flash_timer += delta
+			var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
+			trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
+		if trajectory_ray_visible != prev_visible:
+			FileLogger.info("[TrajectoryGlasses] Blink state changed: ray_visible=%s at %.2fs remaining" % [
+				str(trajectory_ray_visible), _effect_timer
+			])
+	else:
+		# Normal phase: ray always visible, reset timers.
+		_warning_flash_timer = 0.0
+		_continuous_blink_logged = false
+		_single_blink_triggered = false
+		_single_blink_timer = 0.0
+		trajectory_ray_visible = true
 
 	# Request player redraw so _draw() picks up new trajectory points
 	if _player and is_instance_valid(_player):

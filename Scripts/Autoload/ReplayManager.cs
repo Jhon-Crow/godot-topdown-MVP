@@ -2966,6 +2966,7 @@ namespace GodotTopDownTemplate.Autoload
                 hitEffects.Call("on_player_hit_enemy");
                 LogToFile("Replay effect triggered: HitEffects.on_player_hit_enemy");
             }
+
         }
 
         /// <summary>

@@ -17,6 +17,9 @@ enum ActiveItemType {
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
+	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
+	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
 	COMBAT_DISPOSITION # Combat Disposition - passive: +0.7 damage and +1 fire rate on start; on hit: -1.5 damage and -1.8 fire rate (Issue #1047)
 }
 
@@ -26,20 +29,24 @@ var current_active_item: int = ActiveItemType.NONE
 
 ## Unlocked active items tracking.
 ## NONE is always unlocked (it's not a real item).
-## FLASHLIGHT (Polygon D+) and TELEPORT_BRACERS (Castle F+) have unlock conditions (Issue #894).
-## All other active items are freely available from the start.
-## Issue #894: "all unspecified items can be opened from the start"
+## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
+## INVISIBILITY_SUIT (Beach S + Building S), and HOMING_BULLETS
+## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S)
+## have unlock conditions (Issue #894, Issue #1000).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
-	ActiveItemType.HOMING_BULLETS: true,       # No unlock condition — freely available from start
-	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Castle F+
+	ActiveItemType.HOMING_BULLETS: false,      # Condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000 req.8)
+	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Double Corridor D+ (Issue #1000 req.3)
 	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
-	ActiveItemType.INVISIBILITY_SUIT: true,    # No unlock condition — freely available from start
+	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
 	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
+	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
+	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
 	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
 }
 
@@ -100,6 +107,23 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Laser Sight",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+	},
+	ActiveItemType.LOUDSPEAKER: {
+		"name": "Loudspeaker",
+		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
+		"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.BREACHING_CHARGES: {
+		"name": "Breaching Charges",
+		"icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
+		"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate: blasts open a passage in the wall. 2 charges per battle. Enemies on the other side are stunned and blinded for 3 seconds.",
+		"activation_hint": "Hold Space near wall to place, press Space to detonate"
+	},
+	ActiveItemType.ARMORED_SKIN: {
+		"name": "Armored Skin",
+		"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
+		"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
 	},
 	ActiveItemType.COMBAT_DISPOSITION: {
 		"name": "Combat Disposition",
@@ -234,6 +258,21 @@ func has_trajectory_glasses() -> bool:
 ## Check if laser sight is currently equipped (Issue #947).
 func has_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if loudspeaker is currently equipped (Issue #959).
+func has_loudspeaker() -> bool:
+	return current_active_item == ActiveItemType.LOUDSPEAKER
+
+
+## Check if breaching charges are currently equipped (Issue #1043).
+func has_breaching_charges() -> bool:
+	return current_active_item == ActiveItemType.BREACHING_CHARGES
+
+
+## Check if armored skin is currently equipped (Issue #1045).
+func has_armored_skin() -> bool:
+	return current_active_item == ActiveItemType.ARMORED_SKIN
 
 
 ## Check if combat disposition is currently equipped (Issue #1047).

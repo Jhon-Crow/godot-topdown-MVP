@@ -121,7 +121,10 @@ class MockActiveItemManager:
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
 		LASER_SIGHT = 9,
-		COMBAT_DISPOSITION = 10
+		LOUDSPEAKER = 10,
+		BREACHING_CHARGES = 11,
+		ARMORED_SKIN = 12,
+		COMBAT_DISPOSITION = 13
 	}
 
 	## Currently selected active item type
@@ -180,6 +183,21 @@ class MockActiveItemManager:
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
 		},
 		10: {
+			"name": "Loudspeaker",
+			"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
+			"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle."
+		},
+		11: {
+			"name": "Breaching Charges",
+			"icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
+			"description": "Breaching charges — place on a wall to create a passage."
+		},
+		12: {
+			"name": "Armored Skin",
+			"icon_path": "res://assets/sprites/weapons/armored_skin_icon.png",
+			"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."
+		},
+		13: {
 			"name": "Combat Disposition",
 			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
 			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 1.5 and fire rate by 1.8."
@@ -271,6 +289,10 @@ class MockActiveItemManager:
 	## Check if laser sight is currently equipped
 	func has_laser_sight() -> bool:
 		return current_active_item == ActiveItemType.LASER_SIGHT
+
+	## Check if armored skin is currently equipped (Issue #1045)
+	func has_armored_skin() -> bool:
+		return current_active_item == ActiveItemType.ARMORED_SKIN
 
 	## Check if combat disposition is currently equipped
 	func has_combat_disposition() -> bool:
@@ -426,8 +448,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 11,
-		"Should return 11 active item types (NONE + 10 items including Combat Disposition)")
+	assert_eq(types.size(), 14,
+		"Should return 14 active item types (NONE + 13 items including Combat Disposition)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -438,7 +460,9 @@ func test_get_all_active_item_types() -> void:
 	assert_true(7 in types)
 	assert_true(8 in types)
 	assert_true(9 in types)
-	assert_true(10 in types)
+	assert_true(10 in types)  # LOUDSPEAKER (Issue #959)
+	assert_true(11 in types)  # BREACHING_CHARGES (Issue #1043)
+	assert_true(12 in types)  # ARMORED_SKIN (Issue #1045)
 
 
 func test_get_active_item_name_none() -> void:
@@ -637,7 +661,10 @@ class MockArmoryWithActiveItems:
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
-		10: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
+		10: {"name": "Loudspeaker", "description": "Loudspeaker — press Space to emit sound cone"},
+		11: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
+		12: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
+		13: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Applied active item type
@@ -964,13 +991,24 @@ func test_armory_select_trajectory_glasses() -> void:
 
 func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void:
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
-	# Its effect is now part of Trajectory Glasses.
-	# Index 10 is now occupied by COMBAT_DISPOSITION (Issue #1047), not Ricochet Points.
+	# Its effect is now part of Trajectory Glasses. Index 10 is now LOUDSPEAKER (Issue #959).
+	# Index 11 is BREACHING_CHARGES (Issue #1043). Index 12 is ARMORED_SKIN (Issue #1045).
+	# Index 13 is COMBAT_DISPOSITION (Issue #1047).
 	var data := manager.get_active_item_data(10)
 	assert_false(data.is_empty(),
-		"Index 10 should now be Combat Disposition (Issue #1047), not empty — RICOCHET_POINTS was removed (Issue #1028)")
-	assert_eq(data.get("name", ""), "Combat Disposition",
-		"Item at index 10 should be Combat Disposition (Issue #1047)")
+		"Index 10 should be LOUDSPEAKER — RICOCHET_POINTS was removed (Issue #1028), LOUDSPEAKER added (Issue #959)")
+	assert_eq(data.get("name", ""), "Loudspeaker",
+		"Item at index 10 should be Loudspeaker (Issue #959)")
+	var armored_data := manager.get_active_item_data(12)
+	assert_false(armored_data.is_empty(),
+		"Index 12 is now ARMORED_SKIN (Issue #1045), not RICOCHET_POINTS")
+	assert_ne(armored_data.get("name", ""), "Ricochet Points",
+		"RICOCHET_POINTS should not exist — removed in Issue #1028")
+	var combat_data := manager.get_active_item_data(13)
+	assert_false(combat_data.is_empty(),
+		"Index 13 should now be Combat Disposition (Issue #1047)")
+	assert_eq(combat_data.get("name", ""), "Combat Disposition",
+		"Item at index 13 should be Combat Disposition (Issue #1047)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
