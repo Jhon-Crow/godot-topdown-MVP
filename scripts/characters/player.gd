@@ -3901,8 +3901,11 @@ func _init_loudspeaker() -> void:
 
 	FileLogger.info("[Player.Loudspeaker] Loudspeaker selected, initializing...")
 
-	# Create loudspeaker progress tracker
-	_loudspeaker_progress = LoudspeakerProgress.new()
+	# Reuse the persistent progress tracker from ActiveItemManager (Issue #959).
+	# Do NOT create a new one here — that would reset all progression on every scene load.
+	_loudspeaker_progress = active_item_manager.loudspeaker_progress
+	# Reset only the per-battle state (charges / cooldown / used_this_level).
+	_loudspeaker_progress.reset_for_new_level()
 
 	# Create the cone visual effect node
 	_loudspeaker_cone = LoudspeakerConeEffectScript.new()
@@ -3929,9 +3932,11 @@ func _init_loudspeaker() -> void:
 			add_child(_loudspeaker_hand_sprite)
 
 	var max_charges := _loudspeaker_progress.get_max_charges()
-	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, charges: %s" % (
-		str(max_charges) if max_charges != -1 else "unlimited"
-	))
+	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, level: %d, charges: %s, effect: %.0f%%" % [
+		_loudspeaker_progress.current_level,
+		str(max_charges) + "/" + str(max_charges) if max_charges != -1 else "unlimited",
+		_loudspeaker_progress.get_effect_chance() * 100.0
+	])
 
 
 ## Handle loudspeaker input: press Space to emit sound cone (Issue #959).

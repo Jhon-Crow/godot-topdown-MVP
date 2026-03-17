@@ -631,6 +631,10 @@ func _complete_level_with_score() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
+		# Notify loudspeaker progression (Issue #959)
+		var aim: Node = get_node_or_null("/root/ActiveItemManager")
+		if aim and aim.has_method("notify_level_completed"):
+			aim.notify_level_completed(score_data.get("kills", 0) > 0)
 		_show_score_screen(score_data)
 	else:
 		_show_victory_message()
