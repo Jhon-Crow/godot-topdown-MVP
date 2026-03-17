@@ -6444,6 +6444,13 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Skip drawing during the "off" phase of the blink cycle (Issue #1085).
+        bool rayVisible = (bool)_trajectoryGlassesEffect.Get("trajectory_ray_visible");
+        if (!rayVisible)
+        {
+            return;
+        }
+
         // Read trajectory points (in local player coordinates) from the GDScript effect
         var pointsVariant = _trajectoryGlassesEffect.Get("trajectory_local_points");
         if (pointsVariant.VariantType == Variant.Type.Nil)

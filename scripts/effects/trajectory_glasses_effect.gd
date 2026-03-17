@@ -80,6 +80,9 @@ var _audio_player: AudioStreamPlayer = null
 ## Warning flash timer for the trajectory ray continuous blink phase (Issue #1085).
 var _warning_flash_timer: float = 0.0
 
+## Whether the continuous-blink phase has been logged this activation (Issue #1085).
+var _continuous_blink_logged: bool = false
+
 ## Whether the single-blink at 25% has already been triggered this activation (Issue #1085).
 var _single_blink_triggered: bool = false
 
@@ -197,6 +200,7 @@ func deactivate() -> void:
 	is_active = false
 	_effect_timer = 0.0
 	_warning_flash_timer = 0.0
+	_continuous_blink_logged = false
 	_single_blink_triggered = false
 	_single_blink_timer = 0.0
 	trajectory_ray_visible = true
@@ -244,13 +248,22 @@ func _process(delta: float) -> void:
 	# Because SINGLE_BLINK_THRESHOLD (2.5 s) < CONTINUOUS_BLINK_THRESHOLD (4 s),
 	# the single blink fires while continuous blinking is already active.
 	if _effect_timer <= CONTINUOUS_BLINK_THRESHOLD:
+		if not _continuous_blink_logged:
+			_continuous_blink_logged = true
+			FileLogger.info("[TrajectoryGlasses] Continuous blink phase started at %.2fs remaining (threshold=%.2fs, freq=%.1fHz)" % [
+				_effect_timer, CONTINUOUS_BLINK_THRESHOLD, WARNING_FLASH_FREQUENCY
+			])
 		# Trigger the one-shot single blink the first time we cross 25% (Issue #1085).
 		if _effect_timer <= SINGLE_BLINK_THRESHOLD and not _single_blink_triggered:
 			_single_blink_triggered = true
 			_single_blink_timer = 0.0
+			FileLogger.info("[TrajectoryGlasses] Single-blink triggered at %.2fs remaining (threshold=%.2fs)" % [
+				_effect_timer, SINGLE_BLINK_THRESHOLD
+			])
 
 		# During the single-blink window, override with a clean off→on half-period.
 		var single_blink_period := 1.0 / WARNING_FLASH_FREQUENCY
+		var prev_visible := trajectory_ray_visible
 		if _single_blink_triggered and _single_blink_timer < single_blink_period:
 			_single_blink_timer += delta
 			if _single_blink_timer < single_blink_period * 0.5:
@@ -262,9 +275,14 @@ func _process(delta: float) -> void:
 			_warning_flash_timer += delta
 			var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
 			trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
+		if trajectory_ray_visible != prev_visible:
+			FileLogger.info("[TrajectoryGlasses] Blink state changed: ray_visible=%s at %.2fs remaining" % [
+				str(trajectory_ray_visible), _effect_timer
+			])
 	else:
 		# Normal phase: ray always visible, reset timers.
 		_warning_flash_timer = 0.0
+		_continuous_blink_logged = false
 		_single_blink_triggered = false
 		_single_blink_timer = 0.0
 		trajectory_ray_visible = true

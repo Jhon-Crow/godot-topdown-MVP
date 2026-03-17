@@ -45,6 +45,9 @@ class MockTrajectoryGlassesEffect:
 	## Continuous-blink flash timer (Issue #1085).
 	var _warning_flash_timer: float = 0.0
 
+	## Whether the continuous-blink phase has been logged this activation (Issue #1085).
+	var _continuous_blink_logged: bool = false
+
 	## Whether the single-blink at 25% has been triggered this activation (Issue #1085).
 	var _single_blink_triggered: bool = false
 
@@ -80,6 +83,7 @@ class MockTrajectoryGlassesEffect:
 		is_active = false
 		_effect_timer = 0.0
 		_warning_flash_timer = 0.0
+		_continuous_blink_logged = false
 		_single_blink_triggered = false
 		_single_blink_timer = 0.0
 		trajectory_ray_visible = true
@@ -113,6 +117,7 @@ class MockTrajectoryGlassesEffect:
 		else:
 			# Normal phase
 			_warning_flash_timer = 0.0
+			_continuous_blink_logged = false
 			_single_blink_triggered = false
 			_single_blink_timer = 0.0
 			trajectory_ray_visible = true
