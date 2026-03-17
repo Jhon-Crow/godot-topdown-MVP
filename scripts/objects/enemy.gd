@@ -3899,14 +3899,23 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
 	# Issue #583: use preload() so RpgRocket.tscn is always available in exported builds.
 	# load() fails silently in exports if the path isn't included; preload() guarantees inclusion.
+	# IMPORTANT: do NOT call has_method() before add_child() — in Godot 4 exported builds,
+	# GDScript methods are not discoverable via has_method() on nodes that haven't entered the
+	# scene tree yet. Always add_child() first, then call methods.
 	var rpg_scene: PackedScene = preload("res://scenes/projectiles/RpgRocket.tscn")
 	var rocket: Node2D = rpg_scene.instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket.tscn did not instantiate as Node2D!"); return
-	if not rocket.has_method("launch"): _log_to_file("[RPG] ERROR: rocket has no launch() method! (script not attached?)"); rocket.queue_free(); return
 	rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
-	rocket.call("launch", dir)  # Issue #583: call AFTER add_child so _ready() has run; use call() for export safety
-	_log_to_file("[RPG] Rocket spawned at %s dir=%s" % [str(pos), str(dir)])
+	# call launch() AFTER add_child so _ready() has run and the script is fully initialized.
+	if rocket.has_method("launch"):
+		rocket.call("launch", dir)
+		_log_to_file("[RPG] Rocket spawned at %s dir=%s" % [str(pos), str(dir)])
+	else:
+		_log_to_file("[RPG] ERROR: rocket still has no launch() method after add_child! Godot version issue?")
+		rocket.set("direction", dir)  # fallback: set direction directly
+		rocket.set("_launched", true)  # set _launched flag directly so _physics_process runs
+		_log_to_file("[RPG] Rocket fallback: direction set directly at %s dir=%s" % [str(pos), str(dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
