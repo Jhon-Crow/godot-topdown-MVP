@@ -28,7 +28,8 @@ class MockActiveItemManager:
 		BREACHING_CHARGES = 11,
 		ARMORED_SKIN = 12,
 		AUTO_RELOAD = 13,
-		RECOIL_COMPENSATOR = 14
+		DRILLING_BULLETS = 14,
+		RECOIL_COMPENSATOR = 15
 	}
 
 	var current_active_item: int = ActiveItemType.NONE
@@ -69,7 +70,9 @@ class MockActiveItemManager:
 			"description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward in all directions."},
 		13: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
 			"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
-		14: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
+		14: {"name": "Drilling Bullets", "icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
+			"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle."},
+		15: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
 			"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
 			"activation_hint": "Hold Space to activate"}
 	}
@@ -133,15 +136,15 @@ func after_each() -> void:
 # ============================================================================
 
 
-func test_recoil_compensator_type_value_is_14() -> void:
-	assert_eq(MockActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR, 14,
-		"RECOIL_COMPENSATOR should be active item type 14 (Issue #1073)")
+func test_recoil_compensator_type_value_is_15() -> void:
+	assert_eq(MockActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR, 15,
+		"RECOIL_COMPENSATOR should be active item type 15 (after DRILLING_BULLETS=14) (Issue #1073)")
 
 
 func test_recoil_compensator_type_is_distinct_from_laser_sight() -> void:
 	assert_ne(MockActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR,
 		MockActiveItemManager.ActiveItemType.LASER_SIGHT,
-		"RECOIL_COMPENSATOR (14) must differ from LASER_SIGHT (9)")
+		"RECOIL_COMPENSATOR (15) must differ from LASER_SIGHT (9)")
 
 
 # ============================================================================
