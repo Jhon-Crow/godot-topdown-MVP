@@ -498,10 +498,9 @@ func _configure_weapon_type() -> void:
 	_pellet_count_max = c.get("pellet_count_max", 1)
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
-	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
-	_is_rpg_weapon = c.get("is_rpg", false)  # Issue #583: RPG flag
-	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033: machine gun belt override
-	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033: machine gun long reload override
+	_is_melee_weapon = c.get("is_melee", false); _is_rpg_weapon = c.get("is_rpg", false)  # Issue #579 #583
+	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033
+	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -2567,8 +2566,7 @@ func _transition_to_combat() -> void:
 	_combat_shoot_timer = 0.0; _combat_approach_timer = 0.0; _combat_state_timer = 0.0
 	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
 	_witnessed_ally_death = false; _suspected_directions.clear()  # Issue #409
-	_pursuing_vulnerability_sound = false
-	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583: RPG fires immediately on first sight
+	_pursuing_vulnerability_sound = false; if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
@@ -3863,31 +3861,22 @@ func _shoot() -> void:
 
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
-	# Calculate bullet spawn position at weapon muzzle first
-	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
 	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	# Bullets fly in barrel direction, only shoot when properly aimed (issue #254, #344)
 	var aim_dot := weapon_forward.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
 		return
-
-	var direction := weapon_forward  # Barrel direction for realistic behavior
-	# Fire projectiles and spawn casing
-	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583: bypass pool, directly spawn rocket
+	var direction := weapon_forward
+	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
 	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
-	_spawn_muzzle_flash(bullet_spawn_pos, direction)  # Issue #455: Add muzzle flash effect
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
-	# Play sound
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
@@ -3921,15 +3910,15 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	elif p.get("shooter_position") != null: p.shooter_position = pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
 
-## Fire RPG rocket (Issue #583). Analogous to VOGGrenade: RigidBody2D + linear_velocity (export-safe).
+## Fire RPG rocket (Issue #583). RigidBody2D + linear_velocity after add_child (VOGGrenade pattern).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
 	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
 	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
-	rocket.set("linear_velocity", rocket_dir * (rocket.get("speed") if rocket.get("speed") != null else 800.0))  # after add_child like VOGGrenade
-	_log_to_file("[RPG] Rocket launched at %s dir=%s vel=%s" % [str(pos), str(rocket_dir), str(rocket.get("linear_velocity"))])
+	rocket.set("linear_velocity", rocket_dir * (rocket.get("speed") if rocket.get("speed") != null else 800.0))
+	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
