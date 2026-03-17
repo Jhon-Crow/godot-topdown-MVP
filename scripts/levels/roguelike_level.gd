@@ -1,97 +1,102 @@
 extends Node2D
-## Roguelike level with procedural generation.
+## Roguelike level with procedural generation using existing level scenes as rooms.
 ##
 ## Issue #1061: добавить режим рогалика
 ##
+## Each run randomly selects 3–5 existing level scenes and stitches them together
+## side-by-side with wide connecting corridors, giving the player proper rooms with
+## full geometry, cover, and exits rather than tiny procedurally generated boxes.
+##
 ## Features:
-## - Procedurally generated room layout each run (scatter-and-reject algorithm)
-## - Random enemy placement with weighted weapon type selection
-## - Random enemy health and behavior (GUARD/PATROL)
-## - L-shaped corridor connections between rooms
+## - Uses real existing level scenes (Labyrinth, Building, Castle, City, Beach, Docks) as rooms
+## - Rooms are arranged left-to-right with wide corridors between them
+## - Enemies come from the level scenes themselves — random per run
+## - Player starts in the first (leftmost) room, exit zone appears in the last room
 ## - Full HUD (enemy count, ammo, kills, accuracy, combo) matching other levels
 ## - Score tracking with rank system (ScoreManager / ProgressManager)
-## - Level re-generates with new seed on every restart
+## - Q key restarts with a new random room selection
+
 
 ## ============================================================
-## Level generation constants
+## Room (existing level scene) pool — scenes that can appear as roguelike rooms
 ## ============================================================
 
-## Map dimensions (3× viewport: 1280×720).
-const MAP_WIDTH: float = 3840.0
-const MAP_HEIGHT: float = 2160.0
+## All candidate level scenes.  Each has a scene path and the approximate bounding
+## box of its walkable area (used to compute the room's footprint for layout).
+const ROOM_POOL: Array[Dictionary] = [
+	{
+		"path": "res://scenes/levels/LabyrinthLevel.tscn",
+		"size": Vector2(1920, 1080),
+		"player_spawn": Vector2(100, 540),
+		"exit_spawn": Vector2(1800, 540)
+	},
+	{
+		"path": "res://scenes/levels/BuildingLevel.tscn",
+		"size": Vector2(2400, 2000),
+		"player_spawn": Vector2(200, 1000),
+		"exit_spawn": Vector2(2200, 1000)
+	},
+	{
+		"path": "res://scenes/levels/CastleLevel.tscn",
+		"size": Vector2(6000, 2560),
+		"player_spawn": Vector2(300, 1280),
+		"exit_spawn": Vector2(5700, 1280)
+	},
+	{
+		"path": "res://scenes/levels/CityLevel.tscn",
+		"size": Vector2(6000, 5000),
+		"player_spawn": Vector2(300, 2500),
+		"exit_spawn": Vector2(5700, 2500)
+	},
+	{
+		"path": "res://scenes/levels/BeachLevel.tscn",
+		"size": Vector2(2400, 2000),
+		"player_spawn": Vector2(200, 1000),
+		"exit_spawn": Vector2(2200, 1000)
+	},
+	{
+		"path": "res://scenes/levels/DocksLevel.tscn",
+		"size": Vector2(5000, 4000),
+		"player_spawn": Vector2(300, 2000),
+		"exit_spawn": Vector2(4700, 2000)
+	},
+	{
+		"path": "res://scenes/levels/RevolverLevel.tscn",
+		"size": Vector2(2000, 1600),
+		"player_spawn": Vector2(200, 800),
+		"exit_spawn": Vector2(1800, 800)
+	},
+]
 
-## Wall thickness in pixels.
-const WALL_THICKNESS: float = 24.0
+## Number of rooms to pick per run.
+const MIN_ROOMS: int = 3
+const MAX_ROOMS: int = 5
 
-## Margin inset from map border for room placement.
-const MAP_MARGIN: float = 80.0
+## Horizontal gap between rooms (corridor width in pixels).
+const CORRIDOR_GAP: float = 300.0
 
-## Room size bounds.
-const MIN_ROOM_W: float = 180.0
-const MAX_ROOM_W: float = 400.0
-const MIN_ROOM_H: float = 150.0
-const MAX_ROOM_H: float = 320.0
+## Corridor height (vertical opening between rooms).
+const CORRIDOR_HEIGHT: float = 200.0
 
-## Corridor width.
-const CORRIDOR_W: float = 80.0
-
-## Room generation parameters.
-const MIN_ROOMS: int = 6
-const MAX_ROOMS: int = 10
-const MAX_PLACE_ATTEMPTS: int = 200
-
-## Padding between rooms (prevents walls from touching/overlapping).
-const ROOM_PADDING: float = 40.0
+## Wall/corridor color constants (matching other levels).
+const WALL_COLOR: Color = Color(0.3, 0.3, 0.35, 1.0)
+const FLOOR_COLOR: Color = Color(0.18, 0.18, 0.22, 1.0)
+const BG_COLOR: Color = Color(0.05, 0.05, 0.07, 1.0)
 
 ## Saturation effect constants (matching other levels).
 const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 
-## Wall color.
-const WALL_COLOR: Color = Color(0.3, 0.3, 0.35, 1.0)
-
-## Room floor color.
-const FLOOR_COLOR: Color = Color(0.18, 0.18, 0.22, 1.0)
-
-## Background color (outside all rooms).
-const BG_COLOR: Color = Color(0.05, 0.05, 0.07, 1.0)
-
-## ============================================================
-## Enemy configuration
-## ============================================================
-
-## Enemies per room: [min, max] (skip player spawn room and exit room).
-const ENEMIES_PER_ROOM_MIN: int = 1
-const ENEMIES_PER_ROOM_MAX: int = 3
-
-## Weighted weapon type spawn table: {type, weight}.
-## Type: 0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE (matches WeaponType enum in enemy.gd).
-const WEAPON_WEIGHTS: Array[Dictionary] = [
-	{"type": 0, "weight": 35},   # RIFLE
-	{"type": 1, "weight": 25},   # SHOTGUN
-	{"type": 2, "weight": 20},   # UZI
-	{"type": 3, "weight": 20},   # MACHETE
-]
-
-## Enemy health range.
-const ENEMY_MIN_HEALTH: int = 1
-const ENEMY_MAX_HEALTH: int = 3
-
-## Probability of PATROL vs GUARD behavior (0.0–1.0 for patrol).
-const PATROL_PROBABILITY: float = 0.4
 
 ## ============================================================
 ## Runtime state
 ## ============================================================
 
-## Generated rooms as Array[Rect2] — all in world space.
-var _rooms: Array[Rect2] = []
+## Selected room descriptors (Dictionary from ROOM_POOL) in order.
+var _selected_rooms: Array[Dictionary] = []
 
-## Index of the player spawn room (always rooms[0]).
-var _spawn_room_index: int = 0
-
-## Index of the exit room (farthest room from spawn).
-var _exit_room_index: int = 0
+## World-space X offset for each room (rooms laid out left-to-right).
+var _room_offsets: Array[float] = []
 
 ## Reference to player node.
 var _player: Node2D = null
@@ -133,7 +138,9 @@ func _ready() -> void:
 	seed(seed_used)
 	print("[RoguelikeLevel] Generating level with seed: %d" % seed_used)
 
-	_generate_level()
+	_select_rooms()
+	_build_level()
+	_spawn_player()
 	_setup_navigation()
 	_setup_player_tracking()
 	_setup_enemy_tracking()
@@ -148,7 +155,7 @@ func _ready() -> void:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
-	print("[RoguelikeLevel] Level ready — %d rooms, %d enemies" % [_rooms.size(), _initial_enemy_count])
+	print("[RoguelikeLevel] Level ready — %d rooms, %d enemies" % [_selected_rooms.size(), _initial_enemy_count])
 
 
 func _process(_delta: float) -> void:
@@ -158,236 +165,199 @@ func _process(_delta: float) -> void:
 
 
 ## ============================================================
-## Level generation
+## Room selection and level construction
 ## ============================================================
 
-## Main generation entry point.
-func _generate_level() -> void:
-	_rooms.clear()
+## Pick a random subset of rooms from the pool (no duplicates).
+func _select_rooms() -> void:
+	_selected_rooms.clear()
+	var pool: Array[Dictionary] = ROOM_POOL.duplicate()
 
-	# Build the scene tree containers
-	var environment := Node2D.new()
-	environment.name = "Environment"
-	add_child(environment)
+	# Shuffle the pool
+	for i in range(pool.size() - 1, 0, -1):
+		var j: int = randi_range(0, i)
+		var tmp: Dictionary = pool[i]
+		pool[i] = pool[j]
+		pool[j] = tmp
 
-	# Full background (dark, covers the whole map)
+	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
+	count = min(count, pool.size())
+	for i in range(count):
+		_selected_rooms.append(pool[i])
+
+	print("[RoguelikeLevel] Selected rooms: %s" % str(_selected_rooms.map(func(r): return r.path.get_file())))
+
+
+## Build the world: background, corridors, and instantiate room sub-scenes.
+func _build_level() -> void:
+	_room_offsets.clear()
+
+	# Calculate X offset for each room (laid out left-to-right)
+	var current_x: float = 0.0
+	for room_data in _selected_rooms:
+		_room_offsets.append(current_x)
+		current_x += room_data.size.x + CORRIDOR_GAP
+
+	# Total world dimensions
+	var total_width: float = current_x
+	var max_height: float = 0.0
+	for room_data in _selected_rooms:
+		max_height = max(max_height, room_data.size.y)
+
+	# Dark background behind everything
 	var bg := ColorRect.new()
-	bg.name = "Background"
-	bg.position = Vector2.ZERO
-	bg.size = Vector2(MAP_WIDTH + WALL_THICKNESS * 2, MAP_HEIGHT + WALL_THICKNESS * 2)
+	bg.name = "WorldBackground"
+	bg.position = Vector2(-200, -200)
+	bg.size = Vector2(total_width + 400, max_height + 400)
 	bg.color = BG_COLOR
-	environment.add_child(bg)
+	add_child(bg)
 
-	# Node containers
-	var floors_node := Node2D.new()
-	floors_node.name = "Floors"
-	environment.add_child(floors_node)
+	# Corridor floors and walls between rooms
+	var corridor_container := Node2D.new()
+	corridor_container.name = "Corridors"
+	add_child(corridor_container)
+	_build_corridors(corridor_container)
 
-	var walls_node := Node2D.new()
-	walls_node.name = "Walls"
-	environment.add_child(walls_node)
+	# Instantiate room sub-scenes
+	var rooms_container := Node2D.new()
+	rooms_container.name = "Rooms"
+	add_child(rooms_container)
 
-	var enemies_node := Node2D.new()
-	enemies_node.name = "Enemies"
-	environment.add_child(enemies_node)
+	for i in range(_selected_rooms.size()):
+		_instantiate_room(rooms_container, i)
 
-	# 1. Generate rooms
-	_place_rooms()
-	if _rooms.size() < 2:
-		push_error("[RoguelikeLevel] Failed to generate enough rooms!")
+
+## Build corridor floors and walls between adjacent rooms.
+func _build_corridors(parent: Node) -> void:
+	for i in range(_selected_rooms.size() - 1):
+		var left_room: Dictionary = _selected_rooms[i]
+		var right_room: Dictionary = _selected_rooms[i + 1]
+		var left_x: float = _room_offsets[i]
+		var right_x: float = _room_offsets[i + 1]
+
+		# The corridor spans from the right edge of the left room to the left edge of the right room
+		var corridor_start_x: float = left_x + left_room.size.x
+		var corridor_end_x: float = right_x
+		var corridor_width: float = corridor_end_x - corridor_start_x
+
+		# Vertical center of both rooms' exit/entry points
+		var left_center_y: float = left_room.size.y * 0.5
+		var right_center_y: float = right_room.size.y * 0.5
+
+		# Corridor floor (horizontal strip connecting the two rooms)
+		var floor_rect := ColorRect.new()
+		floor_rect.position = Vector2(corridor_start_x, left_center_y - CORRIDOR_HEIGHT * 0.5)
+		floor_rect.size = Vector2(corridor_width, CORRIDOR_HEIGHT)
+		floor_rect.color = FLOOR_COLOR
+		parent.add_child(floor_rect)
+
+		# If the rooms have different heights, add a vertical ramp section
+		if abs(left_center_y - right_center_y) > 10.0:
+			var v_floor := ColorRect.new()
+			var v_top: float = min(left_center_y, right_center_y) - CORRIDOR_HEIGHT * 0.5
+			var v_bottom: float = max(left_center_y, right_center_y) + CORRIDOR_HEIGHT * 0.5
+			v_floor.position = Vector2(corridor_end_x - CORRIDOR_HEIGHT, v_top)
+			v_floor.size = Vector2(CORRIDOR_HEIGHT, v_bottom - v_top)
+			v_floor.color = FLOOR_COLOR
+			parent.add_child(v_floor)
+
+		# Top wall above the corridor
+		_create_wall_body(parent, Rect2(
+			corridor_start_x,
+			left_center_y - CORRIDOR_HEIGHT * 0.5 - 24,
+			corridor_width,
+			24
+		))
+		# Bottom wall below the corridor
+		_create_wall_body(parent, Rect2(
+			corridor_start_x,
+			left_center_y + CORRIDOR_HEIGHT * 0.5,
+			corridor_width,
+			24
+		))
+
+
+## Instantiate a room scene, strip its HUD/player/exit-zone, and position it.
+func _instantiate_room(parent: Node, room_index: int) -> void:
+	var room_data: Dictionary = _selected_rooms[room_index]
+	var offset_x: float = _room_offsets[room_index]
+
+	var scene: PackedScene = load(room_data.path)
+	if scene == null:
+		push_error("[RoguelikeLevel] Failed to load room scene: %s" % room_data.path)
 		return
 
-	# 2. Determine spawn and exit rooms
-	_spawn_room_index = 0
-	_exit_room_index = _find_farthest_room(_spawn_room_index)
+	var room_instance: Node = scene.instantiate()
+	room_instance.name = "Room%d" % room_index
+	room_instance.position = Vector2(offset_x, 0.0)
 
-	print("[RoguelikeLevel] Spawn room: %d, Exit room: %d" % [_spawn_room_index, _exit_room_index])
+	# Disable the room's own _ready logic by removing its script before adding to tree,
+	# so it doesn't run its own setup, register enemies twice, etc.
+	# We keep all the geometry but strip runtime-only nodes.
+	room_instance.set_script(null)
 
-	# 3. Connect rooms with corridors
-	var corridors: Array[Rect2] = _connect_rooms()
+	parent.add_child(room_instance)
 
-	# 4. Render floors and walls
-	for room in _rooms:
-		_create_floor_rect(floors_node, room)
-	for corridor in corridors:
-		_create_floor_rect(floors_node, corridor)
+	# Remove the room's own CanvasLayer (HUD), PauseMenu, and player nodes —
+	# we manage these at the roguelike level.
+	for child_name in ["CanvasLayer", "PauseMenu", "Player", "Entities"]:
+		var node: Node = room_instance.get_node_or_null(child_name)
+		if node:
+			node.queue_free()
 
-	# Build walls around the entire walkable area (outer perimeter of all rooms + corridors)
-	_build_perimeter_walls(walls_node)
+	# Remove the room's ExitZone (we place our own in the last room)
+	_remove_exit_zones_recursive(room_instance)
 
-	# 5. Add cover objects inside rooms (optional, improves gameplay)
-	_add_cover_in_rooms(walls_node)
+	# Collect all enemy nodes from this room into our global enemy list
+	_collect_enemies_from_room(room_instance)
 
-	# 6. Spawn enemies
-	_spawn_enemies(enemies_node)
-
-	# 7. Spawn player in the spawn room
-	_spawn_player()
-
-	# 8. Navigation region (baked after all geometry is in place)
-	_create_navigation_region()
-
-
-## Place rooms using scatter-and-reject algorithm.
-func _place_rooms() -> void:
-	var attempts: int = 0
-	var target_rooms: int = randi_range(MIN_ROOMS, MAX_ROOMS)
-
-	while _rooms.size() < target_rooms and attempts < MAX_PLACE_ATTEMPTS:
-		attempts += 1
-
-		var w: float = randf_range(MIN_ROOM_W, MAX_ROOM_W)
-		var h: float = randf_range(MIN_ROOM_H, MAX_ROOM_H)
-		var x: float = randf_range(MAP_MARGIN, MAP_WIDTH - MAP_MARGIN - w)
-		var y: float = randf_range(MAP_MARGIN, MAP_HEIGHT - MAP_MARGIN - h)
-
-		var candidate := Rect2(x, y, w, h)
-
-		# Check against all existing rooms (with padding)
-		var overlaps: bool = false
-		for existing in _rooms:
-			var padded := existing.grow(ROOM_PADDING)
-			if padded.intersects(candidate):
-				overlaps = true
+	# Move the player from this room's scene if present
+	var player_node: Node = room_instance.get_node_or_null("Player")
+	if player_node == null:
+		# Try nested paths
+		for path in ["Entities/Player", "Environment/Player"]:
+			player_node = room_instance.get_node_or_null(path)
+			if player_node:
 				break
 
-		if not overlaps:
-			_rooms.append(candidate)
-
-	print("[RoguelikeLevel] Placed %d rooms in %d attempts" % [_rooms.size(), attempts])
+	print("[RoguelikeLevel] Room %d instantiated from %s at x=%.0f" % [room_index, room_data.path.get_file(), offset_x])
 
 
-## Find the room index farthest from the given origin room (by center distance).
-func _find_farthest_room(origin_index: int) -> int:
-	var origin_center: Vector2 = _rooms[origin_index].get_center()
-	var farthest_index: int = 0
-	var farthest_dist: float = 0.0
-
-	for i in range(_rooms.size()):
-		if i == origin_index:
+## Recursively remove any ExitZone nodes from a room subtree.
+func _remove_exit_zones_recursive(node: Node) -> void:
+	for child in node.get_children():
+		if child.get_script() != null:
+			var script_path: String = child.get_script().resource_path
+			if "exit_zone" in script_path.to_lower():
+				child.queue_free()
+				continue
+		if child.name.to_lower().contains("exit"):
+			child.queue_free()
 			continue
-		var d: float = origin_center.distance_to(_rooms[i].get_center())
-		if d > farthest_dist:
-			farthest_dist = d
-			farthest_index = i
-
-	return farthest_index
+		_remove_exit_zones_recursive(child)
 
 
-## Connect rooms with L-shaped corridors (each room to the nearest unconnected room).
-## Returns array of corridor Rect2 (may include both H and V segments per connection).
-func _connect_rooms() -> Array[Rect2]:
-	var corridors: Array[Rect2] = []
-
-	# Simple sequential connection: each room connects to the next closest unconnected room.
-	# Build a minimum-spanning-like chain using nearest-neighbor.
-	var connected: Array[int] = [0]
-	var unconnected: Array[int] = []
-	for i in range(1, _rooms.size()):
-		unconnected.append(i)
-
-	while unconnected.size() > 0:
-		var best_connected_idx: int = -1
-		var best_unconnected_idx: int = -1
-		var best_dist: float = INF
-
-		for ci in connected:
-			for ui in unconnected:
-				var d: float = _rooms[ci].get_center().distance_to(_rooms[ui].get_center())
-				if d < best_dist:
-					best_dist = d
-					best_connected_idx = ci
-					best_unconnected_idx = ui
-
-		if best_unconnected_idx == -1:
-			break
-
-		# Build L-shaped corridor between rooms[best_connected_idx] and rooms[best_unconnected_idx]
-		var new_corridors: Array[Rect2] = _make_l_corridor(
-			_rooms[best_connected_idx].get_center(),
-			_rooms[best_unconnected_idx].get_center()
-		)
-		corridors.append_array(new_corridors)
-
-		connected.append(best_unconnected_idx)
-		unconnected.erase(best_unconnected_idx)
-
-	return corridors
+## Collect all enemy nodes from a room into _enemies, connecting their signals.
+func _collect_enemies_from_room(room_node: Node) -> void:
+	_collect_enemies_recursive(room_node)
 
 
-## Build an L-shaped corridor (two Rect2 segments) between two center points.
-func _make_l_corridor(a: Vector2, b: Vector2) -> Array[Rect2]:
-	var segments: Array[Rect2] = []
-	var half_w: float = CORRIDOR_W / 2.0
-
-	# Randomly choose H-then-V or V-then-H
-	if randf() < 0.5:
-		# Horizontal segment first
-		var h_rect := Rect2(
-			min(a.x, b.x) - half_w,
-			a.y - half_w,
-			abs(b.x - a.x) + CORRIDOR_W,
-			CORRIDOR_W
-		)
-		segments.append(h_rect)
-		# Vertical segment
-		var v_rect := Rect2(
-			b.x - half_w,
-			min(a.y, b.y) - half_w,
-			CORRIDOR_W,
-			abs(b.y - a.y) + CORRIDOR_W
-		)
-		segments.append(v_rect)
-	else:
-		# Vertical segment first
-		var v_rect := Rect2(
-			a.x - half_w,
-			min(a.y, b.y) - half_w,
-			CORRIDOR_W,
-			abs(b.y - a.y) + CORRIDOR_W
-		)
-		segments.append(v_rect)
-		# Horizontal segment
-		var h_rect := Rect2(
-			min(a.x, b.x) - half_w,
-			b.y - half_w,
-			abs(b.x - a.x) + CORRIDOR_W,
-			CORRIDOR_W
-		)
-		segments.append(h_rect)
-
-	return segments
-
-
-## Create a visible floor ColorRect (no collision — just visual).
-func _create_floor_rect(parent: Node, rect: Rect2) -> void:
-	var floor_rect := ColorRect.new()
-	floor_rect.position = rect.position
-	floor_rect.size = rect.size
-	floor_rect.color = FLOOR_COLOR
-	parent.add_child(floor_rect)
-
-
-## Build thin walls around each room (4 sides, only where there's no corridor overlap).
-## We use a simple approach: add a StaticBody2D wall segment for each side of each room.
-func _build_perimeter_walls(parent: Node) -> void:
-	var t: float = WALL_THICKNESS
-
-	for room in _rooms:
-		# Top wall
-		_create_wall_body(parent, Rect2(room.position.x - t, room.position.y - t, room.size.x + t * 2, t))
-		# Bottom wall
-		_create_wall_body(parent, Rect2(room.position.x - t, room.end.y, room.size.x + t * 2, t))
-		# Left wall
-		_create_wall_body(parent, Rect2(room.position.x - t, room.position.y, t, room.size.y))
-		# Right wall
-		_create_wall_body(parent, Rect2(room.end.x, room.position.y, t, room.size.y))
+func _collect_enemies_recursive(node: Node) -> void:
+	for child in node.get_children():
+		if child.has_signal("died") and not (child in _enemies):
+			_enemies.append(child)
+			child.died.connect(_on_enemy_died)
+			if child.has_signal("died_with_info"):
+				child.died_with_info.connect(_on_enemy_died_with_info)
+			if child.has_signal("hit"):
+				child.hit.connect(_on_enemy_hit)
+		_collect_enemies_recursive(child)
 
 
 ## Create a single wall StaticBody2D with collision and visual.
 func _create_wall_body(parent: Node, rect: Rect2) -> void:
 	var wall := StaticBody2D.new()
-	wall.collision_layer = 4   # walls layer (matching all other levels)
+	wall.collision_layer = 4
 	wall.collision_mask = 0
 	wall.position = rect.get_center()
 
@@ -406,123 +376,12 @@ func _create_wall_body(parent: Node, rect: Rect2) -> void:
 	parent.add_child(wall)
 
 
-## Add simple cover objects (small StaticBody2D crates/pillars) in rooms.
-func _add_cover_in_rooms(parent: Node) -> void:
-	for i in range(_rooms.size()):
-		if i == _spawn_room_index or i == _exit_room_index:
-			continue
-		var room: Rect2 = _rooms[i]
-		# Add 1–3 cover objects per non-spawn/exit room
-		var num_covers: int = randi_range(1, 3)
-		var margin: float = 60.0
-		for _j in range(num_covers):
-			var cover_w: float = randf_range(30.0, 70.0)
-			var cover_h: float = randf_range(30.0, 70.0)
-			var cx: float = randf_range(room.position.x + margin, room.end.x - margin - cover_w)
-			var cy: float = randf_range(room.position.y + margin, room.end.y - margin - cover_h)
-			_create_wall_body(parent, Rect2(cx, cy, cover_w, cover_h))
-
-
-## Create NavigationRegion2D for enemy pathfinding.
-## The actual baking is deferred to _setup_navigation() which runs after all nodes are ready.
-func _create_navigation_region() -> void:
-	var nav_region := NavigationRegion2D.new()
-	nav_region.name = "NavigationRegion2D"
-
-	var nav_poly := NavigationPolygon.new()
-	nav_poly.parsed_geometry_type = NavigationPolygon.PARSED_GEOMETRY_STATIC_COLLIDERS
-	nav_poly.parsed_collision_mask = 4  # walls layer
-	nav_poly.source_geometry_mode = NavigationPolygon.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
-	nav_poly.agent_radius = 24.0
-
-	nav_region.navigation_polygon = nav_poly
-	add_child(nav_region)
-
-
-## ============================================================
-## Enemy spawning
-## ============================================================
-
-## Spawn enemies in all rooms except spawn and exit rooms.
-func _spawn_enemies(enemies_node: Node) -> void:
-	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
-	if enemy_scene == null:
-		push_error("[RoguelikeLevel] Failed to load Enemy.tscn!")
-		return
-
-	var margin: float = 50.0
-
-	for i in range(_rooms.size()):
-		if i == _spawn_room_index or i == _exit_room_index:
-			continue
-
-		var room: Rect2 = _rooms[i]
-		# Don't place enemies in rooms too small for a margin
-		if room.size.x < margin * 2.5 or room.size.y < margin * 2.5:
-			continue
-
-		var num_enemies: int = randi_range(ENEMIES_PER_ROOM_MIN, ENEMIES_PER_ROOM_MAX)
-		for _j in range(num_enemies):
-			var enemy: Node2D = enemy_scene.instantiate()
-
-			# Random position inside the room (not on walls)
-			var ex: float = randf_range(room.position.x + margin, room.end.x - margin)
-			var ey: float = randf_range(room.position.y + margin, room.end.y - margin)
-			enemy.position = Vector2(ex, ey)
-
-			# Random weapon type (weighted)
-			enemy.weapon_type = _pick_weapon_type()
-
-			# Random health
-			enemy.min_health = ENEMY_MIN_HEALTH
-			enemy.max_health = randi_range(ENEMY_MIN_HEALTH + 1, ENEMY_MAX_HEALTH + 1)
-
-			# Random behavior
-			if randf() < PATROL_PROBABILITY:
-				enemy.behavior_mode = 1  # PATROL
-				# Set patrol offsets within the room
-				var patrol_range: float = min(room.size.x, room.size.y) * 0.3
-				enemy.patrol_offsets = [
-					Vector2(randf_range(-patrol_range, patrol_range), 0.0),
-					Vector2(randf_range(-patrol_range, patrol_range), randf_range(-patrol_range, patrol_range))
-				]
-			else:
-				enemy.behavior_mode = 0  # GUARD
-
-			enemies_node.add_child(enemy)
-
-
-## Pick a random weapon type using weighted probabilities.
-func _pick_weapon_type() -> int:
-	var total_weight: int = 0
-	for entry in WEAPON_WEIGHTS:
-		total_weight += entry.weight
-
-	var roll: int = randi_range(0, total_weight - 1)
-	var cumulative: int = 0
-	for entry in WEAPON_WEIGHTS:
-		cumulative += entry.weight
-		if roll < cumulative:
-			return entry.type
-
-	return 0  # Fallback: RIFLE
-
-
 ## ============================================================
 ## Player spawning
 ## ============================================================
 
-## Spawn the player in the spawn room center, or use existing scene player.
+## Spawn the player in the first room.
 func _spawn_player() -> void:
-	# Check if a player scene is already instanced (added via tscn)
-	var existing_player: Node = get_node_or_null("Entities/Player")
-	if existing_player:
-		# Move the pre-placed player to the spawn room center
-		var spawn_center: Vector2 = _rooms[_spawn_room_index].get_center()
-		existing_player.position = spawn_center
-		return
-
-	# No pre-placed player — instantiate one
 	var player_scene: PackedScene = load("res://scenes/characters/csharp/Player.tscn")
 	if player_scene == null:
 		player_scene = load("res://scenes/characters/Player.tscn")
@@ -536,48 +395,41 @@ func _spawn_player() -> void:
 
 	var player: Node2D = player_scene.instantiate()
 	player.name = "Player"
-	player.position = _rooms[_spawn_room_index].get_center()
+
+	# Place player at the entry point of the first room
+	var first_room: Dictionary = _selected_rooms[0]
+	var spawn_x: float = _room_offsets[0] + first_room.player_spawn.x
+	var spawn_y: float = first_room.player_spawn.y
+	player.position = Vector2(spawn_x, spawn_y)
+
 	entities_node.add_child(player)
+	print("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
 
 
 ## ============================================================
-## Standard level setup (mirrors test_tier.gd / labyrinth_level.gd)
+## Standard level setup (mirrors docks_level.gd / labyrinth_level.gd)
 ## ============================================================
 
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
-		push_warning("[RoguelikeLevel] NavigationRegion2D not found")
-		return
+		# Create navigation region programmatically
+		nav_region = NavigationRegion2D.new()
+		nav_region.name = "NavigationRegion2D"
+		var nav_poly := NavigationPolygon.new()
+		nav_poly.parsed_geometry_type = NavigationPolygon.PARSED_GEOMETRY_STATIC_COLLIDERS
+		nav_poly.parsed_collision_mask = 4
+		nav_poly.source_geometry_mode = NavigationPolygon.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
+		nav_poly.agent_radius = 24.0
+		nav_region.navigation_polygon = nav_poly
+		add_child(nav_region)
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("[RoguelikeLevel] NavigationPolygon not found")
-		return
-
-	print("[RoguelikeLevel] Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Outline covering the full walkable area
-	var outline := PackedVector2Array([
-		Vector2(0, 0),
-		Vector2(MAP_WIDTH, 0),
-		Vector2(MAP_WIDTH, MAP_HEIGHT),
-		Vector2(0, MAP_HEIGHT)
-	])
-	nav_poly.add_outline(outline)
-
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
-	print("[RoguelikeLevel] Navigation mesh baked")
+	print("[RoguelikeLevel] Navigation region set up")
 
 
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
-		# Try common alternative paths
 		_player = get_node_or_null("Player")
 	if _player == null:
 		return
@@ -587,16 +439,13 @@ func _setup_player_tracking() -> void:
 	if GameManager:
 		GameManager.set_player(_player)
 
-	# Find HUD ammo label
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
-	# Connect player death
 	if _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Connect weapon signals (C# Player)
 	var weapon: Node = _find_player_weapon()
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
@@ -613,11 +462,9 @@ func _setup_player_tracking() -> void:
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
 	else:
-		# GDScript Player
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
 
-	# Reload / ammo-depleted signals
 	if _player.has_signal("ReloadStarted"):
 		_player.ReloadStarted.connect(_on_player_reload_started)
 	elif _player.has_signal("reload_started"):
@@ -635,20 +482,8 @@ func _setup_player_tracking() -> void:
 
 
 func _setup_enemy_tracking() -> void:
-	var enemies_node := get_node_or_null("Environment/Enemies")
-	if enemies_node == null:
-		return
-
-	_enemies.clear()
-	for child in enemies_node.get_children():
-		if child.has_signal("died"):
-			_enemies.append(child)
-			child.died.connect(_on_enemy_died)
-			if child.has_signal("died_with_info"):
-				child.died_with_info.connect(_on_enemy_died_with_info)
-		if child.has_signal("hit"):
-			child.hit.connect(_on_enemy_hit)
-
+	# Enemies were already collected during room instantiation in _collect_enemies_from_room().
+	# Just count them and update the HUD.
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("[RoguelikeLevel] Tracking %d enemies" % _initial_enemy_count)
@@ -674,25 +509,22 @@ func _setup_exit_zone() -> void:
 
 	_exit_zone = exit_zone_scene.instantiate()
 
-	# Place exit zone in the exit room center
-	var exit_room: Rect2 = _rooms[_exit_room_index]
-	_exit_zone.position = exit_room.get_center()
-	_exit_zone.zone_width = 80.0
-	_exit_zone.zone_height = 80.0
+	# Place exit zone at the far end of the last room
+	var last_index: int = _selected_rooms.size() - 1
+	var last_room: Dictionary = _selected_rooms[last_index]
+	var exit_x: float = _room_offsets[last_index] + last_room.exit_spawn.x
+	var exit_y: float = last_room.exit_spawn.y
+	_exit_zone.position = Vector2(exit_x, exit_y)
+	_exit_zone.zone_width = 120.0
+	_exit_zone.zone_height = 120.0
 
 	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+	add_child(_exit_zone)
 
-	var environment := get_node_or_null("Environment")
-	if environment:
-		environment.add_child(_exit_zone)
-	else:
-		add_child(_exit_zone)
-
-	print("[RoguelikeLevel] Exit zone placed at room %d: %s" % [_exit_room_index, str(_exit_zone.position)])
+	print("[RoguelikeLevel] Exit zone placed at (%.0f, %.0f)" % [_exit_zone.position.x, _exit_zone.position.y])
 
 
 func _setup_debug_ui() -> void:
-	# Build CanvasLayer + UI programmatically (same pattern as test_tier.gd)
 	var canvas_layer := CanvasLayer.new()
 	canvas_layer.name = "CanvasLayer"
 	add_child(canvas_layer)
@@ -767,7 +599,7 @@ func _setup_debug_ui() -> void:
 	# Roguelike mode indicator
 	var mode_label := Label.new()
 	mode_label.name = "ModeLabel"
-	mode_label.text = "ROGUELIKE"
+	mode_label.text = "РОГАЛИК — %d комнат(ы)" % _selected_rooms.size()
 	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mode_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	mode_label.offset_top = 10
@@ -799,7 +631,6 @@ func _setup_selected_weapon() -> void:
 
 	print("[RoguelikeLevel] Setting up weapon: %s" % selected_weapon_id)
 
-	# Check if C# Player already equipped the correct weapon
 	var weapon_names: Dictionary = {
 		"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol",
 		"sniper": "SniperRifle", "m16": "AssaultRifle", "ak_gl": "AKGL",
@@ -809,10 +640,8 @@ func _setup_selected_weapon() -> void:
 		var expected_name: String = weapon_names[selected_weapon_id]
 		var existing: Node = _player.get_node_or_null(expected_name)
 		if existing != null and _player.get("CurrentWeapon") == existing:
-			print("[RoguelikeLevel] %s already equipped by C# Player - skipping" % expected_name)
 			return
 
-	# Swap weapon if needed (mirrors test_tier.gd logic)
 	if selected_weapon_id != "makarov_pm":
 		var weapon_scene_paths: Dictionary = {
 			"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn",
@@ -838,7 +667,6 @@ func _setup_selected_weapon() -> void:
 					_player.CurrentWeapon = new_weapon
 
 
-## Find the currently active weapon on the player node.
 func _find_player_weapon() -> Node:
 	if _player == null:
 		return null
@@ -1036,14 +864,14 @@ func _on_score_animation_completed(container: VBoxContainer) -> void:
 
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	var restart_button := Button.new()
-	restart_button.text = "↻ Restart (Q)"
+	restart_button.text = "↻ Снова (Q)"
 	restart_button.custom_minimum_size = Vector2(200, 40)
 	restart_button.add_theme_font_size_override("font_size", 18)
 	restart_button.pressed.connect(_on_restart_pressed)
 	container.add_child(restart_button)
 
 	var level_select_button := Button.new()
-	level_select_button.text = "☰ Level Select"
+	level_select_button.text = "☰ Меню"
 	level_select_button.custom_minimum_size = Vector2(200, 40)
 	level_select_button.add_theme_font_size_override("font_size", 18)
 	level_select_button.pressed.connect(_on_level_select_pressed)
@@ -1067,14 +895,14 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	ui.add_child(container)
 
 	var title := Label.new()
-	title.text = "ROGUELIKE CLEARED!"
+	title.text = "РОГАЛИК ПРОЙДЕН!"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 36)
 	title.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 1.0))
 	container.add_child(title)
 
 	var total_label := Label.new()
-	total_label.text = "TOTAL: %d | RANK: %s" % [score_data.get("total_score", 0), score_data.get("rank", "?")]
+	total_label.text = "ИТОГО: %d | РАНГ: %s" % [score_data.get("total_score", 0), score_data.get("rank", "?")]
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	total_label.add_theme_font_size_override("font_size", 28)
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
@@ -1090,7 +918,7 @@ func _show_victory_message() -> void:
 		return
 
 	var victory_label := Label.new()
-	victory_label.text = "ROGUELIKE CLEARED!"
+	victory_label.text = "РОГАЛИК ПРОЙДЕН!"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_label.add_theme_font_size_override("font_size", 48)
@@ -1218,20 +1046,14 @@ func _show_game_over_message() -> void:
 ## ============================================================
 
 func _broadcast_player_reloading(is_reloading: bool) -> void:
-	var enemies_node := get_node_or_null("Environment/Enemies")
-	if enemies_node == null:
-		return
-	for enemy in enemies_node.get_children():
-		if enemy.has_method("set_player_reloading"):
+	for enemy in _enemies:
+		if is_instance_valid(enemy) and enemy.has_method("set_player_reloading"):
 			enemy.set_player_reloading(is_reloading)
 
 
 func _broadcast_player_ammo_empty(is_empty: bool) -> void:
-	var enemies_node := get_node_or_null("Environment/Enemies")
-	if enemies_node == null:
-		return
-	for enemy in enemies_node.get_children():
-		if enemy.has_method("set_player_ammo_empty"):
+	for enemy in _enemies:
+		if is_instance_valid(enemy) and enemy.has_method("set_player_ammo_empty"):
 			enemy.set_player_ammo_empty(is_empty)
 
 
@@ -1261,9 +1083,13 @@ func _on_restart_pressed() -> void:
 func _on_level_select_pressed() -> void:
 	get_tree().paused = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-	# Use SceneLoader if available, otherwise direct change
 	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
 	if scene_loader and scene_loader.has_method("load_level"):
 		scene_loader.load_level("res://scenes/levels/LabyrinthLevel.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/levels/LabyrinthLevel.tscn")
+
+
+## Return the next level path (roguelike loops back to itself for now)
+func _get_next_level_path() -> String:
+	return "res://scenes/levels/RoguelikeLevel.tscn"
