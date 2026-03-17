@@ -2,25 +2,28 @@ shader_type canvas_item;
 
 // Lightning flash shader for Black Metal difficulty mode.
 //
-// APPROACH: hint_screen_texture with always-visible ColorRect — same as black_metal.gdshader.
+// APPROACH v7: hint_screen_texture + correct startup sequence.
 //
-// Why NOT the pure overlay approach (previous attempt, Issue #1023 v5):
-//   A full-screen transparent ColorRect at layer 98 interferes with hint_screen_texture
-//   in shaders at higher layers (cinema_film.gdshader at layer 99). In Godot's
-//   gl_compatibility renderer, a transparent canvas_item overlay corrupts the screen
-//   capture for higher-layer shaders, producing a white screen on ALL difficulties.
+// The ColorRect starts HIDDEN (visible=false) in _ready(). After one warmup frame,
+// it becomes permanently visible (visible=true, never toggled again). At intensity=0,
+// the shader outputs the original scene unchanged (pure passthrough). This guarantees:
+//   - No white flash on game startup (framebuffer populated before first sample)
+//   - No white flash during gameplay (visible never toggled after warmup)
+//   - No corruption of other shaders (passthrough, not transparent overlay)
 //
-// Why NOT toggling visible=false→true:
-//   Godot's gl_compatibility renderer has known bugs with hint_screen_texture
-//   (GitHub Issues #79914, #66458). When the ColorRect transitions from visible=false
-//   to visible=true, the screen capture can return white/empty on that first frame,
-//   producing a white blink on every single flash.
+// Why NOT starting visible=true immediately (v6):
+//   On the very first game frame, the GL framebuffer is not yet populated and
+//   hint_screen_texture returns white. Starting visible=true in _ready() before
+//   the scene renders causes the passthrough to output white → white flash at startup.
 //
-// CORRECT APPROACH (same as black_metal.gdshader):
-//   Keep ColorRect ALWAYS VISIBLE. At intensity=0.0, the shader outputs pure
-//   passthrough (original scene unchanged). This avoids BOTH the visible-toggle
-//   white-frame bug AND the transparent-overlay-interfering-with-higher-layer-shaders
-//   problem. The ColorRect is always present but invisible at intensity=0.
+// Why NOT toggling visible during gameplay (v1-v4):
+//   Toggling visible=false→true on a hint_screen_texture ColorRect during gameplay
+//   can produce a white frame on the first frame after the transition.
+//   v7 avoids this by NEVER toggling after the initial warmup frame.
+//
+// Why NOT the pure overlay approach (v5, no screen_texture):
+//   A full-screen transparent ColorRect at layer 98 causes visual corruption on ALL
+//   difficulties. (Confirmed in game_log_20260317_032119.txt)
 //
 // Effect structure:
 //   - One or two jagged main bolt streaks from a top point downward

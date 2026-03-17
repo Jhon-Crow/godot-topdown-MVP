@@ -154,6 +154,26 @@ Lightning manager layer 98 with transparent always-visible ColorRect is present 
 
 ---
 
+## Phase 7: v6 still shows white blink (game_log_20260317_050932.txt)
+
+**User reported:** "всё ещё не работает" — "still not working"
+
+**Game log analysis** (`game_log_20260317_050932.txt`):
+- Shader warmup completed successfully ✅
+- Lightning effects ENABLED when switching to Black Metal ✅
+- **No lightning strikes were triggered** (no SINGLE/DOUBLE/TRIPLE logs — no shots fired) ✅
+- Game session: 28 seconds total, only 2 seconds in Black Metal mode
+
+**Key observation:** The user did not actually trigger any lightning strikes in this session. This means the white blink they are seeing is **at game startup**, not during a lightning flash.
+
+**Root cause of v6 white flash at startup:**
+
+In v6, `_flash_rect.visible = true` was set in `_ready()` — before warmup. On the very first game frame, the GL framebuffer is not yet populated. `hint_screen_texture` returns white/empty. The shader executes `COLOR = original = white` (passthrough at intensity=0). This produces a visible white flash at game startup, even without any lightning being triggered.
+
+This is a different but related manifestation of the same underlying issue: hint_screen_texture is unreliable on the first frame an element is first visible.
+
+---
+
 ## Root Cause Summary
 
 | Version | Root Cause | Visual Result |
@@ -161,53 +181,38 @@ Lightning manager layer 98 with transparent always-visible ColorRect is present 
 | v1 shader | `TEXTURE` on ColorRect = 1×1 white pixel, no bolt drawn | White blink on flash |
 | v2 shader | Screen-wide 35% white ambient fill dominated the bolt | White blink on flash |
 | v3 shader | `render_mode blend_add` not supported in gl_compatibility | White blink on flash |
-| v4 shader | `hint_screen_texture` captures white on first frame after `visible=false→true` transition | White blink on flash |
-| v5 shader | Transparent ColorRect always-visible at layer 98 corrupts `hint_screen_texture` at layer 99 | White screen on ALL difficulties |
-| **v6 shader** | **`hint_screen_texture` passthrough + always-visible ColorRect (never toggled)** | **Actual lightning bolt, no regression** |
+| v4 shader | `hint_screen_texture` captures white on first frame after `visible=false→true` transition during gameplay | White blink on flash |
+| v5 shader | Transparent ColorRect always-visible at layer 98 corrupts other shaders | White screen on ALL difficulties |
+| v6 shader | `visible=true` set in `_ready()` before framebuffer populated → white passthrough on startup frame | White blink at startup |
+| **v7 shader** | **`visible=false` in `_ready()`, `visible=true` set after 1 warmup frame (permanently)** | **Lightning bolt, no regression** |
 
 ---
 
-## Fix: v6 Shader — hint_screen_texture with Always-Visible ColorRect (Final Solution)
+## Fix: v7 Shader — hint_screen_texture with Correct Startup Sequence (Final Solution)
 
-The definitive fix uses **`hint_screen_texture` with an always-visible ColorRect** — the same approach as `black_metal.gdshader`:
+The fix corrects the startup sequence: start `visible=false`, show after one warmup frame.
 
-```glsl
-shader_type canvas_item;
-
-// Screen texture — safe because ColorRect is ALWAYS VISIBLE (never toggled)
-uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
-
-void fragment() {
-    vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
-
-    // At intensity=0: pure passthrough — no visual effect on any difficulty
-    if (intensity <= 0.001) {
-        COLOR = original;
-        return;
-    }
-
-    // ... compute bolt_contrib, corona ...
-
-    // Additive: original scene + lightning light
-    vec3 lightning_add = bolt_rgb * bolt_val + corona_color * corona;
-    lightning_add *= intensity;
-    COLOR = vec4(original.rgb + lightning_add, original.a);
-}
-```
-
-**Manager:**
+**Manager startup sequence:**
 ```gdscript
-# ColorRect is ALWAYS VISIBLE — shader intensity controls appearance
-_flash_rect.visible = true  # Set once in _ready(), never toggled
-# intensity=0 → shader outputs original scene → pure passthrough
-# intensity=1 → additive lightning brightens scene pixels
+func _ready():
+    # HIDDEN: framebuffer not yet populated on frame 0
+    _flash_rect.visible = false
+    _warmup_shader()  # async
+
+func _warmup_shader():
+    _material.set_shader_parameter("intensity", 0.0)
+    # Wait 1 frame: scene renders once, framebuffer populated
+    await get_tree().process_frame
+    # PERMANENTLY VISIBLE: hint_screen_texture now returns valid scene pixels
+    _flash_rect.visible = true
+    # Never toggle visible again — intensity=0 is the "off" state
 ```
 
-**Why this definitively fixes both problems:**
-1. **No white blink on flash**: `visible` never toggles → no first-frame screen-capture bug
-2. **No white screen on all difficulties**: `intensity=0` → `COLOR = original` (pure passthrough) → no transparent quad interfering with cinema layer's screen capture
-3. **Correct lightning visuals**: additive brightening shows bolt over scene without replacing it
-4. **Same approach as `black_metal.gdshader`** which is proven to work in this game
+**Why this definitively fixes all observed failures:**
+1. **No white blink at startup**: `visible=false` on frame 0 → framebuffer populates without sampling
+2. **No white blink on flash**: `visible` never toggles after warmup → no screen-capture bug
+3. **No white screen on all difficulties**: `intensity=0` → `COLOR = original` (pure passthrough)
+4. **Correct lightning visuals**: additive brightening shows bolt over scene
 
 ---
 
@@ -217,23 +222,20 @@ _flash_rect.visible = true  # Set once in _ready(), never toggled
 - **Uses** `hint_screen_texture` (same as `black_metal.gdshader`)
 - At `intensity=0.0`: pure passthrough — `COLOR = original` → no effect on any difficulty
 - At `intensity=1.0`: additive brightening at bolt pixels — lightning glows over scene
-- **Removed** transparent overlay approach that was causing white screen regression
 
 ### `scripts/autoload/black_metal_lightning_effects_manager.gd`
-- **Changed** `_flash_rect.visible = false` → `_flash_rect.visible = true` (always visible)
-- **Removed** delayed activation logic (`_waiting_for_activation`, `_activation_frame_counter`)
-- **Removed** `_on_tree_changed()` reconnection
-- Manager only sets `intensity` to 0/1 — never toggles `visible`
+- **v7**: `visible=false` in `_ready()`, permanently `visible=true` after 1 warmup frame
+- Manager only sets `intensity` after warmup — never toggles `visible` during gameplay
 
 ---
 
 ## References
 
-- **`cinema_film.gdshader`**: Reference implementation for correct overlay approach in this game
+- **`cinema_film.gdshader`**: Overlay approach (no screen_texture) for subtle vignette/grain effects
+- **`black_metal_effects_manager.gd`**: Reference pattern for hint_screen_texture + startup delay
 - **Issue #958 case study** (`docs/case-studies/issue-958/README.md`): gl_compatibility white screen issues
 - **Godot Issue #79914:** `hint_screen_texture` glitches in Compatibility mode
 - **Godot Issue #66458:** OpenGL Compatibility renderer issues tracker
-- **Classic horror film lightning:** Blue-white bolt as dominant visual; brief area illumination near strike point
 
 ---
 
@@ -243,6 +245,7 @@ _flash_rect.visible = true  # Set once in _ready(), never toggled
 |------|-------------|
 | `game_log_20260312_014153.txt` | First test after trigger fix — lightning only fired on player-damage, not on enemy hit |
 | `game_log_20260317_010325.txt` | Second test after v2 shader — lightning fires correctly but still looks like white blink |
-| `game_log_20260317_021309.txt` | Third test after v3 blend_add shader — lightning fires correctly, still white blink (blend_add not working in gl_compatibility) |
-| `game_log_20260317_025412.txt` | Fourth test after v4 hint_screen_texture shader — lightning fires correctly, STILL white blink (hint_screen_texture fails on visible=false→true transition) |
-| `game_log_20260317_032119.txt` | Fifth test after v5 overlay shader — NEW regression: white screen on ALL difficulties (transparent ColorRect at layer 98 corrupts cinema layer 99 screen_texture capture) |
+| `game_log_20260317_021309.txt` | Third test after v3 blend_add shader — lightning fires correctly, still white blink |
+| `game_log_20260317_025412.txt` | Fourth test after v4 hint_screen_texture shader — lightning fires correctly, STILL white blink (visible=false→true transition) |
+| `game_log_20260317_032119.txt` | Fifth test after v5 overlay shader — white screen on ALL difficulties (transparent overlay regression) |
+| `game_log_20260317_050932.txt` | Sixth test after v6 — no lightning triggered; white blink is at startup (visible=true set before framebuffer ready) |

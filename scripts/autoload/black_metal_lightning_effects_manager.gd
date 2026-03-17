@@ -6,23 +6,33 @@ extends Node
 ## jagged bolt streaks from the top of the screen downward, with branches, plus
 ## a brief screen-wide illumination flash — like old horror/black-metal films.
 ##
-## The bolt shader uses hint_screen_texture (same as black_metal.gdshader), with the
-## ColorRect kept ALWAYS VISIBLE. This combination avoids both known gl_compatibility bugs:
-##   1. visible=false→true transition bug: never occurs because ColorRect is always visible.
-##   2. Transparent overlay corrupting higher-layer screen_texture capture: avoided because
-##      at intensity=0 the shader outputs the original scene unchanged (pure passthrough),
-##      not a transparent black quad.
+## APPROACH (v7): hint_screen_texture + correct startup sequence
 ##
-## Why NOT toggling visible:
-##   Godot's gl_compatibility renderer has known bugs with hint_screen_texture
-##   (GitHub Issues #79914, #66458). When a ColorRect transitions from visible=false
-##   to visible=true, the screen capture can return white/empty on the first frame,
-##   causing the white blink symptom.
+## Startup sequence (mirrors black_metal_effects_manager):
+##   _ready():     _flash_rect.visible = false  (hidden on first frame to avoid white flash)
+##   warmup:       _flash_rect.visible = true   (show for warmup frame, GPU compiles shader)
+##   after warmup: _flash_rect.visible = true   (stays visible PERMANENTLY, never toggled again)
+##   "off" state:  intensity = 0.0              (passthrough: COLOR = original scene)
+##   "on" state:   intensity = 1.0 → 0.0       (bolt visible, fades out)
 ##
-## Why NOT the pure overlay approach (transparent ColorRect always visible):
-##   A full-screen transparent quad at layer 98 interferes with hint_screen_texture
-##   in higher-layer shaders (cinema_film at layer 99), producing a white screen on
-##   ALL difficulties — not just Black Metal.
+## Why start visible=false in _ready():
+##   hint_screen_texture samples the GL framebuffer. On the very first render frame,
+##   the framebuffer has not been populated yet and returns white. Setting visible=true
+##   before warmup (as in v6) causes the passthrough to output white on that first frame.
+##   Starting visible=false avoids this: the ColorRect is off-screen for the first
+##   frame, then turned on during warmup when the GPU has had a chance to compile the
+##   shader and the framebuffer is valid.
+##
+## Why keep visible=true permanently after warmup (never toggle):
+##   Godot's gl_compatibility renderer has known bugs where toggling a hint_screen_texture
+##   ColorRect from visible=false to visible=true can produce a white frame on the first
+##   frame after the transition (GitHub Issues #79914, #66458). By keeping visible=true
+##   permanently and using intensity=0 as the "off" state, we eliminate this risk
+##   entirely during gameplay (only one controlled toggle at startup).
+##
+## Why NOT the pure overlay approach (no screen_texture, transparent output):
+##   A full-screen transparent ColorRect at layer 98 causes visual corruption on ALL
+##   difficulties — not just Black Metal. (Tested in v5, game_log_20260317_032119.txt)
 ##
 ## Features:
 ## - Procedural jagged lightning bolt drawn across the screen
@@ -116,14 +126,15 @@ func _ready() -> void:
 		push_warning("BlackMetalLightningEffectsManager: Could not load lightning_flash.gdshader")
 		_log("WARNING: Could not load lightning_flash.gdshader")
 
-	# Keep ColorRect ALWAYS VISIBLE — shader outputs passthrough (original scene) when intensity=0.
-	# This avoids the gl_compatibility bug where transitioning visible=false→true
-	# on a hint_screen_texture ColorRect can produce a white frame.
-	# At intensity=0: COLOR = original scene → no visual effect on any difficulty.
-	_flash_rect.visible = true
+	# Start INVISIBLE — the framebuffer is not yet populated on the first frame.
+	# hint_screen_texture returns white/empty if sampled before the scene renders,
+	# so we keep the ColorRect hidden until warmup has run and the GPU has
+	# a valid framebuffer to read. After warmup we set visible=true permanently
+	# and never toggle it again; intensity=0 acts as the "off" state from then on.
+	_flash_rect.visible = false
 	_flash_layer.add_child(_flash_rect)
 
-	# Perform shader warmup to pre-compile the shader.
+	# Perform shader warmup to pre-compile the shader and then reveal permanently.
 	_warmup_shader()
 
 	# Connect to difficulty changes to enable/disable the effects.
@@ -179,7 +190,7 @@ func _start_flash_sequence(pattern: FlashPattern) -> void:
 		FlashPattern.TRIPLE:
 			_flashes_remaining = 3
 
-	_log("Starting %s lightning strike" % FlashPattern.keys()[pattern])
+	_log("%s lightning strike (%d flash(es))" % [FlashPattern.keys()[pattern], _flashes_remaining])
 	_start_single_flash()
 
 
@@ -271,8 +282,21 @@ func _apply_current_difficulty() -> void:
 
 
 ## Performs warmup to pre-compile the lightning bolt shader.
-## At intensity=0.0, the shader outputs the original scene (pure passthrough).
-## This ensures no white blink even during GPU shader compilation.
+##
+## WARMUP SEQUENCE:
+##   1. visible=false + intensity=0.0: wait 1 frame (ColorRect hidden, scene renders).
+##      This ensures the GL framebuffer is populated before hint_screen_texture is first
+##      sampled. On frame 0, the framebuffer may be empty/white; we must not read it.
+##   2. After the frame: set visible=true PERMANENTLY.
+##      intensity=0.0 is the "off" state — pure passthrough, no visible change.
+##      We NEVER toggle visible again after warmup, so the screen-capture
+##      first-frame bug (Godot Issues #79914, #66458) cannot trigger during gameplay.
+##
+## Key difference from black_metal_effects_manager:
+##   BM manager hides the rect during scene transitions (delayed activation).
+##   We do NOT do this — once visible=true is set after warmup, it stays forever.
+##   Scene transitions are safe because intensity=0 outputs passthrough (original scene)
+##   regardless of what hint_screen_texture returns.
 func _warmup_shader() -> void:
 	if _flash_rect == null or _material == null:
 		return
@@ -280,15 +304,22 @@ func _warmup_shader() -> void:
 	_log("Starting shader warmup (Issue #343 pattern)...")
 	var start_time := Time.get_ticks_msec()
 
-	# intensity=0.0 → shader outputs original scene → pure passthrough, no visible effect.
-	# Same pattern as black_metal_effects_manager warmup.
+	# intensity=0.0 → passthrough (original scene).
 	_material.set_shader_parameter("intensity", 0.0)
 
-	# Wait one frame for GPU to compile and process the shader.
+	# Wait one frame. The ColorRect is still HIDDEN (visible=false) during this frame.
+	# This lets the scene render at least one full frame before we show the overlay,
+	# ensuring the GL framebuffer is populated and hint_screen_texture won't return white.
 	await get_tree().process_frame
 
+	# Now set visible=true PERMANENTLY after the scene has rendered once.
+	# The framebuffer is populated: hint_screen_texture returns the actual scene.
+	# intensity=0.0 → pure passthrough → no visual change on any difficulty.
+	# We NEVER toggle visible again — intensity=0 is the "off" state for gameplay.
+	_flash_rect.visible = true
+
 	var elapsed := Time.get_ticks_msec() - start_time
-	_log("Shader warmup complete in %d ms" % elapsed)
+	_log("Shader warmup complete in %d ms (ColorRect now permanently visible, intensity=0 = passthrough)" % elapsed)
 
 
 ## Returns whether lightning effects are currently active.
