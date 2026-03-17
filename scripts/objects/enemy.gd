@@ -1502,8 +1502,7 @@ func _process_combat_state(delta: float) -> void:
 	# Determine if we should be in approach phase or exposed shooting phase
 	var in_direct_contact := distance_to_player <= COMBAT_DIRECT_CONTACT_DISTANCE
 
-	# Issue #583: RPG fires immediately at max range (no approach phase)
-	if _is_rpg_weapon and not _rpg_fired and has_clear_shot and _detection_delay_elapsed:
+	if _is_rpg_weapon and not _rpg_fired and has_clear_shot:  # Issue #583: RPG fires immediately at max range (no approach, no detection delay)
 		_aim_at_player()
 		if _shoot_timer >= shoot_cooldown: _log_debug("RPG: firing rocket (dist=%.0f)" % distance_to_player); _shoot(); _shoot_timer = 0.0  # reset only after shot
 		return
@@ -2514,9 +2513,9 @@ func _transition_to_combat() -> void:
 	_combat_exposed = false; _combat_approaching = false
 	_combat_shoot_timer = 0.0; _combat_approach_timer = 0.0; _combat_state_timer = 0.0
 	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
-	# Issue #409: Clear witnessed ally death flag when engaging player
-	_witnessed_ally_death = false; _suspected_directions.clear()
+	_witnessed_ally_death = false; _suspected_directions.clear()  # Issue #409
 	_pursuing_vulnerability_sound = false
+	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583: RPG fires immediately on first sight
 
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
