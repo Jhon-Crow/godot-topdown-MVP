@@ -7,10 +7,12 @@ extends Node
 ## - FIRST_TIME_ONLY: Show hints only for first use of each weapon
 ## - NEVER: Never show hints
 ##
-## Visual style matches the Labyrinth level tutorial hints:
+## Visual style exactly matches the Labyrinth level tutorial hints (labyrinth_level.gd):
 ## - Font size 20 with drop shadows
 ## - Per-hint colors matching Labyrinth palette
-## - Fade-in/fade-out animation
+## - Fade-in animation
+## - Progressive strikethrough via Line2D (Issue #944 / #1080 style)
+## - Strikethrough-then-fade-out dismiss animation
 ## - Positioned via canvas_transform above player
 ##
 ## Issue #809: добавь обучение новому оружию (add weapon training)
@@ -58,8 +60,27 @@ const HINT_MIN_SIZE := Vector2(300, 30)
 ## Fade-in duration (matches Labyrinth TUTORIAL_HINT_FADE_IN_DURATION).
 const HINT_FADE_IN_DURATION: float = 0.3
 
+## Strikethrough animation duration (matches Labyrinth TUTORIAL_HINT_STRIKETHROUGH_DURATION).
+const HINT_STRIKETHROUGH_DURATION: float = 0.4
+
 ## Fade-out duration (matches Labyrinth TUTORIAL_HINT_FADE_OUT_DURATION).
 const HINT_FADE_OUT_DURATION: float = 0.3
+
+## Issue #944 style: Tracks hints currently being animated (prevents double-dismiss).
+var _animating_hints: Dictionary = {}
+
+## Issue #944 style: Track Line2D strikethrough nodes for each hint (hint_key -> Array[Line2D]).
+## Each hint has one Line2D per text line so lines animate independently without connectors.
+var _hint_strike_lines: Dictionary = {}
+
+## Issue #944 style: Track current strikethrough progress for each hint (hint_key -> float 0.0-1.0).
+var _hint_strike_progress: Dictionary = {}
+
+## Issue #944 style: Track line count for each hint (hint_key -> int).
+var _hint_line_counts: Dictionary = {}
+
+## Issue #1080 style: Track per-line text widths for each hint (hint_key -> Array[float]).
+var _hint_line_widths: Dictionary = {}
 
 ## Per-hint colors matching Labyrinth level color palette (Issue #945 style).
 const HINT_COLORS: Dictionary = {
@@ -207,7 +228,7 @@ func _try_show_hints() -> void:
 
 
 ## Show hints for a specific weapon.
-## Uses Labyrinth-style visuals: canvas_transform positioning, shadows, per-hint colors, fade-in.
+## Uses Labyrinth-style visuals: strikethrough Line2D, per-hint colors, fade-in/strikethrough/fade-out.
 ## @param weapon_id: The weapon identifier.
 func _show_weapon_hints(weapon_id: String) -> void:
 	if not weapon_id in WEAPON_HINTS:
@@ -222,19 +243,22 @@ func _show_weapon_hints(weapon_id: String) -> void:
 
 	var hints: Array = WEAPON_HINTS[weapon_id]
 	for hint in hints:
-		_show_hint(hint["hint_key"], hint["color_key"], hint["text"])
+		_add_hint(hint["hint_key"], hint["color_key"], hint["text"])
 
 	_hints_showing = true
 	_dismiss_timer.start(HINT_DURATION)
 
 
-## Show a single hint label matching Labyrinth visual style.
+## Add a single hint label with Labyrinth-style BBCode, shadows, fade-in, and strikethrough Line2D.
+## Mirrors labyrinth_level.gd _add_tutorial_hint().
 ## @param hint_key: Unique identifier for this hint.
 ## @param color_key: Key into HINT_COLORS for the label color.
 ## @param text: BBCode-formatted text to display.
-func _show_hint(hint_key: String, color_key: String, text: String) -> void:
+func _add_hint(hint_key: String, color_key: String, text: String) -> void:
 	if hint_key in _hint_labels:
-		# Already showing this hint
+		# Already showing this hint — update text if not animating
+		if not _animating_hints.has(hint_key):
+			_hint_labels[hint_key].text = text
 		return
 
 	var label := RichTextLabel.new()
@@ -263,16 +287,206 @@ func _show_hint(hint_key: String, color_key: String, text: String) -> void:
 	_canvas_layer.add_child(label)
 	_hint_labels[hint_key] = label
 
-	# Initial position
-	_update_hint_positions()
+	# Initialize strikethrough tracking (matching Labyrinth Issue #944 style)
+	_hint_strike_lines[hint_key] = []
+	_hint_strike_progress[hint_key] = 0.0
+
+	# Set up Line2D strikethrough nodes after one frame so layout is computed
+	_setup_strikethrough_lines.call_deferred(hint_key, label)
+
+	# Position immediately
+	var index := _hint_labels.size() - 1
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * (_player.global_position if _player else Vector2.ZERO)
+	label.custom_minimum_size = HINT_MIN_SIZE
+	label.position = screen_pos + Vector2(HINT_OFFSET_X, HINT_OFFSET_Y - index * HINT_SPACING)
 
 	# Fade-in animation (matching Labyrinth TUTORIAL_HINT_FADE_IN_DURATION)
 	var tween := create_tween()
 	tween.tween_property(label, "modulate:a", 1.0, HINT_FADE_IN_DURATION).set_ease(Tween.EASE_OUT)
 
+	_log_to_file("Hint added '%s': %s" % [hint_key, text])
+
+
+## Set up one Line2D per text line after label layout is ready (deferred).
+## Mirrors labyrinth_level.gd _setup_tutorial_strikethrough_lines().
+## Issue #1080 style: computes per-line text widths so strikethrough matches actual text length.
+func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
+	if not is_instance_valid(label):
+		return
+
+	# Font size 20 with default line spacing gives ~26px per line.
+	const LINE_HEIGHT := 26.0
+
+	var content_height := label.get_content_height()
+	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+	_hint_line_counts[hint_key] = line_count
+
+	# Compute per-line text widths using font metrics (Issue #1080 style).
+	var line_widths: Array = []
+	var font: Font = label.get_theme_font("normal_font")
+	var font_size: int = label.get_theme_font_size("normal_font_size")
+	if is_instance_valid(font) and font_size > 0:
+		var plain_text: String = label.get_parsed_text()
+		var per_line_text: Array = []
+		for _i in range(line_count):
+			per_line_text.append("")
+		var char_count: int = plain_text.length()
+		for char_idx in range(char_count):
+			var visual_line: int = label.get_character_line(char_idx)
+			if visual_line >= 0 and visual_line < line_count:
+				per_line_text[visual_line] += plain_text[char_idx]
+		for line_idx in range(line_count):
+			var w: float = font.get_string_size(per_line_text[line_idx], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+			line_widths.append(maxf(w, 1.0))
+	else:
+		# Fallback: use label content width for all lines.
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		for _i in range(line_count):
+			line_widths.append(fallback_width)
+	_hint_line_widths[hint_key] = line_widths
+
+	# Create one Line2D per text line to avoid diagonal connectors between lines.
+	var lines: Array = []
+	for line_idx in range(line_count):
+		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		var seg := Line2D.new()
+		seg.name = "StrikeLine_%s_%d" % [hint_key, line_idx]
+		seg.width = 1.5
+		seg.default_color = Color(0.6, 0.6, 0.6, 0.6)
+		seg.z_index = 1
+		seg.add_point(Vector2(0, line_y))
+		seg.add_point(Vector2(0, line_y))
+		label.add_child(seg)
+		lines.append(seg)
+
+	_hint_strike_lines[hint_key] = lines
+	_log_to_file("Setup strikethrough for '%s': %d lines, widths: %s" % [hint_key, line_count, str(line_widths)])
+
+
+## Update per-line Line2D end points for multi-line strikethrough.
+## Mirrors labyrinth_level.gd _update_tutorial_strikethrough_points().
+func _update_strikethrough_points(strike_lines: Array, line_count: int, line_widths: Array, progress: float) -> void:
+	for line_idx in range(line_count):
+		if line_idx >= strike_lines.size():
+			break
+		var seg: Line2D = strike_lines[line_idx]
+		if not is_instance_valid(seg):
+			continue
+
+		var line_start_progress := float(line_idx) / line_count
+		var line_end_progress := float(line_idx + 1) / line_count
+		var line_progress: float
+
+		if progress <= line_start_progress:
+			line_progress = 0.0
+		elif progress >= line_end_progress:
+			line_progress = 1.0
+		else:
+			line_progress = (progress - line_start_progress) / (line_end_progress - line_start_progress)
+
+		var line_width: float = line_widths[line_idx] if line_idx < line_widths.size() else 300.0
+		seg.set_point_position(1, Vector2(line_width * line_progress, seg.get_point_position(0).y))
+
+
+## Dismiss a single hint with strikethrough-then-fade-out animation.
+## Mirrors labyrinth_level.gd _dismiss_tutorial_hint() + _animate_tutorial_hint_strikethrough_and_fade().
+func _dismiss_hint(hint_key: String) -> void:
+	if not _hint_labels.has(hint_key):
+		return
+
+	# Prevent double-dismiss while animating
+	if _animating_hints.has(hint_key):
+		return
+
+	var label: RichTextLabel = _hint_labels[hint_key]
+	if not is_instance_valid(label):
+		_hint_labels.erase(hint_key)
+		return
+
+	_animating_hints[hint_key] = true
+	_log_to_file("Dismissing hint '%s' (strikethrough animation)" % hint_key)
+
+	# Get strike lines and widths
+	var strike_lines: Array = _hint_strike_lines.get(hint_key, [])
+	var line_widths: Array = _hint_line_widths.get(hint_key, [])
+	if line_widths.is_empty():
+		var fallback_width: float = label.get_content_width()
+		if fallback_width <= 0:
+			fallback_width = label.custom_minimum_size.x
+		if fallback_width <= 0:
+			fallback_width = 300.0
+		var line_count_fb: int = _hint_line_counts.get(hint_key, 1)
+		for _i in range(line_count_fb):
+			line_widths.append(fallback_width)
+
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+	var current_progress: float = _hint_strike_progress.get(hint_key, 0.0)
+
+	var tween := create_tween()
+
+	if not strike_lines.is_empty():
+		tween.tween_method(
+			func(progress: float):
+				_update_strikethrough_points(strike_lines, line_count, line_widths, progress),
+			current_progress, 1.0, HINT_STRIKETHROUGH_DURATION
+		).set_ease(Tween.EASE_OUT)
+
+	# After strikethrough, fade out the label
+	tween.tween_property(label, "modulate:a", 0.0, HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_finalize_hint_dismiss.bind(hint_key, label))
+
+
+## Finalize hint removal after animation completes.
+## Mirrors labyrinth_level.gd _finalize_tutorial_hint_dismiss().
+func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
+	_animating_hints.erase(hint_key)
+	_hint_labels.erase(hint_key)
+	_hint_strike_lines.erase(hint_key)
+	_hint_strike_progress.erase(hint_key)
+	_hint_line_counts.erase(hint_key)
+	_hint_line_widths.erase(hint_key)
+	if is_instance_valid(label):
+		label.queue_free()
+	_log_to_file("Hint '%s' dismissed (animation complete)" % hint_key)
+
+
+## Dismiss all hints with strikethrough-then-fade-out animation.
+func dismiss_hints() -> void:
+	_dismiss_timer.stop()
+	_hints_showing = false
+
+	for hint_key in _hint_labels.keys():
+		_dismiss_hint(hint_key)
+
+	_log_to_file("All hints dismissed")
+
+
+## Dismiss hints immediately without animation (used when weapon changes mid-display).
+func _dismiss_hints_immediate() -> void:
+	_dismiss_timer.stop()
+	_hints_showing = false
+
+	for hint_key in _hint_labels.keys():
+		var label: RichTextLabel = _hint_labels[hint_key]
+		if label != null and is_instance_valid(label):
+			label.queue_free()
+
+	_hint_labels.clear()
+	_hint_strike_lines.clear()
+	_hint_strike_progress.clear()
+	_hint_line_counts.clear()
+	_hint_line_widths.clear()
+	_animating_hints.clear()
+	_log_to_file("All hints dismissed immediately")
+
 
 ## Update positions of all hint labels to float above the player.
-## Uses canvas_transform matching Labyrinth _update_tutorial_hint_positions().
+## Mirrors labyrinth_level.gd _update_tutorial_hint_positions().
 func _update_hint_positions() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
@@ -291,37 +505,7 @@ func _update_hint_positions() -> void:
 		index += 1
 
 
-## Dismiss all hints with fade-out animation.
-func dismiss_hints() -> void:
-	_dismiss_timer.stop()
-	_hints_showing = false
-
-	for hint_key in _hint_labels.keys():
-		var label: RichTextLabel = _hint_labels[hint_key]
-		if label != null and is_instance_valid(label):
-			var tween := create_tween()
-			tween.tween_property(label, "modulate:a", 0.0, HINT_FADE_OUT_DURATION).set_ease(Tween.EASE_IN)
-			tween.tween_callback(label.queue_free)
-
-	_hint_labels.clear()
-	_log_to_file("All hints dismissed")
-
-
-## Dismiss hints immediately without animation (used when weapon changes).
-func _dismiss_hints_immediate() -> void:
-	_dismiss_timer.stop()
-	_hints_showing = false
-
-	for hint_key in _hint_labels.keys():
-		var label: RichTextLabel = _hint_labels[hint_key]
-		if label != null and is_instance_valid(label):
-			label.queue_free()
-
-	_hint_labels.clear()
-	_log_to_file("All hints dismissed immediately")
-
-
-## Called when the dismiss timer times out.
+## Called when the dismiss timer times out — dismiss all with strikethrough animation.
 func _on_dismiss_timer_timeout() -> void:
 	dismiss_hints()
 
@@ -344,6 +528,11 @@ func _exit_tree() -> void:
 		if label != null and is_instance_valid(label):
 			label.queue_free()
 	_hint_labels.clear()
+	_hint_strike_lines.clear()
+	_hint_strike_progress.clear()
+	_hint_line_counts.clear()
+	_hint_line_widths.clear()
+	_animating_hints.clear()
 
 
 ## Log a message to the file logger if available.
