@@ -428,7 +428,7 @@ func test_get_all_active_item_types() -> void:
 	assert_true(7 in types)
 	assert_true(8 in types)
 	assert_true(9 in types)
-	assert_true(10 in types)
+	assert_true(10 in types)  # LOUDSPEAKER (Issue #959)
 
 
 func test_get_active_item_name_none() -> void:
@@ -627,7 +627,7 @@ class MockArmoryWithActiveItems:
 		7: {"name": "Force Field", "description": "Force field — hold Space to activate"},
 		8: {"name": "Trajectory Glasses", "description": "Trajectory glasses — ricochet visualization"},
 		9: {"name": "Laser Sight", "description": "Laser sight — passive"},
-		10: {"name": "Ricochet Points", "description": "Ricochet Points — passive: +30% ricochet chance"}
+		10: {"name": "Loudspeaker", "description": "Loudspeaker — press Space to emit sound cone"}
 	}
 
 	## Applied active item type
@@ -954,10 +954,12 @@ func test_armory_select_trajectory_glasses() -> void:
 
 func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void:
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
-	# Its effect is now part of Trajectory Glasses. Ensure no item at index 10 exists.
+	# Its effect is now part of Trajectory Glasses. Index 10 is now LOUDSPEAKER (Issue #959).
 	var data := manager.get_active_item_data(10)
-	assert_true(data.is_empty(),
-		"There should be no active item at index 10 — RICOCHET_POINTS was removed (Issue #1028)")
+	assert_false(data.is_empty(),
+		"Index 10 should be LOUDSPEAKER — RICOCHET_POINTS was removed (Issue #1028), LOUDSPEAKER added (Issue #959)")
+	assert_eq(data.get("name", ""), "Loudspeaker",
+		"Item at index 10 should be Loudspeaker (Issue #959)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:

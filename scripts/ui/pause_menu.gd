@@ -16,6 +16,7 @@ extends CanvasLayer
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var training_button: Button = $MenuContainer/VBoxContainer/TrainingButton
 @onready var sound_button: Button = $MenuContainer/VBoxContainer/SoundButton
+@onready var gameplay_button: Button = $MenuContainer/VBoxContainer/GameplayButton
 @onready var experimental_button: Button = $MenuContainer/VBoxContainer/ExperimentalButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
@@ -31,6 +32,9 @@ var _levels_menu: CanvasLayer = null
 ## The instantiated experimental menu.
 var _experimental_menu: CanvasLayer = null
 
+## The instantiated gameplay menu.
+var _gameplay_menu: CanvasLayer = null
+
 ## The instantiated armory menu.
 var _armory_menu: CanvasLayer = null
 
@@ -45,6 +49,9 @@ var _sound_menu: CanvasLayer = null
 
 ## Reference to the experimental menu scene.
 @export var experimental_menu_scene: PackedScene
+
+## Reference to the gameplay menu scene.
+@export var gameplay_menu_scene: PackedScene
 
 ## Reference to the armory menu scene.
 @export var armory_menu_scene: PackedScene
@@ -66,6 +73,7 @@ func _ready() -> void:
 	levels_button.pressed.connect(_on_levels_pressed)
 	training_button.pressed.connect(_on_training_pressed)
 	sound_button.pressed.connect(_on_sound_pressed)
+	gameplay_button.pressed.connect(_on_gameplay_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
@@ -87,6 +95,10 @@ func _ready() -> void:
 	# Preload experimental menu if not set
 	if experimental_menu_scene == null:
 		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
+
+	# Preload gameplay menu if not set
+	if gameplay_menu_scene == null:
+		gameplay_menu_scene = preload("res://scenes/ui/GameplayMenu.tscn")
 
 	# Preload armory menu if not set
 	if armory_menu_scene == null:
@@ -130,6 +142,8 @@ func pause_game() -> void:
 		_armory_menu.hide()
 	if _sound_menu and _sound_menu.visible:
 		_sound_menu.hide()
+	if _gameplay_menu and _gameplay_menu.visible:
+		_gameplay_menu.hide()
 
 	# Ensure main menu container is visible
 	menu_container.show()
@@ -171,6 +185,10 @@ func resume_game() -> void:
 	# Also close sound menu if open
 	if _sound_menu and _sound_menu.visible:
 		_sound_menu.hide()
+
+	# Also close gameplay menu if open
+	if _gameplay_menu and _gameplay_menu.visible:
+		_gameplay_menu.hide()
 
 
 func _on_resume_pressed() -> void:
@@ -306,6 +324,26 @@ func _on_sound_back() -> void:
 		_sound_menu.hide()
 	menu_container.show()
 	sound_button.grab_focus()
+
+
+func _on_gameplay_pressed() -> void:
+	# Hide main menu, show gameplay menu
+	menu_container.hide()
+
+	if _gameplay_menu == null:
+		_gameplay_menu = gameplay_menu_scene.instantiate()
+		_gameplay_menu.back_pressed.connect(_on_gameplay_back)
+		add_child(_gameplay_menu)
+	else:
+		_gameplay_menu.show()
+
+
+func _on_gameplay_back() -> void:
+	# Show main menu again
+	if _gameplay_menu:
+		_gameplay_menu.hide()
+	menu_container.show()
+	gameplay_button.grab_focus()
 
 
 func _on_experimental_pressed() -> void:

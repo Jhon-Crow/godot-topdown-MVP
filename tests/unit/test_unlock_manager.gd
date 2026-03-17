@@ -321,10 +321,73 @@ class TestableUnlockManager extends Node:
 					if item_type in mock_active_item_manager.unlocked_active_items:
 						mock_active_item_manager.unlocked_active_items[item_type] = false
 
-	# reset_and_apply_all_unlocks now only resets (no auto-applying).
-	# Items stay locked until the player holds LMB on the gold armory slot.
+	# reset_and_apply_all_unlocks snapshots saved unlock state, resets, then restores
+	# items that were saved AND whose condition is met (Issue #1052).
 	func reset_and_apply_all_unlocks() -> void:
+		var saved_weapons: Array[String] = _get_unlocked_condition_gated_weapons()
+		var saved_grenades: Array[int] = _get_unlocked_condition_gated_grenades()
+		var saved_active_items: Array[int] = _get_unlocked_condition_gated_active_items()
 		reset_condition_gated_items()
+		_restore_saved_unlocks(saved_weapons, saved_grenades, saved_active_items)
+
+	func _get_unlocked_condition_gated_weapons() -> Array[String]:
+		var result: Array[String] = []
+		if not mock_game_manager:
+			return result
+		for condition_key in UNLOCK_CONDITIONS:
+			for weapon_id in UNLOCK_CONDITIONS[condition_key].get("weapons", []):
+				if weapon_id not in result and mock_game_manager.unlocked_weapons.get(weapon_id, false):
+					result.append(weapon_id)
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			for weapon_id in multi_condition.get("weapons", []):
+				if weapon_id not in result and mock_game_manager.unlocked_weapons.get(weapon_id, false):
+					result.append(weapon_id)
+		return result
+
+	func _get_unlocked_condition_gated_grenades() -> Array[int]:
+		var result: Array[int] = []
+		if not mock_grenade_manager:
+			return result
+		for condition_key in UNLOCK_CONDITIONS:
+			for grenade_type in UNLOCK_CONDITIONS[condition_key].get("grenades", []):
+				if grenade_type not in result and mock_grenade_manager.unlocked_grenades.get(grenade_type, false):
+					result.append(grenade_type)
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			for grenade_type in multi_condition.get("grenades", []):
+				if grenade_type not in result and mock_grenade_manager.unlocked_grenades.get(grenade_type, false):
+					result.append(grenade_type)
+		return result
+
+	func _get_unlocked_condition_gated_active_items() -> Array[int]:
+		var result: Array[int] = []
+		if not mock_active_item_manager:
+			return result
+		for condition_key in UNLOCK_CONDITIONS:
+			for item_type in UNLOCK_CONDITIONS[condition_key].get("active_items", []):
+				if item_type not in result and mock_active_item_manager.unlocked_active_items.get(item_type, false):
+					result.append(item_type)
+		for multi_condition in MULTI_UNLOCK_CONDITIONS:
+			for item_type in multi_condition.get("active_items", []):
+				if item_type not in result and mock_active_item_manager.unlocked_active_items.get(item_type, false):
+					result.append(item_type)
+		return result
+
+	func _restore_saved_unlocks(
+			weapons: Array[String],
+			grenades: Array[int],
+			active_items: Array[int]) -> void:
+		for weapon_id in weapons:
+			if mock_game_manager and is_weapon_condition_met(weapon_id):
+				if weapon_id in mock_game_manager.unlocked_weapons:
+					mock_game_manager.unlocked_weapons[weapon_id] = true
+		for grenade_type in grenades:
+			if mock_grenade_manager and is_grenade_condition_met(grenade_type):
+				if grenade_type in mock_grenade_manager.unlocked_grenades:
+					mock_grenade_manager.unlocked_grenades[grenade_type] = true
+		for item_type in active_items:
+			if mock_active_item_manager and is_active_item_condition_met(item_type):
+				if item_type in mock_active_item_manager.unlocked_active_items:
+					mock_active_item_manager.unlocked_active_items[item_type] = true
 
 	## Check if any item has its unlock condition met but is not yet unlocked.
 	## Used to highlight the Armory button in the pause menu and score screen (Issue #897).
@@ -887,25 +950,7 @@ func test_reset_condition_gated_resets_active_items_to_locked() -> void:
 		"Homing Bullets should be re-locked after reset")
 
 
-func test_reset_and_apply_removes_invalid_unlocks_condition_met() -> void:
-	# Simulate corrupt save: revolver incorrectly unlocked
-	game_manager.unlocked_weapons["revolver"] = true
-
-	# Set Castle progress to F (condition met)
-	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
-
-	# reset_and_apply now ONLY resets — no auto-applying.
-	# Revolver ends up locked; the player must use LMB in the armory.
-	unlock_manager.reset_and_apply_all_unlocks()
-
-	assert_false(game_manager.is_weapon_unlocked("revolver"),
-		"Revolver should be locked after reset — player must hold LMB to unlock")
-	# But the condition IS met (gold slot shows in armory)
-	assert_true(unlock_manager.is_weapon_condition_met("revolver"),
-		"Revolver condition IS met — the slot will show gold in the armory")
-
-
-func test_reset_and_apply_removes_invalid_unlocks() -> void:
+func test_reset_and_apply_removes_invalid_unlocks_condition_not_met() -> void:
 	# Simulate corrupt save: mini_uzi incorrectly unlocked (no Labyrinth progress)
 	game_manager.unlocked_weapons["mini_uzi"] = true
 
@@ -913,9 +958,85 @@ func test_reset_and_apply_removes_invalid_unlocks() -> void:
 	unlock_manager.reset_and_apply_all_unlocks()
 
 	assert_false(game_manager.is_weapon_unlocked("mini_uzi"),
-		"mini_uzi should be locked after reset (Labyrinth condition not met)")
+		"mini_uzi should be locked after reset (Labyrinth condition not met — corrupt save)")
 	assert_false(unlock_manager.is_weapon_condition_met("mini_uzi"),
 		"mini_uzi condition is also not met — slot stays plain locked (no gold)")
+
+
+func test_reset_and_apply_removes_invalid_unlocks() -> void:
+	# Alias kept for compatibility — same scenario as above.
+	test_reset_and_apply_removes_invalid_unlocks_condition_not_met()
+
+
+# ============================================================================
+# Issue #1052: Saved unlocks must survive reset on game restart
+# ============================================================================
+
+
+func test_saved_weapon_unlock_survives_restart_when_condition_met() -> void:
+	# Player earned the condition AND held LMB (item now saved as unlocked).
+	# Simulate: PersistManager already restored this from save file.
+	progress_manager.set_rank("res://scenes/levels/CastleLevel.tscn", "Normal", "F")
+	game_manager.unlocked_weapons["revolver"] = true  # saved state
+
+	# Simulate game restart: _reset_and_apply_all_unlocks fires deferred.
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(game_manager.is_weapon_unlocked("revolver"),
+		"Revolver should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_saved_grenade_unlock_survives_restart_when_condition_met() -> void:
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "D")
+	grenade_manager.unlocked_grenades[1] = true  # FRAG, saved state
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(grenade_manager.is_grenade_unlocked(1),
+		"Frag grenade should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_saved_active_item_unlock_survives_restart_when_condition_met() -> void:
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "D")
+	active_item_manager.unlocked_active_items[1] = true  # FLASHLIGHT, saved state
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(active_item_manager.is_active_item_unlocked(1),
+		"Flashlight should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_corrupt_save_weapon_stays_locked_when_condition_not_met() -> void:
+	# Corrupt save: revolver unlocked but Castle was never completed.
+	# No progress set — condition not met.
+	game_manager.unlocked_weapons["revolver"] = true
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_false(game_manager.is_weapon_unlocked("revolver"),
+		"Revolver should be locked — condition not met, treating save as corrupt (Issue #1052)")
+
+
+func test_multi_condition_item_survives_restart_when_conditions_met() -> void:
+	# INVISIBILITY_SUIT requires Beach S + Building S.
+	progress_manager.set_rank("res://scenes/levels/BeachLevel.tscn", "Normal", "S")
+	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
+	active_item_manager.unlocked_active_items[5] = true  # INVISIBILITY_SUIT, saved state
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_true(active_item_manager.is_active_item_unlocked(5),
+		"Invisibility should remain unlocked after restart — player already opened the case (Issue #1052)")
+
+
+func test_multi_condition_item_stays_locked_when_condition_not_met() -> void:
+	# Corrupt save: INVISIBILITY_SUIT saved as unlocked but conditions not met.
+	active_item_manager.unlocked_active_items[5] = true
+
+	unlock_manager.reset_and_apply_all_unlocks()
+
+	assert_false(active_item_manager.is_active_item_unlocked(5),
+		"Invisibility should be locked — multi-conditions not met, treating save as corrupt (Issue #1052)")
 
 
 # ============================================================================

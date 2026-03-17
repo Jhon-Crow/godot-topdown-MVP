@@ -816,6 +816,59 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Breaching Charges System (Issue #1043)
+
+    /// <summary>
+    /// Whether breaching charges are equipped (active item selected in armory).
+    /// </summary>
+    private bool _breachingChargesEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript breaching charges effect node.
+    /// </summary>
+    private Node? _breachingChargesEffect = null;
+
+    /// <summary>
+    /// Whether Space is currently held for placement detection.
+    /// </summary>
+    private bool _breachingHoldingForPlacement = false;
+
+    #endregion
+
+    #region Loudspeaker System (Issue #959)
+
+    /// <summary>
+    /// Whether the loudspeaker is equipped (active item selected in armory).
+    /// </summary>
+    private bool _loudspeakerEquipped = false;
+
+    /// <summary>
+    /// Reference to the GDScript loudspeaker cone visual effect node.
+    /// </summary>
+    private Node2D? _loudspeakerConeEffect = null;
+
+    /// <summary>
+    /// Reference to the GDScript loudspeaker progress tracker.
+    /// </summary>
+    private Node? _loudspeakerProgress = null;
+
+    /// <summary>
+    /// Sprite shown in player's hands while loudspeaker is held after activation.
+    /// </summary>
+    private Sprite2D? _loudspeakerHandSprite = null;
+
+    /// <summary>
+    /// Timer controlling how long the loudspeaker sprite stays visible.
+    /// </summary>
+    private float _loudspeakerHoldTimer = 0.0f;
+
+    /// <summary>
+    /// Duration (seconds) the loudspeaker sprite is shown after activation.
+    /// </summary>
+    private const float LoudspeakerHoldDuration = 0.6f;
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -1102,6 +1155,12 @@ public partial class Player : BaseCharacter
 
         // Initialize trajectory glasses if active item manager has them selected (Issue #744)
         InitTrajectoryGlasses();
+
+        // Initialize breaching charges if active item manager has them selected (Issue #1043)
+        InitBreachingCharges();
+
+        // Initialize loudspeaker if active item manager has it selected (Issue #959)
+        InitLoudspeaker();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1400,6 +1459,12 @@ public partial class Player : BaseCharacter
 
         // Handle trajectory glasses input (press Space to activate) (Issue #744)
         HandleTrajectoryGlassesInput();
+
+        // Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
+        HandleBreachingChargesInput();
+
+        // Handle loudspeaker input (press Space to emit sound cone) (Issue #959)
+        HandleLoudspeakerInput((float)delta);
 
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
@@ -5470,27 +5535,34 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Called when trajectory glasses activate.
-    /// Shows combined progress bar with charge pips + timer (Issue #974).
+    /// Called when trajectory glasses activate (Issue #1049).
+    /// Shows charge pips via the HUD for 300ms, then auto-hides — no progress bar.
     /// </summary>
     private void OnTrajectoryActivated(int chargesRemaining)
     {
-        _trajectoryBarVisible = true;
         _trajectoryBarCharges = chargesRemaining;
-        _trajectoryChargeBarPending = false;
+        // Show HUD charge pips briefly via the GDScript HUD node (Issue #1049)
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+        {
+            _trajectoryGlassesHud.Call("update_charges", chargesRemaining, TrajectoryGlassesMaxCharges);
+            _trajectoryGlassesHud.Call("set_active", true);
+        }
         QueueRedraw();
     }
 
     /// <summary>
-    /// Called when trajectory glasses deactivate.
-    /// Shows charge bar briefly then hides (Issue #974).
+    /// Called when trajectory glasses deactivate (Issue #1049).
+    /// Hides the HUD immediately — no lingering charge bar.
     /// </summary>
     private void OnTrajectoryDeactivated(int chargesRemaining)
     {
-        _trajectoryBarVisible = false;
         _trajectoryBarCharges = chargesRemaining;
-        _trajectoryChargeBarPending = true;
-        _trajectoryChargeBarHideTimer = TrajectoryChargeBarHideDelay;
+        // Hide HUD immediately on deactivation (Issue #1049)
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+        {
+            _trajectoryGlassesHud.Call("update_charges", chargesRemaining, TrajectoryGlassesMaxCharges);
+            _trajectoryGlassesHud.Call("set_active", false);
+        }
         QueueRedraw();
     }
 
@@ -5636,6 +5708,401 @@ public partial class Player : BaseCharacter
         if (!IsInstanceValid(_forceFieldEffect))
             return false;
         return (bool)_forceFieldEffect.Call("is_protecting");
+    }
+
+    #endregion
+
+    #region Breaching Charges Methods (Issue #1043)
+
+    /// <summary>
+    /// Initialize breaching charges if the ActiveItemManager has them selected (Issue #1043).
+    /// Loads and instantiates the GDScript breaching_charges_effect.gd controller.
+    /// </summary>
+    private void InitBreachingCharges()
+    {
+        LogToFile("[Player.BreachingCharges] Checking breaching charges...");
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.BreachingCharges] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_breaching_charges"))
+        {
+            LogToFile("[Player.BreachingCharges] ActiveItemManager missing has_breaching_charges method");
+            return;
+        }
+
+        bool hasBreachingCharges = (bool)activeItemManager.Call("has_breaching_charges");
+        if (!hasBreachingCharges)
+        {
+            LogToFile("[Player.BreachingCharges] No breaching charges selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.BreachingCharges] Breaching charges selected, initializing...");
+
+        // Load and instantiate the GDScript effect controller
+        var effectScript = GD.Load<Script>("res://scripts/effects/breaching_charges_effect.gd");
+        if (effectScript == null)
+        {
+            LogToFile("[Player.BreachingCharges] WARNING: Failed to load breaching_charges_effect.gd");
+            return;
+        }
+
+        _breachingChargesEffect = new Node();
+        _breachingChargesEffect.SetScript(effectScript);
+        _breachingChargesEffect.Name = "BreachingChargesEffect";
+        AddChild(_breachingChargesEffect);
+
+        // Initialize with player reference
+        _breachingChargesEffect.Call("initialize", this);
+
+        _breachingChargesEquipped = true;
+        int charges = (int)_breachingChargesEffect.Call("get_charges");
+        LogToFile($"[Player.BreachingCharges] Breaching charges equipped, charges: {charges}");
+    }
+
+    /// <summary>
+    /// Handle breaching charges input:
+    /// - Hold Space near a wall and release → place a charge
+    /// - Press Space when a charge is placed → detonate
+    /// </summary>
+    private void HandleBreachingChargesInput()
+    {
+        if (!_breachingChargesEquipped || _breachingChargesEffect == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_breachingChargesEffect))
+        {
+            return;
+        }
+
+        // If a charge is placed, press Space to detonate
+        bool hasPlacedCharge = (bool)_breachingChargesEffect.Get("has_placed_charge");
+        if (hasPlacedCharge)
+        {
+            if (Input.IsActionJustPressed("flashlight_toggle"))
+            {
+                bool detonated = (bool)_breachingChargesEffect.Call("detonate");
+                if (detonated)
+                {
+                    LogToFile("[Player.BreachingCharges] Charge detonated");
+                }
+            }
+            return;
+        }
+
+        // No charge placed yet: hold Space near a wall, release to place
+        if (Input.IsActionJustReleased("flashlight_toggle") && _breachingHoldingForPlacement)
+        {
+            _breachingHoldingForPlacement = false;
+            // Notify effect: no longer holding (hides in-hand sprite)
+            _breachingChargesEffect.Call("set_holding_for_placement", false);
+            bool placed = (bool)_breachingChargesEffect.Call("try_place_charge");
+            if (placed)
+            {
+                LogToFile("[Player.BreachingCharges] Charge placed");
+            }
+        }
+        else if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            int charges = (int)_breachingChargesEffect.Call("get_charges");
+            if (charges > 0 && !_breachingHoldingForPlacement)
+            {
+                _breachingHoldingForPlacement = true;
+                // Notify effect: started holding (shows in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", true);
+            }
+        }
+        else if (Input.IsActionJustReleased("flashlight_toggle"))
+        {
+            if (_breachingHoldingForPlacement)
+            {
+                _breachingHoldingForPlacement = false;
+                // Notify effect: released without placing (hides in-hand sprite)
+                _breachingChargesEffect.Call("set_holding_for_placement", false);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Loudspeaker Methods (Issue #959)
+
+    /// <summary>
+    /// Initialize the loudspeaker if the ActiveItemManager has it selected (Issue #959).
+    /// Loads and instantiates the GDScript loudspeaker_progress and loudspeaker_cone_effect controllers.
+    /// </summary>
+    private void InitLoudspeaker()
+    {
+        LogToFile("[Player.Loudspeaker] Checking loudspeaker...");
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Loudspeaker] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_loudspeaker"))
+        {
+            LogToFile("[Player.Loudspeaker] ActiveItemManager missing has_loudspeaker method");
+            return;
+        }
+
+        bool hasLoudspeaker = (bool)activeItemManager.Call("has_loudspeaker");
+        if (!hasLoudspeaker)
+        {
+            LogToFile("[Player.Loudspeaker] No loudspeaker selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.Loudspeaker] Loudspeaker selected, initializing...");
+
+        // Load and instantiate the progress tracker
+        var progressScript = GD.Load<Script>("res://scripts/components/loudspeaker_progress.gd");
+        if (progressScript == null)
+        {
+            LogToFile("[Player.Loudspeaker] WARNING: Failed to load loudspeaker_progress.gd");
+            return;
+        }
+
+        _loudspeakerProgress = new Node();
+        _loudspeakerProgress.SetScript(progressScript);
+        _loudspeakerProgress.Name = "LoudspeakerProgress";
+        AddChild(_loudspeakerProgress);
+
+        // Load and instantiate the cone visual effect
+        var coneScript = GD.Load<Script>("res://scripts/effects/loudspeaker_cone_effect.gd");
+        if (coneScript == null)
+        {
+            LogToFile("[Player.Loudspeaker] WARNING: Failed to load loudspeaker_cone_effect.gd");
+            return;
+        }
+
+        _loudspeakerConeEffect = new Node2D();
+        _loudspeakerConeEffect.SetScript(coneScript);
+        _loudspeakerConeEffect.Name = "LoudspeakerConeEffect";
+        _loudspeakerConeEffect.ZIndex = 1;
+        AddChild(_loudspeakerConeEffect);
+        _loudspeakerConeEffect.Call("initialize", this);
+
+        _loudspeakerEquipped = true;
+
+        // Initialize charges for the current level (Issue #959)
+        _loudspeakerProgress.Call("reset_for_new_level");
+
+        // Create in-hand sprite shown during activation
+        const string LoudspeakerTexturePath = "res://assets/sprites/weapons/loudspeaker_icon.png";
+        if (ResourceLoader.Exists(LoudspeakerTexturePath))
+        {
+            _loudspeakerHandSprite = new Sprite2D();
+            _loudspeakerHandSprite.Texture = GD.Load<Texture2D>(LoudspeakerTexturePath);
+            _loudspeakerHandSprite.Name = "LoudspeakerHandSprite";
+            _loudspeakerHandSprite.Visible = false;
+            _loudspeakerHandSprite.Scale = new Vector2(0.6f, 0.6f);
+            _loudspeakerHandSprite.Position = new Vector2(10, 0);
+            _loudspeakerHandSprite.ZIndex = 2;
+
+            if (_weaponMount != null)
+                _weaponMount.AddChild(_loudspeakerHandSprite);
+            else
+                AddChild(_loudspeakerHandSprite);
+        }
+
+        int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
+        int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
+        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}");
+    }
+
+    /// <summary>
+    /// Handle loudspeaker input and hold-timer each frame (Issue #959).
+    /// Press Space to emit a sound cone that pacifies nearby enemies.
+    /// </summary>
+    private void HandleLoudspeakerInput(float delta)
+    {
+        if (!_loudspeakerEquipped || _loudspeakerProgress == null)
+            return;
+
+        // Update cooldown timer every frame
+        _loudspeakerProgress.Call("update", (double)delta);
+
+        // Update in-hand sprite hold timer
+        if (_loudspeakerHoldTimer > 0.0f)
+        {
+            _loudspeakerHoldTimer -= delta;
+            if (_loudspeakerHoldTimer <= 0.0f)
+            {
+                _loudspeakerHoldTimer = 0.0f;
+                // Restore weapon visibility and hide loudspeaker sprite
+                if (_weaponMount != null)
+                {
+                    foreach (Node child in _weaponMount.GetChildren())
+                    {
+                        if (child != _loudspeakerHandSprite && child is CanvasItem canvasItem)
+                            canvasItem.Visible = true;
+                    }
+                }
+                if (_loudspeakerHandSprite != null && IsInstanceValid(_loudspeakerHandSprite))
+                    _loudspeakerHandSprite.Visible = false;
+            }
+        }
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+            return;
+
+        bool canActivate = (bool)_loudspeakerProgress.Call("can_activate");
+        if (!canActivate)
+        {
+            LogToFile("[Player.Loudspeaker] Cannot activate: no charges or cooldown active");
+            return;
+        }
+
+        // Determine if this is the first use before consuming the charge
+        bool usedThisLevel = (bool)_loudspeakerProgress.Get("used_this_level");
+        bool isFirstUse = !usedThisLevel;
+
+        // Consume charge / start cooldown
+        _loudspeakerProgress.Call("use");
+
+        // Get aim direction (toward mouse cursor)
+        Vector2 aimDir = LoudspeakerGetAimDirection();
+
+        // Show loudspeaker in player's hands: hide weapon, show loudspeaker sprite
+        if (_loudspeakerHandSprite != null && IsInstanceValid(_loudspeakerHandSprite))
+        {
+            _loudspeakerHandSprite.Visible = true;
+            if (_weaponMount != null)
+            {
+                foreach (Node child in _weaponMount.GetChildren())
+                {
+                    if (child != _loudspeakerHandSprite && child is CanvasItem canvasItem)
+                        canvasItem.Visible = false;
+                }
+            }
+            _loudspeakerHoldTimer = LoudspeakerHoldDuration;
+        }
+
+        // Show the cone visual effect
+        if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
+            _loudspeakerConeEffect.Call("play", aimDir);
+
+        // Effect chance: first use is always 100%, subsequent uses depend on level
+        float effectChance = isFirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+
+        // Notify all enemies on the map that a loud sound was made
+        LoudspeakerAlertAllEnemies();
+
+        // Apply pacifism effect to enemies in the cone sector
+        float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
+        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
+
+        int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
+        int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
+        LogToFile($"[Player.Loudspeaker] Activated! Direction: {aimDir}, Effect chance: {effectChance * 100.0f:F0}%, Charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "∞")}");
+    }
+
+    /// <summary>
+    /// Returns the current aim direction (toward mouse cursor).
+    /// </summary>
+    private Vector2 LoudspeakerGetAimDirection()
+    {
+        var mousePos = GetGlobalMousePosition();
+        var diff = mousePos - GlobalPosition;
+        if (diff.Length() > 1.0f)
+            return diff.Normalized();
+        if (Velocity.Length() > 1.0f)
+            return Velocity.Normalized();
+        return Vector2.Right;
+    }
+
+    /// <summary>
+    /// Alert all enemies on the map that the loudspeaker was used (Issue #959).
+    /// Per spec: all enemies on the whole map hear the player when this item is used.
+    /// </summary>
+    private void LoudspeakerAlertAllEnemies()
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int alerted = 0;
+        foreach (var enemy in enemies)
+        {
+            if (enemy.HasMethod("alert_from_loudspeaker"))
+            {
+                enemy.Call("alert_from_loudspeaker", GlobalPosition);
+                alerted++;
+            }
+            else if (enemy.HasMethod("alert"))
+            {
+                enemy.Call("alert", GlobalPosition);
+                alerted++;
+            }
+        }
+        LogToFile($"[Player.Loudspeaker] Alerted {alerted} enemies");
+    }
+
+    /// <summary>
+    /// Apply the loudspeaker pacifism effect to enemies in the cone sector (Issue #959, Stage 5).
+    /// Rules: 50° half-angle cone, line-of-sight check, cover-within-500px exception,
+    /// only unattacked enemies, effect_chance roll, hostility_chance roll per enemy.
+    /// </summary>
+    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance)
+    {
+        const float ConeHalfAngle = 0.872664625997f; // 50 degrees in radians
+        const float CoverMaxDistance = 500.0f;
+        const int WallMask = 4; // Physics layer for walls
+
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int pacifiedCount = 0;
+        var spaceState = GetWorld2D().DirectSpaceState;
+
+        foreach (var enemy in enemies)
+        {
+            if (!enemy.HasMethod("apply_pacifism"))
+                continue;
+            if (!enemy.HasMethod("is_alive") || !(bool)enemy.Call("is_alive"))
+                continue;
+            if (enemy.HasMethod("is_pacifist") && (bool)enemy.Call("is_pacifist"))
+                continue; // Already pacifist
+            if (enemy.HasMethod("was_attacked_by_player") && (bool)enemy.Call("was_attacked_by_player"))
+                continue; // Only unattacked enemies can be pacified
+
+            var enemyNode2D = (Node2D)enemy;
+            var toEnemy = enemyNode2D.GlobalPosition - GlobalPosition;
+            float dist = toEnemy.Length();
+            if (dist < 0.1f)
+                continue;
+
+            // Check cone angle
+            float angleToEnemy = Math.Abs(direction.AngleTo(toEnemy.Normalized()));
+            if (angleToEnemy > ConeHalfAngle)
+                continue;
+
+            // Line-of-sight check (raycast to enemy)
+            var ray = PhysicsRayQueryParameters2D.Create(GlobalPosition, enemyNode2D.GlobalPosition, WallMask);
+            ray.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+            var result = spaceState.IntersectRay(ray);
+            bool behindWall = result.Count > 0;
+
+            // If behind a wall, skip — unless within 500px (cover rule)
+            if (behindWall && dist > CoverMaxDistance)
+                continue;
+
+            // Roll effect chance
+            if (GD.Randf() > effectChance)
+                continue;
+
+            // Apply pacifism
+            if ((bool)enemy.Call("apply_pacifism", hostilityChance))
+            {
+                pacifiedCount++;
+                LogToFile($"[Player.Loudspeaker] Pacified enemy at {enemyNode2D.GlobalPosition} (dist={dist:F0}, cover={behindWall})");
+            }
+        }
+
+        LogToFile($"[Player.Loudspeaker] Effect applied: {pacifiedCount}/{enemies.Count} enemies pacified");
     }
 
     #endregion
@@ -5788,20 +6255,9 @@ public partial class Player : BaseCharacter
             }
         }
 
-        // Draw trajectory glasses progress bar (Issue #974)
-        if (_trajectoryGlassesEquipped)
-        {
-            if (_trajectoryBarVisible)
-            {
-                // Show combined bar (charge pips + timer) while active
-                DrawTrajectoryGlassesCombinedBar();
-            }
-            else if (_trajectoryChargeBarPending)
-            {
-                // Show charge-only bar briefly after deactivation
-                DrawTrajectoryGlassesChargeBar();
-            }
-        }
+        // Trajectory glasses progress bar removed (Issue #1049).
+        // Charge pips are shown by TrajectoryGlassesHUD for 300ms, then auto-hide.
+        // The trajectory ray blinks during the last 2 seconds as a low-time warning.
 
 
         // Draw teleport targeting reticle if aiming (Issue #672)
@@ -6271,21 +6727,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void UpdateTrajectoryBarTimer(float delta)
     {
-        if (_trajectoryChargeBarPending)
-        {
-            _trajectoryChargeBarHideTimer -= delta;
-            if (_trajectoryChargeBarHideTimer <= 0.0f)
-            {
-                _trajectoryChargeBarPending = false;
-                QueueRedraw();
-            }
-        }
-
-        // While trajectory glasses are active, keep redrawing to update the timer bar
-        if (_trajectoryBarVisible)
-        {
-            QueueRedraw();
-        }
+        // Trajectory glasses progress bar removed (Issue #1049).
+        // The HUD node (trajectory_glasses_hud.gd) handles its own 300ms auto-hide timer.
+        // No redraw loop needed here anymore.
+        _ = delta; // suppress unused-parameter warning
     }
 
     /// <summary>

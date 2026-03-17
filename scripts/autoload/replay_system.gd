@@ -630,6 +630,7 @@ func _play_frame_events(frame: Dictionary) -> void:
 ## Triggers hit saturation effect during replay without modifying Engine.time_scale.
 ## In normal gameplay, HitEffectsManager.on_player_hit_enemy() slows time to 0.8x,
 ## but during replay we only want the saturation boost visual (Issue #544 fix 4).
+## Issue #1023: Also triggers lightning flash in Black Metal mode.
 func _trigger_replay_hit_effect() -> void:
 	var hit_effects: Node = get_node_or_null("/root/HitEffectsManager")
 	if hit_effects == null:
@@ -644,6 +645,7 @@ func _trigger_replay_hit_effect() -> void:
 		var saved_time_scale := Engine.time_scale
 		hit_effects.on_player_hit_enemy()
 		Engine.time_scale = saved_time_scale
+
 
 
 ## Triggers penultimate hit visual effects during replay (Issue #544 fix 4).

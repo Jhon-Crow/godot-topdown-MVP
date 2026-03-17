@@ -296,7 +296,7 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_left", 16)
 	margin.add_theme_constant_override("margin_top", 12)
 	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_bottom", 24)
 	panel.add_child(margin)
 
 	# Main vertical layout (title + content + buttons)
@@ -396,6 +396,11 @@ func _build_ui() -> void:
 	apply_style_disabled.corner_radius_bottom_left = 4
 	apply_style_disabled.corner_radius_bottom_right = 4
 	_apply_button.add_theme_stylebox_override("disabled", apply_style_disabled)
+
+	# Bottom spacer for footer padding
+	var bottom_spacer := Control.new()
+	bottom_spacer.custom_minimum_size = Vector2(0, 8)
+	main_vbox.add_child(bottom_spacer)
 
 	# Initial highlight and stats
 	_highlight_selected_items()
