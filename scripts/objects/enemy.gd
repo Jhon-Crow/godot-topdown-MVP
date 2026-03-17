@@ -81,6 +81,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 @export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
+@export var has_force_field: bool = false  ## Whether this enemy has a Force Field (Issue #1034).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -115,6 +116,7 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm  ## Right arm sprite
 @onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite  ## Weapon sprite
 @onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount  ## Weapon mount
+@onready var _shield_icon: Sprite2D = $EnemyModel/WeaponMount/ShieldIcon  ## Blue shield icon shown on force field enemies (Issue #1079)
 @onready var _raycast: RayCast2D = $RayCast2D  ## Line of sight raycast
 @onready var _debug_label: Label = $DebugLabel  ## Debug state label
 @onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D  ## Pathfinding
@@ -351,6 +353,7 @@ var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas comp
 
 ## [Pacifism - Issue #959] Loudspeaker effect component
 var _pacifist: PacifistComponent = null  ## Pacifism state management
+var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -418,7 +421,7 @@ func _ready() -> void:
 	_setup_grenade_avoidance()
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
 	_pacifist = PacifistComponent.new(self)  # Issue #959
-	_setup_machete_component()  # Issue #579
+	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -881,7 +884,7 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
-	_update_suppression(delta)
+	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null))  # Issue #1034
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
@@ -1113,8 +1116,8 @@ func _update_suppression(delta: float) -> void:
 				_threat_reaction_delay_elapsed = true
 				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
 
-		# Only set under_fire after the reaction delay has elapsed
-		if _threat_reaction_delay_elapsed:
+		# Only set under_fire after delay; Issue #1034: ignore if force field is active.
+		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			_under_fire = true
 			_suppression_timer = 0.0
 
@@ -4131,9 +4134,8 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 ## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0).
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0) -> void:
-	if not _is_alive:
-		return
-
+	if not _is_alive: return
+	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
 	hit.emit()
 
 	# Store hit direction for death animation

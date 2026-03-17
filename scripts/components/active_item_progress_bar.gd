@@ -85,6 +85,11 @@ const PIP_HEIGHT: float = 4.0
 ## Timer bar fill color (bright cyan for visibility).
 const COLOR_TIMER_FILL: Color = Color(0.0, 0.9, 0.7, 0.9)
 
+## Optional override fill color. When not Color(0,0,0,0) (transparent), always use this color
+## instead of the dynamic high/medium/low colors. Set by callers that want a fixed color
+## (e.g. enemy force field recharge bar uses force-field blue — Issue #1034).
+var fill_color_override: Color = Color(0.0, 0.0, 0.0, 0.0)
+
 
 ## Show the progress bar with the given parameters.
 ## @param mode: DisplayMode.SEGMENTED or DisplayMode.CONTINUOUS
@@ -143,8 +148,11 @@ func update_value(current: float) -> void:
 		queue_redraw()
 
 
-## Get the fill color based on the current percentage.
+## Get the fill color based on the current percentage (or the override color if set).
 func _get_fill_color() -> Color:
+	# If an override color is set (non-transparent), always use it (Issue #1034).
+	if fill_color_override.a > 0.0:
+		return fill_color_override
 	if max_value <= 0.0:
 		return COLOR_FILL_LOW
 	var percent: float = current_value / max_value

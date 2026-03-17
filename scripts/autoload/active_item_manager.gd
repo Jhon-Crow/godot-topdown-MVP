@@ -17,7 +17,8 @@ enum ActiveItemType {
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
-	LOUDSPEAKER        # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
+	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
+	BREACHING_CHARGES  # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 }
 
 ## Currently selected active item type.
@@ -41,7 +42,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
 	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
-	ActiveItemType.LOUDSPEAKER: true           # No unlock condition — freely available from start (Issue #959)
+	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
+	ActiveItemType.BREACHING_CHARGES: true     # No unlock condition — freely available from start (Issue #1043)
 }
 
 ## Active item data for UI and selection.
@@ -107,6 +109,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
 		"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
 		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.BREACHING_CHARGES: {
+		"name": "Breaching Charges",
+		"icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
+		"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate: blasts open a passage in the wall. 2 charges per battle. Enemies on the other side are stunned and blinded for 3 seconds.",
+		"activation_hint": "Hold Space near wall to place, press Space to detonate"
 	}
 }
 
@@ -241,6 +249,11 @@ func has_laser_sight() -> bool:
 ## Check if loudspeaker is currently equipped (Issue #959).
 func has_loudspeaker() -> bool:
 	return current_active_item == ActiveItemType.LOUDSPEAKER
+
+
+## Check if breaching charges are currently equipped (Issue #1043).
+func has_breaching_charges() -> bool:
+	return current_active_item == ActiveItemType.BREACHING_CHARGES
 
 
 ## Get the laser sight color (purple).

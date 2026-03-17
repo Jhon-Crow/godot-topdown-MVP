@@ -50,6 +50,11 @@ const SHADER_PATH: String = "res://scripts/shaders/force_field.gdshader"
 ## Remaining charge in seconds.
 var remaining_charge: float = MAX_CHARGE
 
+## Whether this force field is owned by the player (true) or an enemy (false).
+## When false, the field traps player projectiles and ignores enemy projectiles.
+## Set to false by EnemyForceFieldComponent after instantiation (Issue #1034).
+var owner_is_player: bool = true
+
 ## Whether the force field is currently active.
 var is_active: bool = false
 
@@ -506,9 +511,13 @@ func _trap_bullet(bullet: Node2D) -> void:
 			has_direction, has_speed, bullet.get_class()])
 		return
 
-	# Skip player's own bullets — the force field only traps ENEMY projectiles (Issue #932).
-	if _is_player_projectile(bullet):
-		FileLogger.info("[ForceFieldEffect] Skipping player bullet — force field only traps enemy bullets (class=%s)" % bullet.get_class())
+	# Skip bullets that belong to the same team as the force field owner (Issue #1034).
+	# Player force field (owner_is_player=true): skip player bullets, trap enemy bullets.
+	# Enemy force field (owner_is_player=false): skip enemy bullets, trap player bullets.
+	var is_player_proj := _is_player_projectile(bullet)
+	var same_team := (owner_is_player and is_player_proj) or (not owner_is_player and not is_player_proj)
+	if same_team:
+		FileLogger.info("[ForceFieldEffect] Skipping same-team bullet (owner_is_player=%s, class=%s)" % [owner_is_player, bullet.get_class()])
 		return
 
 	# Already trapped? Skip.
@@ -554,9 +563,12 @@ func _trap_shrapnel(shrapnel: Node2D) -> void:
 	if _get_direction(shrapnel) == null:
 		return
 
-	# Skip player's own shrapnel — the force field only traps ENEMY projectiles (Issue #932).
-	if _is_player_projectile(shrapnel):
-		FileLogger.info("[ForceFieldEffect] Skipping player shrapnel — force field only traps enemy shrapnel (class=%s)" % shrapnel.get_class())
+	# Skip shrapnel from the same team as the force field owner (Issue #1034).
+	# Same logic as bullets: player field skips player shrapnel, enemy field skips enemy shrapnel.
+	var is_player_proj := _is_player_projectile(shrapnel)
+	var same_team := (owner_is_player and is_player_proj) or (not owner_is_player and not is_player_proj)
+	if same_team:
+		FileLogger.info("[ForceFieldEffect] Skipping same-team shrapnel (owner_is_player=%s, class=%s)" % [owner_is_player, shrapnel.get_class()])
 		return
 
 	# Already trapped? Skip.
