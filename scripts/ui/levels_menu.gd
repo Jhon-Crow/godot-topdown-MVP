@@ -114,10 +114,10 @@ const LEVELS: Array[Dictionary] = [
 		"name": "Labyrinth Complex",
 		"name_ru": "Лабиринт Комплекс",
 		"path": "res://scenes/levels/Labyrinth2Level.tscn",
-		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 14 enemies including a grenadier and armored M16 enemy.",
+		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 15 enemies including a grenadier, armored M16 enemy, and a machine gunner.",
 		"preview_color": Color(0.12, 0.14, 0.2, 1.0),
 		"preview_accent": Color(0.25, 0.3, 0.45, 1.0),
-		"enemy_count": 14,
+		"enemy_count": 15,
 		"map_size": "3200x2400"
 	}
 ]
