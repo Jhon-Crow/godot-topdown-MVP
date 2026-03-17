@@ -63,10 +63,34 @@ The issue requested a new enemy type characterized by:
   create case study in docs/case-studies/issue-1036
 
 2026-03-17 ~10:00 UTC
-  New AI session started (current session)
+  AI session started (session 2)
   - Merged main (212 commits merged, including DecadenceLevel.tscn)
   - Added RadioJammerEnemy to DecadenceLevel at position (1100, 900)
   - Created this case study
+
+2026-03-17 10:02 UTC
+  Jhon-Crow reports two bugs with game log:
+  1. Player can still use active items near the radio jammer
+  2. Requests a visible icon near the player when in jammer range
+
+2026-03-17 ~10:15 UTC
+  AI session started (session 3 — current session)
+  - Analyzed game log (game_log_20260317_125825.txt):
+    Player at (150,1900) to ~(200,1571), jammer at (1100,900) → always >1000px apart.
+    Player was never in jammer range — log does not prove jamming failure.
+  - Discovered root cause of potential jamming bug:
+    RadioWaveEffect is a child of EnemyModel, not RadioJammerEnemy.
+    get_parent() returns EnemyModel (Node2D without is_alive()), so the death
+    check `parent.has_method("is_alive")` always returns false, meaning the
+    jammer is never released on enemy death. Also enemy.global_position was
+    being read from EnemyModel.global_position (works for position, but the
+    is_alive() guard was broken).
+  - Fixed: RadioWaveEffect now uses get_parent().get_parent() to reach the
+    actual RadioJammerEnemy CharacterBody2D.
+  - Implemented JammerHUD: prohibition sign (red circle + diagonal bar) drawn
+    above the player using Node2D/_draw(), shown only when jammed AND the
+    player has an active item equipped (not NONE).
+  - Merged latest main (includes auto-reload, machete component, new case studies)
 ```
 
 ---
@@ -77,7 +101,7 @@ The issue requested a new enemy type characterized by:
 
 The game lacked a "support disruptor" enemy archetype — an enemy whose combat value comes not from dealing damage but from restricting player capabilities. The existing enemy system only supported combat-oriented enemies.
 
-### Technical Root Cause (CI Failure)
+### Technical Root Cause 1 (CI Failure)
 
 During initial implementation, the jamming logic was placed directly in `scripts/objects/enemy.gd`. This caused the file to exceed the CI line limit (500 lines), which the GitHub Actions workflow enforces via `scripts/ci/check_line_limits.sh`.
 
@@ -85,6 +109,22 @@ During initial implementation, the jamming logic was placed directly in `scripts
 - Respected the single-responsibility principle
 - Kept enemy.gd under the line limit
 - Made the visual effect and jamming logic encapsulated in one composable component
+
+### Technical Root Cause 2 (Parent Reference Bug)
+
+When the jamming logic was moved to `RadioWaveEffect`, the node was placed as a child of `EnemyModel` (for visual positioning), not directly under `RadioJammerEnemy`. This introduced a latent bug: `get_parent()` returned `EnemyModel` (a plain `Node2D`), not the enemy `CharacterBody2D`.
+
+**Consequence**: `parent.has_method("is_alive")` always returned `false` since `EnemyModel` has no `is_alive()` method. The condition `(parent.has_method("is_alive") and not parent.is_alive())` therefore never triggered, meaning:
+- The jammer was never released when the enemy died (jam persisted after death)
+- Enemy position was read from `EnemyModel.global_position` — which happened to be correct since `EnemyModel` has no positional offset, but this was an accidental correctness
+
+**Resolution** (session 3): Changed to `get_parent().get_parent()` to walk up to the actual `RadioJammerEnemy` CharacterBody2D that has `is_alive()`.
+
+### User-Reported Bug (Player Icon Missing)
+
+Jhon-Crow reported that no visual feedback is shown to the player when in the jammer zone. The original implementation only blocked the Space key silently. This violates the feedback principle: players need to know *why* an action is unavailable.
+
+**Resolution** (session 3): Added `JammerHUD` — a `Node2D` child of the player that draws a red prohibition sign (circle with diagonal bar, matching the reference image style) above the player when jammed and the player has an active item equipped. Only shown when both conditions hold (jammed AND has active item), so players who haven't equipped any active item are not shown a confusing icon.
 
 ### Architecture Design Choices
 
@@ -258,6 +298,8 @@ All tests use pure GDScript value testing (no scene instantiation required), ens
 | `git-log.txt` | Git log of commits on the issue branch |
 | `solution-draft-log.txt` | Complete AI solution draft log (41,470 lines) |
 | `reference_image.png` | Original radio wave reference image from the issue |
+| `game_log_20260317_125825.txt` | Game log from Jhon-Crow's test session (2026-03-17) showing jammer spawned but player never within 1000px |
+| `jammer_icon_reference.png` | Reference image for the prohibition sign icon above the player when jammed |
 
 ---
 
