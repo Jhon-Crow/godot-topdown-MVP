@@ -5938,8 +5938,8 @@ public partial class Player : BaseCharacter
                 {
                     foreach (Node child in _weaponMount.GetChildren())
                     {
-                        if (child != _loudspeakerHandSprite)
-                            child.Visible = true;
+                        if (child != _loudspeakerHandSprite && child is CanvasItem canvasItem)
+                            canvasItem.Visible = true;
                     }
                 }
                 if (_loudspeakerHandSprite != null && IsInstanceValid(_loudspeakerHandSprite))
@@ -5975,8 +5975,8 @@ public partial class Player : BaseCharacter
             {
                 foreach (Node child in _weaponMount.GetChildren())
                 {
-                    if (child != _loudspeakerHandSprite)
-                        child.Visible = false;
+                    if (child != _loudspeakerHandSprite && child is CanvasItem canvasItem)
+                        canvasItem.Visible = false;
                 }
             }
             _loudspeakerHoldTimer = LoudspeakerHoldDuration;
