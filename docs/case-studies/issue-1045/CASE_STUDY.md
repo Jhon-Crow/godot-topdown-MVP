@@ -110,7 +110,55 @@ The icon file is correct and distinct in the current codebase.
 
 ---
 
-## Current Fix Status
+## Second Round of Bugs — User Feedback 2026-03-17 06:39 UTC
+
+After the user compiled the game from the fixed branch, they reported two new bugs in `game_log_20260317_093556.txt`:
+
+> 1. The shard effect should fire exactly once (currently fires 2 times sometimes)
+> 2. The damage from the projectile that triggered the shards should be fully ignored
+
+### Game Log Analysis (`game_log_20260317_093556.txt`)
+
+The second log confirmed ArmoredSkin IS now working (fix reached the user). Key observations:
+
+**Shards firing correctly (once):**
+```
+[09:36:08] [Player.ArmoredSkin] Spawning 20 glass shards (HP: 2)
+```
+
+**Double-trigger observed later:**
+```
+[09:36:17] [Player.ArmoredSkin] Spawning 20 glass shards (HP: 2)
+[09:36:18] [Player.ArmoredSkin] Spawning 20 glass shards (HP: 1)
+```
+
+And the player took damage after each shard spawn (died at HP: 0), confirming the triggering projectile's damage was NOT being absorbed.
+
+### Root Cause: Missing Deactivation and Missing Early Return
+
+The original code checked `HealthComponent.CurrentHealth <= 2` but:
+1. **Never deactivated `_armoredSkinActive`** — so every subsequent hit at ≤2 HP (HP:1) triggered again
+2. **Always called `base.TakeDamage(amount)` after spawning** — the armor was decorative, not protective
+
+### Fix Applied (commit `172c2f15`)
+
+```csharp
+if (_armoredSkinActive && HealthComponent.CurrentHealth <= 2)
+{
+    _armoredSkinActive = false;       // Deactivate: one-time trigger only
+    SpawnArmoredSkinShards();
+    return;                           // Absorb the hit — no damage applied
+}
+```
+
+This ensures:
+- Shards fire exactly **once per life** (at the first hit where HP ≤ 2)
+- The triggering projectile's damage is **fully ignored** (the armor takes the hit)
+- On the next level, `_Ready()` calls `InitArmoredSkin()` again, re-arming the effect
+
+---
+
+## Updated Fix Status
 
 All code fixes are in place on branch `issue-1045-f828e39993bd` (PR #1046):
 
@@ -118,20 +166,11 @@ All code fixes are in place on branch `issue-1045-f828e39993bd` (PR #1046):
 |---|---|---|
 | `InitArmoredSkin()` in C# Player | `Scripts/Characters/Player.cs` | ✅ Done |
 | `SpawnArmoredSkinShards()` in C# Player | `Scripts/Characters/Player.cs` | ✅ Done |
-| `TakeDamage()` calls `SpawnArmoredSkinShards()` at ≤2 HP | `Scripts/Characters/Player.cs` | ✅ Done |
+| One-time trigger (`_armoredSkinActive = false`) | `Scripts/Characters/Player.cs` | ✅ Done |
+| Triggering projectile damage absorbed (`return` early) | `Scripts/Characters/Player.cs` | ✅ Done |
 | Valid Godot 4 UID in shard scene | `scenes/projectiles/ArmoredSkinShard.tscn` | ✅ Done |
 | `has_armored_skin()` in ActiveItemManager | `scripts/autoload/active_item_manager.gd` | ✅ Done |
 | ArmoredSkin icon PNG | `assets/sprites/weapons/armored_skin_icon.png` | ✅ Done |
-
----
-
-## Proposed Next Steps
-
-1. **User action required**: Recompile/export the game from the latest `main` branch after PR #1046 is merged.
-2. If issue persists after recompile, check:
-   - That `ArmoredSkinShard.tscn` loads correctly (`ResourceLoader.Exists()` returns true)
-   - That `has_armored_skin()` returns true when Armored Skin is selected
-   - Game logs for `[Player.ArmoredSkin] Armored skin active` message
 
 ---
 
@@ -139,5 +178,6 @@ All code fixes are in place on branch `issue-1045-f828e39993bd` (PR #1046):
 
 - Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1045
 - PR: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1046
-- Game log: `game_log_20260317_055925.txt` (in this folder)
-- Fix commit: `e7970363`
+- Game log 1: `game_log_20260317_055925.txt` (old binary — item not initialized)
+- Game log 2: `game_log_20260317_093556.txt` (fixed binary — double-trigger + no damage absorption)
+- Fix commits: `e7970363` (initial fix), `172c2f15` (double-trigger + absorption fix)
