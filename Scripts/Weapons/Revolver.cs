@@ -399,6 +399,10 @@ public partial class Revolver : BaseWeapon
 
             cylinderSize = newCylinderSize;
             magazineCount = newMagCount;
+
+            // Persist the scaled cylinder size so that CylinderCapacity returns the correct value
+            // for all subsequent code (_chamberOccupied[], visual cylinder HUD, reload logic).
+            CylinderSize = cylinderSize;
         }
 
         GD.Print($"[Revolver] Initializing cylinder magazines: count={magazineCount}, cylinderSize={cylinderSize} (from CylinderSize export, not WeaponData)");

@@ -27,7 +27,11 @@ class MockActiveItemManager:
 		FORCE_FIELD = 7,
 		TRAJECTORY_GLASSES = 8,
 		LASER_SIGHT = 9,
-		EXTENDED_MAGAZINE = 10
+		EXTENDED_MAGAZINE = 10,
+		LOUDSPEAKER = 11,
+		BREACHING_CHARGES = 12,
+		ARMORED_SKIN = 13,
+		AUTO_RELOAD = 14
 	}
 
 	## Currently selected active item type
@@ -45,7 +49,11 @@ class MockActiveItemManager:
 		7: {"name": "Force Field", "icon_path": "res://assets/sprites/weapons/force_field_icon.png", "description": "Force field."},
 		8: {"name": "Trajectory Glasses", "icon_path": "res://assets/sprites/weapons/trajectory_glasses_icon.png", "description": "Trajectory glasses."},
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png", "description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
-		10: {"name": "Extended Magazine", "icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png", "description": "Extended magazine — passive: increases magazine size by 2.5x (including revolver cylinder), but reduces total ammo by 5%."}
+		10: {"name": "Extended Magazine", "icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png", "description": "Extended magazine — passive: increases magazine size by 2.5x (including revolver cylinder), but reduces total ammo by 5%."},
+		11: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png", "description": "Loudspeaker — press Space to emit sound cone."},
+		12: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png", "description": "Breaching charges — hold Space near a wall to place a charge."},
+		13: {"name": "Armored Skin", "icon_path": "res://assets/sprites/weapons/armored_skin_icon.png", "description": "Armored Skin — passive: +1 HP."},
+		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but refilled on kill."}
 	}
 
 	## Check if extended magazine is currently equipped (Issue #1065)
@@ -320,11 +328,11 @@ func test_total_active_items_includes_extended_magazine() -> void:
 		"All active item types should include EXTENDED_MAGAZINE")
 
 
-func test_active_item_count_is_eleven() -> void:
-	# NONE + 10 items = 11 total (after adding EXTENDED_MAGAZINE)
+func test_active_item_count_is_fifteen() -> void:
+	# NONE + 14 items = 15 total (after adding EXTENDED_MAGAZINE + Loudspeaker + Breaching Charges + Armored Skin + Auto-Reload)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 11,
-		"Should have 11 active item types total (NONE + 10 items including EXTENDED_MAGAZINE)")
+	assert_eq(all_types.size(), 15,
+		"Should have 15 active item types total (NONE + 14 items including EXTENDED_MAGAZINE)")
 
 
 # ============================================================================

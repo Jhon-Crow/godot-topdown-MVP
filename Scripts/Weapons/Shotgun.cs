@@ -345,6 +345,25 @@ public partial class Shotgun : BaseWeapon
             }
         }
 
+        // Apply extended magazine passive item (Issue #1065):
+        // 2.5x tube capacity, 5% less total ammo.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTube = TubeMagazineCapacity;
+            int newTubeCapacity = Mathf.Max(1, Mathf.RoundToInt(TubeMagazineCapacity * magSizeMultiplier));
+            int newReserve = Mathf.Max(0, Mathf.RoundToInt(maxReserve * totalAmmoMultiplier));
+
+            GD.Print($"[Shotgun] Extended Magazine: tube {originalTube}->{newTubeCapacity}, reserve {maxReserve}->{newReserve}");
+
+            TubeMagazineCapacity = newTubeCapacity;
+            maxReserve = newReserve;
+        }
+
         // Create 2 magazines:
         // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
         // - 1 spare magazine: holds the actual reserve shells
