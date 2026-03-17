@@ -6,13 +6,26 @@ class_name RpgRocket
 ## Deals area-of-effect damage within explosion radius.
 ## No ricochet or penetration - always explodes on first contact.
 ##
-## Implemented analogously to VOGGrenade (AK underbarrel grenade launcher):
-## - RigidBody2D with linear_velocity for reliable movement in exported builds
-## - Explodes on body_entered (same as VOGGrenade._on_body_entered)
-## - spawn_immunity flag prevents immediate explosion near shooter
+## Movement: Uses _integrate_forces() to enforce rocket propulsion.
+## Unlike a grenade (VOGGrenade bounces with physics), a rocket has an engine
+## that keeps it on course - collisions cannot deflect it sideways.
+##
+## Realistic RPG-7 acceleration model:
+##   - Launch velocity: ~115 m/s (initial propellant charge)
+##   - Sustainer rocket motor activates ~10m from muzzle
+##   - Max velocity: ~300 m/s at ~11m from muzzle, then coasts
+##   Scaled to game pixels (~100px = 1m):
+##   - Launch: speed_initial (300 px/s)
+##   - Accelerates to speed (800 px/s) over accel_distance (1000 px)
 
-## Speed of the rocket in pixels per second.
+## Maximum cruise speed in pixels per second (reached after acceleration phase).
 @export var speed: float = 800.0
+
+## Initial launch speed in pixels per second (slower at muzzle, like real RPG-7).
+@export var speed_initial: float = 300.0
+
+## Distance over which the rocket accelerates from speed_initial to speed.
+@export var accel_distance: float = 1000.0
 
 ## Maximum lifetime in seconds before auto-destruction.
 @export var lifetime: float = 5.0
@@ -26,7 +39,7 @@ class_name RpgRocket
 ## Seconds after spawn during which collisions are ignored (avoids immediate explosion near shooter).
 @export var spawn_immunity_time: float = 0.3
 
-## Direction the rocket travels (set by the shooter before add_child, like VOGGrenade).
+## Direction the rocket travels (set by the shooter before add_child).
 var direction: Vector2 = Vector2.RIGHT
 
 ## Instance ID of the node that shot this rocket.
@@ -41,8 +54,14 @@ var _time_alive: float = 0.0
 ## Whether the rocket has exploded.
 var _has_exploded: bool = false
 
-## Whether spawn immunity has passed (analogous to VOGGrenade._is_launched).
+## Whether spawn immunity has passed.
 var _spawn_immunity_active: bool = true
+
+## Distance traveled so far (for acceleration curve).
+var _distance_traveled: float = 0.0
+
+## Current rocket speed (increases during acceleration phase).
+var _current_speed: float = 0.0
 
 ## Reference to the trail Line2D node (if present).
 var _trail: Line2D = null
@@ -58,17 +77,21 @@ var _position_history: Array[Vector2] = []
 
 
 func _ready() -> void:
-	# RigidBody2D setup: zero gravity, no damping (rocket maintains speed)
+	# RigidBody2D setup for propelled rocket:
+	# - Zero gravity (rocket travels in straight line)
+	# - Zero linear/angular damping (engine overcomes air resistance)
+	# - lock_rotation = true prevents physics engine from rotating the body
+	# - continuous_cd = 1 for reliable wall detection
 	gravity_scale = 0.0
 	linear_damp = 0.0
-	continuous_cd = 1  # Same as VOGGrenade: continuous collision detection
+	angular_damp = 0.0
+	continuous_cd = 1
+	lock_rotation = true
 
-	# Enable contact monitoring (required for body_entered signal to fire on RigidBody2D)
-	# Also set in .tscn as fallback in case _ready() runs after add_child
+	# Enable contact monitoring for body_entered signal
 	contact_monitor = true
-	max_contacts_reported = 4
+	max_contacts_reported = 8
 
-	# Connect collision signal (same as VOGGrenade uses body_entered)
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 
@@ -83,36 +106,73 @@ func _ready() -> void:
 	# Orient rocket sprite to travel direction
 	rotation = direction.angle()
 
-	# Orient exhaust particles to emit backward from rocket direction
+	# Orient exhaust particles to emit backward
 	if _exhaust and _exhaust.process_material is ParticleProcessMaterial:
 		var mat := _exhaust.process_material as ParticleProcessMaterial
 		var back := -direction
 		mat.direction = Vector3(back.x, back.y, 0.0)
 
-	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s speed=%.0f" % [str(global_position), str(direction), speed])
+	# Set initial speed
+	_current_speed = speed_initial
+	# Apply initial velocity so the rocket starts moving immediately
+	linear_velocity = direction.normalized() * _current_speed
+
+	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f" % [str(global_position), str(direction), speed_initial, speed])
 
 
-func _physics_process(delta: float) -> void:
+## _integrate_forces is called by the physics engine every physics step.
+## This is the ONLY correct way to enforce propulsion in exported Godot 4 builds:
+## - Runs inside the physics server, no GDScript method dispatch needed
+## - Overrides any collision impulses (prevents deflection from walls before exploding)
+## - Allows us to implement the acceleration curve
+func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	if _has_exploded:
+		state.linear_velocity = Vector2.ZERO
 		return
 
-	# Keep rocket facing its travel direction (lock_rotation=true prevents physics rotation,
-	# this keeps the sprite visually aligned to velocity direction)
-	if linear_velocity.length_squared() > 0.0:
-		rotation = linear_velocity.angle()
+	var delta := state.step
 
-	_update_trail()
-
+	# Track lifetime
 	_time_alive += delta
 
-	# Update spawn immunity state
+	# Update spawn immunity
 	if _spawn_immunity_active and _time_alive >= spawn_immunity_time:
 		_spawn_immunity_active = false
-		FileLogger.info("[RpgRocket] Spawn immunity ended at %.2fs" % _time_alive)
+		FileLogger.info("[RpgRocket] Immunity ended, speed=%.0f" % _current_speed)
 
+	# Lifetime expiry
 	if _time_alive >= lifetime:
 		FileLogger.info("[RpgRocket] Lifetime expired at pos=%s" % str(global_position))
-		_explode()
+		call_deferred("_explode")
+		state.linear_velocity = Vector2.ZERO
+		return
+
+	# Acceleration phase: speed increases from speed_initial to speed over accel_distance
+	if _distance_traveled < accel_distance:
+		var t := _distance_traveled / accel_distance  # 0.0 → 1.0
+		# Smooth acceleration curve (ease-in)
+		_current_speed = lerpf(speed_initial, speed, t * t)
+	else:
+		_current_speed = speed
+
+	# Enforce propulsion: always travel in the original direction at current speed.
+	# This overrides any collision impulses - the rocket engine keeps it on course.
+	state.linear_velocity = direction.normalized() * _current_speed
+
+	# Track distance traveled for acceleration curve
+	_distance_traveled += _current_speed * delta
+
+	# Keep visual rotation aligned to direction (lock_rotation=true prevents physics rotation,
+	# but we manually set transform.x to match direction for sprite alignment)
+	state.transform = Transform2D(direction.angle(), state.transform.origin)
+
+
+## _physics_process handles visual updates only (trail, exhaust orientation).
+## Physics (velocity, rotation) are handled in _integrate_forces.
+func _physics_process(_delta: float) -> void:
+	if _has_exploded:
+		return
+	_update_trail()
 
 
 func _update_trail() -> void:
@@ -127,11 +187,10 @@ func _update_trail() -> void:
 
 
 ## Called by RigidBody2D physics engine when rocket collides with something.
-## Analogous to VOGGrenade._on_body_entered - explode on solid contact.
 func _on_body_entered(body: Node) -> void:
 	if _has_exploded:
 		return
-	# Ignore collisions during spawn immunity (analogous to VOGGrenade._is_launched guard)
+	# Ignore collisions during spawn immunity
 	if _spawn_immunity_active:
 		return
 	# Ignore the shooter
@@ -140,9 +199,20 @@ func _on_body_entered(body: Node) -> void:
 	# Ignore dead entities
 	if body.has_method("is_alive") and not body.is_alive():
 		return
-	# Explode on solid bodies (same check as VOGGrenade)
-	if body is StaticBody2D or body is TileMap or body is CharacterBody2D or body is RigidBody2D:
-		FileLogger.info("[RpgRocket] Impact on %s (type: %s) at pos=%s after %.2fs" % [body.name, body.get_class(), str(global_position), _time_alive])
+	# Explode on any solid body: walls, tilemap, player, enemies, other projectiles
+	# RigidBody2D covers projectiles (bullets, grenades) and physics objects
+	if body is StaticBody2D or body is TileMap or body is CharacterBody2D or body is RigidBody2D or body is AnimatableBody2D:
+		FileLogger.info("[RpgRocket] Impact on %s (type: %s) after %.2fs dist=%.0fpx" % [body.name, body.get_class(), _time_alive, _distance_traveled])
+		_explode()
+
+
+## Called when the rocket enters an Area2D (e.g. grenade shockwave).
+func _on_area_entered(area: Area2D) -> void:
+	if _has_exploded or _spawn_immunity_active:
+		return
+	# Explode when hit by grenade blast shockwave or similar area
+	if area.is_in_group("explosion") or area.is_in_group("shockwave") or area.name.to_lower().contains("explosion") or area.name.to_lower().contains("blast"):
+		FileLogger.info("[RpgRocket] Hit by area %s - exploding" % area.name)
 		_explode()
 
 
@@ -151,12 +221,11 @@ func _explode() -> void:
 		return
 	_has_exploded = true
 
-	# Stop movement immediately
+	# Stop movement
 	linear_velocity = Vector2.ZERO
 
-	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs travel" % [str(global_position), _time_alive])
+	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs, dist=%.0fpx" % [str(global_position), _time_alive, _distance_traveled])
 
-	# Stop exhaust particles on explosion
 	if _exhaust:
 		_exhaust.emitting = false
 
@@ -197,14 +266,12 @@ func _explode() -> void:
 func _damage_entities_in_radius() -> void:
 	var space_state := get_world_2d().direct_space_state
 
-	# Damage enemies
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	for enemy in enemies:
 		if enemy is Node2D and _is_in_radius(enemy.global_position):
 			if _has_line_of_sight(space_state, enemy.global_position):
 				_apply_damage(enemy)
 
-	# Damage player
 	var players := get_tree().get_nodes_in_group("player")
 	if players.size() > 0 and players[0] is Node2D:
 		var player: Node2D = players[0]
