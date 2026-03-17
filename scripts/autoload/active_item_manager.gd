@@ -17,6 +17,7 @@ enum ActiveItemType {
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
+	EXTENDED_MAGAZINE, # Extended magazine - passive: 2.5x magazine size, 5% less total ammo (Issue #1065)
 	LOUDSPEAKER,       # Loudspeaker - press Space to emit sound cone that can pacify enemies (Issue #959)
 	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
@@ -47,6 +48,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
 	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
 	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
@@ -113,6 +115,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Laser Sight",
 		"icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 		"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."
+	},
+	ActiveItemType.EXTENDED_MAGAZINE: {
+		"name": "Extended Magazine",
+		"icon_path": "res://assets/sprites/weapons/extended_magazine_icon.png",
+		"description": "Extended magazine — passive: increases magazine size by 2.5x (including revolver cylinder), but reduces total ammo by 5%."
 	},
 	ActiveItemType.LOUDSPEAKER: {
 		"name": "Loudspeaker",
@@ -289,6 +296,27 @@ func has_trajectory_glasses() -> bool:
 ## Check if laser sight is currently equipped (Issue #947).
 func has_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if extended magazine is currently equipped (Issue #1065).
+func has_extended_magazine() -> bool:
+	return current_active_item == ActiveItemType.EXTENDED_MAGAZINE
+
+
+## Get the magazine size multiplier from extended magazine item (Issue #1065).
+## Returns 2.5 when extended magazine is equipped, 1.0 otherwise.
+func get_magazine_size_multiplier() -> float:
+	if current_active_item == ActiveItemType.EXTENDED_MAGAZINE:
+		return 2.5
+	return 1.0
+
+
+## Get the total ammo multiplier from extended magazine item (Issue #1065).
+## Returns 0.95 when extended magazine is equipped, 1.0 otherwise.
+func get_total_ammo_multiplier() -> float:
+	if current_active_item == ActiveItemType.EXTENDED_MAGAZINE:
+		return 0.95
+	return 1.0
 
 
 ## Check if loudspeaker is currently equipped (Issue #959).

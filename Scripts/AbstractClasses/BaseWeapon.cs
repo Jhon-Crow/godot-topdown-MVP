@@ -236,13 +236,37 @@ public abstract partial class BaseWeapon : Node2D
             }
         }
 
+        int magazineSize = WeaponData.MagazineSize;
+
+        // Apply extended magazine passive item (Issue #1065):
+        // 2.5x magazine size, 5% less total ammo.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTotal = magazineCount * magazineSize;
+            int newMagSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+            int newTotal = Mathf.Max(newMagSize, Mathf.RoundToInt(originalTotal * totalAmmoMultiplier));
+            // Derive magazine count from new total / new magazine size (at least 1)
+            int newMagCount = Mathf.Max(1, Mathf.CeilToInt((float)newTotal / newMagSize));
+
+            GD.Print($"[BaseWeapon] Extended Magazine: magSize {magazineSize}->{newMagSize}, " +
+                     $"magazines {magazineCount}->{newMagCount} (total ammo {originalTotal}->{newMagCount * newMagSize})");
+
+            magazineSize = newMagSize;
+            magazineCount = newMagCount;
+        }
+
         // Diagnostic logging for Issue #765
         GD.Print($"[BaseWeapon] Initializing magazines for {Name}:");
         GD.Print($"[BaseWeapon]   Magazine count: {magazineCount}");
-        GD.Print($"[BaseWeapon]   Magazine size: {WeaponData.MagazineSize}");
+        GD.Print($"[BaseWeapon]   Magazine size: {magazineSize}");
 
         // Initialize magazine inventory with the starting magazines
-        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines: true);
 
         // Emit initial magazine state
         EmitMagazinesChanged();
@@ -931,11 +955,23 @@ public abstract partial class BaseWeapon : Node2D
             return;
         }
 
-        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines);
+        int magazineSize = WeaponData.MagazineSize;
+
+        // Respect Extended Magazine passive item (Issue #1065): scale magazine size.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            magazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+            GD.Print($"[BaseWeapon] ReinitializeMagazines: Extended Magazine applied, magazineSize {WeaponData.MagazineSize}->{magazineSize}");
+        }
+
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
 
-        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines of size {magazineSize}, fillAll={fillAllMagazines}");
     }
 
     /// <summary>

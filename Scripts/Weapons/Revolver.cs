@@ -381,6 +381,31 @@ public partial class Revolver : BaseWeapon
         }
 
         int cylinderSize = CylinderSize;
+
+        // Apply extended magazine passive item to revolver cylinder size (Issue #1065).
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTotal = magazineCount * cylinderSize;
+            int newCylinderSize = Mathf.Max(1, Mathf.RoundToInt(cylinderSize * magSizeMultiplier));
+            int newTotal = Mathf.Max(newCylinderSize, Mathf.RoundToInt(originalTotal * totalAmmoMultiplier));
+            int newMagCount = Mathf.Max(1, Mathf.CeilToInt((float)newTotal / newCylinderSize));
+
+            GD.Print($"[Revolver] Extended Magazine: cylinderSize {cylinderSize}->{newCylinderSize}, " +
+                     $"magazines {magazineCount}->{newMagCount} (total ammo {originalTotal}->{newMagCount * newCylinderSize})");
+
+            cylinderSize = newCylinderSize;
+            magazineCount = newMagCount;
+
+            // Persist the scaled cylinder size so that CylinderCapacity returns the correct value
+            // for all subsequent code (_chamberOccupied[], visual cylinder HUD, reload logic).
+            CylinderSize = cylinderSize;
+        }
+
         GD.Print($"[Revolver] Initializing cylinder magazines: count={magazineCount}, cylinderSize={cylinderSize} (from CylinderSize export, not WeaponData)");
 
         MagazineInventory.Initialize(magazineCount, cylinderSize, fillAllMagazines: true);
