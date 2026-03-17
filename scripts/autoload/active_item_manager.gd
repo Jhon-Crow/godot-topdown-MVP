@@ -26,16 +26,17 @@ var current_active_item: int = ActiveItemType.NONE
 
 ## Unlocked active items tracking.
 ## NONE is always unlocked (it's not a real item).
-## FLASHLIGHT (Polygon D+) and TELEPORT_BRACERS (Castle F+) have unlock conditions (Issue #894).
-## All other active items are freely available from the start.
-## Issue #894: "all unspecified items can be opened from the start"
+## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
+## INVISIBILITY_SUIT (Beach S + Building S), and HOMING_BULLETS
+## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S)
+## have unlock conditions (Issue #894, Issue #1000).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
-	ActiveItemType.HOMING_BULLETS: true,       # No unlock condition — freely available from start
-	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Castle F+
+	ActiveItemType.HOMING_BULLETS: false,      # Condition: Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S (Issue #1000 req.8)
+	ActiveItemType.TELEPORT_BRACERS: false,    # Condition: Double Corridor D+ (Issue #1000 req.3)
 	ActiveItemType.BFF_PENDANT: true,          # No unlock condition — freely available from start (Issue #674)
-	ActiveItemType.INVISIBILITY_SUIT: true,    # No unlock condition — freely available from start
+	ActiveItemType.INVISIBILITY_SUIT: false,   # Condition: Beach S + Building S (Issue #1000 req.5)
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)

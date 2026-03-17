@@ -3803,8 +3803,17 @@ func _handle_trajectory_glasses_input() -> void:
 
 
 ## Callback when trajectory glasses activates.
+## Shows combined progress bar with charge pips + timer (Issue #974).
 func _on_trajectory_activated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(true, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	# Show combined progress bar (Issue #974)
+	_show_active_item_combined_bar(
+		charges_remaining,
+		_trajectory_glasses.MAX_CHARGES,
+		_trajectory_glasses.EFFECT_DURATION,
+		_trajectory_glasses.EFFECT_DURATION
+	)
+	# Also update legacy HUD if present
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
 		_trajectory_glasses_hud.set_active(true)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
@@ -3813,6 +3822,11 @@ func _on_trajectory_activated(charges_remaining: int) -> void:
 ## Callback when trajectory glasses deactivates.
 func _on_trajectory_deactivated(charges_remaining: int) -> void:
 	trajectory_glasses_changed.emit(false, charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	# Show charge bar briefly then hide (Issue #974)
+	_show_active_item_charge_bar(charges_remaining, _trajectory_glasses.MAX_CHARGES)
+	_charge_bar_hide_pending = true
+	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
+	# Also update legacy HUD if present
 	if _trajectory_glasses_hud and is_instance_valid(_trajectory_glasses_hud):
 		_trajectory_glasses_hud.set_active(false)
 		_trajectory_glasses_hud.update_charges(charges_remaining, _trajectory_glasses.MAX_CHARGES)
@@ -3907,6 +3921,29 @@ func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void
 	)
 
 
+## Show a combined charge + timer bar above the player (Issue #974).
+## Used for items that have limited charges AND a duration per use.
+## @param charges_current: Number of charges remaining.
+## @param charges_maximum: Maximum number of charges.
+## @param time_remaining: Time remaining for current activation.
+## @param time_maximum: Maximum duration per activation.
+func _show_active_item_combined_bar(charges_current: int, charges_maximum: int, time_remaining: float, time_maximum: float) -> void:
+	_ensure_progress_bar_node()
+	_active_item_progress_bar.show_combined_bar(
+		charges_current,
+		charges_maximum,
+		time_remaining,
+		time_maximum
+	)
+
+
+## Update the timer value in combined mode.
+## @param time_remaining: New time remaining value.
+func _update_active_item_timer(time_remaining: float) -> void:
+	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
+		_active_item_progress_bar.update_timer(time_remaining)
+
+
 ## Update the progress bar value.
 ## @param current: New current value.
 func _update_active_item_bar(current: float) -> void:
@@ -3922,24 +3959,32 @@ func _hide_active_item_bar() -> void:
 
 ## Handle charge bar hide timer and active item timer bar updates.
 func _update_charge_bar_timer(delta: float) -> void:
-	# Update continuous timer bar while homing is active
+	# Update combined bar (charge pips + timer) while homing is active (Issue #974)
 	if _homing_equipped and _homing_active:
-		_show_active_item_timer_bar(_homing_timer, HOMING_DURATION)
+		_update_active_item_timer(_homing_timer)
+
+	# Update combined bar (charge pips + timer) while trajectory glasses is active (Issue #974)
+	if _trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses):
+		if _trajectory_glasses.is_active:
+			_update_active_item_timer(_trajectory_glasses.get_remaining_time())
 
 	# Handle charge bar auto-hide (300ms delay for charge-based items)
-	if _charge_bar_hide_pending and not _homing_active:
+	# Only hide if neither homing nor trajectory glasses is active
+	var any_active: bool = (_homing_equipped and _homing_active) or \
+		(_trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) and _trajectory_glasses.is_active)
+	if _charge_bar_hide_pending and not any_active:
 		_charge_bar_hide_timer -= delta
 		if _charge_bar_hide_timer <= 0.0:
 			_charge_bar_hide_pending = false
 			_hide_active_item_bar()
 
 
-## Called when homing bullets are activated - show the charge bar briefly,
-## then transition to continuous timer bar during active effect.
+## Called when homing bullets are activated - show combined charge+timer bar (Issue #974).
+## Shows charge pips (remaining uses) with a depleting timer bar below.
 func _on_homing_activated_show_bar() -> void:
-	# Show continuous timer bar during active effect
-	_show_active_item_timer_bar(HOMING_DURATION, HOMING_DURATION)
-	# Set up charge bar to show briefly after effect ends
+	# Show combined bar with charge pips AND timer (Issue #974)
+	_show_active_item_combined_bar(_homing_charges, HOMING_MAX_CHARGES, HOMING_DURATION, HOMING_DURATION)
+	# Set up to show charge bar briefly after effect ends
 	_charge_bar_hide_pending = true
 	_charge_bar_hide_timer = CHARGE_BAR_HIDE_DELAY
 

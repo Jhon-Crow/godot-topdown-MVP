@@ -741,6 +741,16 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void HomingDeactivatedEventHandler();
 
+    // Progress bar state for homing bullets (Issue #974)
+    /// <summary>Whether the homing combined progress bar is visible.</summary>
+    private bool _homingBarVisible = false;
+    /// <summary>Whether the homing charge bar should show briefly after deactivation.</summary>
+    private bool _homingChargeBarPending = false;
+    /// <summary>Timer for auto-hiding homing charge bar after deactivation (300ms).</summary>
+    private float _homingChargeBarHideTimer = 0.0f;
+    /// <summary>Duration to show charge bar after deactivation before auto-hiding.</summary>
+    private const float HomingChargeBarHideDelay = 0.3f;
+
     #endregion
 
     #region BFF Pendant System (Issue #674)
@@ -1398,6 +1408,9 @@ public partial class Player : BaseCharacter
         // Handle homing bullets input (press Space to activate for 1 second) (Issue #677)
         HandleHomingBulletsInput((float)delta);
 
+        // Update homing progress bar auto-hide timer (Issue #974)
+        UpdateHomingBarTimer((float)delta);
+
         // Handle BFF pendant input (press Space to summon companion) (Issue #674)
         HandleBffPendantInput();
 
@@ -1412,6 +1425,9 @@ public partial class Player : BaseCharacter
 
         // Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
         HandleBreachingChargesInput();
+
+        // Update trajectory glasses progress bar auto-hide timer (Issue #974)
+        UpdateTrajectoryBarTimer((float)delta);
     }
 
     /// <summary>
@@ -4725,6 +4741,11 @@ public partial class Player : BaseCharacter
                 _homingActive = false;
                 _homingTimer = 0.0f;
                 StopHomingScanner();
+                // Show charge bar briefly after deactivation, then hide (Issue #974)
+                _homingBarVisible = false;
+                _homingChargeBarPending = true;
+                _homingChargeBarHideTimer = HomingChargeBarHideDelay;
+                QueueRedraw();
                 EmitSignal(SignalName.HomingDeactivated);
                 LogToFile($"[Player.Homing] Homing effect expired, charges remaining: {_homingCharges}/{MaxHomingCharges}");
             }
@@ -4740,6 +4761,10 @@ public partial class Player : BaseCharacter
                 _homingCharges--;
                 PlayHomingSound();
                 StartHomingScanner();
+                // Show combined progress bar (charge pips + timer) on activation (Issue #974)
+                _homingBarVisible = true;
+                _homingChargeBarPending = false;
+                QueueRedraw();
                 EmitSignal(SignalName.HomingActivated);
                 EmitSignal(SignalName.HomingChargesChanged, _homingCharges, MaxHomingCharges);
                 LogToFile($"[Player.Homing] Homing activated! Duration: {HomingDuration}s, charges remaining: {_homingCharges}/{MaxHomingCharges}");
@@ -5339,6 +5364,22 @@ public partial class Player : BaseCharacter
     /// </summary>
     private Node? _trajectoryGlassesHud = null;
 
+    // Progress bar state for trajectory glasses (Issue #974)
+    /// <summary>Whether the trajectory glasses combined progress bar is visible.</summary>
+    private bool _trajectoryBarVisible = false;
+    /// <summary>Current charges remaining for trajectory glasses (cached for drawing).</summary>
+    private int _trajectoryBarCharges = 0;
+    /// <summary>Whether the trajectory charge bar should show briefly after deactivation.</summary>
+    private bool _trajectoryChargeBarPending = false;
+    /// <summary>Timer for auto-hiding trajectory charge bar after deactivation (300ms).</summary>
+    private float _trajectoryChargeBarHideTimer = 0.0f;
+    /// <summary>Duration to show charge bar after deactivation before auto-hiding.</summary>
+    private const float TrajectoryChargeBarHideDelay = 0.3f;
+    /// <summary>Effect duration for trajectory glasses (must match trajectory_glasses_effect.gd).</summary>
+    private const float TrajectoryGlassesDuration = 10.0f;
+    /// <summary>Max charges for trajectory glasses (must match trajectory_glasses_effect.gd).</summary>
+    private const int TrajectoryGlassesMaxCharges = 2;
+
     /// <summary>
     /// Initialize trajectory glasses if the ActiveItemManager has them selected (Issue #744).
     /// Loads and instantiates the GDScript trajectory_glasses_effect.gd controller.
@@ -5455,17 +5496,26 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Called when trajectory glasses activate.
+    /// Shows combined progress bar with charge pips + timer (Issue #974).
     /// </summary>
     private void OnTrajectoryActivated(int chargesRemaining)
     {
+        _trajectoryBarVisible = true;
+        _trajectoryBarCharges = chargesRemaining;
+        _trajectoryChargeBarPending = false;
         QueueRedraw();
     }
 
     /// <summary>
     /// Called when trajectory glasses deactivate.
+    /// Shows charge bar briefly then hides (Issue #974).
     /// </summary>
     private void OnTrajectoryDeactivated(int chargesRemaining)
     {
+        _trajectoryBarVisible = false;
+        _trajectoryBarCharges = chargesRemaining;
+        _trajectoryChargeBarPending = true;
+        _trajectoryChargeBarHideTimer = TrajectoryChargeBarHideDelay;
         QueueRedraw();
     }
 
@@ -5858,6 +5908,37 @@ public partial class Player : BaseCharacter
     /// </summary>
     public override void _Draw()
     {
+        // Draw homing bullets progress bar (Issue #974)
+        if (_homingBulletsEquipped)
+        {
+            if (_homingBarVisible)
+            {
+                // Show combined bar (charge pips + timer) while active
+                DrawHomingCombinedBar();
+            }
+            else if (_homingChargeBarPending)
+            {
+                // Show charge-only bar briefly after deactivation
+                DrawHomingChargeBar();
+            }
+        }
+
+        // Draw trajectory glasses progress bar (Issue #974)
+        if (_trajectoryGlassesEquipped)
+        {
+            if (_trajectoryBarVisible)
+            {
+                // Show combined bar (charge pips + timer) while active
+                DrawTrajectoryGlassesCombinedBar();
+            }
+            else if (_trajectoryChargeBarPending)
+            {
+                // Show charge-only bar briefly after deactivation
+                DrawTrajectoryGlassesChargeBar();
+            }
+        }
+
+
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
         if (_teleportAiming && _teleportBracersEquipped)
@@ -6057,6 +6138,289 @@ public partial class Player : BaseCharacter
         }
         // Default: Flashbang effect radius (FlashbangGrenade.tscn)
         return 400.0f;
+    }
+
+    /// <summary>
+    /// Draw combined charge pips + timer bar for homing bullets (Issue #974).
+    /// Layout: charge pips on top (showing remaining uses), timer bar below (depleting over activation).
+    /// </summary>
+    private void DrawHomingCombinedBar()
+    {
+        const float barWidth = 40.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+        const float pipHeight = 4.0f;
+        const float combinedGap = 2.0f;
+        const float timerBarHeight = 3.0f;
+
+        int chargeMax = MaxHomingCharges;
+        int chargeValue = _homingCharges;
+        float timerValue = _homingTimer;
+        float timerMax = HomingDuration;
+
+        if (chargeMax <= 0)
+            return;
+
+        float pipY = barYOffset;
+        float timerY = barYOffset + pipHeight + combinedGap;
+
+        // Draw charge pips
+        float totalGaps = segmentGap * (chargeMax - 1);
+        float pipWidth = (barWidth - totalGaps) / chargeMax;
+        if (pipWidth < 2.0f) pipWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float chargePercent = (float)chargeValue / chargeMax;
+        Color pipFillColor;
+        if (chargePercent > 0.5f)
+            pipFillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (chargePercent > 0.25f)
+            pipFillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            pipFillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+        Color timerFillColor = new Color(0.0f, 0.9f, 0.7f, 0.9f);
+
+        for (int i = 0; i < chargeMax; i++)
+        {
+            float segX = startX + i * (pipWidth + segmentGap);
+            Rect2 pipRect = new Rect2(segX, pipY, pipWidth, pipHeight);
+
+            DrawRect(pipRect, bgColor);
+            if (i < chargeValue)
+                DrawRect(pipRect, pipFillColor);
+            else
+                DrawRect(pipRect, emptyColor);
+            DrawRect(pipRect, borderColor, false, borderWidth);
+        }
+
+        // Draw timer bar below pips
+        Rect2 timerRect = new Rect2(-barWidth / 2.0f, timerY, barWidth, timerBarHeight);
+        DrawRect(timerRect, bgColor);
+        if (timerMax > 0.0f && timerValue > 0.0f)
+        {
+            float fillRatio = Mathf.Clamp(timerValue / timerMax, 0.0f, 1.0f);
+            Rect2 fillRect = new Rect2(-barWidth / 2.0f, timerY, barWidth * fillRatio, timerBarHeight);
+            DrawRect(fillRect, timerFillColor);
+        }
+        DrawRect(timerRect, borderColor, false, borderWidth);
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar for homing bullets (shown briefly after deactivation, Issue #974).
+    /// </summary>
+    private void DrawHomingChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = MaxHomingCharges;
+        int filledCount = _homingCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Draw combined charge pips + timer bar for trajectory glasses (Issue #974).
+    /// Layout: charge pips on top (showing remaining uses), timer bar below (depleting over activation).
+    /// </summary>
+    private void DrawTrajectoryGlassesCombinedBar()
+    {
+        const float barWidth = 40.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+        const float pipHeight = 4.0f;
+        const float combinedGap = 2.0f;
+        const float timerBarHeight = 3.0f;
+
+        int chargeMax = TrajectoryGlassesMaxCharges;
+        int chargeValue = _trajectoryBarCharges;
+        float timerValue = 0.0f;
+        float timerMax = TrajectoryGlassesDuration;
+
+        // Get live timer from effect if available
+        if (_trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+        {
+            timerValue = (float)_trajectoryGlassesEffect.Call("get_remaining_time");
+        }
+
+        if (chargeMax <= 0)
+            return;
+
+        float pipY = barYOffset;
+        float timerY = barYOffset + pipHeight + combinedGap;
+
+        float totalGaps = segmentGap * (chargeMax - 1);
+        float pipWidth = (barWidth - totalGaps) / chargeMax;
+        if (pipWidth < 2.0f) pipWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float chargePercent = (float)chargeValue / chargeMax;
+        Color pipFillColor;
+        if (chargePercent > 0.5f)
+            pipFillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (chargePercent > 0.25f)
+            pipFillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            pipFillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+        Color timerFillColor = new Color(0.0f, 0.9f, 0.7f, 0.9f);
+
+        for (int i = 0; i < chargeMax; i++)
+        {
+            float segX = startX + i * (pipWidth + segmentGap);
+            Rect2 pipRect = new Rect2(segX, pipY, pipWidth, pipHeight);
+
+            DrawRect(pipRect, bgColor);
+            if (i < chargeValue)
+                DrawRect(pipRect, pipFillColor);
+            else
+                DrawRect(pipRect, emptyColor);
+            DrawRect(pipRect, borderColor, false, borderWidth);
+        }
+
+        // Draw timer bar below pips
+        Rect2 timerRect = new Rect2(-barWidth / 2.0f, timerY, barWidth, timerBarHeight);
+        DrawRect(timerRect, bgColor);
+        if (timerMax > 0.0f && timerValue > 0.0f)
+        {
+            float fillRatio = Mathf.Clamp(timerValue / timerMax, 0.0f, 1.0f);
+            Rect2 fillRect = new Rect2(-barWidth / 2.0f, timerY, barWidth * fillRatio, timerBarHeight);
+            DrawRect(fillRect, timerFillColor);
+        }
+        DrawRect(timerRect, borderColor, false, borderWidth);
+    }
+
+    /// <summary>
+    /// Draw segmented charge bar for trajectory glasses (shown briefly after deactivation, Issue #974).
+    /// </summary>
+    private void DrawTrajectoryGlassesChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -30.0f;
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = TrajectoryGlassesMaxCharges;
+        int filledCount = _trajectoryBarCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = (float)filledCount / segmentCount;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.2f, 0.8f, 0.4f, 0.85f);
+        else if (percent > 0.25f)
+            fillColor = new Color(0.9f, 0.7f, 0.1f, 0.85f);
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.2f, 0.85f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
+    /// <summary>
+    /// Update homing progress bar auto-hide timer (Issue #974).
+    /// Hides the charge bar 300ms after homing deactivation.
+    /// </summary>
+    private void UpdateHomingBarTimer(float delta)
+    {
+        if (_homingChargeBarPending)
+        {
+            _homingChargeBarHideTimer -= delta;
+            if (_homingChargeBarHideTimer <= 0.0f)
+            {
+                _homingChargeBarPending = false;
+                QueueRedraw();
+            }
+        }
+
+        // While homing is active, keep redrawing to update the timer bar
+        if (_homingBarVisible)
+        {
+            QueueRedraw();
+        }
+    }
+
+    /// <summary>
+    /// Update trajectory glasses progress bar auto-hide timer (Issue #974).
+    /// Hides the charge bar 300ms after trajectory deactivation.
+    /// </summary>
+    private void UpdateTrajectoryBarTimer(float delta)
+    {
+        if (_trajectoryChargeBarPending)
+        {
+            _trajectoryChargeBarHideTimer -= delta;
+            if (_trajectoryChargeBarHideTimer <= 0.0f)
+            {
+                _trajectoryChargeBarPending = false;
+                QueueRedraw();
+            }
+        }
+
+        // While trajectory glasses are active, keep redrawing to update the timer bar
+        if (_trajectoryBarVisible)
+        {
+            QueueRedraw();
+        }
     }
 
     /// <summary>
