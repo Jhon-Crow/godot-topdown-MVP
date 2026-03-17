@@ -40,9 +40,12 @@ const INVALID_RICOCHET_COLOR: Color = Color(1.0, 0.0, 0.0, 0.8)  # Bright red
 ## Maximum ricochet angle in degrees (same as bullet.gd DEFAULT_MAX_RICOCHET_ANGLE).
 const MAX_RICOCHET_ANGLE: float = 90.0
 
-## Low time warning threshold in seconds — trajectory ray starts blinking below this value.
-## Matches the force field LOW_CHARGE_WARNING pattern (Issue #1049).
-const LOW_TIME_WARNING: float = 2.0
+## Continuous blink threshold in seconds — trajectory ray blinks continuously below this value (Issue #1085).
+const CONTINUOUS_BLINK_THRESHOLD: float = 4.0
+
+## Single-blink threshold — ray blinks once when remaining time first crosses this value (Issue #1085).
+## Equal to 25% of EFFECT_DURATION (10 s × 25% = 2.5 s).
+const SINGLE_BLINK_THRESHOLD: float = EFFECT_DURATION * 0.25
 
 ## Flash frequency when time is low (Hz).
 const WARNING_FLASH_FREQUENCY: float = 3.0
@@ -74,10 +77,17 @@ var _viewport_diagonal: float = 2203.0
 ## Audio player for activation sounds.
 var _audio_player: AudioStreamPlayer = null
 
-## Warning flash timer for the trajectory ray (Issue #1049).
+## Warning flash timer for the trajectory ray continuous blink phase (Issue #1085).
 var _warning_flash_timer: float = 0.0
 
-## Whether the trajectory ray should be visible this frame (used for blinking, Issue #1049).
+## Whether the single-blink at 25% has already been triggered this activation (Issue #1085).
+var _single_blink_triggered: bool = false
+
+## Single-blink phase timer — counts up during the one-shot flash (Issue #1085).
+## Negative/zero when the single blink is not in progress.
+var _single_blink_timer: float = 0.0
+
+## Whether the trajectory ray should be visible this frame (used for blinking, Issue #1085).
 ## True when time is not low, or when in the "on" phase of the blink cycle.
 var trajectory_ray_visible: bool = true
 
@@ -187,6 +197,8 @@ func deactivate() -> void:
 	is_active = false
 	_effect_timer = 0.0
 	_warning_flash_timer = 0.0
+	_single_blink_triggered = false
+	_single_blink_timer = 0.0
 	trajectory_ray_visible = true
 
 	# Clear trajectory points so player._draw() stops rendering
@@ -222,14 +234,32 @@ func _process(delta: float) -> void:
 	# Update trajectory visualization every frame
 	_update_trajectory()
 
-	# Blink the trajectory ray when time is low (Issue #1049).
-	# Mirrors the force field LOW_CHARGE_WARNING flash pattern.
-	if _effect_timer <= LOW_TIME_WARNING:
+	# Blink logic (Issue #1085):
+	# Phase 1 — single blink once when remaining time crosses 25% (SINGLE_BLINK_THRESHOLD = 2.5 s).
+	# Phase 2 — continuous blinking once remaining time drops below CONTINUOUS_BLINK_THRESHOLD (4 s).
+	if _effect_timer <= CONTINUOUS_BLINK_THRESHOLD:
+		# Continuous blink phase: toggle at WARNING_FLASH_FREQUENCY Hz.
 		_warning_flash_timer += delta
 		var flash_period := 1.0 / WARNING_FLASH_FREQUENCY
 		trajectory_ray_visible = fmod(_warning_flash_timer, flash_period) < (flash_period * 0.5)
+	elif _effect_timer <= SINGLE_BLINK_THRESHOLD:
+		# Single-blink phase: fire one quick flash (one half-period on, one half-period off).
+		if not _single_blink_triggered:
+			_single_blink_triggered = true
+			_single_blink_timer = 0.0
+		var single_blink_period := 1.0 / WARNING_FLASH_FREQUENCY  # ~0.333 s total
+		_single_blink_timer += delta
+		if _single_blink_timer < single_blink_period * 0.5:
+			trajectory_ray_visible = false  # first half: ray off (visible flash-off)
+		elif _single_blink_timer < single_blink_period:
+			trajectory_ray_visible = true   # second half: ray back on
+		else:
+			trajectory_ray_visible = true   # blink finished — stay on
 	else:
+		# Normal phase: ray always visible, reset timers.
 		_warning_flash_timer = 0.0
+		_single_blink_triggered = false
+		_single_blink_timer = 0.0
 		trajectory_ray_visible = true
 
 	# Request player redraw so _draw() picks up new trajectory points
