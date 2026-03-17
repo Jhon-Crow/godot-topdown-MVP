@@ -4765,9 +4765,12 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
-	var _esc: Vector2 = Vector2.ZERO  # Issue #1107: Corner escape via slide collision normals
+	# Issue #1107: Corner escape — blend wall normals; when at rest probe for stuck wall
+	var _esc: Vector2 = Vector2.ZERO
 	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
 	if _esc.length_squared() > 0.01: direction = (direction + _esc.normalized() * 0.6).normalized()
+	elif velocity.length_squared() < 1.0:
+		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
 	velocity = direction * speed; rotation = direction.angle()
 	return true
 
