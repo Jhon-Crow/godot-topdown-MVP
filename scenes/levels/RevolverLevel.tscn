@@ -736,6 +736,15 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+[node name="ForceFieldEnemy" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1600, 850)
+behavior_mode = 1
+detection_range = 400.0
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+has_force_field = true
+
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_level")
 

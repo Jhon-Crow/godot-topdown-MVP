@@ -6,7 +6,7 @@ extends Node
 ## The enemy teleports to cover when under fire, or to a flanking position
 ## when circling the player. Teleport distance is limited to 1 viewport diagonal.
 ## Cooldown is 10 seconds between teleports.
-## A blue stripe is added to the enemy model as a visual indicator.
+## A blue backpack sprite is added to the enemy model as a visual indicator.
 
 ## Teleport cooldown in seconds.
 const COOLDOWN: float = 10.0
@@ -43,18 +43,20 @@ func try_teleport(target: Vector2) -> bool:
 	_execute_teleport(target)
 	return true
 
-## Add blue stripe visual indicator to the enemy model node.
+## Add blue backpack visual indicator to the enemy model node.
 ## Call once from enemy _ready() after the model node is resolved.
-static func add_blue_stripe(enemy_model: Node2D) -> void:
+static func add_backpack(enemy_model: Node2D) -> void:
 	if enemy_model == null:
 		return
-	var stripe := ColorRect.new()
-	stripe.name = "TeleporterStripe"
-	stripe.color = Color(0.2, 0.5, 1.0, 0.9)  ## Blue — marks teleporting enemy
-	stripe.size = Vector2(16, 4)
-	stripe.position = Vector2(-8, -26)  ## Centred above the body sprite
-	stripe.z_index = 5
-	enemy_model.add_child(stripe)
+	var tex: Texture2D = load("res://assets/sprites/characters/enemy/teleporter_backpack.png")
+	if tex == null:
+		return
+	var backpack := Sprite2D.new()
+	backpack.name = "TeleporterBackpack"
+	backpack.texture = tex
+	backpack.z_index = 2  ## Same z-index as body sprite overlay
+	backpack.position = Vector2(-4, 0)  ## Aligned with body sprite
+	enemy_model.add_child(backpack)
 
 ## Maximum teleport distance based on viewport size.
 func _get_max_distance() -> float:

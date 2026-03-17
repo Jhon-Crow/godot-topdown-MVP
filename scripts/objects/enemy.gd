@@ -81,6 +81,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 @export var is_teleporter: bool = false  ## Whether this enemy can teleport (Issue #752).
+@export var has_force_field: bool = false  ## Whether this enemy has a Force Field (Issue #1034).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -347,7 +348,7 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
-
+var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -409,8 +410,8 @@ func _ready() -> void:
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
-	_setup_machete_component()  # Issue #579
-	if is_teleporter: _teleport_component = EnemyTeleportComponent.new(); _teleport_component.name = "TeleportComponent"; add_child(_teleport_component); EnemyTeleportComponent.add_blue_stripe(_enemy_model)  # Issue #752
+	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup()  # Issue #579, #1034
+	if is_teleporter: _teleport_component = EnemyTeleportComponent.new(); _teleport_component.name = "TeleportComponent"; add_child(_teleport_component); EnemyTeleportComponent.add_backpack(_enemy_model)  # Issue #752
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -866,7 +867,7 @@ func _physics_process(delta: float) -> void:
 	_select_best_target()
 	_update_memory(delta)
 	_update_goap_state()
-	_update_suppression(delta)
+	_update_suppression(delta); if _force_field_component: _force_field_component.update(delta, (_can_see_player and _player != null) or (_can_see_companion and _companion != null))  # Issue #1034
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _teleport_component: _teleport_component.update(delta)  # Issue #752: Advance teleport cooldown
@@ -1099,8 +1100,8 @@ func _update_suppression(delta: float) -> void:
 				_threat_reaction_delay_elapsed = true
 				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
 
-		# Only set under_fire after the reaction delay has elapsed
-		if _threat_reaction_delay_elapsed:
+		# Only set under_fire after delay; Issue #1034: ignore if force field is active.
+		if _threat_reaction_delay_elapsed and not (_force_field_component and _force_field_component.is_active()):
 			_under_fire = true
 			_suppression_timer = 0.0
 
@@ -4142,9 +4143,8 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 ## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0).
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0) -> void:
-	if not _is_alive:
-		return
-
+	if not _is_alive: return
+	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
 	hit.emit()
 
 	# Store hit direction for death animation
