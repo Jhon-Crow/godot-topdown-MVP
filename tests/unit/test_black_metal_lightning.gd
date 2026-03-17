@@ -163,6 +163,25 @@ func test_layer_order_is_correct() -> void:
 			"Lightning layer should be at layer 98 (above filter 97, below hit effects 100)")
 
 
-func test_shader_file_exists() -> void:
-	var shader: Shader = load("res://scripts/shaders/lightning_flash.gdshader") as Shader
-	assert_not_null(shader, "Lightning flash shader should exist and load successfully")
+func test_bolt_drawer_node_exists() -> void:
+	## v10: lightning is drawn via Node2D draw calls, no shader required.
+	if _lightning_manager == null:
+		pending("BlackMetalLightningEffectsManager not found")
+		return
+
+	# Check that the CanvasLayer and LightningBoltDrawer exist as children.
+	var flash_layer: CanvasLayer = null
+	for child in _lightning_manager.get_children():
+		if child is CanvasLayer and child.name == "BlackMetalLightningLayer":
+			flash_layer = child
+			break
+
+	assert_not_null(flash_layer, "BlackMetalLightningLayer CanvasLayer should exist")
+
+	if flash_layer:
+		var drawer: Node2D = null
+		for child in flash_layer.get_children():
+			if child is Node2D and child.name == "LightningBoltDrawer":
+				drawer = child
+				break
+		assert_not_null(drawer, "LightningBoltDrawer Node2D should exist inside the layer")
