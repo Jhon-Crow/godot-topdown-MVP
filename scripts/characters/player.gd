@@ -3934,10 +3934,12 @@ func _init_loudspeaker() -> void:
 			add_child(_loudspeaker_hand_sprite)
 
 	var max_charges := _loudspeaker_progress.get_max_charges()
-	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, level: %d, charges: %s, effect: %.0f%%" % [
+	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, level: %d, charges: %s, effect: %.0f%%, used_this_level: %s, all_charges_used: %s" % [
 		_loudspeaker_progress.current_level,
 		str(max_charges) + "/" + str(max_charges) if max_charges != -1 else "unlimited",
-		_loudspeaker_progress.get_effect_chance() * 100.0
+		_loudspeaker_progress.get_effect_chance() * 100.0,
+		_loudspeaker_progress.used_this_level,
+		_loudspeaker_progress.all_charges_used_this_level
 	])
 
 

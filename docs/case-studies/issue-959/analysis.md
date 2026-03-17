@@ -200,12 +200,52 @@ Key evidence — in the 3rd level (CastleLevel), the player activated the loudsp
 
 **Fix:** Same as Bug 6 fix — `reset_for_respawn()` preserves `all_charges_used_this_level` within a single run. After the player uses all charges in their current run (from last respawn), the flag is set and will remain `true` unless they die again. If they complete the level without dying after exhausting charges, the gate passes and the level advances.
 
+## Round 4 Investigation (2026-03-17, log game_log_20260317_101421.txt)
+
+After commit `8401e484`, the user reported that bugs 1 and 2 still appeared to exist. A new log (`game_log_20260317_101421.txt`, generated at ~07:14 UTC) was provided.
+
+### Finding: Test binary pre-dates commit `8401e484`
+
+**Commit `8401e484` was committed at 06:41:58 UTC. The log was generated at ~07:14 UTC local time.** However, the executable path in the log is:
+
+```
+I:/Загрузки/godot exe/громкоговоритель/Godot-Top-Down-Template.exe
+```
+
+This is a **pre-built release binary** (`Debug build: false`), not compiled from the PR branch in real time. The binary was almost certainly built before commit `8401e484` was made, explaining why the bugs persist in the log.
+
+### Key log evidence
+
+The log at line 713 shows `Effect chance: 100%` on the third consecutive spawn within the SAME LabyrinthLevel map (respawns at 10:14:36 and 10:14:38, main use at 10:14:39). With commit `8401e484` applied, `used_this_level` is preserved across `reset_for_respawn()`, so 100% would NOT appear here.
+
+Additionally, at line 1184: "New level: 1" after the first level completion despite both charges being used in the final run — this matches the old code behaviour (pre-`8401e484`) where `all_charges_used_this_level` was being reset by `reset_for_new_level()` on every respawn.
+
+### Conclusion
+
+The current code in commit `8401e484` is correct per the spec:
+
+1. **Level advancement**: `reset_for_respawn()` preserves `all_charges_used_this_level` correctly — once all charges are used in the current run, the flag stays `true` until the player dies again (requiring a new run).
+2. **First-use effect**: `is_level1_first_use = is_first_use AND current_level == 1` — the 100%/1-enemy mechanic only fires on the FIRST ever activation (level 1 progress, first use in this level map visit). Once level progress advances to 2, `current_level == 1` is false, so no 100%.
+3. **Persistence**: `used_this_level` is preserved across respawns via `reset_for_respawn()`. After each level completes, `reset_for_new_level()` clears `used_this_level` for the next map.
+
+**Action required: the tester must rebuild the game binary from the latest commit (`8401e484`) to test the fixes.**
+
+### Diagnostic improvements in this round
+
+Added `used_this_level` and `all_charges_used` to the loudspeaker init log message in `player.gd`:
+
+```
+[Player.Loudspeaker] Loudspeaker equipped, level: 1, charges: 2/2, effect: 2%, used_this_level: false, all_charges_used: false
+```
+
+This makes it immediately visible in future test logs whether the state is correct after each respawn.
+
 ## References
 
 - Issue #959: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/959
 - PR #1018 (original implementation): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1018
 - PR #1092 (this fix): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1092
-- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`, `game_log_20260317_091947.txt`, `game_log_20260317_092204.txt`
+- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`, `game_log_20260317_091947.txt`, `game_log_20260317_092204.txt`, `game_log_20260317_101421.txt`
 - `scripts/components/loudspeaker_progress.gd` — progression logic
 - `scripts/autoload/active_item_manager.gd` — persistent progress storage
 - `scripts/characters/player.gd` — activation and effect application
