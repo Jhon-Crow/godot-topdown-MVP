@@ -1,21 +1,30 @@
-extends RigidBody2D
+extends Area2D
 class_name RpgRocket
-## RPG rocket projectile that explodes on impact (Issue #583).
+## RPG-7 rocket projectile — flies straight with rocket motor acceleration and explodes on impact.
 ##
-## Travels in a direction and explodes on hitting walls, enemies, or player.
-## Deals area-of-effect damage within explosion radius.
-## No ricochet or penetration - always explodes on first contact.
+## Physics model based on real RPG-7 data:
+## - Two-phase propulsion: initial launch velocity, then sustainer motor accelerates to max speed
+## - Fin-stabilized straight flight: no free rotation, no physics drift (same as bullet.gd Area2D pattern)
+## - Explodes on any solid contact: walls, player, enemies, other projectiles, grenade shockwaves
+## - Self-destructs after lifetime expires
 ##
-## Implemented analogously to VOGGrenade (AK underbarrel grenade launcher):
-## - RigidBody2D with linear_velocity for reliable movement in exported builds
-## - Explodes on body_entered (same as VOGGrenade._on_body_entered)
-## - spawn_immunity flag prevents immediate explosion near shooter
+## See docs/case-studies/issue-583/rpg7_physics_research.md for data sources.
 
-## Speed of the rocket in pixels per second.
-@export var speed: float = 800.0
+## Initial launch speed (pixels/s). Analogous to real RPG-7 muzzle velocity ~115 m/s.
+@export var launch_speed: float = 300.0
 
-## Maximum lifetime in seconds before auto-destruction.
-@export var lifetime: float = 5.0
+## Maximum speed after motor burns out (pixels/s). Analogous to real RPG-7 ~294 m/s.
+@export var max_speed: float = 900.0
+
+## Motor acceleration (pixels/s²). Sustainer fires for motor_burn_time seconds.
+## Derived: (max_speed - launch_speed) / motor_burn_time ≈ 600 / 0.8 = 750.
+@export var motor_acceleration: float = 750.0
+
+## How long the rocket motor burns (seconds). Based on RPG-7 ~2–3 s real, scaled for gameplay.
+@export var motor_burn_time: float = 0.8
+
+## Maximum lifetime before self-destruct (seconds). Real RPG-7 fuze: 4.5 s.
+@export var lifetime: float = 4.5
 
 ## Explosion effect radius in pixels.
 @export var explosion_radius: float = 150.0
@@ -23,26 +32,26 @@ class_name RpgRocket
 ## Explosion damage dealt to entities in radius.
 @export var explosion_damage: int = 3
 
-## Seconds after spawn during which collisions are ignored (avoids immediate explosion near shooter).
-@export var spawn_immunity_time: float = 0.3
+## Seconds after spawn during which collisions are ignored (avoids exploding next to shooter).
+@export var spawn_immunity_time: float = 0.25
 
-## Direction the rocket travels (set by the shooter before add_child, like VOGGrenade).
+## Direction the rocket travels (set by the shooter before add_child, same as bullet.gd).
 var direction: Vector2 = Vector2.RIGHT
 
-## Instance ID of the node that shot this rocket.
+## Instance ID of the node that shot this rocket (ignore self-collision).
 var shooter_id: int = -1
 
 ## Shooter position at time of firing.
 var shooter_position: Vector2 = Vector2.ZERO
 
-## Timer tracking remaining lifetime.
+## Current speed (starts at launch_speed, increases during motor burn).
+var _speed: float = 0.0
+
+## Time elapsed since spawn.
 var _time_alive: float = 0.0
 
-## Whether the rocket has exploded.
+## Whether the rocket has already exploded.
 var _has_exploded: bool = false
-
-## Whether spawn immunity has passed (analogous to VOGGrenade._is_launched).
-var _spawn_immunity_active: bool = true
 
 ## Reference to the trail Line2D node (if present).
 var _trail: Line2D = null
@@ -58,13 +67,12 @@ var _position_history: Array[Vector2] = []
 
 
 func _ready() -> void:
-	# RigidBody2D setup: zero gravity, no damping (rocket maintains speed)
-	gravity_scale = 0.0
-	linear_damp = 0.0
-	continuous_cd = 1  # Same as VOGGrenade: continuous collision detection
+	# Start at launch speed
+	_speed = launch_speed
 
-	# Connect collision signal (same as VOGGrenade uses body_entered)
+	# Connect collision signals (Area2D pattern from bullet.gd)
 	body_entered.connect(_on_body_entered)
+	area_entered.connect(_on_area_entered)
 
 	_trail = get_node_or_null("Trail")
 	if _trail:
@@ -74,7 +82,7 @@ func _ready() -> void:
 
 	_exhaust = get_node_or_null("ExhaustParticles")
 
-	# Orient rocket sprite to travel direction
+	# Orient rocket to travel direction (nose forward, no free rotation)
 	rotation = direction.angle()
 
 	# Orient exhaust particles to emit backward from rocket direction
@@ -83,24 +91,31 @@ func _ready() -> void:
 		var back := -direction
 		mat.direction = Vector3(back.x, back.y, 0.0)
 
-	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s speed=%.0f" % [str(global_position), str(direction), speed])
+	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s launch_speed=%.0f max_speed=%.0f" % [
+		str(global_position), str(direction), launch_speed, max_speed])
 
 
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
 
-	_update_trail()
-
 	_time_alive += delta
 
-	# Update spawn immunity state
-	if _spawn_immunity_active and _time_alive >= spawn_immunity_time:
-		_spawn_immunity_active = false
-		FileLogger.info("[RpgRocket] Spawn immunity ended at %.2fs" % _time_alive)
+	# Phase 1: Motor burn — accelerate from launch_speed to max_speed
+	if _time_alive <= motor_burn_time:
+		_speed = min(_speed + motor_acceleration * delta, max_speed)
 
+	# Move straight in direction (no physics drift, no free rotation — same as bullet.gd)
+	position += direction * _speed * delta
+
+	# Keep rotation locked to direction (prevent any accidental rotation)
+	rotation = direction.angle()
+
+	_update_trail()
+
+	# Self-destruct after lifetime
 	if _time_alive >= lifetime:
-		FileLogger.info("[RpgRocket] Lifetime expired at pos=%s" % str(global_position))
+		FileLogger.info("[RpgRocket] Self-destruct at pos=%s after %.2fs" % [str(global_position), _time_alive])
 		_explode()
 
 
@@ -115,13 +130,11 @@ func _update_trail() -> void:
 		_trail.add_point(pos)
 
 
-## Called by RigidBody2D physics engine when rocket collides with something.
-## Analogous to VOGGrenade._on_body_entered - explode on solid contact.
+## Called when rocket enters a solid body (wall, enemy CharacterBody2D, player).
 func _on_body_entered(body: Node) -> void:
 	if _has_exploded:
 		return
-	# Ignore collisions during spawn immunity (analogous to VOGGrenade._is_launched guard)
-	if _spawn_immunity_active:
+	if _time_alive < spawn_immunity_time:
 		return
 	# Ignore the shooter
 	if shooter_id == body.get_instance_id():
@@ -129,10 +142,28 @@ func _on_body_entered(body: Node) -> void:
 	# Ignore dead entities
 	if body.has_method("is_alive") and not body.is_alive():
 		return
-	# Explode on solid bodies (same check as VOGGrenade)
-	if body is StaticBody2D or body is TileMap or body is CharacterBody2D or body is RigidBody2D:
-		FileLogger.info("[RpgRocket] Impact on %s (type: %s) at pos=%s after %.2fs" % [body.name, body.get_class(), str(global_position), _time_alive])
-		_explode()
+	FileLogger.info("[RpgRocket] Body impact: %s (%s) at pos=%s after %.2fs" % [
+		body.name, body.get_class(), str(global_position), _time_alive])
+	_explode()
+
+
+## Called when rocket enters an area (enemy HitArea, grenade shockwave, other projectile area).
+func _on_area_entered(area: Area2D) -> void:
+	if _has_exploded:
+		return
+	if _time_alive < spawn_immunity_time:
+		return
+	# Ignore own child areas
+	if area.get_parent() == self:
+		return
+	# Ignore the shooter's areas
+	var area_parent := area.get_parent()
+	if area_parent != null and shooter_id == area_parent.get_instance_id():
+		return
+	# Explode on contact with any foreign area (enemy HitArea, shockwave, other projectile)
+	FileLogger.info("[RpgRocket] Area impact: %s (parent: %s) at pos=%s after %.2fs" % [
+		area.name, area_parent.name if area_parent else "none", str(global_position), _time_alive])
+	_explode()
 
 
 func _explode() -> void:
@@ -140,16 +171,14 @@ func _explode() -> void:
 		return
 	_has_exploded = true
 
-	# Stop movement immediately
-	linear_velocity = Vector2.ZERO
+	FileLogger.info("[RpgRocket] Exploded at pos=%s speed=%.0f after %.2fs travel" % [
+		str(global_position), _speed, _time_alive])
 
-	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs travel" % [str(global_position), _time_alive])
-
-	# Stop exhaust particles on explosion
+	# Stop exhaust particles
 	if _exhaust:
 		_exhaust.emitting = false
 
-	# Trigger Power Fantasy rocket explosion effect
+	# Trigger Power Fantasy effect
 	var power_fantasy_manager: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
 	if power_fantasy_manager and power_fantasy_manager.has_method("on_grenade_exploded"):
 		power_fantasy_manager.on_grenade_exploded()
@@ -169,16 +198,16 @@ func _explode() -> void:
 	if audio_manager and audio_manager.has_method("play_offensive_grenade_explosion"):
 		audio_manager.play_offensive_grenade_explosion(global_position)
 
-	# Damage enemies in radius
+	# Damage entities in blast radius
 	_damage_entities_in_radius()
 
-	# Spawn visual explosion effect
+	# Visual explosion effect
 	_spawn_explosion_effect()
 
 	# Scatter casings
 	_scatter_casings()
 
-	# Destroy rocket after short delay for effects
+	# Destroy rocket (short delay for effects to start)
 	await get_tree().create_timer(0.1).timeout
 	queue_free()
 
@@ -186,14 +215,12 @@ func _explode() -> void:
 func _damage_entities_in_radius() -> void:
 	var space_state := get_world_2d().direct_space_state
 
-	# Damage enemies
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	for enemy in enemies:
 		if enemy is Node2D and _is_in_radius(enemy.global_position):
 			if _has_line_of_sight(space_state, enemy.global_position):
 				_apply_damage(enemy)
 
-	# Damage player
 	var players := get_tree().get_nodes_in_group("player")
 	if players.size() > 0 and players[0] is Node2D:
 		var player: Node2D = players[0]

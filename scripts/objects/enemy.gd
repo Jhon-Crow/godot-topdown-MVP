@@ -3895,15 +3895,14 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	elif p.get("shooter_position") != null: p.shooter_position = pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
 
-## Fire RPG rocket (Issue #583). Analogous to VOGGrenade: RigidBody2D + linear_velocity (export-safe).
+## Fire RPG rocket (Issue #583). Area2D pattern: set direction before add_child, acceleration managed by rocket script.
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
 	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
 	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
 	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
 	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
-	rocket.set("linear_velocity", rocket_dir * (rocket.get("speed") if rocket.get("speed") != null else 800.0))  # after add_child like VOGGrenade
-	_log_to_file("[RPG] Rocket launched at %s dir=%s vel=%s" % [str(pos), str(rocket_dir), str(rocket.get("linear_velocity"))])
+	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
