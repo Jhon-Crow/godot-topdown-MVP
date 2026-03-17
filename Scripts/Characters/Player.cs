@@ -5470,27 +5470,34 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Called when trajectory glasses activate.
-    /// Shows combined progress bar with charge pips + timer (Issue #974).
+    /// Called when trajectory glasses activate (Issue #1049).
+    /// Shows charge pips via the HUD for 300ms, then auto-hides — no progress bar.
     /// </summary>
     private void OnTrajectoryActivated(int chargesRemaining)
     {
-        _trajectoryBarVisible = true;
         _trajectoryBarCharges = chargesRemaining;
-        _trajectoryChargeBarPending = false;
+        // Show HUD charge pips briefly via the GDScript HUD node (Issue #1049)
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+        {
+            _trajectoryGlassesHud.Call("update_charges", chargesRemaining, TrajectoryGlassesMaxCharges);
+            _trajectoryGlassesHud.Call("set_active", true);
+        }
         QueueRedraw();
     }
 
     /// <summary>
-    /// Called when trajectory glasses deactivate.
-    /// Shows charge bar briefly then hides (Issue #974).
+    /// Called when trajectory glasses deactivate (Issue #1049).
+    /// Hides the HUD immediately — no lingering charge bar.
     /// </summary>
     private void OnTrajectoryDeactivated(int chargesRemaining)
     {
-        _trajectoryBarVisible = false;
         _trajectoryBarCharges = chargesRemaining;
-        _trajectoryChargeBarPending = true;
-        _trajectoryChargeBarHideTimer = TrajectoryChargeBarHideDelay;
+        // Hide HUD immediately on deactivation (Issue #1049)
+        if (_trajectoryGlassesHud != null && IsInstanceValid(_trajectoryGlassesHud))
+        {
+            _trajectoryGlassesHud.Call("update_charges", chargesRemaining, TrajectoryGlassesMaxCharges);
+            _trajectoryGlassesHud.Call("set_active", false);
+        }
         QueueRedraw();
     }
 
@@ -5788,20 +5795,9 @@ public partial class Player : BaseCharacter
             }
         }
 
-        // Draw trajectory glasses progress bar (Issue #974)
-        if (_trajectoryGlassesEquipped)
-        {
-            if (_trajectoryBarVisible)
-            {
-                // Show combined bar (charge pips + timer) while active
-                DrawTrajectoryGlassesCombinedBar();
-            }
-            else if (_trajectoryChargeBarPending)
-            {
-                // Show charge-only bar briefly after deactivation
-                DrawTrajectoryGlassesChargeBar();
-            }
-        }
+        // Trajectory glasses progress bar removed (Issue #1049).
+        // Charge pips are shown by TrajectoryGlassesHUD for 300ms, then auto-hide.
+        // The trajectory ray blinks during the last 2 seconds as a low-time warning.
 
 
         // Draw teleport targeting reticle if aiming (Issue #672)
@@ -6271,21 +6267,10 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void UpdateTrajectoryBarTimer(float delta)
     {
-        if (_trajectoryChargeBarPending)
-        {
-            _trajectoryChargeBarHideTimer -= delta;
-            if (_trajectoryChargeBarHideTimer <= 0.0f)
-            {
-                _trajectoryChargeBarPending = false;
-                QueueRedraw();
-            }
-        }
-
-        // While trajectory glasses are active, keep redrawing to update the timer bar
-        if (_trajectoryBarVisible)
-        {
-            QueueRedraw();
-        }
+        // Trajectory glasses progress bar removed (Issue #1049).
+        // The HUD node (trajectory_glasses_hud.gd) handles its own 300ms auto-hide timer.
+        // No redraw loop needed here anymore.
+        _ = delta; // suppress unused-parameter warning
     }
 
     /// <summary>
