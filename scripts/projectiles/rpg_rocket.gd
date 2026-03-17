@@ -1,11 +1,15 @@
-extends Area2D
+extends RigidBody2D
 class_name RpgRocket
 ## RPG rocket projectile that explodes on impact (Issue #583).
 ##
 ## Travels in a direction and explodes on hitting walls, enemies, or player.
 ## Deals area-of-effect damage within explosion radius.
 ## No ricochet or penetration - always explodes on first contact.
-## Has a short spawn immunity window to avoid exploding immediately near the shooter.
+##
+## Implemented analogously to VOGGrenade (AK underbarrel grenade launcher):
+## - RigidBody2D with linear_velocity for reliable movement in exported builds
+## - Explodes on body_entered (same as VOGGrenade._on_body_entered)
+## - spawn_immunity flag prevents immediate explosion near shooter
 
 ## Speed of the rocket in pixels per second.
 @export var speed: float = 800.0
@@ -19,13 +23,10 @@ class_name RpgRocket
 ## Explosion damage dealt to entities in radius.
 @export var explosion_damage: int = 3
 
-## Maximum number of trail points.
-@export var trail_length: int = 20
-
 ## Seconds after spawn during which collisions are ignored (avoids immediate explosion near shooter).
 @export var spawn_immunity_time: float = 0.3
 
-## Direction the rocket travels (set by the shooter via launch()).
+## Direction the rocket travels (set by the shooter before add_child, like VOGGrenade).
 var direction: Vector2 = Vector2.RIGHT
 
 ## Instance ID of the node that shot this rocket.
@@ -40,6 +41,9 @@ var _time_alive: float = 0.0
 ## Whether the rocket has exploded.
 var _has_exploded: bool = false
 
+## Whether spawn immunity has passed (analogous to VOGGrenade._is_launched).
+var _spawn_immunity_active: bool = true
+
 ## Reference to the trail Line2D node (if present).
 var _trail: Line2D = null
 
@@ -49,11 +53,18 @@ var _exhaust: GPUParticles2D = null
 ## History of global positions for the trail effect.
 var _position_history: Array[Vector2] = []
 
+## Maximum number of trail points.
+@export var trail_length: int = 20
+
 
 func _ready() -> void:
+	# RigidBody2D setup: zero gravity, no damping (rocket maintains speed)
+	gravity_scale = 0.0
+	linear_damp = 0.0
+	continuous_cd = 1  # Same as VOGGrenade: continuous collision detection
+
+	# Connect collision signal (same as VOGGrenade uses body_entered)
 	body_entered.connect(_on_body_entered)
-	area_entered.connect(_on_area_entered)
-	set_physics_process(true)  # Issue #583: explicitly enable physics processing
 
 	_trail = get_node_or_null("Trail")
 	if _trail:
@@ -63,7 +74,7 @@ func _ready() -> void:
 
 	_exhaust = get_node_or_null("ExhaustParticles")
 
-	# Issue #583: orient to direction (set before add_child by shooter, like regular bullets)
+	# Orient rocket sprite to travel direction
 	rotation = direction.angle()
 
 	# Orient exhaust particles to emit backward from rocket direction
@@ -72,20 +83,24 @@ func _ready() -> void:
 		var back := -direction
 		mat.direction = Vector3(back.x, back.y, 0.0)
 
-	var fl := get_node_or_null("/root/FileLogger")
-	if fl and fl.has_method("log_enemy"):
-		fl.log_enemy("RpgRocket", "Launched: pos=%s dir=%s speed=%.0f" % [str(global_position), str(direction), speed])
+	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s speed=%.0f" % [str(global_position), str(direction), speed])
 
 
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
 
-	global_position += direction * speed * delta  # Issue #583: use global_position for reliable movement
 	_update_trail()
 
 	_time_alive += delta
+
+	# Update spawn immunity state
+	if _spawn_immunity_active and _time_alive >= spawn_immunity_time:
+		_spawn_immunity_active = false
+		FileLogger.info("[RpgRocket] Spawn immunity ended at %.2fs" % _time_alive)
+
 	if _time_alive >= lifetime:
+		FileLogger.info("[RpgRocket] Lifetime expired at pos=%s" % str(global_position))
 		_explode()
 
 
@@ -100,34 +115,24 @@ func _update_trail() -> void:
 		_trail.add_point(pos)
 
 
-func _on_body_entered(body: Node2D) -> void:
+## Called by RigidBody2D physics engine when rocket collides with something.
+## Analogous to VOGGrenade._on_body_entered - explode on solid contact.
+func _on_body_entered(body: Node) -> void:
 	if _has_exploded:
 		return
-	# Ignore collisions during spawn immunity to avoid exploding near shooter
-	if _time_alive < spawn_immunity_time:
+	# Ignore collisions during spawn immunity (analogous to VOGGrenade._is_launched guard)
+	if _spawn_immunity_active:
 		return
+	# Ignore the shooter
 	if shooter_id == body.get_instance_id():
 		return
+	# Ignore dead entities
 	if body.has_method("is_alive") and not body.is_alive():
 		return
-	if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+	# Explode on solid bodies (same check as VOGGrenade)
+	if body is StaticBody2D or body is TileMap or body is CharacterBody2D or body is RigidBody2D:
+		FileLogger.info("[RpgRocket] Impact on %s (type: %s) at pos=%s after %.2fs" % [body.name, body.get_class(), str(global_position), _time_alive])
 		_explode()
-
-
-func _on_area_entered(area: Area2D) -> void:
-	if _has_exploded:
-		return
-	# Ignore collisions during spawn immunity to avoid exploding near shooter
-	if _time_alive < spawn_immunity_time:
-		return
-	if not area.has_method("on_hit"):
-		return
-	var parent: Node = area.get_parent()
-	if parent and shooter_id == parent.get_instance_id():
-		return
-	if parent and parent.has_method("is_alive") and not parent.is_alive():
-		return
-	_explode()
 
 
 func _explode() -> void:
@@ -135,11 +140,12 @@ func _explode() -> void:
 		return
 	_has_exploded = true
 
-	var fl := get_node_or_null("/root/FileLogger")
-	if fl and fl.has_method("log_enemy"):
-		fl.log_enemy("RpgRocket", "Exploded at pos=%s after %.2fs travel" % [str(global_position), _time_alive])
+	# Stop movement immediately
+	linear_velocity = Vector2.ZERO
 
-	# Issue #583: Stop exhaust particles on explosion
+	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs travel" % [str(global_position), _time_alive])
+
+	# Stop exhaust particles on explosion
 	if _exhaust:
 		_exhaust.emitting = false
 
