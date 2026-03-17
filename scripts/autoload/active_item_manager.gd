@@ -21,7 +21,8 @@ enum ActiveItemType {
 	BREACHING_CHARGES, # Breaching charges - active: place on wall (hold Space near wall, release), press Space to detonate and create a passage (Issue #1043)
 	ARMORED_SKIN,      # Armored Skin - passive: +1 HP bonus; when at ≤2 HP and hit, 20 glass shards fly outward (Issue #1045)
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
-	DRILLING_BULLETS   # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
+	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
+	COMBAT_DISPOSITION # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
 }
 
 ## Currently selected active item type.
@@ -49,7 +50,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
 	ActiveItemType.ARMORED_SKIN: true,         # No unlock condition — freely available from start (Issue #1045)
 	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
-	ActiveItemType.DRILLING_BULLETS: true      # No unlock condition — freely available from start (Issue #751)
+	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
+	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
 }
 
 ## Active item data for UI and selection.
@@ -137,6 +139,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
 		"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle.",
 		"activation_hint": "Press Space to activate"
+	},
+	ActiveItemType.COMBAT_DISPOSITION: {
+		"name": "Combat Disposition",
+		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
+		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
 	}
 }
 
@@ -286,6 +293,11 @@ func has_armored_skin() -> bool:
 ## Check if drilling bullets are currently equipped (Issue #751).
 func has_drilling_bullets() -> bool:
 	return current_active_item == ActiveItemType.DRILLING_BULLETS
+
+
+## Check if combat disposition is currently equipped (Issue #1047).
+func has_combat_disposition() -> bool:
+	return current_active_item == ActiveItemType.COMBAT_DISPOSITION
 
 
 ## Get the laser sight color (purple).
