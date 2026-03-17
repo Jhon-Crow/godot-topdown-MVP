@@ -214,6 +214,7 @@ class MockBuildingLevel extends MockLevelBase:
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
 		"res://scenes/levels/RevolverLevel.tscn",
@@ -270,6 +271,7 @@ class MockCastleLevel extends MockLevelBase:
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
 		"res://scenes/levels/RevolverLevel.tscn",
@@ -330,6 +332,7 @@ class MockTestTier extends MockLevelBase:
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
 		"res://scenes/levels/RevolverLevel.tscn",
@@ -385,6 +388,7 @@ class MockBeachLevel extends MockLevelBase:
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
 		"res://scenes/levels/RevolverLevel.tscn",
@@ -718,11 +722,11 @@ func test_building_level_prevents_duplicate_completion() -> void:
 # ============================================================================
 
 
-func test_building_level_next_is_test_tier() -> void:
+func test_building_level_next_is_labyrinth2() -> void:
 	var next := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
 
-	assert_eq(next, "res://scenes/levels/TestTier.tscn",
-		"Next level after BuildingLevel should be TestTier")
+	assert_eq(next, "res://scenes/levels/Labyrinth2Level.tscn",
+		"Next level after BuildingLevel should be Labyrinth2Level")
 
 
 func test_building_level_unknown_scene_returns_empty() -> void:
@@ -1407,10 +1411,10 @@ func test_all_levels_track_accuracy_consistently() -> void:
 # ============================================================================
 
 
-func test_level_order_building_to_testtier_to_castle_to_revolver() -> void:
+func test_level_order_building_to_labyrinth2_to_testtier_to_castle_to_revolver() -> void:
 	var first := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
-	assert_eq(first, "res://scenes/levels/TestTier.tscn",
-		"BuildingLevel -> TestTier")
+	assert_eq(first, "res://scenes/levels/Labyrinth2Level.tscn",
+		"BuildingLevel -> Labyrinth2Level (Issue #1032)")
 
 	var second := test_tier.get_next_level_path("res://scenes/levels/TestTier.tscn")
 	assert_eq(second, "res://scenes/levels/CastleLevel.tscn",

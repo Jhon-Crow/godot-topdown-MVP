@@ -31,6 +31,16 @@ const LEVELS: Array[Dictionary] = [
 		"map_size": "2400x2000"
 	},
 	{
+		"name": "Labyrinth 2",
+		"name_ru": "Лабиринт 2",
+		"path": "res://scenes/levels/Labyrinth2Level.tscn",
+		"description": "Larger labyrinth with 3 rows of rooms, winding corridors, and 14 enemies including a grenadier and armored M16 enemy.",
+		"preview_color": Color(0.12, 0.14, 0.2, 1.0),
+		"preview_accent": Color(0.25, 0.3, 0.45, 1.0),
+		"enemy_count": 14,
+		"map_size": "3200x2400"
+	},
+	{
 		"name": "Polygon",
 		"name_ru": "Полигон",
 		"path": "res://scenes/levels/TestTier.tscn",
