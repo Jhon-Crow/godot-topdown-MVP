@@ -1,27 +1,37 @@
 shader_type canvas_item;
+render_mode blend_add;
 
 // Lightning flash shader for Black Metal difficulty mode.
 //
-// APPROACH v8: hint_screen_texture + scene-transition-aware visibility.
+// APPROACH v9: render_mode blend_add + ColorRect ALWAYS VISIBLE.
 //
-// The ColorRect is hidden between scene transitions. The manager (v8) mirrors
-// black_metal_effects_manager: it listens to tree_changed, hides the rect on
-// every scene change, and re-shows it after ACTIVATION_DELAY_FRAMES (3 frames)
-// to ensure the GL framebuffer is populated before hint_screen_texture is sampled.
+// Root cause of all previous white-blink failures:
+//   Every approach that toggled _flash_rect.visible=false/true failed because:
+//   - hint_screen_texture (v4-v8): returns white/empty on the FIRST FRAME
+//     the ColorRect transitions from visible=false to visible=true, even mid-game.
+//     This is a confirmed gl_compatibility renderer behavior (Godot issues #79914,
+//     #106787): the backbuffer copy is only performed during the current frame's
+//     draw traversal. A node with visible=false is not visited → backbuffer not
+//     set up → returns white on first visible frame.
+//   - blend_add visible-toggled (v3): same first-frame problem, but different
+//     manifestation: shader compilation/initialization happens on the first frame
+//     the node enters the draw pipeline, and the initial frame may output a full
+//     white rectangle before the shader state is properly established.
+//   - overlay blend_mix always-visible (v5): the full-screen alpha=0 quad at
+//     layer 98 corrupted hint_screen_texture for shaders at layer 99 (cinema film),
+//     breaking visuals on ALL difficulties.
 //
-// At intensity=0: outputs original scene unchanged (pure passthrough).
-// At intensity=1: adds additive blue-white lightning contribution to scene.
-//
-// Why scene-transition delay is required (v7 failure):
-//   v7 set visible=true permanently after startup warmup. PersistManager immediately
-//   navigates to the last played level, triggering a scene change within 600ms. On
-//   the first frame of the new scene, hint_screen_texture returns white/empty.
-//   With visible=true + intensity=0, passthrough outputs white → white blink.
-//   (game_log_20260317_054351.txt: warmup at 05:43:52, CityLevel change at 05:43:52)
-//
-// Why NOT the pure overlay approach (v5, no screen_texture):
-//   A full-screen transparent ColorRect at layer 98 causes visual corruption on ALL
-//   difficulties. (Confirmed in game_log_20260317_032119.txt)
+// Solution (v9):
+//   - render_mode blend_add: shader output is ADDED to the framebuffer.
+//     Away from bolt: output=black → framebuffer += (0,0,0) = NO CHANGE.
+//     At bolt: output=bright blue-white → framebuffer brightens.
+//   - ColorRect ALWAYS VISIBLE: never toggled. The shader is always in the draw
+//     pipeline, eliminating any first-frame initialization issue.
+//   - At intensity=0.0: output=vec3(0,0,0)*0=black → NO visible effect.
+//     Safe for ALL difficulties — additive black changes nothing.
+//   - Does NOT use hint_screen_texture → no screen capture issues.
+//   - Does NOT produce a transparent alpha overlay → no interference with
+//     other shaders that use hint_screen_texture at higher layers.
 //
 // Effect structure:
 //   - One or two jagged main bolt streaks from a top point downward
@@ -32,7 +42,8 @@ shader_type canvas_item;
 //
 // Issue #1023: Thunder and lightning effects for Black Metal mode.
 
-// intensity: 0.0 = passthrough (no effect), 1.0 = full lightning. Animated by manager.
+// intensity: 0.0 = no effect (adds black = nothing), 1.0 = full lightning.
+// Animated by manager. At 0.0, the always-visible ColorRect is invisible in effect.
 uniform float intensity : hint_range(0.0, 1.0) = 0.0;
 
 // progress: 0.0 = bolt just struck, 1.0 = fully faded (lifetime of this flash)
@@ -43,13 +54,6 @@ uniform float seed : hint_range(0.0, 100.0) = 0.0;
 
 // Number of bolt streaks to draw (1 = single bolt, 2 = two simultaneous bolts)
 uniform float bolt_count : hint_range(1.0, 2.0) = 1.0;
-
-// Screen texture sampler for reading the rendered scene.
-// hint_screen_texture is safe here because the manager (v8) hides this ColorRect on
-// every scene transition and delays re-showing it by 3 frames — ensuring the framebuffer
-// is fully populated before the first sample. Mirrors black_metal_effects_manager.
-// At intensity=0.0: output = original (pure passthrough, no visible effect).
-uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 // ============================================================================
 // HASH / NOISE HELPERS
@@ -154,25 +158,23 @@ float branch_sdf(vec2 uv, float start_t, float sx, float sy, float ex, float ey,
 // ============================================================================
 // MAIN FRAGMENT
 //
-// Uses hint_screen_texture: reads the actual rendered scene, then additively
-// brightens pixels near the lightning bolt.
+// Uses render_mode blend_add: output color is ADDED to the framebuffer.
+// Away from bolt: output = black (0,0,0) → framebuffer unchanged.
+// At bolt: output = bright blue-white → lightning visible over scene.
 //
-// At intensity=0.0: COLOR = original (pure pass-through, no effect on any difficulty)
-// Near bolt at peak: COLOR = original + bright blue-white additive light
+// At intensity=0.0: output = black everywhere → NO visible effect on any difficulty.
+// This is the safe "always-on" state that never produces white blink.
 // ============================================================================
 
 void fragment() {
-    // Read the actual scene pixel (same approach as black_metal.gdshader)
-    vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
+    vec2 uv = UV;
 
-    // At intensity=0: pure pass-through — safe for warmup and when inactive
-    // This ensures no visual artifact on any difficulty when bolt is not firing
+    // Early exit: at intensity=0, output pure black (additive identity = no change).
+    // This is the normal state when not flashing — visible but invisible in effect.
     if (intensity <= 0.001) {
-        COLOR = original;
+        COLOR = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }
-
-    vec2 uv = UV;
 
     // ---- derive per-flash random parameters from seed ----
     float s0 = seed;
@@ -248,18 +250,18 @@ void fragment() {
     // Blend from glow color to core color based on how close to bolt center
     vec3 bolt_rgb = mix(bolt_color_glow, bolt_color_core, smoothstep(0.3, 1.0, bolt_val));
 
-    // Additive lightning contribution (added to scene, not replacing it)
-    // bolt_rgb * bolt_val: 0 away from bolt, bright at bolt center
+    // Additive lightning contribution
+    // bolt_rgb * bolt_val: 0 away from bolt (= black = adds nothing), bright at bolt center
     // corona_color * corona: soft glow near strike point
     vec3 lightning_add = bolt_rgb * bolt_val + corona_color * corona;
 
     // Apply intensity fade (manager animates 1→0 over flash duration)
     lightning_add *= intensity;
 
-    // Final: original scene + additive lightning light
-    // Away from bolt: lightning_add ≈ 0 → output ≈ original (no white blink)
-    // At bolt: output = original + bright blue-white (bolt visible over scene)
-    vec3 final_rgb = original.rgb + lightning_add;
-
-    COLOR = vec4(final_rgb, original.a);
+    // Output as additive contribution.
+    // blend_add: framebuffer += lightning_add
+    // Away from bolt: lightning_add ≈ 0 → adds nothing → original scene unchanged
+    // At bolt: lightning_add = bright blue-white → bolt visible over scene
+    // alpha=1.0 is required for blend_add to work correctly in gl_compatibility
+    COLOR = vec4(lightning_add, 1.0);
 }

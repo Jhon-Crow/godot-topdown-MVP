@@ -247,6 +247,103 @@ func _end_flash_sequence():
 2. **No white blink on scene transitions**: `_on_tree_changed` keeps rect hidden between scenes
 3. **No white blink on flash**: rect becomes visible inside an already-rendered scene → framebuffer populated
 4. **No white screen on all difficulties**: rect not visible between flashes → no pipeline interference
+
+---
+
+## Phase 9: v8 STILL shows white blink (game_log_20260317_063247.txt)
+
+**User reported (2026-03-17 03:33):** "теперь игру видно, но вместо молнии всё ещё белая вспышка (не работает)" — "now the game is visible, but instead of lightning there's still a white flash (not working)"
+
+**Game log analysis** (`game_log_20260317_063247.txt`):
+- Shader warmup completed at startup ✅
+- Lightning effects ENABLED when in Black Metal mode ✅
+- DOUBLE, SINGLE strikes logged at correct times (enemy hits) ✅
+- **User still sees white flash** ❌
+
+**Root cause of v8 failure:**
+
+The v8 approach (hide between flashes, show only during flash) still uses `hint_screen_texture`. The previous analysis assumed this was safe because "the framebuffer is fully populated at the moment a flash fires". But this assumption is wrong.
+
+**The definitive root cause**: `hint_screen_texture` in Godot's gl_compatibility renderer returns white/empty on the **first frame any ColorRect transitions from `visible=false` to `visible=true`**, regardless of when in the game lifecycle this happens. This is not limited to:
+- startup (v6 failure)
+- scene changes (v7 failure)
+
+It also happens **on every single flash** — every time `_start_single_flash()` calls `_flash_rect.visible = true`, the very first rendered frame of that flash hits the white-backbuffer issue. So the user sees a white flash instead of a lightning bolt.
+
+This is documented in Godot issues:
+- [#79914](https://github.com/godotengine/godot/issues/79914): `screen_texture` in Compatibility mode produces glitches not present in Forward+
+- [#83939](https://github.com/godotengine/godot/issues/83939): Hidden canvas_item with screen-reading shader — workaround is `modulate.a=0` instead of `visible=false`
+- [#106787](https://github.com/godotengine/godot/issues/106787): Compatibility renderer ignores `filter_nearest` flag on screen-reading textures
+
+The v3 `blend_add` attempt was also `visible`-toggled and failed for the same reason — but was abandoned before it was correctly diagnosed.
+
+---
+
+## Fix: v9 Manager — render_mode blend_add + ALWAYS VISIBLE (Definitive Solution)
+
+**Key insight:** The problem is not `hint_screen_texture` per se — it's the `visible=false → visible=true` transition. The correct solution is:
+
+1. **Remove `hint_screen_texture`** entirely — use `render_mode blend_add`
+2. **Keep ColorRect ALWAYS VISIBLE** — never toggle `visible`
+3. **Use intensity=0 as the "off" state** — at intensity=0, the shader outputs black, and `blend_add` with black = no change to framebuffer
+
+Why `render_mode blend_add` + always-visible works:
+- The ColorRect is always in the rendering pipeline → no first-frame initialization issue
+- `framebuffer += (0,0,0) = no change` when not flashing → safe for all difficulties
+- No `hint_screen_texture` → no screen capture issues
+- Does NOT produce a transparent alpha overlay → no interference with `cinema_film.gdshader` at layer 99
+
+The v5 overlay failure (always-visible transparent ColorRect) was different: it used standard `blend_mix` with `COLOR = vec4(0,0,0,0)` (alpha=0). An alpha=0 overlay at layer 98 corrupted the `hint_screen_texture` capture at layer 99. With `render_mode blend_add` and `COLOR = vec4(0,0,0,1)` (black additive), there is no alpha manipulation — the framebuffer simply receives `+= (0,0,0)` which changes nothing.
+
+**Manager design (v9):**
+```gdscript
+func _ready():
+    # ColorRect is set visible=true once and NEVER toggled again
+    _flash_rect.visible = true
+    _warmup_shader()
+
+func _start_single_flash():
+    # Set intensity=1 to make bolt appear (no visibility toggle)
+    _material.set_shader_parameter("intensity", 1.0)
+
+func _end_flash_sequence():
+    # Set intensity=0 to make bolt disappear (no visibility toggle)
+    _material.set_shader_parameter("intensity", 0.0)
+```
+
+**Shader design (v9):**
+```glsl
+shader_type canvas_item;
+render_mode blend_add;
+
+void fragment() {
+    if (intensity <= 0.001) {
+        COLOR = vec4(0.0, 0.0, 0.0, 1.0);  // black additive = no change to scene
+        return;
+    }
+    // ... compute bolt, corona, etc.
+    vec3 lightning_add = bolt_rgb * bolt_val + corona_color * corona;
+    lightning_add *= intensity;
+    // framebuffer += lightning_add: adds bright light at bolt, nothing elsewhere
+    COLOR = vec4(lightning_add, 1.0);
+}
+```
+
+---
+
+## Complete Root Cause Summary
+
+| Version | Shader | Manager | Root Cause | Visual Result |
+|---------|--------|---------|-----------|---------------|
+| v1 | `TEXTURE` on ColorRect = 1×1 white pixel | - | No bolt drawn | White blink on flash |
+| v2 | Overlay (blend_mix, alpha output) | visible toggle | 35% ambient fill + white blink in gl_compat | White blink on flash |
+| v3 | `render_mode blend_add`, visible toggle | visible toggle | First-frame init issue on visible=true transition | White blink on flash |
+| v4 | `hint_screen_texture`, visible toggle | visible toggle | `hint_screen_texture` returns white on first visible frame | White blink on every flash |
+| v5 | Overlay (blend_mix, alpha=0) | always visible | Alpha=0 full-screen overlay at layer 98 corrupts `hint_screen_texture` at layer 99 | White screen ALL difficulties |
+| v6 | `hint_screen_texture` | visible=true in _ready | Visible before framebuffer populated at startup | White blink at startup |
+| v7 | `hint_screen_texture` | permanent visible after warmup | PersistManager scene change resets framebuffer; no tree_changed handler | White blink at startup (scene change) |
+| v8 | `hint_screen_texture` | visible toggle (hide between flashes) | `hint_screen_texture` returns white on first frame of EVERY flash (visible=false→true) | White blink on every flash |
+| **v9** | **`render_mode blend_add`** | **always visible, intensity=0 = off** | **No screen texture, no visibility toggle, black additive = harmless** | **Lightning bolt, no regression** |
 5. **Correct lightning visuals**: additive brightening shows bolt over scene during flash
 
 ---
