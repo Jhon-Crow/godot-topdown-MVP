@@ -1,5 +1,5 @@
 extends GutTest
-## Unit tests for BreachingChargesEffect (Issue #1043).
+## Unit tests for BreachingChargesEffect (Issues #1043, #1093).
 ##
 ## Tests the breaching charges active item core logic including:
 ## - Charge management (2 charges per battle)
@@ -8,6 +8,7 @@ extends GutTest
 ## - Wall passage creation (disabling wall collision)
 ## - Enemy stun/blind application (3 seconds duration)
 ## - Signal emissions
+## - Issue #1093: corner placement opens passages in both adjacent walls
 
 
 # ============================================================================
@@ -34,8 +35,8 @@ class MockBreachingChargesEffect:
 	## Whether a charge is currently placed on a wall (waiting for detonation).
 	var has_placed_charge: bool = false
 
-	## The wall node that has a charge placed on it.
-	var _charged_wall = null
+	## The wall nodes that have a charge placed on them (supports corners with two walls).
+	var _charged_walls: Array = []
 
 	## World position where the charge was placed.
 	var _charge_position: Vector2 = Vector2.ZERO
@@ -65,16 +66,21 @@ class MockBreachingChargesEffect:
 	## Attempt to place a charge on the given wall mock.
 	## Returns true if placement was successful.
 	func try_place_charge_on(wall: MockWall) -> bool:
+		return try_place_charge_on_multiple([wall])
+
+	## Attempt to place a charge on multiple walls (corner case, Issue #1093).
+	## Returns true if placement was successful.
+	func try_place_charge_on_multiple(walls: Array) -> bool:
 		if charges <= 0:
 			return false
 		if has_placed_charge:
 			return false
-		if wall == null:
+		if walls.is_empty():
 			return false
 
 		charges -= 1
 		has_placed_charge = true
-		_charged_wall = wall
+		_charged_walls = walls
 		_charge_position = Vector2(100, 100)
 
 		charge_placed_signals.append(charges)
@@ -96,15 +102,16 @@ class MockBreachingChargesEffect:
 			return false
 
 		last_detonate_pos = _charge_position
-		var wall = _charged_wall
+		var walls := _charged_walls.duplicate()
 
 		has_placed_charge = false
-		_charged_wall = null
+		_charged_walls = []
 		_charge_position = Vector2.ZERO
 
-		# Record wall opening
-		if wall != null:
-			walls_opened.append(wall)
+		# Record all wall openings (Issue #1093: may include two walls at corners)
+		for wall in walls:
+			if wall != null:
+				walls_opened.append(wall)
 
 		# Simulate enemy stun within radius
 		detonated_signals.append(last_detonate_pos)
@@ -573,3 +580,79 @@ func test_placed_charge_has_blinking_led_indicator() -> void:
 	var has_led_indicator: bool = true  # the new marker includes a blinking LED
 	assert_true(has_led_indicator,
 		"Placed charge marker should include a blinking red LED detonator indicator")
+
+
+# ============================================================================
+# Issue #1093: Corner placement opens passages in both adjacent walls
+# ============================================================================
+
+
+func test_corner_placement_stores_two_walls() -> void:
+	# Issue #1093: when a charge is placed at the corner between two walls,
+	# both walls should be stored for detonation.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	wall1.name = "WallA"
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+	wall2.name = "WallB"
+
+	var result := effect.try_place_charge_on_multiple([wall1, wall2])
+	assert_true(result,
+		"Corner placement should succeed when two walls are in range")
+	assert_eq(effect._charged_walls.size(), 2,
+		"Both adjacent walls should be stored when placing at a corner")
+
+
+func test_corner_detonation_opens_both_walls() -> void:
+	# Issue #1093: detonating at a corner should open passages in both adjacent walls.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	wall1.name = "WallA"
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+	wall2.name = "WallB"
+
+	effect.try_place_charge_on_multiple([wall1, wall2])
+	effect.detonate()
+
+	assert_eq(effect.walls_opened.size(), 2,
+		"Both walls should be opened when detonating at a corner (Issue #1093)")
+	assert_true(effect.walls_opened.has(wall1),
+		"First corner wall should be opened on detonation")
+	assert_true(effect.walls_opened.has(wall2),
+		"Second corner wall should be opened on detonation")
+
+
+func test_corner_detonation_clears_both_charged_walls() -> void:
+	# Issue #1093: after detonation at a corner, _charged_walls must be empty.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+
+	effect.try_place_charge_on_multiple([wall1, wall2])
+	effect.detonate()
+
+	assert_eq(effect._charged_walls.size(), 0,
+		"_charged_walls should be cleared after corner detonation")
+	assert_false(effect.has_placed_charge,
+		"has_placed_charge should be false after corner detonation")
+
+
+func test_corner_detonation_emits_single_detonated_signal() -> void:
+	# Issue #1093: even at a corner (two walls), only one charges_detonated signal fires.
+	var wall1 := MockBreachingChargesEffect.MockWall.new()
+	var wall2 := MockBreachingChargesEffect.MockWall.new()
+
+	effect.try_place_charge_on_multiple([wall1, wall2])
+	effect.detonate()
+
+	assert_eq(effect.detonated_signals.size(), 1,
+		"Exactly one charges_detonated signal should fire for a corner detonation")
+
+
+func test_single_wall_placement_still_works_after_refactor() -> void:
+	# Regression: normal single-wall placement must still work after Issue #1093 refactor.
+	var wall := MockBreachingChargesEffect.MockWall.new()
+	effect.try_place_charge_on(wall)
+	effect.detonate()
+
+	assert_eq(effect.walls_opened.size(), 1,
+		"Single-wall detonation should still open exactly one wall after Issue #1093 refactor")
+	assert_eq(effect.walls_opened[0], wall,
+		"The correct single wall should be opened after detonation")
