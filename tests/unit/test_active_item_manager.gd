@@ -126,7 +126,8 @@ class MockActiveItemManager:
 		BREACHING_CHARGES = 12,
 		ARMORED_SKIN = 13,
 		AUTO_RELOAD = 14,
-		COMBAT_DISPOSITION = 15
+		DRILLING_BULLETS = 15,
+		COMBAT_DISPOSITION = 16
 	}
 
 	## Currently selected active item type
@@ -209,7 +210,12 @@ class MockActiveItemManager:
 			"icon_path": "res://assets/sprites/weapons/auto_reload_icon.png",
 			"description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."
 		},
-		14: {
+		15: {
+			"name": "Drilling Bullets",
+			"icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png",
+			"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle."
+		},
+		16: {
 			"name": "Combat Disposition",
 			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
 			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
@@ -309,6 +315,10 @@ class MockActiveItemManager:
 	## Check if auto-reload is currently equipped (Issue #1067)
 	func has_auto_reload() -> bool:
 		return current_active_item == ActiveItemType.AUTO_RELOAD
+
+	## Check if drilling bullets are currently equipped (Issue #751)
+	func has_drilling_bullets() -> bool:
+		return current_active_item == ActiveItemType.DRILLING_BULLETS
 
 	## Check if combat disposition is currently equipped
 	func has_combat_disposition() -> bool:
@@ -464,8 +474,8 @@ func test_get_active_item_data_invalid_returns_empty() -> void:
 
 func test_get_all_active_item_types() -> void:
 	var types := manager.get_all_active_item_types()
-	assert_eq(types.size(), 16,
-		"Should return 16 active item types (NONE + 15 items including Extended Magazine and Combat Disposition)")
+	assert_eq(types.size(), 17,
+		"Should return 17 active item types (NONE + 16 items including Extended Magazine, Drilling Bullets, and Combat Disposition)")
 	assert_true(0 in types)
 	assert_true(1 in types)
 	assert_true(2 in types)
@@ -481,7 +491,8 @@ func test_get_all_active_item_types() -> void:
 	assert_true(12 in types)  # BREACHING_CHARGES (Issue #1043)
 	assert_true(13 in types)  # ARMORED_SKIN (Issue #1045)
 	assert_true(14 in types)  # AUTO_RELOAD (Issue #1067)
-	assert_true(15 in types)  # COMBAT_DISPOSITION (Issue #1047)
+	assert_true(15 in types)  # DRILLING_BULLETS (Issue #751)
+	assert_true(16 in types)  # COMBAT_DISPOSITION (Issue #1047)
 
 
 func test_get_active_item_name_none() -> void:
@@ -685,7 +696,8 @@ class MockArmoryWithActiveItems:
 		12: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
 		13: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
 		14: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"},
-		15: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
+		15: {"name": "Drilling Bullets", "description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine."},
+		16: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Applied active item type
@@ -1015,7 +1027,7 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 	# Its effect is now part of Trajectory Glasses.
 	# Index 10 is EXTENDED_MAGAZINE (Issue #1065). Index 11 is LOUDSPEAKER (Issue #959).
 	# Index 12 is BREACHING_CHARGES (Issue #1043). Index 13 is ARMORED_SKIN (Issue #1045).
-	# Index 14 is AUTO_RELOAD (Issue #1067). Index 15 is COMBAT_DISPOSITION (Issue #1047).
+	# Index 14 is AUTO_RELOAD (Issue #1067). Index 15 is DRILLING_BULLETS (Issue #751). Index 16 is COMBAT_DISPOSITION (Issue #1047).
 	var data := manager.get_active_item_data(10)
 	assert_false(data.is_empty(),
 		"Index 10 should be EXTENDED_MAGAZINE (Issue #1065) — RICOCHET_POINTS was removed (Issue #1028)")
@@ -1031,11 +1043,16 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 		"Index 14 should be AUTO_RELOAD (Issue #1067)")
 	assert_eq(auto_reload_data.get("name", ""), "Auto-Reload",
 		"Item at index 14 should be Auto-Reload (Issue #1067)")
-	var combat_data := manager.get_active_item_data(15)
+	var drilling_data := manager.get_active_item_data(15)
+	assert_false(drilling_data.is_empty(),
+		"Index 15 should be Drilling Bullets (Issue #751)")
+	assert_eq(drilling_data.get("name", ""), "Drilling Bullets",
+		"Item at index 15 should be Drilling Bullets (Issue #751)")
+	var combat_data := manager.get_active_item_data(16)
 	assert_false(combat_data.is_empty(),
-		"Index 15 should now be Combat Disposition (Issue #1047)")
+		"Index 16 should now be Combat Disposition (Issue #1047)")
 	assert_eq(combat_data.get("name", ""), "Combat Disposition",
-		"Item at index 15 should be Combat Disposition (Issue #1047)")
+		"Item at index 16 should be Combat Disposition (Issue #1047)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
@@ -1085,20 +1102,20 @@ func test_no_auto_reload_by_default() -> void:
 
 
 func test_has_auto_reload_after_selection() -> void:
-	manager.set_active_item(13)
+	manager.set_active_item(14)
 	assert_true(manager.has_auto_reload(),
 		"has_auto_reload should return true after selecting auto-reload")
 
 
 func test_no_auto_reload_after_deselection() -> void:
-	manager.set_active_item(13)
+	manager.set_active_item(14)
 	manager.set_active_item(0)
 	assert_false(manager.has_auto_reload(),
 		"has_auto_reload should return false after switching back to none")
 
 
 func test_auto_reload_does_not_conflict_with_flashlight() -> void:
-	manager.set_active_item(13)
+	manager.set_active_item(14)
 	assert_false(manager.has_flashlight(),
 		"Flashlight should not be active when auto-reload is selected")
 	assert_true(manager.has_auto_reload(),
@@ -1106,7 +1123,7 @@ func test_auto_reload_does_not_conflict_with_flashlight() -> void:
 
 
 func test_auto_reload_does_not_conflict_with_breaker_bullets() -> void:
-	manager.set_active_item(13)
+	manager.set_active_item(14)
 	assert_false(manager.has_breaker_bullets(),
 		"Breaker bullets should not be active when auto-reload is selected")
 	assert_true(manager.has_auto_reload(),
@@ -1114,13 +1131,13 @@ func test_auto_reload_does_not_conflict_with_breaker_bullets() -> void:
 
 
 func test_set_active_item_to_auto_reload() -> void:
-	manager.set_active_item(13)
-	assert_eq(manager.current_active_item, 13,
+	manager.set_active_item(14)
+	assert_eq(manager.current_active_item, 14,
 		"Active item type should change to AUTO_RELOAD")
 
 
 func test_armory_select_auto_reload() -> void:
 	var armory := MockArmoryWithActiveItems.new()
-	var result := armory.select_active_item(13)
+	var result := armory.select_active_item(14)
 	assert_true(result, "Should select auto-reload")
-	assert_eq(armory.pending_active_item, 13, "Pending should be auto-reload")
+	assert_eq(armory.pending_active_item, 14, "Pending should be auto-reload")

@@ -397,6 +397,9 @@ func _ready() -> void:
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
+	# Initialize jammer HUD icon (Issue #1036)
+	_init_jammer_hud()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -517,6 +520,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
 	_handle_breaching_charges_input()
+
+	# Update jammer HUD icon visibility (Issue #1036)
+	_update_jammer_hud()
 
 
 func _get_input_direction() -> Vector2:
@@ -3074,6 +3080,14 @@ func _handle_flashlight_input() -> void:
 	if not is_instance_valid(_flashlight_node):
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
+		if _flashlight_node.has_method("turn_off"):
+			_flashlight_node.turn_off()
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			FileLogger.info("[Player.Flashlight] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
 	if Input.is_action_pressed("flashlight_toggle"):
 		if _flashlight_node.has_method("turn_on"):
 			_flashlight_node.turn_on()
@@ -3177,6 +3191,10 @@ func _handle_homing_input(delta: float) -> void:
 
 	# Activate on Space press (only if not already active and has charges)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.Homing] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if _homing_charges > 0 and not _homing_active:
 			_homing_active = true
 			_homing_timer = HOMING_DURATION
@@ -3316,6 +3334,10 @@ func _handle_bff_pendant_input() -> void:
 		return
 
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.BffPendant] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		_summon_bff_companion()
 
 
@@ -3575,6 +3597,10 @@ func _handle_invisibility_suit_input() -> void:
 
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.InvisibilitySuit] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if not _invisibility_suit.is_active:
 			_invisibility_suit.activate()
 
@@ -3709,6 +3735,14 @@ func _handle_force_field_input(delta: float) -> void:
 	if not _force_field_equipped or _force_field == null:
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy (hold-based item)
+	if ActiveItemManager.is_active_item_jammed():
+		if _force_field.is_active:
+			_force_field.deactivate()
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			FileLogger.info("[Player.ForceField] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
 	# Hold Space to activate, release to deactivate
 	if Input.is_action_pressed("flashlight_toggle"):
 		if not _force_field.is_active:
@@ -3826,6 +3860,11 @@ func _handle_trajectory_glasses_input() -> void:
 
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		# Use verbose variant so the log records detailed jammer diagnostics on every Space press
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.TrajectoryGlasses] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if not _trajectory_glasses.is_active:
 			# Update weapon reference before activation (in case player switched weapons)
 			_update_trajectory_glasses_weapon()
@@ -3872,6 +3911,33 @@ func is_trajectory_glasses_active() -> bool:
 ## Get the trajectory glasses effect node (for HUD queries).
 func get_trajectory_glasses() -> Node:
 	return _trajectory_glasses
+
+
+# ============================================================================
+# Radio Jammer HUD (Issue #1036)
+# ============================================================================
+
+## Preloaded jammer HUD script (prohibition sign shown when active items are jammed).
+const JammerHudScript = preload("res://scripts/ui/jammer_hud.gd")
+
+## Reference to the jammer HUD node (shown above player when jammed + has active item).
+var _jammer_hud: Node2D = null
+
+
+## Initialize the jammer HUD node (always created; visibility is toggled at runtime).
+func _init_jammer_hud() -> void:
+	_jammer_hud = JammerHudScript.new()
+	_jammer_hud.name = "JammerHUD"
+	add_child(_jammer_hud)
+	FileLogger.info("[Player.Jammer] JammerHUD initialized")
+
+
+## Update jammer HUD visibility: show only when jammed and player has an active item.
+func _update_jammer_hud() -> void:
+	if _jammer_hud == null or not is_instance_valid(_jammer_hud):
+		return
+	var has_item: bool = ActiveItemManager.current_active_item != ActiveItemManager.ActiveItemType.NONE
+	_jammer_hud.set_jammed_visible(ActiveItemManager.is_active_item_jammed() and has_item)
 
 
 # ============================================================================
@@ -3978,6 +4044,11 @@ func _handle_loudspeaker_input() -> void:
 				_loudspeaker_hand_sprite.visible = false
 
 	if not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.Loudspeaker] Space blocked by Radio Jammer (Issue #1036)")
 		return
 
 	if not _loudspeaker_progress.can_activate():
@@ -4353,6 +4424,11 @@ func _handle_breaching_charges_input() -> void:
 		return
 
 	if not is_instance_valid(_breaching_charges):
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if Input.is_action_just_pressed("flashlight_toggle") and ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.BreachingCharges] Space blocked by Radio Jammer (Issue #1036)")
 		return
 
 	# If a charge is already placed: press Space to detonate

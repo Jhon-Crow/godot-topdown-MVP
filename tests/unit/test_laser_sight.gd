@@ -32,7 +32,8 @@ class MockActiveItemManager:
 		BREACHING_CHARGES = 12,
 		ARMORED_SKIN = 13,
 		AUTO_RELOAD = 14,
-		COMBAT_DISPOSITION = 15
+		DRILLING_BULLETS = 15,
+		COMBAT_DISPOSITION = 16
 	}
 
 	## Currently selected active item type
@@ -262,11 +263,11 @@ func test_total_active_items_includes_laser_sight() -> void:
 		"All active item types should include LASER_SIGHT")
 
 
-func test_active_item_count_is_sixteen() -> void:
-	# NONE + 15 items = 16 total (EXTENDED_MAGAZINE added by Issue #1065, COMBAT_DISPOSITION added by Issue #1047)
+func test_active_item_count_is_seventeen() -> void:
+	# NONE + 16 items = 17 total (EXTENDED_MAGAZINE added by Issue #1065, DRILLING_BULLETS added by Issue #751, COMBAT_DISPOSITION added by Issue #1047)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 16,
-		"Should have 16 active item types total (NONE + 15 items including LASER_SIGHT, EXTENDED_MAGAZINE, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, AUTO_RELOAD, and COMBAT_DISPOSITION)")
+	assert_eq(all_types.size(), 17,
+		"Should have 17 active item types total (NONE + 16 items including LASER_SIGHT, EXTENDED_MAGAZINE, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS, and COMBAT_DISPOSITION)")
 
 
 # ============================================================================

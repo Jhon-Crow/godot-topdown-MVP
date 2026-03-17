@@ -2,7 +2,7 @@
 
 **Issue:** #1065 — Add Extended Magazine passive item
 **PR:** #1066
-**Status:** Fixed in commit `c3d6dc1e`
+**Status:** Ongoing — Root Cause 4 identified 2026-03-17, fix in progress
 **Analyst:** konard (AI)
 **Last Updated:** 2026-03-17
 
@@ -18,7 +18,7 @@ The Extended Magazine passive item (PR #1066) was implemented to increase magazi
 |--------|--------------|--------------|---------------|
 | Shotgun | ❌ Broken | `ammo: 0/8` (tube = 8, not 20) | ❌ **Broken** in binary `33a8cce9` |
 | Revolver | ❌ Broken | `ammo: 12/5` (cylinder = 12 ≈ 5×2.5) | ✅ **Fixed** in commit `33a8cce9` |
-| MakarovPM | ❌ Reported broken | `ammo: 22/9` (22 = 9×2.5 ✅) | ✅ **Working** — user misread log format |
+| MakarovPM | ❌ HUD shows 9 | HUD `9/81`, log `22/9` | ❌ **Broken** — `ReinitializeMagazines` overrides Extended Magazine |
 | MiniUzi | ✅ Working | `ammo: 80/32` (80 = 32×2.5) | ✅ Working |
 | AKGL | ✅ Working | `ammo: 75/30` (75 = 30×2.5) | ✅ Working |
 
@@ -111,20 +111,41 @@ The fix: `CylinderSize = cylinderSize` is written **before** `MagazineInventory.
 
 From `game_log_20260317_233144.txt`, Revolver shows `12/5` (12 = 5×2.5) confirming the fix works. The `5` denominator is always the raw `WeaponData.MagazineSize`.
 
-### Why MakarovPM appears broken but is not
+### Why log shows `22/9` but HUD shows `9/81`
 
-The `[Player] Ready! Ammo: current/magazineSize` log format (C# `Player.cs` line 1192) uses:
-- `currentAmmo = CurrentWeapon.CurrentAmmo` — the **scaled** value after Extended Magazine
-- `maxAmmo = CurrentWeapon.WeaponData.MagazineSize` — always the **original, unscaled** WeaponData value
+The `[Player] Ready! Ammo: current/magazineSize` log is emitted from `Player._Ready()` (C# `Player.cs` line 1192), **before** `_setup_selected_weapon()` in the level script runs. At that point, Extended Magazine IS correctly applied, so `CurrentAmmo=22` is shown.
 
-For MakarovPM with Extended Magazine on Normal difficulty:
-- `WeaponData.MagazineSize = 9`
-- After Extended Magazine: `CurrentAmmo = Mathf.RoundToInt(9 × 2.5) = 22`
-- Log shows: `22/9` — **the 22 is correct**, the 9 is just the raw data field
+However, immediately after Player._Ready() returns, the level script calls `_configure_makarov_pm_ammo()` which calls `ReinitializeMagazines(10, true)`. This second initialization uses `WeaponData.MagazineSize=9` (raw, unscaled), resetting the magazine capacity back to 9.
 
-This denominator "9" misleads testers into thinking the capacity is unchanged. The actual in-game HUD shows `AMMO: 22/[reserve]` correctly.
+So the log `22/9` is a snapshot of the CORRECT state *before* the level script overrides it. The HUD `9/81` is the ACTUAL in-game state after the override. This is confirmed by the fourth game log.
 
-### Root Cause 3 (systemic): Misleading log format for ammo display
+### Root Cause 3 (ACTUAL): `ReinitializeMagazines` ignores Extended Magazine scaling
+
+**File:** `Scripts/AbstractClasses/BaseWeapon.cs`
+**Method:** `ReinitializeMagazines(int magazineCount, bool fillAllMagazines)` (line 917)
+**Triggered by:** Every level script that calls `_configure_makarov_pm_ammo(weapon)`
+**Affected levels:** `labyrinth_level.gd`, `building_level.gd`, `beach_level.gd`, `docks_level.gd`, `castle_level.gd`, `test_tier.gd`
+
+Each level script (e.g., `labyrinth_level.gd`) runs `_configure_makarov_pm_ammo` which calls `weapon.ReinitializeMagazines(pm_magazines, true)` AFTER `_Ready()` finishes. This `ReinitializeMagazines` overload uses `WeaponData.MagazineSize` (raw, unscaled = 9) as the magazine size, **discarding the Extended Magazine scaling** that `InitializeMagazinesWithDifficulty()` applied.
+
+**Timeline of operations:**
+1. `Player._Ready()` calls `BaseWeapon._Ready()` → `InitializeMagazinesWithDifficulty()` → Extended Magazine applied → `magazineSize=22`, `MagazineInventory` set to 22-round mags ✅
+2. `[Player] Ready! Ammo: 22/9` logged — showing correct 22 rounds
+3. Level script's `_setup_selected_weapon()` runs → `_configure_makarov_pm_ammo(weapon)`
+4. `weapon.ReinitializeMagazines(10, true)` called → `MagazineInventory.Initialize(10, WeaponData.MagazineSize=9, true)` → **resets to 9-round magazines** ❌
+5. HUD shows `9/81` (10 magazines × 9 rounds, current=9, reserve=81)
+
+**Evidence from `game_log_20260318_005506.txt`:**
+```
+[00:55:27] [Player] Ready! Ammo: 22/9          ← Extended Magazine applied: CurrentAmmo=22
+[00:55:27] [LabyrinthLevel] Setting up weapon: makarov_pm  ← level script runs AFTER _Ready
+(no "[BaseWeapon] Extended Magazine:" log for ReinitializeMagazines → unscaled magazineSize used)
+Screenshot: HUD shows "9/81"                   ← ReinitializeMagazines reset to 9-round mags ❌
+```
+
+**Fix (implemented):** `ReinitializeMagazines(int magazineCount, bool fillAllMagazines)` now checks for Extended Magazine and scales `WeaponData.MagazineSize` before calling `MagazineInventory.Initialize()`. This applies automatically to all level scripts.
+
+### Root Cause 4 (systemic): Misleading log format for ammo display
 
 **File:** `Scripts/Characters/Player.cs` line 1192
 **Impact:** Causes testers to think Extended Magazine is not working for all C# weapons
@@ -210,7 +231,26 @@ CylinderSize = cylinderSize;  // ← added: persist scaled value before Magazine
 MagazineInventory.Initialize(magazineCount, cylinderSize);
 ```
 
-### Fix 3 (low priority): Improve ammo log format to avoid confusion
+### Fix 3: `ReinitializeMagazines` — respect Extended Magazine scaling (IMPLEMENTED)
+
+```csharp
+// In BaseWeapon.ReinitializeMagazines(int magazineCount, bool fillAllMagazines):
+int magazineSize = WeaponData.MagazineSize;
+
+// Respect Extended Magazine passive item (Issue #1065): scale magazine size.
+var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+    && activeItemManager.Call("has_extended_magazine").AsBool())
+{
+    float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+    magazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+}
+MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
+```
+
+This fix benefits all six level scripts that call `_configure_makarov_pm_ammo` (and any other `ReinitializeMagazines` caller) without requiring changes in each level file.
+
+### Fix 4 (low priority): Improve ammo log format to avoid confusion
 
 In `Scripts/Characters/Player.cs` line 1192, add the actual active magazine capacity alongside the raw WeaponData value to prevent future misdiagnosis.
 
@@ -242,6 +282,7 @@ In `Scripts/Characters/Player.cs` line 1192, add the actual active magazine capa
 | `tests/unit/test_active_item_manager.gd` | Update mock enum order | `c3d6dc1e` |
 | `tests/unit/test_laser_sight.gd` | Update mock enum order | `c3d6dc1e` |
 | `tests/unit/test_unlock_manager.gd` | Update mock enum order | `c3d6dc1e` |
+| `Scripts/AbstractClasses/BaseWeapon.cs` | **`ReinitializeMagazines` respects Extended Magazine scaling** | TBD |
 
 ---
 
@@ -252,6 +293,7 @@ In `Scripts/Characters/Player.cs` line 1192, add the actual active magazine capa
 | `game_log_20260317_213029.txt` | First bug report log — Power Fantasy, initial build (`33a8cce9`), Shotgun ❌, Revolver not tested |
 | `game_log_20260317_233144.txt` | Second test log — Normal difficulty, Revolver ✅, Shotgun ❌, MakarovPM ✅ (misreported as broken) |
 | `game_log_20260317_235414.txt` | Third test log — Normal difficulty, post-fix binary; Revolver `12/5` ✅, MakarovPM `22/9` ✅, Shotgun `0/8` ❌ (old binary, pre-`c3d6dc1e`) |
+| `game_log_20260318_005506.txt` | Fourth test log — Normal difficulty; MakarovPM `22/9` in log but HUD shows `9/81` ❌ — confirms `ReinitializeMagazines` bug (Root Cause 3) |
 
 ---
 

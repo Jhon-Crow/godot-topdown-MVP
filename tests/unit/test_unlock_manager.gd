@@ -70,7 +70,8 @@ class MockActiveItemManager:
 		12: true,  # BREACHING_CHARGES — no condition, freely available from start (Issue #1043)
 		13: true,  # ARMORED_SKIN — no condition, freely available from start (Issue #1045)
 		14: true,  # AUTO_RELOAD — no condition, freely available from start (Issue #1067)
-		15: true   # COMBAT_DISPOSITION — no condition, freely available from start (Issue #1047)
+		15: true,  # DRILLING_BULLETS — no condition, freely available from start (Issue #751)
+		16: true   # COMBAT_DISPOSITION — no condition, freely available from start (Issue #1047)
 	}
 
 	var unlocked_signals: Array = []

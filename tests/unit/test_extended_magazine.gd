@@ -32,7 +32,8 @@ class MockActiveItemManager:
 		BREACHING_CHARGES = 12,
 		ARMORED_SKIN = 13,
 		AUTO_RELOAD = 14,
-		COMBAT_DISPOSITION = 15
+		DRILLING_BULLETS = 15,
+		COMBAT_DISPOSITION = 16
 	}
 
 	## Currently selected active item type
@@ -330,11 +331,11 @@ func test_total_active_items_includes_extended_magazine() -> void:
 		"All active item types should include EXTENDED_MAGAZINE")
 
 
-func test_active_item_count_is_sixteen() -> void:
-	# NONE + 15 items = 16 total (after adding EXTENDED_MAGAZINE + Loudspeaker + Breaching Charges + Armored Skin + Auto-Reload + Combat Disposition)
+func test_active_item_count_is_seventeen() -> void:
+	# NONE + 16 items = 17 total (after adding EXTENDED_MAGAZINE + Loudspeaker + Breaching Charges + Armored Skin + Auto-Reload + Drilling Bullets + Combat Disposition)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 16,
-		"Should have 16 active item types total (NONE + 15 items including EXTENDED_MAGAZINE and COMBAT_DISPOSITION)")
+	assert_eq(all_types.size(), 17,
+		"Should have 17 active item types total (NONE + 16 items including EXTENDED_MAGAZINE, DRILLING_BULLETS, and COMBAT_DISPOSITION)")
 
 
 # ============================================================================

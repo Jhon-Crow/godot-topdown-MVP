@@ -119,6 +119,13 @@ public abstract partial class BaseWeapon : Node2D
     public bool IsBreakerBulletActive { get; set; } = false;
 
     /// <summary>
+    /// Remaining drilling bullet count for the current magazine (Issue #751).
+    /// When > 0, spawned bullets will have is_drilling_bullet = true (pass through walls).
+    /// Decremented on each shot; player.gd sets this to CurrentAmmo on activation.
+    /// </summary>
+    public int DrillingBulletsRemaining { get; set; } = 0;
+
+    /// <summary>
     /// Extra damage bonus added to every bullet spawned (Issue #1047, Combat Disposition passive item).
     /// Can be negative (penalty after taking damage).
     /// </summary>
@@ -546,6 +553,22 @@ public abstract partial class BaseWeapon : Node2D
             }
         }
 
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Decrements the counter; when it reaches 0, drilling effect ends naturally.
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+            if (bullet is CSharpBullet csBulletDrilling)
+            {
+                csBulletDrilling.IsDrillingBullet = true;
+            }
+            else
+            {
+                // GDScript bullet — use setter method (Issue #781)
+                bullet.Call("set_is_drilling_bullet", true);
+            }
+        }
+
         // Set enemy penetration flag if weapon penetrates enemies (Issue #829)
         // This is used by the RSh-12 revolver - bullets pass through enemies
         if (WeaponData != null && WeaponData.PenetratesEnemies)
@@ -922,11 +945,23 @@ public abstract partial class BaseWeapon : Node2D
             return;
         }
 
-        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines);
+        int magazineSize = WeaponData.MagazineSize;
+
+        // Respect Extended Magazine passive item (Issue #1065): scale magazine size.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            magazineSize = Mathf.Max(1, Mathf.RoundToInt(magazineSize * magSizeMultiplier));
+            GD.Print($"[BaseWeapon] ReinitializeMagazines: Extended Magazine applied, magazineSize {WeaponData.MagazineSize}->{magazineSize}");
+        }
+
+        MagazineInventory.Initialize(magazineCount, magazineSize, fillAllMagazines);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
 
-        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines of size {magazineSize}, fillAll={fillAllMagazines}");
     }
 
     /// <summary>
