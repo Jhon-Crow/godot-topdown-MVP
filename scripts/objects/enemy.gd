@@ -3898,12 +3898,13 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 ## Fire RPG rocket directly (bypass pool - Issue #583, analogous to AKGL.cs FireGrenadeLauncher).
 func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
 	if bullet_scene == null: _log_to_file("[RPG] bullet_scene is null, cannot spawn rocket!"); return
-	# Issue #583: cast to RpgRocket directly — has_method() is unreliable for GDScript at instantiate time.
-	var rocket := bullet_scene.instantiate() as RpgRocket
-	if rocket == null: _log_to_file("[RPG] ERROR: bullet_scene is not an RpgRocket!"); return
-	rocket.shooter_id = get_instance_id(); rocket.shooter_position = pos; rocket.global_position = pos
+	# Issue #583: instantiate and verify via has_method — "as RpgRocket" cast fails in exported builds.
+	var rocket: Node2D = bullet_scene.instantiate() as Node2D
+	if rocket == null: _log_to_file("[RPG] ERROR: bullet_scene did not instantiate as Node2D!"); return
+	if not rocket.has_method("launch"): _log_to_file("[RPG] ERROR: rocket has no launch() method!"); rocket.queue_free(); return
+	rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
 	get_tree().current_scene.add_child(rocket)
-	rocket.launch(dir)  # Issue #583: call AFTER add_child so _ready() has run
+	rocket.call("launch", dir)  # Issue #583: call AFTER add_child so _ready() has run; use call() for export safety
 	_log_to_file("[RPG] Rocket spawned at %s dir=%s" % [str(pos), str(dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
