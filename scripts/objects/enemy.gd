@@ -13,7 +13,8 @@ enum AIState {
 	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
 	ASSAULT,    ## Coordinated multi-enemy assault (rush player after 5s wait)
 	SEARCHING,  ## Methodically searching area where player was last seen (Issue #322)
-	EVADING_GRENADE  ## Fleeing from grenade danger zone (Issue #407)
+	EVADING_GRENADE,  ## Fleeing from grenade danger zone (Issue #407)
+	PACIFIST    ## Refuses to fight, hides in cover (Issue #959: Loudspeaker effect)
 }
 
 ## Retreat behavior modes based on damage taken.
@@ -104,6 +105,7 @@ signal reload_finished  ## Reload finished
 signal ammo_depleted  ## All ammo depleted
 signal death_animation_completed  ## Death animation done
 signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade thrown (Issue #363)
+signal became_pacifist  ## Enemy became pacifist (Issue #959: counts as killed for level completion)
 
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
@@ -349,7 +351,11 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
+
+## [Pacifism - Issue #959] Loudspeaker effect component
+var _pacifist: PacifistComponent = null  ## Pacifism state management
 var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
+
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -410,6 +416,7 @@ func _ready() -> void:
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
+	_pacifist = PacifistComponent.new(self)  # Issue #959
 	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
 	if is_teleporter: _teleport_component = EnemyTeleportComponent.new(); _teleport_component.name = "TeleportComponent"; add_child(_teleport_component); EnemyTeleportComponent.add_backpack(_enemy_model)  # Issue #752
 	_setup_enemy_flashlight()  # Issue #824
@@ -808,6 +815,11 @@ func _physics_process(delta: float) -> void:
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
 		_flashbang_status.update(delta)
+
+	# Issue #959: Update pacifist retaliation timer
+	if _pacifist and _pacifist.update(delta) and _current_state != AIState.PACIFIST:
+		_log_to_file("[#959] Pacifist retaliation ended, returning to PACIFIST state")
+		_transition_to_pacifist(false)  # Don't emit signal again, already counted as pacifist
 
 	# Update shoot cooldown timer
 	_shoot_timer += delta
@@ -1303,6 +1315,7 @@ func _process_ai_state(delta: float) -> void:
 		AIState.ASSAULT: _process_assault_state(delta)
 		AIState.SEARCHING: _process_searching_state(delta)
 		AIState.EVADING_GRENADE: _process_evading_grenade_state(delta)
+		AIState.PACIFIST: _process_pacifist_state(delta)
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
 		_log_debug("State changed: %s -> %s" % [AIState.keys()[previous_state], AIState.keys()[_current_state]])
@@ -2364,7 +2377,13 @@ func _return_from_grenade_evasion() -> void:
 		AIState.PURSUING: _transition_to_pursuing()
 		AIState.ASSAULT: _transition_to_assault()
 		AIState.SEARCHING: _transition_to_searching(global_position)
+		AIState.PACIFIST: _transition_to_pacifist(false)
 		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
+func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover (#959)
+	if not _has_valid_cover: _find_cover_position()
+	if not _has_valid_cover: velocity = Vector2.ZERO; return
+	if global_position.distance_to(_cover_position) > 20.0: velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
+	else: velocity = Vector2.ZERO
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
@@ -2711,80 +2730,52 @@ func _transition_to_retreating() -> void:
 
 	# Find cover position for retreating
 	_find_cover_position()
+## Transition to PACIFIST state (Issue #959). @param emit_signal: emit became_pacifist on first transition
+func _transition_to_pacifist(emit_signal: bool = true) -> void:
+	if _pacifist and _pacifist.is_immune: _log_to_file("Cannot become pacifist - immune"); return
+	var was := _pacifist.is_pacifist if _pacifist else false
+	_current_state = AIState.PACIFIST; _has_left_idle = true; velocity = Vector2.ZERO
+	if _pacifist: _pacifist.start_pacifism()
+	_log_to_file("Transitioned to PACIFIST"); if emit_signal and not was: became_pacifist.emit()
+## Make this enemy a pacifist via loudspeaker. Returns true if successful.
+func apply_pacifism(hc: float = 0.5) -> bool:
+	if not _pacifist or _pacifist.is_immune or _pacifist.is_pacifist or not _is_alive: return false
+	_transition_to_pacifist()
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e != self and e.has_method("on_new_pacifist_created") and e.has_method("is_alive") and e.is_alive(): e.on_new_pacifist_created(self, hc)
+	return true
 
-## Check if PLAYER can see ENEMY. Checks center + corners. Issue #969: per-frame cached.
-func _is_visible_from_player() -> bool:
-	if _player == null: return false
-	var current_frame := Engine.get_physics_frames()  # Issue #969: per-frame cache
-	if current_frame == _visible_from_player_cache_frame: return _cached_visible_from_player
-	var is_visible := false
-	for point in _get_enemy_check_points(global_position):
-		if _is_point_visible_from_player(point): is_visible = true; break
-	_cached_visible_from_player = is_visible; _visible_from_player_cache_frame = current_frame
-	return is_visible
+func was_attacked_by_player() -> bool: return _hits_taken_in_encounter > 0 or _in_alarm_mode
+func is_pacifist() -> bool: return _pacifist.is_pacifist if _pacifist else false
+func is_immune_to_pacifism() -> bool: return _pacifist.is_immune if _pacifist else false
+func set_immune_to_pacifism(immune: bool) -> void:
+	if _pacifist: _pacifist.set_immune(immune); if immune: _log_to_file("Enemy immune to pacifism")
+func on_new_pacifist_created(_e: Node2D, _c: float) -> void:
+	if _pacifist and _pacifist.is_pacifist: return
 
-## Get center + 4 corner points on enemy body for visibility testing.
-func _get_enemy_check_points(center: Vector2) -> Array[Vector2]:
-	# Enemy collision radius is 24, sprite is 48x48
-	# Use a slightly smaller radius to avoid edge cases
-	const ENEMY_RADIUS: float = 22.0
+## Alert this enemy that the loudspeaker was used (Issue #959).
+## Per spec: all enemies on the map hear the player when the loudspeaker is activated.
+func alert_from_loudspeaker(sound_position: Vector2) -> void:
+	if not _is_alive: return
+	if _pacifist and _pacifist.is_pacifist: return  # Pacifists already neutralized
+	_last_known_player_position = sound_position
+	if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
+		_transition_to_pursuing()
+	_log_to_file("Alerted by loudspeaker from position %s" % sound_position)
 
-	var points: Array[Vector2] = []
-	points.append(center)  # Center point
-
-	# 4 corner points (diagonal directions)
-	var diagonal_offset := ENEMY_RADIUS * 0.707  # cos(45°) ≈ 0.707
-	points.append(center + Vector2(diagonal_offset, diagonal_offset))
-	points.append(center + Vector2(-diagonal_offset, diagonal_offset))
-	points.append(center + Vector2(diagonal_offset, -diagonal_offset))
-	points.append(center + Vector2(-diagonal_offset, -diagonal_offset))
-
-	return points
-
-## Check if a single point is visible from the player's position.
-func _is_point_visible_from_player(point: Vector2) -> bool:
-	if _player == null:
-		return false
-
-	var player_pos := _player.global_position
-	var distance := player_pos.distance_to(point)
-
-	# Use direct space state to check line of sight from player to point
-	var space_state := get_world_2d().direct_space_state
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = player_pos
-	query.to = point
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = []
-
-	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		# No obstacle between player and point - point is visible
-		return true
-	else:
-		# Check if we hit an obstacle before reaching the point
-		var hit_position: Vector2 = result["position"]
-		var distance_to_hit := player_pos.distance_to(hit_position)
-
-		# If we hit something closer than the point, the point is hidden
-		if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
-			return false
-		else:
-			return true
-
-## Check if enemy at position would be visible to player. Used to validate cover positions.
-func _is_position_visible_from_player(pos: Vector2) -> bool:
-	if _player == null:
-		return true  # Assume visible if no player
-
-	# Check visibility for all enemy body points at the given position
-	var check_points := _get_enemy_check_points(pos)
-
-	for point in check_points:
-		if _is_point_visible_from_player(point):
-			return true
-
+func _is_visible_from_player() -> bool:  ## PLAYER can see ENEMY (checks center + corners)
+	return _is_position_visible_from_player(global_position) if _player else false
+func _get_enemy_check_points(c: Vector2) -> Array[Vector2]:  ## center + 4 corners for visibility
+	var d := 22.0 * 0.707; return [c, c + Vector2(d, d), c + Vector2(-d, d), c + Vector2(d, -d), c + Vector2(-d, -d)]
+func _is_point_visible_from_player(pt: Vector2) -> bool:  ## Single point visible from player
+	if not _player: return false
+	var q := PhysicsRayQueryParameters2D.new(); q.from = _player.global_position; q.to = pt; q.collision_mask = 4
+	var r := get_world_2d().direct_space_state.intersect_ray(q)
+	return r.is_empty() or _player.global_position.distance_to(r["position"]) >= _player.global_position.distance_to(pt) - 10.0
+func _is_position_visible_from_player(pos: Vector2) -> bool:  ## Enemy at pos visible to player
+	if not _player: return true
+	for pt in _get_enemy_check_points(pos):
+		if _is_point_visible_from_player(pt): return true
 	return false
 
 ## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
@@ -4177,6 +4168,12 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
+		# Issue #959: Pacifist retaliation - temporarily attack the attacker
+		if _pacifist and _pacifist.is_pacifist and _current_state == AIState.PACIFIST:
+			_pacifist.start_retaliation(_player)
+			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
+			_log_to_file("[#959] Pacifist hit - retaliating"); _transition_to_combat(); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
 		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
