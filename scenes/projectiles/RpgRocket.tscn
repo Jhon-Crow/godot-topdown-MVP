@@ -42,15 +42,15 @@ collision_layer = 16
 collision_mask = 39
 script = ExtResource("1_bullet")
 is_rpg_rocket = true
-speed = 300.0
+speed = 600.0
 lifetime = 5.0
 trail_length = 20
-rpg_speed_initial = 300.0
-rpg_speed_max = 800.0
-rpg_accel_distance = 1000.0
+rpg_speed_initial = 600.0
+rpg_speed_max = 1800.0
+rpg_accel_distance = 800.0
 rpg_explosion_radius = 150.0
 rpg_explosion_damage = 3
-rpg_spawn_immunity = 0.3
+rpg_spawn_immunity = 0.15
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(2.0, 2.0)

@@ -167,13 +167,13 @@ var is_drilling_bullet: bool = false
 var is_rpg_rocket: bool = false
 
 ## RPG rocket: initial launch speed (pixels per second, like real RPG-7 initial charge).
-var rpg_speed_initial: float = 300.0
+var rpg_speed_initial: float = 600.0
 
 ## RPG rocket: cruise speed after acceleration phase (pixels per second).
-var rpg_speed_max: float = 800.0
+var rpg_speed_max: float = 1800.0
 
 ## RPG rocket: distance over which rocket accelerates from initial to cruise speed (pixels).
-var rpg_accel_distance: float = 1000.0
+var rpg_accel_distance: float = 800.0
 
 ## RPG rocket: explosion radius in pixels.
 var rpg_explosion_radius: float = 150.0
@@ -182,7 +182,7 @@ var rpg_explosion_radius: float = 150.0
 var rpg_explosion_damage: int = 3
 
 ## RPG rocket: seconds of spawn immunity (ignores all collisions, avoids immediate explosion).
-var rpg_spawn_immunity: float = 0.3
+var rpg_spawn_immunity: float = 0.15
 
 ## RPG rocket internal state: distance traveled so far.
 var _rpg_distance_traveled: float = 0.0
@@ -195,6 +195,9 @@ var _rpg_time_alive: float = 0.0
 
 ## RPG rocket internal state: whether rocket has already exploded (prevent double-explosion).
 var _rpg_has_exploded: bool = false
+
+## RPG rocket internal state: position from the previous physics frame (for raycast hit detection).
+var _rpg_prev_position: Vector2 = Vector2.ZERO
 
 ## Whether this bullet penetrates through enemies (Issue #829).
 ## When true, the bullet deals damage to enemies but continues flying through them.
@@ -276,9 +279,10 @@ func _ready() -> void:
 			FileLogger.info("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
 				"loaded" if _breaker_shrapnel_scene else "MISSING"))
 
-	# Initialize RPG rocket speed
+	# Initialize RPG rocket speed and raycast tracking position
 	if is_rpg_rocket:
 		_rpg_current_speed = rpg_speed_initial
+		_rpg_prev_position = global_position
 		FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f" % [
 			str(global_position), str(direction), rpg_speed_initial, rpg_speed_max])
 
@@ -348,6 +352,20 @@ func _physics_process(delta: float) -> void:
 	if is_rpg_rocket:
 		_rpg_distance_traveled += movement.length()
 		rotation = direction.angle()  # Stay pointed in travel direction (direction set after _ready)
+		# Raycast-based collision: detect wall/body hits that body_entered may miss (Issue #583).
+		# Cast a ray from previous position to current position each frame as a reliable fallback.
+		if _rpg_time_alive >= rpg_spawn_immunity and not _rpg_has_exploded and _rpg_prev_position != Vector2.ZERO:
+			var space_state := get_world_2d().direct_space_state
+			var ray := PhysicsRayQueryParameters2D.create(_rpg_prev_position, global_position)
+			ray.collision_mask = 39  # same as rocket collision_mask: walls (4), enemies (2), player (1)
+			ray.exclude = [self]
+			var result := space_state.intersect_ray(ray)
+			if not result.is_empty():
+				FileLogger.info("[RpgRocket] Raycast impact on %s at %s after %.2fs dist=%.0fpx" % [
+					result.collider.name, str(result.position), _rpg_time_alive, _rpg_distance_traveled])
+				_rpg_explode()
+				return
+		_rpg_prev_position = global_position
 
 	# Track distance traveled since last ricochet (for viewport-based lifetime)
 	if _has_ricocheted:
