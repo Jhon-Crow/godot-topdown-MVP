@@ -133,7 +133,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 }
 
 ## Whether the player's active items are currently jammed by a Radio Jammer enemy (Issue #1036).
+## NOTE: This flag is no longer the source of truth for jam state.
+## is_active_item_jammed() queries the scene tree directly to avoid physics-process race conditions.
 var _is_jammed: bool = false
+
+## Jam radius used by Radio Jammer enemies (pixels). Must match RadioWaveEffect.jammer_radius.
+const JAMMER_RADIUS: float = 1000.0
 
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
@@ -325,12 +330,30 @@ func get_unlocked_active_items() -> Dictionary:
 
 
 ## Set whether the player's active items are jammed by a Radio Jammer enemy (Issue #1036).
+## Kept for backward compatibility — the flag is now advisory only.
 ## @param jammed: true to jam active items, false to restore them.
 func set_jammed(jammed: bool) -> void:
 	_is_jammed = jammed
 
 
 ## Check whether the player's active items are currently jammed (Issue #1036).
-## Returns true when a living Radio Jammer enemy is within 1000px.
+## Directly queries the scene tree for living Radio Jammer enemies within JAMMER_RADIUS
+## of the player to avoid physics-process race conditions (root cause of bug reported
+## in comment on 2026-03-17: player could use active item even while inside jammer range).
+## Returns true when at least one living Radio Jammer enemy is within JAMMER_RADIUS.
 func is_active_item_jammed() -> bool:
-	return _is_jammed
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return false
+	var player: Node = players[0]
+	if not is_instance_valid(player):
+		return false
+	var jammers := get_tree().get_nodes_in_group("radio_jammers")
+	for jammer in jammers:
+		if not is_instance_valid(jammer):
+			continue
+		if jammer.has_method("is_alive") and not jammer.is_alive():
+			continue
+		if jammer.global_position.distance_to(player.global_position) <= JAMMER_RADIUS:
+			return true
+	return false

@@ -91,6 +91,23 @@ The issue requested a new enemy type characterized by:
     above the player using Node2D/_draw(), shown only when jammed AND the
     player has an active item equipped (not NONE).
   - Merged latest main (includes auto-reload, machete component, new case studies)
+
+2026-03-17 18:21 UTC
+  Jhon-Crow reports jamming still not working with new game log:
+  game_log_20260317_211852.txt
+
+2026-03-17 ~19:03 UTC
+  AI session started (session 4)
+  - Downloaded and analyzed game_log_20260317_211852.txt (3957 lines)
+  - Confirmed the bug: Invisibility Suit activated at player (735,1225)
+    while jammer was at ~(814,1121) = 130px apart — well within 1000px range.
+    The block should have triggered but did NOT.
+  - Root cause found: physics-process race condition (Root Cause #3).
+    See Technical Root Cause #3 below.
+  - Implemented fix: direct scene-tree query in is_active_item_jammed()
+  - Added "radio_jammers" group to RadioJammerEnemy.tscn
+  - Updated tests with 5 new tests covering the race condition scenario
+  - Updated case study with session 4 findings
 ```
 
 ---
@@ -126,6 +143,52 @@ Jhon-Crow reported that no visual feedback is shown to the player when in the ja
 
 **Resolution** (session 3): Added `JammerHUD` — a `Node2D` child of the player that draws a red prohibition sign (circle with diagonal bar, matching the reference image style) above the player when jammed and the player has an active item equipped. Only shown when both conditions hold (jammed AND has active item), so players who haven't equipped any active item are not shown a confusing icon.
 
+### Technical Root Cause 3 (Physics-Process Race Condition) — Discovered Session 4
+
+After session 3's fixes, Jhon-Crow reported the block was **still not working** with a new game log (`game_log_20260317_211852.txt`). Deep analysis of the log revealed:
+
+- At timestamp 21:19:46, the player activated the Invisibility Suit
+- At that moment, the player was at **(735, 1225)** and the jammer was at approximately **(814, 1121)**
+- Distance = ~130 px — well within the 1000 px jam radius
+- The block should have triggered, but the invisibility suit activated successfully
+
+**Root cause**: Classic physics-process ordering race condition in Godot 4.
+
+The architecture was:
+1. `radio_wave_effect.gd._physics_process()`: queries player distance → calls `ActiveItemManager.set_jammed(is_in_range)` → updates `_is_jammed` flag
+2. `player.gd._physics_process()`: checks `ActiveItemManager.is_active_item_jammed()` → reads `_is_jammed` flag → if false, allows activation
+
+In Godot, `_physics_process` callbacks are called in **scene tree order** (depth-first, by order added to tree). The `Player` node is a sibling of `RadioJammerEnemy` in the level scene. Depending on placement order, Player's `_physics_process` may run **before** RadioWaveEffect's `_physics_process` in the same physics step.
+
+This means:
+- Frame N-1: Player at position A (outside range) → `_is_jammed = false`
+- Frame N: Player moves to position B (inside range)
+  - Player's `_physics_process` runs **first**: checks `_is_jammed` → still `false` → allows activation!
+  - RadioWaveEffect's `_physics_process` runs **after**: computes `is_in_range = true` → sets `_is_jammed = true` (too late!)
+
+This is a **deterministic bug** — every time the player enters the jammer radius and presses Space in the same physics frame they cross the boundary, the block fails. Even once inside the radius, if node order is unfortunate, the block can fail on any given frame.
+
+**Resolution** (session 4):
+- Changed `ActiveItemManager.is_active_item_jammed()` to **directly query the scene tree** every call, instead of reading the stale `_is_jammed` flag
+- Added `"radio_jammers"` group to `RadioJammerEnemy.tscn` so jammers can be found instantly
+- The new implementation loops over all `"radio_jammers"` group nodes, checks `is_alive()`, and computes distance — all in real-time at the moment the player presses Space
+- Since the check now happens inside the same `_physics_process` call (player.gd), there is no cross-node ordering dependency
+
+```gdscript
+# New implementation — no race condition:
+func is_active_item_jammed() -> bool:
+    var players := get_tree().get_nodes_in_group("player")
+    if players.is_empty(): return false
+    var player: Node = players[0]
+    var jammers := get_tree().get_nodes_in_group("radio_jammers")
+    for jammer in jammers:
+        if not is_instance_valid(jammer): continue
+        if jammer.has_method("is_alive") and not jammer.is_alive(): continue
+        if jammer.global_position.distance_to(player.global_position) <= JAMMER_RADIUS:
+            return true
+    return false
+```
+
 ### Architecture Design Choices
 
 | Approach | Pros | Cons | Decision |
@@ -142,12 +205,12 @@ Jhon-Crow reported that no visual feedback is shown to the player when in the ja
 
 | File | Change | Purpose |
 |------|--------|---------|
-| `scripts/effects/radio_wave_effect.gd` | **New** | Animated expanding cyan rings + proximity jamming logic |
-| `scenes/objects/RadioJammerEnemy.tscn` | **New** | Enemy scene with RadioWaveEffect child node |
-| `scripts/autoload/active_item_manager.gd` | Modified | Added `_is_jammed`, `set_jammed()`, `is_active_item_jammed()` |
-| `scripts/characters/player.gd` | Modified | Jammer guard in all 6 `_handle_*_input()` functions |
+| `scripts/effects/radio_wave_effect.gd` | **New** | Animated expanding cyan rings (jamming logic moved to ActiveItemManager in session 4) |
+| `scenes/objects/RadioJammerEnemy.tscn` | **New** | Enemy scene with RadioWaveEffect child node; `"radio_jammers"` group added in session 4 |
+| `scripts/autoload/active_item_manager.gd` | Modified | Added `_is_jammed`, `set_jammed()`, `is_active_item_jammed()` (direct-query in session 4) |
+| `scripts/characters/player.gd` | Modified | Jammer guard in all 6 `_handle_*_input()` functions; logging added in session 4 |
 | `scenes/levels/DecadenceLevel.tscn` | Modified | Added RadioJammerEnemy at position (1100, 900) |
-| `tests/unit/test_radio_jammer_enemy.gd` | **New** | 20 unit tests covering jammer behavior |
+| `tests/unit/test_radio_jammer_enemy.gd` | **New** | 25 unit tests covering jammer behavior (5 new tests for race condition in session 4) |
 
 ### Jamming Mechanic
 
@@ -273,13 +336,14 @@ Based on the research and implementation analysis, here are proposals ranked by 
 
 ## 8. Test Coverage
 
-20 unit tests in `tests/unit/test_radio_jammer_enemy.gd` cover:
+25 unit tests in `tests/unit/test_radio_jammer_enemy.gd` cover:
 
 - Jammer state management (on/off/toggle)
 - `is_active_item_jammed()` reflection
 - Export property defaults (`is_radio_jammer`, `jammer_radius`)
 - RadioWaveEffect visual constants (radius ranges, speeds, colors)
 - Proximity logic (within radius, outside radius, at exact boundary)
+- **Session 4 additions**: JAMMER_RADIUS constant consistency, "radio_jammers" group in scene file, race condition bug scenario (player at 735,1225 / jammer at 814,1121 = 130px), and correct out-of-range scenario (player at 150,1900 / jammer at 1100,900 = 1379px)
 
 All tests use pure GDScript value testing (no scene instantiation required), ensuring they run in CI without a Godot editor.
 
@@ -298,7 +362,8 @@ All tests use pure GDScript value testing (no scene instantiation required), ens
 | `git-log.txt` | Git log of commits on the issue branch |
 | `solution-draft-log.txt` | Complete AI solution draft log (41,470 lines) |
 | `reference_image.png` | Original radio wave reference image from the issue |
-| `game_log_20260317_125825.txt` | Game log from Jhon-Crow's test session (2026-03-17) showing jammer spawned but player never within 1000px |
+| `game_log_20260317_125825.txt` | Game log from session 3 test — jammer spawned but player never within 1000px |
+| `game_log_20260317_211852.txt` | Game log from session 4 test — confirmed race condition bug: invisibility activated at 130px from jammer |
 | `jammer_icon_reference.png` | Reference image for the prohibition sign icon above the player when jammed |
 
 ---

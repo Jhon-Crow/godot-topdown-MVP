@@ -3587,6 +3587,8 @@ func _handle_invisibility_suit_input() -> void:
 
 	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
 	if ActiveItemManager.is_active_item_jammed():
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			FileLogger.info("[Player.InvisibilitySuit] Blocked by Radio Jammer (Issue #1036)")
 		return
 
 	# Activate on Space press (not hold — single press activates for full duration)

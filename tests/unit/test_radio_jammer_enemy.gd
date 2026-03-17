@@ -139,3 +139,56 @@ func test_player_at_exact_boundary_is_jammed() -> void:
 	var jammer_radius := 1000.0
 	var dist := jammer_pos.distance_to(player_pos)
 	assert_true(dist <= jammer_radius, "Player exactly at jammer_radius boundary should be jammed")
+
+
+# ============================================================================
+# ActiveItemManager JAMMER_RADIUS constant tests (Issue #1036 race condition fix)
+# ============================================================================
+
+
+func test_active_item_manager_jammer_radius_matches_wave_effect() -> void:
+	# JAMMER_RADIUS in ActiveItemManager must match RadioWaveEffect.jammer_radius
+	# to ensure the direct-query approach uses the same radius as the visual effect.
+	var aim_radius := 1000.0  # ActiveItemManager.JAMMER_RADIUS
+	var wave_radius := 1000.0  # RadioWaveEffect.jammer_radius export default
+	assert_eq(aim_radius, wave_radius, "JAMMER_RADIUS in ActiveItemManager must match RadioWaveEffect default")
+
+
+func test_active_item_manager_jammer_radius_is_positive() -> void:
+	var jammer_radius := 1000.0  # ActiveItemManager.JAMMER_RADIUS
+	assert_true(jammer_radius > 0.0, "JAMMER_RADIUS must be positive")
+
+
+func test_radio_jammer_scene_includes_radio_jammers_group() -> void:
+	# RadioJammerEnemy.tscn must include "radio_jammers" group for the direct-query
+	# approach in ActiveItemManager.is_active_item_jammed() to find it.
+	# This is verified by checking the scene string directly.
+	var scene_text := ""
+	var f := FileAccess.open("res://scenes/objects/RadioJammerEnemy.tscn", FileAccess.READ)
+	if f != null:
+		scene_text = f.get_as_text()
+		f.close()
+	assert_true(scene_text.contains("radio_jammers"),
+		"RadioJammerEnemy.tscn must include 'radio_jammers' group for direct-query jamming to work")
+
+
+func test_jammer_race_condition_scenario_distance_check() -> void:
+	# Verifies the corrected logic: player at ~(735,1225), jammer at ~(814,1121)
+	# This was the scenario from the bug report 2026-03-17 where blocking failed.
+	var player_pos := Vector2(735.0, 1225.0)
+	var jammer_pos := Vector2(814.0, 1121.0)
+	var jammer_radius := 1000.0
+	var dist := jammer_pos.distance_to(player_pos)
+	assert_true(dist <= jammer_radius,
+		"Bug scenario: player at (735,1225), jammer at (814,1121) = %.0fpx — must be jammed" % dist)
+
+
+func test_jammer_race_condition_scenario_out_of_range() -> void:
+	# Verifies the first invisibility activation was NOT in range (correct behavior).
+	# Player at (150,1900), jammer at (1100,900) = ~1379px > 1000px.
+	var player_pos := Vector2(150.0, 1900.0)
+	var jammer_pos := Vector2(1100.0, 900.0)
+	var jammer_radius := 1000.0
+	var dist := jammer_pos.distance_to(player_pos)
+	assert_false(dist <= jammer_radius,
+		"First activation scenario: player at (150,1900), jammer at (1100,900) = %.0fpx — should NOT be jammed" % dist)

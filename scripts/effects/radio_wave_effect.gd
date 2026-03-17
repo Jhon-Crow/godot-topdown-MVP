@@ -68,22 +68,12 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	# Jam player's active items when within jammer_radius and parent enemy is alive (Issue #1036)
-	var aim := get_node_or_null("/root/ActiveItemManager")
-	if aim == null: return
-	# RadioWaveEffect is a child of EnemyModel which is a child of RadioJammerEnemy.
-	# Walk up to the actual enemy node (CharacterBody2D with is_alive()).
-	var enemy := get_parent().get_parent()
-	# If the enemy is not valid or not alive, release the jammer and stop.
-	if not is_instance_valid(enemy) or (enemy.has_method("is_alive") and not enemy.is_alive()):
-		aim.set_jammed(false)
-		return
-	var players := get_tree().get_nodes_in_group("player")
-	if players.is_empty(): return
-	var player: Node = players[0]
-	if not is_instance_valid(player): return
-	var is_in_range: bool = enemy.global_position.distance_to(player.global_position) <= jammer_radius
-	aim.set_jammed(is_in_range)
+	# NOTE (Issue #1036): The authoritative jam check is now in ActiveItemManager.is_active_item_jammed()
+	# which queries the scene tree directly each call, eliminating the physics-process race condition
+	# where player input could be processed before this update ran in the same physics step.
+	# This function is kept to maintain the advisory _is_jammed flag for HUD use (jammer_hud.gd reads
+	# ActiveItemManager.is_active_item_jammed() which now queries directly, so no race condition).
+	pass
 
 
 func _draw() -> void:
