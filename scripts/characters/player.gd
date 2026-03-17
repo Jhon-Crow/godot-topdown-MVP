@@ -389,6 +389,9 @@ func _ready() -> void:
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
+	# Initialize jammer HUD icon (Issue #1036)
+	_init_jammer_hud()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -509,6 +512,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
 	_handle_breaching_charges_input()
+
+	# Update jammer HUD icon visibility (Issue #1036)
+	_update_jammer_hud()
 
 
 func _get_input_direction() -> Vector2:
@@ -3892,6 +3898,33 @@ func is_trajectory_glasses_active() -> bool:
 ## Get the trajectory glasses effect node (for HUD queries).
 func get_trajectory_glasses() -> Node:
 	return _trajectory_glasses
+
+
+# ============================================================================
+# Radio Jammer HUD (Issue #1036)
+# ============================================================================
+
+## Preloaded jammer HUD script (prohibition sign shown when active items are jammed).
+const JammerHudScript = preload("res://scripts/ui/jammer_hud.gd")
+
+## Reference to the jammer HUD node (shown above player when jammed + has active item).
+var _jammer_hud: Node2D = null
+
+
+## Initialize the jammer HUD node (always created; visibility is toggled at runtime).
+func _init_jammer_hud() -> void:
+	_jammer_hud = JammerHudScript.new()
+	_jammer_hud.name = "JammerHUD"
+	add_child(_jammer_hud)
+	FileLogger.info("[Player.Jammer] JammerHUD initialized")
+
+
+## Update jammer HUD visibility: show only when jammed and player has an active item.
+func _update_jammer_hud() -> void:
+	if _jammer_hud == null or not is_instance_valid(_jammer_hud):
+		return
+	var has_item: bool = ActiveItemManager.current_active_item != ActiveItemManager.ActiveItemType.NONE
+	_jammer_hud.set_jammed_visible(ActiveItemManager.is_active_item_jammed() and has_item)
 
 
 # ============================================================================

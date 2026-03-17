@@ -71,16 +71,19 @@ func _physics_process(_delta: float) -> void:
 	# Jam player's active items when within jammer_radius and parent enemy is alive (Issue #1036)
 	var aim := get_node_or_null("/root/ActiveItemManager")
 	if aim == null: return
-	var parent := get_parent()
-	# If parent enemy is not alive, release the jammer and stop
-	if not is_instance_valid(parent) or (parent.has_method("is_alive") and not parent.is_alive()):
+	# RadioWaveEffect is a child of EnemyModel which is a child of RadioJammerEnemy.
+	# Walk up to the actual enemy node (CharacterBody2D with is_alive()).
+	var enemy := get_parent().get_parent()
+	# If the enemy is not valid or not alive, release the jammer and stop.
+	if not is_instance_valid(enemy) or (enemy.has_method("is_alive") and not enemy.is_alive()):
 		aim.set_jammed(false)
 		return
 	var players := get_tree().get_nodes_in_group("player")
 	if players.is_empty(): return
 	var player: Node = players[0]
 	if not is_instance_valid(player): return
-	aim.set_jammed(get_parent().global_position.distance_to(player.global_position) <= jammer_radius)
+	var is_in_range: bool = enemy.global_position.distance_to(player.global_position) <= jammer_radius
+	aim.set_jammed(is_in_range)
 
 
 func _draw() -> void:
