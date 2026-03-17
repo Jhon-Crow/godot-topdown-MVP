@@ -712,6 +712,13 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		print("[BuildingLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
 
+		# Re-apply auto-reload magazine size reduction if active (Issue #1105).
+		# ReinitializeMagazines resets magazine size to the original value, overriding
+		# the reduction that Player._Ready() applied for the auto-reload passive item.
+		if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
+			_player.ApplyAutoReloadAfterLevelAmmoConfig()
+			_log_to_file("[BuildingLevel] Re-applied auto-reload magazine reduction after ammo config for makarov_pm")
+
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):

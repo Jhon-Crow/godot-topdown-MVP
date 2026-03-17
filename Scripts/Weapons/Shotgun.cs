@@ -1440,6 +1440,51 @@ public partial class Shotgun : BaseWeapon
     }
 
     /// <summary>
+    /// Instantly refills the tube magazine by the given number of shells from the reserve.
+    /// Used by the auto-reload passive item (Issue #1105): on each enemy kill the tube is
+    /// topped up from spare magazines without requiring the manual pump/bolt gestures.
+    ///
+    /// Unlike LoadShell(), this method works regardless of ReloadState and does not
+    /// require the bolt to be open — the auto-reload item is a passive "magic" effect.
+    /// </summary>
+    /// <param name="count">Maximum number of shells to load (capped by tube capacity and reserve).</param>
+    /// <returns>Actual number of shells loaded.</returns>
+    public int AutoRefillTube(int count)
+    {
+        if (count <= 0) return 0;
+
+        int spaceInTube = TubeMagazineCapacity - ShellsInTube;
+        int available = Math.Min(count, Math.Min(spaceInTube, ReserveAmmo));
+
+        if (available <= 0)
+        {
+            LogToFile($"[Shotgun.AutoReload] AutoRefillTube: no space or reserve (ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}, Reserve={ReserveAmmo})");
+            return 0;
+        }
+
+        int added = 0;
+        foreach (var mag in MagazineInventory.SpareMagazines)
+        {
+            while (mag.CurrentAmmo > 0 && added < available)
+            {
+                mag.CurrentAmmo--;
+                ShellsInTube++;
+                added++;
+            }
+            if (added >= available) break;
+        }
+
+        if (added > 0)
+        {
+            EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+            EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
+            LogToFile($"[Shotgun.AutoReload] AutoRefillTube: loaded {added} shells ({ShellsInTube}/{TubeMagazineCapacity}), reserve={ReserveAmmo}");
+        }
+
+        return added;
+    }
+
+    /// <summary>
     /// Checks if we are within the cooldown period after closing the bolt.
     /// This prevents accidental bolt reopening due to continued mouse movement.
     /// </summary>
@@ -1947,6 +1992,47 @@ public partial class Shotgun : BaseWeapon
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    /// <summary>
+    /// Override ReinitializeMagazines to preserve the Shotgun's tube magazine model.
+    /// The Shotgun uses ShellsInTube for its active ammo; the MagazineInventory
+    /// CurrentMagazine is always kept at 0 (it is a placeholder for reserve shells only).
+    /// Without this override, the base ReinitializeMagazines sets CurrentAmmo = magazineSize,
+    /// which breaks auto-reload: OnEnemyKilledForAutoReload reads CurrentAmmo and thinks
+    /// the magazine is full, skipping the ShellsInTube refill entirely (Issue #1105).
+    /// </summary>
+    public override void ReinitializeMagazines(int magazineCount, int magazineSize, bool fillAllMagazines = true)
+    {
+        base.ReinitializeMagazines(magazineCount, magazineSize, fillAllMagazines);
+        // Keep CurrentMagazine at 0 — ShellsInTube is the authoritative ammo source for the shotgun.
+        if (MagazineInventory.CurrentMagazine != null)
+        {
+            MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
+        }
+        GD.Print($"[Shotgun] ReinitializeMagazines override: CurrentMagazine reset to 0 (reserve={ReserveAmmo})");
+    }
+
+    /// <summary>
+    /// Reduces the tube magazine capacity for the auto-reload passive item (Issue #1105).
+    /// Sets TubeMagazineCapacity and trims ShellsInTube to the new capacity if needed,
+    /// then emits ShellCountChanged so the HUD reflects the updated tube size.
+    /// Called by Player.ReduceMagazineSizeForAutoReload() after ReinitializeMagazines().
+    /// </summary>
+    /// <param name="newCapacity">The reduced tube capacity (must be &gt; 0).</param>
+    public void SetAutoReloadTubeCapacity(int newCapacity)
+    {
+        if (newCapacity <= 0) return;
+
+        TubeMagazineCapacity = newCapacity;
+        // Trim current shells to the new (smaller) capacity
+        if (ShellsInTube > TubeMagazineCapacity)
+        {
+            ShellsInTube = TubeMagazineCapacity;
+        }
+
+        EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+        GD.Print($"[Shotgun.AutoReload] SetAutoReloadTubeCapacity: TubeMagazineCapacity={TubeMagazineCapacity}, ShellsInTube={ShellsInTube}");
+    }
 
     /// <summary>
     /// Override CanFire for the shotgun's tube magazine system.
