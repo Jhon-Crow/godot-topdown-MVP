@@ -785,13 +785,27 @@ func test_dust_effect_side_offset_uses_passage_width() -> void:
 		"Side puff offset must be less than full passage width to stay within the breach area")
 
 
-func test_dust_effect_surface_normal_is_opposite_to_direction() -> void:
-	# Issue #1099: dust billows back toward the player (opposite to the wall direction).
-	# surface_normal = -direction ensures particles scatter away from the wall, toward the player.
+func test_dust_effect_surface_normal_matches_direction() -> void:
+	# Issue #1099 (owner feedback): dust spawns on the OPPOSITE side of the wall from the
+	# charge and billows away from the charge (in the same direction as det_dir), simulating
+	# a directional blast that pushes debris through the breach to the far side.
 	var direction := Vector2(1.0, 0.0)  # player facing right, wall is to the right
-	var surface_normal := -direction
-	assert_eq(surface_normal, Vector2(-1.0, 0.0),
-		"Dust surface normal should be the inverse of the detonation direction")
+	var surface_normal := direction      # dust blows in the same direction (away from charge)
+	assert_eq(surface_normal, Vector2(1.0, 0.0),
+		"Dust surface normal should match the detonation direction (directed blast through wall)")
+
+
+func test_dust_effect_spawns_on_far_side_of_wall() -> void:
+	# Issue #1099 (owner feedback): dust origin must be shifted to the far side of the wall
+	# so particles appear on the opposite side from the charge (directional blast).
+	var det_pos := Vector2(100.0, 200.0)
+	var direction := Vector2(1.0, 0.0)        # charge points right
+	var wall_pass_offset: float = 40.0        # DUST_WALL_PASS_OFFSET constant
+	var far_pos := det_pos + direction * wall_pass_offset
+	assert_eq(far_pos, Vector2(140.0, 200.0),
+		"Dust spawn position must be shifted past the wall in the charge direction")
+	assert_gt(far_pos.x, det_pos.x,
+		"Far-side position must be further in the charge direction than the hit point")
 
 
 func test_dust_effect_side_offset_perpendicular_to_direction() -> void:
