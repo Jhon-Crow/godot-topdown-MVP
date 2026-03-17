@@ -917,7 +917,6 @@ func _get_next_level_path() -> String:
 	var level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
-		"res://scenes/levels/Labyrinth2Level.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
 		"res://scenes/levels/RevolverLevel.tscn",
@@ -926,6 +925,7 @@ func _get_next_level_path() -> String:
 		"res://scenes/levels/DocksLevel.tscn",
 		"res://scenes/levels/FactoryLevel.tscn",
 		"res://scenes/levels/DecadenceLevel.tscn",
+		"res://scenes/levels/Labyrinth2Level.tscn",
 	]
 	for i in range(level_paths.size()):
 		if level_paths[i] == current_scene_path:
