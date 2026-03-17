@@ -1572,7 +1572,9 @@ public partial class Shotgun : BaseWeapon
         int pelletCount = GD.RandRange(MinPellets, MaxPellets);
 
         // Get spread angle from weapon data
-        float spreadAngle = WeaponData.SpreadAngle;
+        // Suppress spread when recoil compensator is active (Issue #1073)
+        bool compensatorActive = GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive();
+        float spreadAngle = compensatorActive ? 0.0f : WeaponData.SpreadAngle;
         float spreadRadians = Mathf.DegToRad(spreadAngle);
         float halfSpread = spreadRadians / 2.0f;
 
@@ -1988,6 +1990,10 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;

@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Characters;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -744,6 +745,10 @@ public partial class AssaultRifle : BaseWeapon
     /// <param name="shootDirection">The direction the bullet is traveling.</param>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;
@@ -798,6 +803,10 @@ public partial class AssaultRifle : BaseWeapon
     /// <returns>Direction with current recoil applied.</returns>
     private Vector2 ApplySpread(Vector2 direction)
     {
+        // Suppress spread entirely when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return direction;
+
         // Apply the current recoil offset to the direction
         // This matches where the laser is pointing
         Vector2 result = direction.Rotated(_recoilOffset);

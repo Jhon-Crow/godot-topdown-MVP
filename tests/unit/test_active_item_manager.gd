@@ -126,7 +126,8 @@ class MockActiveItemManager:
 		ARMORED_SKIN = 12,
 		AUTO_RELOAD = 13,
 		DRILLING_BULLETS = 14,
-		COMBAT_DISPOSITION = 15
+		RECOIL_COMPENSATOR = 15,
+		COMBAT_DISPOSITION = 16
 	}
 
 	## Currently selected active item type
@@ -210,6 +211,12 @@ class MockActiveItemManager:
 			"description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine. Bullets ignore walls (full damage through walls, no ricochet). One charge per battle."
 		},
 		15: {
+			"name": "Recoil Compensator",
+			"icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png",
+			"description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts.",
+			"activation_hint": "Hold Space to activate"
+		},
+		16: {
 			"name": "Combat Disposition",
 			"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
 			"description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces damage by 3.0 and fire rate by 3.6."
@@ -313,6 +320,10 @@ class MockActiveItemManager:
 	## Check if drilling bullets are currently equipped (Issue #751)
 	func has_drilling_bullets() -> bool:
 		return current_active_item == ActiveItemType.DRILLING_BULLETS
+
+	## Check if recoil compensator is currently equipped
+	func has_recoil_compensator() -> bool:
+		return current_active_item == ActiveItemType.RECOIL_COMPENSATOR
 
 	## Check if combat disposition is currently equipped
 	func has_combat_disposition() -> bool:
@@ -686,7 +697,8 @@ class MockArmoryWithActiveItems:
 		11: {"name": "Breaching Charges", "description": "Breaching charges — place on wall to create a passage"},
 		12: {"name": "Armored Skin", "description": "Armored Skin — passive: +1 HP. When at 2 HP or less and hit, 20 glass shards explode outward."},
 		13: {"name": "Auto-Reload", "description": "Auto-reload — passive: magazine reduced 2.1x, refilled on kill"},
-		14: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
+		14: {"name": "Recoil Compensator", "description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%. 15 second depletable charge, unlimited activations while charge lasts."},
+		15: {"name": "Combat Disposition", "description": "Combat Disposition — passive: +0.7 damage and +1 fire rate on start. Taking damage reduces bonuses."}
 	}
 
 	## Applied active item type
@@ -1015,7 +1027,7 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 	# Issue #1028: RICOCHET_POINTS was a separate item that was removed.
 	# Its effect is now part of Trajectory Glasses. Index 10 is now LOUDSPEAKER (Issue #959).
 	# Index 11 is BREACHING_CHARGES (Issue #1043). Index 12 is ARMORED_SKIN (Issue #1045).
-	# Index 13 is AUTO_RELOAD (Issue #1067). Index 14 is DRILLING_BULLETS (Issue #751). Index 15 is COMBAT_DISPOSITION (Issue #1047).
+	# Index 13 is AUTO_RELOAD (Issue #1067). Index 14 is DRILLING_BULLETS (Issue #751). Index 15 is RECOIL_COMPENSATOR (Issue #1073). Index 16 is COMBAT_DISPOSITION (Issue #1047).
 	var data := manager.get_active_item_data(10)
 	assert_false(data.is_empty(),
 		"Index 10 should be LOUDSPEAKER — RICOCHET_POINTS was removed (Issue #1028), LOUDSPEAKER added (Issue #959)")
@@ -1033,14 +1045,19 @@ func test_trajectory_glasses_data_has_no_separate_ricochet_points_item() -> void
 		"Item at index 13 should be Auto-Reload (Issue #1067)")
 	var drilling_data := manager.get_active_item_data(14)
 	assert_false(drilling_data.is_empty(),
-		"Index 14 should now be Drilling Bullets (Issue #751)")
+		"Index 14 should be DRILLING_BULLETS (Issue #751)")
 	assert_eq(drilling_data.get("name", ""), "Drilling Bullets",
 		"Item at index 14 should be Drilling Bullets (Issue #751)")
-	var combat_data := manager.get_active_item_data(15)
+	var recoil_data := manager.get_active_item_data(15)
+	assert_false(recoil_data.is_empty(),
+		"Index 15 should be RECOIL_COMPENSATOR (Issue #1073)")
+	assert_eq(recoil_data.get("name", ""), "Recoil Compensator",
+		"Item at index 15 should be Recoil Compensator (Issue #1073)")
+	var combat_data := manager.get_active_item_data(16)
 	assert_false(combat_data.is_empty(),
-		"Index 15 should now be Combat Disposition (Issue #1047)")
+		"Index 16 should be COMBAT_DISPOSITION (Issue #1047)")
 	assert_eq(combat_data.get("name", ""), "Combat Disposition",
-		"Item at index 15 should be Combat Disposition (Issue #1047)")
+		"Item at index 16 should be Combat Disposition (Issue #1047)")
 
 
 func test_trajectory_glasses_description_mentions_passive_boost() -> void:
