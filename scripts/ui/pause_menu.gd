@@ -29,11 +29,11 @@ var _difficulty_menu: CanvasLayer = null
 ## The instantiated levels menu.
 var _levels_menu: CanvasLayer = null
 
-## The instantiated experimental menu.
-var _experimental_menu: CanvasLayer = null
-
 ## The instantiated gameplay menu.
 var _gameplay_menu: CanvasLayer = null
+
+## The instantiated experimental menu.
+var _experimental_menu: CanvasLayer = null
 
 ## The instantiated armory menu.
 var _armory_menu: CanvasLayer = null
@@ -47,11 +47,11 @@ var _sound_menu: CanvasLayer = null
 ## Reference to the levels menu scene.
 @export var levels_menu_scene: PackedScene
 
-## Reference to the experimental menu scene.
-@export var experimental_menu_scene: PackedScene
-
 ## Reference to the gameplay menu scene.
 @export var gameplay_menu_scene: PackedScene
+
+## Reference to the experimental menu scene.
+@export var experimental_menu_scene: PackedScene
 
 ## Reference to the armory menu scene.
 @export var armory_menu_scene: PackedScene
@@ -92,13 +92,13 @@ func _ready() -> void:
 	if levels_menu_scene == null:
 		levels_menu_scene = preload("res://scenes/ui/LevelsMenu.tscn")
 
-	# Preload experimental menu if not set
-	if experimental_menu_scene == null:
-		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
-
 	# Preload gameplay menu if not set
 	if gameplay_menu_scene == null:
 		gameplay_menu_scene = preload("res://scenes/ui/GameplayMenu.tscn")
+
+	# Preload experimental menu if not set
+	if experimental_menu_scene == null:
+		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
 
 	# Preload armory menu if not set
 	if armory_menu_scene == null:
@@ -136,14 +136,14 @@ func pause_game() -> void:
 		_difficulty_menu.hide()
 	if _levels_menu and _levels_menu.visible:
 		_levels_menu.hide()
+	if _gameplay_menu and _gameplay_menu.visible:
+		_gameplay_menu.hide()
 	if _experimental_menu and _experimental_menu.visible:
 		_experimental_menu.hide()
 	if _armory_menu and _armory_menu.visible:
 		_armory_menu.hide()
 	if _sound_menu and _sound_menu.visible:
 		_sound_menu.hide()
-	if _gameplay_menu and _gameplay_menu.visible:
-		_gameplay_menu.hide()
 
 	# Ensure main menu container is visible
 	menu_container.show()
@@ -174,6 +174,10 @@ func resume_game() -> void:
 	if _levels_menu and _levels_menu.visible:
 		_levels_menu.hide()
 
+	# Also close gameplay menu if open
+	if _gameplay_menu and _gameplay_menu.visible:
+		_gameplay_menu.hide()
+
 	# Also close experimental menu if open
 	if _experimental_menu and _experimental_menu.visible:
 		_experimental_menu.hide()
@@ -185,10 +189,6 @@ func resume_game() -> void:
 	# Also close sound menu if open
 	if _sound_menu and _sound_menu.visible:
 		_sound_menu.hide()
-
-	# Also close gameplay menu if open
-	if _gameplay_menu and _gameplay_menu.visible:
-		_gameplay_menu.hide()
 
 
 func _on_resume_pressed() -> void:
@@ -233,6 +233,26 @@ func _on_difficulty_back() -> void:
 		_difficulty_menu.hide()
 	menu_container.show()
 	difficulty_button.grab_focus()
+
+
+func _on_gameplay_pressed() -> void:
+	# Hide main menu, show gameplay menu
+	menu_container.hide()
+
+	if _gameplay_menu == null:
+		_gameplay_menu = gameplay_menu_scene.instantiate()
+		_gameplay_menu.back_pressed.connect(_on_gameplay_back)
+		add_child(_gameplay_menu)
+	else:
+		_gameplay_menu.show()
+
+
+func _on_gameplay_back() -> void:
+	# Show main menu again
+	if _gameplay_menu:
+		_gameplay_menu.hide()
+	menu_container.show()
+	gameplay_button.grab_focus()
 
 
 func _on_armory_pressed() -> void:
@@ -324,26 +344,6 @@ func _on_sound_back() -> void:
 		_sound_menu.hide()
 	menu_container.show()
 	sound_button.grab_focus()
-
-
-func _on_gameplay_pressed() -> void:
-	# Hide main menu, show gameplay menu
-	menu_container.hide()
-
-	if _gameplay_menu == null:
-		_gameplay_menu = gameplay_menu_scene.instantiate()
-		_gameplay_menu.back_pressed.connect(_on_gameplay_back)
-		add_child(_gameplay_menu)
-	else:
-		_gameplay_menu.show()
-
-
-func _on_gameplay_back() -> void:
-	# Show main menu again
-	if _gameplay_menu:
-		_gameplay_menu.hide()
-	menu_container.show()
-	gameplay_button.grab_focus()
 
 
 func _on_experimental_pressed() -> void:
