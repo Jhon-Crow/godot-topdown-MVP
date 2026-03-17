@@ -382,6 +382,7 @@ var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _teleport_component: EnemyTeleportComponent = null  ## Teleport component (Issue #752).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
+var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
 
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
@@ -1162,12 +1163,79 @@ func _can_shoot() -> bool:
 				if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active: _activate_machine_gunner_pm_fallback()  # #1033
 		return false
 	return true
-## [#1033] Machine gunner PM fallback: switch to RIFLE-config sidearm and retreat.
+## [#1033] Machine gunner corridor suppression: fire at last-known player passage without revealing player position.
+## Fires a burst with small spread into the corridor/passage where player was last seen.
+func _machine_gunner_fire_at_corridor(target_pos: Vector2) -> void:
+	if bullet_scene == null: return
+	var to_target := (target_pos - global_position).normalized()
+	if to_target == Vector2.ZERO: return
+	# Face toward the corridor
+	if _enemy_model: _enemy_model.global_rotation = to_target.angle()
+	rotation = to_target.angle()
+	var spawn_pos := _get_bullet_spawn_position(to_target)
+	# Small spread (±5°) to simulate suppressive corridor fire
+	var spread := deg_to_rad(randf_range(-5.0, 5.0))
+	var direction := to_target.rotated(spread)
+	if not _is_bullet_spawn_clear(direction): return
+	_spawn_projectile(direction, spawn_pos)
+	_spawn_muzzle_flash(spawn_pos, direction)
+	_spawn_casing(direction, to_target)
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	var _now_mg := Time.get_ticks_msec() / 1000.0
+	if sp and sp.has_method("emit_sound") and _now_mg - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+		_last_gunshot_propagation_time = _now_mg
+	_play_delayed_shell_sound()
+	_shoot_timer = 0.0
+	_current_ammo -= 1; _shot_count += 1
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	_log_to_file("[#1033] MG corridor suppression: fired at passage %s, ammo=%d" % [target_pos, _current_ammo])
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+	elif _current_ammo <= 0 and _reserve_ammo <= 0 and not _machine_gunner_pm_active: _activate_machine_gunner_pm_fallback()
+
+## [#1033] Machine gunner PM fallback: switch to RIFLE-config sidearm and retreat to distant cover.
 func _activate_machine_gunner_pm_fallback() -> void:
-	_machine_gunner_pm_active = true; weapon_type = WeaponType.RIFLE; _configure_weapon_type()
+	_machine_gunner_pm_active = true; _machine_gunner_suppressing_corridor = false
+	weapon_type = WeaponType.RIFLE; _configure_weapon_type()
 	magazine_size = 8; total_magazines = 2; _current_ammo = magazine_size; _reserve_ammo = magazine_size
 	_is_reloading = false; _reload_timer = 0.0; _goap_world_state["ammo_depleted"] = false
-	_log_to_file("[#1033] Machine gunner belts empty — switched to PM, retreating"); _transition_to_retreating()
+	_find_distant_cover_position()  # [#1033] Retreat to DISTANT cover, not closest
+	_log_to_file("[#1033] Machine gunner belts empty — switched to PM, retreating to distant cover"); _transition_to_retreating()
+
+## [#1033] Find cover position far from the player (for machine gunner PM fallback retreat).
+## Prefers positions that are hidden AND far from player, opposite to normal cover scoring.
+func _find_distant_cover_position() -> void:
+	if _player == null: _has_valid_cover = false; return
+	var player_pos := _player.global_position
+	var best_cover: Vector2 = Vector2.ZERO
+	var best_score: float = -INF
+	var found_hidden: bool = false
+	for i in range(COVER_CHECK_COUNT):
+		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
+		var raycast := _cover_raycasts[i]
+		raycast.target_position = Vector2.from_angle(angle) * COVER_CHECK_DISTANCE
+		raycast.force_raycast_update()
+		if not raycast.is_colliding(): continue
+		var cp := raycast.get_collision_point()
+		var cn := raycast.get_collision_normal()
+		var cover_pos := cp + cn * 35.0
+		if not _can_reach_position(cover_pos): continue
+		var is_hidden := not _is_position_visible_from_player(cover_pos)
+		if not is_hidden and found_hidden: continue
+		# Score: prefer FAR positions (invert distance score) + hidden
+		var dist_to_player := cover_pos.distance_to(player_pos)
+		var far_score := dist_to_player / COVER_CHECK_DISTANCE  # Higher = farther from player
+		var hidden_score: float = 10.0 if is_hidden else 0.0
+		var total_score := hidden_score + far_score
+		if is_hidden and not found_hidden: found_hidden = true; best_score = total_score; best_cover = cover_pos
+		elif (is_hidden or not found_hidden) and total_score > best_score: best_score = total_score; best_cover = cover_pos
+	if best_score > 0:
+		_cover_position = best_cover; _has_valid_cover = true
+		_log_to_file("[#1033] Distant cover found at %s (dist_to_player=%.0f)" % [best_cover, best_cover.distance_to(player_pos)])
+	else:
+		_find_cover_position()  # Fallback to normal cover search
 
 ## Process the AI state machine.
 func _process_ai_state(delta: float) -> void:
@@ -1381,6 +1449,13 @@ func _process_combat_state(delta: float) -> void:
 	# But only after minimum time has elapsed to prevent rapid state thrashing
 	# when visibility flickers at wall/obstacle edges
 	if not _can_see_player:
+		# [#1033] Machine gunner: suppress last-seen corridor/passage until belt is empty instead of pursuing.
+		if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and _last_known_player_position != Vector2.ZERO:
+			_machine_gunner_suppressing_corridor = true
+			if not _is_reloading and _shoot_timer >= shoot_cooldown and _can_shoot():
+				_machine_gunner_fire_at_corridor(_last_known_player_position)
+			return  # Stay put and suppress; belt depletion triggers PM fallback + retreat
+		_machine_gunner_suppressing_corridor = false
 		if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
 			_combat_exposed = false
 			_combat_approaching = false
@@ -3844,6 +3919,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
+		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0

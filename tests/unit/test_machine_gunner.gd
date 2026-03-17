@@ -237,3 +237,28 @@ func test_machine_gun_reserve_ammo_after_init_is_500() -> void:
 	var reserve := (total_mags - 1) * mag_size
 	assert_eq(reserve, 500,
 		"MACHINE_GUN should have 500 reserve rounds (one spare belt)")
+
+
+# ============================================================================
+# Sound and Ammo Type Tests (Issue #1033)
+# PKM uses 7.62x39 AK ammo — same caliber resource as AK
+# ============================================================================
+
+
+func test_machine_gun_caliber_path_is_762x39() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_true(config["caliber_path"].ends_with("caliber_762x39.tres"),
+		"MACHINE_GUN must use 7.62x39 caliber (same as AK)")
+
+
+func test_machine_gun_caliber_differs_from_rifle_m16() -> void:
+	var mg_cal := WeaponConfigComponent.WEAPON_CONFIGS[4]["caliber_path"]
+	var rifle_cal := WeaponConfigComponent.WEAPON_CONFIGS[0]["caliber_path"]
+	assert_ne(mg_cal, rifle_cal,
+		"MACHINE_GUN 7.62x39 caliber should differ from RIFLE M16 5.45x39 caliber")
+
+
+func test_machine_gun_weapon_type_enum_is_4() -> void:
+	# Verify MACHINE_GUN is enum value 4 so sound routing logic works
+	assert_eq(WeaponConfigComponent.get_type_name(4), "MACHINE_GUN",
+		"Weapon type 4 must be MACHINE_GUN for AK sound routing to work")
