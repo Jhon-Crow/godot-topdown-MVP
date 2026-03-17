@@ -579,60 +579,33 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if _memory_reset_confusion_timer > 0.0 and not is_player_gunshot: return  # #318 + #910: allow gunshots during confusion
 	var distance := global_position.distance_to(position)
 
-	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
-	# This sound propagates through walls and alerts enemies even behind cover.
+	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable, propagates through walls.
 	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
 		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
-
-		# Set player vulnerability state - reloading
 		_goap_world_state["player_reloading"] = true
 		_last_known_player_position = position
-		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
-
-		# Issue #363: Notify grenade system of vulnerable sound for Trigger 4
-		_on_vulnerable_sound_heard_for_grenade(position)
-
-		# Update memory system with sound-based detection (Issue #297)
-		if _memory:
-			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
-
-		# React to vulnerable player sound - pursue (high-risk for reload actions)
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
+		_on_vulnerable_sound_heard_for_grenade(position)  # Issue #363
+		if _memory: _memory.update_position(position, SOUND_RELOAD_CONFIDENCE)  # Issue #297
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "RELOAD")  # Issue #910
 		return
 
-	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
-	# This sound has shorter range than reload but still propagates through walls.
+	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable, propagates through walls.
 	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
 		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
-
-		# Set player vulnerability state - out of ammo
 		_goap_world_state["player_ammo_empty"] = true
 		_last_known_player_position = position
-		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
-
-		# Issue #363: Notify grenade system of vulnerable sound for Trigger 4
-		_on_vulnerable_sound_heard_for_grenade(position)
-
-		# Update memory system with sound-based detection (Issue #297)
-		if _memory:
-			_memory.update_position(position, SOUND_EMPTY_CLICK_CONFIDENCE)
-
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes empty click sounds a high-risk action when enemies are nearby.
-		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921: added SEARCHING
-			# Leave cover/defensive/searching state to attack vulnerable player
+		_on_vulnerable_sound_heard_for_grenade(position)  # Issue #363
+		if _memory: _memory.update_position(position, SOUND_EMPTY_CLICK_CONFIDENCE)  # Issue #297
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:  # Issue #921
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT/PURSUING/FLANKING: the flag is set and used; fire at sound if invisible (#910)
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "EMPTY_CLICK")  # Issue #910
 		return
 
@@ -654,40 +627,26 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
-	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
-	# This sound propagates through walls and signals enemies to become cautious.
+	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player no longer vulnerable.
 	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
 		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, dist=%.0f) at %s" % [intensity, distance, position])
 		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
-
-		# Clear player vulnerability state - reload finished, player is armed again
 		_goap_world_state["player_reloading"] = false
 		_goap_world_state["player_ammo_empty"] = false
-		# Clear the aggressive pursuit flag - no longer pursuing vulnerable player
 		_pursuing_vulnerability_sound = false
-
-		# React to reload completion - transition to cautious/defensive mode after a short delay.
-		# The 200ms delay gives enemies a brief reaction time before becoming cautious,
-		# making the transition feel more natural and giving player a small window.
-		# Enemies who were pursuing the vulnerable player should now become more cautious.
-		# This makes completing reload a way to "reset" aggressive enemy behavior.
+		# React with 200ms delay to give player a brief window, then transition cautious/defensive.
 		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 			var state_before_delay := _current_state
 			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
 			await get_tree().create_timer(0.2).timeout
-			# After delay, check if still alive and in an aggressive state
-			if not _is_alive:
-				return
-			# Only transition if still in an aggressive state (state might have changed during delay)
+			if not _is_alive: return
 			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
-				# Return to cover/defensive state since player is no longer vulnerable
 				if _has_valid_cover:
 					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
 					_transition_to_retreating()
 				elif enable_cover:
 					_log_to_file("Reload complete sound triggered cover seek - transitioning from %s to SEEKING_COVER (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
 					_transition_to_seeking_cover()
-				# If no cover available, stay in current state but with cleared vulnerability flags
 		return
 
 	# Issue #805: Handle GUNSHOT (0) and EXPLOSION (1) sounds - both alert enemies similarly
@@ -4646,38 +4605,20 @@ func _draw() -> void:
 	if not debug_label_enabled:
 		return
 
-	# Colors for different debug elements
-	var color_to_cover := Color.CYAN  # Line to cover position
-	var color_to_player := Color.RED  # Line to player (when visible)
-	var color_clear_shot := Color.YELLOW  # Line to clear shot target
-	var color_pursuit := Color.ORANGE  # Line to pursuit cover
-	var color_flank := Color.MAGENTA  # Line to flank position
-	var color_bullet_spawn := Color.GREEN  # Bullet spawn point indicator
-	var color_blocked := Color.RED  # Blocked path indicator
-
-	# Draw FOV cone in debug mode - always visible to show FOV configuration
-	# Color indicates whether FOV is actually active (green) or just visualization (gray)
+	var color_to_cover := Color.CYAN; var color_to_player := Color.RED
+	var color_clear_shot := Color.YELLOW; var color_pursuit := Color.ORANGE
+	var color_flank := Color.MAGENTA; var color_bullet_spawn := Color.GREEN; var color_blocked := Color.RED
+	# FOV cone: green=active, gray=disabled
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	var global_fov_enabled := false
 	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
 		global_fov_enabled = experimental_settings.is_fov_enabled()
-
-	# Determine if FOV is actually active for this enemy
 	var fov_active := global_fov_enabled and fov_enabled and fov_angle > 0.0
-
-	# Choose color based on whether FOV is active
-	# Green = FOV is active (100 degree vision)
-	# Gray = FOV is disabled (360 degree vision, but showing what the cone would be)
-	var color_fov: Color
-	var color_fov_edge: Color
+	var color_fov: Color; var color_fov_edge: Color
 	if fov_active:
-		color_fov = Color(0.2, 0.8, 0.2, 0.3)  # Semi-transparent green (active)
-		color_fov_edge = Color(0.2, 0.8, 0.2, 0.8)  # Bright green edge (active)
+		color_fov = Color(0.2, 0.8, 0.2, 0.3); color_fov_edge = Color(0.2, 0.8, 0.2, 0.8)
 	else:
-		color_fov = Color(0.5, 0.5, 0.5, 0.2)  # Semi-transparent gray (inactive)
-		color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)  # Gray edge (inactive)
-
-	# Always draw FOV cone in debug mode (if fov_angle is set)
+		color_fov = Color(0.5, 0.5, 0.5, 0.2); color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)
 	if fov_angle > 0.0:
 		_draw_fov_cone(color_fov, color_fov_edge)
 
@@ -4808,40 +4749,20 @@ func _is_player_distracted() -> bool:
 		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
 	return is_distracted
 
-## Set a navigation target and get the direction to follow the path.
-## Uses NavigationAgent2D for proper pathfinding around obstacles.
-## Returns the direction to move, or Vector2.ZERO if navigation is not available.
+## Get direction to follow NavigationAgent2D path toward target_pos. Returns Vector2.ZERO if finished.
 func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
-	if _nav_agent == null:
-		# Fall back to direct movement if no navigation agent
-		return (target_pos - global_position).normalized()
-
-	# Set the target for navigation
+	if _nav_agent == null: return (target_pos - global_position).normalized()
 	_nav_agent.target_position = target_pos
+	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
+	return (_nav_agent.get_next_path_position() - global_position).normalized()
 
-	# Check if navigation is finished
-	if _nav_agent.is_navigation_finished():
-		return Vector2.ZERO
-
-	# Get the next position in the path
-	var next_pos: Vector2 = _nav_agent.get_next_path_position()
-
-	# Calculate direction to next path position
-	var direction: Vector2 = (next_pos - global_position).normalized()
-	return direction
-
-## Move toward a target position using NavigationAgent2D pathfinding.
-## Primary navigation movement. Returns true if movement applied, false if target reached or nav unavailable.
+## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
-
 	if direction == Vector2.ZERO:
 		velocity = Vector2.ZERO
 		return false
-
-	# Apply additional wall avoidance on top of navigation path for tight corners
 	direction = _apply_wall_avoidance(direction)
-
 	velocity = direction * speed
 	rotation = direction.angle()
 	return true
