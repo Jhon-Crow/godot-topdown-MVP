@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://c9gam3play01"]
+[gd_scene load_steps=4 format=3 uid="uid://gm3nug4m3pl4y"]
 
 [ext_resource type="Script" path="res://scripts/ui/gameplay_menu.gd" id="1_gameplay"]
 [ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
@@ -8,14 +8,6 @@
 layer = 101
 process_mode = 3
 script = ExtResource("1_gameplay")
-
-[node name="ColorRect" type="ColorRect" parent="."]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
 
 [node name="MenuContainer" type="Control" parent="."]
 layout_mode = 3
@@ -34,9 +26,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -200.0
-offset_top = -120.0
+offset_top = -200.0
 offset_right = 200.0
-offset_bottom = 120.0
+offset_bottom = 200.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -53,11 +45,36 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Gameplay"
+text = "Gameplay Settings"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BloodLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Blood Amount"
+
+[node name="BloodContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BloodSlider" type="HSlider" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer"]
+custom_minimum_size = Vector2(250, 30)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 300.0
+step = 10.0
+value = 100.0
+
+[node name="BloodValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="WeaponHintsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
@@ -72,7 +89,11 @@ text = "Weapon Hints"
 layout_mode = 2
 custom_minimum_size = Vector2(140, 0)
 
+[node name="HSeparator3" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
+size_flags_horizontal = 4
 text = "Back"

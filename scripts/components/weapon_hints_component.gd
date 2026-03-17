@@ -750,6 +750,7 @@ func _add_hint(hint_key: String, text: String) -> void:
 	_canvas_layer.add_child(label)
 	_hint_labels[hint_key] = label
 	_hints_showing = true
+	_hints_active = true  # Re-arm in case previous hints cleared the flag between stages
 
 	# Initialize strikethrough tracking
 	_hint_strike_lines[hint_key] = []
@@ -1015,6 +1016,12 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_KEY_RELOAD):
 		return
 
+	# State 0 = reload fully complete — dismiss hint (mirrors shotgun handler).
+	if new_state == 0:
+		_log_to_file("Revolver reload completed via ReloadStateChanged(0)")
+		_on_reload_completed()
+		return
+
 	var hint_step: int = 0
 	match new_state:
 		1:
@@ -1022,7 +1029,7 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 		2:
 			hint_step = 2  # Loading → highlight close cylinder
 		_:
-			hint_step = 3  # Done
+			hint_step = 3  # Done (shouldn't normally reach here now)
 
 	var label: RichTextLabel = _hint_labels[HINT_KEY_RELOAD]
 	if is_instance_valid(label):
