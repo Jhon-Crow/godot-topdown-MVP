@@ -1184,6 +1184,9 @@ public partial class Player : BaseCharacter
         // Initialize auto-reload if active item manager has it selected (Issue #1067)
         InitAutoReload();
 
+        // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
+        InitJammerHud();
+
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
         int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
@@ -1490,6 +1493,9 @@ public partial class Player : BaseCharacter
 
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
+
+        // Update jammer HUD visibility (Issue #1036)
+        UpdateJammerHud();
     }
 
     /// <summary>
@@ -4364,6 +4370,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_on");
@@ -4499,6 +4512,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             // Space held — enter/continue aiming mode
             if (!_teleportAiming && _teleportCharges > 0)
             {
@@ -4840,6 +4860,13 @@ public partial class Player : BaseCharacter
         // Activate on Space press (only if not already active and has charges)
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.Homing] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             if (_homingCharges > 0 && !_homingActive)
             {
                 _homingActive = true;
@@ -5095,6 +5122,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.BffPendant] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             SummonBffCompanion();
         }
     }
@@ -5382,6 +5416,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.InvisibilitySuit] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
             if (!isActive)
             {
@@ -5562,6 +5603,14 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use verbose variant so the log records detailed jammer diagnostics on every Space press
+            if (IsActiveItemJammedVerbose())
+            {
+                LogToFile("[Player.TrajectoryGlasses] Space blocked by Radio Jammer (Issue #1036)");
+                return;
+            }
+
             bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
             if (!isActive)
             {
@@ -5727,6 +5776,13 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             bool isActive = (bool)_forceFieldEffect.Get("is_active");
             if (!isActive)
             {
@@ -6078,6 +6134,13 @@ public partial class Player : BaseCharacter
         {
             if (Input.IsActionJustPressed("flashlight_toggle"))
             {
+                // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+                if (IsActiveItemJammedVerbose())
+                {
+                    LogToFile("[Player.BreachingCharges] Space blocked by Radio Jammer (Issue #1036)");
+                    return;
+                }
+
                 bool detonated = (bool)_breachingChargesEffect.Call("detonate");
                 if (detonated)
                 {
@@ -6101,6 +6164,13 @@ public partial class Player : BaseCharacter
         }
         else if (Input.IsActionPressed("flashlight_toggle"))
         {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                return;
+            }
+
             int charges = (int)_breachingChargesEffect.Call("get_charges");
             if (charges > 0 && !_breachingHoldingForPlacement)
             {
@@ -6349,6 +6419,13 @@ public partial class Player : BaseCharacter
 
         if (!Input.IsActionJustPressed("flashlight_toggle"))
             return;
+
+        // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.Loudspeaker] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
 
         bool canActivate = (bool)_loudspeakerProgress.Call("can_activate");
         if (!canActivate)
@@ -7379,4 +7456,76 @@ public partial class Player : BaseCharacter
     }
 
     #endregion
+
+    // =========================================================================
+    // Radio Jammer HUD (Issue #1036)
+    // =========================================================================
+
+    /// <summary>Reference to the GDScript JammerHUD node shown above the player.</summary>
+    private Node2D _jammerHud = null;
+
+    /// <summary>
+    /// Initialize the jammer HUD prohibition-sign icon.
+    /// Always created; visibility is toggled each physics frame.
+    /// </summary>
+    private void InitJammerHud()
+    {
+        var jammerHudScript = GD.Load<Script>("res://scripts/ui/jammer_hud.gd");
+        if (jammerHudScript == null)
+        {
+            LogToFile("[Player.Jammer] WARNING: Failed to load jammer_hud.gd");
+            return;
+        }
+
+        _jammerHud = new Node2D();
+        _jammerHud.SetScript(jammerHudScript);
+        _jammerHud.Name = "JammerHUD";
+        AddChild(_jammerHud);
+        LogToFile("[Player.Jammer] JammerHUD initialized");
+    }
+
+    /// <summary>
+    /// Show the jammer HUD only when the player is jammed AND has an active item equipped.
+    /// Called every physics frame.
+    /// </summary>
+    private void UpdateJammerHud()
+    {
+        if (_jammerHud == null || !IsInstanceValid(_jammerHud))
+            return;
+
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+            return;
+
+        bool isJammed = (bool)activeItemManager.Call("is_active_item_jammed");
+        int currentItem = (int)activeItemManager.Get("current_active_item");
+        bool hasItem = currentItem != 0; // 0 = ActiveItemType.NONE
+        _jammerHud.Call("set_jammed_visible", isJammed && hasItem);
+    }
+
+    /// <summary>
+    /// Check whether active items are currently jammed by a Radio Jammer enemy.
+    /// Calls is_active_item_jammed_verbose() on the GDScript autoload so that
+    /// detailed diagnostics are logged whenever Space is pressed (Issue #1036).
+    /// Use only for single-press actions (not hold); for hold-based actions use IsActiveItemJammedSilent().
+    /// </summary>
+    private bool IsActiveItemJammedVerbose()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+            return false;
+        return (bool)activeItemManager.Call("is_active_item_jammed_verbose");
+    }
+
+    /// <summary>
+    /// Check whether active items are currently jammed, without verbose logging.
+    /// Used for hold-based input actions (Space held) to avoid log flooding (Issue #1036).
+    /// </summary>
+    private bool IsActiveItemJammedSilent()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+            return false;
+        return (bool)activeItemManager.Call("is_active_item_jammed");
+    }
 }
