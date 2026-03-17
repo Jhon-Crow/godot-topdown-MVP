@@ -105,6 +105,14 @@ func get_damage_multiplier() -> float:
 	return _multiplier
 
 
+## Returns the current hit streak count (number of stacks above base).
+## 0 means at base multiplier (no stacks yet), 1 means one hit, etc.
+func get_hit_streak() -> int:
+	if not _is_active:
+		return 0
+	return int(round((_multiplier - BASE_MULTIPLIER) / HIT_STEP))
+
+
 ## Activates or deactivates Dead Eye tracking.
 ## Called when the player equips or unequips the Dead Eye item.
 func set_active(active: bool) -> void:
