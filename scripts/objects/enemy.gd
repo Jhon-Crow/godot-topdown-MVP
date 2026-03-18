@@ -1,6 +1,5 @@
 extends CharacterBody2D
 ## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP.
-
 ## AI States for tactical behavior.
 enum AIState {
 	IDLE,       ## Default idle state (patrol or guard)
@@ -16,7 +15,6 @@ enum AIState {
 	EVADING_GRENADE,  ## Fleeing from grenade danger zone (Issue #407)
 	PACIFIST    ## Refuses to fight, hides in cover (Issue #959: Loudspeaker effect)
 }
-
 ## Retreat behavior modes based on damage taken.
 enum RetreatMode {
 	FULL_HP,        ## No damage - retreat backwards while shooting, periodically turn to cover
