@@ -358,26 +358,26 @@ class MockVisualPlayer:
 		armor_opacity_set = opacity
 
 
-func test_player_visual_opacity_is_lower_than_enemy() -> void:
+func test_player_visual_opacity_matches_enemy() -> void:
 	# The enemy uses armor_opacity = 0.55 (from EnemyArmoredSkinComponent).
-	# The player should use a lower value (more transparent), as required by Issue #1142.
+	# The player now uses the same value for a consistent visual (owner request, commit 8286638b).
 	var enemy_opacity: float = 0.55
-	var player_opacity: float = 0.3
-	assert_lt(player_opacity, enemy_opacity,
-		"Player armor_opacity (0.3) should be lower than enemy armor_opacity (0.55)")
+	var player_opacity: float = 0.55
+	assert_eq(player_opacity, enemy_opacity,
+		"Player armor_opacity (0.55) should match enemy armor_opacity (0.55)")
 
 
 func test_player_visual_opacity_is_positive() -> void:
-	var player_opacity: float = 0.3
+	var player_opacity: float = 0.55
 	assert_gt(player_opacity, 0.0,
 		"Player armor_opacity should be > 0 so the effect is visible")
 
 
 func test_player_visual_applied_to_sprites() -> void:
 	var mock := MockVisualPlayer.new()
-	# Simulate applying the shader to 4 sprites (Body, Head, LeftArm, RightArm).
-	mock.apply_visual(4, 0.3)
-	assert_eq(mock.shader_applied_count, 4,
-		"Armor shader should be applied to all 4 player sprites")
-	assert_eq(mock.armor_opacity_set, 0.3,
-		"Armor opacity should be set to 0.3 for the player visual")
+	# Simulate applying the shader to 5 sprites (Body, Head, LeftArm, RightArm, Armband).
+	mock.apply_visual(5, 0.55)
+	assert_eq(mock.shader_applied_count, 5,
+		"Armor shader should be applied to all 5 player sprites")
+	assert_eq(mock.armor_opacity_set, 0.55,
+		"Armor opacity should be set to 0.55 for the player visual")
