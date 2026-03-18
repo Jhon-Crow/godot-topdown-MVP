@@ -8226,30 +8226,48 @@ public partial class Player : BaseCharacter
 
         _experimentalSampleCharges -= 1;
 
-        // Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18)
+        // Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18).
+        // Re-roll if the chosen type has no visible on-press action (passive items, hold-Space items,
+        // or items that require equipment the player doesn't have), so every charge spend is meaningful.
         var rng = new RandomNumberGenerator();
         rng.Randomize();
-        int randomType = rng.RandiRange(1, 17);
-        LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {randomType}");
-        TriggerExperimentalSampleEffect(randomType);
+        const int maxAttempts = 20;
+        bool effectFired = false;
+        for (int attempt = 0; attempt < maxAttempts && !effectFired; attempt++)
+        {
+            int randomType = rng.RandiRange(1, 17);
+            LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {randomType} (attempt {attempt + 1})");
+            effectFired = TriggerExperimentalSampleEffect(randomType);
+        }
+        if (!effectFired)
+        {
+            LogToFile("[Player.ExperimentalSample] All attempts yielded passive/skipped effects — homing fallback triggered");
+            // Guaranteed visible fallback: activate homing bullets for one burst
+            _homingActive = true;
+            _homingTimer = HomingDuration;
+            PlayHomingSound();
+            StartHomingScanner();
+            EmitSignal(SignalName.HomingActivated);
+        }
     }
 
     /// <summary>
     /// Trigger the on-press effect of any active item type chosen by the experimental sample.
-    /// Mirrors the GDScript _trigger_experimental_sample_effect() logic.
+    /// Returns true if a visible effect was actually fired, false if the type is passive or
+    /// requires equipment the player doesn't have (caller should re-roll in that case).
     /// </summary>
-    private void TriggerExperimentalSampleEffect(int itemType)
+    private bool TriggerExperimentalSampleEffect(int itemType)
     {
         LogToFile($"[Player.ExperimentalSample] Executing effect for type {itemType}");
 
         switch (itemType)
         {
             case 1: // FLASHLIGHT — passive toggle; no meaningful one-shot effect
-                LogToFile("[Player.ExperimentalSample] Flashlight effect triggered (passive toggle)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Flashlight effect triggered (passive toggle; re-roll)");
+                return false;
 
-            case 2: // HOMING_BULLETS — activate homing for one burst
-                if (!_homingBulletsEquipped)
+            case 2: // HOMING_BULLETS — activate homing for one burst (always available)
+                if (!_homingActive)
                 {
                     _homingActive = true;
                     _homingTimer = HomingDuration;
@@ -8257,33 +8275,25 @@ public partial class Player : BaseCharacter
                     StartHomingScanner();
                     EmitSignal(SignalName.HomingActivated);
                     LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
+                    return true;
                 }
-                else if (!_homingActive)
-                {
-                    _homingActive = true;
-                    _homingTimer = HomingDuration;
-                    PlayHomingSound();
-                    StartHomingScanner();
-                    EmitSignal(SignalName.HomingActivated);
-                    LogToFile($"[Player.ExperimentalSample] Homing (equipped) triggered for {HomingDuration:F1}s");
-                }
-                break;
+                // Already active; treat as skipped so we re-roll for something fresh
+                LogToFile("[Player.ExperimentalSample] Homing already active; re-roll");
+                return false;
 
             case 3: // TELEPORT_BRACERS — requires aim system; skip
-                LogToFile("[Player.ExperimentalSample] Teleport bracers effect triggered (requires aim; skipped)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Teleport bracers effect triggered (requires aim; re-roll)");
+                return false;
 
             case 4: // BFF_PENDANT — summon companion if not yet summoned
                 if (!_bffCompanionSummoned)
                 {
                     SummonBffCompanion();
                     LogToFile("[Player.ExperimentalSample] BFF companion summoned via experimental sample");
+                    return true;
                 }
-                else
-                {
-                    LogToFile("[Player.ExperimentalSample] BFF companion already summoned; effect skipped");
-                }
-                break;
+                LogToFile("[Player.ExperimentalSample] BFF companion already summoned; re-roll");
+                return false;
 
             case 5: // INVISIBILITY_SUIT — activate if node available
                 if (_invisibilitySuitEquipped && _invisibilitySuitEffect != null && IsInstanceValid(_invisibilitySuitEffect))
@@ -8293,21 +8303,19 @@ public partial class Player : BaseCharacter
                     {
                         _invisibilitySuitEffect.Call("activate");
                         LogToFile("[Player.ExperimentalSample] Invisibility suit activated via experimental sample");
+                        return true;
                     }
                 }
-                else
-                {
-                    LogToFile("[Player.ExperimentalSample] Invisibility suit effect triggered (not equipped; skipped)");
-                }
-                break;
+                LogToFile("[Player.ExperimentalSample] Invisibility suit effect triggered (not equipped or already active; re-roll)");
+                return false;
 
             case 6: // BREAKER_BULLETS — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Breaker bullets effect triggered (passive; no on-press action)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Breaker bullets effect triggered (passive; re-roll)");
+                return false;
 
             case 7: // FORCE_FIELD — hold-Space item; skip
-                LogToFile("[Player.ExperimentalSample] Force field effect triggered (hold-Space item; skipped)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Force field effect triggered (hold-Space item; re-roll)");
+                return false;
 
             case 8: // TRAJECTORY_GLASSES — activate if node available
                 if (_trajectoryGlassesEquipped && _trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
@@ -8317,21 +8325,19 @@ public partial class Player : BaseCharacter
                     {
                         _trajectoryGlassesEffect.Call("activate");
                         LogToFile("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample");
+                        return true;
                     }
                 }
-                else
-                {
-                    LogToFile("[Player.ExperimentalSample] Trajectory glasses effect triggered (not equipped; skipped)");
-                }
-                break;
+                LogToFile("[Player.ExperimentalSample] Trajectory glasses effect triggered (not equipped or already active; re-roll)");
+                return false;
 
             case 9: // LASER_SIGHT — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Laser sight effect triggered (passive; no on-press action)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Laser sight effect triggered (passive; re-roll)");
+                return false;
 
             case 10: // EXTENDED_MAGAZINE — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Extended magazine effect triggered (passive; no on-press action)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Extended magazine effect triggered (passive; re-roll)");
+                return false;
 
             case 11: // LOUDSPEAKER — trigger if equipped and charges available
                 if (_loudspeakerEquipped && _loudspeakerProgress != null && IsInstanceValid(_loudspeakerProgress))
@@ -8346,53 +8352,45 @@ public partial class Player : BaseCharacter
                         float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
                         LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
                         LogToFile("[Player.ExperimentalSample] Loudspeaker activated via experimental sample");
-                    }
-                    else
-                    {
-                        LogToFile("[Player.ExperimentalSample] Loudspeaker effect triggered (no charges; skipped)");
+                        return true;
                     }
                 }
-                else
-                {
-                    LogToFile("[Player.ExperimentalSample] Loudspeaker effect triggered (not equipped; skipped)");
-                }
-                break;
+                LogToFile("[Player.ExperimentalSample] Loudspeaker effect triggered (not equipped or no charges; re-roll)");
+                return false;
 
             case 12: // BREACHING_CHARGES — detonate if placed
                 if (_breachingChargesEffect != null && IsInstanceValid(_breachingChargesEffect))
                 {
                     bool detonated = (bool)_breachingChargesEffect.Call("detonate");
                     LogToFile($"[Player.ExperimentalSample] Breaching charges detonated: {detonated}");
+                    return detonated;
                 }
-                else
-                {
-                    LogToFile("[Player.ExperimentalSample] Breaching charges effect triggered (not equipped; skipped)");
-                }
-                break;
+                LogToFile("[Player.ExperimentalSample] Breaching charges effect triggered (not equipped; re-roll)");
+                return false;
 
             case 13: // ARMORED_SKIN — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Armored skin effect triggered (passive; no on-press action)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Armored skin effect triggered (passive; re-roll)");
+                return false;
 
             case 14: // AUTO_RELOAD — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Auto-reload effect triggered (passive; no on-press action)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Auto-reload effect triggered (passive; re-roll)");
+                return false;
 
             case 15: // DRILLING_BULLETS — passive magazine effect; no on-press action
-                LogToFile("[Player.ExperimentalSample] Drilling bullets effect triggered (passive; no on-press action)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Drilling bullets effect triggered (passive; re-roll)");
+                return false;
 
             case 16: // RECOIL_COMPENSATOR — hold-Space item; skip
-                LogToFile("[Player.ExperimentalSample] Recoil compensator effect triggered (hold-Space item; skipped)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Recoil compensator effect triggered (hold-Space item; re-roll)");
+                return false;
 
             case 17: // COMBAT_DISPOSITION — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Combat disposition effect triggered (passive; no on-press action)");
-                break;
+                LogToFile("[Player.ExperimentalSample] Combat disposition effect triggered (passive; re-roll)");
+                return false;
 
             default:
                 LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — no effect");
-                break;
+                return false;
         }
     }
 
