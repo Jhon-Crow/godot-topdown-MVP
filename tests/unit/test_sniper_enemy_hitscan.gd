@@ -95,33 +95,42 @@ func test_enemy_sniper_rifle_weapon_type_enum_exists() -> void:
 
 
 # ============================================================================
-# Tests for the hitscan helper functions existing in enemy.gd
+# Tests for the hitscan helper functions existing in EnemySniperComponent
 # ============================================================================
 
 
-func test_enemy_has_shoot_sniper_hitscan_method() -> void:
-	## enemy.gd must have the _shoot_sniper_hitscan method for Issue #1171 fix
+func test_enemy_has_sniper_component() -> void:
+	## Enemy must have a SniperComponent child node (EnemySniperComponent) for Issue #1171 fix
 	var packed: PackedScene = load("res://scenes/objects/Enemy.tscn")
 	if packed == null:
 		pass_test("Skipped: Enemy.tscn not accessible in test environment")
 		return
 	var enemy := packed.instantiate()
 	add_child(enemy)
-	assert_true(enemy.has_method("_shoot_sniper_hitscan"),
-		"Enemy must have _shoot_sniper_hitscan method for hitscan shooting (Issue #1171)")
+	var sniper_comp: Node = enemy.get_node_or_null("SniperComponent")
+	assert_not_null(sniper_comp,
+		"Enemy must have SniperComponent child node for hitscan shooting (Issue #1171)")
+	if sniper_comp != null:
+		assert_true(sniper_comp.has_method("shoot_sniper_hitscan"),
+			"SniperComponent must have shoot_sniper_hitscan method (Issue #1171)")
 	enemy.queue_free()
 
 
-func test_enemy_has_spawn_sniper_tracer_method() -> void:
-	## enemy.gd must have the _spawn_sniper_tracer method for Issue #1171 fix
+func test_enemy_sniper_component_has_tracer_method() -> void:
+	## EnemySniperComponent must have _spawn_sniper_tracer method for Issue #1171 fix
 	var packed: PackedScene = load("res://scenes/objects/Enemy.tscn")
 	if packed == null:
 		pass_test("Skipped: Enemy.tscn not accessible in test environment")
 		return
 	var enemy := packed.instantiate()
 	add_child(enemy)
-	assert_true(enemy.has_method("_spawn_sniper_tracer"),
-		"Enemy must have _spawn_sniper_tracer method for smoke tracer (Issue #1171)")
+	var sniper_comp: Node = enemy.get_node_or_null("SniperComponent")
+	if sniper_comp == null:
+		pass_test("Skipped: SniperComponent not found in test environment")
+		enemy.queue_free()
+		return
+	assert_true(sniper_comp.has_method("_spawn_sniper_tracer"),
+		"SniperComponent must have _spawn_sniper_tracer method for smoke tracer (Issue #1171)")
 	enemy.queue_free()
 
 
@@ -143,15 +152,15 @@ func test_sniper_bullet_source_has_trail_prepopulation() -> void:
 		"SniperBullet.cs must pre-populate _positionHistory in _Ready() to fix tracer start (Issue #1171)")
 
 
-func test_enemy_source_has_sniper_hitscan() -> void:
-	## Regression: verify enemy.gd contains the Issue #1171 hitscan method
-	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+func test_sniper_component_source_has_hitscan() -> void:
+	## Regression: verify enemy_sniper_component.gd contains the Issue #1171 hitscan method
+	var file := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
 	if file == null:
-		pass_test("Skipped: enemy.gd not accessible in test environment")
+		pass_test("Skipped: enemy_sniper_component.gd not accessible in test environment")
 		return
 	var content := file.get_as_text()
 	file.close()
-	assert_true(content.contains("_shoot_sniper_hitscan"),
-		"enemy.gd must contain _shoot_sniper_hitscan for hitscan fix (Issue #1171)")
+	assert_true(content.contains("shoot_sniper_hitscan"),
+		"enemy_sniper_component.gd must contain shoot_sniper_hitscan for hitscan fix (Issue #1171)")
 	assert_true(content.contains("_spawn_sniper_tracer"),
-		"enemy.gd must contain _spawn_sniper_tracer for smoke tracer (Issue #1171)")
+		"enemy_sniper_component.gd must contain _spawn_sniper_tracer for smoke tracer (Issue #1171)")
