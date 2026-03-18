@@ -799,7 +799,11 @@ func _physics_process(delta: float) -> void:
 			# Only count if NOT in direct player contact (can't see and shoot player)
 			if not (_can_see_player and _can_hit_player_from_current_position()):
 				_global_stuck_timer += delta
-				if _global_stuck_timer >= GLOBAL_STUCK_MAX_TIME:
+				var _experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
+				if _experimental_settings != null and _experimental_settings.has_method("get_global_stuck_max_time"):
+					_effective_stuck_max_time = _experimental_settings.get_global_stuck_max_time()
+				if _global_stuck_timer >= _effective_stuck_max_time:
 					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
 					_global_stuck_timer = 0.0
 					_global_stuck_last_position = global_position

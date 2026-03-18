@@ -81,6 +81,11 @@ var all_maps_unlocked: bool = false
 ## Persists the last chosen enemy type in the experimental menu across menu open/close and scene reloads.
 var selected_enemy_type_index: int = 0
 
+## Global stuck max time in seconds (Issue #1173).
+## How long an enemy can stay in the same position before being forced to SEARCHING state.
+## Higher values let enemies navigate longer without giving up pursuit.
+var global_stuck_max_time: float = 20.0
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -92,7 +97,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time])
 
 
 ## Set FOV enabled/disabled.
@@ -294,6 +299,20 @@ func get_selected_enemy_type_index() -> int:
 	return selected_enemy_type_index
 
 
+## Set global stuck max time in seconds (Issue #1173).
+func set_global_stuck_max_time(value: float) -> void:
+	if global_stuck_max_time != value:
+		global_stuck_max_time = value
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Global stuck max time set to %.1fs" % value)
+
+
+## Get global stuck max time in seconds (Issue #1173).
+func get_global_stuck_max_time() -> float:
+	return global_stuck_max_time
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -311,6 +330,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "all_weapons_unlocked", all_weapons_unlocked)
 	config.set_value("experimental", "all_maps_unlocked", all_maps_unlocked)
 	config.set_value("experimental", "selected_enemy_type_index", selected_enemy_type_index)
+	config.set_value("experimental", "global_stuck_max_time", global_stuck_max_time)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -335,6 +355,7 @@ func _load_settings() -> void:
 		all_weapons_unlocked = config.get_value("experimental", "all_weapons_unlocked", false)
 		all_maps_unlocked = config.get_value("experimental", "all_maps_unlocked", false)
 		selected_enemy_type_index = config.get_value("experimental", "selected_enemy_type_index", 0)
+		global_stuck_max_time = config.get_value("experimental", "global_stuck_max_time", 20.0)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -351,6 +372,7 @@ func _load_settings() -> void:
 		all_weapons_unlocked = false
 		all_maps_unlocked = false
 		selected_enemy_type_index = 0
+		global_stuck_max_time = 20.0
 
 
 ## Log a message to the file logger if available.
