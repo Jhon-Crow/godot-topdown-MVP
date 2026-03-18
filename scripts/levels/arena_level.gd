@@ -25,7 +25,7 @@ const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 
 ## Seconds to wait between waves (pickup window).
-const INTER_WAVE_DELAY: float = 150.0
+const INTER_WAVE_DELAY: float = 30.0
 
 ## Seconds before the first wave starts.
 const FIRST_WAVE_DELAY: float = 2.0
@@ -41,7 +41,7 @@ const MAX_CONCURRENT_ENEMIES: int = 12
 
 ## How long pickups persist before auto-despawn.
 ## Set to match INTER_WAVE_DELAY so pickups survive the full between-wave window.
-const PICKUP_LIFETIME: float = 180.0
+const PICKUP_LIFETIME: float = 60.0
 
 ## Radius around pickup spawn points within which pickups are placed randomly.
 const PICKUP_SPAWN_SCATTER: float = 30.0
