@@ -39,7 +39,7 @@ color = Color(1, 0.7, 0.1, 1)
 
 [node name="RpgRocket" type="Area2D"]
 collision_layer = 16
-collision_mask = 39
+collision_mask = 55
 script = ExtResource("1_bullet")
 is_rpg_rocket = true
 speed = 600.0
@@ -51,6 +51,7 @@ rpg_accel_distance = 800.0
 rpg_explosion_radius = 150.0
 rpg_explosion_damage = 3
 rpg_spawn_immunity = 0.15
+rpg_health = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(2.0, 2.0)
