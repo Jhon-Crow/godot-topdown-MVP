@@ -270,7 +270,7 @@ func update_predictions(delta: float) -> void:
 	for h in hypotheses:
 		if not h.checked:
 			# Shift hypothesis in its predicted direction at 40% potential speed
-			var shift_dir := (h.position - last_known_position).normalized()
+			var shift_dir: Vector2 = ((h.position as Vector2) - last_known_position).normalized()
 			if shift_dir.length_squared() > 0.01:
 				var expansion := PLAYER_SPEED * delta * 0.4
 				h.position += shift_dir * expansion
@@ -312,7 +312,7 @@ func mark_position_checked(pos: Vector2, tolerance: float = 100.0) -> void:
 	for h in hypotheses:
 		if h.checked:
 			continue
-		var dist := h.position.distance_to(pos)
+		var dist: float = h.position.distance_to(pos)
 		if dist < closest_dist and dist < tolerance:
 			closest_dist = dist
 			closest_h = h
@@ -456,7 +456,7 @@ func _generate_cover_hypotheses(last_pos: Vector2, enemy_pos: Vector2, cover_pos
 			continue
 
 		# Score: prefer covers in the retreat direction and closer to last position
-		var to_cover := (cover_pos - last_pos).normalized()
+		var to_cover: Vector2 = ((cover_pos as Vector2) - last_pos).normalized()
 		var retreat_alignment := retreat_dir.dot(to_cover)  # Higher = more in retreat dir
 		var score := COVER_WEIGHT * (1.0 + retreat_alignment * 0.6) - dist * 0.001
 
@@ -467,7 +467,7 @@ func _generate_cover_hypotheses(last_pos: Vector2, enemy_pos: Vector2, cover_pos
 			score += vel_alignment * 0.5
 
 		# Bonus for covers that break line of sight to enemy
-		var enemy_to_cover := (cover_pos - enemy_pos).normalized()
+		var enemy_to_cover: Vector2 = ((cover_pos as Vector2) - enemy_pos).normalized()
 		var perpendicular := absf(retreat_dir.dot(enemy_to_cover))
 		score += (1.0 - perpendicular) * 0.3
 
@@ -579,7 +579,7 @@ func _classify_observation(player_pos: Vector2, enemy_pos: Vector2) -> void:
 		_cautious_count += 1
 
 	# Check for perpendicular movement (flanking)
-	var cross := abs(move_dir.x * to_enemy.y - move_dir.y * to_enemy.x)
+	var cross: float = abs(move_dir.x * to_enemy.y - move_dir.y * to_enemy.x)
 	if cross > 0.7:
 		_cunning_count += 1
 
