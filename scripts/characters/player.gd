@@ -4551,6 +4551,38 @@ func _init_armored_skin() -> void:
 
 	_armored_skin_active = true
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
+	_apply_armored_skin_visual()
+
+
+## Apply a glassy armor shader to all player body sprites (Issue #1142).
+## Uses the same shader as the enemy armored skin but more transparent.
+const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
+
+func _apply_armored_skin_visual() -> void:
+	if not ResourceLoader.exists(ARMOR_SHADER_PATH):
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Shader not found: %s" % ARMOR_SHADER_PATH)
+		return
+	var shader: Shader = load(ARMOR_SHADER_PATH)
+	if shader == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Failed to load armor shader")
+		return
+
+	var model: Node = get_node_or_null("PlayerModel")
+	if model == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: PlayerModel node not found, skipping visual")
+		return
+
+	var applied_count: int = 0
+	for child in model.get_children():
+		if child is Sprite2D:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			# More transparent than the enemy version (armor_opacity 0.3 vs 0.55).
+			mat.set_shader_parameter("armor_opacity", 0.3)
+			child.material = mat
+			applied_count += 1
+
+	FileLogger.info("[Player.ArmoredSkin] Armor shader applied to %d sprites" % applied_count)
 
 
 ## Spawn 20 glass/crystal shards in all directions from the player position.
