@@ -99,6 +99,7 @@ var _level_cleared:   bool = false
 var _game_over_shown: bool = false
 var _score_shown:     bool = false
 var _level_completed: bool = false
+var _player_dead:     bool = false  ## True after player dies — blocks Q-restart until death screen shown
 
 var _exit_zone: Area2D = null
 
@@ -959,10 +960,14 @@ func _on_player_reload_completed() -> void:
 
 
 func _on_player_died() -> void:
-	_show_death_message()
-	if GameManager:
-		await get_tree().create_timer(0.5).timeout
-		GameManager.on_player_death()
+	_player_dead = true
+	# Do NOT call GameManager.on_player_death() — that would auto-reload the scene
+	# immediately, causing enemies to spawn in front of the player while death
+	# effects are still playing (reported bug: "враги массово респавнятся на глазах").
+	# Instead we show a death screen and let the player manually trigger the next run.
+	await get_tree().create_timer(1.5).timeout
+	if is_instance_valid(self):
+		_show_death_screen()
 
 
 func _on_game_manager_enemy_killed() -> void:
@@ -1188,25 +1193,50 @@ func _show_saturation_effect() -> void:
 	tween.tween_property(_saturation_overlay, "color:a", 0.0, SATURATION_DURATION * 0.7)
 
 
-func _show_death_message() -> void:
+func _show_death_screen() -> void:
 	if _game_over_shown:
 		return
 	_game_over_shown = true
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+
+	## Dark overlay so the game world is not visible during the death screen
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.80)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+
+	var container := VBoxContainer.new()
+	container.set_anchors_preset(Control.PRESET_CENTER)
+	container.offset_left   = -200
+	container.offset_right  = 200
+	container.offset_top    = -140
+	container.offset_bottom = 140
+	container.add_theme_constant_override("separation", 16)
+	ui.add_child(container)
+
 	var lbl := Label.new()
 	lbl.text = "YOU DIED"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_size_override("font_size", 64)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15, 1.0))
-	lbl.set_anchors_preset(Control.PRESET_CENTER)
-	lbl.offset_left   = -200
-	lbl.offset_right  = 200
-	lbl.offset_top    = -50
-	lbl.offset_bottom = 50
-	ui.add_child(lbl)
+	container.add_child(lbl)
+
+	var btn_restart := Button.new()
+	btn_restart.text = "↻ Снова (Q)"
+	btn_restart.custom_minimum_size = Vector2(200, 40)
+	btn_restart.add_theme_font_size_override("font_size", 18)
+	btn_restart.pressed.connect(_on_restart_pressed)
+	container.add_child(btn_restart)
+
+	var btn_menu := Button.new()
+	btn_menu.text = "☰ Меню"
+	btn_menu.custom_minimum_size = Vector2(200, 40)
+	btn_menu.add_theme_font_size_override("font_size", 18)
+	btn_menu.pressed.connect(_on_level_select_pressed)
+	container.add_child(btn_menu)
 
 
 func _show_game_over_message() -> void:
@@ -1251,7 +1281,12 @@ func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.physical_keycode == KEY_Q:
-			_on_restart_pressed()
+			# Only allow Q-restart after the death screen is fully shown
+			# (_game_over_shown is set inside _show_death_screen which runs after a 1.5s delay).
+			# This prevents the scene from reloading while death visual effects are still playing,
+			# which would cause enemies to "respawn on the player's eyes" (Issue #1061 round 4).
+			if _game_over_shown or _level_cleared:
+				_on_restart_pressed()
 		elif event.physical_keycode == KEY_W and _level_cleared:
 			if not _score_shown:
 				_complete_level_with_score()

@@ -292,7 +292,70 @@ Room 0 (index 0) is now designated the "safe start room" — `_spawn_enemies_in_
 
 ---
 
-## 9. References
+## 10. Bug Report (2026-03-18 04:51) — Enemies Mass-Respawning In Front of Player
+
+**Log:** `game_log_20260318_045110.txt`
+**Reported by:** Jhon-Crow
+**Symptoms:** After killing enemies and dying, new enemies spawn instantly in front of the player without any transition or scene change, creating the visual illusion of "mass respawn."
+
+### 10.1 Root Cause
+
+`_on_player_died()` called `GameManager.on_player_death()` after a 0.5-second timer. `on_player_death()` immediately calls `get_tree().reload_current_scene()`.
+
+When the scene reloads, the roguelike `_ready()` runs again, spawning a fresh set of enemies in their initial positions. The death cinematic effects (`CinemaEffects` death circle, expanding spots) were still active at the moment of scene reload — they run for several seconds — so the **new enemies appeared on screen while the death transition was still playing**.
+
+From the player's perspective: enemies died, then immediately appeared again at the same positions while the death effects were still showing.
+
+**Log evidence (04:51:38 — death and scene reload in the same timestamp):**
+```
+[04:51:38] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 0.0
+[04:51:38] [INFO] [CinemaEffects] Player died - triggering death effects
+[04:51:38] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[04:51:38] [INFO] [SceneLoader] Scene changed successfully   ← scene reload, 0s after death
+[04:51:38] [ENEMY] [Enemy_R1_0] Spawned at (2068.8, 504)    ← enemies spawning immediately
+```
+
+The player had no time to see the "YOU DIED" screen before the new run began.
+
+**Additional log evidence — repeated scene changes in rapid succession during player's session:**
+- 04:51:33 → first run
+- 04:51:38 → died, immediate reload (5s run)
+- 04:51:42 → died, immediate reload (4s run)
+- 04:51:59 → died, reload (17s run)
+- 04:52:18 → died, reload (19s run)
+
+All scene reloads were triggered by `GameManager.restart_scene()` called via the auto-restart path, not by any user action.
+
+### 10.2 Fix Applied
+
+`_on_player_died()` was changed to **not** call `GameManager.on_player_death()`.
+
+Instead, after a 1.5-second delay (to allow death effects to finish), a dark overlay + "YOU DIED" screen is shown with explicit **Restart (Q)** and **Menu** buttons.
+
+The `_input()` handler now only allows Q to trigger a restart **after** `_game_over_shown == true` (i.e., after the death screen appears). During the death transition, Q does nothing.
+
+This means enemies only spawn when the player **explicitly** chooses to start a new run by pressing Q or clicking the button — never while death effects are still on screen.
+
+```gdscript
+# Before (caused the bug):
+func _on_player_died() -> void:
+    _show_death_message()
+    if GameManager:
+        await get_tree().create_timer(0.5).timeout
+        GameManager.on_player_death()  # → reload_current_scene() immediately
+
+# After (fix):
+func _on_player_died() -> void:
+    _player_dead = true
+    # No GameManager.on_player_death() — do not auto-reload
+    await get_tree().create_timer(1.5).timeout
+    if is_instance_valid(self):
+        _show_death_screen()  # dark overlay + YOU DIED + Q/Menu buttons
+```
+
+---
+
+## 11. References
 
 - Godot 4 `NavigationRegion2D` procedural baking: https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationregions.html
 - Godot 4 `StaticBody2D` + `RectangleShape2D` API: https://docs.godotengine.org/en/stable/classes/class_staticbody2d.html
