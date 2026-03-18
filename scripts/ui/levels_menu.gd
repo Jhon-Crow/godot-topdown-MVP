@@ -156,6 +156,7 @@ var _level_cards: Dictionary = {}
 
 ## Check whether a level at the given index in LEVELS is unlocked.
 ## The first level (Labyrinth) is always unlocked.
+## The Roguelike level is always unlocked (procedurally generated, no prerequisites).
 ## All other levels require the immediately preceding level to be completed on any difficulty.
 ## If the "all maps unlocked" experimental setting is enabled (Issue #1075), all levels are accessible.
 ## @param level_index: Index into the LEVELS array.

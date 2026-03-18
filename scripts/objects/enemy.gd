@@ -1,6 +1,5 @@
 extends CharacterBody2D
 ## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP.
-
 ## AI States for tactical behavior.
 enum AIState {
 	IDLE,       ## Default idle state (patrol or guard)
@@ -16,7 +15,6 @@ enum AIState {
 	EVADING_GRENADE,  ## Fleeing from grenade danger zone (Issue #407)
 	PACIFIST    ## Refuses to fight, hides in cover (Issue #959: Loudspeaker effect)
 }
-
 ## Retreat behavior modes based on damage taken.
 enum RetreatMode {
 	FULL_HP,        ## No damage - retreat backwards while shooting, periodically turn to cover
@@ -360,12 +358,12 @@ var _death_animation: Node = null  ## Death animation component reference.
 var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (extracted for Issue #377 CI fix).
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _teleport_component: EnemyTeleportComponent = null  ## Teleport component (Issue #752).
+var _sniper_component: EnemySniperComponent = null  ## Sniper AI + hitscan component (Issues #1163, #1171).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #583).
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
-var _sniper_component: EnemySniperComponent = null  ## [#1163] Sniper kiting + blind-fire component.
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -404,9 +402,9 @@ func _ready() -> void:
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
 	_pacifist = PacifistComponent.new(self)  # Issue #959
 	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
+	_sniper_component = EnemySniperComponent.new(); _sniper_component.enemy = self; _sniper_component.log_to_file_fn = _log_to_file; _sniper_component.name = "SniperComponent"; add_child(_sniper_component)  # Issues #1171, #1163
 	if has_armored_skin: _armored_skin_component = EnemyArmoredSkinComponent.new(); _armored_skin_component.name = "ArmoredSkinComponent"; add_child(_armored_skin_component); _current_health += 1; _max_health += 1; _update_health_visual()  # Issue #1123: +1 HP bonus from Armored Skin
 	if is_teleporter: _teleport_component = EnemyTeleportComponent.new(); _teleport_component.name = "TeleportComponent"; add_child(_teleport_component); EnemyTeleportComponent.add_backpack(_enemy_model)  # Issue #752
-	if weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component = EnemySniperComponent.new(); _sniper_component.name = "SniperComponent"; add_child(_sniper_component)  # [#1163]
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
@@ -3879,6 +3877,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	var direction := weapon_forward
 	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
 	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	elif weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)  # [#1171] Hitscan avoids physics tunneling at 10000px/s
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
@@ -3957,47 +3956,20 @@ func _play_delayed_shell_sound() -> void:
 
 ## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
-	if casing_scene == null:
-		return
-
-	# Calculate casing spawn position (near the weapon, slightly offset)
-	# Use 50% of bullet spawn offset to position casing near weapon muzzle
+	if casing_scene == null: return
 	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
-
 	var casing: RigidBody2D = casing_scene.instantiate()
 	casing.global_position = casing_spawn_position
-
-	# Calculate ejection direction to the right of the weapon
-	# In a top-down view with Y increasing downward:
-	# - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
-	# - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
-	# This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+	# Eject to the right (90° CCW rotation = perpendicular to barrel) with randomness
 	var weapon_right: Vector2 = Vector2(-weapon_forward.y, weapon_forward.x)
-
-	# Eject to the right with some randomness
-	var random_angle: float = randf_range(-0.3, 0.3)  # ±0.3 radians (~±17 degrees)
-	var ejection_direction: Vector2 = weapon_right.rotated(random_angle)
-
-	# Add some upward component for realistic ejection
-	ejection_direction = ejection_direction.rotated(randf_range(-0.1, 0.1))
-
-	# Set initial velocity for the casing (increased for faster ejection animation)
-	var ejection_speed: float = randf_range(120.0, 180.0)  # Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
-	casing.linear_velocity = ejection_direction * ejection_speed
-
-	# Add some initial spin for realism
+	var ejection_direction: Vector2 = weapon_right.rotated(randf_range(-0.3, 0.3)).rotated(randf_range(-0.1, 0.1))
+	casing.linear_velocity = ejection_direction * randf_range(120.0, 180.0)  # reduced 2.5x for Issue #424
 	casing.angular_velocity = randf_range(-15.0, 15.0)
-
-	# Set caliber data on the casing for appearance (Issue #417 PR feedback)
-	# Use the loaded caliber data for this weapon type (same as player weapons)
 	if _caliber_data:
 		casing.set("caliber_data", _caliber_data)
 	else:
-		# Fallback to 5.45x39mm for M16 rifle if no caliber data loaded
 		var fallback_caliber: Resource = load("res://resources/calibers/caliber_545x39.tres")
-		if fallback_caliber:
-			casing.set("caliber_data", fallback_caliber)
-
+		if fallback_caliber: casing.set("caliber_data", fallback_caliber)
 	get_tree().current_scene.add_child(casing)
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
