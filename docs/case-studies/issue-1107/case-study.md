@@ -140,6 +140,99 @@ Detects stuck state in 0.8 seconds instead of 1.5 seconds. Since the corner esca
 
 ---
 
+## Round 3: PURSUING Enemies Stuck in Building Interior (2026-03-18 Report 2)
+
+### Report
+
+**User comment (2026-03-18 13:31):** "все враги на скриншоте застряли (не могут выйти к игроку, упираются в стену)"
+("all enemies are stuck, can't reach the player, pressing against walls")
+
+**Screenshot:** `screenshot_20260318_pursuing_wall_stuck.png` — multiple enemies in PURSUING state
+bunched near walls in BUILDING INTERIOR level. Labels show "PURSUING (15)", "PURSUING (14A)", and
+"SECCMPTIVE" (SEEKING_COVER). Player visible in upper right, enemies pressing against walls.
+
+**Game log:** `game_log_20260318_133130.txt` — not downloadable (GitHub attachment auth required).
+
+### Timeline Reconstruction
+
+1. **Before our fix (PR #1176 commit e33d85d):**
+   - Enemy7 (pos 1600,900) and Enemy10 in PATROL mode repeatedly hit `PATROL STUCK` at fixed positions
+   - Enemies were physically stuck in patrol loops, never entering PURSUING state
+   - Screenshot 1 (12:20) showed patrol sticking
+
+2. **After patrol fix:**
+   - Patrol now routes correctly with NavAgent + wall avoidance
+   - Enemies successfully transition IDLE → PURSUING when they detect the player
+   - Enemies in PURSUING navigate toward player but get stuck at corridor/room entrances
+
+3. **The new problem (Round 3):**
+   - Enemies in PURSUING state press against walls for up to 20 seconds (user's ExperimentalSettings global_stuck_max_time = 20s)
+   - Global stuck timer (4s default, 20s in test) is the escape mechanism — too slow visually
+   - Enemies DO eventually unstick (→ SEARCHING → FLANKING) but look stuck for too long
+
+### Root Cause Analysis (Round 3)
+
+**Primary cause: Single-wall slide collision disrupting NavAgent path in corridors**
+
+The slide collision corner escape code (added in commit `a7c0f3fe`) accumulates ALL slide collision normals and blends them into the movement direction with weight 0.6 (non-opposing) or 1.5 (opposing). This was correct for concave corners (2 walls cancel each other). But in corridors:
+
+1. Enemy moves north through a narrow hallway
+2. Slightly clips east wall → `get_slide_collision(0)` returns WEST normal
+3. Code blends: `direction = (NORTH + WEST*0.6).normalized()` = NW direction
+4. Enemy drifts NW → clips west wall → slide normal = EAST
+5. Now opposing (EAST opposes NW): `direction = (NW + EAST*1.5).normalized()` ≈ EAST
+6. Enemy moves east → back to step 2 → oscillation
+
+The enemy appears stuck against walls while actually oscillating in a narrow band (< 30px), occasionally moving enough to reset the global stuck timer, preventing it from ever reaching the 4s threshold.
+
+**Evidence from first game log (game_log_20260318_122059.txt):**
+```
+12:21:08 [Enemy3] PURSUING corner check: angle -33.8°  (repeated every 0.1s for 7+ seconds)
+12:21:08 [Enemy4] PURSUING corner check: angle -34.3°  (same oscillation)
+```
+Both enemies firing corner check at identical fixed angles = stuck at a specific wall section.
+
+**Secondary cause: ExperimentalSettings global_stuck_max_time = 20.0s**
+The user set global stuck max time to 20 seconds in testing, extending the visible stuck period.
+Default is 4 seconds. Even with the corridor oscillation, 4s would recover faster.
+
+**Comparison with backup branch:**
+The backup branch `_move_to_target_nav` had NO slide collision escape — only `_apply_wall_avoidance`.
+Enemies did occasionally get stuck but the global stuck timer fired and rescued them within 4s.
+The slide collision escape was intended to help concave corners but caused corridor oscillation.
+
+### Fix Applied (Round 3, commit after e33d85d)
+
+**Restrict slide collision escape to true corners:**
+
+Before:
+```gdscript
+# fires for ANY single slide contact (corridor walls too)
+if _esc.length_squared() > 0.01: var _en := _esc.normalized()
+    direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
+```
+
+After:
+```gdscript
+# only fires for 2+ contacts (true concave corner) OR head-on wall (dot < -0.5)
+var _sc: int = get_slide_collision_count()
+if _sc > 0:
+    var _esc: Vector2 = Vector2.ZERO; for _si in range(_sc): _esc += get_slide_collision(_si).get_normal()
+    var _en := _esc.normalized(); if _sc >= 2 or _en.dot(direction) < -0.5:
+        direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.8)).normalized()
+```
+
+**Why this works:**
+- **2+ slide contacts** = enemy is touching two walls simultaneously = true concave corner → escape needed
+- **Single slide with dot < -0.5** = wall is directly blocking forward movement → escape needed
+- **Single slide with dot >= -0.5** = wall is to the side (corridor wall) → NavAgent handles routing, no escape needed
+
+This prevents corridor oscillation while preserving corner escape for L-shaped wall corners.
+
+Applied to both `_process_patrol()` and `_move_to_target_nav()`.
+
+---
+
 ## References
 
 - Godot 4 Navigation Docs: https://docs.godotengine.org/en/stable/tutorials/navigation/
@@ -150,4 +243,6 @@ Detects stuck state in 0.8 seconds instead of 1.5 seconds. Since the corner esca
 - GitHub #88540: CharacterBody2D corner sticking
 - Project issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1107
 - Game log: `docs/case-studies/issue-1107/game_log_20260317_211211.txt`
-- Follow-up screenshot: `docs/case-studies/issue-1107/screenshot_20260317_wall_corner.png`
+- Game log 2: `docs/case-studies/issue-1107/game_log_20260318_122059.txt`
+- Screenshot (patrol stuck): `docs/case-studies/issue-1107/screenshot_20260317_wall_corner.png`
+- Screenshot (pursuing stuck): `docs/case-studies/issue-1107/screenshot_20260318_pursuing_wall_stuck.png`

@@ -4070,10 +4070,11 @@ func _process_patrol(delta: float) -> void:
 		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return
 	var dir := (_nav_agent.get_next_path_position() - global_position).normalized()
 	dir = _apply_wall_avoidance(dir)
-	# Issue #1107: Corner escape — blend slide normals (wall contacts) into direction
-	var _esc: Vector2 = Vector2.ZERO
-	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
-	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); dir = (dir + _en * (1.5 if _en.dot(dir) < -0.5 else 0.6)).normalized()
+	# Issue #1107: Corner escape — only true corners (2+ slides) or head-on wall (dot < -0.5)
+	var _sc: int = get_slide_collision_count()
+	if _sc > 0:
+		var _esc: Vector2 = Vector2.ZERO; for _si: int in range(_sc): _esc += get_slide_collision(_si).get_normal()
+		var _en := _esc.normalized(); if _sc >= 2 or _en.dot(dir) < -0.5: dir = (dir + _en * (1.5 if _en.dot(dir) < -0.5 else 0.8)).normalized()
 	elif velocity.length_squared() < 1.0:
 		var _p := move_and_collide(dir * 2.0, true); if _p: dir = (dir + _p.get_normal() * 0.8).normalized()
 	velocity = dir * move_speed
@@ -4745,10 +4746,11 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
-	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
-	var _esc: Vector2 = Vector2.ZERO
-	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
-	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
+	# Issue #1107: Corner escape — only true corners (2+ slides) or head-on wall (dot < -0.5)
+	var _sc: int = get_slide_collision_count()
+	if _sc > 0:
+		var _esc: Vector2 = Vector2.ZERO; for _si: int in range(_sc): _esc += get_slide_collision(_si).get_normal()
+		var _en := _esc.normalized(); if _sc >= 2 or _en.dot(direction) < -0.5: direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.8)).normalized()
 	elif velocity.length_squared() < 1.0:
 		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
 	velocity = direction * speed; rotation = direction.angle()
