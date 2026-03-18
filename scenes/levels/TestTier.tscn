@@ -1522,6 +1522,26 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+[node name="RpgEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(3700, 1400)
+behavior_mode = 1
+weapon_type = 4
+min_health = 1
+max_health = 2
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="RpgEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(2000, 2200)
+behavior_mode = 1
+weapon_type = 4
+min_health = 1
+max_health = 2
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_level")
 
@@ -1563,7 +1583,7 @@ offset_top = 45.0
 offset_right = -10.0
 offset_bottom = 75.0
 grow_horizontal = 0
-text = "Enemies: 10"
+text = "Enemies: 12"
 horizontal_alignment = 2
 
 [node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]

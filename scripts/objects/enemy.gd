@@ -30,8 +30,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE, SHOTGUN, UZI, MACHETE (melee, #579), MACHINE_GUN (PKM belt-fed, #1033).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, MACHINE_GUN }
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -375,6 +375,8 @@ var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (extr
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _teleport_component: EnemyTeleportComponent = null  ## Teleport component (Issue #752).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
+var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #583).
+var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
 
@@ -490,9 +492,9 @@ func _configure_weapon_type() -> void:
 	_pellet_count_max = c.get("pellet_count_max", 1)
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
-	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
-	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033: machine gun belt override
-	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033: machine gun long reload override
+	_is_melee_weapon = c.get("is_melee", false); _is_rpg_weapon = c.get("is_rpg", false)  # Issue #579 #583
+	if c.has("total_magazines"): total_magazines = c["total_magazines"]  # #1033
+	if c.has("reload_time"): reload_time = c["reload_time"]  # #1033
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -1546,6 +1548,11 @@ func _process_combat_state(delta: float) -> void:
 	# Determine if we should be in approach phase or exposed shooting phase
 	var in_direct_contact := distance_to_player <= COMBAT_DIRECT_CONTACT_DISTANCE
 
+	if _is_rpg_weapon and not _rpg_fired and has_clear_shot:  # Issue #583: RPG fires immediately at max range (no approach, no detection delay)
+		_aim_at_player()
+		if _shoot_timer >= shoot_cooldown: _log_debug("RPG: firing rocket (dist=%.0f)" % distance_to_player); _shoot(); _shoot_timer = 0.0  # reset only after shot
+		return
+
 	# Enter exposed phase if we have a clear shot and are either close enough or have approached long enough
 	if has_clear_shot and (in_direct_contact or _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME):
 		# Close enough AND have clear shot - start exposed shooting phase
@@ -2561,6 +2568,7 @@ func _transition_to_combat() -> void:
 	# Issue #409: Clear witnessed ally death flag when engaging player
 	_witnessed_ally_death = false; _suspected_directions.clear()
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
+	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
@@ -3837,7 +3845,7 @@ func _shoot() -> void:
 	if not _can_shoot(): return
 	# Issue #934: aggression target > companion > player
 	var target_position := _aggression.get_target_position() if _agg and _aggression.get_target() != null else (_companion.global_position if _aiming_companion else (_player.global_position if _player else global_position))
-	if enable_lead_prediction and not _agg and _player and not _aiming_companion: target_position = _calculate_lead_prediction()
+	if enable_lead_prediction and not _agg and not _is_rpg_weapon and _player and not _aiming_companion: target_position = _calculate_lead_prediction()  # Issue #583: no lead prediction for RPG
 	if _agg:
 		# [Issue #954] Check both 35px center ray AND real muzzle-to-target path (passage-edge wall bug fix)
 		if not _is_bullet_spawn_clear(_get_weapon_forward_direction()): return
@@ -3850,30 +3858,22 @@ func _shoot() -> void:
 
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
-	# Calculate bullet spawn position at weapon muzzle first
-	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
 	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	# Bullets fly in barrel direction, only shoot when properly aimed (issue #254, #344)
 	var aim_dot := weapon_forward.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
 		return
-
-	var direction := weapon_forward  # Barrel direction for realistic behavior
-	# Fire projectiles and spawn casing
-	if _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	var direction := weapon_forward
+	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
+	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
-	_spawn_muzzle_flash(bullet_spawn_pos, direction)  # Issue #455: Add muzzle flash effect
-	_spawn_casing(direction, weapon_forward)
-	# Play sound
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
+	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
@@ -3884,9 +3884,10 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if sp and sp.has_method("emit_sound") and _now3 - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
 		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 		_last_gunshot_propagation_time = _now3
-	_play_delayed_shell_sound()
+	if not _is_rpg_weapon: _play_delayed_shell_sound()  # Issue #583: no shell sound for RPG
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	if _is_rpg_weapon and not _rpg_fired: _rpg_fired = true; _switch_to_secondary_weapon(); return  # Issue #583
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Spawn projectile. Pool first (Issue #724), fallback instantiate (Issue #516, #550).
@@ -3905,6 +3906,15 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
 	elif p.get("shooter_position") != null: p.shooter_position = pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
+
+## Fire RPG rocket (Issue #583). RigidBody2D + linear_velocity after add_child (VOGGrenade pattern).
+func _fire_rpg_rocket(dir: Vector2, pos: Vector2) -> void:
+	var rocket: Node2D = (preload("res://scenes/projectiles/RpgRocket.tscn") as PackedScene).instantiate() as Node2D
+	if rocket == null: _log_to_file("[RPG] ERROR: RpgRocket instantiate failed!"); return
+	var rocket_dir: Vector2 = dir.normalized() if dir.length() > 0.0 else Vector2.RIGHT
+	rocket.set("direction", rocket_dir); rocket.set("shooter_id", get_instance_id()); rocket.set("shooter_position", pos); rocket.global_position = pos
+	get_tree().current_scene.add_child(rocket)
+	_log_to_file("[RPG] Rocket launched at %s dir=%s" % [str(pos), str(rocket_dir)])
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
@@ -4568,38 +4578,15 @@ func set_player_ammo_empty(is_empty: bool) -> void:
 	if is_empty != old: _log_to_file("Player ammo empty: %s -> %s" % [old, is_empty])
 
 func is_under_fire() -> bool: return _under_fire
-
-## Check if enemy is in cover.
-func is_in_cover() -> bool:
-	return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
-
-## Get current ammo in magazine.
-func get_current_ammo() -> int:
-	return _current_ammo
-
-## Get reserve ammo.
-func get_reserve_ammo() -> int:
-	return _reserve_ammo
-
-## Get total ammo (current + reserve).
-func get_total_ammo() -> int:
-	return _current_ammo + _reserve_ammo
-
-## Check if enemy is currently reloading.
-func is_reloading() -> bool:
-	return _is_reloading
-
-## Check if enemy has any ammo left.
-func has_ammo() -> bool:
-	return _current_ammo > 0 or _reserve_ammo > 0
-
-## Get current player visibility ratio (for debugging).
-## Returns 0.0 if player is completely hidden, 1.0 if fully visible.
-func get_player_visibility_ratio() -> float:
-	return _player_visibility_ratio
+func is_in_cover() -> bool: return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
+func get_current_ammo() -> int: return _current_ammo
+func get_reserve_ammo() -> int: return _reserve_ammo
+func get_total_ammo() -> int: return _current_ammo + _reserve_ammo
+func is_reloading() -> bool: return _is_reloading
+func has_ammo() -> bool: return _current_ammo > 0 or _reserve_ammo > 0
+func get_player_visibility_ratio() -> float: return _player_visibility_ratio
 
 ## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
@@ -4972,6 +4959,20 @@ func _setup_machete_component() -> void:
 	_machete.configure_from_weapon_config(WeaponConfigComponent.get_config(weapon_type)); add_child(_machete)
 	_current_ammo = 0; _reserve_ammo = 0; _is_reloading = false
 	full_health_color = Color(0.7, 0.15, 0.15, 1.0); _update_health_visual()
+
+## Switch from RPG to secondary weapon (PM pistol) after firing rocket (Issue #583).
+func _switch_to_secondary_weapon() -> void:
+	var sc := WeaponConfigComponent.get_config(WeaponConfigComponent.get_config(weapon_type).get("switch_weapon_type", 0))
+	shoot_cooldown = sc["shoot_cooldown"]; bullet_speed = sc["bullet_speed"]; magazine_size = sc["magazine_size"]; bullet_spawn_offset = sc["bullet_spawn_offset"]; weapon_loudness = sc["weapon_loudness"]
+	if sc.get("bullet_scene_path", "") != "": var s := load(sc["bullet_scene_path"]) as PackedScene; if s: bullet_scene = s
+	if sc.get("casing_scene_path", "") != "": var s2 := load(sc["casing_scene_path"]) as PackedScene; if s2: casing_scene = s2
+	if sc.get("caliber_path", "") != "": _caliber_data = load(sc["caliber_path"])
+	_is_shotgun_weapon = sc.get("is_shotgun", false); _is_rpg_weapon = false; _spread_threshold = sc.get("spread_threshold", 3); _initial_spread = sc.get("initial_spread", 0.5)
+	_spread_increment = sc.get("spread_increment", 0.6); _max_spread = sc.get("max_spread", 4.0); _spread_reset_time = sc.get("spread_reset_time", 0.25); _shot_count = 0; _spread_timer = 0.0
+	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size; _is_reloading = false; _reload_timer = 0.0
+	if sc.get("sprite_path", "") != "" and _weapon_sprite:  # Issue #583: update weapon sprite to PM
+		var tex := load(sc["sprite_path"]) as Texture2D; if tex: _weapon_sprite.texture = tex
+	print("[Enemy] RPG fired, switched to secondary weapon (PM)")
 
 ## Setup enemy flashlight for night mode (Issue #824).
 func _setup_enemy_flashlight() -> void:
