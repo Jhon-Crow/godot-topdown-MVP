@@ -198,6 +198,51 @@ Neither of these was clearly communicated with actionable download links until t
 
 ---
 
+## Fourth User Report (2026-03-18 10:59) — Third Game Log with "No Changes"
+
+The user posted a fourth report on 2026-03-18 at 10:59:25 with comment `"нет изменений"` ("no changes") and attached `game_log_20260318_105925.txt`.
+
+**Notable detail**: The executable path in this log is:
+```
+I:/Загрузки/godot exe/Бронированная Кожа/Godot-Top-Down-Template.exe
+```
+`Загрузки` = "Downloads" in Russian. `Бронированная Кожа` = "Armored Skin" in Russian.
+
+This strongly indicates the user created a new folder specifically for testing the Armored Skin feature (they moved or renamed the folder) — but placed the **same old `.exe`** inside it, rather than downloading the new CI artifact.
+
+**Finding: The user is still running the same old pre-PR binary.**
+
+Evidence comparison across all three logs:
+
+| Indicator | Log 1 (09:06) | Log 2 (10:22) | Log 3 (10:59) | Expected (PR branch) |
+|-----------|-------------|-------------|-------------|----------------------|
+| Binary message | `"shards will spawn when HP ≤2 and hit"` | `"shards will spawn when HP ≤2 and hit"` | `"shards will spawn when HP ≤2 and hit"` | `"shards will spawn at low HP"` |
+| Sprites found per init | 4 (no Armband) | 4 (no Armband) | 4 (no Armband) | 5 (includes Armband) |
+| `"Armor shader applied"` | **None** | **None** | **None** | Should appear each init |
+| Debug build | false | false | false | — |
+| Engine version | 4.3-stable | 4.3-stable | 4.3-stable | — |
+
+**Timeline of third test session (10:59):**
+
+| Time | Event |
+|------|-------|
+| 10:59:25 | Game starts from `I:/Загрузки/godot exe/Бронированная Кожа/` (same old binary) |
+| 10:59:26 | Player initializes — no Armored Skin selected ("No armored skin selected") |
+| 10:59:29 | User opens Armory menu |
+| 10:59:34 | User switches active item from None → Armored Skin |
+| 10:59:34 | +1 HP bonus applied (health 5/5) |
+| 10:59:34 | Scene reload triggered |
+| 10:59:34 | `_init_armored_skin()` → **"Armored skin active — shards will spawn when HP ≤2 and hit"** (old binary message) |
+| 10:59:34 | **No visual applied** — `_apply_armored_skin_visual()` not in this binary |
+| 10:59:34–10:59:37 | Multiple scene reloads due to continued item switching; same behavior repeats 4 more times |
+| 10:59:44 | Session ends after ~19 seconds |
+
+**Conclusion**: All four reports (including three game logs) confirm the same root cause — the user consistently runs the old pre-PR executable. The fix is present in PR #1149, but the user needs to run a newly compiled binary.
+
+**Root cause of the user's confusion**: The previous AI session comment instructed the user to download the artifact from `https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23233743387` but this is a link to a CI run from the *fork* (`konard/Jhon-Crow-godot-topdown-MVP`), which may require additional GitHub permissions or navigation to see the artifact. The user appears to have not found or successfully downloaded the new build.
+
+---
+
 ## Files Referenced
 
 | File | Role |
@@ -207,3 +252,4 @@ Neither of these was clearly communicated with actionable download links until t
 | `scenes/characters/Player.tscn` | Player scene — defines `PlayerModel` and sprite hierarchy |
 | `docs/case-studies/issue-1142/game_log_20260318_090612.txt` | First user-provided game session log (09:06:12) showing the bug |
 | `docs/case-studies/issue-1142/game_log_20260318_102209.txt` | Second user-provided game session log (10:22:09) — same old binary confirmed |
+| `docs/case-studies/issue-1142/game_log_20260318_105925.txt` | Third user-provided game session log (10:59:25) — same old binary confirmed; user created "Бронированная Кожа" folder but placed old `.exe` there |
