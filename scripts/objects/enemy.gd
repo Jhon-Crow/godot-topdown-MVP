@@ -3865,6 +3865,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	var direction := weapon_forward
 	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
 	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	elif weapon_type == WeaponType.SNIPER_RIFLE: _shoot_sniper_hitscan(direction, bullet_spawn_pos)  # [#1171] Hitscan avoids physics tunneling at 10000px/s
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
@@ -3916,6 +3917,147 @@ func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
 	var spread := _initial_spread if _shot_count <= _spread_threshold else minf(_initial_spread + (_shot_count - _spread_threshold) * _spread_increment, _max_spread)
 	if spread > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread), deg_to_rad(spread)))
 	_spawn_projectile(direction, spawn_pos)
+
+## [#1171] Hitscan shot for SNIPER_RIFLE enemy — instant raycast damage + smoke tracer.
+## Using a real physics bullet at 10000px/s caused tunneling (~167px/frame at 60fps),
+## making the bullet skip over the player's HitArea and miss. Hitscan (like the player
+## SniperRifle.cs uses) guarantees a hit when aimed correctly.
+func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
+	var max_range := 5000.0
+	var damage := 50.0  # ASVK 12.7x108mm damage (same as SniperBullet.cs default)
+	var wall_mask := 4   # Layer 3 = obstacles/walls
+	var player_mask := 1 # Layer 1 = player (CharacterBody2D)
+	var end_pos := spawn_pos + direction * max_range
+	var bullet_end_point := end_pos
+
+	var world_2d := get_world_2d()
+	if world_2d == null:
+		return
+	var space_state := world_2d.direct_space_state
+	if space_state == null:
+		return
+
+	var shooter_id := get_instance_id()
+	var walls_penetrated := 0
+	var max_wall_penetrations := 2  # ASVK penetrates up to 2 walls
+	var current_pos := spawn_pos
+	var exclude_rids := []  # Array of RIDs to exclude from subsequent raycasts
+	var damaged_ids: Dictionary = {}  # track already-hit entities (instance_id -> true)
+
+	# Sequential raycasts to handle wall penetration and multi-entity hits
+	for _i in range(50):  # safety limit
+		if current_pos.distance_to(end_pos) < 1.0:
+			break
+
+		# Check for wall hits first (stop or penetrate)
+		var wall_query := PhysicsRayQueryParameters2D.new()
+		wall_query.from = current_pos; wall_query.to = end_pos
+		wall_query.collision_mask = wall_mask; wall_query.exclude = exclude_rids
+		wall_query.collide_with_bodies = true; wall_query.collide_with_areas = false
+		var wall_result := space_state.intersect_ray(wall_query)
+
+		# Check for character hits (player only — enemy sniper targets player)
+		var char_query := PhysicsRayQueryParameters2D.new()
+		char_query.from = current_pos; char_query.to = end_pos
+		char_query.collision_mask = player_mask; char_query.exclude = exclude_rids
+		char_query.collide_with_bodies = true; char_query.collide_with_areas = false
+		var char_result := space_state.intersect_ray(char_query)
+
+		# Determine which hit comes first
+		var wall_dist := INF
+		var char_dist := INF
+		if not wall_result.is_empty():
+			wall_dist = current_pos.distance_to(wall_result["position"])
+		if not char_result.is_empty():
+			char_dist = current_pos.distance_to(char_result["position"])
+
+		if wall_dist == INF and char_dist == INF:
+			break  # Nothing hit — bullet reaches max range
+
+		if char_dist <= wall_dist and not char_result.is_empty():
+			# Character hit before (or at same distance as) wall
+			var hit_node: Node2D = char_result["collider"]
+			var hit_id := hit_node.get_instance_id()
+			if hit_id != shooter_id and not damaged_ids.has(hit_id):
+				if (not hit_node.has_method("is_alive")) or hit_node.call("is_alive"):
+					# Apply damage: prefer on_hit_with_bullet_info (enemy.gd GDScript),
+					# then TakeDamage/take_damage for correct damage amount. Avoid
+					# on_hit_with_info which hardcodes TakeDamage(1) in Player.cs.
+					if hit_node.has_method("on_hit_with_bullet_info"):
+						hit_node.call("on_hit_with_bullet_info", direction, _caliber_data, false, walls_penetrated > 0, damage)
+					elif hit_node.has_method("TakeDamage"):
+						hit_node.call("TakeDamage", damage)  # C# Player
+					elif hit_node.has_method("take_damage"):
+						hit_node.call("take_damage", damage)  # GDScript entities
+					elif hit_node.has_method("on_hit"):
+						hit_node.call("on_hit")
+					damaged_ids[hit_id] = true
+					_log_to_file("[SniperHitscan] Hit %s at %s, damage=%.0f" % [hit_node.name, char_result["position"], damage])
+			exclude_rids.append(char_result["rid"])
+			current_pos = char_result["position"] + direction * 5.0
+			# Bullet continues through characters (ASVK penetrates)
+
+		elif not wall_result.is_empty():
+			# Wall hit
+			var impact_mgr := get_node_or_null("/root/ImpactEffectsManager")
+			if impact_mgr and impact_mgr.has_method("spawn_dust_effect"):
+				impact_mgr.spawn_dust_effect(wall_result["position"], -direction, null)
+			if walls_penetrated < max_wall_penetrations:
+				walls_penetrated += 1
+				exclude_rids.append(wall_result["rid"])
+				current_pos = wall_result["position"] + direction * 5.0
+			else:
+				bullet_end_point = wall_result["position"]
+				break
+
+	# Spawn static smoke tracer from muzzle to endpoint (like player SniperRifle.cs)
+	_spawn_sniper_tracer(spawn_pos, bullet_end_point)
+
+## [#1171] Spawn a fading smoke tracer Line2D from muzzle to bullet endpoint.
+## Mirrors the player's SpawnSmokyTracer / FadeOutTracer from SniperRifle.cs.
+func _spawn_sniper_tracer(from_pos: Vector2, end_pos: Vector2) -> void:
+	var tracer := Line2D.new()
+	tracer.name = "SniperEnemyTracer"
+	tracer.width = 4.0
+	tracer.default_color = Color(0.9, 0.85, 0.6, 0.7)  # Warm yellowish smoke
+	tracer.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	tracer.end_cap_mode = Line2D.LINE_CAP_ROUND
+	tracer.top_level = true
+	tracer.position = Vector2.ZERO
+	tracer.z_index = 10
+	# Taper: thick at muzzle, thin at end
+	var width_curve := Curve.new()
+	width_curve.add_point(Vector2(0.0, 1.0)); width_curve.add_point(Vector2(0.3, 0.8)); width_curve.add_point(Vector2(1.0, 0.3))
+	tracer.width_curve = width_curve
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.9, 0.9, 0.85, 0.8))
+	grad.add_point(0.5, Color(0.7, 0.7, 0.65, 0.5))
+	grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.5, 0.5, 0.2))
+	tracer.gradient = grad
+	tracer.add_point(from_pos)
+	tracer.add_point(end_pos)
+	get_tree().current_scene.add_child(tracer)
+	_fade_sniper_tracer(tracer)
+
+## [#1171] Async fade-out animation for the sniper tracer (mirrors SniperRifle.cs FadeOutTracer).
+func _fade_sniper_tracer(tracer: Line2D) -> void:
+	var fade_duration := 2.0
+	var elapsed := 0.0
+	var initial_width := tracer.width
+	while elapsed < fade_duration and is_instance_valid(tracer):
+		elapsed += get_process_delta_time()
+		var progress := elapsed / fade_duration
+		var alpha := lerpf(0.7, 0.0, progress)
+		tracer.default_color = Color(0.8, 0.8, 0.8, alpha)
+		tracer.width = initial_width + progress * 3.0
+		var grad := Gradient.new()
+		grad.set_color(0, Color(0.9, 0.9, 0.85, alpha))
+		grad.add_point(0.5, Color(0.7, 0.7, 0.65, alpha * 0.6))
+		grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.5, 0.5, alpha * 0.3))
+		tracer.gradient = grad
+		await get_tree().process_frame
+	if is_instance_valid(tracer):
+		tracer.queue_free()
 
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
