@@ -16,20 +16,17 @@ enum AIState {
 	EVADING_GRENADE,  ## Fleeing from grenade danger zone (Issue #407)
 	PACIFIST    ## Refuses to fight, hides in cover (Issue #959: Loudspeaker effect)
 }
-
 ## Retreat behavior modes based on damage taken.
 enum RetreatMode {
 	FULL_HP,        ## No damage - retreat backwards while shooting, periodically turn to cover
 	ONE_HIT,        ## One hit taken - quick burst then retreat without shooting
 	MULTIPLE_HITS   ## Multiple hits - quick burst then retreat without shooting (same as ONE_HIT)
 }
-
 ## Behavior modes for the enemy.
 enum BehaviorMode {
 	PATROL,  ## Moves between patrol points
 	GUARD    ## Stands in one place
 }
-
 ## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033).
 enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN }
 
@@ -54,7 +51,6 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN }
 @export var hit_flash_duration: float = 0.1  ## Hit flash duration (seconds).
 @export var destroy_on_death: bool = false  ## Destroy enemy after death.
 @export var respawn_delay: float = 2.0  ## Delay before respawn/destroy (seconds).
-
 @export var min_health: int = 2  ## Minimum random health.
 @export var max_health: int = 4  ## Maximum random health.
 @export var threat_sphere_radius: float = 100.0  ## Bullets within radius trigger suppression.
@@ -71,7 +67,6 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN }
 @export var bullet_speed: float = 2500.0  ## Bullet speed for lead prediction.
 @export var magazine_size: int = 30  ## Bullets per magazine.
 @export var total_magazines: int = 5  ## Number of magazines carried.
-
 @export var reload_time: float = 3.0  ## Time to reload in seconds.
 @export var detection_delay: float = 0.2  ## Delay between spotting player and shooting (reaction time).
 @export var lead_prediction_delay: float = 0.3  ## Min visibility time before enabling lead prediction.
@@ -79,7 +74,6 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN }
 @export var walk_anim_speed: float = 12.0  ## Walking animation speed multiplier.
 @export var walk_anim_intensity: float = 1.0  ## Walking animation intensity.
 @export var enemy_model_scale: float = 1.3  ## Scale multiplier for enemy model (1.3 matches player).
-
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 @export var is_teleporter: bool = false  ## Whether this enemy can teleport (Issue #752).
 @export var has_force_field: bool = false  ## Whether this enemy has a Force Field (Issue #1034).
@@ -110,7 +104,6 @@ signal became_pacifist  ## Enemy became pacifist (Issue #959: counts as killed f
 
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
-
 @onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
 @onready var _body_sprite: Sprite2D = $EnemyModel/Body  ## Body sprite
 @onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
@@ -122,7 +115,6 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _raycast: RayCast2D = $RayCast2D  ## Line of sight raycast
 @onready var _debug_label: Label = $DebugLabel  ## Debug state label
 @onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D  ## Pathfinding
-
 ## HitArea for bullet collision detection (disabled on death).
 @onready var _hit_area: Area2D = $HitArea
 @onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape  ## Collision on death
@@ -130,7 +122,6 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
 var _original_hit_area_mask: int = 0
 var _overlapping_casings: Array[RigidBody2D] = []  ## Casings in CasingPusher (Issue #438)
-
 var _walk_anim_time: float = 0.0  ## Walking animation accumulator
 var _is_walking: bool = false  ## Currently walking (for anim)
 var _target_model_rotation: float = 0.0  ## Target rotation for smooth interpolation
@@ -203,7 +194,6 @@ var _cover_position: Vector2 = Vector2.ZERO  ## Cover position
 var _has_valid_cover: bool = false  ## Has valid cover
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
-
 var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
 var _threat_sphere: Area2D = null  ## Threat sphere Area2D for detecting nearby bullets
 var _bullets_in_threat_sphere: Array = []  ## Bullets currently in threat sphere
@@ -213,7 +203,6 @@ var _threat_memory_timer: float = 0.0  ## Memory timer for bullets that passed t
 const THREAT_MEMORY_DURATION: float = 0.5  ## Duration to remember bullet passage
 var _retreat_mode: RetreatMode = RetreatMode.FULL_HP  ## Current retreat mode determined by damage taken
 var _hits_taken_in_encounter: int = 0  ## Hits taken this encounter, resets on IDLE or retreat completion
-
 var _retreat_turn_timer: float = 0.0  ## Periodic cover turn timer
 const RETREAT_TURN_DURATION: float = 0.8  ## Duration to face cover (sec)
 const RETREAT_TURN_INTERVAL: float = 1.5  ## Turn interval (sec)
@@ -310,10 +299,8 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
 var _suppressive_fire: SuppressiveFireComponent = null  ## Issue #910: Suppressive fire component.
-
 ## [Memory #297] Suspected player position with confidence: high(>0.8)=pursue, med(0.5-0.8)=cautious, low(<0.5)=patrol.
 var _memory: EnemyMemory = null
-
 ## Confidence values for different detection sources.
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
@@ -321,38 +308,30 @@ const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const SOUND_CASING_KICK_CONFIDENCE: float = 0.5  ## Issue #693: Casing kick - lower than reload
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
-
 ## Communication range for intel sharing: 660px w/ LOS, 300px without.
 const INTEL_SHARE_RANGE_LOS: float = 660.0
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
-
 ## Timer for periodic intel sharing (to avoid per-frame overhead).
 var _intel_share_timer: float = 0.0
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
-
 ## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
-
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
 const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
 var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
 var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
-
 ## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
 var _killed_by_ricochet: bool = false
-
 ## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
 var _killed_by_penetration: bool = false
-
 ## [Status Effects] Component handles blindness and stun (Issue #432, #328)
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 var _aggression: AggressionComponent = null  ## [Issue #675] Aggression gas component.
-
 ## [Pacifism - Issue #959] Loudspeaker effect component
 var _pacifist: PacifistComponent = null  ## Pacifism state management
 var _force_field_component: EnemyForceFieldComponent = null  ## [Issue #1034] Force field component
@@ -360,22 +339,16 @@ var _armored_skin_component: EnemyArmoredSkinComponent = null  ## [Issue #1123] 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
-
 ## Maximum time to spend evading before giving up (seconds).
 const GRENADE_EVASION_MAX_TIME: float = 4.0
-
 ## State to return to after grenade evasion completes.
 var _pre_evasion_state: AIState = AIState.IDLE
-
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
-
 ## [Issue #574] Flashlight detection component — detects player flashlight beam.
 var _flashlight_detection: FlashlightDetectionComponent = null
-
 var _enemy_flashlight: EnemyFlashlightComponent = null  ## [Issue #824] Enemy flashlight for night mode.
 var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phase.
-
 var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (used for death animation).
 var _death_animation: Node = null  ## Death animation component reference.
 var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (extracted for Issue #377 CI fix).
@@ -386,7 +359,6 @@ var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
-
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -774,7 +746,6 @@ func _find_player_recursive(node: Node) -> Node2D:
 func _find_companion() -> void:
 	_bff_targeting.find_companion()
 	_companion = _bff_targeting.companion
-
 func _select_best_target() -> void:
 	_bff_targeting.select_best_target(_player, _can_see_player)
 	_current_target = _bff_targeting.current_target
@@ -2819,7 +2790,6 @@ func alert_from_loudspeaker(sound_position: Vector2) -> void:
 	if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER, AIState.SEARCHING]:
 		_transition_to_pursuing()
 	_log_to_file("Alerted by loudspeaker from position %s" % sound_position)
-
 func _is_visible_from_player() -> bool:  ## PLAYER can see ENEMY (checks center + corners)
 	return _is_position_visible_from_player(global_position) if _player else false
 func _get_enemy_check_points(c: Vector2) -> Array[Vector2]:  ## center + 4 corners for visibility
@@ -3870,7 +3840,6 @@ func _shoot() -> void:
 		if not _is_pre_attack_flashing: _is_pre_attack_flashing = true; _enemy_flashlight.start_pre_attack_flash(target_position, _execute_shoot.bind(target_position))
 		return  # Callback fires the shot after flash completes
 	_execute_shoot(target_position)
-
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
 	var weapon_forward := _get_weapon_forward_direction()
@@ -3949,11 +3918,9 @@ func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void
 		if count > 1:
 			angle = lerp(-half, half, float(i) / float(count - 1)) + randf_range(-spread_rad * 0.15, spread_rad * 0.15)
 		_spawn_projectile(base_direction.rotated(angle), spawn_pos)
-
 func _spawn_muzzle_flash(p: Vector2, d: Vector2) -> void:
 	var m = get_node_or_null("/root/ImpactEffectsManager")
 	if m: m.spawn_muzzle_flash(p, d)
-
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
 	await get_tree().create_timer(0.15).timeout
@@ -4539,15 +4506,12 @@ func _on_ragdoll_activated() -> void:
 
 func _log_debug(message: String) -> void:
 	if debug_logging: print("[Enemy %s] %s" % [name, message])
-
 func _log_to_file(message: String) -> void:
 	if not is_inside_tree(): return
 	var fl := get_node_or_null("/root/FileLogger")
 	if fl and fl.has_method("log_enemy"): fl.log_enemy(name, message)
-
 func _log_spawn_info() -> void:
 	_log_to_file("Spawned at %s, hp: %d, behavior: %s" % [global_position, _max_health, BehaviorMode.keys()[behavior_mode]])
-
 func _get_state_name(state: AIState) -> String:
 	return AIState.keys()[state] if state >= 0 and state < AIState.size() else "UNKNOWN"
 
@@ -4585,12 +4549,10 @@ func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)
 	_goap_world_state["player_reloading"] = is_reloading
 	if is_reloading != old: _log_to_file("Player reloading: %s -> %s" % [old, is_reloading])
-
 func set_player_ammo_empty(is_empty: bool) -> void:
 	var old: bool = _goap_world_state.get("player_ammo_empty", false)
 	_goap_world_state["player_ammo_empty"] = is_empty
 	if is_empty != old: _log_to_file("Player ammo empty: %s -> %s" % [old, is_empty])
-
 func is_under_fire() -> bool: return _under_fire
 func is_in_cover() -> bool: return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
 func get_current_ammo() -> int: return _current_ammo
@@ -4823,13 +4785,11 @@ func _on_blinded_changed(blinded: bool) -> void:
 	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
 	if blinded:
 		_can_see_player = false; _continuous_visibility_timer = 0.0
-
 func _on_stunned_changed(stunned: bool) -> void:
 	_is_stunned = stunned
 	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned:
 		velocity = Vector2.ZERO
-
 func set_blinded(blinded: bool) -> void:
 	if _flashbang_status: _flashbang_status.set_blinded(blinded)
 func set_stunned(stunned: bool) -> void:
@@ -4956,10 +4916,8 @@ func _setup_grenade_avoidance() -> void:
 
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
-
 func _calculate_grenade_evasion_target() -> void:
 	if _grenade_avoidance: _grenade_avoidance.calculate_evasion_target(_nav_agent)
-
 func get_grenades_remaining() -> int: return _grenade_component.grenades_remaining if _grenade_component else 0
 func add_grenades(count: int) -> void:
 	if _grenade_component: _grenade_component.add_grenades(count)
