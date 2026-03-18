@@ -180,10 +180,8 @@ var _patrol_points: Array[Vector2] = []  ## Patrol state
 var _current_patrol_index: int = 0
 var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
-var _patrol_stuck_timer: float = 0.0  ## Issue #1119: Stuck detection for PATROL state
-var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## Issue #1119: Last pos for patrol stuck check
-const PATROL_STUCK_MAX_TIME: float = 1.5  ## Issue #1119: Skip patrol point after being stuck this long
-const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## Issue #1119: Min movement to consider not stuck
+var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
+const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -3854,30 +3852,21 @@ func _shoot() -> void:
 
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
-	# Calculate bullet spawn position at weapon muzzle first
-	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
 	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	# Bullets fly in barrel direction, only shoot when properly aimed (issue #254, #344)
 	var aim_dot := weapon_forward.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
 		return
-
-	var direction := weapon_forward  # Barrel direction for realistic behavior
-	# Fire projectiles and spawn casing
+	var direction := weapon_forward
 	if _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
-	_spawn_muzzle_flash(bullet_spawn_pos, direction)  # Issue #455: Add muzzle flash effect
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	_spawn_casing(direction, weapon_forward)
-	# Play sound
 	var audio: Node = get_node_or_null("/root/AudioManager")
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
@@ -4591,38 +4580,15 @@ func set_player_ammo_empty(is_empty: bool) -> void:
 	if is_empty != old: _log_to_file("Player ammo empty: %s -> %s" % [old, is_empty])
 
 func is_under_fire() -> bool: return _under_fire
-
-## Check if enemy is in cover.
-func is_in_cover() -> bool:
-	return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
-
-## Get current ammo in magazine.
-func get_current_ammo() -> int:
-	return _current_ammo
-
-## Get reserve ammo.
-func get_reserve_ammo() -> int:
-	return _reserve_ammo
-
-## Get total ammo (current + reserve).
-func get_total_ammo() -> int:
-	return _current_ammo + _reserve_ammo
-
-## Check if enemy is currently reloading.
-func is_reloading() -> bool:
-	return _is_reloading
-
-## Check if enemy has any ammo left.
-func has_ammo() -> bool:
-	return _current_ammo > 0 or _reserve_ammo > 0
-
-## Get current player visibility ratio (for debugging).
-## Returns 0.0 if player is completely hidden, 1.0 if fully visible.
-func get_player_visibility_ratio() -> float:
-	return _player_visibility_ratio
+func is_in_cover() -> bool: return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
+func get_current_ammo() -> int: return _current_ammo
+func get_reserve_ammo() -> int: return _reserve_ammo
+func get_total_ammo() -> int: return _current_ammo + _reserve_ammo
+func is_reloading() -> bool: return _is_reloading
+func has_ammo() -> bool: return _current_ammo > 0 or _reserve_ammo > 0
+func get_player_visibility_ratio() -> float: return _player_visibility_ratio
 
 ## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
