@@ -4577,8 +4577,8 @@ func _apply_armored_skin_visual() -> void:
 		if child is Sprite2D:
 			var mat := ShaderMaterial.new()
 			mat.shader = shader
-			# More transparent than the enemy version (armor_opacity 0.3 vs 0.55).
-			mat.set_shader_parameter("armor_opacity", 0.3)
+			# Same opacity as the enemy version.
+			mat.set_shader_parameter("armor_opacity", 0.55)
 			child.material = mat
 			applied_count += 1
 
