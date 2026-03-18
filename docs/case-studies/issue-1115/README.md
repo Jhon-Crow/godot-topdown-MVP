@@ -12,6 +12,7 @@
 | **Date opened** | 2026-03-17T21:39:02Z |
 | **Date of game log (first)** | 2026-03-18T01:01:26Z |
 | **Date of game log (second)** | 2026-03-18T02:06:55Z |
+| **Date of game log (third)** | 2026-03-18T03:38:31Z |
 | **Predecessor issue** | [#1036 — Add Radio Jammer enemy](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1036) |
 
 ---
@@ -34,7 +35,8 @@ Two independent sub-problems:
 
 | System | File | Role |
 |--------|------|------|
-| `player.gd` | `scripts/characters/player.gd` | Input handlers for each active item; where jammer cancellation was missing |
+| `player.gd` | `scripts/characters/player.gd` | GDScript input handlers for each active item; Issue #1115 fix added here initially |
+| `Player.cs` | `Scripts/Characters/Player.cs` | **C# player implementation actually used at runtime**; Issue #1115 fix was missing here until third log analysis |
 | `active_item_manager.gd` | `scripts/autoload/active_item_manager.gd` | `is_active_item_jammed()` and `is_active_item_jammed_verbose()` — distance query against live Radio Jammer enemies |
 | `jammer_hud.gd` | `scripts/ui/jammer_hud.gd` | Draws the prohibition sign (circle + diagonal bar) above the player |
 | `radio_wave_effect.gd` | `scripts/effects/radio_wave_effect.gd` | Animated radio wave rings on the jammer enemy; also contributes to jammer group membership |
@@ -284,29 +286,130 @@ Evidence:
 
 ---
 
-## 10. Files in this Case Study
+## 10. Third Game Log — `game_log_20260318_033831.txt`
+
+A third log was submitted after the second, confirming the bug persists.
+
+### Session summary
+
+- Captured: 2026-03-18, 03:38:31–03:39:38 (67 seconds of gameplay)
+- Build: **Godot 4.3-stable, Windows pre-compiled exe** at `I:/Загрузки/godot exe/радио враг/Godot-Top-Down-Template.exe`
+- Level: `LabyrinthLevel`
+- Active items equipped: Invisibility, then Force Field, then **Trajectory Glasses** (switched at 03:39:17)
+- RadioJammer spawned at: **(1100, 900)** with hp=2–3 (multiple spawns), radius=1000
+
+### Key event sequence demonstrating the bug
+
+```
+03:39:17  [ActiveItemManager] Active item changed → Trajectory Glasses
+03:39:18  [Player.TrajectoryGlasses] Trajectory glasses equipped, charges: 2
+03:39:19  [ActiveItemManager.Jammer] VERBOSE: dist=1379.3 => clear    ← safe at activation
+03:39:19  [Player.TrajectoryGlasses] Space pressed - activating (charges: 2)
+03:39:19  [TrajectoryGlasses] Activated! Duration: 10.0s, Charges remaining: 1/2
+03:39:21  [ActiveItemManager.Jammer] Periodic: dist=920.4             ← INSIDE JAMMER RANGE
+03:39:21  [TrajectoryGlasses] _calculate_ricochet_trajectory: ...     ← effect STILL RUNNING
+03:39:23  [ActiveItemManager.Jammer] Periodic: dist=249.4             ← deep inside range
+03:39:23  [TrajectoryGlasses] _calculate_ricochet_trajectory: ...     ← effect STILL RUNNING
+```
+
+**Critical observation**: At **03:39:21**, `dist=920.4` (inside the 1000 px jammer radius). TrajectoryGlasses continued computing trajectories. At **03:39:23**, `dist=249.4` — the player was extremely close to the jammer — yet trajectory calculation continued uninterrupted. There is **no** `[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)` line anywhere in this log.
+
+### Root cause revealed: C# Player.cs was missing the fix
+
+This log triggered deeper analysis that found the actual root cause:
+
+**The project uses TWO player implementations** — `scripts/characters/player.gd` (GDScript) and `Scripts/Characters/Player.cs` (C#). The log contains `(C#)` markers in player-related entries:
+```
+[Player] Hit blocked by force field (C#)
+[Player] Hit blocked by invincibility mode (C#)
+```
+
+This proves the **C# player is active at runtime**. The Issue #1115 fix was only added to `player.gd` (GDScript) and was never applied to `Player.cs` (C#). Therefore, no binary compiled from this branch would have shown the fix working.
+
+### Fix applied to Player.cs
+
+The same per-frame cancellation pattern from `player.gd` was added to `Scripts/Characters/Player.cs` in all three affected handlers:
+
+**`HandleHomingBulletsInput`** (C#):
+```csharp
+// Issue #1115: Cancel homing effect immediately if player enters jammer range while active
+if (_homingActive && IsActiveItemJammedSilent())
+{
+    _homingActive = false;
+    _homingTimer = 0.0f;
+    StopHomingScanner();
+    // ... cleanup ...
+    EmitSignal(SignalName.HomingDeactivated);
+    LogToFile("[Player.Homing] Homing cancelled by Radio Jammer (Issue #1115)");
+}
+```
+
+**`HandleInvisibilitySuitInput`** (C#):
+```csharp
+// Issue #1115: Cancel invisibility immediately if player enters jammer range while active
+if (IsActiveItemJammedSilent())
+{
+    bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
+    if (isActive)
+    {
+        _invisibilitySuitEffect.Call("deactivate");
+        LogToFile("[Player.InvisibilitySuit] Invisibility cancelled by Radio Jammer (Issue #1115)");
+    }
+}
+```
+
+**`HandleTrajectoryGlassesInput`** (C#):
+```csharp
+// Issue #1115: Cancel trajectory glasses immediately if player enters jammer range while active
+if (IsActiveItemJammedSilent())
+{
+    bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+    if (isActive)
+    {
+        _trajectoryGlassesEffect.Call("deactivate");
+        LogToFile("[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)");
+    }
+}
+```
+
+`IsActiveItemJammedSilent()` is used (not verbose) to avoid per-frame log spam — consistent with the GDScript fix.
+
+### Distance timeline (third log)
+
+| Time | Player position | Distance to Jammer (1100,900) | Status |
+|------|-----------------|-------------------------------|--------|
+| 03:39:19 | (150, 1900) | ~1379 px | **OUTSIDE** (clear) |
+| 03:39:21 | (382, 1476) | **920 px** | **INSIDE** ← bug manifests |
+| 03:39:23 | (805, 1350) | **249 px** | **INSIDE** (deep) |
+
+---
+
+## 11. Files in this Case Study
 
 | File | Description |
 |------|-------------|
 | `README.md` | This case study document |
 | `game_log_20260318_010126.txt` | First game log (2026-03-18 01:01:26) demonstrating the bug |
-| `game_log_20260318_020655.txt` | Second game log (2026-03-18 02:06:55) — same binary, same bug, fix not yet in this build |
+| `game_log_20260318_020655.txt` | Second game log (2026-03-18 02:06:55) — same binary, same bug |
+| `game_log_20260318_033831.txt` | Third game log (2026-03-18 03:38:31) — reveals C# Player.cs was missing the fix |
 
 ---
 
-## 10. Conclusions
+## 12. Conclusions
 
 ### Root Cause
-The original Issue #1036 implementation correctly blocked **new** activations while jammed, but did not add cancellation logic for **already-running** effects. Three active items (Homing Bullets, Invisibility Suit, Trajectory Glasses) were missing this check.
+The original Issue #1036 implementation correctly blocked **new** activations while jammed, but did not add cancellation logic for **already-running** effects. Three active items (Homing Bullets, Invisibility Suit, Trajectory Glasses) were missing this check in **both** player implementations.
+
+**The project has two player implementations**: `scripts/characters/player.gd` (GDScript) and `Scripts/Characters/Player.cs` (C#). The runtime uses the C# implementation (confirmed by `(C#)` markers in game logs). The initial Issue #1115 fix was only applied to the GDScript file, leaving the C# implementation unchanged. This meant no compiled binary from this branch would have shown the bug fixed.
 
 ### Evidence
-Both game logs unambiguously show the same pattern:
-1. TrajectoryGlasses activated outside jammer range — correct
+All three game logs show the same pattern:
+1. TrajectoryGlasses (or other active item) activated outside jammer range — correct
 2. Player walked inside jammer range (< 1000 px from RadioJammer at (1100, 900))
-3. TrajectoryGlasses continued running uninterrupted — bug
-4. No `(Issue #1115)` cancellation log line appears in either log — confirming the fix was not present in the tested binary
+3. Effect continued running uninterrupted — bug
+4. No `(Issue #1115)` cancellation log line appears — confirming the fix was not present in the executed code path
 
-Both logs were produced by the same pre-compiled Windows binary (`I:/Загрузки/godot exe/радио враг/Godot-Top-Down-Template.exe`), which predates the fix implementation on branch `issue-1115-d78fefdfd813`.
+The third log (`game_log_20260318_033831.txt`) was the key diagnostic: it contains `(C#)` markers in player log entries, revealing the C# implementation is active.
 
 ### Fix
-Added per-frame `is_active_item_jammed()` guards inside `_handle_homing_input`, `_handle_invisibility_suit_input`, and `_handle_trajectory_glasses_input` in `player.gd`. Also resized the JammerHUD prohibition sign from radius=14/width=4 to radius=10/width=3 to match Combat Disposition icon proportions.
+Added per-frame `IsActiveItemJammedSilent()` guards in `HandleHomingBulletsInput`, `HandleInvisibilitySuitInput`, and `HandleTrajectoryGlassesInput` in `Scripts/Characters/Player.cs`. The same fix already existed in `scripts/characters/player.gd`. Also resized the JammerHUD prohibition sign from radius=14/width=4 to radius=10/width=3 to match Combat Disposition icon proportions.

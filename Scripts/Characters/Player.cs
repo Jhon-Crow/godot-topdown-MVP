@@ -4853,6 +4853,20 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Issue #1115: Cancel homing effect immediately if player enters jammer range while active
+        if (_homingActive && IsActiveItemJammedSilent())
+        {
+            _homingActive = false;
+            _homingTimer = 0.0f;
+            StopHomingScanner();
+            _homingBarVisible = false;
+            _homingChargeBarPending = true;
+            _homingChargeBarHideTimer = HomingChargeBarHideDelay;
+            QueueRedraw();
+            EmitSignal(SignalName.HomingDeactivated);
+            LogToFile("[Player.Homing] Homing cancelled by Radio Jammer (Issue #1115)");
+        }
+
         // Handle active timer countdown
         if (_homingActive)
         {
@@ -5429,6 +5443,17 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Issue #1115: Cancel invisibility immediately if player enters jammer range while active
+        if (IsActiveItemJammedSilent())
+        {
+            bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
+            if (isActive)
+            {
+                _invisibilitySuitEffect.Call("deactivate");
+                LogToFile("[Player.InvisibilitySuit] Invisibility cancelled by Radio Jammer (Issue #1115)");
+            }
+        }
+
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
             // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
@@ -5614,6 +5639,17 @@ public partial class Player : BaseCharacter
         if (!IsInstanceValid(_trajectoryGlassesEffect))
         {
             return;
+        }
+
+        // Issue #1115: Cancel trajectory glasses immediately if player enters jammer range while active
+        if (IsActiveItemJammedSilent())
+        {
+            bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+            if (isActive)
+            {
+                _trajectoryGlassesEffect.Call("deactivate");
+                LogToFile("[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)");
+            }
         }
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
