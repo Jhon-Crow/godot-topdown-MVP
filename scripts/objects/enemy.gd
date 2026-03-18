@@ -142,10 +142,8 @@ var _idle_scan_timer: float = 0.0  ## IDLE scanning state for GUARD enemies
 var _idle_scan_target_index: int = 0
 var _idle_scan_targets: Array[float] = []
 const IDLE_SCAN_INTERVAL: float = 10.0 / 3.0
-var _base_body_pos: Vector2 = Vector2.ZERO  ## Base positions for animation
-var _base_head_pos: Vector2 = Vector2.ZERO
-var _base_left_arm_pos: Vector2 = Vector2.ZERO
-var _base_right_arm_pos: Vector2 = Vector2.ZERO
+var _base_body_pos: Vector2 = Vector2.ZERO; var _base_head_pos: Vector2 = Vector2.ZERO  ## Base positions for animation
+var _base_left_arm_pos: Vector2 = Vector2.ZERO; var _base_right_arm_pos: Vector2 = Vector2.ZERO
 var _wall_raycasts: Array[RayCast2D] = []  ## Wall detection raycasts
 const WALL_CHECK_DISTANCE: float = 60.0  ## Wall check distance
 const WALL_CHECK_COUNT: int = 8  ## Number of wall raycasts
@@ -155,8 +153,7 @@ const WALL_SLIDE_DISTANCE: float = 30.0  ## Wall slide threshold
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
 const COVER_CHECK_COUNT: int = 16  ## Number of cover raycasts
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance
-var _current_health: int = 0  ## Current health
-var _max_health: int = 0  ## Max health (set at spawn)
+var _current_health: int = 0; var _max_health: int = 0  ## Current / max health (set at spawn)
 var _is_alive: bool = true  ## Is alive
 var _player: Node2D = null  ## Player reference
 var _shoot_timer: float = 0.0  ## Time since last shot
@@ -4174,7 +4171,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	if not _is_alive:
 		return
 	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
-	if _armored_skin_component: _armored_skin_component.try_spawn_shards(_current_health)  # Issue #1123: spawn glass shards at low HP
+	if _armored_skin_component and _armored_skin_component.try_spawn_shards(_current_health): hit.emit(); _show_hit_flash(); _log_to_file("[ArmoredSkin] Triggering hit absorbed — damage ignored (Issue #1143)"); return  # Issue #1143: absorb the triggering hit's damage, mirroring player behaviour
 	# [#1033] Machine gunner: 30% frontal damage resistance (±15° arc, cos15°=0.9659).
 	if weapon_type == WeaponType.MACHINE_GUN and not _machine_gunner_pm_active and Vector2.from_angle(_enemy_model.global_rotation if _enemy_model else rotation).dot(-hit_direction.normalized()) >= 0.9659 and randf() < 0.30:
 		_log_to_file("[#1033] Machine gunner front-arc hit ignored"); hit.emit(); _show_hit_flash(); return
