@@ -177,14 +177,11 @@ func _create_sprite_fallback() -> Sprite2D:
 
 
 ## Apply illusion effect to all enemies currently in the cloud.
-## Guard: Only applies if player is NOT already under the illusion effect.
+## No player-under-illusion guard here: once a cloud is deployed it always spawns copies.
+## The guard (req.9) lives in EnemyGrenadeComponent and prevents new chemical grenades
+## from being thrown while the effect is already active.
 func _apply_effect_to_enemies_in_cloud() -> void:
 	if _detection_area == null:
-		return
-
-	# Guard: If player is already under illusion effect, cloud does nothing (Issue #1129 req.9)
-	if _is_player_under_illusion_effect():
-		FileLogger.info("[ChemicalCloud] Player already under illusion effect — cloud has no effect")
 		return
 
 	var bodies := _detection_area.get_overlapping_bodies()
@@ -193,14 +190,6 @@ func _apply_effect_to_enemies_in_cloud() -> void:
 			continue
 		if body.is_in_group("enemies") and body is Node2D:
 			_apply_illusion_to_enemy(body)
-
-
-## Check if the player is already under the illusion effect.
-func _is_player_under_illusion_effect() -> bool:
-	var status_manager: Node = get_node_or_null("/root/StatusEffectsManager")
-	if status_manager == null or not status_manager.has_method("is_player_under_illusion"):
-		return false
-	return status_manager.is_player_under_illusion()
 
 
 ## Apply illusion effect to a single enemy, spawning 1–4 illusory copies.

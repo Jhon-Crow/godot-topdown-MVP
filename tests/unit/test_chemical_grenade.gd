@@ -3,10 +3,10 @@ extends GutTest
 ##
 ## Tests:
 ## - _choose_grenade_scene() with 50% chance logic
-## - Player-under-illusion guard (req.9)
+## - Player-under-illusion guard (req.9) — guard is in EnemyGrenadeComponent ONLY
 ## - IllusionEnemy constants (damage multiplier)
 ## - StatusEffectsManager illusion tracking (apply/check/clear)
-## - ChemicalCloud guard check
+## - ChemicalCloud always spawns copies regardless of player illusion state
 
 
 # ============================================================================
@@ -288,43 +288,55 @@ func test_illusion_enemy_script_exists() -> void:
 
 
 # ============================================================================
-# ChemicalCloud Guard Check Tests
+# ChemicalCloud Enemy Illusion Spawning Tests
+# ============================================================================
+# Bug fix (2026-03-18): ChemicalCloud must ALWAYS spawn illusion copies for
+# enemies in its area, even if the player is already under illusion effect.
+# The player-under-illusion guard (req.9) belongs ONLY in EnemyGrenadeComponent
+# to prevent NEW chemical grenades from being thrown.
 # ============================================================================
 
 
 class MockChemicalCloud:
-	## Mirrors ChemicalCloud's guard logic for _apply_effect_to_enemies_in_cloud().
-	var _mock_player_under_illusion: bool = false
+	## Mirrors ChemicalCloud's _apply_effect_to_enemies_in_cloud() logic.
+	## After the bug fix, there is NO player-under-illusion guard here.
 	var effect_applied_count: int = 0
 
 	func apply_effect_to_enemies_in_cloud() -> void:
-		if _mock_player_under_illusion:
-			return  # Guard: player already under effect
+		# No player-under-illusion guard — cloud always processes enemies
 		effect_applied_count += 1
 
 
-func test_cloud_applies_effect_when_player_not_under_illusion() -> void:
+func test_cloud_always_applies_effect_regardless_of_player_illusion_state() -> void:
+	## Bug fix verification: cloud spawns copies for ALL enemies unconditionally.
+	## The guard lives only in EnemyGrenadeComponent (req.9).
 	var cloud := MockChemicalCloud.new()
-	cloud._mock_player_under_illusion = false
+	cloud.apply_effect_to_enemies_in_cloud()
+	cloud.apply_effect_to_enemies_in_cloud()
+	cloud.apply_effect_to_enemies_in_cloud()
+	assert_eq(cloud.effect_applied_count, 3,
+		"Cloud should always apply effect — no player-under-illusion guard in ChemicalCloud")
+
+
+func test_cloud_applies_effect_on_first_call() -> void:
+	var cloud := MockChemicalCloud.new()
 	cloud.apply_effect_to_enemies_in_cloud()
 	assert_eq(cloud.effect_applied_count, 1,
-		"Cloud should apply effect when player is not under illusion")
+		"Cloud should apply effect on first call")
 
 
-func test_cloud_skips_effect_when_player_under_illusion() -> void:
-	## Issue #1129 req.9: cloud does nothing if player already under effect
-	var cloud := MockChemicalCloud.new()
-	cloud._mock_player_under_illusion = true
-	cloud.apply_effect_to_enemies_in_cloud()
-	assert_eq(cloud.effect_applied_count, 0,
-		"Cloud should skip effect when player is already under illusion")
-
-
-func test_cloud_applies_effect_after_illusion_expires() -> void:
-	var cloud := MockChemicalCloud.new()
-	cloud._mock_player_under_illusion = true
-	cloud.apply_effect_to_enemies_in_cloud()  # Skipped
-	cloud._mock_player_under_illusion = false
-	cloud.apply_effect_to_enemies_in_cloud()  # Should work now
-	assert_eq(cloud.effect_applied_count, 1,
-		"Cloud should apply effect after illusion expires")
+func test_grenade_component_guard_prevents_chemical_when_player_under_illusion() -> void:
+	## req.9 guard is in EnemyGrenadeComponent, not ChemicalCloud.
+	## Verify the component correctly returns default grenade when player is under illusion.
+	var component := MockGrenadeComponent.new()
+	component.grenade_scene = preload("res://scenes/projectiles/FragGrenade.tscn")
+	var chem_scene := load("res://scenes/projectiles/ChemicalGasGrenade.tscn")
+	if chem_scene:
+		component.chemical_grenade_scene = chem_scene
+	else:
+		component.chemical_grenade_scene = preload("res://scenes/projectiles/DefensiveGrenade.tscn")
+	component._mock_rand = 0.0  # Would choose chemical if guard not active
+	component._mock_player_under_illusion = true
+	var chosen := component.choose_grenade_scene()
+	assert_eq(chosen, component.grenade_scene,
+		"EnemyGrenadeComponent must return default grenade when player is under illusion (req.9)")

@@ -114,6 +114,48 @@ Following `AggressionCloud` pattern:
 9. `tests/unit/test_chemical_grenade.gd` — unit tests
 10. `tests/unit/test_illusion_enemy.gd` — unit tests
 
+## Bug Report: Illusion Copies Not Appearing (2026-03-18)
+
+### Symptom
+Player-reported: grenade deploys but illusion copies do not appear for most enemies.
+Log file: `game_log_20260318_042237.txt`
+
+### Log Evidence
+```
+[04:23:33] [ChemicalCloud] Spawning 2 illusion copies for enemy at (1610.048, 245.8553)
+[04:23:33] [IllusionEnemy] Illusion created at (1648.977, 241.6154) (duration=20s)
+[04:23:33] [ChemicalCloud] Illusion copy 2 spawned
+[04:23:34] [ChemicalCloud] Player already under illusion effect — cloud has no effect
+[04:23:34] [ChemicalCloud] Player already under illusion effect — cloud has no effect
+... (repeats for entire 20-second cloud lifetime)
+```
+
+### Root Cause
+In `status_effects_manager.gd`, `apply_illusion_to_enemy()` sets `_player_illusion_timer = duration`
+(line 150) **as a side effect** of marking the first enemy under illusion. This immediately causes
+`is_player_under_illusion()` to return `true`.
+
+`chemical_cloud.gd` called `_is_player_under_illusion_effect()` at the top of
+`_apply_effect_to_enemies_in_cloud()`. On the very next periodic tick (0.5 s after initial spawn),
+and for all subsequent cloud ticks, the guard fired and blocked all illusion spawning.
+
+Timeline:
+1. Cloud spawns, initial `_apply_effect_to_enemies_in_cloud()` fires
+2. First enemy in cloud: `apply_illusion_to_enemy()` → `_player_illusion_timer = 20` ← BUG
+3. 0.5s later: periodic tick → guard `is_player_under_illusion() == true` → returns early
+4. All remaining enemies (and enemies that walk into cloud later) never get copies
+
+### Fix
+Requirement 9 ("если игрок уже под эффектом — враги кидают дефолтные гранаты") means:
+**prevent enemies from throwing a new chemical grenade** while the effect is active.
+It does NOT mean a deployed cloud should stop spawning copies.
+
+Fix: remove the `is_player_under_illusion()` guard from `ChemicalCloud._apply_effect_to_enemies_in_cloud()`.
+The guard remains only in `EnemyGrenadeComponent._choose_grenade_scene()`.
+
+Files changed:
+- `scripts/effects/chemical_cloud.gd` — removed `_is_player_under_illusion_effect()` helper and its call from `_apply_effect_to_enemies_in_cloud()`
+
 ## References
 
 - AggressionGasGrenade pattern: `scripts/projectiles/aggression_gas_grenade.gd`
