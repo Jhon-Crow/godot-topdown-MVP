@@ -1,6 +1,7 @@
 extends Node
 ## Component that handles enemy grenade throwing behavior (Issue #363).
 ## Extracted from enemy.gd to reduce file size below 5000 lines.
+## Issue #1129: Added chemical grenade with 50% throw chance and illusion effect.
 class_name EnemyGrenadeComponent
 
 ## Grenade thrown signal.
@@ -14,6 +15,14 @@ signal face_throw_direction(target_direction: Vector2)
 var grenade_count: int = 0
 var grenade_scene: PackedScene = null
 var enabled: bool = true
+
+## Issue #1129: Chemical grenade scene (caustic yellow gas, spawns illusion copies).
+## When set, enemies have a 50% chance to throw this instead of the default grenade,
+## unless the player is already under the illusion effect.
+var chemical_grenade_scene: PackedScene = null
+
+## Issue #1129: Probability (0.0–1.0) of throwing chemical grenade instead of default.
+var chemical_grenade_chance: float = 0.5
 var throw_cooldown: float = 15.0
 var max_throw_distance: float = 600.0
 var min_throw_distance: float = 275.0  # Updated to 275.0 per Issue #375
@@ -97,8 +106,14 @@ func initialize() -> void:
 		if grenade_scene == null:
 			grenade_scene = preload("res://scenes/projectiles/FragGrenade.tscn")
 
+	# Issue #1129: Load chemical grenade scene if not already set
+	if chemical_grenade_scene == null and grenades_remaining > 0:
+		chemical_grenade_scene = load("res://scenes/projectiles/ChemicalGasGrenade.tscn")
+		if chemical_grenade_scene == null:
+			_log("WARNING: ChemicalGasGrenade.tscn not found — chemical grenade disabled")
+
 	if grenades_remaining > 0:
-		_log("Initialized: %d grenades" % grenades_remaining)
+		_log("Initialized: %d grenades, chemical_grenade_scene=%s" % [grenades_remaining, str(chemical_grenade_scene)])
 
 
 func _get_map() -> String:
@@ -393,8 +408,11 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 		_is_throwing = false
 		return
 
+	# Issue #1129: With 50% chance throw chemical grenade unless player already under effect.
+	var chosen_scene := _choose_grenade_scene()
+
 	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
-	var grenade: Node2D = grenade_scene.instantiate()
+	var grenade: Node2D = chosen_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
 
 	# Issue #692: Set thrower_id on the grenade so it won't damage the throwing enemy
@@ -408,8 +426,10 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 	# GDScript methods may fail silently in exported builds due to C#/GDScript interop issues.
 	# The C# GrenadeTimer provides reliable timer and impact detection that works in exports.
 	var grenade_type := "Frag"  # Enemies throw frag grenades by default
-	if grenade_scene.resource_path.to_lower().contains("flashbang"):
+	if chosen_scene.resource_path.to_lower().contains("flashbang"):
 		grenade_type = "Flashbang"
+	elif chosen_scene.resource_path.to_lower().contains("chemical"):
+		grenade_type = "Gas"  # Chemical gas grenade (no C# timer needed for gas release)
 	_attach_grenade_timer(grenade as RigidBody2D, grenade_type)
 
 	# Try GDScript methods first (may work in editor, but fail in exports)
@@ -443,6 +463,30 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 
 func add_grenades(count: int) -> void:
 	grenades_remaining += count
+
+
+## Issue #1129: Choose whether to throw the chemical grenade or the default grenade.
+## Returns chemical_grenade_scene with 50% probability, unless:
+## - chemical_grenade_scene is null (not loaded)
+## - the player is already under the illusion effect
+## In those cases, returns the default grenade_scene.
+func _choose_grenade_scene() -> PackedScene:
+	if chemical_grenade_scene == null:
+		return grenade_scene
+
+	# Guard: if player is already under illusion, throw default grenade (Issue #1129 req.9)
+	var status_manager: Node = get_node_or_null("/root/StatusEffectsManager")
+	if status_manager and status_manager.has_method("is_player_under_illusion"):
+		if status_manager.is_player_under_illusion():
+			_log("Player already under illusion effect — throwing default grenade")
+			return grenade_scene
+
+	# 50% chance to throw chemical grenade
+	if randf() < chemical_grenade_chance:
+		_log("Chemical grenade selected (50%% chance)")
+		return chemical_grenade_scene
+
+	return grenade_scene
 
 
 func _log(msg: String) -> void:

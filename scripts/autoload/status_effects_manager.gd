@@ -5,6 +5,7 @@ extends Node
 ## - Blindness: Target cannot see the player
 ## - Stun: Target cannot move
 ## - Aggression: Target attacks other enemies (Issue #675)
+## - Illusion: Enemy creates illusory copies (Issue #1129)
 ##
 ## Effects are tracked per-entity and automatically expire after duration.
 
@@ -51,8 +52,16 @@ func _update_effects(delta: float) -> void:
 				effects["aggression"] = 0
 				_on_aggression_expired(entity)
 
+		# Update illusion on enemy (Issue #1129)
+		if effects.has("illusion_enemy") and effects["illusion_enemy"] > 0:
+			effects["illusion_enemy"] -= delta
+			if effects["illusion_enemy"] <= 0:
+				effects["illusion_enemy"] = 0
+				_remove_illusion_visual(entity)
+
 		# Check if all effects expired
-		if effects.get("blindness", 0) <= 0 and effects.get("stun", 0) <= 0 and effects.get("aggression", 0) <= 0:
+		if (effects.get("blindness", 0) <= 0 and effects.get("stun", 0) <= 0
+				and effects.get("aggression", 0) <= 0 and effects.get("illusion_enemy", 0) <= 0):
 			expired_entities.append(entity_id)
 
 	# Clean up expired entities
@@ -115,6 +124,86 @@ func apply_stun(entity: Node2D, duration: float) -> void:
 		entity.set_stunned(true)
 
 	print("[StatusEffectsManager] Applied stun to %s for %.1fs" % [entity.name, duration])
+
+
+## Apply illusion effect to an enemy (Issue #1129).
+## Marks the enemy as under illusion effect so the cloud knows not to re-apply.
+## Actual illusion copy spawning is handled by ChemicalCloud.
+## @param entity: The enemy entity that has illusion copies.
+## @param duration: Duration of the illusion effect in seconds.
+func apply_illusion_to_enemy(entity: Node2D, duration: float) -> void:
+	if not is_instance_valid(entity):
+		return
+
+	var entity_id := entity.get_instance_id()
+
+	if not _active_effects.has(entity_id):
+		_active_effects[entity_id] = {}
+
+	# Set or refresh illusion duration (always refresh to full duration)
+	_active_effects[entity_id]["illusion_enemy"] = duration
+
+	# Apply subtle yellow tint to distinguish originals that have active illusions
+	_apply_illusion_visual(entity)
+
+	# Mark the player as under illusion effect (for guard check)
+	_player_illusion_timer = duration
+
+	print("[StatusEffectsManager] Applied illusion to enemy %s for %.1fs" % [entity.name, duration])
+
+
+## Check if a specific enemy is currently under illusion effect (has copies spawned).
+func is_enemy_under_illusion(entity: Object) -> bool:
+	if not is_instance_valid(entity):
+		return false
+
+	var entity_id := entity.get_instance_id()
+	if _active_effects.has(entity_id):
+		return _active_effects[entity_id].get("illusion_enemy", 0) > 0
+
+	return false
+
+
+## Track whether the player is currently under illusion effect (Issue #1129 req.9).
+## This is a global timer: if > 0, enemies throw default grenades instead of chemical.
+var _player_illusion_timer: float = 0.0
+
+
+func _process(delta: float) -> void:
+	if _player_illusion_timer > 0.0:
+		_player_illusion_timer -= delta
+		if _player_illusion_timer < 0.0:
+			_player_illusion_timer = 0.0
+
+
+## Check if the player is currently under the illusion effect (Issue #1129 req.9).
+## Returns true if any chemical grenade effect is still active.
+func is_player_under_illusion() -> bool:
+	return _player_illusion_timer > 0.0
+
+
+## Get remaining illusion duration for the player.
+func get_player_illusion_remaining() -> float:
+	return _player_illusion_timer
+
+
+## Apply visual effect for illusion state (subtle yellow tint on original).
+func _apply_illusion_visual(entity: Node2D) -> void:
+	if not entity.has_meta("_illusion_tint"):
+		_save_original_modulate(entity)
+		_apply_tint(entity, Color(1.0, 1.0, 0.55, 1.0))  # Subtle yellow tint
+		entity.set_meta("_illusion_tint", true)
+
+
+## Remove visual effect for illusion state.
+func _remove_illusion_visual(entity: Object) -> void:
+	if not is_instance_valid(entity) or not entity is Node2D:
+		return
+
+	if entity.has_meta("_illusion_tint"):
+		if not is_blinded(entity) and not is_stunned(entity) and not is_aggressive(entity):
+			_restore_original_modulate(entity)
+		entity.remove_meta("_illusion_tint")
 
 
 ## Apply aggression effect to an entity (Issue #675).
@@ -376,6 +465,7 @@ func clear_effects(entity: Object) -> void:
 		_remove_blindness_visual(entity)
 		_remove_stun_visual(entity)
 		_remove_aggression_visual(entity)
+		_remove_illusion_visual(entity)
 		# Notify entity that aggression has ended (Issue #675)
 		if entity.has_method("set_aggressive"):
 			entity.set_aggressive(false)
