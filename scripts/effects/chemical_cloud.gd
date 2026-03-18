@@ -27,7 +27,7 @@ class_name ChemicalCloud
 ## Time remaining before cloud dissipates.
 var _time_remaining: float = 0.0
 
-## Area2D for detecting enemies in the cloud.
+## Area2D for detecting enemies entering the cloud via body_entered signal.
 var _detection_area: Area2D = null
 
 ## Visual representation of the gas cloud.
@@ -36,12 +36,12 @@ var _cloud_visual: Node2D = null
 ## Whether we're using particle system (true) or sprite fallback (false).
 var _using_particles: bool = false
 
-## Timer for initial effect application (apply once on spawn, not repeatedly).
-var _initial_applied: bool = false
-
 ## Timer for periodic effect application.
 var _effect_tick_timer: float = 0.0
 const EFFECT_TICK_INTERVAL: float = 0.5
+
+## Frames to wait before first tick (let physics settle).
+var _frames_until_first_tick: int = 3
 
 
 func _ready() -> void:
@@ -57,12 +57,14 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_time_remaining -= delta
 
-	# Apply initial effect once when cloud first appears
-	if not _initial_applied:
-		_initial_applied = true
-		_apply_effect_to_enemies_in_cloud()
+	# Wait a few frames for physics to settle before first detection
+	if _frames_until_first_tick > 0:
+		_frames_until_first_tick -= 1
+		return
 
-	# Periodic effect re-check (enemies that walk into cloud later)
+	# Periodic effect re-check — catches all enemies in range, including those
+	# present when cloud spawned and those that walk in later.
+	# Uses physics shape query (more reliable than get_overlapping_bodies).
 	_effect_tick_timer += delta
 	if _effect_tick_timer >= EFFECT_TICK_INTERVAL:
 		_effect_tick_timer = 0.0
@@ -77,7 +79,8 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-## Set up the Area2D for detecting enemies inside the cloud.
+## Set up the Area2D for detecting enemies entering the cloud.
+## Connected to body_entered signal for instant detection when enemies walk in.
 func _setup_detection_area() -> void:
 	_detection_area = Area2D.new()
 	_detection_area.name = "DetectionArea"
@@ -95,6 +98,18 @@ func _setup_detection_area() -> void:
 
 	_detection_area.add_child(shape)
 	add_child(_detection_area)
+
+	# Connect signal for immediate detection when enemy enters cloud
+	_detection_area.body_entered.connect(_on_body_entered)
+
+
+## Called when a body enters the cloud area — apply effect immediately.
+func _on_body_entered(body: Node2D) -> void:
+	if not is_instance_valid(body):
+		return
+	if body.is_in_group("enemies") and body is Node2D:
+		FileLogger.info("[ChemicalCloud] Enemy entered cloud: %s at %s" % [body.name, str(body.global_position)])
+		_apply_illusion_to_enemy(body)
 
 
 ## Set up the visual representation of the gas cloud (caustic yellow color).
@@ -176,48 +191,79 @@ func _create_sprite_fallback() -> Sprite2D:
 	return sprite
 
 
-## Apply illusion effect to all enemies currently in the cloud.
+## Apply illusion effect to all enemies currently inside the cloud radius.
+## Uses PhysicsShapeQueryParameters2D for reliable detection regardless of
+## when the cloud was spawned or when enemies entered.
 ## No player-under-illusion guard here: once a cloud is deployed it always spawns copies.
 ## The guard (req.9) lives in EnemyGrenadeComponent and prevents new chemical grenades
 ## from being thrown while the effect is already active.
 func _apply_effect_to_enemies_in_cloud() -> void:
-	if _detection_area == null:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		FileLogger.warning("[ChemicalCloud] No space state available")
 		return
 
-	var bodies := _detection_area.get_overlapping_bodies()
-	for body in bodies:
-		if not is_instance_valid(body):
+	# Build a circle shape query covering the cloud radius
+	var shape := CircleShape2D.new()
+	shape.radius = cloud_radius
+
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = shape
+	query.transform = Transform2D(0.0, global_position)
+	query.collision_mask = 2  # Enemies (layer 2)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+
+	var results := space_state.intersect_shape(query, 32)
+
+	FileLogger.info("[ChemicalCloud] Tick at %s: found %d bodies in radius %.0f" % [
+		str(global_position), results.size(), cloud_radius
+	])
+
+	for hit in results:
+		var body: Object = hit.get("collider")
+		if body == null or not is_instance_valid(body):
 			continue
-		if body.is_in_group("enemies") and body is Node2D:
+		if body is Node2D and body.is_in_group("enemies"):
 			_apply_illusion_to_enemy(body)
 
 
 ## Apply illusion effect to a single enemy, spawning 1–4 illusory copies.
 func _apply_illusion_to_enemy(enemy: Node2D) -> void:
-	# Check line of sight (gas doesn't go through walls)
-	if not _has_line_of_sight_to(enemy):
+	if not is_instance_valid(enemy):
 		return
 
 	# Skip illusion enemies themselves (they don't spawn more copies)
 	if enemy.has_method("is_illusion") and enemy.is_illusion():
 		return
 
-	# Use StatusEffectsManager to track illusion state
+	# Check line of sight (gas doesn't go through walls)
+	if not _has_line_of_sight_to(enemy):
+		FileLogger.info("[ChemicalCloud] No LOS to enemy %s — skipping" % enemy.name)
+		return
+
+	# Use StatusEffectsManager to track illusion state and avoid duplicates
 	var status_manager: Node = get_node_or_null("/root/StatusEffectsManager")
 	if status_manager and status_manager.has_method("apply_illusion_to_enemy"):
-		# Only spawn copies once per cloud (on initial application)
+		# Only spawn copies once per enemy (per cloud effect)
 		if not status_manager.is_enemy_under_illusion(enemy):
+			FileLogger.info("[ChemicalCloud] Applying illusion to enemy %s at %s" % [enemy.name, str(enemy.global_position)])
 			status_manager.apply_illusion_to_enemy(enemy, illusion_effect_duration)
 			_spawn_illusion_copies(enemy)
+		else:
+			FileLogger.info("[ChemicalCloud] Enemy %s already under illusion — skipping" % enemy.name)
 	else:
-		# Fallback: spawn copies directly
+		# Fallback: spawn copies directly if StatusEffectsManager not available
+		FileLogger.warning("[ChemicalCloud] StatusEffectsManager not found — spawning copies directly")
 		_spawn_illusion_copies(enemy)
 
 
 ## Spawn 1–4 illusory copies of an enemy.
 func _spawn_illusion_copies(original_enemy: Node2D) -> void:
 	var copy_count := randi_range(1, 4)
-	FileLogger.info("[ChemicalCloud] Spawning %d illusion copies for enemy at %s" % [copy_count, str(original_enemy.global_position)])
+	FileLogger.info("[ChemicalCloud] Spawning %d illusion copies for enemy %s at %s" % [
+		copy_count, original_enemy.name, str(original_enemy.global_position)
+	])
 
 	for i in range(copy_count):
 		var illusion := IllusionEnemy.new()
@@ -230,7 +276,7 @@ func _spawn_illusion_copies(original_enemy: Node2D) -> void:
 		illusion.spawn_offset = Vector2(cos(angle), sin(angle)) * spread_radius
 
 		get_tree().current_scene.add_child(illusion)
-		FileLogger.info("[ChemicalCloud] Illusion copy %d spawned" % (i + 1))
+		FileLogger.info("[ChemicalCloud] Illusion copy %d spawned for %s" % [(i + 1), original_enemy.name])
 
 
 ## Check if there's line of sight from cloud center to target.

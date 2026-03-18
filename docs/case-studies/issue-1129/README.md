@@ -263,6 +263,73 @@ Files changed:
 
 ---
 
+## Bug Report #3: Illusion Copies Still Not Appearing — Area2D Overlap Detection (2026-03-18)
+
+### Symptom
+
+After fixing Bug #1 and Bug #2, the player reports illusion copies still do not appear.
+Log file: `game_log_20260318_062925.txt`
+
+### Log Evidence
+
+```
+[06:38:30] [ChemicalCloud] _ready() called at (2078.525, 1361.246)
+[06:38:30] [ChemicalCloud] Particle system created successfully
+[06:38:30] [ChemicalCloud] Cloud spawned at (2078.525, 1361.246), radius=300, duration=20s, particles=true
+...
+[06:38:47] [ChemicalCloud] Stopped particle emission, cloud dissipating
+[06:38:53] [ChemicalCloud] Cloud dissipated at (2078.525, 1361.246)
+```
+
+**There are zero log lines showing any illusion spawning.** The cloud ran its full 20-second duration without detecting any enemies. `_apply_effect_to_enemies_in_cloud()` called `_detection_area.get_overlapping_bodies()` on every 0.5s tick but always received an empty array.
+
+### Root Cause Analysis
+
+**`Area2D.get_overlapping_bodies()` does not reliably detect bodies that were already present when the Area2D was added to the scene tree.**
+
+In Godot 4, `Area2D` overlap detection works via physics contact pairs. When the `ChemicalCloud` is spawned (via `get_tree().current_scene.add_child(cloud)` in `chemical_gas_grenade.gd`), the `Area2D` is created dynamically in `_setup_detection_area()`. Bodies that are already inside the radius at the time of spawn are NOT retroactively reported as overlapping — Godot's physics engine only creates contact pairs for bodies that enter the area after the area's physics shape is registered.
+
+Additionally, the `body_entered` signal was not connected in the original implementation.
+
+Contributing factors:
+1. **No `body_entered` signal**: Bodies entering the cloud after spawn were only detected via `get_overlapping_bodies()` in the 0.5s periodic tick, which is unreliable.
+2. **`get_overlapping_bodies()` unreliable for pre-existing bodies**: Bodies already in the radius when cloud spawned would not be detected.
+3. **Enemies evaded the landing zone**: In this specific log session, Enemy8 and Enemy9 were actively fleeing from the grenade (EVADING_GRENADE state) and left the radius before the cloud activated. This confirmed the need for `body_entered` signal for enemies who enter later.
+4. **No logged evidence of failed detection**: Before the fix, `_apply_effect_to_enemies_in_cloud()` had no logging of how many bodies were found, making the problem invisible in logs.
+
+### Fix
+
+Replace `Area2D.get_overlapping_bodies()` with `PhysicsDirectSpaceState2D.intersect_shape()` (physics shape query):
+
+```gdscript
+func _apply_effect_to_enemies_in_cloud() -> void:
+    var space_state := get_world_2d().direct_space_state
+    var shape := CircleShape2D.new()
+    shape.radius = cloud_radius
+
+    var query := PhysicsShapeQueryParameters2D.new()
+    query.shape = shape
+    query.transform = Transform2D(0.0, global_position)
+    query.collision_mask = 2  # Enemies (layer 2)
+    query.collide_with_bodies = true
+    query.collide_with_areas = false
+
+    var results := space_state.intersect_shape(query, 32)
+    # results always accurate, regardless of when enemies entered the area
+```
+
+Additionally:
+- Connected `body_entered` signal for immediate detection when enemies walk into the cloud.
+- Added a 3-frame startup delay (`_frames_until_first_tick`) so physics can settle before first scan.
+- Added detailed logging: every tick logs how many bodies were found.
+
+**Why `intersect_shape()` is more reliable**: Unlike `Area2D.get_overlapping_bodies()`, which depends on the physics engine's contact pair tracking (only updated when bodies enter/exit), `intersect_shape()` performs a one-shot physics query at the current frame. It correctly finds all bodies within the shape radius regardless of when they arrived there.
+
+Files changed:
+- `scripts/effects/chemical_cloud.gd` — replaced `get_overlapping_bodies()` with `intersect_shape()`, added `body_entered` signal, added detection logging, added frame delay for physics settle
+
+---
+
 ## References
 
 - AggressionGasGrenade pattern: `scripts/projectiles/aggression_gas_grenade.gd`
