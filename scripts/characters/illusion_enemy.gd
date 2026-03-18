@@ -89,10 +89,6 @@ func _spawn_enemy_copy() -> void:
 	_enemy_node.set_meta("is_illusion", true)
 	_enemy_node.set_meta("illusion_damage_multiplier", ILLUSION_DAMAGE_MULTIPLIER)
 
-	# Position at spawn offset from original
-	_enemy_node.global_position = original_enemy.global_position + spawn_offset
-	global_position = _enemy_node.global_position
-
 	# Configure as one-shot: set health to 1
 	if _enemy_node.get("min_health") != null:
 		_enemy_node.min_health = 1
@@ -116,7 +112,17 @@ func _spawn_enemy_copy() -> void:
 	if _enemy_node.has_signal("died"):
 		_enemy_node.died.connect(_on_copy_died)
 
+	# IMPORTANT: global_position must be set on the IllusionEnemy node BEFORE add_child,
+	# because IllusionEnemy is already in the scene tree (added by ChemicalCloud). This means
+	# setting our global_position works correctly here. When add_child(_enemy_node) runs,
+	# Enemy._ready() captures global_position — since _enemy_node.position defaults to (0,0)
+	# relative to us, global_position will equal our global_position = target_pos. This ensures
+	# the inner enemy's _initial_position (used for patrol/guard anchoring) is set correctly.
+	var target_pos := original_enemy.global_position + spawn_offset
+	global_position = target_pos
+
 	add_child(_enemy_node)
+	# _enemy_node.position is (0,0) relative to IllusionEnemy, so its global_position == target_pos
 
 	FileLogger.info("[IllusionEnemy] Enemy copy spawned, health=1, damage=5%% of normal")
 

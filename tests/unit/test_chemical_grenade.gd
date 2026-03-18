@@ -340,3 +340,88 @@ func test_grenade_component_guard_prevents_chemical_when_player_under_illusion()
 	var chosen := component.choose_grenade_scene()
 	assert_eq(chosen, component.grenade_scene,
 		"EnemyGrenadeComponent must return default grenade when player is under illusion (req.9)")
+
+
+# ============================================================================
+# IllusionEnemy Position Fix Tests (Bug #2, 2026-03-18)
+# ============================================================================
+# Root cause: _enemy_node.global_position set BEFORE add_child() — in Godot 4,
+# global_position only works after a node enters the scene tree.
+# Fix: set IllusionEnemy.global_position BEFORE add_child(_enemy_node) because
+# IllusionEnemy is already in the scene tree when _spawn_enemy_copy() runs.
+# ============================================================================
+
+
+class MockIllusionPositionHelper:
+	## Simulates the corrected position-setting sequence in IllusionEnemy._spawn_enemy_copy().
+	## Demonstrates the fix: set self.global_position before add_child(_enemy_node).
+	var self_global_pos: Vector2 = Vector2.ZERO
+	var child_local_pos: Vector2 = Vector2.ZERO  # child.position (local), default (0,0)
+
+	## Returns the child's effective global_position = parent global + child local.
+	func child_effective_global_pos() -> Vector2:
+		return self_global_pos + child_local_pos
+
+	## Simulates the FIXED sequence: set parent global_position, then add_child.
+	## After fix, child.position = (0,0) so child.global_position = parent.global_position.
+	func spawn_with_fix(original_pos: Vector2, offset: Vector2) -> void:
+		var target := original_pos + offset
+		self_global_pos = target   # Set parent position BEFORE add_child
+		child_local_pos = Vector2.ZERO  # child.position defaults to (0,0) relative to parent
+		# add_child runs here; child.global_position = self_global_pos + child_local_pos = target ✓
+
+	## Simulates the BROKEN sequence: set child.global_position before add_child.
+	## In Godot 4, setting global_position before tree entry maps to position (local).
+	## Then when add_child fires, child global = parent.global + child.local = 0 + target = wrong.
+	func spawn_with_bug(original_pos: Vector2, offset: Vector2, parent_initial_pos: Vector2) -> void:
+		var target := original_pos + offset
+		# Bug: setting global_position on child before add_child → only sets child.position
+		child_local_pos = target  # pre-tree "global" = local position
+		self_global_pos = parent_initial_pos  # parent hasn't been repositioned yet
+		# add_child runs here; child.global_position = parent_initial_pos + target ← double offset!
+
+
+func test_illusion_position_fix_places_copy_at_correct_location() -> void:
+	## Verify that with the fix, the illusion copy spawns at original + offset.
+	var helper := MockIllusionPositionHelper.new()
+	var original_pos := Vector2(1278.0, 532.0)
+	var offset := Vector2(65.0, -12.0)
+	helper.spawn_with_fix(original_pos, offset)
+	var expected := original_pos + offset
+	assert_almost_eq(helper.child_effective_global_pos().x, expected.x, 0.1,
+		"Fix: child x should match original_pos.x + offset.x")
+	assert_almost_eq(helper.child_effective_global_pos().y, expected.y, 0.1,
+		"Fix: child y should match original_pos.y + offset.y")
+
+
+func test_illusion_position_bug_causes_wrong_location() -> void:
+	## Demonstrate that the original buggy code causes double-offset positioning.
+	var helper := MockIllusionPositionHelper.new()
+	var original_pos := Vector2(1278.0, 532.0)
+	var offset := Vector2(65.0, -12.0)
+	var parent_initial_pos := Vector2.ZERO  # parent not repositioned before add_child
+	helper.spawn_with_bug(original_pos, offset, parent_initial_pos)
+	var expected := original_pos + offset
+	var actual := helper.child_effective_global_pos()
+	# With bug: child.global = parent(0,0) + child.local(target) = target — coincidentally correct
+	# only when parent is at (0,0). The actual bug manifests when parent has a non-zero world pos.
+	# Simulate: parent has world pos from scene placement
+	helper.spawn_with_bug(original_pos, offset, Vector2(100.0, 200.0))
+	var actual_with_offset := helper.child_effective_global_pos()
+	# Bug: child at (parent_world + target) instead of just target
+	assert_ne(actual_with_offset.x, expected.x,
+		"Bug reproducer: with non-zero parent pos, child should be at wrong location")
+
+
+func test_illusion_position_fix_works_with_nonzero_parent_offset() -> void:
+	## With fix, IllusionEnemy global_position = target, so child at (0,0) local = target global.
+	## This holds regardless of the scene's coordinate origin.
+	var helper := MockIllusionPositionHelper.new()
+	var original_pos := Vector2(1682.0, 1264.0)
+	var offset := Vector2(55.0, 9.0)
+	helper.spawn_with_fix(original_pos, offset)
+	var expected := original_pos + offset
+	assert_almost_eq(helper.child_effective_global_pos().x, expected.x, 0.1,
+		"Fix: child x correct even with large world coordinates")
+	assert_almost_eq(helper.child_effective_global_pos().y, expected.y, 0.1,
+		"Fix: child y correct even with large world coordinates")

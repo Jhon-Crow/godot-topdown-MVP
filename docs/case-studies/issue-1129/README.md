@@ -156,6 +156,113 @@ The guard remains only in `EnemyGrenadeComponent._choose_grenade_scene()`.
 Files changed:
 - `scripts/effects/chemical_cloud.gd` — removed `_is_player_under_illusion_effect()` helper and its call from `_apply_effect_to_enemies_in_cloud()`
 
+---
+
+## Bug Report #2: Illusion Copies Still Not Appearing (2026-03-18)
+
+### Symptom
+
+After fixing Bug #1, the player reported that illusion copies still do not appear visually in game.
+Log files: `game_log_20260318_045415.txt`, `game_log_20260318_050002.txt`
+
+### Log Evidence
+
+From `game_log_20260318_045415.txt`:
+```
+[04:55:26] [ChemicalCloud] Spawning 4 illusion copies for enemy at (1278.724, 532.7821)
+[04:55:26] [IllusionEnemy] Enemy copy spawned, health=1, damage=5% of normal
+[04:55:26] [IllusionEnemy] Illusion created at (1343.949, 520.9557) (duration=20s)
+[04:55:26] [ENEMY] [Enemy] Spawned at (2687.898, 1041.911), hp: 1, behavior: GUARD
+[04:55:26] [ENEMY] [Enemy] Spawned at (2548.667, 1203.949), hp: 1, behavior: GUARD
+[04:55:26] [ENEMY] [Enemy] Spawned at (2485.896, 1080.894), hp: 1, behavior: GUARD
+[04:55:26] [ENEMY] [Enemy] Spawned at (2578.493, 984.053), hp: 1, behavior: GUARD
+```
+
+Key observations:
+- `IllusionEnemy` log says "Illusion created at (1343.949, 520.9557)" — near the original enemy ✓
+- BUT inner Enemy nodes log "Spawned at (2687.898, 1041.911)" etc. — **over 1300 pixels away**
+- The illusion copies ARE being instantiated (code runs), but they appear at the wrong location
+
+From `game_log_20260318_050002.txt`:
+```
+[05:06:23] [ChemicalCloud] _ready() called at (1706.905, 979.3198)
+[05:06:26] [ChemicalCloud] Spawning 1 illusion copies for enemy at (1682.03, 1264.508)
+[05:06:26] [IllusionEnemy] Enemy copy spawned, health=1, damage=5% of normal
+[05:06:26] [IllusionEnemy] Illusion created at (1737.631, 1273.438) (duration=20s)
+[05:06:26] [ENEMY] [Enemy] Spawned at (3475.262, 2546.875), hp: 1, behavior: GUARD
+```
+
+The inner enemy node spawned at `(3475.262, 2546.875)` — approximately 2× the intended position.
+
+### Root Cause Analysis
+
+**Godot scene tree position semantics: `global_position` before `add_child` does not work.**
+
+In `illusion_enemy.gd:_spawn_enemy_copy()`, the original code was:
+
+```gdscript
+_enemy_node.global_position = original_enemy.global_position + spawn_offset  # line 93
+global_position = _enemy_node.global_position                                  # line 94
+# ... more configuration ...
+add_child(_enemy_node)                                                          # line 119
+```
+
+**Problem**: In Godot 4, `global_position` only works when a node is **in the scene tree**. Setting `_enemy_node.global_position` before `add_child` is equivalent to setting `_enemy_node.position` (local position) because the node has no parent yet and cannot compute a world transform.
+
+When `add_child(_enemy_node)` is called:
+1. `_enemy_node` enters the scene tree as a child of `IllusionEnemy`.
+2. `Enemy._ready()` fires immediately.
+3. `Enemy._ready()` calls `_initial_position = global_position` (line 397 of `enemy.gd`).
+4. At this point, `IllusionEnemy.global_position` has NOT been updated yet (it still defaults to `(0,0)` or whatever position was set on the `IllusionEnemy` node by `ChemicalCloud` before entering the scene tree).
+5. So `_enemy_node.global_position = IllusionEnemy.global_position + _enemy_node.position`. Since `_enemy_node.position` was set to the target position pre-tree (via `global_position = target` pre-tree), the actual world position becomes `IllusionEnemy_world_pos + target_local_pos`, which is **double-offset**.
+
+### Timeline of Events (Pre-Fix)
+
+1. `ChemicalCloud._spawn_illusion_copies()` runs.
+2. `illusion = IllusionEnemy.new()` — creates node, not yet in scene.
+3. `illusion.spawn_offset = spread_vector` — sets a local field.
+4. `illusion.original_enemy = enemy` — sets reference.
+5. `get_tree().current_scene.add_child(illusion)` — adds IllusionEnemy to scene. `IllusionEnemy._ready()` fires:
+   - `_spawn_enemy_copy()` called.
+   - `_enemy_node.global_position = original_enemy.global_position + spawn_offset` — **sets local `position`** because `_enemy_node` is not in scene tree yet! `global_position` maps to `position` pre-tree.
+   - `global_position = _enemy_node.global_position` — reads back what was set as position (wrong).
+   - `add_child(_enemy_node)` — Enemy's `_ready()` fires, captures wrong `_initial_position`.
+   - Enemy logs "Spawned at (wrong_position)".
+
+### Why Copies Appeared to "Not Appear" to the Player
+
+The copies DO spawn — but at a wrong location far from the original enemy (double-offset, typically 1000–2500 pixels away). From the player's perspective standing near the original enemy, the copies are completely invisible (off-screen). This explains the "illusion copies not appearing" report.
+
+### Fix
+
+Move position assignment to **after** `IllusionEnemy` enters the scene tree (from `ChemicalCloud`), which happens **before** `_ready()` is called, but since `IllusionEnemy` is added via `get_tree().current_scene.add_child(illusion)` first, `IllusionEnemy` IS in the tree when `_ready()` runs. Therefore, setting `self.global_position` inside `_spawn_enemy_copy()` (before `add_child(_enemy_node)`) works correctly.
+
+```gdscript
+# BEFORE add_child: IllusionEnemy is already in scene tree (added by ChemicalCloud)
+# so global_position assignment works correctly here.
+var target_pos := original_enemy.global_position + spawn_offset
+global_position = target_pos   # sets IllusionEnemy world position correctly
+
+add_child(_enemy_node)
+# _enemy_node.position = (0,0) relative to IllusionEnemy
+# → _enemy_node.global_position = target_pos when Enemy._ready() fires
+# → _initial_position = target_pos ✓
+```
+
+Key principle: **In Godot 4, `global_position` on a node only works after it enters the scene tree.** Setting `global_position` before `add_child` silently falls back to setting `position` (local coordinates with no parent = same as world, but only if no parent transform exists).
+
+Files changed:
+- `scripts/characters/illusion_enemy.gd` — moved `global_position = target_pos` assignment to before `add_child(_enemy_node)`, removed redundant pre-tree `global_position` assignment
+
+### Additional Findings from Logs
+
+- Bug #1 fix (commit `cfb3c1c8`) was correct: the first log (`045415`) shows multiple enemies now getting copies (4 for one enemy, 1+2 for others), confirming no more early-exit from `is_player_under_illusion()`.
+- The second bug (wrong positions) was pre-existing alongside bug #1 but only became apparent after bug #1 was fixed — previously most copies were silently blocked, so the position issue never had a chance to be noticed.
+- Enemy copies with `hp: 1` correctly log after spawn, confirming `min_health = 1` / `max_health = 1` assignment works.
+- When original enemy dies, `IllusionEnemy._on_original_died()` fires and `_cleanup()` removes copies — confirmed working in both logs.
+
+---
+
 ## References
 
 - AggressionGasGrenade pattern: `scripts/projectiles/aggression_gas_grenade.gd`
@@ -163,3 +270,6 @@ Files changed:
 - Enemy death: `scripts/objects/enemy.gd:_on_death()`
 - Grenade component: `scripts/components/enemy_grenade_component.gd`
 - Status effects: `scripts/autoload/status_effects_manager.gd`
+- Godot 4 docs — Node2D.global_position: https://docs.godotengine.org/en/stable/classes/class_node2d.html#class-node2d-property-global-position
+  - "The global position of this node. Unlike position, this reflects the actual position in the world, taking parents' transforms into account."
+  - Implication: before entering scene tree, no parent transform → `global_position` behaves as `position`.
