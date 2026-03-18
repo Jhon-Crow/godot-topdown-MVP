@@ -2,26 +2,26 @@ extends GutTest
 ## Unit tests for RPG rocket weak homing toward the player (Issue #1135).
 ##
 ## Tests the homing steering logic in isolation using a MockRpgRocket class
-## that mirrors the algorithm in rpg_rocket.gd._apply_homing_steering().
+## that mirrors the algorithm in bullet.gd._apply_rpg_homing_steering().
 
 
 # ============================================================================
-# Mock RPG Rocket — mirrors rpg_rocket.gd homing logic
+# Mock RPG Rocket — mirrors bullet.gd RPG homing logic (Issue #1135)
 # ============================================================================
 
 
 class MockRpgRocket:
-	## Turning speed in radians per second.
-	var homing_steer_speed: float = 1.2
+	## Turning speed in radians per second (mirrors rpg_homing_steer_speed).
+	var rpg_homing_steer_speed: float = 1.2
 
-	## Maximum total turn from original firing direction (radians).
-	var homing_max_turn_angle: float = deg_to_rad(30.0)
+	## Maximum total turn from original firing direction (mirrors rpg_homing_max_turn_angle).
+	var rpg_homing_max_turn_angle: float = deg_to_rad(30.0)
 
 	## Current travel direction (normalized).
 	var direction: Vector2 = Vector2.RIGHT
 
 	## Original firing direction (stored at spawn).
-	var _homing_original_direction: Vector2 = Vector2.ZERO
+	var _rpg_homing_original_direction: Vector2 = Vector2.ZERO
 
 	## Current world position.
 	var global_position: Vector2 = Vector2.ZERO
@@ -31,22 +31,22 @@ class MockRpgRocket:
 
 	## Call this after setting direction, before the first physics step.
 	func init_homing() -> void:
-		_homing_original_direction = direction.normalized()
+		_rpg_homing_original_direction = direction.normalized()
 
-	## Mirrors _apply_homing_steering(delta) from rpg_rocket.gd.
+	## Mirrors _apply_rpg_homing_steering(delta) from bullet.gd.
 	## Returns the angle change applied (for assertions).
 	func apply_homing_toward(target_pos: Vector2, delta: float) -> float:
-		if homing_steer_speed <= 0.0:
+		if rpg_homing_steer_speed <= 0.0:
 			return 0.0
 
 		var to_target := (target_pos - global_position).normalized()
 		var angle_diff := direction.angle_to(to_target)
-		var max_steer_this_frame := homing_steer_speed * delta
+		var max_steer_this_frame := rpg_homing_steer_speed * delta
 		angle_diff = clampf(angle_diff, -max_steer_this_frame, max_steer_this_frame)
 
 		var new_direction := direction.rotated(angle_diff).normalized()
-		var angle_from_original := _homing_original_direction.angle_to(new_direction)
-		if absf(angle_from_original) > homing_max_turn_angle:
+		var angle_from_original := _rpg_homing_original_direction.angle_to(new_direction)
+		if absf(angle_from_original) > rpg_homing_max_turn_angle:
 			return 0.0
 
 		direction = new_direction
@@ -105,7 +105,7 @@ func test_homing_no_steering_when_on_course() -> void:
 
 func test_homing_disabled_when_steer_speed_zero() -> void:
 	var rocket := MockRpgRocket.new()
-	rocket.homing_steer_speed = 0.0
+	rocket.rpg_homing_steer_speed = 0.0
 	rocket.direction = Vector2.RIGHT
 	rocket.global_position = Vector2.ZERO
 	rocket.init_homing()
@@ -120,7 +120,7 @@ func test_homing_disabled_when_steer_speed_zero() -> void:
 
 func test_homing_per_frame_turn_is_limited() -> void:
 	var rocket := MockRpgRocket.new()
-	rocket.homing_steer_speed = 1.2
+	rocket.rpg_homing_steer_speed = 1.2
 	rocket.direction = Vector2.RIGHT
 	rocket.global_position = Vector2.ZERO
 	rocket.init_homing()
@@ -135,8 +135,8 @@ func test_homing_per_frame_turn_is_limited() -> void:
 
 func test_homing_max_turn_angle_not_exceeded() -> void:
 	var rocket := MockRpgRocket.new()
-	rocket.homing_steer_speed = 50.0  # Fast steering to hit the limit quickly
-	rocket.homing_max_turn_angle = deg_to_rad(30.0)
+	rocket.rpg_homing_steer_speed = 50.0  # Fast steering to hit the limit quickly
+	rocket.rpg_homing_max_turn_angle = deg_to_rad(30.0)
 	rocket.direction = Vector2.RIGHT
 	rocket.global_position = Vector2.ZERO
 	rocket.init_homing()
@@ -145,9 +145,9 @@ func test_homing_max_turn_angle_not_exceeded() -> void:
 	for _i in range(200):
 		rocket.apply_homing_toward(Vector2(-500, 0), 0.016)
 
-	var angle_from_original := absf(rocket._homing_original_direction.angle_to(rocket.direction))
+	var angle_from_original := absf(rocket._rpg_homing_original_direction.angle_to(rocket.direction))
 	assert_true(angle_from_original <= deg_to_rad(30.0) + 0.01,
-		"Total turn must not exceed homing_max_turn_angle (30°), got: %.1f°" % rad_to_deg(angle_from_original))
+		"Total turn must not exceed rpg_homing_max_turn_angle (30°), got: %.1f°" % rad_to_deg(angle_from_original))
 
 
 func test_homing_updates_rotation() -> void:
@@ -169,15 +169,15 @@ func test_homing_default_steer_speed_is_subtle() -> void:
 	## The default steer speed should produce only a small angular change per frame
 	## at 60 fps, confirming the "very weak" requirement from the issue.
 	var rocket := MockRpgRocket.new()
-	# Default homing_steer_speed = 1.2 rad/s; at 60 fps delta ≈ 0.0167 s
-	var max_turn_per_frame := rocket.homing_steer_speed * (1.0 / 60.0)
+	# Default rpg_homing_steer_speed = 1.2 rad/s; at 60 fps delta ≈ 0.0167 s
+	var max_turn_per_frame := rocket.rpg_homing_steer_speed * (1.0 / 60.0)
 	assert_true(max_turn_per_frame < deg_to_rad(2.0),
 		"Default steering produces < 2° per frame at 60 fps (subtle effect)")
 
 
 func test_homing_default_max_angle_is_30_degrees() -> void:
 	var rocket := MockRpgRocket.new()
-	assert_almost_eq(rocket.homing_max_turn_angle, deg_to_rad(30.0), 0.001,
+	assert_almost_eq(rocket.rpg_homing_max_turn_angle, deg_to_rad(30.0), 0.001,
 		"Default max turn angle should be 30 degrees (keeps effect subtle)")
 
 
@@ -186,9 +186,9 @@ func test_homing_stores_original_direction_correctly() -> void:
 	rocket.direction = Vector2(0.707, -0.707)  # 45° up-right
 	rocket.init_homing()
 
-	assert_almost_eq(rocket._homing_original_direction.x, rocket.direction.normalized().x, 0.001,
+	assert_almost_eq(rocket._rpg_homing_original_direction.x, rocket.direction.normalized().x, 0.001,
 		"Original direction X should be stored at init")
-	assert_almost_eq(rocket._homing_original_direction.y, rocket.direction.normalized().y, 0.001,
+	assert_almost_eq(rocket._rpg_homing_original_direction.y, rocket.direction.normalized().y, 0.001,
 		"Original direction Y should be stored at init")
 
 
@@ -196,8 +196,8 @@ func test_homing_does_not_overshoot_target() -> void:
 	## After many frames the rocket should converge toward the target without
 	## oscillating past it (angle_diff shrinks each frame, never grows).
 	var rocket := MockRpgRocket.new()
-	rocket.homing_steer_speed = 3.0  # Faster to see convergence within test
-	rocket.homing_max_turn_angle = deg_to_rad(30.0)
+	rocket.rpg_homing_steer_speed = 3.0  # Faster to see convergence within test
+	rocket.rpg_homing_max_turn_angle = deg_to_rad(30.0)
 	rocket.direction = Vector2.RIGHT
 	rocket.global_position = Vector2.ZERO
 	rocket.init_homing()

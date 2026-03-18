@@ -212,6 +212,18 @@ var _rpg_prev_position: Vector2 = Vector2.ZERO
 ## RPG rocket internal state: StaticBody2D wall hit, stored for wall-passage creation (Issue #1131).
 var _rpg_hit_wall: StaticBody2D = null
 
+## RPG rocket: weak homing — turning speed toward the player in radians/second (Issue #1135).
+## A small value gives a subtle "guided missile" feel without making it unavoidable.
+## Set to 0.0 to disable homing entirely.
+@export var rpg_homing_steer_speed: float = 1.2
+
+## RPG rocket: maximum total turn from the original firing direction (radians) (Issue #1135).
+## Limits how far the rocket can veer — keeps it feeling like a light correction.
+@export var rpg_homing_max_turn_angle: float = deg_to_rad(30.0)
+
+## RPG rocket internal state: original firing direction for angle-limit check (Issue #1135).
+var _rpg_homing_original_direction: Vector2 = Vector2.ZERO
+
 ## Whether this bullet penetrates through enemies (Issue #829).
 ## When true, the bullet deals damage to enemies but continues flying through them.
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
@@ -297,6 +309,7 @@ func _ready() -> void:
 		_rpg_current_speed = rpg_speed_initial
 		_rpg_current_health = rpg_health
 		_rpg_prev_position = global_position
+		_rpg_homing_original_direction = direction.normalized()  # Store for angle-limit check (Issue #1135)
 		add_to_group("rpg_rockets")  # Used by grenades to check blast interception (Issue #1133)
 		FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f health=%d" % [
 			str(global_position), str(direction), rpg_speed_initial, rpg_speed_max, rpg_health])
@@ -343,6 +356,10 @@ func _physics_process(delta: float) -> void:
 	# Apply homing steering if enabled
 	if homing_enabled:
 		_apply_homing_steering(delta)
+
+	# RPG rocket: weak homing toward the player (Issue #1135)
+	if is_rpg_rocket and rpg_homing_steer_speed > 0.0:
+		_apply_rpg_homing_steering(delta)
 
 	# RPG rocket: update spawn immunity timer
 	if is_rpg_rocket:
@@ -1337,6 +1354,50 @@ func _apply_homing_steering(delta: float) -> void:
 
 	if _debug_homing:
 		print("[Bullet] Homing steer: angle_diff=", rad_to_deg(angle_diff), "° total_turn=", rad_to_deg(absf(angle_from_original)), "°")
+
+
+## Gently steers the RPG rocket toward the player (Issue #1135).
+## Called every physics frame for enemy-fired RPG rockets.
+## Uses angular clamping identical to _apply_homing_steering() but targets the player
+## (not enemies) and is guarded by rpg_homing_max_turn_angle from the original firing direction.
+func _apply_rpg_homing_steering(delta: float) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	# Find the player
+	var players := tree.get_nodes_in_group("player")
+	if players.is_empty():
+		return
+	var player: Node = players[0]
+	if not player is Node2D:
+		return
+	# Skip dead player
+	if player.has_method("is_alive") and not (player as Node).call("is_alive"):
+		return
+
+	var target_pos: Vector2 = (player as Node2D).global_position
+
+	# Direction toward player from current rocket position
+	var to_target := (target_pos - global_position).normalized()
+
+	# Signed angle between current direction and desired direction
+	var angle_diff := direction.angle_to(to_target)
+
+	# Clamp per-frame turn (smooth steering)
+	var max_steer_this_frame := rpg_homing_steer_speed * delta
+	angle_diff = clampf(angle_diff, -max_steer_this_frame, max_steer_this_frame)
+
+	# Candidate new direction
+	var new_direction := direction.rotated(angle_diff).normalized()
+
+	# Do not exceed total turn limit from original firing direction
+	var angle_from_original := _rpg_homing_original_direction.angle_to(new_direction)
+	if absf(angle_from_original) > rpg_homing_max_turn_angle:
+		return
+
+	# Apply steering — sprite rotation is handled by the RPG block in _physics_process
+	direction = new_direction
 
 
 ## Finds the position of the best homing target enemy.
