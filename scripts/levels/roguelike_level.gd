@@ -1,90 +1,73 @@
 extends Node2D
-## Roguelike level with procedural generation using existing level scenes as rooms.
+## Roguelike level with procedural room generation by type.
 ##
 ## Issue #1061: добавить режим рогалика
 ##
-## Each run randomly selects 3–5 existing level scenes and stitches them together
-## side-by-side with wide connecting corridors, giving the player proper rooms with
-## full geometry, cover, and exits rather than tiny procedurally generated boxes.
+## Each run generates 3–5 rooms of different types (Labyrinth, Building, Beach, Docks, City)
+## with procedurally placed walls, covers and enemies. This avoids the heavy overhead of
+## loading full level scenes (which caused 55+ enemies and 2–6 fps drops).
 ##
 ## Features:
-## - Uses real existing level scenes (Labyrinth, Building, Castle, City, Beach, Docks) as rooms
-## - Rooms are arranged left-to-right with wide corridors between them
-## - Enemies come from the level scenes themselves — random per run
-## - Player starts in the first (leftmost) room, exit zone appears in the last room
-## - Full HUD (enemy count, ammo, kills, accuracy, combo) matching other levels
-## - Score tracking with rank system (ScoreManager / ProgressManager)
-## - Q key restarts with a new random room selection
+## - Procedural room layouts by type — each type has a characteristic geometry
+## - Player always starts with Makarov PM + Flashbang grenade (armory ignored)
+## - 3–4 enemies per room maximum (performance constraint)
+## - No ReplayManager in roguelike (saves memory/CPU)
+## - Q restarts with a new seed
+## - Exit zone activates after all enemies are cleared
 
 
 ## ============================================================
-## Room (existing level scene) pool — scenes that can appear as roguelike rooms
+## Room types — each gets a distinct procedural layout
 ## ============================================================
 
-## All candidate level scenes.  Each has a scene path and the approximate bounding
-## box of its walkable area (used to compute the room's footprint for layout).
-const ROOM_POOL: Array[Dictionary] = [
-	{
-		"path": "res://scenes/levels/LabyrinthLevel.tscn",
-		"size": Vector2(1920, 1080),
-		"player_spawn": Vector2(100, 540),
-		"exit_spawn": Vector2(1800, 540)
-	},
-	{
-		"path": "res://scenes/levels/BuildingLevel.tscn",
-		"size": Vector2(2400, 2000),
-		"player_spawn": Vector2(200, 1000),
-		"exit_spawn": Vector2(2200, 1000)
-	},
-	{
-		"path": "res://scenes/levels/CastleLevel.tscn",
-		"size": Vector2(6000, 2560),
-		"player_spawn": Vector2(300, 1280),
-		"exit_spawn": Vector2(5700, 1280)
-	},
-	{
-		"path": "res://scenes/levels/CityLevel.tscn",
-		"size": Vector2(6000, 5000),
-		"player_spawn": Vector2(300, 2500),
-		"exit_spawn": Vector2(5700, 2500)
-	},
-	{
-		"path": "res://scenes/levels/BeachLevel.tscn",
-		"size": Vector2(2400, 2000),
-		"player_spawn": Vector2(200, 1000),
-		"exit_spawn": Vector2(2200, 1000)
-	},
-	{
-		"path": "res://scenes/levels/DocksLevel.tscn",
-		"size": Vector2(5000, 4000),
-		"player_spawn": Vector2(300, 2000),
-		"exit_spawn": Vector2(4700, 2000)
-	},
-	{
-		"path": "res://scenes/levels/RevolverLevel.tscn",
-		"size": Vector2(2000, 1600),
-		"player_spawn": Vector2(200, 800),
-		"exit_spawn": Vector2(1800, 800)
-	},
-]
+enum RoomType {
+	LABYRINTH,   ## Corridors / maze: horizontal + vertical interior walls
+	BUILDING,    ## Indoor rooms: walled sub-rooms with doorways
+	BEACH,       ## Open area: scattered obstacles (barrels, crates)
+	DOCKS,       ## Container yard: long parallel walls (containers)
+	CITY         ## Urban: L-shaped cover blocks, car-like barriers
+}
 
-## Number of rooms to pick per run.
+## Room size for procedural generation (all rooms same size for simplicity)
+const ROOM_WIDTH: float  = 1280.0
+const ROOM_HEIGHT: float = 720.0
+
+## Corridor connecting rooms
+const CORRIDOR_GAP: float    = 200.0   ## Horizontal space between rooms
+const CORRIDOR_HEIGHT: float = 180.0   ## Opening height for the corridor
+
+## Enemy count limits per room
+const ENEMIES_PER_ROOM_MIN: int = 3
+const ENEMIES_PER_ROOM_MAX: int = 4
+
+## Number of rooms per run
 const MIN_ROOMS: int = 3
 const MAX_ROOMS: int = 5
 
-## Horizontal gap between rooms (corridor width in pixels).
-const CORRIDOR_GAP: float = 300.0
-
-## Corridor height (vertical opening between rooms).
-const CORRIDOR_HEIGHT: float = 200.0
-
-## Wall/corridor color constants (matching other levels).
-const WALL_COLOR: Color = Color(0.3, 0.3, 0.35, 1.0)
+## Wall / visual colour constants
+const WALL_COLOR:  Color = Color(0.3,  0.3,  0.35, 1.0)
 const FLOOR_COLOR: Color = Color(0.18, 0.18, 0.22, 1.0)
-const BG_COLOR: Color = Color(0.05, 0.05, 0.07, 1.0)
+const BG_COLOR:    Color = Color(0.05, 0.05, 0.07, 1.0)
 
-## Saturation effect constants (matching other levels).
-const SATURATION_DURATION: float = 0.15
+## Floor tint per room type (subtle)
+const ROOM_FLOOR_COLORS: Dictionary = {
+	RoomType.LABYRINTH: Color(0.16, 0.18, 0.22, 1.0),
+	RoomType.BUILDING:  Color(0.20, 0.18, 0.18, 1.0),
+	RoomType.BEACH:     Color(0.22, 0.20, 0.14, 1.0),
+	RoomType.DOCKS:     Color(0.14, 0.18, 0.20, 1.0),
+	RoomType.CITY:      Color(0.20, 0.20, 0.20, 1.0),
+}
+
+const ROOM_TYPE_NAMES: Dictionary = {
+	RoomType.LABYRINTH: "Лабиринт",
+	RoomType.BUILDING:  "Здание",
+	RoomType.BEACH:     "Пляж",
+	RoomType.DOCKS:     "Доки",
+	RoomType.CITY:      "Город",
+}
+
+## Saturation flash on kill
+const SATURATION_DURATION:  float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 
 
@@ -92,40 +75,35 @@ const SATURATION_INTENSITY: float = 0.25
 ## Runtime state
 ## ============================================================
 
-## Selected room descriptors (Dictionary from ROOM_POOL) in order.
-var _selected_rooms: Array[Dictionary] = []
+var _selected_types:  Array[int]   = []   ## RoomType values
+var _room_offsets:    Array[float] = []   ## World-space X start of each room
 
-## World-space X offset for each room (rooms laid out left-to-right).
-var _room_offsets: Array[float] = []
-
-## Reference to player node.
 var _player: Node2D = null
 
-## Reference to HUD nodes.
-var _enemy_count_label: Label = null
-var _ammo_label: Label = null
-var _kills_label: Label = null
-var _accuracy_label: Label = null
-var _magazines_label: Label = null
-var _combo_label: Label = null
+## HUD refs
+var _enemy_count_label:  Label = null
+var _ammo_label:         Label = null
+var _kills_label:        Label = null
+var _accuracy_label:     Label = null
+var _magazines_label:    Label = null
+var _combo_label:        Label = null
 var _saturation_overlay: ColorRect = null
 
-## Enemy tracking.
-var _enemies: Array = []
-var _initial_enemy_count: int = 0
-var _current_enemy_count: int = 0
+## Enemy tracking
+var _enemies:               Array = []
+var _initial_enemy_count:   int   = 0
+var _current_enemy_count:   int   = 0
 
-## Game state flags.
-var _level_cleared: bool = false
+## State flags
+var _level_cleared:   bool = false
 var _game_over_shown: bool = false
-var _score_shown: bool = false
+var _score_shown:     bool = false
 var _level_completed: bool = false
 
-## Exit zone reference.
 var _exit_zone: Area2D = null
 
-## Replay manager cache.
-var _replay_manager: Node = null
+## Saved GameManager weapon before roguelike (restored on exit)
+var _saved_weapon: String = ""
 
 
 ## ============================================================
@@ -138,7 +116,8 @@ func _ready() -> void:
 	seed(seed_used)
 	print("[RoguelikeLevel] Generating level with seed: %d" % seed_used)
 
-	_select_rooms()
+	_force_roguelike_loadout()
+	_select_room_types()
 	_build_level()
 	_spawn_player()
 	_setup_navigation()
@@ -149,238 +128,445 @@ func _ready() -> void:
 	_update_enemy_count_label()
 	_initialize_score_manager()
 	_setup_exit_zone()
-	_start_replay_recording()
+	# Intentionally skip ReplayManager — reduces memory and CPU overhead
 
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
-	print("[RoguelikeLevel] Level ready — %d rooms, %d enemies" % [_selected_rooms.size(), _initial_enemy_count])
+	print("[RoguelikeLevel] Level ready — %d rooms, %d enemies" % [_selected_types.size(), _initial_enemy_count])
 
 
 func _process(_delta: float) -> void:
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager and score_manager.has_method("update_enemy_positions"):
-		score_manager.update_enemy_positions(_enemies)
+	var sm: Node = get_node_or_null("/root/ScoreManager")
+	if sm and sm.has_method("update_enemy_positions"):
+		sm.update_enemy_positions(_enemies)
 
 
 ## ============================================================
-## Room selection and level construction
+## Loadout override — PM + flashbang, no armory
 ## ============================================================
 
-## Pick a random subset of rooms from the pool (no duplicates).
-func _select_rooms() -> void:
-	_selected_rooms.clear()
-	var pool: Array[Dictionary] = ROOM_POOL.duplicate()
+func _force_roguelike_loadout() -> void:
+	if GameManager:
+		_saved_weapon = GameManager.get_selected_weapon()
+		GameManager.set_selected_weapon("makarov_pm")
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	if grenade_manager:
+		# GrenadeType.FLASHBANG = 0
+		if grenade_manager.get("current_grenade_type") != null:
+			grenade_manager.current_grenade_type = 0  # FLASHBANG
+	print("[RoguelikeLevel] Loadout forced: makarov_pm + flashbang")
 
-	# Shuffle the pool
-	for i in range(pool.size() - 1, 0, -1):
+
+func _restore_loadout() -> void:
+	if GameManager and _saved_weapon != "":
+		GameManager.set_selected_weapon(_saved_weapon)
+
+
+## ============================================================
+## Room type selection
+## ============================================================
+
+func _select_room_types() -> void:
+	_selected_types.clear()
+	var all_types: Array[int] = [
+		RoomType.LABYRINTH,
+		RoomType.BUILDING,
+		RoomType.BEACH,
+		RoomType.DOCKS,
+		RoomType.CITY,
+	]
+	# Shuffle
+	for i in range(all_types.size() - 1, 0, -1):
 		var j: int = randi_range(0, i)
-		var tmp: Dictionary = pool[i]
-		pool[i] = pool[j]
-		pool[j] = tmp
+		var tmp: int = all_types[i]
+		all_types[i] = all_types[j]
+		all_types[j] = tmp
 
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
-	count = min(count, pool.size())
+	count = min(count, all_types.size())
 	for i in range(count):
-		_selected_rooms.append(pool[i])
+		_selected_types.append(all_types[i])
 
-	print("[RoguelikeLevel] Selected rooms: %s" % str(_selected_rooms.map(func(r): return r.path.get_file())))
+	var names: Array[String] = []
+	for t in _selected_types:
+		names.append(ROOM_TYPE_NAMES.get(t, "?"))
+	print("[RoguelikeLevel] Room types: %s" % str(names))
 
 
-## Build the world: background, corridors, and instantiate room sub-scenes.
+## ============================================================
+## Level construction
+## ============================================================
+
 func _build_level() -> void:
 	_room_offsets.clear()
 
-	# Calculate X offset for each room (laid out left-to-right)
 	var current_x: float = 0.0
-	for room_data in _selected_rooms:
+	for _t in _selected_types:
 		_room_offsets.append(current_x)
-		current_x += room_data.size.x + CORRIDOR_GAP
+		current_x += ROOM_WIDTH + CORRIDOR_GAP
 
-	# Total world dimensions
 	var total_width: float = current_x
-	var max_height: float = 0.0
-	for room_data in _selected_rooms:
-		max_height = max(max_height, room_data.size.y)
 
-	# Dark background behind everything
+	# Background
 	var bg := ColorRect.new()
 	bg.name = "WorldBackground"
 	bg.position = Vector2(-200, -200)
-	bg.size = Vector2(total_width + 400, max_height + 400)
+	bg.size = Vector2(total_width + 400, ROOM_HEIGHT + 400)
 	bg.color = BG_COLOR
 	add_child(bg)
 
-	# Corridor floors and walls between rooms
+	# Build each room
+	var rooms_container := Node2D.new()
+	rooms_container.name = "Rooms"
+	add_child(rooms_container)
+
+	for i in range(_selected_types.size()):
+		_build_room(rooms_container, i)
+
+	# Corridors between rooms
 	var corridor_container := Node2D.new()
 	corridor_container.name = "Corridors"
 	add_child(corridor_container)
 	_build_corridors(corridor_container)
 
-	# Instantiate room sub-scenes
-	var rooms_container := Node2D.new()
-	rooms_container.name = "Rooms"
-	add_child(rooms_container)
 
-	for i in range(_selected_rooms.size()):
-		_instantiate_room(rooms_container, i)
+func _build_room(parent: Node, room_index: int) -> void:
+	var room_type: int = _selected_types[room_index]
+	var offset_x: float = _room_offsets[room_index]
+
+	var room_node := Node2D.new()
+	room_node.name = "Room%d" % room_index
+	room_node.position = Vector2(offset_x, 0.0)
+	parent.add_child(room_node)
+
+	# Floor
+	var floor_color: Color = ROOM_FLOOR_COLORS.get(room_type, FLOOR_COLOR)
+	var floor_rect := ColorRect.new()
+	floor_rect.position = Vector2(0, 0)
+	floor_rect.size = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.color = floor_color
+	room_node.add_child(floor_rect)
+
+	# Boundary walls (with corridor openings on left/right sides)
+	_build_room_boundary(room_node, room_index)
+
+	# Interior layout
+	match room_type:
+		RoomType.LABYRINTH:
+			_build_labyrinth_interior(room_node)
+		RoomType.BUILDING:
+			_build_building_interior(room_node)
+		RoomType.BEACH:
+			_build_beach_interior(room_node)
+		RoomType.DOCKS:
+			_build_docks_interior(room_node)
+		RoomType.CITY:
+			_build_city_interior(room_node)
+
+	# Spawn enemies in this room
+	_spawn_enemies_in_room(room_node, room_index)
+
+	print("[RoguelikeLevel] Room %d built: type=%s, offset_x=%.0f" % [room_index, ROOM_TYPE_NAMES.get(room_type, "?"), offset_x])
 
 
-## Build corridor floors and walls between adjacent rooms.
+## Boundary walls with openings where corridors connect.
+func _build_room_boundary(room_node: Node2D, room_index: int) -> void:
+	var w: float = ROOM_WIDTH
+	var h: float = ROOM_HEIGHT
+	var wall_t: float = 24.0
+
+	var corridor_mid_y: float = h * 0.5
+	var half_opening: float   = CORRIDOR_HEIGHT * 0.5
+
+	# Top wall (full)
+	_create_wall(room_node, Rect2(0, 0, w, wall_t))
+	# Bottom wall (full)
+	_create_wall(room_node, Rect2(0, h - wall_t, w, wall_t))
+
+	# Left wall — open if not first room
+	var is_first: bool = (room_index == 0)
+	if is_first:
+		_create_wall(room_node, Rect2(0, 0, wall_t, h))
+	else:
+		# Left wall above opening
+		_create_wall(room_node, Rect2(0, 0, wall_t, corridor_mid_y - half_opening))
+		# Left wall below opening
+		_create_wall(room_node, Rect2(0, corridor_mid_y + half_opening, wall_t, h - (corridor_mid_y + half_opening)))
+
+	# Right wall — open if not last room
+	var is_last: bool = (room_index == _selected_types.size() - 1)
+	if is_last:
+		_create_wall(room_node, Rect2(w - wall_t, 0, wall_t, h))
+	else:
+		# Right wall above opening
+		_create_wall(room_node, Rect2(w - wall_t, 0, wall_t, corridor_mid_y - half_opening))
+		# Right wall below opening
+		_create_wall(room_node, Rect2(w - wall_t, corridor_mid_y + half_opening, wall_t, h - (corridor_mid_y + half_opening)))
+
+
+## ─── Labyrinth: horizontal and vertical divider walls ───────────────────────
+func _build_labyrinth_interior(room_node: Node2D) -> void:
+	var w: float = ROOM_WIDTH
+	var h: float = ROOM_HEIGHT
+	var opening: float = 140.0
+
+	# Horizontal divider at 1/3 height — gap on right side
+	_create_wall(room_node, Rect2(60, h * 0.33, w * 0.55, 20))
+	# Horizontal divider at 2/3 height — gap on left side
+	_create_wall(room_node, Rect2(w * 0.45, h * 0.66, w * 0.55 - 30, 20))
+	# Vertical divider at centre — gap in middle
+	_create_wall(room_node, Rect2(w * 0.5 - 10, 60, 20, h * 0.35))
+	_create_wall(room_node, Rect2(w * 0.5 - 10, h * 0.35 + opening, 20, h * 0.30))
+	# Short L-wall in upper-left quadrant
+	_create_wall(room_node, Rect2(120, h * 0.14, 140, 20))
+	_create_wall(room_node, Rect2(120, h * 0.14, 20, 80))
+	# Short L-wall in lower-right quadrant
+	_create_wall(room_node, Rect2(w - 260, h * 0.78, 140, 20))
+	_create_wall(room_node, Rect2(w - 280 + 140, h * 0.72, 20, 80))
+
+
+## ─── Building: walled sub-rooms with doorways ───────────────────────────────
+func _build_building_interior(room_node: Node2D) -> void:
+	var w: float = ROOM_WIDTH
+	var h: float = ROOM_HEIGHT
+	var opening: float = 100.0
+
+	# Vertical wall dividing left and right sub-rooms — doorway at mid-height
+	_create_wall(room_node, Rect2(w * 0.42, 60, 20, h * 0.35))
+	_create_wall(room_node, Rect2(w * 0.42, 60 + h * 0.35 + opening, 20, h - (60 + h * 0.35 + opening) - 60))
+
+	# Top-right alcove
+	_create_wall(room_node, Rect2(w * 0.60, 60, w * 0.22, 20))
+	_create_wall(room_node, Rect2(w * 0.82 - 20, 60, 20, h * 0.28))
+
+	# Bottom-left alcove
+	_create_wall(room_node, Rect2(60, h * 0.68, w * 0.22, 20))
+	_create_wall(room_node, Rect2(60, h * 0.54, 20, h * 0.14 + 20))
+
+	# Cover crate in left room
+	_create_cover(room_node, Rect2(w * 0.18, h * 0.42, 60, 60))
+	# Cover panel in right room
+	_create_cover(room_node, Rect2(w * 0.68, h * 0.55, 80, 20))
+
+
+## ─── Beach: open field with scattered obstacles ─────────────────────────────
+func _build_beach_interior(room_node: Node2D) -> void:
+	var w: float = ROOM_WIDTH
+	var h: float = ROOM_HEIGHT
+
+	# Scattered crates and barrels
+	var positions: Array[Vector2] = [
+		Vector2(w * 0.18, h * 0.25),
+		Vector2(w * 0.18, h * 0.65),
+		Vector2(w * 0.40, h * 0.38),
+		Vector2(w * 0.40, h * 0.58),
+		Vector2(w * 0.62, h * 0.22),
+		Vector2(w * 0.62, h * 0.72),
+		Vector2(w * 0.80, h * 0.44),
+	]
+	for pos in positions:
+		# Alternate between small and large covers
+		var sz: float = 44.0 if (int(pos.x) % 2 == 0) else 32.0
+		_create_cover(room_node, Rect2(pos.x - sz * 0.5, pos.y - sz * 0.5, sz, sz))
+
+	# A low sandbag wall segment
+	_create_cover(room_node, Rect2(w * 0.55, h * 0.5 - 10, 120, 20))
+
+
+## ─── Docks: parallel container walls ────────────────────────────────────────
+func _build_docks_interior(room_node: Node2D) -> void:
+	var w: float = ROOM_WIDTH
+	var h: float = ROOM_HEIGHT
+	var gap: float = 110.0  ## Aisle width
+
+	# Three pairs of container walls (horizontal, parallel)
+	for row in range(3):
+		var y: float = h * (0.22 + row * 0.24)
+		# Left container
+		_create_wall(room_node, Rect2(80, y, w * 0.36, 22))
+		# Right container (offset)
+		_create_wall(room_node, Rect2(w * 0.52, y + 22, w * 0.36, 22))
+
+	# End container stack on left
+	_create_wall(room_node, Rect2(80, h * 0.22, 22, h * 0.22))
+	# End container stack on right
+	_create_wall(room_node, Rect2(w - 102, h * 0.46, 22, h * 0.22))
+
+
+## ─── City: L-shaped cover blocks and barriers ───────────────────────────────
+func _build_city_interior(room_node: Node2D) -> void:
+	var w: float = ROOM_WIDTH
+	var h: float = ROOM_HEIGHT
+
+	# L-shaped cover in upper-left
+	_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 100, 20))
+	_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 20, 80))
+
+	# L-shaped cover in lower-right
+	_create_cover(room_node, Rect2(w * 0.72, h * 0.68, 100, 20))
+	_create_cover(room_node, Rect2(w * 0.72 + 80, h * 0.60, 20, 80))
+
+	# Car-like long barriers
+	_create_cover(room_node, Rect2(w * 0.34, h * 0.42, 160, 32))
+	_create_cover(room_node, Rect2(w * 0.60, h * 0.30, 160, 32))
+
+	# Bollard cluster
+	for i in range(3):
+		_create_cover(room_node, Rect2(w * 0.46 + i * 36, h * 0.60, 24, 24))
+
+
+## ============================================================
+## Corridor floors and walls between rooms
+## ============================================================
+
 func _build_corridors(parent: Node) -> void:
-	for i in range(_selected_rooms.size() - 1):
-		var left_room: Dictionary = _selected_rooms[i]
-		var right_room: Dictionary = _selected_rooms[i + 1]
-		var left_x: float = _room_offsets[i]
-		var right_x: float = _room_offsets[i + 1]
+	for i in range(_selected_types.size() - 1):
+		var left_x: float   = _room_offsets[i] + ROOM_WIDTH
+		var right_x: float  = _room_offsets[i + 1]
+		var mid_y: float    = ROOM_HEIGHT * 0.5
+		var half_h: float   = CORRIDOR_HEIGHT * 0.5
 
-		# The corridor spans from the right edge of the left room to the left edge of the right room
-		var corridor_start_x: float = left_x + left_room.size.x
-		var corridor_end_x: float = right_x
-		var corridor_width: float = corridor_end_x - corridor_start_x
-
-		# Vertical center of both rooms' exit/entry points
-		var left_center_y: float = left_room.size.y * 0.5
-		var right_center_y: float = right_room.size.y * 0.5
-
-		# Corridor floor (horizontal strip connecting the two rooms)
+		# Floor strip
 		var floor_rect := ColorRect.new()
-		floor_rect.position = Vector2(corridor_start_x, left_center_y - CORRIDOR_HEIGHT * 0.5)
-		floor_rect.size = Vector2(corridor_width, CORRIDOR_HEIGHT)
+		floor_rect.position = Vector2(left_x, mid_y - half_h)
+		floor_rect.size = Vector2(CORRIDOR_GAP, CORRIDOR_HEIGHT)
 		floor_rect.color = FLOOR_COLOR
 		parent.add_child(floor_rect)
 
-		# If the rooms have different heights, add a vertical ramp section
-		if abs(left_center_y - right_center_y) > 10.0:
-			var v_floor := ColorRect.new()
-			var v_top: float = min(left_center_y, right_center_y) - CORRIDOR_HEIGHT * 0.5
-			var v_bottom: float = max(left_center_y, right_center_y) + CORRIDOR_HEIGHT * 0.5
-			v_floor.position = Vector2(corridor_end_x - CORRIDOR_HEIGHT, v_top)
-			v_floor.size = Vector2(CORRIDOR_HEIGHT, v_bottom - v_top)
-			v_floor.color = FLOOR_COLOR
-			parent.add_child(v_floor)
-
-		# Top wall above the corridor
-		_create_wall_body(parent, Rect2(
-			corridor_start_x,
-			left_center_y - CORRIDOR_HEIGHT * 0.5 - 24,
-			corridor_width,
-			24
-		))
-		# Bottom wall below the corridor
-		_create_wall_body(parent, Rect2(
-			corridor_start_x,
-			left_center_y + CORRIDOR_HEIGHT * 0.5,
-			corridor_width,
-			24
-		))
+		# Top wall of corridor
+		_create_wall(parent, Rect2(left_x, mid_y - half_h - 24, CORRIDOR_GAP, 24))
+		# Bottom wall of corridor
+		_create_wall(parent, Rect2(left_x, mid_y + half_h, CORRIDOR_GAP, 24))
 
 
-## Instantiate a room scene, strip its HUD/player/exit-zone, and position it.
-func _instantiate_room(parent: Node, room_index: int) -> void:
-	var room_data: Dictionary = _selected_rooms[room_index]
-	var offset_x: float = _room_offsets[room_index]
+## ============================================================
+## Enemy spawning (procedural, per room)
+## ============================================================
 
-	var scene: PackedScene = load(room_data.path)
-	if scene == null:
-		push_error("[RoguelikeLevel] Failed to load room scene: %s" % room_data.path)
+func _spawn_enemies_in_room(room_node: Node2D, room_index: int) -> void:
+	var room_type: int = _selected_types[room_index]
+	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
+	if enemy_scene == null:
+		push_error("[RoguelikeLevel] Enemy.tscn not found!")
 		return
 
-	var room_instance: Node = scene.instantiate()
-	room_instance.name = "Room%d" % room_index
-	room_instance.position = Vector2(offset_x, 0.0)
+	var positions: Array[Vector2] = _get_enemy_positions(room_type)
+	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(ENEMIES_PER_ROOM_MAX, positions.size()))
 
-	# Disable the room's own _ready logic by removing its script before adding to tree,
-	# so it doesn't run its own setup, register enemies twice, etc.
-	# We keep all the geometry but strip runtime-only nodes.
-	room_instance.set_script(null)
+	# Shuffle positions
+	for i in range(positions.size() - 1, 0, -1):
+		var j: int = randi_range(0, i)
+		var tmp: Vector2 = positions[i]
+		positions[i] = positions[j]
+		positions[j] = tmp
 
-	parent.add_child(room_instance)
+	for i in range(count):
+		var enemy: Node = enemy_scene.instantiate()
+		enemy.name = "Enemy_R%d_%d" % [room_index, i]
+		enemy.position = positions[i]
+		# Randomise weapon
+		enemy.weapon_type = _random_enemy_weapon(room_type)
+		enemy.behavior_mode = _random_enemy_behavior(room_type, i)
+		if enemy.behavior_mode == 0:  # PATROL
+			enemy.patrol_offsets = [Vector2(80, 0), Vector2(-80, 0)]
+		enemy.min_health = 1
+		enemy.max_health = 2
+		room_node.add_child(enemy)
 
-	# Remove the room's own CanvasLayer (HUD), PauseMenu, and player nodes —
-	# we manage these at the roguelike level.
-	for child_name in ["CanvasLayer", "PauseMenu", "Player", "Entities"]:
-		var node: Node = room_instance.get_node_or_null(child_name)
-		if node:
-			node.queue_free()
-
-	# Remove the room's ExitZone (we place our own in the last room)
-	_remove_exit_zones_recursive(room_instance)
-
-	# Collect all enemy nodes from this room into our global enemy list
-	_collect_enemies_from_room(room_instance)
-
-	# Move the player from this room's scene if present
-	var player_node: Node = room_instance.get_node_or_null("Player")
-	if player_node == null:
-		# Try nested paths
-		for path in ["Entities/Player", "Environment/Player"]:
-			player_node = room_instance.get_node_or_null(path)
-			if player_node:
-				break
-
-	print("[RoguelikeLevel] Room %d instantiated from %s at x=%.0f" % [room_index, room_data.path.get_file(), offset_x])
+		# Track enemy
+		_enemies.append(enemy)
+		if enemy.has_signal("died"):
+			enemy.died.connect(_on_enemy_died)
+		if enemy.has_signal("died_with_info"):
+			enemy.died_with_info.connect(_on_enemy_died_with_info)
+		if enemy.has_signal("hit"):
+			enemy.hit.connect(_on_enemy_hit)
 
 
-## Recursively remove any ExitZone nodes from a room subtree.
-func _remove_exit_zones_recursive(node: Node) -> void:
-	for child in node.get_children():
-		if child.get_script() != null:
-			var script_path: String = child.get_script().resource_path
-			if "exit_zone" in script_path.to_lower():
-				child.queue_free()
-				continue
-		if child.name.to_lower().contains("exit"):
-			child.queue_free()
-			continue
-		_remove_exit_zones_recursive(child)
+## Enemy spawn positions per room type (relative to room origin).
+func _get_enemy_positions(room_type: int) -> Array[Vector2]:
+	var w: float = ROOM_WIDTH
+	var h: float = ROOM_HEIGHT
+	match room_type:
+		RoomType.LABYRINTH:
+			return [
+				Vector2(w * 0.20, h * 0.22),
+				Vector2(w * 0.20, h * 0.76),
+				Vector2(w * 0.60, h * 0.22),
+				Vector2(w * 0.60, h * 0.76),
+				Vector2(w * 0.80, h * 0.50),
+			]
+		RoomType.BUILDING:
+			return [
+				Vector2(w * 0.22, h * 0.32),
+				Vector2(w * 0.22, h * 0.68),
+				Vector2(w * 0.70, h * 0.30),
+				Vector2(w * 0.70, h * 0.70),
+				Vector2(w * 0.50, h * 0.50),
+			]
+		RoomType.BEACH:
+			return [
+				Vector2(w * 0.30, h * 0.30),
+				Vector2(w * 0.30, h * 0.68),
+				Vector2(w * 0.55, h * 0.50),
+				Vector2(w * 0.75, h * 0.30),
+				Vector2(w * 0.75, h * 0.68),
+			]
+		RoomType.DOCKS:
+			return [
+				Vector2(w * 0.18, h * 0.50),
+				Vector2(w * 0.40, h * 0.30),
+				Vector2(w * 0.40, h * 0.70),
+				Vector2(w * 0.65, h * 0.50),
+				Vector2(w * 0.82, h * 0.50),
+			]
+		RoomType.CITY:
+			return [
+				Vector2(w * 0.22, h * 0.50),
+				Vector2(w * 0.46, h * 0.30),
+				Vector2(w * 0.46, h * 0.70),
+				Vector2(w * 0.72, h * 0.50),
+				Vector2(w * 0.86, h * 0.22),
+			]
+		_:
+			return [
+				Vector2(w * 0.30, h * 0.40),
+				Vector2(w * 0.30, h * 0.60),
+				Vector2(w * 0.70, h * 0.40),
+				Vector2(w * 0.70, h * 0.60),
+			]
 
 
-## Collect all enemy nodes from a room into _enemies, connecting their signals.
-func _collect_enemies_from_room(room_node: Node) -> void:
-	_collect_enemies_recursive(room_node)
+func _random_enemy_weapon(room_type: int) -> int:
+	# WeaponType: RIFLE=0, SHOTGUN=1, UZI=2, MACHETE=3
+	match room_type:
+		RoomType.LABYRINTH:
+			return [0, 2][randi() % 2]           # Rifle or UZI — good in corridors
+		RoomType.BUILDING:
+			return [0, 1, 2][randi() % 3]        # All ranged
+		RoomType.BEACH:
+			return [0, 1][randi() % 2]           # Rifle or Shotgun — open area
+		RoomType.DOCKS:
+			return [0, 2, 3][randi() % 3]        # Rifle, UZI, or Machete between containers
+		RoomType.CITY:
+			return [0, 1, 2][randi() % 3]        # All ranged
+		_:
+			return 0  # Default RIFLE
 
 
-func _collect_enemies_recursive(node: Node) -> void:
-	for child in node.get_children():
-		if child.has_signal("died") and not (child in _enemies):
-			_enemies.append(child)
-			child.died.connect(_on_enemy_died)
-			if child.has_signal("died_with_info"):
-				child.died_with_info.connect(_on_enemy_died_with_info)
-			if child.has_signal("hit"):
-				child.hit.connect(_on_enemy_hit)
-		_collect_enemies_recursive(child)
-
-
-## Create a single wall StaticBody2D with collision and visual.
-func _create_wall_body(parent: Node, rect: Rect2) -> void:
-	var wall := StaticBody2D.new()
-	wall.collision_layer = 4
-	wall.collision_mask = 0
-	wall.position = rect.get_center()
-
-	var shape_node := CollisionShape2D.new()
-	var rect_shape := RectangleShape2D.new()
-	rect_shape.size = rect.size
-	shape_node.shape = rect_shape
-	wall.add_child(shape_node)
-
-	var visual := ColorRect.new()
-	visual.color = WALL_COLOR
-	visual.size = rect.size
-	visual.position = -rect.size / 2.0
-	wall.add_child(visual)
-
-	parent.add_child(wall)
+func _random_enemy_behavior(room_type: int, enemy_index: int) -> int:
+	# BehaviorMode: PATROL=0, GUARD=1
+	if enemy_index == 0:
+		return 1  # First enemy is always a guard
+	return 0 if (randi() % 3 == 0) else 1  # 33% patrol, 67% guard
 
 
 ## ============================================================
 ## Player spawning
 ## ============================================================
 
-## Spawn the player in the first room.
 func _spawn_player() -> void:
 	var player_scene: PackedScene = load("res://scenes/characters/csharp/Player.tscn")
 	if player_scene == null:
@@ -396,10 +582,9 @@ func _spawn_player() -> void:
 	var player: Node2D = player_scene.instantiate()
 	player.name = "Player"
 
-	# Place player at the entry point of the first room
-	var first_room: Dictionary = _selected_rooms[0]
-	var spawn_x: float = _room_offsets[0] + first_room.player_spawn.x
-	var spawn_y: float = first_room.player_spawn.y
+	# Start in the first room, just right of the left wall
+	var spawn_x: float = _room_offsets[0] + 80.0
+	var spawn_y: float = ROOM_HEIGHT * 0.5
 	player.position = Vector2(spawn_x, spawn_y)
 
 	entities_node.add_child(player)
@@ -407,13 +592,12 @@ func _spawn_player() -> void:
 
 
 ## ============================================================
-## Standard level setup (mirrors docks_level.gd / labyrinth_level.gd)
+## Standard level setup
 ## ============================================================
 
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
-		# Create navigation region programmatically
 		nav_region = NavigationRegion2D.new()
 		nav_region.name = "NavigationRegion2D"
 		var nav_poly := NavigationPolygon.new()
@@ -424,17 +608,11 @@ func _setup_navigation() -> void:
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
 
-	print("[RoguelikeLevel] Navigation region set up")
-
 
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
-		_player = get_node_or_null("Player")
-	if _player == null:
 		return
-
-	_setup_selected_weapon()
 
 	if GameManager:
 		GameManager.set_player(_player)
@@ -482,46 +660,43 @@ func _setup_player_tracking() -> void:
 
 
 func _setup_enemy_tracking() -> void:
-	# Enemies were already collected during room instantiation in _collect_enemies_from_room().
-	# Just count them and update the HUD.
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("[RoguelikeLevel] Tracking %d enemies" % _initial_enemy_count)
 
 
 func _initialize_score_manager() -> void:
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager == null:
+	var sm: Node = get_node_or_null("/root/ScoreManager")
+	if sm == null:
 		return
-	score_manager.start_level(_initial_enemy_count)
-	if _player:
-		if score_manager.has_method("set_player"):
-			score_manager.set_player(_player)
-	if not score_manager.combo_changed.is_connected(_on_combo_changed):
-		score_manager.combo_changed.connect(_on_combo_changed)
+	sm.start_level(_initial_enemy_count)
+	if _player and sm.has_method("set_player"):
+		sm.set_player(_player)
+	if not sm.combo_changed.is_connected(_on_combo_changed):
+		sm.combo_changed.connect(_on_combo_changed)
 
 
 func _setup_exit_zone() -> void:
-	var exit_zone_scene: PackedScene = load("res://scenes/objects/ExitZone.tscn")
-	if exit_zone_scene == null:
-		push_warning("[RoguelikeLevel] ExitZone scene not found")
+	var exit_scene: PackedScene = load("res://scenes/objects/ExitZone.tscn")
+	if exit_scene == null:
+		push_warning("[RoguelikeLevel] ExitZone.tscn not found")
 		return
 
-	_exit_zone = exit_zone_scene.instantiate()
+	_exit_zone = exit_scene.instantiate()
 
-	# Place exit zone at the far end of the last room
-	var last_index: int = _selected_rooms.size() - 1
-	var last_room: Dictionary = _selected_rooms[last_index]
-	var exit_x: float = _room_offsets[last_index] + last_room.exit_spawn.x
-	var exit_y: float = last_room.exit_spawn.y
+	# Place in last room — near the right wall
+	var last_idx: int   = _selected_types.size() - 1
+	var exit_x: float   = _room_offsets[last_idx] + ROOM_WIDTH - 120.0
+	var exit_y: float   = ROOM_HEIGHT * 0.5
 	_exit_zone.position = Vector2(exit_x, exit_y)
-	_exit_zone.zone_width = 120.0
-	_exit_zone.zone_height = 120.0
+	_exit_zone.zone_width  = 100.0
+	_exit_zone.zone_height = 100.0
 
-	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+	if _exit_zone.has_signal("player_reached_exit"):
+		_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
 	add_child(_exit_zone)
 
-	print("[RoguelikeLevel] Exit zone placed at (%.0f, %.0f)" % [_exit_zone.position.x, _exit_zone.position.y])
+	print("[RoguelikeLevel] Exit zone at (%.0f, %.0f)" % [_exit_zone.position.x, _exit_zone.position.y])
 
 
 func _setup_debug_ui() -> void:
@@ -537,72 +712,75 @@ func _setup_debug_ui() -> void:
 	# PauseMenu
 	var pause_menu_scene: PackedScene = load("res://scenes/ui/PauseMenu.tscn")
 	if pause_menu_scene:
-		var pause_menu: Node = pause_menu_scene.instantiate()
-		canvas_layer.add_child(pause_menu)
+		var pm: Node = pause_menu_scene.instantiate()
+		canvas_layer.add_child(pm)
 
-	# Enemy count label
+	# Enemy count
 	_enemy_count_label = Label.new()
 	_enemy_count_label.name = "EnemyCountLabel"
 	_enemy_count_label.text = "Enemies: 0"
 	_enemy_count_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_enemy_count_label.offset_left = -200
-	_enemy_count_label.offset_right = -10
-	_enemy_count_label.offset_top = 10
+	_enemy_count_label.offset_left   = -200
+	_enemy_count_label.offset_right  = -10
+	_enemy_count_label.offset_top    = 10
 	_enemy_count_label.offset_bottom = 40
 	_enemy_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	ui.add_child(_enemy_count_label)
 
-	# Ammo label
+	# Ammo
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
 	_ammo_label.text = "AMMO: -"
 	_ammo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_ammo_label.offset_left = 10
-	_ammo_label.offset_top = 10
-	_ammo_label.offset_right = 300
+	_ammo_label.offset_left   = 10
+	_ammo_label.offset_top    = 10
+	_ammo_label.offset_right  = 300
 	_ammo_label.offset_bottom = 40
 	ui.add_child(_ammo_label)
 
-	# Kills label
+	# Kills
 	_kills_label = Label.new()
 	_kills_label.name = "KillsLabel"
 	_kills_label.text = "Kills: 0"
 	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_kills_label.offset_left = 10
-	_kills_label.offset_top = 45
-	_kills_label.offset_right = 200
+	_kills_label.offset_left   = 10
+	_kills_label.offset_top    = 45
+	_kills_label.offset_right  = 200
 	_kills_label.offset_bottom = 75
 	ui.add_child(_kills_label)
 
-	# Accuracy label
+	# Accuracy
 	_accuracy_label = Label.new()
 	_accuracy_label.name = "AccuracyLabel"
 	_accuracy_label.text = "Accuracy: 0%"
 	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_accuracy_label.offset_left = 10
-	_accuracy_label.offset_top = 75
-	_accuracy_label.offset_right = 200
+	_accuracy_label.offset_left   = 10
+	_accuracy_label.offset_top    = 75
+	_accuracy_label.offset_right  = 200
 	_accuracy_label.offset_bottom = 105
 	ui.add_child(_accuracy_label)
 
-	# Magazines label
+	# Magazines
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
 	_magazines_label.text = "MAGS: -"
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_magazines_label.offset_left = 10
-	_magazines_label.offset_top = 105
-	_magazines_label.offset_right = 400
+	_magazines_label.offset_left   = 10
+	_magazines_label.offset_top    = 105
+	_magazines_label.offset_right  = 400
 	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
-	# Roguelike mode indicator
+	# Mode label
+	var names: Array[String] = []
+	for t in _selected_types:
+		names.append(ROOM_TYPE_NAMES.get(t, "?"))
 	var mode_label := Label.new()
-	mode_label.name = "ModeLabel"
-	mode_label.text = "РОГАЛИК — %d комнат(ы)" % _selected_rooms.size()
+	mode_label.name  = "ModeLabel"
+	mode_label.text  = "РОГАЛИК — %s" % " → ".join(names)
 	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mode_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	mode_label.offset_top = 10
+	mode_label.offset_top    = 10
 	mode_label.offset_bottom = 36
 	mode_label.add_theme_font_size_override("font_size", 14)
 	mode_label.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.8))
@@ -610,77 +788,72 @@ func _setup_debug_ui() -> void:
 
 
 func _setup_saturation_overlay() -> void:
-	var canvas_layer := get_node_or_null("CanvasLayer")
-	if canvas_layer == null:
+	var cl: Node = get_node_or_null("CanvasLayer")
+	if cl == null:
 		return
 	_saturation_overlay = ColorRect.new()
-	_saturation_overlay.name = "SaturationOverlay"
+	_saturation_overlay.name  = "SaturationOverlay"
 	_saturation_overlay.color = Color(1.0, 0.9, 0.3, 0.0)
 	_saturation_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_saturation_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas_layer.add_child(_saturation_overlay)
-
-
-func _setup_selected_weapon() -> void:
-	if _player == null:
-		return
-
-	var selected_weapon_id: String = "makarov_pm"
-	if GameManager:
-		selected_weapon_id = GameManager.get_selected_weapon()
-
-	print("[RoguelikeLevel] Setting up weapon: %s" % selected_weapon_id)
-
-	var weapon_names: Dictionary = {
-		"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol",
-		"sniper": "SniperRifle", "m16": "AssaultRifle", "ak_gl": "AKGL",
-		"revolver": "Revolver", "makarov_pm": "MakarovPM"
-	}
-	if selected_weapon_id in weapon_names:
-		var expected_name: String = weapon_names[selected_weapon_id]
-		var existing: Node = _player.get_node_or_null(expected_name)
-		if existing != null and _player.get("CurrentWeapon") == existing:
-			return
-
-	if selected_weapon_id != "makarov_pm":
-		var weapon_scene_paths: Dictionary = {
-			"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn",
-			"mini_uzi": "res://scenes/weapons/csharp/MiniUzi.tscn",
-			"silenced_pistol": "res://scenes/weapons/csharp/SilencedPistol.tscn",
-			"sniper": "res://scenes/weapons/csharp/SniperRifle.tscn",
-			"m16": "res://scenes/weapons/csharp/AssaultRifle.tscn",
-			"ak_gl": "res://scenes/weapons/csharp/AKGL.tscn",
-			"revolver": "res://scenes/weapons/csharp/Revolver.tscn",
-		}
-		if selected_weapon_id in weapon_scene_paths:
-			var makarov: Node = _player.get_node_or_null("MakarovPM")
-			if makarov:
-				makarov.queue_free()
-			var weapon_scene: PackedScene = load(weapon_scene_paths[selected_weapon_id])
-			if weapon_scene:
-				var new_weapon: Node = weapon_scene.instantiate()
-				new_weapon.name = weapon_names.get(selected_weapon_id, selected_weapon_id)
-				_player.add_child(new_weapon)
-				if _player.has_method("EquipWeapon"):
-					_player.EquipWeapon(new_weapon)
-				elif _player.get("CurrentWeapon") != null:
-					_player.CurrentWeapon = new_weapon
+	cl.add_child(_saturation_overlay)
 
 
 func _find_player_weapon() -> Node:
 	if _player == null:
 		return null
-	for weapon_name in ["Shotgun", "MiniUzi", "SilencedPistol", "SniperRifle", "AssaultRifle", "AKGL", "Revolver", "MakarovPM"]:
-		var w: Node = _player.get_node_or_null(weapon_name)
+	for n in ["MakarovPM", "Shotgun", "MiniUzi", "SilencedPistol", "SniperRifle", "AssaultRifle", "AKGL", "Revolver"]:
+		var w: Node = _player.get_node_or_null(n)
 		if w != null:
 			return w
 	return null
 
 
-func _start_replay_recording() -> void:
-	_replay_manager = get_node_or_null("/root/ReplayManager")
-	if _replay_manager and _replay_manager.has_method("StartRecording"):
-		_replay_manager.StartRecording(_enemies)
+## ============================================================
+## Wall / cover helpers
+## ============================================================
+
+func _create_wall(parent: Node, rect: Rect2) -> void:
+	var body := StaticBody2D.new()
+	body.collision_layer = 4
+	body.collision_mask  = 0
+	body.position        = rect.get_center()
+
+	var shape_node := CollisionShape2D.new()
+	var shape      := RectangleShape2D.new()
+	shape.size     = rect.size
+	shape_node.shape = shape
+	body.add_child(shape_node)
+
+	var visual        := ColorRect.new()
+	visual.color      = WALL_COLOR
+	visual.size       = rect.size
+	visual.position   = -rect.size / 2.0
+	body.add_child(visual)
+
+	parent.add_child(body)
+
+
+func _create_cover(parent: Node, rect: Rect2) -> void:
+	# Same as wall but slightly lighter colour (movable cover appearance)
+	var body := StaticBody2D.new()
+	body.collision_layer = 4
+	body.collision_mask  = 0
+	body.position        = rect.get_center()
+
+	var shape_node := CollisionShape2D.new()
+	var shape      := RectangleShape2D.new()
+	shape.size     = rect.size
+	shape_node.shape = shape
+	body.add_child(shape_node)
+
+	var visual     := ColorRect.new()
+	visual.color   = Color(0.42, 0.38, 0.34, 1.0)   ## Brownish — crate/barrel colour
+	visual.size    = rect.size
+	visual.position = -rect.size / 2.0
+	body.add_child(visual)
+
+	parent.add_child(body)
 
 
 ## ============================================================
@@ -696,16 +869,14 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies eliminated!")
-		if _replay_manager and _replay_manager.has_method("StopRecording"):
-			_replay_manager.StopRecording()
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 
 
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager and score_manager.has_method("register_kill"):
-		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+func _on_enemy_died_with_info(is_ricochet: bool, is_penetration: bool) -> void:
+	var sm: Node = get_node_or_null("/root/ScoreManager")
+	if sm and sm.has_method("register_kill"):
+		sm.register_kill(is_ricochet, is_penetration)
 
 
 func _on_enemy_hit() -> void:
@@ -724,32 +895,31 @@ func _on_player_ammo_changed(current: int, maximum: int) -> void:
 		GameManager.register_shot()
 
 
-func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
-	_update_ammo_label_magazine(current_ammo, reserve_ammo)
-	if current_ammo <= 0 and reserve_ammo <= 0:
-		if _current_enemy_count > 0 and not _game_over_shown:
-			_show_game_over_message()
+func _on_weapon_ammo_changed(current_mag: int, reserve: int) -> void:
+	_update_ammo_label_magazine(current_mag, reserve)
+	if current_mag <= 0 and reserve <= 0 and _current_enemy_count > 0 and not _game_over_shown:
+		_show_game_over_message()
 
 
-func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
-	_update_magazines_label(magazine_ammo_counts)
+func _on_magazines_changed(mag_counts: Array) -> void:
+	_update_magazines_label(mag_counts)
 
 
 func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
-	var reserve_ammo: int = 0
+	var reserve: int = 0
 	if _player:
-		var weapon: Node = _player.get_node_or_null("Shotgun")
-		if weapon != null and weapon.get("ReserveAmmo") != null:
-			reserve_ammo = weapon.ReserveAmmo
-	_update_ammo_label_magazine(shell_count, reserve_ammo)
+		var w: Node = _player.get_node_or_null("Shotgun")
+		if w and w.get("ReserveAmmo") != null:
+			reserve = w.ReserveAmmo
+	_update_ammo_label_magazine(shell_count, reserve)
 
 
 func _on_player_ammo_depleted() -> void:
 	_broadcast_player_ammo_empty(true)
 	if _player:
-		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
-			sound_propagation.emit_player_empty_click(_player.global_position, _player)
+		var sp: Node = get_node_or_null("/root/SoundPropagation")
+		if sp and sp.has_method("emit_player_empty_click"):
+			sp.emit_player_empty_click(_player.global_position, _player)
 	if _player and _player.has_method("get_current_ammo"):
 		if _player.get_current_ammo() <= 0 and _current_enemy_count > 0 and not _game_over_shown:
 			_show_game_over_message()
@@ -758,9 +928,9 @@ func _on_player_ammo_depleted() -> void:
 func _on_player_reload_started() -> void:
 	_broadcast_player_reloading(true)
 	if _player:
-		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-		if sound_propagation and sound_propagation.has_method("emit_player_reload"):
-			sound_propagation.emit_player_reload(_player.global_position, _player)
+		var sp: Node = get_node_or_null("/root/SoundPropagation")
+		if sp and sp.has_method("emit_player_reload"):
+			sp.emit_player_reload(_player.global_position, _player)
 
 
 func _on_player_reload_completed() -> void:
@@ -787,7 +957,7 @@ func _on_player_reached_exit() -> void:
 
 
 func _on_combo_changed(combo: int, points: int) -> void:
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
@@ -797,9 +967,9 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		_combo_label.text = ""
 		_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		_combo_label.offset_left = -200
-		_combo_label.offset_right = -10
-		_combo_label.offset_top = 80
+		_combo_label.offset_left   = -200
+		_combo_label.offset_right  = -10
+		_combo_label.offset_top    = 80
 		_combo_label.offset_bottom = 120
 		_combo_label.add_theme_font_size_override("font_size", 28)
 		_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
@@ -807,7 +977,7 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		ui.add_child(_combo_label)
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text    = "x%d COMBO (+%d)" % [combo, points]
 		_combo_label.visible = true
 		_combo_label.modulate = Color.WHITE
 		var tween := create_tween()
@@ -817,15 +987,14 @@ func _on_combo_changed(combo: int, points: int) -> void:
 
 
 ## ============================================================
-## Level completion and score
+## Level completion / score
 ## ============================================================
 
 func _activate_exit_zone() -> void:
 	if _exit_zone and _exit_zone.has_method("activate"):
 		_exit_zone.activate()
-		print("[RoguelikeLevel] Exit zone activated — go to exit to see score!")
+		print("[RoguelikeLevel] Exit zone activated!")
 	else:
-		push_warning("[RoguelikeLevel] Exit zone not available — showing score immediately")
 		_complete_level_with_score()
 
 
@@ -833,49 +1002,50 @@ func _complete_level_with_score() -> void:
 	if _level_completed:
 		return
 	_level_completed = true
+	_restore_loadout()
 
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager and score_manager.has_method("complete_level"):
-		var score_data: Dictionary = score_manager.complete_level()
-		_show_score_screen(score_data)
+	var sm: Node = get_node_or_null("/root/ScoreManager")
+	if sm and sm.has_method("complete_level"):
+		var data: Dictionary = sm.complete_level()
+		_show_score_screen(data)
 	else:
 		_show_victory_message()
 
 
 func _show_score_screen(score_data: Dictionary) -> void:
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		_show_victory_message()
 		return
 
 	var animated_script = load("res://scripts/ui/animated_score_screen.gd")
 	if animated_script:
-		var score_screen = animated_script.new()
-		add_child(score_screen)
-		score_screen.animation_completed.connect(_on_score_animation_completed)
-		score_screen.show_animated_score(ui, score_data)
+		var ss = animated_script.new()
+		add_child(ss)
+		ss.animation_completed.connect(_on_score_animation_completed)
+		ss.show_animated_score(ui, score_data)
 	else:
 		_show_fallback_score_screen(ui, score_data)
 
 
 func _on_score_animation_completed(container: VBoxContainer) -> void:
-	_add_score_screen_buttons(container)
+	_add_score_buttons(container)
 
 
-func _add_score_screen_buttons(container: VBoxContainer) -> void:
-	var restart_button := Button.new()
-	restart_button.text = "↻ Снова (Q)"
-	restart_button.custom_minimum_size = Vector2(200, 40)
-	restart_button.add_theme_font_size_override("font_size", 18)
-	restart_button.pressed.connect(_on_restart_pressed)
-	container.add_child(restart_button)
+func _add_score_buttons(container: VBoxContainer) -> void:
+	var btn_restart := Button.new()
+	btn_restart.text = "↻ Снова (Q)"
+	btn_restart.custom_minimum_size = Vector2(200, 40)
+	btn_restart.add_theme_font_size_override("font_size", 18)
+	btn_restart.pressed.connect(_on_restart_pressed)
+	container.add_child(btn_restart)
 
-	var level_select_button := Button.new()
-	level_select_button.text = "☰ Меню"
-	level_select_button.custom_minimum_size = Vector2(200, 40)
-	level_select_button.add_theme_font_size_override("font_size", 18)
-	level_select_button.pressed.connect(_on_level_select_pressed)
-	container.add_child(level_select_button)
+	var btn_menu := Button.new()
+	btn_menu.text = "☰ Меню"
+	btn_menu.custom_minimum_size = Vector2(200, 40)
+	btn_menu.add_theme_font_size_override("font_size", 18)
+	btn_menu.pressed.connect(_on_level_select_pressed)
+	container.add_child(btn_menu)
 
 
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
@@ -887,9 +1057,9 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 
 	var container := VBoxContainer.new()
 	container.set_anchors_preset(Control.PRESET_CENTER)
-	container.offset_left = -250
-	container.offset_right = 250
-	container.offset_top = -200
+	container.offset_left   = -250
+	container.offset_right  = 250
+	container.offset_top    = -200
 	container.offset_bottom = 200
 	container.add_theme_constant_override("separation", 10)
 	ui.add_child(container)
@@ -901,34 +1071,34 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	title.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 1.0))
 	container.add_child(title)
 
-	var total_label := Label.new()
-	total_label.text = "ИТОГО: %d | РАНГ: %s" % [score_data.get("total_score", 0), score_data.get("rank", "?")]
-	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	total_label.add_theme_font_size_override("font_size", 28)
-	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
-	container.add_child(total_label)
+	var total := Label.new()
+	total.text = "ИТОГО: %d | РАНГ: %s" % [score_data.get("total_score", 0), score_data.get("rank", "?")]
+	total.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total.add_theme_font_size_override("font_size", 28)
+	total.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	container.add_child(total)
 
-	_add_score_screen_buttons(container)
+	_add_score_buttons(container)
 
 
 func _show_victory_message() -> void:
 	_score_shown = true
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
-	var victory_label := Label.new()
-	victory_label.text = "РОГАЛИК ПРОЙДЕН!"
-	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	victory_label.add_theme_font_size_override("font_size", 48)
-	victory_label.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 1.0))
-	victory_label.set_anchors_preset(Control.PRESET_CENTER)
-	victory_label.offset_left = -250
-	victory_label.offset_right = 250
-	victory_label.offset_top = -80
-	victory_label.offset_bottom = -30
-	ui.add_child(victory_label)
+	var lbl := Label.new()
+	lbl.text = "РОГАЛИК ПРОЙДЕН!"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 48)
+	lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_CENTER)
+	lbl.offset_left   = -250
+	lbl.offset_right  = 250
+	lbl.offset_top    = -80
+	lbl.offset_bottom = -30
+	ui.add_child(lbl)
 
 
 ## ============================================================
@@ -937,7 +1107,7 @@ func _show_victory_message() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = "Враги: %d" % _current_enemy_count
 
 
 func _update_ammo_label(current: int, maximum: int) -> void:
@@ -964,7 +1134,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 
 
-func _update_magazines_label(magazine_ammo_counts: Array) -> void:
+func _update_magazines_label(mag_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 	var weapon: Node = _find_player_weapon()
@@ -972,15 +1142,12 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
-	if magazine_ammo_counts.is_empty():
+	if mag_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
 		return
 	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
-		if i == 0:
-			parts.append("[%d]" % magazine_ammo_counts[i])
-		else:
-			parts.append("%d" % magazine_ammo_counts[i])
+	for i in range(mag_counts.size()):
+		parts.append("[%d]" % mag_counts[i] if i == 0 else "%d" % mag_counts[i])
 	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
@@ -1005,40 +1172,40 @@ func _show_death_message() -> void:
 	if _game_over_shown:
 		return
 	_game_over_shown = true
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
-	var death_label := Label.new()
-	death_label.text = "YOU DIED"
-	death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	death_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	death_label.add_theme_font_size_override("font_size", 64)
-	death_label.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15, 1.0))
-	death_label.set_anchors_preset(Control.PRESET_CENTER)
-	death_label.offset_left = -200
-	death_label.offset_right = 200
-	death_label.offset_top = -50
-	death_label.offset_bottom = 50
-	ui.add_child(death_label)
+	var lbl := Label.new()
+	lbl.text = "YOU DIED"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 64)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_CENTER)
+	lbl.offset_left   = -200
+	lbl.offset_right  = 200
+	lbl.offset_top    = -50
+	lbl.offset_bottom = 50
+	ui.add_child(lbl)
 
 
 func _show_game_over_message() -> void:
 	_game_over_shown = true
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
-	var game_over_label := Label.new()
-	game_over_label.text = "OUT OF AMMO\n%d enemies remaining" % _current_enemy_count
-	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	game_over_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	game_over_label.add_theme_font_size_override("font_size", 48)
-	game_over_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
-	game_over_label.set_anchors_preset(Control.PRESET_CENTER)
-	game_over_label.offset_left = -250
-	game_over_label.offset_right = 250
-	game_over_label.offset_top = -75
-	game_over_label.offset_bottom = 75
-	ui.add_child(game_over_label)
+	var lbl := Label.new()
+	lbl.text = "OUT OF AMMO\n%d enemies remaining" % _current_enemy_count
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 48)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_CENTER)
+	lbl.offset_left   = -250
+	lbl.offset_right  = 250
+	lbl.offset_top    = -75
+	lbl.offset_bottom = 75
+	ui.add_child(lbl)
 
 
 ## ============================================================
@@ -1058,7 +1225,7 @@ func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 
 
 ## ============================================================
-## Input: Q to restart, W to toggle score
+## Input: Q to restart
 ## ============================================================
 
 func _input(event: InputEvent) -> void:
@@ -1083,13 +1250,13 @@ func _on_restart_pressed() -> void:
 func _on_level_select_pressed() -> void:
 	get_tree().paused = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-	var scene_loader: Node = get_node_or_null("/root/SceneLoader")
-	if scene_loader and scene_loader.has_method("load_level"):
-		scene_loader.load_level("res://scenes/levels/LabyrinthLevel.tscn")
+	_restore_loadout()
+	var sl: Node = get_node_or_null("/root/SceneLoader")
+	if sl and sl.has_method("load_level"):
+		sl.load_level("res://scenes/levels/LabyrinthLevel.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/levels/LabyrinthLevel.tscn")
 
 
-## Return the next level path (roguelike loops back to itself for now)
 func _get_next_level_path() -> String:
 	return "res://scenes/levels/RoguelikeLevel.tscn"
