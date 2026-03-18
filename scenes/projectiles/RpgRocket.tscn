@@ -52,6 +52,8 @@ rpg_explosion_radius = 150.0
 rpg_explosion_damage = 3
 rpg_spawn_immunity = 0.15
 rpg_health = 1
+rpg_homing_steer_speed = 1.2
+rpg_homing_max_turn_angle = 0.5235987756
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(2.0, 2.0)
@@ -78,4 +80,5 @@ local_coords = false
 z_index = -1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(32, 0)
 shape = SubResource("CircleShape2D_rocket")
