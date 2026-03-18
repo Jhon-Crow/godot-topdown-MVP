@@ -795,7 +795,7 @@ enable_cover = true
 [node name="ContainerYardA_Sniper" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(4500, 420)
 behavior_mode = 1
-weapon_type = 5
+weapon_type = 7
 destroy_on_death = true
 enable_flanking = false
 enable_cover = true
