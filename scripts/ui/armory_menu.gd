@@ -1578,6 +1578,12 @@ func _animate_slot_reveal(slot: PanelContainer) -> void:
 		tween.tween_property(vbox, "scale", Vector2(1.0, 1.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
 
