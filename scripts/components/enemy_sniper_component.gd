@@ -25,7 +25,7 @@ func _ready() -> void:
 ## Process sniper rifle combat behavior: maintain standoff distance and blind-fire through cover.
 ## Returns true if sniper handling was applied (caller should return early).
 func process_combat(delta: float, can_see_player: bool, player: Node,
-		last_known_pos: Vector2, prediction: PlayerPredictionComponent) -> bool:
+		last_known_pos: Vector2, prediction: Node) -> bool:
 	if player == null:
 		return false
 
@@ -74,7 +74,7 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 
 ## Handle sniper behavior in PURSUING state: hold position and blind-fire when at safe range.
 ## Returns true if the sniper held position (caller should return early).
-func process_pursuing(delta: float, last_known_pos: Vector2, prediction: PlayerPredictionComponent) -> bool:
+func process_pursuing(delta: float, last_known_pos: Vector2, prediction: Node) -> bool:
 	blind_fire_timer += delta
 	var blind_pos := last_known_pos
 	if prediction != null and prediction.has_predictions:
