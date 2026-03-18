@@ -156,13 +156,33 @@ The frozenness is caused entirely by the navigation failure — the enemy "wants
 
 ## Supporting Evidence from Godot 4 Navigation
 
+### Nav mesh baking required after runtime geometry changes
+
 Godot 4's NavigationRegion2D requires explicit `bake_navigation_polygon()` calls when the scene geometry changes at runtime. From the [Godot 4 documentation](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationregions.html):
 
 > "The bake process only updates the NavigationRegion's polygon data. Changes to the scene geometry after baking will not automatically update the navigation data."
 
 This is a **known pattern** where procedural level generation silently breaks navigation. The roguelike level creates walls, covers, and obstacles at runtime (`_build_room()`) but does not re-bake the navigation region.
 
-Additionally, `NavigationServer2D.map_get_closest_point()` — used in `MacheteComponent.try_dodge()` — may return a point on a **different navigation island** than the agent's current position, causing the dodge system to target unreachable positions.
+### `map_get_closest_point` does not respect island boundaries
+
+`NavigationServer2D.map_get_closest_point()` (used in `MacheteComponent.try_dodge()`) returns the closest point on the **entire map** regardless of which island the caller is on. When the player is on a disconnected nav mesh island, this function returns a point at the edge of the enemy's own island. `NavigationAgent2D` then generates a path that leads to that edge, exhausts the path, and reports `is_navigation_finished() == true` — even though the enemy is nowhere near the player.
+
+This is confirmed by known Godot 4 issues:
+- **GitHub #85247**: `is_target_reached()` fires early when `path_desired_distance > target_desired_distance`
+- **GitHub #82560**: `is_target_reached` returns `false` even within target distance
+- **GitHub #94709**: NavigationAgent2D gets stuck on opposite sides of an obstacle
+- **Godot Forum**: No public API exists to query whether a target is reachable across island boundaries
+
+### `is_navigation_finished()` as attack-range gate is unreliable
+
+A common pattern error: checking `is_navigation_finished()` as the signal to enter attack/combat state. The function can return `true` prematurely (path end reached but not player position), causing the state machine to re-enter COMBAT before the enemy is in attack range — which then immediately fails, re-triggers PURSUING, and loops.
+
+The correct pattern is to always gate attacks on direct distance: `global_position.distance_to(player.global_position) <= melee_range`.
+
+### Navigation RID mismatch after scene reloads
+
+Each room reload in roguelike (`SceneLoader.scene_changed_successfully`) tears down and re-creates the scene. If the enemy's `NavigationAgent2D` does not explicitly update its map RID after reload via `set_navigation_map(get_world_2d().get_navigation_map())`, it may query a stale/detached map, producing empty paths that fail silently.
 
 ---
 
@@ -188,13 +208,13 @@ Note: This must be called **after** all walls and obstacles are added, and **bef
 
 ### Solution 2: Spawn Enemies After Navigation Bake Completes
 
-Ensure enemies are only spawned after navigation is ready:
+Ensure enemies are only spawned after navigation is ready (nav baking is deferred by one physics frame in Godot 4):
 
 ```gdscript
 func _ready() -> void:
     _build_room(room_node)
-    # Wait one frame for nav mesh bake to propagate
-    await get_tree().process_frame
+    # Wait one physics frame for nav mesh bake to propagate to NavigationServer
+    await get_tree().physics_frame
     _spawn_enemies_in_room(room_node)
 ```
 
@@ -236,6 +256,19 @@ The bug is not a crash but significantly degrades gameplay quality when it occur
 | `scripts/objects/enemy.gd` | Machete COMBAT stuck detection (#1107), PURSUING→COMBAT transition |
 | `scripts/components/machete_component.gd` | Melee range check, navigation dodge |
 | `scripts/ai/states/pursuing_state.gd` | PURSUING state logic |
+
+---
+
+## External References
+
+| Source | Relevance |
+|---|---|
+| [Godot #85247](https://github.com/godotengine/godot/issues/85247) | `is_target_reached()` fires early when path_desired_distance > target_desired_distance |
+| [Godot #82560](https://github.com/godotengine/godot/issues/82560) | `is_target_reached` returns false even within distance |
+| [Godot #94709](https://github.com/godotengine/godot/issues/94709) | NavigationAgent2D stuck on opposite sides of obstacle |
+| [Godot Forum: map_get_closest_point issue](https://forum.godotengine.org/t/navigationserver2d-map-get-closest-point-issue/132040) | closest_point ignores island boundaries |
+| [Godot Docs: NavigationRegions](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationregions.html) | Baking requirements for runtime geometry |
+| [Godot Forum: NavigationAgent2D RID mismatch](https://forum.godotengine.org/t/solved-issue-with-navigationagent2d/38452) | Nav RID must be updated after scene reload |
 
 ---
 
