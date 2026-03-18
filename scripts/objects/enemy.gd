@@ -30,8 +30,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE, SHOTGUN, UZI, MACHETE (melee, #579), MACHINE_GUN (PKM belt-fed, #1033).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, MACHINE_GUN }
+## Weapon types: RIFLE, SHOTGUN, UZI, MACHETE (melee, #579), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, MACHINE_GUN, SNIPER_RIFLE }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -3878,6 +3878,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
 		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
+		elif weapon_type == WeaponType.SNIPER_RIFLE and audio.has_method("play_asvk_shot"): audio.play_asvk_shot(global_position)  # [#1125] ASVK sniper rifle sound
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0

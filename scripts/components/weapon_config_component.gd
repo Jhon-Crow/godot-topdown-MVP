@@ -101,6 +101,29 @@ const WEAPON_CONFIGS := {
 		"dodge_distance": 120.0,
 		"sneak_speed_multiplier": 0.6
 	},
+	5: {  # SNIPER_RIFLE (ASVK) - anti-materiel bolt-action sniper rifle (Issue #1125)
+		"shoot_cooldown": 3.0,      # Slow bolt-action rate (~0.33 rps)
+		"bullet_speed": 10000.0,    # Near-instant (same as player ASVK)
+		"magazine_size": 5,         # 5-round magazine (same as player ASVK)
+		"total_magazines": 3,       # 5 + 10 extra rounds
+		"reload_time": 4.0,         # Long reload for heavy rifle
+		"bullet_spawn_offset": 60.0,
+		"weapon_loudness": 3000.0,  # Very loud anti-materiel rifle
+		"sprite_path": "res://assets/sprites/weapons/asvk_topdown.png",
+		"bullet_scene_path": "res://scenes/projectiles/csharp/SniperBulletEnemy.tscn",
+		"casing_scene_path": "res://scenes/effects/Casing.tscn",
+		"caliber_path": "res://resources/calibers/caliber_127x108.tres",
+		"is_shotgun": false,
+		"pellet_count_min": 1,
+		"pellet_count_max": 1,
+		"spread_angle": 0.0,
+		# No spread — sniper rifle is perfectly accurate
+		"spread_threshold": 999,
+		"initial_spread": 0.0,
+		"spread_increment": 0.0,
+		"max_spread": 0.0,
+		"spread_reset_time": 0.0
+	},
 	4: {  # MACHINE_GUN (PKM) - belt-fed heavy machine gun (Issue #1033)
 		"shoot_cooldown": 0.12,     # Slightly slower than rifle (~8.3 rps)
 		"bullet_speed": 2800.0,     # High muzzle velocity
@@ -142,4 +165,5 @@ static func get_type_name(weapon_type: int) -> String:
 		2: return "UZI"
 		3: return "MACHETE"
 		4: return "MACHINE_GUN"
+		5: return "SNIPER_RIFLE"
 		_: return "UNKNOWN"
