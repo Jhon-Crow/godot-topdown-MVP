@@ -1,0 +1,84 @@
+[gd_scene load_steps=8 format=3 uid="uid://crpgrocket583k1"]
+
+[ext_resource type="Script" path="res://scripts/projectiles/bullet.gd" id="1_bullet"]
+[ext_resource type="Texture2D" path="res://assets/sprites/projectiles/rpg_rocket.png" id="2_rpg_rocket_texture"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rocket"]
+radius = 6.0
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+offsets = PackedFloat32Array(0, 0.4, 1)
+colors = PackedColorArray(1, 0.9, 0.3, 1, 1, 0.4, 0.1, 0.8, 0.8, 0.2, 0.0, 0)
+
+[sub_resource type="Curve" id="Curve_trail"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_exhaust"]
+gradient = SubResource("Gradient_trail")
+width = 8
+height = 8
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_exhaust"]
+lifetime_randomness = 0.3
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 2.0
+direction = Vector3(-1, 0, 0)
+spread = 25.0
+initial_velocity_min = 80.0
+initial_velocity_max = 180.0
+gravity = Vector3(0, 0, 0)
+damping_min = 60.0
+damping_max = 120.0
+scale_min = 0.2
+scale_max = 0.5
+color = Color(1, 0.7, 0.1, 1)
+
+[node name="RpgRocket" type="Area2D"]
+collision_layer = 16
+collision_mask = 55
+script = ExtResource("1_bullet")
+is_rpg_rocket = true
+speed = 600.0
+lifetime = 5.0
+trail_length = 20
+rpg_speed_initial = 600.0
+rpg_speed_max = 1800.0
+rpg_accel_distance = 800.0
+rpg_explosion_radius = 150.0
+rpg_explosion_damage = 3
+rpg_spawn_immunity = 0.15
+rpg_health = 1
+rpg_homing_steer_speed = 1.2
+rpg_homing_max_turn_angle = 0.5235987756
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(2.0, 2.0)
+texture = ExtResource("2_rpg_rocket_texture")
+
+[node name="Trail" type="Line2D" parent="."]
+width = 6.0
+width_curve = SubResource("Curve_trail")
+default_color = Color(1, 0.6, 0.1, 1)
+gradient = SubResource("Gradient_trail")
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="ExhaustParticles" type="GPUParticles2D" parent="."]
+emitting = true
+amount = 24
+process_material = SubResource("ParticleProcessMaterial_exhaust")
+texture = SubResource("GradientTexture2D_exhaust")
+lifetime = 0.3
+one_shot = false
+explosiveness = 0.0
+randomness = 0.5
+local_coords = false
+z_index = -1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(32, 0)
+shape = SubResource("CircleShape2D_rocket")

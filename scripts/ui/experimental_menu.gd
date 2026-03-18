@@ -301,7 +301,7 @@ func _on_settings_changed() -> void:
 
 
 ## Enemy spawner: populate enemy type dropdown.
-## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=MACHINE_GUN).
+## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN).
 ## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
@@ -310,7 +310,8 @@ func _setup_enemy_spawner() -> void:
 		{"name": "Shotgun", "weapon_type": 1, "behavior": 1},
 		{"name": "UZI (SMG)", "weapon_type": 2, "behavior": 1},
 		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
-		{"name": "Machine Gunner (PKM)", "weapon_type": 4, "behavior": 1},
+		{"name": "RPG + PM pistol", "weapon_type": 4, "behavior": 1},
+		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
 	]
 	for t in types:

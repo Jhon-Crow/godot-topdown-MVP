@@ -272,6 +272,14 @@ func _ready() -> void:
 		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
 			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
 
+	# Apply extended magazine passive item total ammo reduction (Issue #1065)
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("get_total_ammo_multiplier"):
+		var ammo_mult: float = active_item_manager.get_total_ammo_multiplier()
+		if ammo_mult != 1.0:
+			max_ammo = maxi(1, int(max_ammo * ammo_mult))
+			FileLogger.info("[Player] Extended Magazine: total ammo reduced to %d (multiplier=%.2f)" % [max_ammo, ammo_mult])
+
 	# Apply Armored Skin +1 HP bonus before setting current health (Issue #1045)
 	var _armored_skin_check: Node = get_node_or_null("/root/ActiveItemManager")
 	if _armored_skin_check and _armored_skin_check.has_method("has_armored_skin"):
@@ -3192,6 +3200,14 @@ func _handle_homing_input(delta: float) -> void:
 	if not _homing_equipped:
 		return
 
+	# Issue #1115: Cancel homing effect immediately if player enters jammer range while active
+	if _homing_active and ActiveItemManager.is_active_item_jammed():
+		_homing_active = false
+		_homing_timer = 0.0
+		_stop_homing_scanner()
+		homing_deactivated.emit()
+		FileLogger.info("[Player.Homing] Homing cancelled by Radio Jammer (Issue #1115)")
+
 	# Handle active timer countdown
 	if _homing_active:
 		_homing_timer -= delta
@@ -3608,6 +3624,11 @@ func _handle_invisibility_suit_input() -> void:
 	if not is_instance_valid(_invisibility_suit):
 		return
 
+	# Issue #1115: Cancel invisibility immediately if player enters jammer range while active
+	if _invisibility_suit.is_active and ActiveItemManager.is_active_item_jammed():
+		_invisibility_suit.deactivate()
+		FileLogger.info("[Player.InvisibilitySuit] Invisibility cancelled by Radio Jammer (Issue #1115)")
+
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
 		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
@@ -3870,6 +3891,11 @@ func _handle_trajectory_glasses_input() -> void:
 
 	if not is_instance_valid(_trajectory_glasses):
 		return
+
+	# Issue #1115: Cancel trajectory glasses immediately if player enters jammer range while active
+	if _trajectory_glasses.is_active and ActiveItemManager.is_active_item_jammed():
+		_trajectory_glasses.deactivate()
+		FileLogger.info("[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)")
 
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
