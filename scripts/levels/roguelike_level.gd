@@ -480,6 +480,12 @@ func _spawn_enemies_in_room(room_node: Node2D, room_index: int) -> void:
 			enemy.patrol_offsets = [Vector2(80, 0), Vector2(-80, 0)]
 		enemy.min_health = 1
 		enemy.max_health = 2
+		# Roguelike enemies must NOT respawn — destroy on death so each enemy dies
+		# permanently. Without this (default=false) the enemy resets after respawn_delay
+		# seconds and can die again, which incorrectly decrements _current_enemy_count
+		# multiple times and fires the "died" signal repeatedly (visible as enemies
+		# "respawning on the spot" after being killed — Issue #1061 round 5).
+		enemy.destroy_on_death = true
 		room_node.add_child(enemy)
 
 		# Track enemy
@@ -637,6 +643,18 @@ func _setup_player_tracking() -> void:
 
 	if GameManager:
 		GameManager.set_player(_player)
+
+	# Remove camera limits so the player can follow the full multi-room map.
+	# Without this the Camera2D keeps its default limits (~screen size) and the
+	# player disappears off the right edge when moving past room 0.
+	# Same fix is applied in DocksLevel, CastleLevel, CityLevel (Issue #1061 r5).
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera:
+		camera.limit_left   = -10000000
+		camera.limit_top    = -10000000
+		camera.limit_right  =  10000000
+		camera.limit_bottom =  10000000
+		print("[RoguelikeLevel] Camera limits removed — follows player across all rooms")
 
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 

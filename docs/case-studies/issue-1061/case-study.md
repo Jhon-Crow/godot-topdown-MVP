@@ -355,7 +355,53 @@ func _on_player_died() -> void:
 
 ---
 
-## 11. References
+## 11. Round 5 Bugs (2026-03-18 05:20 session)
+
+**Logs:** `game_log_20260318_052030.txt`, `game_log_20260318_052142.txt`
+
+### 11.1 Bug: Enemy "respawns" immediately after death on the same spot
+
+**Symptom:** Enemies that were visibly shot dead reappeared at their original positions seconds later and could be killed again.
+
+**Log evidence** (`game_log_20260318_052142.txt`):
+```
+[05:21:49] [ENEMY] [Enemy_R2_1] Spawned at (3984, 360)   ← one spawn
+[05:22:17] [ENEMY] [Enemy_R2_1] Enemy died                ← died once
+[05:22:25] [ENEMY] [Enemy_R2_1] Enemy died                ← died again (+8s)
+[05:22:30] [ENEMY] [Enemy_R2_1] Enemy died                ← died again (+5s)
+[05:22:33] [ENEMY] [Enemy_R2_1] Enemy died                ← died again (+3s)
+```
+Enemy_R2_1 was spawned once but the `died` signal fired 4 times.
+
+**Root cause:** The `Enemy` script has `destroy_on_death: bool = false` by default. When `false`, after `respawn_delay` seconds (default 2.0s) the enemy calls `_reset()` which restores health, re-enables hit-area collision, and re-registers for sound propagation — making the enemy fully alive again at its original position. The roguelike spawner never set `destroy_on_death = true`, so every killed enemy respawned indefinitely.
+
+**Fix:** Set `enemy.destroy_on_death = true` before adding each roguelike enemy to the scene tree. This causes the enemy to call `queue_free()` after the death animation plays, permanently removing it.
+
+```gdscript
+# Added in _spawn_enemies_in_room(), before room_node.add_child(enemy):
+enemy.destroy_on_death = true
+```
+
+### 11.2 Bug: Camera doesn't reach right edge — player walks off-screen
+
+**Symptom:** When the player moved rightward past the first room they disappeared from the visible viewport; the camera stopped following.
+
+**Root cause:** `Camera2D` nodes in Godot 4 have default limits of `limit_right = 10000000` ... actually they default to ±10,000,000 *but* can be overridden by the scene's export configuration. The player's `Player.tscn` likely has camera limits set to single-screen dimensions (640×360 or 1280×720). The roguelike map is much wider (3–5 rooms × 1480px = 4440–7400px). No `_configure_camera()` call was made in `RoguelikeLevel` to override those limits, unlike `DocksLevel`, `CastleLevel`, and `CityLevel` which all call a camera-configuration function setting all four limits to ±10,000,000.
+
+**Fix:** In `_setup_player_tracking()`, after finding the player node, read the player's `Camera2D` and set all four limits to ±10,000,000:
+
+```gdscript
+var camera: Camera2D = _player.get_node_or_null("Camera2D")
+if camera:
+    camera.limit_left   = -10000000
+    camera.limit_top    = -10000000
+    camera.limit_right  =  10000000
+    camera.limit_bottom =  10000000
+```
+
+---
+
+## 12. References
 
 - Godot 4 `NavigationRegion2D` procedural baking: https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationregions.html
 - Godot 4 `StaticBody2D` + `RectangleShape2D` API: https://docs.godotengine.org/en/stable/classes/class_staticbody2d.html
