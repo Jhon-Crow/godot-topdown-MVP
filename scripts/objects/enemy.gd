@@ -30,8 +30,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033).
-enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN }
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579), RPG (rocket+pistol, Issue #583), PM (Makarov, Issue #583), MACHINE_GUN (PKM belt-fed, #1033), SNIPER_RIFLE (ASVK, #1125).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -3874,6 +3874,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	if audio:
 		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
 		elif weapon_type == WeaponType.MACHINE_GUN and audio.has_method("play_ak_shot"): audio.play_ak_shot(global_position)  # [#1033] PKM uses AK 7.62x39 sound
+		elif weapon_type == WeaponType.SNIPER_RIFLE and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()  # [#1125] ASVK sniper rifle sound (non-positional, like player SniperRifle.cs)
 		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	var _now3 := Time.get_ticks_msec() / 1000.0
@@ -4396,14 +4397,12 @@ func _reset() -> void:
 	_retreat_burst_angle_offset = 0.0
 	_in_alarm_mode = false
 	_cover_burst_pending = false
-	# Reset combat state variables
 	_combat_shoot_timer = 0.0
 	_combat_shoot_duration = 2.5
 	_combat_exposed = false
 	_combat_approaching = false
 	_combat_approach_timer = 0.0
 	_combat_state_timer = 0.0
-	# Reset pursuit state variables
 	_pursuit_cover_wait_timer = 0.0
 	_pursuit_next_cover = Vector2.ZERO
 	_has_pursuit_cover = false
@@ -4414,7 +4413,6 @@ func _reset() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = Vector2.ZERO
-	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false
 	_in_assault = false
