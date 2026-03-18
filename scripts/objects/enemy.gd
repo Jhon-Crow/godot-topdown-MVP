@@ -356,12 +356,8 @@ var _armored_skin_component: EnemyArmoredSkinComponent = null  ## [Issue #1123] 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
-
-## Maximum time to spend evading before giving up (seconds).
-const GRENADE_EVASION_MAX_TIME: float = 4.0
-
-## State to return to after grenade evasion completes.
-var _pre_evasion_state: AIState = AIState.IDLE
+const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Maximum time to spend evading before giving up (seconds).
+var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion completes.
 
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
