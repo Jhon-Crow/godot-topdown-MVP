@@ -8,6 +8,8 @@
 1. **EMPTY_CLICK propagation at fire rate** (confirmed fixed): When holding fire with an empty weapon, the weapon fires at ~15 clicks/sec, each triggering `SoundPropagation` to iterate all 10 enemies, causing 360+ callbacks/sec and FPS drops to 26–29 fps. ✅ **Fixed** (throttled to 0.4s cooldown, same as CASING_KICK). User confirmed in Session 4: *"empty shots don't affect fps"*.
 2. **Unbounded GPUParticles2D instantiation per wall hit** (confirmed remaining root cause): Each bullet-wall collision calls `_dust_effect_scene.instantiate()` creating a new `GPUParticles2D` node. Godot issue #103308 documents a first-emit stutter every time a `GPUParticles2D` emits for the first time. At 15 shots/sec with 32 bullets per magazine, this creates 32+ nodes in 2–3 seconds. Session 4 log confirms: FPS drops to 29fps during the 32-bullet wall-shooting phase, NOT during empty-click phase. ✅ **Fixed** (DustEffect object pool, 16 pre-allocated nodes, same pattern as explosion light pool from Issue #724).
 3. **Redundant physics raycasts**: `_get_surface_normal()` called twice per bullet-wall collision (once for dust effect, once for ricochet), doubling the per-frame raycast cost during wall hits. ✅ **Fixed** (cached normal, commit `46fc0be0`).
+4. **Invisible dust effect (Godot bug #58778)**: After introducing the pool, `emitting=false/true` on a reused one-shot GPUParticles2D was silently dropped during GPU `inactive_time` window. Fixed by using `effect.restart()` which bypasses the window. ✅ **Fixed**.
+5. **Pooled nodes parented to plain Node autoload — no canvas context** (root cause of Session 7 invisible dust): `GPUParticles2D` (a CanvasItem) added as child of a `Node`-based autoload has no viewport/canvas context and is never rendered. All other effects use `_add_effect_to_scene()` which parents them to the current game scene. Fix: call `effect.reparent(current_scene)` before emitting, and `effect.reparent(self)` when returning to pool. ✅ **Fixed**.
 
 ---
 
@@ -21,6 +23,7 @@
 | `logs/game_log_20260318_085720.txt` | Session 4 | **Fixed EMPTY_CLICK build confirmed** — no empty-click drops; **new finding**: 29fps drop during 32-bullet wall-shooting burst confirms DustEffect instantiation as remaining root cause |
 | `game_log_20260318_094946.txt` | Session 5 | **Fixed pool build confirmed** — FPS stable during shooting; **new finding**: dust effect invisible due to Godot bug #58778; **new finding**: blood decal FPS drops on large map with 20 enemies |
 | *(no new log)* | Session 6 | **User requests Optimization menu** — no dust effect visible, user asks for: settings → optimization → toggle wall hit particles on/off + restore old particle effect |
+| `logs/game_log_20260318_103836.txt` | Session 7 | **Optimization menu build tested** — FPS stable, but dust still invisible; user confirms: "при включённых частицах должны быть частицы как в main (верни их). сейчас нет никаких." |
 
 ---
 
@@ -303,6 +306,52 @@ effect.restart()  # ← always starts a fresh cycle
 
 ---
 
+### Session 7 — Log: `logs/game_log_20260318_103836.txt`
+
+| Time | Event |
+|------|-------|
+| 10:38:36 | Game start. Executable: `оптимизация/Godot-Top-Down-Template.exe` (optimisation branch build, session 6 code) |
+| 10:38:36 | Log: `Dust effect pool initialized: 16 effects pre-created` — pool feature present |
+| 10:38:36 | Log: `wall_hit_particles: true` — enabled by default |
+| 10:38:37 | Particle shader warmup complete (871ms). **FPS drop: 1 fps** (warmup only) |
+| 10:38:44 | User disables wall hit particles via Settings → Optimization |
+| 10:38:54 | User re-enables wall hit particles |
+| (gameplay) | No FPS drops during shooting — pool fix is working |
+| (gameplay) | **Dust particles invisible** — user reports no particles at all |
+
+**Key observation**: FPS issue is fully resolved but dust effect is invisible. Both with and without toggling the setting, no particles appear on screen.
+
+#### Root Cause 5 — GPUParticles2D parented to plain Node autoload has no canvas context
+
+`GPUParticles2D` is a `CanvasItem` subclass. In Godot, CanvasItem nodes must be part of the scene tree under a `Viewport` or `CanvasLayer` to be rendered. The autoload `ImpactEffectsManager` extends plain `Node` (not `Node2D`), so it has no canvas context.
+
+All other effects (blood, sparks, muzzle flash) use `_add_effect_to_scene(effect)` which calls `scene.add_child(effect)`, placing them directly in the game world scene where they render correctly.
+
+The pooled dust effects were added with `add_child(effect)` in `_create_pooled_dust_effect()`, making them children of the autoload. While `global_position` can be set on them (Node2D transform is still valid), they have **no viewport to render into** and produce zero visible output.
+
+This is why `restart()` fixed Session 5's issue (Godot bug #58778) but particles were still invisible — the node was correctly emitting, just not rendering.
+
+**Fix**: Call `effect.reparent(current_scene, false)` before emitting, and `effect.reparent(self, false)` when returning to pool. This gives each active effect a proper canvas context while keeping pool persistence across scene changes.
+
+```gdscript
+# Before Session 7 fix: node stays as child of autoload (Node, no canvas context)
+effect.visible = true
+effect.restart()  # ← emits, but never rendered
+
+# After Session 7 fix: reparent to scene before emitting
+var scene := get_tree().current_scene
+if scene:
+    effect.reparent(scene, false)  # ← now has canvas context → visible
+effect.visible = true
+effect.restart()
+
+# And on return to pool:
+if effect.get_parent() != self:
+    effect.reparent(self, false)  # ← back to autoload for persistence
+```
+
+---
+
 ## Changes in This PR
 
 | File | Change | Impact |
@@ -312,6 +361,7 @@ effect.restart()  # ← always starts a fresh cycle
 | `scripts/autoload/impact_effects_manager.gd` | DustEffect object pool (16 pre-allocated nodes, max 16 concurrent) replacing per-hit `instantiate()` | Eliminates first-emit stutters; bounds GPU particle load |
 | `scripts/autoload/impact_effects_manager.gd` | Use `restart()` instead of `emitting=false/true` to re-trigger pooled one-shot particles | Fixes invisible dust effect (Godot bug #58778: emitting=true silently dropped during inactive_time) |
 | `scripts/autoload/impact_effects_manager.gd` | Check `GameplaySettings.is_wall_hit_particles_enabled()` before spawning dust (Session 6) | Allows disabling dust particles entirely via settings for low-end hardware |
+| `scripts/autoload/impact_effects_manager.gd` | `reparent(current_scene)` before emitting, `reparent(self)` when returning to pool (Session 7) | Fixes invisible dust: pooled GPUParticles2D need canvas context (CanvasItem must be under a Viewport) |
 | `scripts/autoload/gameplay_settings.gd` | Add `wall_hit_particles_enabled` bool setting with getter/setter/persistence | New optimization knob persisted to `user://gameplay_settings.cfg` |
 | `scripts/ui/settings_menu.gd` + `SettingsMenu.tscn` | Add "Optimization" button to settings hub | New Optimization submenu accessible from Settings |
 | `scripts/ui/optimization_menu.gd` + `OptimizationMenu.tscn` | New Optimization submenu with wall hit particles toggle | User can enable/disable wall hit dust particles |

@@ -303,6 +303,16 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 			print("[ImpactEffectsManager] Dust effect skipped - pool exhausted (concurrent limit reached)")
 		return
 
+	# GPUParticles2D must be in the scene tree (under a CanvasItem/Viewport) to render.
+	# Pooled nodes are parked as children of this autoload (a plain Node with no canvas
+	# context) while idle. Move the node to the current game scene before emitting so
+	# that Godot assigns it a proper canvas layer and it is actually drawn on screen.
+	var scene := get_tree().current_scene
+	if scene:
+		effect.reparent(scene, false)
+	# If there is no current scene (unlikely), leave parented to self — effect may not
+	# be visible but at least it won't crash.
+
 	effect.global_position = position
 
 	# Rotate effect to face away from surface (in the direction of the normal)
@@ -314,7 +324,6 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 	# Use smaller visual scale for more realistic dust particles
 	effect.scale = Vector2(effect_scale * 0.8, effect_scale * 0.8)
 
-	# Make visible (node stays as child of autoload — same approach as explosion light pool).
 	effect.visible = true
 
 	# Use restart() to re-trigger a pooled one-shot effect.
@@ -1345,7 +1354,7 @@ func _get_dust_effect_from_pool() -> GPUParticles2D:
 
 
 ## Returns a dust effect node to the pool after it finishes emitting.
-## The node always stays parented to the autoload, so no re-parenting is needed.
+## Reparents the node back to the autoload so it persists across scene changes.
 func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
 	_dust_effects_active = maxi(0, _dust_effects_active - 1)
 
@@ -1354,6 +1363,11 @@ func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
 
 	effect.emitting = false
 	effect.visible = false
+
+	# Move back to the autoload so it survives scene transitions.
+	# get_parent() may be null if the scene was freed while the effect was active.
+	if effect.get_parent() != self:
+		effect.reparent(self, false)
 
 	_dust_effect_pool.append(effect)
 
