@@ -4316,19 +4316,97 @@ func _show_loudspeaker_victory_message() -> void:
 	canvas.layer = 100
 	add_child(canvas)
 
+	# Victory message label
 	var label := Label.new()
-	label.text = "Все враги теперь пацифисты.\nВы победили без единого выстрела.\nСпасибо за игру!"
+	label.text = "Нам нечего делить по этому мы не будем стрелять друг в друга."
 	label.add_theme_font_size_override("font_size", 36)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.set_anchors_preset(Control.PRESET_CENTER)
 	label.set_anchor(SIDE_LEFT, 0.0)
 	label.set_anchor(SIDE_RIGHT, 1.0)
 	label.set_anchor(SIDE_TOP, 0.3)
 	label.set_anchor(SIDE_BOTTOM, 0.7)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	canvas.add_child(label)
 
+	# "Click to continue" hint
+	var hint := Label.new()
+	hint.text = "[ нажмите, чтобы продолжить ]"
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.8))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.set_anchor(SIDE_LEFT, 0.0)
+	hint.set_anchor(SIDE_RIGHT, 1.0)
+	hint.set_anchor(SIDE_TOP, 0.65)
+	hint.set_anchor(SIDE_BOTTOM, 0.75)
+	canvas.add_child(hint)
+
+	# Invisible click-catcher panel
+	var panel := ColorRect.new()
+	panel.color = Color(0, 0, 0, 0)
+	panel.set_anchor(SIDE_LEFT, 0.0)
+	panel.set_anchor(SIDE_RIGHT, 1.0)
+	panel.set_anchor(SIDE_TOP, 0.0)
+	panel.set_anchor(SIDE_BOTTOM, 1.0)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed:
+			_show_loudspeaker_end_screen(canvas)
+	)
+	canvas.add_child(panel)
+
 	FileLogger.info("[Player.Loudspeaker] Victory message shown (Level 7)")
+
+
+## Show end screen after player clicks on victory message (Issue #959).
+func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
+	# Remove victory screen
+	if is_instance_valid(victory_canvas):
+		victory_canvas.queue_free()
+
+	# Create end screen canvas
+	var canvas := CanvasLayer.new()
+	canvas.name = "LoudspeakerEndCanvas"
+	canvas.layer = 101
+	add_child(canvas)
+
+	# Black background
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 1)
+	bg.set_anchor(SIDE_LEFT, 0.0)
+	bg.set_anchor(SIDE_RIGHT, 1.0)
+	bg.set_anchor(SIDE_TOP, 0.0)
+	bg.set_anchor(SIDE_BOTTOM, 1.0)
+	canvas.add_child(bg)
+
+	# "Конец" title
+	var title := Label.new()
+	title.text = "Конец"
+	title.add_theme_font_size_override("font_size", 72)
+	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.set_anchor(SIDE_LEFT, 0.0)
+	title.set_anchor(SIDE_RIGHT, 1.0)
+	title.set_anchor(SIDE_TOP, 0.2)
+	title.set_anchor(SIDE_BOTTOM, 0.45)
+	canvas.add_child(title)
+
+	# Thank you message
+	var thanks := Label.new()
+	thanks.text = "Спасибо за игру!"
+	thanks.add_theme_font_size_override("font_size", 32)
+	thanks.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1))
+	thanks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	thanks.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	thanks.set_anchor(SIDE_LEFT, 0.0)
+	thanks.set_anchor(SIDE_RIGHT, 1.0)
+	thanks.set_anchor(SIDE_TOP, 0.5)
+	thanks.set_anchor(SIDE_BOTTOM, 0.7)
+	canvas.add_child(thanks)
+
+	FileLogger.info("[Player.Loudspeaker] End screen shown (Level 7)")
 
 
 ## Check if the loudspeaker is equipped (Issue #959).

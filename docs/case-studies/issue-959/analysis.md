@@ -430,3 +430,45 @@ Result: Enemy6 was counted twice — level counter goes negative, causing premat
 
 ### Victory message status
 The player in log_073427 never killed the immune enemy (level 7 requires killing the immune enemy designated at level 6 start). Level 6 was completed multiple times but the immune enemy was never found/killed. The victory path (level 6 → kill immune enemy → level 7 → all pacifist + victory message) is implemented correctly in code; the player needs to locate and kill the single immune enemy.
+
+---
+
+## Session 2026-03-18 (commit dd6a011b → current)
+
+### Logs analyzed
+- `game_log_20260318_114227.txt` — Reveals Bug 16 (level completes with retaliating pacifist)
+- `game_log_20260318_120834.txt` — Reveals Bug 17 (no immune enemy at level 6)
+- `game_log_20260318_123619.txt` — Reveals Bug 18 (pacifists attack player via priority-attack path)
+
+### Bug 16 — Level completes while pacifist attacks player (FIXED in dd6a011b)
+
+**Root cause:** `_on_enemy_died()` in all 11 level scripts did NOT have the `_has_retaliating_pacifists()` guard that was only in `_on_enemy_became_pacifist()`. When last regular enemy died, `_on_enemy_died()` fired immediately and opened exit zone, regardless of retaliating pacifists.
+
+**Fix:** Added `and not _has_retaliating_pacifists()` to `_on_enemy_died()` in all 11 level scripts.
+
+### Bug 17 — No immune enemy at level 6 (FIXED in dd6a011b)
+
+**Root cause:** Game uses C# `Player.cs`, NOT `player.gd`. The GDScript `_apply_loudspeaker_level_start_state()` (which designates 1 immune enemy + pre-pacifies 50% of enemies) was never ported to C#. So at level 6: no immune enemy was designated, no 50% pre-pacification occurred, and level 7 could never be triggered.
+
+**Fix:** Added `ApplyLoudspeakerLevelStartState()` to `Player.cs` with `CallDeferred(MethodName.ApplyLoudspeakerLevelStartState)` in `InitLoudspeaker()`. Also added `ShowLoudspeakerVictoryMessage()`.
+
+### Bug 18 — Pacifists attack player via distracted/vulnerable priority-attack paths
+
+**Evidence from game_log_20260318_123619.txt:**
+- UziEnemyCenter1 transitions to PACIFIST at line 11313 (12:40:35)
+- UziEnemyCenter1 logs "Player distracted - priority attack triggered" at line 12062 (12:40:46) — 11 seconds after becoming pacifist
+- 779 total violations found (pacifist enemies doing "Player distracted" attacks)
+
+**Root cause:** `_process_ai_state()` in `enemy.gd` contains two top-level early-exit priority attack paths:
+1. **Player distracted** (line 1214): fires if player aims >23° away, regardless of enemy state
+2. **Player vulnerable** (line 1261): fires if player is reloading/out of ammo, regardless of enemy state
+
+Both paths run BEFORE the `AIState.PACIFIST:` branch of the state switch, so pacifist enemies could exploit these opportunities.
+
+**Fix:** Added `not (_pacifist and _pacifist.is_pacifist)` guard to both conditions at lines 1214 and 1261 of `enemy.gd`.
+
+### Bug 18b — Victory message text and end screen
+
+**User request:** Change victory message to "Нам нечего делить по этому мы не будем стрелять друг в друга." and add click-to-continue that shows a black screen with "Конец" + "Спасибо за игру!".
+
+**Fix:** Updated `_show_loudspeaker_victory_message()` in both `player.gd` and `Player.cs` with new text and a transparent click-catcher panel. Added `_show_loudspeaker_end_screen()` / `ShowLoudspeakerEndScreen()` that fades to black and shows "Конец" + "Спасибо за игру!".

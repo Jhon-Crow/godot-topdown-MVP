@@ -6889,19 +6889,101 @@ public partial class Player : BaseCharacter
         canvas.Layer = 100;
         AddChild(canvas);
 
+        // Victory message label
         var label = new Label();
-        label.Text = "Все враги теперь пацифисты.\nВы победили без единого выстрела.\nСпасибо за игру!";
+        label.Text = "Нам нечего делить по этому мы не будем стрелять друг в друга.";
         label.AddThemeFontSizeOverride("font_size", 36);
         label.HorizontalAlignment = HorizontalAlignment.Center;
         label.VerticalAlignment = VerticalAlignment.Center;
-        label.SetAnchorsPreset(Control.LayoutPreset.Center);
+        label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         label.SetAnchor(Side.Left, 0.0f);
         label.SetAnchor(Side.Right, 1.0f);
         label.SetAnchor(Side.Top, 0.3f);
         label.SetAnchor(Side.Bottom, 0.7f);
         canvas.AddChild(label);
 
+        // "Click to continue" hint
+        var hint = new Label();
+        hint.Text = "[ нажмите, чтобы продолжить ]";
+        hint.AddThemeFontSizeOverride("font_size", 18);
+        hint.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f, 0.8f));
+        hint.HorizontalAlignment = HorizontalAlignment.Center;
+        hint.VerticalAlignment = VerticalAlignment.Center;
+        hint.SetAnchor(Side.Left, 0.0f);
+        hint.SetAnchor(Side.Right, 1.0f);
+        hint.SetAnchor(Side.Top, 0.65f);
+        hint.SetAnchor(Side.Bottom, 0.75f);
+        canvas.AddChild(hint);
+
+        // Invisible click-catcher panel
+        var panel = new ColorRect();
+        panel.Color = new Color(0, 0, 0, 0);
+        panel.SetAnchor(Side.Left, 0.0f);
+        panel.SetAnchor(Side.Right, 1.0f);
+        panel.SetAnchor(Side.Top, 0.0f);
+        panel.SetAnchor(Side.Bottom, 1.0f);
+        panel.MouseFilter = Control.MouseFilterEnum.Stop;
+        panel.GuiInput += (InputEvent ev) =>
+        {
+            if (ev is InputEventMouseButton mb && mb.Pressed)
+                ShowLoudspeakerEndScreen(canvas);
+        };
+        canvas.AddChild(panel);
+
         LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
+    }
+
+    /// <summary>
+    /// Show end screen after player clicks on victory message (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerEndScreen(CanvasLayer victoryCanvas)
+    {
+        // Remove victory screen
+        if (Godot.GodotObject.IsInstanceValid(victoryCanvas))
+            victoryCanvas.QueueFree();
+
+        // Create end screen canvas
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerEndCanvas";
+        canvas.Layer = 101;
+        AddChild(canvas);
+
+        // Black background
+        var bg = new ColorRect();
+        bg.Color = new Color(0, 0, 0, 1);
+        bg.SetAnchor(Side.Left, 0.0f);
+        bg.SetAnchor(Side.Right, 1.0f);
+        bg.SetAnchor(Side.Top, 0.0f);
+        bg.SetAnchor(Side.Bottom, 1.0f);
+        canvas.AddChild(bg);
+
+        // "Конец" title
+        var title = new Label();
+        title.Text = "Конец";
+        title.AddThemeFontSizeOverride("font_size", 72);
+        title.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        title.VerticalAlignment = VerticalAlignment.Center;
+        title.SetAnchor(Side.Left, 0.0f);
+        title.SetAnchor(Side.Right, 1.0f);
+        title.SetAnchor(Side.Top, 0.2f);
+        title.SetAnchor(Side.Bottom, 0.45f);
+        canvas.AddChild(title);
+
+        // Thank you message
+        var thanks = new Label();
+        thanks.Text = "Спасибо за игру!";
+        thanks.AddThemeFontSizeOverride("font_size", 32);
+        thanks.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f, 1));
+        thanks.HorizontalAlignment = HorizontalAlignment.Center;
+        thanks.VerticalAlignment = VerticalAlignment.Center;
+        thanks.SetAnchor(Side.Left, 0.0f);
+        thanks.SetAnchor(Side.Right, 1.0f);
+        thanks.SetAnchor(Side.Top, 0.5f);
+        thanks.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(thanks);
+
+        LogToFile("[Player.Loudspeaker] End screen shown (Level 7)");
     }
 
     /// <summary>
