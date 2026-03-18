@@ -364,7 +364,13 @@ var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
-var _is_bolt_cycling: bool = false; var _bolt_cycle_timer: float = 0.0; const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## [#1161] Sniper bolt-action cycle state/timer/delay.
+## [#1161] Sniper bolt-action cycle state/timer/delays (4-step sequence matching player SniperRifle.cs).
+var _is_bolt_cycling: bool = false
+var _bolt_cycle_timer: float = 0.0
+var _bolt_cycle_step: int = 0  ## Current bolt-action step (0=not cycling, 1-4=in progress). [#1177]
+const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## Legacy: kept for compatibility.
+## Delays (seconds) before each of the 4 bolt steps fires (matched to audio cadence). [#1177]
+const SNIPER_BOLT_STEP_DELAYS: Array = [0.3, 0.5, 0.4, 0.3]
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -773,13 +779,18 @@ func _physics_process(delta: float) -> void:
 
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
 	_shoot_timer += delta
-	if _is_bolt_cycling:  # [#1161] Sniper bolt-action cycle timer
+	if _is_bolt_cycling:  # [#1177] Sniper bolt-action 4-step cycle timer (all sounds like player)
 		_bolt_cycle_timer += delta
-		if _bolt_cycle_timer >= SNIPER_BOLT_CYCLE_DELAY:
-			_is_bolt_cycling = false; _bolt_cycle_timer = 0.0
+		var step_delay: float = SNIPER_BOLT_STEP_DELAYS[_bolt_cycle_step - 1] if _bolt_cycle_step >= 1 and _bolt_cycle_step <= 4 else SNIPER_BOLT_CYCLE_DELAY
+		if _bolt_cycle_timer >= step_delay:
+			_bolt_cycle_timer = 0.0
 			var audio: Node = get_node_or_null("/root/AudioManager")
 			if audio and audio.has_method("play_asvk_bolt_step"):
-				audio.play_asvk_bolt_step(1)  # Unlock bolt sound for enemy bolt cycle
+				audio.play_asvk_bolt_step(_bolt_cycle_step)  # [#1177] Play current bolt step sound
+			if _bolt_cycle_step >= 4:
+				_is_bolt_cycling = false; _bolt_cycle_step = 0  # Cycle complete
+			else:
+				_bolt_cycle_step += 1  # Advance to next step
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	_update_reload(delta)
 
@@ -3908,10 +3919,11 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 		_last_gunshot_propagation_time = _now3
 	if not _is_rpg_weapon: _play_delayed_shell_sound()  # Issue #583: no shell sound for RPG
-	# [#1161] Trigger bolt-action cycle for sniper rifle (visual/audio after each shot)
+	# [#1177] Trigger bolt-action 4-step cycle for sniper rifle (all sounds like player SniperRifle.cs)
 	if weapon_type == WeaponType.SNIPER_RIFLE:
 		_is_bolt_cycling = true
 		_bolt_cycle_timer = 0.0
+		_bolt_cycle_step = 1  # Start at step 1: unlock bolt
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _is_rpg_weapon and not _rpg_fired: _rpg_fired = true; _switch_to_secondary_weapon(); return  # Issue #583
