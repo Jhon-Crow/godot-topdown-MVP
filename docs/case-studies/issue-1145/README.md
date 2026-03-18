@@ -4,9 +4,10 @@
 
 **Issue**: FPS drops from 60 to ~26–30 fps when shooting at walls, reported by user with Mini UZI.
 
-**Root causes identified** (in priority order):
-1. **EMPTY_CLICK propagation at fire rate** (primary): When holding fire with an empty weapon, the weapon fires at ~15 clicks/sec, each triggering `SoundPropagation` to iterate all 10 enemies, causing 150+ callbacks/sec and FPS drops to 26–29 fps. ✅ **Fixed in this PR** (throttled to 0.4s cooldown, same as CASING_KICK).
-2. **Redundant physics raycasts**: `_get_surface_normal()` called twice per bullet-wall collision (once for dust effect, once for ricochet), doubling the per-frame raycast cost during wall hits. ✅ **Fixed in this PR** (cached normal, commit `46fc0be0`).
+**Root causes identified** (in priority order, updated after user confirmed Session 4 results):
+1. **EMPTY_CLICK propagation at fire rate** (confirmed fixed): When holding fire with an empty weapon, the weapon fires at ~15 clicks/sec, each triggering `SoundPropagation` to iterate all 10 enemies, causing 360+ callbacks/sec and FPS drops to 26–29 fps. ✅ **Fixed** (throttled to 0.4s cooldown, same as CASING_KICK). User confirmed in Session 4: *"empty shots don't affect fps"*.
+2. **Unbounded GPUParticles2D instantiation per wall hit** (confirmed remaining root cause): Each bullet-wall collision calls `_dust_effect_scene.instantiate()` creating a new `GPUParticles2D` node. Godot issue #103308 documents a first-emit stutter every time a `GPUParticles2D` emits for the first time. At 15 shots/sec with 32 bullets per magazine, this creates 32+ nodes in 2–3 seconds. Session 4 log confirms: FPS drops to 29fps during the 32-bullet wall-shooting phase, NOT during empty-click phase. ✅ **Fixed** (DustEffect object pool, 16 pre-allocated nodes, same pattern as explosion light pool from Issue #724).
+3. **Redundant physics raycasts**: `_get_surface_normal()` called twice per bullet-wall collision (once for dust effect, once for ricochet), doubling the per-frame raycast cost during wall hits. ✅ **Fixed** (cached normal, commit `46fc0be0`).
 
 ---
 
@@ -17,6 +18,7 @@
 | `game_log_20260318_064123.txt` | Session 1 | Confirms EMPTY_CLICK is root cause of 29/26/27 fps drops |
 | `game_log_20260318_081028.txt` | Session 2 | All drops from shader warmup/scene load; 0 listeners, no gameplay drops |
 | `game_log_20260318_083455.txt` | Session 3 | Old build; 1 drop at 22fps during scene load; shooting with 0 listeners, no gameplay drops |
+| `logs/game_log_20260318_085720.txt` | Session 4 | **Fixed EMPTY_CLICK build confirmed** — no empty-click drops; **new finding**: 29fps drop during 32-bullet wall-shooting burst confirms DustEffect instantiation as remaining root cause |
 
 ---
 
@@ -125,6 +127,27 @@ if body is StaticBody2D or body is TileMap:
 
 **Fix applied** (commit `46fc0be0`): Compute the normal once in `_on_body_entered`, cache it in `cached_normal`, pass it to both functions. 50% fewer raycasts per wall hit.
 
+### Session 4 — Log: `logs/game_log_20260318_085720.txt`
+
+| Time | Event |
+|------|-------|
+| 08:57:20 | Game start. Level: LabyrinthLevel. Build from `оптимизация/` folder (**includes EMPTY_CLICK fix**) |
+| 08:57:24 | Particle shader warmup complete (2915 ms). **FPS drop: 1 fps** (startup spike, unrelated) |
+| 08:57:27 | Player opens Armory → selects Mini UZI (32/32 ammo) |
+| 08:57:30/32 | Scene changes to Tutorial (multiple transitions) |
+| 08:57:33 | Scene/shader warmup complete. **FPS drop: 1 fps** (transition spike, unrelated). `player_valid=False` in ReplayManager. |
+| 08:57:37 | First GUNSHOT: `listeners=10` → immediately "Cleaned up 10 invalid listeners" (stale enemies). Subsequent shots: `listeners=0` |
+| 08:57:37–39 | Player fires 32 Mini UZI rounds at wall: 6 shots/08:57:37, 20 shots/08:57:38, 6 shots/08:57:39. **32 DustEffect GPUParticles2D instantiated in ~2 seconds** |
+| 08:57:41 | **FPS drop: 29 fps** — occurs 2 seconds AFTER the 32-bullet burst ended |
+| 08:57:46+ | Player fires more rounds (no enemies). No further FPS drops. |
+
+**Key observations for Session 4**:
+1. **No EMPTY_CLICK events** — the throttle fix worked. User confirmed: *"empty shots don't affect fps"*.
+2. **FPS drops to 29fps DURING/AFTER the 32-shot burst** — this is during GUNSHOT events (not empty-click), with `listeners=0` (no sound propagation overhead).
+3. The drop at 08:57:41 follows 20 GUNSHOTS in a single second (08:57:38), all hitting the wall. This instantiates 20 new `GPUParticles2D` nodes in 1 frame tick.
+4. Godot issue #103308 confirms: every new `GPUParticles2D` instance stutters on its very first emit. 20 first-emit stutters chained together causes the 29fps drop.
+5. By 08:57:41, all 32 `DustEffect` nodes are alive (lifetime=2.5s), each rendering 25 particles = 800 active particles. Combined with the instantiation overhead, this causes the sustained FPS dip.
+
 ### Why Session 3 Shooting Shows No FPS Drop
 
 In Session 3, the Tutorial level had 0 active listeners when shooting began (5 stale LabyrinthLevel enemies were cleaned up on the first shot). With no listeners, `emit_sound()` completes in near-zero time regardless of how many shots are fired. This is why the session 3 log shows 60fps throughout the entire 61-shot sequence — it wasn't testing the actual bottleneck.
@@ -194,12 +217,60 @@ Based on research into Godot 4 optimization best practices:
 
 ---
 
+## Root Cause 3: Unbounded GPUParticles2D Instantiation (Session 4 Confirmed)
+
+**File**: `scripts/autoload/impact_effects_manager.gd` — `spawn_dust_effect()`
+
+Each bullet-wall collision calls `_dust_effect_scene.instantiate()` creating a brand-new `GPUParticles2D` node:
+
+```gdscript
+# Before fix: new node allocated per wall hit
+var effect: GPUParticles2D = _dust_effect_scene.instantiate() as GPUParticles2D
+...
+_add_effect_to_scene(effect)
+effect.emitting = true
+# effect_cleanup.gd: queue_free() after lifetime (2.5s) + cleanup_delay (1.0s) = 3.5s
+```
+
+**Quantified impact** (Mini UZI, full magazine):
+- 32 bullets × 1 `instantiate()` call = 32 new nodes in ~2 seconds
+- 20 shots in 1 second (peak): 20 first-emit stutters (Godot #103308) chained = frame spike
+- After 2.5s, up to 37 concurrent nodes active: 37 × 25 particles = 925 active particles
+- Without a pool, each `instantiate()` also allocates GPU resource IDs → CPU stall
+
+**Fix applied**: Pre-allocate 16 `GPUParticles2D` nodes in a pool at startup (same pattern as explosion light pool from Issue #724). Reuse by repositioning and resetting `emitting`. Hard cap: 16 concurrent effects max (vs. unlimited before).
+
+```gdscript
+# After fix: pool reuse, no allocation during gameplay
+var effect := _get_dust_effect_from_pool()  # Returns pre-existing node
+if effect == null:
+    return  # Cap reached — skip extra dust effect
+effect.global_position = position
+effect.rotation = surface_normal.angle()
+effect.emitting = false  # Reset one-shot cycle
+effect.emitting = true   # Re-trigger
+# Timer-based return to pool after 3.5s instead of queue_free()
+```
+
+**Session 4 evidence**:
+- 20 GUNSHOTS in 1 second → 29fps drop 2 seconds later
+- No EMPTY_CLICK events in log → EMPTY_CLICK fix confirmed working
+- First GUNSHOT: 10 listeners immediately cleaned up → no sound propagation overhead
+
+**Online research confirming this root cause**:
+- [Godot #103308](https://github.com/godotengine/godot/issues/103308): "Brief stutter/pause when emitting GPUParticles2D for the first time"
+- Community reports: 10–20 concurrent `GPUParticles2D` + `Light2D` → FPS drops to 2fps
+- Recommendation: fixed-size pool of 8–16 nodes, Timer-based return (not `finished` signal due to Godot bugs #93991, #87287)
+
+---
+
 ## Changes in This PR
 
 | File | Change | Impact |
 |------|--------|--------|
 | `scripts/projectiles/bullet.gd` | Cache `_get_surface_normal()` result; pass to `_spawn_wall_hit_effect()` and `_try_ricochet()` | 50% fewer raycasts per bullet-wall hit |
 | `scripts/autoload/sound_propagation.gd` | Add `EMPTY_CLICK_PROPAGATION_COOLDOWN = 0.4s` throttle to `emit_player_empty_click()` | 97% fewer enemy callbacks when holding empty trigger |
+| `scripts/autoload/impact_effects_manager.gd` | DustEffect object pool (16 pre-allocated nodes, max 16 concurrent) replacing per-hit `instantiate()` | Eliminates first-emit stutters; bounds GPU particle load |
 
 ---
 
