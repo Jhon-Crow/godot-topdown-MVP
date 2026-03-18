@@ -258,6 +258,19 @@ var cross: float = abs(move_dir.x * to_enemy.y - move_dir.y * to_enemy.x)
 
 3. **Add a CI check** that catches Variant-inference warnings in GDScript to prevent regressions.
 
+4. **When element type of `Array` is known, use typed arrays** to allow GDScript to infer element types:
+   ```gdscript
+   var hypotheses: Array[Hypothesis] = []  # ✅ h.position is Vector2, not Variant
+   var hypotheses: Array = []              # ❌ h is Variant, h.position is Variant
+   ```
+
+5. **Consider committing `.godot/global_script_class_cache.cfg`** to source control as additional hardening against headless export `class_name` registration failures (per godotengine/godot#75684 and godotengine/godot#77508). Modify `.gitignore`:
+   ```
+   /.godot/**/*
+   !/.godot/global_script_class_cache.cfg
+   ```
+   This ensures CI never starts with an empty class cache, regardless of whether the `--import` step completes successfully.
+
 ---
 
 ## References
@@ -267,7 +280,11 @@ var cross: float = abs(move_dir.x * to_enemy.y - move_dir.y * to_enemy.x)
 - Issue #910: Suppressive fire component (pre-existing Variant inference bug)
 - Issue #824: Enemy flashlight component (pre-existing Variant inference bug)
 - Godot Issue #75684: Headless export doesn't generate global_script_class_cache.cfg properly
+- Godot Issue #77508: Headless import fails with --quit or --quit-after 1 (exits before cache write)
+- Godot Issue #83449: Exit code 1 after importing in headless mode with --quit
+- Godot Issue #72989: Global script classes not recognized after cache regeneration
 - Godot Issue #79153: Parser Error cascades when class registration fails
+- firebelley/godot-export v7.0.0: Added --headless --import pre-step to regenerate class cache
 
 ## Attached Data
 
