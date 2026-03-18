@@ -172,6 +172,9 @@ static func _split_visual_horizontal(wall: Node, breach_cx: float, half_w: float
 			(child as ColorRect).visible = false
 		elif child is Sprite2D:
 			(child as Sprite2D).visible = false
+		elif child is LightOccluder2D:
+			# Disable light occlusion in the passage gap so no shadow remains (Issue #1144).
+			(child as LightOccluder2D).visible = false
 
 	var half_breach: float = BREACH_PASSAGE_WIDTH * 0.5
 	var bx: float = clampf(breach_cx, -half_w + half_breach, half_w - half_breach)
@@ -204,6 +207,9 @@ static func _split_visual_vertical(wall: Node, breach_cy: float, half_w: float, 
 			(child as ColorRect).visible = false
 		elif child is Sprite2D:
 			(child as Sprite2D).visible = false
+		elif child is LightOccluder2D:
+			# Disable light occlusion in the passage gap so no shadow remains (Issue #1144).
+			(child as LightOccluder2D).visible = false
 
 	var half_breach: float = BREACH_PASSAGE_WIDTH * 0.5
 	var by: float = clampf(breach_cy, -half_h + half_breach, half_h - half_breach)

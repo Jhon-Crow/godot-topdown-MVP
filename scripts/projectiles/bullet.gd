@@ -212,6 +212,11 @@ var _rpg_prev_position: Vector2 = Vector2.ZERO
 ## RPG rocket internal state: StaticBody2D wall hit, stored for wall-passage creation (Issue #1131).
 var _rpg_hit_wall: StaticBody2D = null
 
+## RPG rocket internal state: precise world-space surface hit position for breach (Issue #1144).
+## Set to the exact raycast intersection point on the wall surface (not rocket center position).
+## Ensures WallBreachHelper.open_wall_passage carves the passage at the true impact point.
+var _rpg_hit_position: Vector2 = Vector2.ZERO
+
 ## RPG rocket: weak homing — turning speed toward the player in radians/second (Issue #1135).
 ## A small value gives a subtle "guided missile" feel without making it unavoidable.
 ## Set to 0.0 to disable homing entirely.
@@ -395,9 +400,12 @@ func _physics_process(delta: float) -> void:
 			if not result.is_empty():
 				FileLogger.info("[RpgRocket] Raycast impact on %s at %s after %.2fs dist=%.0fpx" % [
 					result.collider.name, str(result.position), _rpg_time_alive, _rpg_distance_traveled])
-				# Record wall for passage creation (Issue #1131)
+				# Record wall for passage creation (Issue #1131, #1144)
 				if result.collider is StaticBody2D:
 					_rpg_hit_wall = result.collider as StaticBody2D
+					# Use the precise raycast surface hit point, not rocket center (Issue #1144).
+					# This matches how BreachingChargesEffect gets hit positions.
+					_rpg_hit_position = result.position
 				_rpg_explode()
 				return
 		_rpg_prev_position = global_position
@@ -475,9 +483,25 @@ func _on_body_entered(body: Node2D) -> void:
 			return  # Pass through dead entities
 		FileLogger.info("[RpgRocket] Impact on %s (type: %s) after %.2fs dist=%.0fpx" % [
 			body.name, body.get_class(), _rpg_time_alive, _rpg_distance_traveled])
-		# Record wall for passage creation (Issue #1131)
+		# Record wall for passage creation (Issue #1131, #1144)
 		if body is StaticBody2D:
 			_rpg_hit_wall = body as StaticBody2D
+			# Get the precise wall surface hit position via back-raycast (Issue #1144).
+			# body_entered fires when the Area2D overlaps the body, so global_position is
+			# already inside the wall. Cast a ray from the previous frame position to find
+			# the exact surface point, matching BreachingChargesEffect hit-position logic.
+			if _rpg_prev_position != Vector2.ZERO:
+				var space_state := get_world_2d().direct_space_state
+				var surface_ray := PhysicsRayQueryParameters2D.create(_rpg_prev_position, global_position)
+				surface_ray.collision_mask = 4  # Obstacle layer only
+				surface_ray.exclude = [self]
+				var surface_result := space_state.intersect_ray(surface_ray)
+				if not surface_result.is_empty() and surface_result.collider == body:
+					_rpg_hit_position = surface_result.position
+				else:
+					_rpg_hit_position = global_position  # Fallback: use rocket position
+			else:
+				_rpg_hit_position = global_position  # Fallback: use rocket position
 		_rpg_explode()
 		return
 
@@ -1957,12 +1981,23 @@ func _rpg_explode() -> void:
 	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs, dist=%.0fpx" % [
 		str(global_position), _rpg_time_alive, _rpg_distance_traveled])
 
-	# Carve a wall passage when the rocket hits a StaticBody2D wall (Issue #1131).
+	# Carve a wall passage when the rocket hits a StaticBody2D wall (Issue #1131, #1144).
 	# Uses WallBreachHelper — same 120 px passage as the "Breaching Charges" active item.
+	# Uses the precise surface hit position (_rpg_hit_position) instead of rocket center
+	# (global_position) so the breach is centered at the true impact point (Issue #1144).
+	var directly_hit_wall: StaticBody2D = null
 	if _rpg_hit_wall != null and is_instance_valid(_rpg_hit_wall):
-		FileLogger.info("[RpgRocket] Creating wall passage in '%s'" % _rpg_hit_wall.name)
-		WallBreachHelper.open_wall_passage(_rpg_hit_wall, global_position)
+		directly_hit_wall = _rpg_hit_wall
+		var breach_pos: Vector2 = _rpg_hit_position if _rpg_hit_position != Vector2.ZERO else global_position
+		FileLogger.info("[RpgRocket] Creating wall passage in '%s' at %s" % [directly_hit_wall.name, str(breach_pos)])
+		WallBreachHelper.open_wall_passage(directly_hit_wall, breach_pos)
 		_rpg_hit_wall = null
+		_rpg_hit_position = Vector2.ZERO
+
+	# Destroy all StaticBody2D obstacles within explosion radius (Issue #1144).
+	# Piercing Charges destroy walls at the placement point; RPG should destroy all
+	# obstacles in the blast area, not just the one directly hit.
+	_rpg_breach_obstacles_in_radius(directly_hit_wall)
 
 	# Stop exhaust particles
 	var exhaust: Node = get_node_or_null("ExhaustParticles")
@@ -2042,6 +2077,52 @@ func _rpg_apply_damage(entity: Node2D) -> void:
 	elif entity.has_method("on_hit"):
 		for i in range(rpg_explosion_damage):
 			entity.on_hit()
+
+
+## RPG rocket: breach (destroy) all StaticBody2D obstacles within explosion radius (Issue #1144).
+##
+## Piercing Charges destroy only the one wall they are placed on.
+## The RPG rocket explodes with a 150px radius blast, so ALL obstacles within that
+## radius should be destroyed/breached — not just the one the rocket body touched.
+##
+## For each StaticBody2D on the obstacle collision layer (4) within explosion_radius:
+## - If it is not already the directly-hit wall (handled separately above), breach it.
+## - Use the closest point on the obstacle's bounding area as the breach position.
+## - Skips non-StaticBody2D bodies (enemies, player, other rockets).
+## @param already_hit_wall: The StaticBody2D already breached by direct hit (skip it here).
+func _rpg_breach_obstacles_in_radius(already_hit_wall: StaticBody2D) -> void:
+	if not is_inside_tree():
+		return
+	var space_state := get_world_2d().direct_space_state
+
+	# Use a circle shape query to find all physics bodies in the explosion radius.
+	var circle_shape := CircleShape2D.new()
+	circle_shape.radius = rpg_explosion_radius
+
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = circle_shape
+	query.transform = Transform2D(0.0, global_position)
+	query.collision_mask = 4  # Obstacle layer only
+	query.exclude = [self]
+
+	var results := space_state.intersect_shape(query)
+
+	var breached_count := 0
+	for hit in results:
+		var body: Object = hit.get("collider", null)
+		if body == null or not (body is StaticBody2D):
+			continue
+		var wall: StaticBody2D = body as StaticBody2D
+		# Skip the wall already breached by the direct hit above.
+		if wall == already_hit_wall:
+			continue
+		# Use rocket impact position as the breach center for nearby obstacles.
+		# This is approximate but correct for blast-radius destruction.
+		WallBreachHelper.open_wall_passage(wall, global_position)
+		breached_count += 1
+
+	if breached_count > 0:
+		FileLogger.info("[RpgRocket] Breached %d obstacle(s) in explosion radius" % breached_count)
 
 
 ## RPG rocket: simple orange explosion flash when ImpactEffectsManager unavailable.
