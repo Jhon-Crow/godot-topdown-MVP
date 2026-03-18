@@ -11,9 +11,9 @@ extends GutTest
 # ============================================================================
 
 
-func test_weapon_configs_has_seven_entries() -> void:
-	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 7,
-		"WEAPON_CONFIGS should contain exactly 7 weapon types (RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN)")
+func test_weapon_configs_has_eight_entries() -> void:
+	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 8,
+		"WEAPON_CONFIGS should contain exactly 8 weapon types (RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIFLE)")
 
 
 func test_weapon_configs_has_rifle_key() -> void:
@@ -49,6 +49,11 @@ func test_weapon_configs_has_pm_key() -> void:
 func test_weapon_configs_has_machine_gun_key() -> void:
 	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(6),
 		"WEAPON_CONFIGS should have key 6 for MACHINE_GUN")
+
+
+func test_weapon_configs_has_sniper_rifle_key() -> void:
+	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(7),
+		"WEAPON_CONFIGS should have key 7 for SNIPER_RIFLE")
 
 
 func test_weapon_configs_values_are_dictionaries() -> void:
@@ -709,6 +714,12 @@ func test_get_config_returns_machine_gun_for_type_6() -> void:
 		"get_config(6) should return MACHINE_GUN config")
 
 
+func test_get_config_returns_sniper_rifle_for_type_7() -> void:
+	var config := WeaponConfigComponent.get_config(7)
+	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[7],
+		"get_config(7) should return SNIPER_RIFLE config")
+
+
 func test_get_config_defaults_to_rifle_for_type_negative_1() -> void:
 	var config := WeaponConfigComponent.get_config(-1)
 	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[0],
@@ -791,6 +802,11 @@ func test_get_type_name_machine_gun() -> void:
 		"get_type_name(6) should return MACHINE_GUN")
 
 
+func test_get_type_name_sniper_rifle() -> void:
+	assert_eq(WeaponConfigComponent.get_type_name(7), "SNIPER_RIFLE",
+		"get_type_name(7) should return SNIPER_RIFLE")
+
+
 # ============================================================================
 # get_type_name() - Invalid/Unknown Weapon Types
 # ============================================================================
@@ -817,7 +833,7 @@ func test_get_type_name_unknown_for_type_negative_100() -> void:
 
 
 func test_get_type_name_returns_string() -> void:
-	for weapon_type in [0, 1, 2, 3, 4, 5, 6, -1, 99]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6, 7, -1, 99]:
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_typeof(name, TYPE_STRING,
 			"get_type_name(%d) should return a String" % weapon_type)
@@ -859,7 +875,7 @@ func test_iterate_all_config_fields() -> void:
 
 
 func test_config_is_not_empty() -> void:
-	for weapon_type in [0, 1, 2, 3, 4, 5, 6]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6, 7]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		assert_true(config.size() > 0,
 			"Config for weapon type %d should not be empty" % weapon_type)
@@ -873,7 +889,7 @@ func test_config_is_not_empty() -> void:
 func test_get_config_and_get_type_name_consistency() -> void:
 	# For all valid types, get_config should return a valid config and
 	# get_type_name should return a non-UNKNOWN name
-	for weapon_type in [0, 1, 2, 3, 4, 5, 6]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6, 7]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_true(config.size() > 0,
@@ -1140,3 +1156,60 @@ func test_pm_spread_threshold() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
 	assert_eq(config["spread_threshold"], 2,
 		"PM spread_threshold should be 2")
+
+
+# ============================================================================
+# SNIPER_RIFLE (ASVK) Config Tests - Issue #1125
+# ============================================================================
+
+
+func test_sniper_rifle_shoot_cooldown() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["shoot_cooldown"], 3.0,
+		"SNIPER_RIFLE shoot_cooldown should be 3.0 (slow bolt-action)")
+
+
+func test_sniper_rifle_bullet_speed() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["bullet_speed"], 10000.0,
+		"SNIPER_RIFLE bullet_speed should be 10000.0 (near-instant)")
+
+
+func test_sniper_rifle_magazine_size() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["magazine_size"], 5,
+		"SNIPER_RIFLE magazine_size should be 5")
+
+
+func test_sniper_rifle_weapon_loudness() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["weapon_loudness"], 3000.0,
+		"SNIPER_RIFLE weapon_loudness should be 3000.0")
+
+
+func test_sniper_rifle_is_not_shotgun() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_false(config["is_shotgun"],
+		"SNIPER_RIFLE should not be a shotgun")
+
+
+func test_sniper_rifle_has_no_spread() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["spread_threshold"], 999,
+		"SNIPER_RIFLE spread_threshold should be 999 (perfectly accurate)")
+	assert_eq(config["initial_spread"], 0.0,
+		"SNIPER_RIFLE initial_spread should be 0.0")
+	assert_eq(config["max_spread"], 0.0,
+		"SNIPER_RIFLE max_spread should be 0.0")
+
+
+func test_sniper_rifle_bullet_scene_path() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["bullet_scene_path"], "res://scenes/projectiles/csharp/SniperBulletEnemy.tscn",
+		"SNIPER_RIFLE bullet_scene_path should point to SniperBulletEnemy.tscn")
+
+
+func test_sniper_rifle_caliber_path() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["caliber_path"], "res://resources/calibers/caliber_127x108.tres",
+		"SNIPER_RIFLE caliber_path should point to 12.7x108 caliber")

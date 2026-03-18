@@ -292,6 +292,16 @@ func _on_enemies_table_back_pressed() -> void:
 		enemies_table_menu.hide()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		# If a sub-window (unlock table or enemies table) is open, let it handle ESC.
+		var sub_open: bool = (unlock_table_menu != null and unlock_table_menu.visible) \
+				or (enemies_table_menu != null and enemies_table_menu.visible)
+		if not sub_open:
+			_on_back_pressed()
+			get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
 
@@ -301,7 +311,7 @@ func _on_settings_changed() -> void:
 
 
 ## Enemy spawner: populate enemy type dropdown.
-## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN).
+## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN, 7=SNIPER_RIFLE).
 ## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
@@ -312,6 +322,7 @@ func _setup_enemy_spawner() -> void:
 		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
 		{"name": "RPG + PM pistol", "weapon_type": 4, "behavior": 1},
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
+		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
 	]
 	for t in types:
