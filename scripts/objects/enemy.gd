@@ -150,6 +150,10 @@ const WALL_CHECK_COUNT: int = 8  ## Number of wall raycasts
 const WALL_AVOIDANCE_MIN_WEIGHT: float = 0.7  ## Min avoidance (close)
 const WALL_AVOIDANCE_MAX_WEIGHT: float = 0.3  ## Max avoidance (far)
 const WALL_SLIDE_DISTANCE: float = 30.0  ## Wall slide threshold
+## Issue #1146: Enemy-enemy separation steering constants.
+const SEPARATION_RADIUS: float = 60.0  ## Distance within which separation force is applied (px)
+const SEPARATION_STRENGTH: float = 280.0  ## Maximum separation impulse magnitude (px/s²)
+var _avoidance_velocity: Vector2 = Vector2.ZERO  ## Issue #1146: ORCA-computed safe velocity
 var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
 const COVER_CHECK_COUNT: int = 16  ## Number of cover raycasts
 const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance
@@ -428,6 +432,10 @@ func _ready() -> void:
 	if _hit_area:
 		_original_hit_area_layer = _hit_area.collision_layer
 		_original_hit_area_mask = _hit_area.collision_mask
+
+	# Issue #1146: Hook ORCA avoidance velocity so NavigationAgent2D steers enemies apart.
+	if _nav_agent and _nav_agent.avoidance_enabled:
+		_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	# Preload bullet scene if not set in inspector
@@ -865,6 +873,9 @@ func _physics_process(delta: float) -> void:
 
 	_update_walk_animation(delta)  # Update walking animation based on movement
 	_apply_machete_attack_animation()  # Issue #595: machete swing animation
+	# Issue #1146: Apply separation force to prevent enemies from overlapping each other.
+	if _is_alive:
+		velocity = _apply_separation_force(velocity, delta)
 	move_and_slide()
 
 	# Push any casings we collided with (Issue #341)
@@ -4756,8 +4767,36 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
 	elif velocity.length_squared() < 1.0:
 		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
-	velocity = direction * speed; rotation = direction.angle()
+	var intended_vel: Vector2 = direction * speed
+	# Issue #1146: Feed intended velocity to NavigationAgent2D ORCA so it can steer us away from other agents.
+	if _nav_agent and _nav_agent.avoidance_enabled:
+		_nav_agent.set_velocity(intended_vel)
+		# _avoidance_velocity is set asynchronously via _on_avoidance_velocity_computed.
+		# Fall back to intended_vel on the first frame before the callback fires.
+		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
+	else:
+		velocity = intended_vel
+	if velocity.length_squared() > 0.01: rotation = velocity.angle()
 	return true
+
+## Issue #1146: Called by NavigationAgent2D when ORCA computes a safe avoidance velocity.
+func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
+	_avoidance_velocity = safe_velocity
+
+## Issue #1146: Compute a separation steering force that pushes this enemy away from
+## nearby allies. Returns the adjusted velocity with separation applied.
+func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
+	var sep_force: Vector2 = Vector2.ZERO
+	for body in get_tree().get_nodes_in_group("enemies"):
+		if body == self or not is_instance_valid(body):
+			continue
+		var diff: Vector2 = global_position - (body as Node2D).global_position
+		var dist: float = diff.length()
+		if dist < SEPARATION_RADIUS and dist > 0.1:
+			sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
+	if sep_force != Vector2.ZERO:
+		vel += sep_force * SEPARATION_STRENGTH * delta
+	return vel
 
 ## Check if the navigation agent has a valid path to the target.
 func _has_nav_path_to(target_pos: Vector2) -> bool:
