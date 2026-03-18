@@ -15,15 +15,26 @@ The initial implementation (PR #1070, commit `9f1ce199`) registered the item in 
 | Log file | Duration | Session |
 |---|---|---|
 | `game_log_20260317_215744.txt` | ~2 min | Windows export, 2026-03-17 21:57–21:59 |
+| `game_log_20260318_065120.txt` | ~2 min | Windows export, 2026-03-18 06:51–06:54 |
 
-**Session details:**
+**Session 1 details (2026-03-17):**
 - OS: Windows (production export, non-debug build)
 - Engine: Godot 4.3-stable
 - Weapon: Makarov PM (pistol)
 - Dead Eye selected as active item (type 10)
 - Levels visited: LabyrinthLevel, multiple rapid restarts
 
+**Session 2 details (2026-03-18):**
+- OS: Windows (production export, non-debug build)
+- Engine: Godot 4.3-stable
+- Weapon: Mini UZI
+- Saved game had active item type 18 (`Invalid active item type: 18`)
+- Levels visited: LabyrinthLevel (manual armory → Dead Eye selection at 06:53:40)
+- Owner feedback: "counter didn't appear above player, effect probably not working"
+
 ## Timeline Reconstruction
+
+### Session 1 (2026-03-17)
 
 ```
 21:57:44 - Game starts (LabyrinthLevel)
@@ -36,6 +47,26 @@ The initial implementation (PR #1070, commit `9f1ce199`) registered the item in 
 21:57:55 - Dead Eye changed to Laser Sight (user testing)
 21:58:03 - Laser Sight changed back to Dead Eye
 21:58:03 - [Player.DeadEye] STILL MISSING
+```
+
+### Session 2 (2026-03-18)
+
+```
+06:51:20 - Game starts (LabyrinthLevel)
+06:51:20 - PersistManager: Restored unlocked active item types 0–14
+06:51:20 - [ActiveItemManager] Invalid active item type: 18
+           ← Owner's old build saved type 18 (a different item) which was invalid
+06:51:20 - PersistManager: Restored selected active item type: 18
+           ← No valid item selected, so active item defaults to None
+06:51:20 - [Player.AutoReload] Auto-reload not selected
+           ← [Player.DeadEye] MISSING (still using old build without Dead Eye init code)
+06:51:20 - [Player] Ready! Ammo: 32/32
+06:53:40 - [ActiveItemManager] Active item changed from None to Dead Eye
+           ← Owner manually selected Dead Eye from armory mid-session
+06:53:40 - Scene reloads (LabyrinthLevel restart after armory change)
+06:53:40 - [Player.AutoReload] Auto-reload not selected
+           ← [Player.DeadEye] STILL MISSING — confirming old build lacks _init_dead_eye()
+06:53:40 - [Player] Ready! Ammo: 32/32
 ```
 
 ## Root Cause Analysis
@@ -60,13 +91,24 @@ Even if the logic worked, there was no visual indicator for the player. Without 
 
 The initial icon (`assets/sprites/weapons/dead_eye_icon.png`) was an **exact copy** of the Laser Sight icon (verified by identical MD5 hash: `8c94c1a0f5b52ad2d4f37f36adcfa3fc`). This made Dead Eye indistinguishable from Laser Sight in the armory.
 
+### RCA-4: Enum Index Collision (Session 2)
+
+In session 2, PersistManager logged `Invalid active item type: 18`. This indicates:
+- The owner's saved game referenced type 18 (an item from a different build)
+- In our initial PR implementation, `DEAD_EYE` was assigned index 14
+- Main branch later added `EXTENDED_MAGAZINE` (index 10), `DRILLING_BULLETS` (15), `RECOIL_COMPENSATOR` (16), and `COMBAT_DISPOSITION` (17), shifting all existing items
+- After the merge conflict resolution in this PR, `DEAD_EYE` is now **index 18**, which exactly matches the owner's saved game state
+
+This means once the owner tests with the merged build, their existing save game will automatically select Dead Eye (the saved type 18 will correctly map to DEAD_EYE).
+
 ## Root Cause Summary
 
 | # | Root Cause | Impact | Fix Applied |
 |---|---|---|---|
-| RCA-1 | Implementation was absent in the tested build | Item had no effect | PR #1070 (commit `9f1ce199`) adds full Dead Eye implementation |
+| RCA-1 | Implementation was absent in the tested build | Item had no effect | PR #1070 adds full Dead Eye implementation |
 | RCA-2 | No HUD indicator for hit streak / multiplier state | No player feedback | Added `dead_eye_hud.gd` — red eye + counter displayed above player |
 | RCA-3 | Dead Eye icon was copy of Laser Sight icon | Visual confusion in armory | Regenerated unique red-eye-with-crosshair icon |
+| RCA-4 | Enum index 18 in save game was "Invalid" in old build | Item type could not be restored | `DEAD_EYE` is now index 18, making old saves automatically valid |
 
 ## Implementation Overview
 
