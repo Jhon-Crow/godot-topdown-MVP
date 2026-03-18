@@ -366,6 +366,12 @@ var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
 
+## [#1163] Sniper rifle kiting constants — sniper maintains standoff range and blind-fires through cover.
+const SNIPER_PREFERRED_DISTANCE: float = 550.0  ## Preferred engagement range (px).
+const SNIPER_MIN_DISTANCE: float = 350.0         ## Below this: actively retreat from player.
+const SNIPER_BLIND_FIRE_COOLDOWN: float = 5.0    ## Seconds between blind-fire shots through cover.
+var _sniper_blind_fire_timer: float = 0.0  ## [#1163] Timer for blind fire at predicted player position.
+
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -1185,6 +1191,102 @@ func _find_distant_cover_position() -> void:
 	else:
 		_find_cover_position()  # Fallback to normal cover search
 
+## [#1163] Process sniper rifle combat behavior: maintain standoff distance and blind-fire through cover.
+## The sniper stays at SNIPER_PREFERRED_DISTANCE, retreats if the player comes too close,
+## and blind-fires at the last known/predicted player position through cover when LOS is lost.
+func _process_sniper_combat(delta: float) -> void:
+	if _player == null:
+		_transition_to_searching(global_position)
+		return
+
+	var distance_to_player := global_position.distance_to(_player.global_position)
+	var direction_to_player := (_player.global_position - global_position).normalized()
+
+	# Update timers
+	_sniper_blind_fire_timer += delta
+	if not _detection_delay_elapsed:
+		_detection_timer += delta
+		if _detection_timer >= _get_effective_detection_delay():
+			_detection_delay_elapsed = true
+
+	# If player is visible: aim and shoot from current position (no approach needed).
+	if _can_see_player:
+		# If player is too close: back away while still facing and potentially shooting.
+		if distance_to_player < SNIPER_MIN_DISTANCE:
+			var retreat_direction := -direction_to_player
+			retreat_direction = _apply_wall_avoidance(retreat_direction)
+			velocity = retreat_direction * combat_move_speed
+			_log_debug("Sniper: player too close (%.0f px), retreating" % distance_to_player)
+		else:
+			# Player is at a good range — hold position.
+			velocity = Vector2.ZERO
+
+		# Aim and shoot (respects detection delay and fire rate cooldown).
+		_aim_at_player()
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown and _can_shoot():
+			_shoot()
+			_shoot_timer = 0.0
+			_sniper_blind_fire_timer = 0.0  # Reset blind fire timer after a real shot
+		return
+
+	# Player is NOT visible: blind-fire at last known / predicted position through cover.
+	# Sniper bullets penetrate cover (MaxWallPenetrations = 2), so this is physically meaningful.
+	velocity = Vector2.ZERO  # Hold position while aiming at predicted spot
+
+	var blind_target := _last_known_player_position
+	# Prefer the prediction system's best hypothesis if available (#298)
+	if _prediction != null and _prediction.has_predictions:
+		var predicted := _prediction.get_best_position()
+		if predicted != Vector2.ZERO:
+			blind_target = predicted
+
+	if blind_target == Vector2.ZERO:
+		# No known position — fall back to normal pursuit
+		_transition_to_pursuing()
+		return
+
+	# Rotate toward the predicted position (slow sniper aim)
+	var to_blind := (blind_target - global_position).normalized()
+	if to_blind != Vector2.ZERO:
+		if _enemy_model:
+			_enemy_model.global_rotation = lerp_angle(_enemy_model.global_rotation, to_blind.angle(), rotation_speed * delta)
+		rotation = lerp_angle(rotation, to_blind.angle(), rotation_speed * delta)
+
+	# Fire through cover on cooldown
+	if _sniper_blind_fire_timer >= SNIPER_BLIND_FIRE_COOLDOWN and _shoot_timer >= shoot_cooldown and _can_shoot():
+		_sniper_fire_at_predicted_position(blind_target)
+		_sniper_blind_fire_timer = 0.0
+
+## [#1163] Fire sniper bullet at a predicted player position through cover walls.
+## Uses the same projectile as normal shooting but bypasses the LOS requirement.
+func _sniper_fire_at_predicted_position(target_pos: Vector2) -> void:
+	if bullet_scene == null: return
+	var to_target := (target_pos - global_position).normalized()
+	if to_target == Vector2.ZERO: return
+	# Face toward the predicted position
+	if _enemy_model: _enemy_model.global_rotation = to_target.angle()
+	rotation = to_target.angle()
+	var spawn_pos := _get_bullet_spawn_position(to_target)
+	# Small inaccuracy to simulate firing at a suspected (not confirmed) position
+	var spread := deg_to_rad(randf_range(-3.0, 3.0))
+	var direction := to_target.rotated(spread)
+	_spawn_projectile(direction, spawn_pos)
+	_spawn_muzzle_flash(spawn_pos, direction)
+	_spawn_casing(direction, to_target)
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("play_asvk_shot"): audio.play_asvk_shot()
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	var _now_sniper := Time.get_ticks_msec() / 1000.0
+	if sp and sp.has_method("emit_sound") and _now_sniper - _last_gunshot_propagation_time >= ENEMY_GUNSHOT_PROPAGATION_COOLDOWN:
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+		_last_gunshot_propagation_time = _now_sniper
+	_play_delayed_shell_sound()
+	_shoot_timer = 0.0
+	_current_ammo -= 1; _shot_count += 1
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	_log_to_file("[#1163] Sniper blind-fire at predicted position %s, ammo=%d" % [target_pos, _current_ammo])
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
+
 ## Process the AI state machine.
 func _process_ai_state(delta: float) -> void:
 	# If stunned, stop all movement and actions - do nothing
@@ -1398,6 +1500,11 @@ func _process_combat_state(delta: float) -> void:
 				_machine_gunner_fire_at_corridor(suppress_target)
 			return  # Hold position; belt depletion triggers PM fallback + retreat
 		_machine_gunner_suppressing_corridor = false
+
+	# [#1163] Sniper rifle: maintain standoff distance, shoot from range, blind-fire through cover.
+	if weapon_type == WeaponType.SNIPER_RIFLE:
+		_process_sniper_combat(delta)
+		return
 
 	# Check suppression (ignore during vulnerability pursuit)
 	# RCA-19: Add minimum combat duration before retreating to prevent rapid COMBAT→RETREATING cycling
@@ -2011,6 +2118,25 @@ func _process_pursuing_state(delta: float) -> void:
 		if ((_can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE) or
 				(_can_see_companion and _companion != null and global_position.distance_to(_companion.global_position) <= CLOSE_COMBAT_DISTANCE)):
 			_transition_to_combat(); return
+	# [#1163] Sniper: in PURSUING, if we have a last-known position at range, blind-fire and hold.
+	# Snipers do not rush the player — they stay back and fire through cover when LOS is lost.
+	if weapon_type == WeaponType.SNIPER_RIFLE:
+		_sniper_blind_fire_timer += delta
+		var blind_pos := _last_known_player_position
+		if _prediction != null and _prediction.has_predictions:
+			var ph := _prediction.get_best_position()
+			if ph != Vector2.ZERO: blind_pos = ph
+		if blind_pos != Vector2.ZERO and global_position.distance_to(blind_pos) >= SNIPER_MIN_DISTANCE:
+			velocity = Vector2.ZERO
+			var to_blind := (blind_pos - global_position).normalized()
+			if _enemy_model: _enemy_model.global_rotation = lerp_angle(_enemy_model.global_rotation, to_blind.angle(), rotation_speed * delta)
+			rotation = lerp_angle(rotation, to_blind.angle(), rotation_speed * delta)
+			if _sniper_blind_fire_timer >= SNIPER_BLIND_FIRE_COOLDOWN and _shoot_timer >= shoot_cooldown and _can_shoot():
+				_sniper_fire_at_predicted_position(blind_pos)
+				_sniper_blind_fire_timer = 0.0
+			return
+		# Player is too close or no known position — fall through to normal pursuit to reposition
+
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
 		_pursuit_approaching = false
 		_transition_to_retreating()
