@@ -127,6 +127,51 @@ The fix requires building a new executable from the updated codebase.
 
 ---
 
+## Second Test Log Analysis (game_log_20260318_102209.txt)
+
+The user provided a second game log on 2026-03-18 at 10:22:09, after the PR was marked ready and a "fix is in PR" comment was posted.
+
+**Finding: The user is still using the same old pre-PR binary.**
+
+Evidence:
+
+| Indicator | Value in log | Expected (PR branch) |
+|-----------|-------------|----------------------|
+| Log message at line 342 | `"Armored skin active — shards will spawn when HP ≤2 and hit"` | `"Armored skin active — shards will spawn at low HP"` |
+| Sprites found (lines 314–317, 322–325 etc.) | Body, Head, LeftArm, RightArm (4 sprites) | Body, Head, LeftArm, RightArm, Armband (5 sprites) |
+| `"Armor shader applied"` entries | **None** | Should appear each scene reload when Armored Skin is active |
+
+**Timeline of second test session:**
+
+| Time | Event |
+|------|-------|
+| 10:22:09 | Game starts with old binary |
+| 10:22:11 | Player initializes — no Armored Skin selected ("No armored skin selected") |
+| 10:22:16 | User opens Armory menu |
+| 10:22:23 | User switches active item to Armored Skin |
+| 10:22:23 | Scene reload triggered |
+| 10:22:24 | `_init_armored_skin()` → "Armored skin active — shards will spawn when HP ≤2 and hit" (old binary message) |
+| 10:22:24 | **No visual applied** — `_apply_armored_skin_visual()` not in this binary |
+| 10:22:24–10:22:28 | Multiple scene reloads; same behavior repeats |
+
+**Conclusion**: Both test logs confirm the same root cause — the user has not yet rebuilt from the PR branch. A new build from `issue-1142-4c23df595a38` is required to see the fix.
+
+---
+
+## How to Verify the Fix
+
+To confirm the fix works, the user must build a new executable from the PR branch:
+
+1. Check out branch `issue-1142-4c23df595a38`
+2. Open the project in Godot 4.3
+3. Export to a new `.exe` (or run directly from editor)
+4. Select "Armored Skin" in Armory
+5. Verify:
+   - Log contains `"Armor shader applied to 5 sprites"` (or similar count depending on active sprites)
+   - Player character shows blue glassy crystal overlay, matching the enemy Armored Skin visual
+
+---
+
 ## Files Referenced
 
 | File | Role |
@@ -134,4 +179,5 @@ The fix requires building a new executable from the updated codebase.
 | `scripts/characters/player.gd` | Player logic — `_init_armored_skin()`, `_apply_armored_skin_visual()` |
 | `scripts/shaders/armored_skin.gdshader` | GLSL shader producing the glassy crystal overlay |
 | `scenes/characters/Player.tscn` | Player scene — defines `PlayerModel` and sprite hierarchy |
-| `docs/case-studies/issue-1142/game_log_20260318_090612.txt` | User-provided game session log showing the bug |
+| `docs/case-studies/issue-1142/game_log_20260318_090612.txt` | First user-provided game session log (09:06:12) showing the bug |
+| `docs/case-studies/issue-1142/game_log_20260318_102209.txt` | Second user-provided game session log (10:22:09) — same old binary confirmed |
