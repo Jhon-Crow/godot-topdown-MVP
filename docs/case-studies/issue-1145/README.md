@@ -20,6 +20,7 @@
 | `game_log_20260318_083455.txt` | Session 3 | Old build; 1 drop at 22fps during scene load; shooting with 0 listeners, no gameplay drops |
 | `logs/game_log_20260318_085720.txt` | Session 4 | **Fixed EMPTY_CLICK build confirmed** — no empty-click drops; **new finding**: 29fps drop during 32-bullet wall-shooting burst confirms DustEffect instantiation as remaining root cause |
 | `game_log_20260318_094946.txt` | Session 5 | **Fixed pool build confirmed** — FPS stable during shooting; **new finding**: dust effect invisible due to Godot bug #58778; **new finding**: blood decal FPS drops on large map with 20 enemies |
+| *(no new log)* | Session 6 | **User requests Optimization menu** — no dust effect visible, user asks for: settings → optimization → toggle wall hit particles on/off + restore old particle effect |
 
 ---
 
@@ -310,6 +311,10 @@ effect.restart()  # ← always starts a fresh cycle
 | `scripts/autoload/sound_propagation.gd` | Add `EMPTY_CLICK_PROPAGATION_COOLDOWN = 0.4s` throttle to `emit_player_empty_click()` | 97% fewer enemy callbacks when holding empty trigger |
 | `scripts/autoload/impact_effects_manager.gd` | DustEffect object pool (16 pre-allocated nodes, max 16 concurrent) replacing per-hit `instantiate()` | Eliminates first-emit stutters; bounds GPU particle load |
 | `scripts/autoload/impact_effects_manager.gd` | Use `restart()` instead of `emitting=false/true` to re-trigger pooled one-shot particles | Fixes invisible dust effect (Godot bug #58778: emitting=true silently dropped during inactive_time) |
+| `scripts/autoload/impact_effects_manager.gd` | Check `GameplaySettings.is_wall_hit_particles_enabled()` before spawning dust (Session 6) | Allows disabling dust particles entirely via settings for low-end hardware |
+| `scripts/autoload/gameplay_settings.gd` | Add `wall_hit_particles_enabled` bool setting with getter/setter/persistence | New optimization knob persisted to `user://gameplay_settings.cfg` |
+| `scripts/ui/settings_menu.gd` + `SettingsMenu.tscn` | Add "Optimization" button to settings hub | New Optimization submenu accessible from Settings |
+| `scripts/ui/optimization_menu.gd` + `OptimizationMenu.tscn` | New Optimization submenu with wall hit particles toggle | User can enable/disable wall hit dust particles |
 
 ---
 

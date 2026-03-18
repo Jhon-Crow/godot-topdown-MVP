@@ -288,6 +288,11 @@ func _preload_effect_scenes() -> void:
 ## @param surface_normal: Normal vector of the surface (particles scatter away from it).
 ## @param caliber_data: Optional caliber data for effect scaling.
 func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data: Resource = null) -> void:
+	# Issue #1145: Respect the wall hit particles optimization setting.
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings and not gameplay_settings.is_wall_hit_particles_enabled():
+		return
+
 	if _debug_effects:
 		print("[ImpactEffectsManager] spawn_dust_effect at ", position, " normal=", surface_normal)
 
