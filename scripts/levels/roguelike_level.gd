@@ -572,9 +572,13 @@ func _setup_navigation() -> void:
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
 	# Bake nav mesh after procedural room walls are in place so enemies can
-	# navigate to the player. Without this, NavigationAgent2D has no valid map
-	# and machete enemies get stuck in an infinite COMBAT→PURSUING loop.
-	nav_region.bake_navigation_polygon(false)
+	# navigate to the player.  The bake must be deferred to the next physics
+	# frame so that the StaticBody2D collision shapes added in _build_room_scene
+	# are fully registered with the PhysicsServer before parsing geometry.
+	# Without this deferral the bake sees no colliders and produces an empty nav
+	# mesh — NavigationAgent2D then has no valid map and machete enemies end up
+	# in an infinite COMBAT→PURSUING→COMBAT freeze loop (Issue #1165).
+	nav_region.bake_navigation_polygon.call_deferred(false)
 
 
 func _setup_player_tracking() -> void:

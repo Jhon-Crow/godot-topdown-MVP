@@ -2006,9 +2006,12 @@ func _process_pursuing_state(delta: float) -> void:
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
 		# Issue #934: also consider companion for melee engagement
-		if ((_can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE) or
-				(_can_see_companion and _companion != null and global_position.distance_to(_companion.global_position) <= CLOSE_COMBAT_DISTANCE)):
-			_transition_to_combat(); return
+		# Issue #1165: guard with minimum duration so a machete enemy that was just
+		# rerouted here from a stuck-COMBAT loop can't flip back to COMBAT instantly.
+		if _pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT:
+			if ((_can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE) or
+					(_can_see_companion and _companion != null and global_position.distance_to(_companion.global_position) <= CLOSE_COMBAT_DISTANCE)):
+				_transition_to_combat(); return
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
 		_pursuit_approaching = false
 		_transition_to_retreating()

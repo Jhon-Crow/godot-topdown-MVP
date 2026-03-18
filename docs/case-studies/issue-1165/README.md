@@ -21,6 +21,7 @@ This case study reconstructs the exact sequence of events from the game log, ide
 | File | Description |
 |---|---|
 | `game_log_20260318_092645.txt` | Original game log provided by the reporter |
+| `game_log_20260318_111928.txt` | Second game log provided after the first fix attempt — confirms the bug persisted |
 
 ---
 
@@ -274,26 +275,28 @@ The bug is not a crash but significantly degrades gameplay quality when it occur
 
 ## Fix Applied (PR #1168)
 
+### Iteration 1 (commit 14a9684e — incomplete)
+
 Two changes were made to `scripts/levels/roguelike_level.gd`:
+1. Added `nav_region.bake_navigation_polygon(false)` at the end of `_setup_navigation()`.
+2. Added MACHETE to LABYRINTH, BUILDING, and CITY room weapon pools.
 
-### 1. Bake nav mesh after procedural room walls are built
+**Result:** The user tested and reported "не работает" (still not working), with a second log (`game_log_20260318_111928.txt`). Analysis of that log revealed **two remaining bugs**.
 
-```gdscript
-# scripts/levels/roguelike_level.gd — _setup_navigation()
-func _setup_navigation() -> void:
-    var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
-    if nav_region == null:
-        # ... create nav region ...
-        add_child(nav_region)
-    # Bake AFTER room walls are in place so enemies can navigate to the player.
-    nav_region.bake_navigation_polygon(false)
-```
+### Root Cause of Iteration 1 Failure
 
-This is the same pattern already used in `beach_level.gd`.
+**Bug A — Deferred physics registration**: `bake_navigation_polygon(false)` was called immediately after `add_child(nav_region)`, but the `StaticBody2D` collision shapes created in `_build_room_scene()` are not registered with the `PhysicsServer2D` until the next physics frame. The bake found no colliders and produced an empty nav mesh. Evidence: other enemies with `SEARCHING` state tried to expand search radius from 175 → 625+ with **0 waypoints** found at any radius — the nav mesh had no walkable area at all.
 
-### 2. Add MACHETE to more room types
+**Bug B — Immediate PURSUING→COMBAT re-entry**: In `_process_pursuing_state()`, melee enemies transition back to COMBAT if `_can_see_player && distance <= CLOSE_COMBAT_DISTANCE (400px)` **with no minimum duration guard**. Ranged enemies have `_pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT (0.3s)` but melee did not. This caused the cycle:
+1. COMBAT: nav fails → stuck timer (0.8s) → PURSUING
+2. PURSUING: player visible within 400px → **immediately** COMBAT (no wait)
+3. Repeat → enemy appears frozen
 
-Machete is now available in LABYRINTH, BUILDING, DOCKS, and CITY rooms — not only DOCKS. Beach remains ranged-only (open area).
+### Iteration 2 (current)
+
+**Fix 1 — `scripts/levels/roguelike_level.gd`**: Changed `nav_region.bake_navigation_polygon(false)` to `nav_region.bake_navigation_polygon.call_deferred(false)`. This defers the bake to the next frame, after `PhysicsServer2D` has registered all the wall/cover collision shapes.
+
+**Fix 2 — `scripts/objects/enemy.gd`**: Added `_pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT` guard to the melee PURSUING→COMBAT transition, matching the guard already applied to ranged enemies. This breaks the oscillation loop even in the worst-case where nav fails.
 
 ---
 
