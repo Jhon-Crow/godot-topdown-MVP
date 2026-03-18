@@ -2,14 +2,20 @@ extends Node2D
 ## Roguelike level — one room at a time, Binding of Isaac style.
 ##
 ## Issue #1061: добавить режим рогалика
+## Issue #1166: update roguelike mode — treasure room after each cleared room.
 ##
 ## Each run consists of 3–5 rooms of different types (Labyrinth, Building,
 ## Beach, Docks, City). The player clears one room at a time:
 ##
 ##   1. Enter room → enemies appear → fight.
-##   2. Kill all enemies → exit zone activates.
-##   3. Player reaches exit → next room loads (scene reloads).
-##   4. After clearing the last room the full-run score is shown.
+##   2. Kill all enemies → treasure pedestal appears in the centre.
+##   3. Player touches pedestal to collect a random item (Isaac style — no button).
+##      - Passive active items stack/accumulate.
+##      - Active items replace the current one (old item put back on pedestal).
+##      - Weapons replace the current weapon.
+##   4. Exit zone activates alongside the pedestal (player can skip the item).
+##   5. Player reaches exit → next room loads (scene reloads).
+##   6. After clearing the last room the full-run score is shown.
 ##
 ## Run state (room index, total rooms, room type sequence, accumulated stats)
 ## is stored in GameManager so it survives the scene reload between rooms.
@@ -72,6 +78,35 @@ const ROOM_TYPE_NAMES: Dictionary = {
 const SATURATION_DURATION:  float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 
+## ============================================================
+## Treasure pedestal constants (Issue #1166)
+## ============================================================
+
+## Pedestal size (visual square)
+const PEDESTAL_SIZE: float = 48.0
+
+## Pedestal collision radius (touch-to-collect)
+const PEDESTAL_RADIUS: float = 36.0
+
+## Color of the pedestal base
+const PEDESTAL_BASE_COLOR: Color = Color(0.55, 0.42, 0.20, 1.0)   ## Warm gold/wood
+## Color of the item glow orb on the pedestal
+const PEDESTAL_ITEM_GLOW:  Color = Color(0.90, 0.75, 0.20, 0.85)  ## Golden glow
+
+## Passive active-item types — picking these up does NOT replace the current
+## active item, it just adds their passive benefit (they always stay equipped
+## alongside whatever the player already has).  All other types are "active"
+## and replace the current one.
+## NOTE: this list mirrors the passives in ActiveItemManager.ActiveItemType.
+const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
+	2,   # BREAKER_BULLETS
+	8,   # LASER_SIGHT
+	9,   # EXTENDED_MAGAZINE
+	12,  # ARMORED_SKIN
+	13,  # AUTO_RELOAD
+	16,  # COMBAT_DISPOSITION
+]
+
 
 ## ============================================================
 ## Runtime state
@@ -108,6 +143,11 @@ var _score_shown:     bool = false
 var _player_dead:     bool = false
 
 var _exit_zone: Area2D = null
+
+## Treasure pedestal (Issue #1166) — spawned when room is cleared.
+var _treasure_pedestal: Area2D = null
+## Item type stored on the current pedestal ("weapon" or an int ActiveItemType).
+var _pedestal_item = null
 
 
 ## ============================================================
@@ -842,6 +882,7 @@ func _on_enemy_died() -> void:
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies in room %d eliminated!" % (_current_room_idx + 1))
 		_room_cleared = true
+		call_deferred("_spawn_treasure_pedestal")
 		call_deferred("_activate_exit_zone")
 
 
@@ -958,6 +999,213 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
 	else:
 		_combo_label.visible = false
+
+
+## ============================================================
+## Treasure pedestal (Issue #1166) — Isaac-style item pickup
+## ============================================================
+
+## Pick a random item for the pedestal.
+## Returns either the String "weapon" or an int (ActiveItemType).
+func _pick_random_pedestal_item():
+	# 40% chance of a weapon pickup, 60% chance of an active item.
+	if randi() % 10 < 4:
+		return "weapon"
+
+	# Choose a random active item (skip NONE index 0).
+	var all_types: Array = ActiveItemManager.get_all_active_item_types()
+	var candidates: Array = []
+	for t in all_types:
+		if t != 0:  # Skip ActiveItemType.NONE
+			candidates.append(t)
+
+	if candidates.is_empty():
+		return "weapon"  # Fallback
+
+	return candidates[randi() % candidates.size()]
+
+
+## Spawn the treasure pedestal at the centre of the room.
+## Called (deferred) when all enemies are cleared.
+func _spawn_treasure_pedestal() -> void:
+	if _treasure_pedestal != null:
+		return  # Already spawned
+
+	var item = _pick_random_pedestal_item()
+	_pedestal_item = item
+
+	# ── Build the Area2D pedestal ──────────────────────────────────────────
+	var pedestal := Area2D.new()
+	pedestal.name = "TreasurePedestal"
+	pedestal.collision_layer = 0
+	pedestal.collision_mask = 1   # Detect player CharacterBody2D (layer 1)
+	pedestal.monitoring = true
+
+	# Position at room centre
+	pedestal.position = Vector2(ROOM_WIDTH * 0.5, ROOM_HEIGHT * 0.5)
+
+	# Collision circle
+	var col := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = PEDESTAL_RADIUS
+	col.shape = circle
+	pedestal.add_child(col)
+
+	# Visual: base platform
+	var base := ColorRect.new()
+	base.size    = Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE * 0.4)
+	base.color   = PEDESTAL_BASE_COLOR
+	base.position = Vector2(-PEDESTAL_SIZE * 0.5, PEDESTAL_SIZE * 0.1)
+	pedestal.add_child(base)
+
+	# Visual: glowing orb representing the item
+	var orb := ColorRect.new()
+	orb.size    = Vector2(PEDESTAL_SIZE * 0.55, PEDESTAL_SIZE * 0.55)
+	orb.color   = PEDESTAL_ITEM_GLOW
+	orb.position = Vector2(-PEDESTAL_SIZE * 0.275, -PEDESTAL_SIZE * 0.55)
+	pedestal.add_child(orb)
+
+	# Label: item name
+	var label := Label.new()
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.6, 1.0))
+	label.text = _pedestal_item_label(item)
+	label.position = Vector2(-60, -PEDESTAL_SIZE * 0.9 - 18)
+	label.custom_minimum_size = Vector2(120, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pedestal.add_child(label)
+
+	# Hint label
+	var hint := Label.new()
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.7))
+	hint.text = "(подойди, чтобы взять)"
+	hint.position = Vector2(-60, PEDESTAL_SIZE * 0.25)
+	hint.custom_minimum_size = Vector2(120, 0)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pedestal.add_child(hint)
+
+	pedestal.set_meta("pedestal_item", item)
+	pedestal.body_entered.connect(_on_pedestal_body_entered.bind(pedestal))
+
+	add_child(pedestal)
+	_treasure_pedestal = pedestal
+
+	print("[RoguelikeLevel] Treasure pedestal spawned: %s" % _pedestal_item_label(item))
+
+
+## Returns a human-readable name for the pedestal item.
+func _pedestal_item_label(item) -> String:
+	if item == "weapon":
+		return "Оружие (случайное)"
+	if item is int and ActiveItemManager:
+		return ActiveItemManager.get_active_item_name(item)
+	return "???"
+
+
+## Called when the player's body enters the pedestal Area2D.
+func _on_pedestal_body_entered(body: Node2D, pedestal: Area2D) -> void:
+	if body.name != "Player" and not body.is_in_group("player"):
+		return
+	if not is_instance_valid(pedestal):
+		return
+
+	var item = pedestal.get_meta("pedestal_item", null)
+	if item == null:
+		return
+
+	print("[RoguelikeLevel] Pedestal collected by player: %s" % _pedestal_item_label(item))
+
+	if item == "weapon":
+		_apply_pedestal_weapon(body, pedestal)
+	elif item is int:
+		_apply_pedestal_active_item(body, item, pedestal)
+
+
+## Give the player a random unlocked weapon (weapon pedestal).
+## The pedestal is removed after collection.
+func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
+	if GameManager == null:
+		pedestal.queue_free()
+		_treasure_pedestal = null
+		return
+
+	var current_weapon_id: String = GameManager.get_selected_weapon()
+	var available: Array = []
+	for weapon_id in GameManager.WEAPON_SCENES.keys():
+		if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
+			available.append(weapon_id)
+
+	if available.is_empty():
+		print("[RoguelikeLevel] Weapon pedestal: no other weapons available — skipping")
+		pedestal.queue_free()
+		_treasure_pedestal = null
+		return
+
+	var new_weapon_id: String = available[randi() % available.size()]
+	GameManager.set_selected_weapon(new_weapon_id)
+
+	if player.has_method("ApplySelectedWeaponFromGameManager"):
+		player.ApplySelectedWeaponFromGameManager()
+
+	print("[RoguelikeLevel] Weapon pedestal: switched to %s" % new_weapon_id)
+	pedestal.queue_free()
+	_treasure_pedestal = null
+
+
+## Give the player an active item (active-item pedestal).
+## Passive items accumulate (player keeps both the old and new).
+## Active (non-passive) items replace the current one without scene restart;
+## the displaced item is put back on the pedestal for the player to reconsider.
+func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2D) -> void:
+	if ActiveItemManager == null:
+		pedestal.queue_free()
+		_treasure_pedestal = null
+		return
+
+	var is_passive: bool = item_type in PASSIVE_ACTIVE_ITEM_TYPES
+	var current: int = ActiveItemManager.current_active_item
+
+	if is_passive:
+		# Passive: just set it without restart (it coexists with any active item).
+		# If it's the same as the current one, nothing to do.
+		if item_type == current:
+			print("[RoguelikeLevel] Active-item pedestal: already have %s — skipping" %
+				ActiveItemManager.get_active_item_name(item_type))
+			pedestal.queue_free()
+			_treasure_pedestal = null
+			return
+		ActiveItemManager.set_active_item(item_type, false)  # false = no scene restart
+		print("[RoguelikeLevel] Passive item collected: %s" %
+			ActiveItemManager.get_active_item_name(item_type))
+		pedestal.queue_free()
+		_treasure_pedestal = null
+	else:
+		# Active item: swap — put the old item back on the pedestal so the player
+		# can take it again if they change their mind.
+		var old_type: int = current
+
+		ActiveItemManager.set_active_item(item_type, false)  # false = no scene restart
+		print("[RoguelikeLevel] Active item collected: %s (replaced %s)" % [
+			ActiveItemManager.get_active_item_name(item_type),
+			ActiveItemManager.get_active_item_name(old_type)])
+
+		if old_type != 0 and old_type != item_type:
+			# Update pedestal to offer the displaced item
+			pedestal.set_meta("pedestal_item", old_type)
+			_pedestal_item = old_type
+			# Update labels
+			for child in pedestal.get_children():
+				if child is Label:
+					var lbl: Label = child
+					if lbl.position.y < 0:  # Item name label (above the orb)
+						lbl.text = _pedestal_item_label(old_type)
+			print("[RoguelikeLevel] Displaced item '%s' placed back on pedestal" %
+				ActiveItemManager.get_active_item_name(old_type))
+		else:
+			# No old item to put back — remove pedestal
+			pedestal.queue_free()
+			_treasure_pedestal = null
 
 
 ## ============================================================
