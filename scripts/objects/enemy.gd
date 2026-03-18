@@ -4053,7 +4053,7 @@ func _calculate_lead_prediction() -> Vector2:
 
 ## Process patrol behavior - move between patrol points with corner checking.
 func _process_patrol(delta: float) -> void:
-	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
+	# Issue #1119: NavigationAgent2D routing with wall avoidance (Issue #1107: corner escape).
 	if _patrol_points.is_empty(): return
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
@@ -4064,12 +4064,19 @@ func _process_patrol(delta: float) -> void:
 	var target_point := _patrol_points[_current_patrol_index]
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
-		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
+		var d := (target_point - global_position).normalized(); d = _apply_wall_avoidance(d); velocity = d * move_speed; rotation = d.angle(); return
 	_nav_agent.target_position = target_point
 	if _nav_agent.is_navigation_finished():
 		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return
 	var dir := (_nav_agent.get_next_path_position() - global_position).normalized()
-	velocity = dir * move_speed; move_and_slide(); _push_casings()
+	dir = _apply_wall_avoidance(dir)
+	# Issue #1107: Corner escape — blend slide normals (wall contacts) into direction
+	var _esc: Vector2 = Vector2.ZERO
+	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
+	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); dir = (dir + _en * (1.5 if _en.dot(dir) < -0.5 else 0.6)).normalized()
+	elif velocity.length_squared() < 1.0:
+		var _p := move_and_collide(dir * 2.0, true); if _p: dir = (dir + _p.get_normal() * 0.8).normalized()
+	velocity = dir * move_speed
 	if dir.length() > 0.1: rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta); _process_corner_check(delta, dir, "PATROL")
 	var moved := global_position.distance_to(_patrol_stuck_last_position)  # Stuck detection
 	if moved < PATROL_STUCK_DISTANCE_THRESHOLD:
