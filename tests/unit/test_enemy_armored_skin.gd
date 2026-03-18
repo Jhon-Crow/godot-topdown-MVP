@@ -3,8 +3,9 @@ extends GutTest
 ##
 ## Tests the EnemyArmoredSkinComponent logic:
 ## - +1 HP bonus applied at spawn
-## - Glass shards spawn when hit at ≤2 HP
+## - Glass shards spawn when hit at ≤2 HP (exactly once — Issue #1143)
 ## - Shards do NOT spawn above the threshold
+## - Armor visual is removed when shards spawn (Issue #1143)
 
 
 # ============================================================================
@@ -18,13 +19,21 @@ class MockEnemyArmoredSkinComponent:
 
 	## Number of shard spawns triggered during the test.
 	var shard_spawn_count: int = 0
+	## Whether armor visual was removed (simulates _remove_armor_visual).
+	var armor_visual_removed: bool = false
+	## True after shards have been spawned — prevents re-triggering (Issue #1143).
+	var _has_triggered: bool = false
 
 	func apply_hp_bonus(current_health: int, max_health: int) -> Array[int]:
 		return [current_health + 1, max_health + 1]
 
 	func try_spawn_shards(current_health: int) -> bool:
+		if _has_triggered:
+			return false
 		if current_health <= HP_THRESHOLD:
+			_has_triggered = true
 			shard_spawn_count += 1
+			armor_visual_removed = true
 			return true
 		return false
 
@@ -138,11 +147,12 @@ func test_shards_do_not_spawn_at_5hp() -> void:
 	assert_eq(_component.shard_spawn_count, 0, "Shards should NOT spawn at 5 HP")
 
 
-func test_shards_spawn_multiple_times_at_low_hp() -> void:
+func test_shards_spawn_only_once_at_low_hp() -> void:
+	# Issue #1143: Armored Skin triggers exactly once — enemy is not immortal.
 	_component.try_spawn_shards(2)
 	_component.try_spawn_shards(1)
-	assert_eq(_component.shard_spawn_count, 2,
-		"Shards should spawn on each hit at or below threshold")
+	assert_eq(_component.shard_spawn_count, 1,
+		"Shards should spawn only once — re-triggering must be prevented (Issue #1143)")
 
 
 func test_shard_count_constant_is_20() -> void:
@@ -256,3 +266,53 @@ func test_damage_applied_without_armored_skin() -> void:
 	enemy.take_hit()
 	assert_eq(enemy._current_health, 1,
 		"Enemy HP should decrease normally when armored skin is not equipped")
+
+
+# ============================================================================
+# Re-trigger prevention tests (Issue #1143)
+# ============================================================================
+
+
+func test_second_hit_at_low_hp_applies_damage() -> void:
+	# After Armored Skin triggers once, subsequent hits must reduce HP normally.
+	var enemy := MockArmoredSkinEnemy.new()
+	enemy.setup(3, 3)
+	enemy.add_armored_skin()
+	enemy._current_health = 2
+	enemy.take_hit()  # First hit: triggers shards, absorbs damage → HP stays 2
+	assert_eq(enemy._current_health, 2, "HP should be 2 after first (absorbed) hit")
+	enemy.take_hit()  # Second hit: no re-trigger, damage applied → HP goes to 1
+	assert_eq(enemy._current_health, 1,
+		"HP should decrease on second hit — Armored Skin must not re-trigger")
+
+
+func test_shards_spawn_exactly_once_on_repeated_hits() -> void:
+	# The component must never fire shards more than once.
+	_component.try_spawn_shards(2)  # triggers
+	_component.try_spawn_shards(1)  # must be blocked
+	_component.try_spawn_shards(1)  # must be blocked
+	assert_eq(_component.shard_spawn_count, 1,
+		"Shards must spawn exactly once regardless of how many low-HP hits follow")
+
+
+func test_armor_visual_removed_on_trigger() -> void:
+	# When shards spawn the armor shader overlay must be removed (Issue #1143).
+	_component.try_spawn_shards(2)
+	assert_true(_component.armor_visual_removed,
+		"Armor visual should be removed when Armored Skin shards are spawned")
+
+
+func test_armor_visual_not_removed_above_threshold() -> void:
+	# Armor shader stays if the hit does not trigger the effect.
+	_component.try_spawn_shards(3)
+	assert_false(_component.armor_visual_removed,
+		"Armor visual should remain when HP is above threshold (effect not triggered)")
+
+
+func test_armor_visual_not_removed_on_second_trigger_attempt() -> void:
+	# Shader was already removed on first trigger — second attempt should be a no-op.
+	_component.try_spawn_shards(2)  # first trigger: removes visual
+	_component.armor_visual_removed = false  # reset flag to detect spurious removal
+	_component.try_spawn_shards(1)  # should do nothing
+	assert_false(_component.armor_visual_removed,
+		"Armor visual removal must not fire again after Armored Skin already triggered")

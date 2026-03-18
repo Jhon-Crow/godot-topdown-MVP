@@ -25,6 +25,7 @@ const SHARD_SCENE_PATH: String = "res://scenes/projectiles/ArmoredSkinShard.tscn
 const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
 
 var _parent: Node2D = null
+var _has_triggered: bool = false  ## True after shards have been spawned — prevents re-triggering (Issue #1143).
 
 
 func _ready() -> void:
@@ -74,13 +75,34 @@ func apply_hp_bonus(current_health: int, max_health: int) -> Array[int]:
 
 ## Try to spawn shards when the enemy is hit at low HP.
 ## Call from enemy.on_hit_with_bullet_info() before applying damage.
+## Triggers at most once — subsequent hits at low HP are handled normally.
 ## @param current_health: Health *before* this hit is applied.
 ## @return true if shards were spawned — the triggering hit's damage must be absorbed (Issue #1143).
 func try_spawn_shards(current_health: int) -> bool:
+	if _has_triggered:
+		return false
 	if current_health > HP_THRESHOLD:
 		return false
+	_has_triggered = true
 	_spawn_shards()
+	_remove_armor_visual()
 	return true
+
+
+## Remove the armor visual shader from all enemy sprites when shards are spawned.
+## The enemy becomes a regular enemy after the effect triggers (Issue #1143).
+func _remove_armor_visual() -> void:
+	if _parent == null:
+		return
+	var model: Node = _parent.get_node_or_null("EnemyModel")
+	if model == null:
+		return
+	var removed_count: int = 0
+	for child in model.get_children():
+		if child is Sprite2D and child.material is ShaderMaterial:
+			child.material = null
+			removed_count += 1
+	FileLogger.info("[EnemyArmoredSkin] Armor visual removed from %d sprites (triggered)" % removed_count)
 
 
 ## Spawn 20 glass shards in all directions from the enemy position.
