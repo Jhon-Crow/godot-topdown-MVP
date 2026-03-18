@@ -93,8 +93,19 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 
 ## Handle sniper behaviour in PURSUING state: hold position and blind-fire when at safe range.
 ## Returns true if the sniper held position (caller should return early).
-func process_pursuing(delta: float, last_known_pos: Vector2, prediction) -> bool:
+func process_pursuing(delta: float, can_see_player: bool, player: Node,
+		last_known_pos: Vector2, prediction) -> bool:
 	blind_fire_timer += delta
+
+	# When player is visible and at safe range: shoot directly and let normal
+	# PURSUING code transition to COMBAT (return false so enemy.gd continues).
+	if can_see_player and player != null:
+		var dist := enemy.global_position.distance_to((player as Node2D).global_position)
+		if dist >= MIN_DISTANCE:
+			return false  # Fall through: normal pursuit will transition to COMBAT
+		# Too close — retreat (fall through to reposition).
+		return false
+
 	var blind_pos := last_known_pos
 	if prediction != null and prediction.has_predictions:
 		var ph: Vector2 = prediction.get_best_position()

@@ -364,6 +364,7 @@ var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
+var _is_bolt_cycling: bool = false; var _bolt_cycle_timer: float = 0.0; const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## [#1161] Sniper bolt-action cycle state/timer/delay.
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -372,7 +373,6 @@ var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing r
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
 
 func _ready() -> void:
-	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
@@ -380,8 +380,7 @@ func _ready() -> void:
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
 
-	# Configure weapon parameters based on weapon type (before ammo init)
-	_configure_weapon_type()
+	_configure_weapon_type()  # Configure weapon parameters before ammo init
 	_initial_position = global_position
 	_initialize_health()
 	_initialize_ammo()
@@ -408,14 +407,12 @@ func _ready() -> void:
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
-	# Store original collision layers for HitArea (to restore on respawn)
-	if _hit_area:
+	if _hit_area:  # Store original collision layers for respawn
 		_original_hit_area_layer = _hit_area.collision_layer
 		_original_hit_area_mask = _hit_area.collision_mask
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
-	# Preload bullet scene if not set in inspector
-	if bullet_scene == null:
+	if bullet_scene == null:  # Preload bullet scene if not set in inspector
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
 
 	# Preload casing scene if not set in inspector
@@ -456,8 +453,7 @@ func _initialize_health() -> void:
 ## Initialize ammunition with full magazine and reserve ammo.
 func _initialize_ammo() -> void:
 	_current_ammo = magazine_size
-	# Reserve ammo is (total_magazines - 1) * magazine_size since one magazine is loaded
-	_reserve_ammo = (total_magazines - 1) * magazine_size
+	_reserve_ammo = (total_magazines - 1) * magazine_size  # (total_magazines - 1) since one is loaded
 	_is_reloading = false
 	_reload_timer = 0.0
 
@@ -529,7 +525,6 @@ func _setup_threat_sphere() -> void:
 	_threat_sphere.add_child(collision_shape)
 	add_child(_threat_sphere)
 
-	# Connect signals
 	_threat_sphere.area_entered.connect(_on_threat_area_entered)
 	_threat_sphere.area_exited.connect(_on_threat_area_exited)
 
@@ -777,11 +772,15 @@ func _physics_process(delta: float) -> void:
 		_transition_to_pacifist(false)  # Don't emit signal again, already counted as pacifist
 
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
-	# Update shoot cooldown timer
 	_shoot_timer += delta
-
+	if _is_bolt_cycling:  # [#1161] Sniper bolt-action cycle timer
+		_bolt_cycle_timer += delta
+		if _bolt_cycle_timer >= SNIPER_BOLT_CYCLE_DELAY:
+			_is_bolt_cycling = false; _bolt_cycle_timer = 0.0
+			var audio: Node = get_node_or_null("/root/AudioManager")
+			if audio and audio.has_method("play_asvk_bolt_step"):
+				audio.play_asvk_bolt_step(1)  # Unlock bolt sound for enemy bolt cycle
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
-	# Update reload timer
 	_update_reload(delta)
 
 	# Update flank cooldown timer (allows flanking to re-enable after failures)
@@ -1693,7 +1692,8 @@ func _process_in_cover_state(delta: float) -> void:
 	# we need to find new cover
 	if _is_visible_from_player():
 		# If in alarm mode and can see player, fire a burst before escaping
-		if _in_alarm_mode and _can_see_player and _player:
+		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
+		if _in_alarm_mode and _can_see_player and _player and weapon_type != WeaponType.SNIPER_RIFLE:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1835,7 +1835,8 @@ func _process_suppressed_state(delta: float) -> void:
 	if _is_visible_from_player():
 		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
 		# Issue #934: also consider companion visibility
-		if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
+		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1960,6 +1961,11 @@ func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> voi
 
 ## Process ONE_HIT retreat: quick burst of 2-4 shots in an arc while turning, then face cover.
 func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void:
+	# [#1161] Sniper rifle is bolt-action: skip burst phase and run to cover immediately
+	if weapon_type == WeaponType.SNIPER_RIFLE:
+		_retreat_burst_complete = true
+		_move_to_target_nav(_cover_position, combat_move_speed)
+		return
 	if not _retreat_burst_complete:
 		# During burst phase
 		_retreat_burst_timer += delta
@@ -2022,7 +2028,8 @@ func _process_pursuing_state(delta: float) -> void:
 				(_can_see_companion and _companion != null and global_position.distance_to(_companion.global_position) <= CLOSE_COMBAT_DISTANCE)):
 			_transition_to_combat(); return
 	# [#1163] Sniper holds position and blind-fires; returns false when too close (fall through to reposition).
-	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null and _sniper_component.process_pursuing(delta, _last_known_player_position, _prediction):
+	# [#1161] Pass can_see_player so sniper falls through to COMBAT when player is visible.
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null and _sniper_component.process_pursuing(delta, _can_see_player, _player, _last_known_player_position, _prediction):
 		return
 
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
@@ -2497,6 +2504,10 @@ func _shoot_with_inaccuracy() -> void:
 ## Shoot a burst shot with arc spread for ONE_HIT retreat.
 func _shoot_burst_shot() -> void:
 	if bullet_scene == null or _player == null:
+		return
+
+	# [#1161] Sniper rifle is bolt-action: no burst fire allowed
+	if weapon_type == WeaponType.SNIPER_RIFLE:
 		return
 
 	if not _can_shoot():
@@ -3897,6 +3908,10 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 		_last_gunshot_propagation_time = _now3
 	if not _is_rpg_weapon: _play_delayed_shell_sound()  # Issue #583: no shell sound for RPG
+	# [#1161] Trigger bolt-action cycle for sniper rifle (visual/audio after each shot)
+	if weapon_type == WeaponType.SNIPER_RIFLE:
+		_is_bolt_cycling = true
+		_bolt_cycle_timer = 0.0
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _is_rpg_weapon and not _rpg_fired: _rpg_fired = true; _switch_to_secondary_weapon(); return  # Issue #583
@@ -4374,7 +4389,6 @@ func _reset() -> void:
 	_threat_reaction_delay_elapsed = false
 	_threat_memory_timer = 0.0
 	_bullets_in_threat_sphere.clear()
-	# Reset retreat state variables
 	_hits_taken_in_encounter = 0
 	_retreat_mode = RetreatMode.FULL_HP
 	_retreat_turn_timer = 0.0
@@ -4404,7 +4418,6 @@ func _reset() -> void:
 	_assault_wait_timer = 0.0
 	_assault_ready = false
 	_in_assault = false
-	# Reset flank state variables
 	_flank_cover_wait_timer = 0.0
 	_flank_next_cover = Vector2.ZERO
 	_has_flank_cover = false
@@ -4413,23 +4426,19 @@ func _reset() -> void:
 	_flank_last_position = Vector2.ZERO
 	_flank_fail_count = 0
 	_flank_cooldown_timer = 0.0
-	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
 	# Reset ally death observation state (Issue #409)
 	_witnessed_ally_death = false
 	_suspected_directions.clear()
 	_has_left_idle = false  # Issue #921: reset so respawned patrol enemies can timeout from SEARCHING
-	# Reset score tracking state
 	_killed_by_ricochet = false
 	_killed_by_penetration = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
 	_initialize_goap_state()
-	# Re-enable hit area collision after respawning
 	_enable_hit_area_collision()
-	# Re-register for sound propagation after respawning
 	_register_sound_listener()
 
 ## Disables hit area collision so bullets pass through dead enemies.

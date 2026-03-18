@@ -179,7 +179,7 @@ const WEAPON_CONFIGS := {
 		"shoot_cooldown": 3.0,      # Slow bolt-action rate (~0.33 rps)
 		"bullet_speed": 10000.0,    # Near-instant (same as player ASVK)
 		"magazine_size": 5,         # 5-round magazine (same as player ASVK)
-		"total_magazines": 3,       # 5 + 10 extra rounds
+		"total_magazines": 14,      # 5 + 65 extra rounds = 70 total (Issue #1161)
 		"reload_time": 4.0,         # Long reload for heavy rifle
 		"bullet_spawn_offset": 60.0,
 		"weapon_loudness": 3000.0,  # Very loud anti-materiel rifle
