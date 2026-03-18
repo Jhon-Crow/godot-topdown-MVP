@@ -119,12 +119,17 @@ ERROR: Failed to load script "res://scripts/objects/enemy.gd" with error "Parse 
 #### Cascade Failure Mechanism
 
 ```
-enemy_sniper_component.gd (parse error)
-    ↓ EnemySniperComponent class not registered in global_script_class_cache
-    ↓ enemy.gd references `var _sniper_component: EnemySniperComponent` → unresolved type
-    ↓ enemy.gd fails to compile
+player_prediction_component.gd (parse errors at lines 273, 315, 459, 470, 582)
+    ↓ PlayerPredictionComponent class not registered in global_script_class_cache
+    ↓ enemy.gd references `var _prediction: PlayerPredictionComponent` → unresolved type
+    ↓ enemy.gd fails to compile (Compile Error at -1)
     ↓ signal "died" not declared → has_signal("died") = false
     ↓ 0 enemies registered → level never completes, enemies don't die
+
+enemy_sniper_component.gd (parse errors, or type mismatch with PlayerPredictionComponent param)
+    ↓ EnemySniperComponent class not registered in global_script_class_cache
+    ↓ enemy.gd references `var _sniper_component: EnemySniperComponent` → unresolved type
+    ↓ enemy.gd fails to compile (compound failure)
 ```
 
 #### Why This Is a "Known Pattern"
@@ -207,6 +212,35 @@ var glow_alpha := clamp(cf * intensity * 0.5, 0.0, 1.0)
 var idx: int = clamp(...)
 var i: float = floor(t)
 var glow_alpha: float = clamp(...)
+```
+
+**`scripts/ai/player_prediction_component.gd` (pre-existing bug, fixed in this PR — critical cascade root cause):**
+```gdscript
+# Line 273: h from untyped Array → Variant
+# Before
+var shift_dir := (h.position - last_known_position).normalized()
+# After
+var shift_dir: Vector2 = ((h.position as Vector2) - last_known_position).normalized()
+
+# Line 315: same pattern
+# Before
+var dist := h.position.distance_to(pos)
+# After
+var dist: float = h.position.distance_to(pos)
+
+# Lines 459, 470: cover_pos from untyped Array → Variant
+# Before
+var to_cover := (cover_pos - last_pos).normalized()
+var enemy_to_cover := (cover_pos - enemy_pos).normalized()
+# After
+var to_cover: Vector2 = ((cover_pos as Vector2) - last_pos).normalized()
+var enemy_to_cover: Vector2 = ((cover_pos as Vector2) - enemy_pos).normalized()
+
+# Line 582: abs() return type inference
+# Before
+var cross := abs(move_dir.x * to_enemy.y - move_dir.y * to_enemy.x)
+# After
+var cross: float = abs(move_dir.x * to_enemy.y - move_dir.y * to_enemy.x)
 ```
 
 ### Prevention
