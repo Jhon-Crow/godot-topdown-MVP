@@ -168,6 +168,9 @@ signal homing_activated
 ## Signal emitted when homing bullets effect deactivates.
 signal homing_deactivated
 
+## Signal emitted when experimental sample charges change (Issue #1127).
+signal experimental_sample_charges_changed(current: int, maximum: int)
+
 ## Grenade scene to instantiate when throwing.
 @export var grenade_scene: PackedScene
 
@@ -397,6 +400,9 @@ func _ready() -> void:
 	# Initialize recoil compensator if active item manager has it selected (Issue #1073)
 	_init_recoil_compensator()
 
+	# Initialize experimental sample if active item manager has it selected (Issue #1127)
+	_init_experimental_sample()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
@@ -535,6 +541,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle recoil compensator input (hold Space to activate) (Issue #1073)
 	_handle_recoil_compensator_input(delta)
+
+	# Handle experimental sample input (press Space to trigger random effect) (Issue #1127)
+	_handle_experimental_sample_input()
 
 	# Update jammer HUD icon visibility (Issue #1036)
 	_update_jammer_hud()
@@ -4648,3 +4657,178 @@ func _handle_recoil_compensator_input(delta: float) -> void:
 ## Check if the recoil compensator is currently active.
 func is_recoil_compensator_active() -> bool:
 	return _recoil_compensator_equipped and _recoil_compensator_active
+
+
+# ============================================================================
+# Experimental Sample (Issue #1127)
+# ============================================================================
+
+
+## Whether the experimental sample is equipped.
+var _experimental_sample_equipped: bool = false
+
+## Remaining experimental sample charges (1–5 per battle, randomised on level start).
+var _experimental_sample_charges: int = 0
+
+## Minimum charges per battle.
+const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
+
+## Maximum charges per battle.
+const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
+
+
+## Initialize the experimental sample if the ActiveItemManager has it selected.
+func _init_experimental_sample() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.ExperimentalSample] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_experimental_sample"):
+		FileLogger.info("[Player.ExperimentalSample] ActiveItemManager missing has_experimental_sample method")
+		return
+
+	if not active_item_manager.has_experimental_sample():
+		FileLogger.info("[Player.ExperimentalSample] Experimental sample not selected")
+		return
+
+	_experimental_sample_equipped = true
+	# Randomise charge count (1–5) at the start of each level (Issue #1127)
+	_experimental_sample_charges = randi_range(EXPERIMENTAL_SAMPLE_MIN_CHARGES, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+
+	FileLogger.info("[Player.ExperimentalSample] Equipped, charges this run: %d" % _experimental_sample_charges)
+	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+
+
+## Handle experimental sample input: press Space to trigger a random active item effect.
+## The randomly chosen effect can be ANY item (even items the player has not unlocked).
+func _handle_experimental_sample_input() -> void:
+	if not _experimental_sample_equipped:
+		return
+
+	if not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.ExperimentalSample] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
+	if _experimental_sample_charges <= 0:
+		FileLogger.info("[Player.ExperimentalSample] No charges remaining")
+		return
+
+	_experimental_sample_charges -= 1
+	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+
+	# Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18)
+	# ActiveItemType enum: 1..17 are the existing items
+	var random_type: int = randi_range(1, 17)
+	FileLogger.info("[Player.ExperimentalSample] Charges remaining: %d — triggering random effect for type %d" % [
+		_experimental_sample_charges, random_type
+	])
+	_trigger_experimental_sample_effect(random_type)
+
+
+## Trigger the on-press effect of any active item type chosen by the experimental sample.
+## This directly invokes the core effect of the chosen item, bypassing equip requirements.
+func _trigger_experimental_sample_effect(item_type: int) -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	var item_name: String = "Unknown"
+	if active_item_manager and active_item_manager.has_method("get_active_item_name"):
+		item_name = active_item_manager.get_active_item_name(item_type)
+	FileLogger.info("[Player.ExperimentalSample] Executing effect: %s (type %d)" % [item_name, item_type])
+
+	match item_type:
+		1:  # FLASHLIGHT — toggle flashlight briefly (not meaningful as one-shot; log only)
+			FileLogger.info("[Player.ExperimentalSample] Flashlight effect triggered (passive toggle)")
+		2:  # HOMING_BULLETS — activate homing for one burst
+			if not _homing_equipped:
+				# Temporarily set up enough state for one homing activation
+				_homing_active = true
+				_homing_timer = HOMING_DURATION
+				_play_homing_sound()
+				_start_homing_scanner()
+				homing_activated.emit()
+				FileLogger.info("[Player.ExperimentalSample] Homing effect triggered for %.1fs" % HOMING_DURATION)
+			else:
+				# Homing already equipped — donate an extra activation directly
+				if not _homing_active:
+					_homing_active = true
+					_homing_timer = HOMING_DURATION
+					_play_homing_sound()
+					_start_homing_scanner()
+					homing_activated.emit()
+					FileLogger.info("[Player.ExperimentalSample] Homing (equipped) triggered for %.1fs" % HOMING_DURATION)
+		3:  # TELEPORT_BRACERS — no effect without full aim system; log only
+			FileLogger.info("[Player.ExperimentalSample] Teleport bracers effect triggered (requires aim; skipped)")
+		4:  # BFF_PENDANT — summon companion if not yet summoned
+			if not _bff_companion_summoned:
+				_summon_bff_companion()
+				FileLogger.info("[Player.ExperimentalSample] BFF companion summoned via experimental sample")
+			else:
+				FileLogger.info("[Player.ExperimentalSample] BFF companion already summoned; effect skipped")
+		5:  # INVISIBILITY_SUIT — activate invisibility if the node is available
+			if _invisibility_suit_equipped and _invisibility_suit != null and is_instance_valid(_invisibility_suit):
+				if not _invisibility_suit.is_active:
+					_invisibility_suit.activate()
+					FileLogger.info("[Player.ExperimentalSample] Invisibility suit activated via experimental sample")
+			else:
+				FileLogger.info("[Player.ExperimentalSample] Invisibility suit effect triggered (not equipped; skipped)")
+		6:  # BREAKER_BULLETS — passive item, no on-press effect; log only
+			FileLogger.info("[Player.ExperimentalSample] Breaker bullets effect triggered (passive; no on-press action)")
+		7:  # FORCE_FIELD — activate force field for one physics frame (held-Space item); log only
+			FileLogger.info("[Player.ExperimentalSample] Force field effect triggered (hold-Space item; skipped)")
+		8:  # TRAJECTORY_GLASSES — activate glasses if node exists, else skip
+			if _trajectory_glasses_equipped and _trajectory_glasses != null and is_instance_valid(_trajectory_glasses):
+				if not _trajectory_glasses.is_active:
+					_update_trajectory_glasses_weapon()
+					_trajectory_glasses.activate()
+					FileLogger.info("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample")
+			else:
+				FileLogger.info("[Player.ExperimentalSample] Trajectory glasses effect triggered (not equipped; skipped)")
+		9:  # LASER_SIGHT — passive item; log only
+			FileLogger.info("[Player.ExperimentalSample] Laser sight effect triggered (passive; no on-press action)")
+		10: # EXTENDED_MAGAZINE — passive item; log only
+			FileLogger.info("[Player.ExperimentalSample] Extended magazine effect triggered (passive; no on-press action)")
+		11: # LOUDSPEAKER — trigger loudspeaker effect if progress system allows it
+			if _loudspeaker_equipped and _loudspeaker_progress != null and _loudspeaker_progress.can_activate():
+				var aim_dir := _get_aim_direction()
+				var is_first_use: bool = not _loudspeaker_progress.used_this_level
+				_loudspeaker_progress.use()
+				var effect_chance := 1.0 if is_first_use else _loudspeaker_progress.get_effect_chance()
+				var hostility_chance := _loudspeaker_progress.get_hostility_chance()
+				_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance)
+				FileLogger.info("[Player.ExperimentalSample] Loudspeaker activated via experimental sample")
+			else:
+				FileLogger.info("[Player.ExperimentalSample] Loudspeaker effect triggered (not equipped or no charges; skipped)")
+		12: # BREACHING_CHARGES — detonate existing charges if any placed, else skip
+			if _breaching_charges != null and is_instance_valid(_breaching_charges):
+				var detonated := _breaching_charges.detonate()
+				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
+			else:
+				FileLogger.info("[Player.ExperimentalSample] Breaching charges effect triggered (not equipped; skipped)")
+		13: # ARMORED_SKIN — passive item; log only
+			FileLogger.info("[Player.ExperimentalSample] Armored skin effect triggered (passive; no on-press action)")
+		14: # AUTO_RELOAD — passive item; log only
+			FileLogger.info("[Player.ExperimentalSample] Auto-reload effect triggered (passive; no on-press action)")
+		15: # DRILLING_BULLETS — wall-piercing magazine effect
+			FileLogger.info("[Player.ExperimentalSample] Drilling bullets effect triggered (not yet wired in player; skipped)")
+		16: # RECOIL_COMPENSATOR — held-Space item; log only
+			FileLogger.info("[Player.ExperimentalSample] Recoil compensator effect triggered (hold-Space item; skipped)")
+		17: # COMBAT_DISPOSITION — passive item; log only
+			FileLogger.info("[Player.ExperimentalSample] Combat disposition effect triggered (passive; no on-press action)")
+		_:
+			FileLogger.info("[Player.ExperimentalSample] Unknown item type %d — no effect" % item_type)
+
+
+## Get remaining experimental sample charges.
+func get_experimental_sample_charges() -> int:
+	return _experimental_sample_charges
+
+
+## Get the maximum experimental sample charges constant.
+func get_max_experimental_sample_charges() -> int:
+	return EXPERIMENTAL_SAMPLE_MAX_CHARGES
