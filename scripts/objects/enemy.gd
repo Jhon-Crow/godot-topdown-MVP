@@ -363,10 +363,7 @@ var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
-var _is_bolt_cycling: bool = false  ## [#1161] True while sniper enemy bolt-action cycle is in progress (after each shot).
-var _bolt_cycle_timer: float = 0.0  ## [#1161] Timer for bolt-action cycle animation.
-const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## [#1161] Delay after shot before bolt-cycle sound plays (seconds).
-
+var _is_bolt_cycling: bool = false; var _bolt_cycle_timer: float = 0.0; const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## [#1161] Sniper bolt-action cycle state/timer/delay.
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -375,7 +372,6 @@ var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing r
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
 
 func _ready() -> void:
-	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
@@ -383,8 +379,7 @@ func _ready() -> void:
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
 
-	# Configure weapon parameters based on weapon type (before ammo init)
-	_configure_weapon_type()
+	_configure_weapon_type()  # Configure weapon parameters before ammo init
 	_initial_position = global_position
 	_initialize_health()
 	_initialize_ammo()
@@ -410,14 +405,12 @@ func _ready() -> void:
 	_setup_enemy_flashlight()  # Issue #824
 	_connect_casing_pusher_signals()  # Issue #438
 	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
-	# Store original collision layers for HitArea (to restore on respawn)
-	if _hit_area:
+	if _hit_area:  # Store original collision layers for respawn
 		_original_hit_area_layer = _hit_area.collision_layer
 		_original_hit_area_mask = _hit_area.collision_mask
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
-	# Preload bullet scene if not set in inspector
-	if bullet_scene == null:
+	if bullet_scene == null:  # Preload bullet scene if not set in inspector
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
 
 	# Preload casing scene if not set in inspector
@@ -458,8 +451,7 @@ func _initialize_health() -> void:
 ## Initialize ammunition with full magazine and reserve ammo.
 func _initialize_ammo() -> void:
 	_current_ammo = magazine_size
-	# Reserve ammo is (total_magazines - 1) * magazine_size since one magazine is loaded
-	_reserve_ammo = (total_magazines - 1) * magazine_size
+	_reserve_ammo = (total_magazines - 1) * magazine_size  # (total_magazines - 1) since one is loaded
 	_is_reloading = false
 	_reload_timer = 0.0
 
@@ -531,7 +523,6 @@ func _setup_threat_sphere() -> void:
 	_threat_sphere.add_child(collision_shape)
 	add_child(_threat_sphere)
 
-	# Connect signals
 	_threat_sphere.area_entered.connect(_on_threat_area_entered)
 	_threat_sphere.area_exited.connect(_on_threat_area_exited)
 
@@ -774,21 +765,15 @@ func _physics_process(delta: float) -> void:
 		_transition_to_pacifist(false)  # Don't emit signal again, already counted as pacifist
 
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
-	# Update shoot cooldown timer
 	_shoot_timer += delta
-
-	# [#1161] Update sniper bolt-action cycle timer
-	if _is_bolt_cycling:
+	if _is_bolt_cycling:  # [#1161] Sniper bolt-action cycle timer
 		_bolt_cycle_timer += delta
 		if _bolt_cycle_timer >= SNIPER_BOLT_CYCLE_DELAY:
-			_is_bolt_cycling = false
-			_bolt_cycle_timer = 0.0
+			_is_bolt_cycling = false; _bolt_cycle_timer = 0.0
 			var audio: Node = get_node_or_null("/root/AudioManager")
 			if audio and audio.has_method("play_asvk_bolt_step"):
 				audio.play_asvk_bolt_step(1)  # Unlock bolt sound for enemy bolt cycle
-
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
-	# Update reload timer
 	_update_reload(delta)
 
 	# Update flank cooldown timer (allows flanking to re-enable after failures)
@@ -4412,7 +4397,6 @@ func _reset() -> void:
 	_threat_reaction_delay_elapsed = false
 	_threat_memory_timer = 0.0
 	_bullets_in_threat_sphere.clear()
-	# Reset retreat state variables
 	_hits_taken_in_encounter = 0
 	_retreat_mode = RetreatMode.FULL_HP
 	_retreat_turn_timer = 0.0
@@ -4442,7 +4426,6 @@ func _reset() -> void:
 	_assault_wait_timer = 0.0
 	_assault_ready = false
 	_in_assault = false
-	# Reset flank state variables
 	_flank_cover_wait_timer = 0.0
 	_flank_next_cover = Vector2.ZERO
 	_has_flank_cover = false
@@ -4451,23 +4434,19 @@ func _reset() -> void:
 	_flank_last_position = Vector2.ZERO
 	_flank_fail_count = 0
 	_flank_cooldown_timer = 0.0
-	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
 	# Reset ally death observation state (Issue #409)
 	_witnessed_ally_death = false
 	_suspected_directions.clear()
 	_has_left_idle = false  # Issue #921: reset so respawned patrol enemies can timeout from SEARCHING
-	# Reset score tracking state
 	_killed_by_ricochet = false
 	_killed_by_penetration = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
 	_initialize_goap_state()
-	# Re-enable hit area collision after respawning
 	_enable_hit_area_collision()
-	# Re-register for sound propagation after respawning
 	_register_sound_listener()
 
 ## Disables hit area collision so bullets pass through dead enemies.
