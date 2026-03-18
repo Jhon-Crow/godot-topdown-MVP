@@ -95,6 +95,51 @@ visual split, they accumulated as orphaned invisible nodes — minor memory leak
 
 ---
 
+### Root Cause 5 (NEW — Follow-up 2): `queue_free()` Race Condition in `_remove_dynamic_nodes`
+
+**This is the root cause of invisible obstacles persisting even after the Root Cause 4 fix.**
+
+**Evidence from game_log_20260318_094725.txt:**
+```
+[09:47:33] [WallBreachHelper] Horizontal passage in 'Building3' at local x=20
+[09:47:34] [WallBreachHelper] Horizontal passage in 'Building3' at local x=12
+[09:47:45] [WallBreachHelper] Horizontal passage in 'Building3' at local x=-18
+[09:48:03] [WallBreachHelper] Horizontal passage in 'Building3' at local x=20
+```
+Building3 was hit 4 times. After each re-breach, invisible obstacles remained.
+
+**Root cause:**
+
+`_remove_dynamic_nodes()` called `queue_free()` on dynamic `CollisionShape2D` nodes from prior
+breaches. In Godot, `queue_free()` **defers scene-tree removal to the end of the current frame**.
+This means the `CollisionShape2D` nodes remain active in the physics engine during the frame in
+which a new breach is being created.
+
+Sequence when the same wall is hit a second time in a single frame (or across consecutive frames
+before the deferred free runs):
+
+1. `_remove_dynamic_nodes()` calls `queue_free()` on breach-1 segment shapes → **still active**
+2. Wall dimensions found from original shape ✓
+3. Original shape disabled ✓
+4. Breach-2 new segment shapes added → **now BOTH breach-1 AND breach-2 segments exist**
+5. Physics engine sees: original (disabled) + breach-1 segs (alive until frame end) + breach-2 segs
+6. Result: collision blocked in the area covered by breach-1 segments
+
+In Godot, `CollisionShape2D.disabled = true` removes the shape from the physics world
+**immediately** within the same frame, whereas `queue_free()` alone does not.
+
+**Fix:**
+
+In `_remove_dynamic_nodes()`, immediately set `.disabled = true` on any `CollisionShape2D` or
+`CollisionPolygon2D` before calling `queue_free()`. This removes the shape from physics
+this frame, while `queue_free()` still cleans it from the scene tree on the next frame.
+
+Also skip dynamic nodes (already tagged `DYNAMIC_NODE_META`) in the dimension-finding loop,
+the "disable all shapes" loop, and the visual-split functions — to avoid reading from or
+writing to nodes that are pending deletion.
+
+---
+
 ## Affected Code
 
 ### Primary: `scripts/effects/wall_breach_helper.gd`
@@ -110,36 +155,41 @@ visual split, they accumulated as orphaned invisible nodes — minor memory leak
 
 ---
 
-## Fix (Root Cause 4)
+## Fix (Root Causes 4 & 5)
 
-### Solution Chosen: Metadata-tagged cleanup + full collision disable
+### Solution Chosen: Metadata-tagged cleanup + immediate physics disable
 
-Modified `WallBreachHelper.open_wall_passage()` to:
+Modified `WallBreachHelper.open_wall_passage()` and `_remove_dynamic_nodes()` to:
 
-1. **Remove dynamic nodes from prior breaches**: A new `DYNAMIC_NODE_META` constant
-   (`&"wall_breach_dynamic"`) is used to tag all collision shapes and ColorRects added by
-   this helper. At the start of each `open_wall_passage` call, `_remove_dynamic_nodes()`
-   queue_frees any tagged nodes, cleaning up ghost shapes and stale visuals.
+1. **Immediately disable collision before queue_free** (Root Cause 5 fix): In
+   `_remove_dynamic_nodes()`, set `child.disabled = true` on any `CollisionShape2D` or
+   `CollisionPolygon2D` **before** calling `child.queue_free()`. This removes the shape
+   from the physics world on the current frame, not deferred.
 
-2. **Disable ALL collision shapes upfront**: After removing dynamic nodes, ALL remaining
-   `CollisionShape2D` and `CollisionPolygon2D` children are disabled (the original shapes).
-   This ensures the original shape is disabled even without needing a separate `col_shape.disabled`
-   call in each branch.
+2. **Skip dynamic nodes in all child loops**: The dimension-finding loop, the "disable all
+   shapes" loop, and the visual-split functions now skip nodes with `DYNAMIC_NODE_META` to
+   avoid reading/writing to nodes pending deletion.
 
-3. **Find largest shape for wall dimensions**: When searching for the `RectangleShape2D` to
-   determine wall size, use the shape with the **largest area**. This is more robust — the
-   original full-wall shape has the largest area, while segment shapes from prior breaches
-   are smaller.
+3. **Remove dynamic nodes from prior breaches** (Root Cause 4 fix): `DYNAMIC_NODE_META`
+   (`&"wall_breach_dynamic"`) tags all collision shapes and visual nodes added by this helper.
+   `_remove_dynamic_nodes()` cleans them up at the start of each `open_wall_passage` call.
+
+4. **Disable ALL original collision shapes upfront**: After cleaning dynamic nodes, all
+   non-dynamic `CollisionShape2D` / `CollisionPolygon2D` children are disabled so the
+   original wall shape is immediately passable.
+
+5. **Find largest shape for wall dimensions**: Use the shape with the largest area (skipping
+   dynamic segment shapes). The original full-wall shape always has the largest area.
 
 ### Alternatives Considered
 
-- **Just disable all shapes**: Prevents invisible obstacles but leaves visual orphans. Chosen
-  approach (metadata cleanup) is cleaner and prevents memory accumulation.
+- **Use `.free()` instead of `queue_free()`**: Immediate deletion, but risky if any signals
+  are connected to the nodes. The chosen approach (disable + queue_free) is safer.
 
-- **Check `disabled` state to skip already-disabled shapes**: Fragile — the original shape
-  might legitimately be disabled if a thin wall was fully passable.
+- **Just disable all shapes**: Prevents invisible obstacles but leaves visual orphans growing
+  each breach. Metadata cleanup prevents the orphan accumulation.
 
-- **Store breach state on the wall node**: More complex, requires extra state management.
+- **Store breach state on the wall node**: More complex state management, less clean.
 
 ---
 
@@ -183,3 +233,19 @@ Modified `WallBreachHelper.open_wall_passage()` to:
 - No wall breach events logged (player used Breaching Charges in this session).
 - Confirms issue is RPG-specific (not Breaching Charges — those call `open_wall_passage`
   the same way but are less likely to hit the same wall twice in close succession).
+
+### game_log_20260318_094725.txt — Key events (Root Cause 5 evidence):
+```
+[09:47:33] [WallBreachHelper] Horizontal passage in 'Building3' at local x=20
+[09:47:34] [WallBreachHelper] Horizontal passage in 'Building3' at local x=12
+           → _remove_dynamic_nodes() called queue_free() on x=20 shapes
+           → BUT those shapes were still active in physics until end-of-frame
+           → x=12 new shapes added alongside still-active x=20 shapes
+           → Result: invisible collision at x=20 region persists
+[09:47:45] [WallBreachHelper] Horizontal passage in 'Building3' at local x=-18
+           → same problem repeats; x=12 ghost shapes still active
+[09:48:03] [WallBreachHelper] Horizontal passage in 'Building3' at local x=20
+```
+4 hits on same wall — each leaving cumulative ghost shapes from prior un-disabled breaches.
+The fix (disable immediately before queue_free) ensures each re-breach removes prior shapes
+from the physics world on the same frame, not deferred to end-of-frame.

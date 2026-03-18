@@ -44,9 +44,13 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	# Find the original RectangleShape2D collision child to determine wall dimensions.
 	# We look for the shape with the LARGEST area — this is the original full-wall shape
 	# even if it was disabled by a previous breach call.
+	# Skip any nodes tagged DYNAMIC_NODE_META: they were just queue_free()'d above and
+	# should not be used for dimension measurement (they are segment shapes, not original walls).
 	var col_shape: CollisionShape2D = null
 	var largest_area: float = -1.0
 	for child in wall.get_children():
+		if child.has_meta(DYNAMIC_NODE_META):
+			continue  # Skip just-freed dynamic segment shapes from prior breaches
 		if child is CollisionShape2D and (child as CollisionShape2D).shape is RectangleShape2D:
 			var s: RectangleShape2D = (child as CollisionShape2D).shape as RectangleShape2D
 			var area := s.size.x * s.size.y
@@ -54,9 +58,12 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 				largest_area = area
 				col_shape = child as CollisionShape2D
 
-	# Disable ALL existing collision shapes (original + any remaining from prior breaches).
-	# This prevents invisible-wall ghost shapes left by repeated calls on the same wall.
+	# Disable ALL original collision shapes (non-dynamic scene nodes).
+	# Dynamic nodes were already disabled+freed above; skipping them here avoids
+	# a redundant write to already-freed objects.
 	for child in wall.get_children():
+		if child.has_meta(DYNAMIC_NODE_META):
+			continue  # Already disabled in _remove_dynamic_nodes above
 		if child is CollisionShape2D:
 			(child as CollisionShape2D).disabled = true
 		elif child is CollisionPolygon2D:
@@ -176,9 +183,21 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 
 ## Remove all dynamically-added nodes from a prior breach on this wall.
 ## Only nodes tagged with DYNAMIC_NODE_META are removed; original scene nodes are untouched.
+##
+## IMPORTANT: CollisionShape2D and CollisionPolygon2D nodes are disabled IMMEDIATELY before
+## queue_free() to remove them from the physics world on this same frame.
+## Without this, queue_free() defers deletion to end-of-frame, leaving ghost collision shapes
+## active in the physics engine while new breach shapes are being added — causing invisible
+## obstacles when the same wall is breached multiple times in quick succession (Issue #1144).
 static func _remove_dynamic_nodes(wall: Node) -> void:
 	for child in wall.get_children():
 		if child.has_meta(DYNAMIC_NODE_META):
+			# Disable collision immediately so the physics world stops using this shape
+			# this frame — queue_free() alone only defers scene-tree removal to end-of-frame.
+			if child is CollisionShape2D:
+				(child as CollisionShape2D).disabled = true
+			elif child is CollisionPolygon2D:
+				(child as CollisionPolygon2D).disabled = true
 			child.queue_free()
 
 
@@ -194,6 +213,8 @@ static func _fade_wall_visuals(wall: Node) -> void:
 static func _split_visual_horizontal(wall: Node, breach_cx: float, half_w: float, half_h: float) -> void:
 	var wall_color := Color(0.35, 0.28, 0.22, 1.0)
 	for child in wall.get_children():
+		if child.has_meta(DYNAMIC_NODE_META):
+			continue  # Skip dynamic nodes (already hidden+queued for free)
 		if child is ColorRect:
 			wall_color = (child as ColorRect).color
 			(child as ColorRect).visible = false
@@ -231,6 +252,8 @@ static func _split_visual_horizontal(wall: Node, breach_cx: float, half_w: float
 static func _split_visual_vertical(wall: Node, breach_cy: float, half_w: float, half_h: float) -> void:
 	var wall_color := Color(0.35, 0.28, 0.22, 1.0)
 	for child in wall.get_children():
+		if child.has_meta(DYNAMIC_NODE_META):
+			continue  # Skip dynamic nodes (already hidden+queued for free)
 		if child is ColorRect:
 			wall_color = (child as ColorRect).color
 			(child as ColorRect).visible = false
