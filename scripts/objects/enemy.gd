@@ -3943,47 +3943,20 @@ func _play_delayed_shell_sound() -> void:
 
 ## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
-	if casing_scene == null:
-		return
-
-	# Calculate casing spawn position (near the weapon, slightly offset)
-	# Use 50% of bullet spawn offset to position casing near weapon muzzle
+	if casing_scene == null: return
 	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
-
 	var casing: RigidBody2D = casing_scene.instantiate()
 	casing.global_position = casing_spawn_position
-
-	# Calculate ejection direction to the right of the weapon
-	# In a top-down view with Y increasing downward:
-	# - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
-	# - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
-	# This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+	# Eject to the right (90° CCW rotation = perpendicular to barrel) with randomness
 	var weapon_right: Vector2 = Vector2(-weapon_forward.y, weapon_forward.x)
-
-	# Eject to the right with some randomness
-	var random_angle: float = randf_range(-0.3, 0.3)  # ±0.3 radians (~±17 degrees)
-	var ejection_direction: Vector2 = weapon_right.rotated(random_angle)
-
-	# Add some upward component for realistic ejection
-	ejection_direction = ejection_direction.rotated(randf_range(-0.1, 0.1))
-
-	# Set initial velocity for the casing (increased for faster ejection animation)
-	var ejection_speed: float = randf_range(120.0, 180.0)  # Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
-	casing.linear_velocity = ejection_direction * ejection_speed
-
-	# Add some initial spin for realism
+	var ejection_direction: Vector2 = weapon_right.rotated(randf_range(-0.3, 0.3)).rotated(randf_range(-0.1, 0.1))
+	casing.linear_velocity = ejection_direction * randf_range(120.0, 180.0)  # reduced 2.5x for Issue #424
 	casing.angular_velocity = randf_range(-15.0, 15.0)
-
-	# Set caliber data on the casing for appearance (Issue #417 PR feedback)
-	# Use the loaded caliber data for this weapon type (same as player weapons)
 	if _caliber_data:
 		casing.set("caliber_data", _caliber_data)
 	else:
-		# Fallback to 5.45x39mm for M16 rifle if no caliber data loaded
 		var fallback_caliber: Resource = load("res://resources/calibers/caliber_545x39.tres")
-		if fallback_caliber:
-			casing.set("caliber_data", fallback_caliber)
-
+		if fallback_caliber: casing.set("caliber_data", fallback_caliber)
 	get_tree().current_scene.add_child(casing)
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
