@@ -272,6 +272,14 @@ func _ready() -> void:
 		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
 			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
 
+	# Apply extended magazine passive item total ammo reduction (Issue #1065)
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("get_total_ammo_multiplier"):
+		var ammo_mult: float = active_item_manager.get_total_ammo_multiplier()
+		if ammo_mult != 1.0:
+			max_ammo = maxi(1, int(max_ammo * ammo_mult))
+			FileLogger.info("[Player] Extended Magazine: total ammo reduced to %d (multiplier=%.2f)" % [max_ammo, ammo_mult])
+
 	# Apply Armored Skin +1 HP bonus before setting current health (Issue #1045)
 	var _armored_skin_check: Node = get_node_or_null("/root/ActiveItemManager")
 	if _armored_skin_check and _armored_skin_check.has_method("has_armored_skin"):
@@ -386,11 +394,17 @@ func _ready() -> void:
 	# Initialize armored skin if active item manager has it selected (Issue #1045)
 	_init_armored_skin()
 
+	# Initialize recoil compensator if active item manager has it selected (Issue #1073)
+	_init_recoil_compensator()
+
 	# Initialize dash if active item manager has it selected (Issue #1071)
 	_init_dash()
 
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
+
+	# Initialize jammer HUD icon (Issue #1036)
+	_init_jammer_hud()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -482,8 +496,17 @@ func _physics_process(delta: float) -> void:
 	# Grenade steps 2 and 3 use LMB, so don't shoot during those
 	# In simple mode, we only use RMB so shooting with LMB is always allowed
 	var can_shoot := _grenade_state == GrenadeState.IDLE or _grenade_state == GrenadeState.TIMER_STARTED or _grenade_state == GrenadeState.SIMPLE_AIMING
-	if can_shoot and Input.is_action_just_pressed("shoot"):
+	# When recoil compensator is active, allow auto-fire at boosted rate (10% faster) while holding shoot.
+	# Without compensator, preserve default semi-auto (just_pressed) behavior.
+	var shoot_pressed: bool
+	if _recoil_compensator_active and _recoil_compensator_shoot_cooldown <= 0.0:
+		shoot_pressed = Input.is_action_pressed("shoot")
+	else:
+		shoot_pressed = Input.is_action_just_pressed("shoot")
+	if can_shoot and shoot_pressed:
 		_shoot()
+		if _recoil_compensator_active and fire_rate > 0.0:
+			_recoil_compensator_shoot_cooldown = 1.0 / (fire_rate * RECOIL_COMPENSATOR_FIRE_RATE_BOOST)
 
 	# Handle reload input based on weapon type and mode
 	if _current_weapon_type == WeaponType.REVOLVER:
@@ -519,6 +542,12 @@ func _physics_process(delta: float) -> void:
 
 	# Handle breaching charges input (hold Space near wall to place, press Space to detonate) (Issue #1043)
 	_handle_breaching_charges_input()
+
+	# Handle recoil compensator input (hold Space to activate) (Issue #1073)
+	_handle_recoil_compensator_input(delta)
+
+	# Update jammer HUD icon visibility (Issue #1036)
+	_update_jammer_hud()
 
 	# Handle dash input (press Space to dash) (Issue #1071)
 	_handle_dash_input(delta)
@@ -715,7 +744,10 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 
 
 ## Calculate current spread based on consecutive shots.
+## Returns 0.0 when recoil compensator is active (Issue #1073).
 func _get_current_spread() -> float:
+	if _recoil_compensator_active:
+		return 0.0
 	if _shot_count <= SPREAD_THRESHOLD:
 		return INITIAL_SPREAD
 	else:
@@ -811,7 +843,10 @@ func _shoot() -> void:
 
 
 ## Trigger screen shake based on shooting direction and current spread.
+## Suppressed when recoil compensator is active (Issue #1073).
 func _trigger_screen_shake(shoot_direction: Vector2) -> void:
+	if _recoil_compensator_active:
+		return
 	if screen_shake_intensity <= 0.0:
 		return
 
@@ -3084,6 +3119,14 @@ func _handle_flashlight_input() -> void:
 	if not is_instance_valid(_flashlight_node):
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed():
+		if _flashlight_node.has_method("turn_off"):
+			_flashlight_node.turn_off()
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			FileLogger.info("[Player.Flashlight] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
 	if Input.is_action_pressed("flashlight_toggle"):
 		if _flashlight_node.has_method("turn_on"):
 			_flashlight_node.turn_on()
@@ -3187,6 +3230,10 @@ func _handle_homing_input(delta: float) -> void:
 
 	# Activate on Space press (only if not already active and has charges)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.Homing] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if _homing_charges > 0 and not _homing_active:
 			_homing_active = true
 			_homing_timer = HOMING_DURATION
@@ -3326,6 +3373,10 @@ func _handle_bff_pendant_input() -> void:
 		return
 
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.BffPendant] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		_summon_bff_companion()
 
 
@@ -3585,6 +3636,10 @@ func _handle_invisibility_suit_input() -> void:
 
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.InvisibilitySuit] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if not _invisibility_suit.is_active:
 			_invisibility_suit.activate()
 
@@ -3719,6 +3774,14 @@ func _handle_force_field_input(delta: float) -> void:
 	if not _force_field_equipped or _force_field == null:
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy (hold-based item)
+	if ActiveItemManager.is_active_item_jammed():
+		if _force_field.is_active:
+			_force_field.deactivate()
+		if Input.is_action_just_pressed("flashlight_toggle"):
+			FileLogger.info("[Player.ForceField] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
 	# Hold Space to activate, release to deactivate
 	if Input.is_action_pressed("flashlight_toggle"):
 		if not _force_field.is_active:
@@ -3836,6 +3899,11 @@ func _handle_trajectory_glasses_input() -> void:
 
 	# Activate on Space press (not hold — single press activates for full duration)
 	if Input.is_action_just_pressed("flashlight_toggle"):
+		# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+		# Use verbose variant so the log records detailed jammer diagnostics on every Space press
+		if ActiveItemManager.is_active_item_jammed_verbose():
+			FileLogger.info("[Player.TrajectoryGlasses] Space blocked by Radio Jammer (Issue #1036)")
+			return
 		if not _trajectory_glasses.is_active:
 			# Update weapon reference before activation (in case player switched weapons)
 			_update_trajectory_glasses_weapon()
@@ -3882,6 +3950,33 @@ func is_trajectory_glasses_active() -> bool:
 ## Get the trajectory glasses effect node (for HUD queries).
 func get_trajectory_glasses() -> Node:
 	return _trajectory_glasses
+
+
+# ============================================================================
+# Radio Jammer HUD (Issue #1036)
+# ============================================================================
+
+## Preloaded jammer HUD script (prohibition sign shown when active items are jammed).
+const JammerHudScript = preload("res://scripts/ui/jammer_hud.gd")
+
+## Reference to the jammer HUD node (shown above player when jammed + has active item).
+var _jammer_hud: Node2D = null
+
+
+## Initialize the jammer HUD node (always created; visibility is toggled at runtime).
+func _init_jammer_hud() -> void:
+	_jammer_hud = JammerHudScript.new()
+	_jammer_hud.name = "JammerHUD"
+	add_child(_jammer_hud)
+	FileLogger.info("[Player.Jammer] JammerHUD initialized")
+
+
+## Update jammer HUD visibility: show only when jammed and player has an active item.
+func _update_jammer_hud() -> void:
+	if _jammer_hud == null or not is_instance_valid(_jammer_hud):
+		return
+	var has_item: bool = ActiveItemManager.current_active_item != ActiveItemManager.ActiveItemType.NONE
+	_jammer_hud.set_jammed_visible(ActiveItemManager.is_active_item_jammed() and has_item)
 
 
 # ============================================================================
@@ -3988,6 +4083,11 @@ func _handle_loudspeaker_input() -> void:
 				_loudspeaker_hand_sprite.visible = false
 
 	if not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.Loudspeaker] Space blocked by Radio Jammer (Issue #1036)")
 		return
 
 	if not _loudspeaker_progress.can_activate():
@@ -4522,6 +4622,11 @@ func _handle_breaching_charges_input() -> void:
 	if not is_instance_valid(_breaching_charges):
 		return
 
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if Input.is_action_just_pressed("flashlight_toggle") and ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.BreachingCharges] Space blocked by Radio Jammer (Issue #1036)")
+		return
+
 	# If a charge is already placed: press Space to detonate
 	if _breaching_charges.has_placed_charge:
 		if Input.is_action_just_pressed("flashlight_toggle"):
@@ -4635,3 +4740,86 @@ func _spawn_armored_skin_shards() -> void:
 
 		parent.add_child(shard)
 		shard.global_position = global_position
+
+
+# ============================================================================
+# Recoil Compensator (Issue #1073)
+# ============================================================================
+
+
+## Whether the recoil compensator is equipped.
+var _recoil_compensator_equipped: bool = false
+
+## Whether the recoil compensator is currently active (Space held and charge > 0).
+var _recoil_compensator_active: bool = false
+
+## Remaining charge in seconds (max 15 seconds).
+var _recoil_compensator_charge: float = 0.0
+
+## Maximum charge duration in seconds.
+const RECOIL_COMPENSATOR_MAX_CHARGE: float = 15.0
+
+## Fire rate multiplier when compensator is active (10% boost).
+const RECOIL_COMPENSATOR_FIRE_RATE_BOOST: float = 1.1
+
+## Shoot cooldown timer for fire rate boost (seconds remaining until next shot allowed).
+var _recoil_compensator_shoot_cooldown: float = 0.0
+
+
+## Initialize the recoil compensator if the ActiveItemManager has it selected.
+func _init_recoil_compensator() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_recoil_compensator"):
+		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager does not have has_recoil_compensator method")
+		return
+
+	if not active_item_manager.has_recoil_compensator():
+		FileLogger.info("[Player.RecoilCompensator] Recoil compensator not selected")
+		return
+
+	_recoil_compensator_equipped = true
+	_recoil_compensator_charge = RECOIL_COMPENSATOR_MAX_CHARGE
+
+	FileLogger.info("[Player.RecoilCompensator] Recoil compensator initialized, charge: %.1f s" % _recoil_compensator_charge)
+
+
+## Handle recoil compensator input: hold Space to activate, release to deactivate.
+## Charge depletes at 1 s/s while active; deactivates automatically when empty.
+func _handle_recoil_compensator_input(delta: float) -> void:
+	if not _recoil_compensator_equipped:
+		return
+
+	# Update shoot cooldown timer
+	if _recoil_compensator_shoot_cooldown > 0.0:
+		_recoil_compensator_shoot_cooldown -= delta
+
+	if Input.is_action_pressed("flashlight_toggle") and _recoil_compensator_charge > 0.0:
+		# Activate: deplete charge
+		if not _recoil_compensator_active:
+			_recoil_compensator_active = true
+			FileLogger.info("[Player.RecoilCompensator] Activated, charge: %.2f s" % _recoil_compensator_charge)
+
+		_recoil_compensator_charge -= delta
+		if _recoil_compensator_charge <= 0.0:
+			_recoil_compensator_charge = 0.0
+			_recoil_compensator_active = false
+			FileLogger.info("[Player.RecoilCompensator] Charge depleted, deactivating")
+
+		# Update progress bar while active
+		_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
+	else:
+		# Deactivate when Space is released or charge is empty
+		if _recoil_compensator_active:
+			_recoil_compensator_active = false
+			FileLogger.info("[Player.RecoilCompensator] Deactivated, charge: %.2f s" % _recoil_compensator_charge)
+			if _recoil_compensator_charge > 0.0:
+				_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
+
+
+## Check if the recoil compensator is currently active.
+func is_recoil_compensator_active() -> bool:
+	return _recoil_compensator_equipped and _recoil_compensator_active

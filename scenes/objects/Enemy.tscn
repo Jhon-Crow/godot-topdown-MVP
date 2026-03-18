@@ -79,9 +79,9 @@ script = ExtResource("2_hit_area")
 shape = SubResource("CircleShape2D_enemy")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
-path_desired_distance = 4.0
+path_desired_distance = 40.0
 target_desired_distance = 10.0
-avoidance_enabled = true
+avoidance_enabled = false
 radius = 24.0
 neighbor_distance = 100.0
 max_neighbors = 5
