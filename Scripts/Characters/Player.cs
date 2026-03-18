@@ -880,6 +880,19 @@ public partial class Player : BaseCharacter
     /// <summary>Maximum charge duration in seconds.</summary>
     private const float RecoilCompensatorMaxCharge = 15.0f;
 
+    // Experimental Sample fields (Issue #1127)
+    /// <summary>Whether the experimental sample is equipped (active item selected in armory).</summary>
+    private bool _experimentalSampleEquipped = false;
+
+    /// <summary>Remaining charges for this battle (1–5, randomised on level start).</summary>
+    private int _experimentalSampleCharges = 0;
+
+    /// <summary>Minimum charges assigned at level start.</summary>
+    private const int ExperimentalSampleMinCharges = 1;
+
+    /// <summary>Maximum charges assigned at level start.</summary>
+    private const int ExperimentalSampleMaxCharges = 5;
+
     #endregion
 
     public override void _Ready()
@@ -1206,6 +1219,9 @@ public partial class Player : BaseCharacter
         // Initialize recoil compensator if active item manager has it selected (Issue #1073)
         InitRecoilCompensator();
 
+        // Initialize experimental sample if active item manager has it selected (Issue #1127)
+        InitExperimentalSample();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
@@ -1515,6 +1531,9 @@ public partial class Player : BaseCharacter
 
         // Handle recoil compensator input (hold Space to eliminate recoil/spread and boost fire rate) (Issue #1073)
         HandleRecoilCompensatorInput((float)delta);
+
+        // Handle experimental sample input (press Space to trigger random effect) (Issue #1127)
+        HandleExperimentalSampleInput();
 
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
@@ -8143,4 +8162,239 @@ public partial class Player : BaseCharacter
             return false;
         return (bool)activeItemManager.Call("is_active_item_jammed");
     }
+
+    #region Experimental Sample (Issue #1127)
+
+    /// <summary>
+    /// Initialize the experimental sample if it is the selected active item.
+    /// Randomises charge count (1–5) at the start of each level.
+    /// </summary>
+    private void InitExperimentalSample()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ExperimentalSample] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_experimental_sample"))
+        {
+            LogToFile("[Player.ExperimentalSample] ActiveItemManager missing has_experimental_sample method");
+            return;
+        }
+
+        bool hasExperimentalSample = (bool)activeItemManager.Call("has_experimental_sample");
+        if (!hasExperimentalSample)
+        {
+            LogToFile("[Player.ExperimentalSample] Experimental sample not selected");
+            return;
+        }
+
+        _experimentalSampleEquipped = true;
+        var rng = new RandomNumberGenerator();
+        rng.Randomize();
+        _experimentalSampleCharges = rng.RandiRange(ExperimentalSampleMinCharges, ExperimentalSampleMaxCharges);
+
+        LogToFile($"[Player.ExperimentalSample] Equipped, charges this run: {_experimentalSampleCharges}");
+    }
+
+    /// <summary>
+    /// Handle experimental sample input: press Space to trigger a random active item effect.
+    /// The randomly chosen effect can be ANY item type 1–17, even items the player has not unlocked.
+    /// </summary>
+    private void HandleExperimentalSampleInput()
+    {
+        if (!_experimentalSampleEquipped)
+            return;
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+            return;
+
+        // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.ExperimentalSample] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        if (_experimentalSampleCharges <= 0)
+        {
+            LogToFile("[Player.ExperimentalSample] No charges remaining");
+            return;
+        }
+
+        _experimentalSampleCharges -= 1;
+
+        // Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18)
+        var rng = new RandomNumberGenerator();
+        rng.Randomize();
+        int randomType = rng.RandiRange(1, 17);
+        LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {randomType}");
+        TriggerExperimentalSampleEffect(randomType);
+    }
+
+    /// <summary>
+    /// Trigger the on-press effect of any active item type chosen by the experimental sample.
+    /// Mirrors the GDScript _trigger_experimental_sample_effect() logic.
+    /// </summary>
+    private void TriggerExperimentalSampleEffect(int itemType)
+    {
+        LogToFile($"[Player.ExperimentalSample] Executing effect for type {itemType}");
+
+        switch (itemType)
+        {
+            case 1: // FLASHLIGHT — passive toggle; no meaningful one-shot effect
+                LogToFile("[Player.ExperimentalSample] Flashlight effect triggered (passive toggle)");
+                break;
+
+            case 2: // HOMING_BULLETS — activate homing for one burst
+                if (!_homingBulletsEquipped)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                    LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
+                }
+                else if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                    LogToFile($"[Player.ExperimentalSample] Homing (equipped) triggered for {HomingDuration:F1}s");
+                }
+                break;
+
+            case 3: // TELEPORT_BRACERS — requires aim system; skip
+                LogToFile("[Player.ExperimentalSample] Teleport bracers effect triggered (requires aim; skipped)");
+                break;
+
+            case 4: // BFF_PENDANT — summon companion if not yet summoned
+                if (!_bffCompanionSummoned)
+                {
+                    SummonBffCompanion();
+                    LogToFile("[Player.ExperimentalSample] BFF companion summoned via experimental sample");
+                }
+                else
+                {
+                    LogToFile("[Player.ExperimentalSample] BFF companion already summoned; effect skipped");
+                }
+                break;
+
+            case 5: // INVISIBILITY_SUIT — activate if node available
+                if (_invisibilitySuitEquipped && _invisibilitySuitEffect != null && IsInstanceValid(_invisibilitySuitEffect))
+                {
+                    bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
+                    if (!isActive)
+                    {
+                        _invisibilitySuitEffect.Call("activate");
+                        LogToFile("[Player.ExperimentalSample] Invisibility suit activated via experimental sample");
+                    }
+                }
+                else
+                {
+                    LogToFile("[Player.ExperimentalSample] Invisibility suit effect triggered (not equipped; skipped)");
+                }
+                break;
+
+            case 6: // BREAKER_BULLETS — passive; no on-press action
+                LogToFile("[Player.ExperimentalSample] Breaker bullets effect triggered (passive; no on-press action)");
+                break;
+
+            case 7: // FORCE_FIELD — hold-Space item; skip
+                LogToFile("[Player.ExperimentalSample] Force field effect triggered (hold-Space item; skipped)");
+                break;
+
+            case 8: // TRAJECTORY_GLASSES — activate if node available
+                if (_trajectoryGlassesEquipped && _trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+                {
+                    bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+                    if (!isActive)
+                    {
+                        _trajectoryGlassesEffect.Call("activate");
+                        LogToFile("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample");
+                    }
+                }
+                else
+                {
+                    LogToFile("[Player.ExperimentalSample] Trajectory glasses effect triggered (not equipped; skipped)");
+                }
+                break;
+
+            case 9: // LASER_SIGHT — passive; no on-press action
+                LogToFile("[Player.ExperimentalSample] Laser sight effect triggered (passive; no on-press action)");
+                break;
+
+            case 10: // EXTENDED_MAGAZINE — passive; no on-press action
+                LogToFile("[Player.ExperimentalSample] Extended magazine effect triggered (passive; no on-press action)");
+                break;
+
+            case 11: // LOUDSPEAKER — trigger if equipped and charges available
+                if (_loudspeakerEquipped && _loudspeakerProgress != null && IsInstanceValid(_loudspeakerProgress))
+                {
+                    bool canActivate = (bool)_loudspeakerProgress.Call("can_activate");
+                    if (canActivate)
+                    {
+                        Vector2 aimDir = LoudspeakerGetAimDirection();
+                        bool isFirstUse = !(bool)_loudspeakerProgress.Get("used_this_level");
+                        _loudspeakerProgress.Call("use");
+                        float effectChance = isFirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+                        float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
+                        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
+                        LogToFile("[Player.ExperimentalSample] Loudspeaker activated via experimental sample");
+                    }
+                    else
+                    {
+                        LogToFile("[Player.ExperimentalSample] Loudspeaker effect triggered (no charges; skipped)");
+                    }
+                }
+                else
+                {
+                    LogToFile("[Player.ExperimentalSample] Loudspeaker effect triggered (not equipped; skipped)");
+                }
+                break;
+
+            case 12: // BREACHING_CHARGES — detonate if placed
+                if (_breachingChargesEffect != null && IsInstanceValid(_breachingChargesEffect))
+                {
+                    bool detonated = (bool)_breachingChargesEffect.Call("detonate");
+                    LogToFile($"[Player.ExperimentalSample] Breaching charges detonated: {detonated}");
+                }
+                else
+                {
+                    LogToFile("[Player.ExperimentalSample] Breaching charges effect triggered (not equipped; skipped)");
+                }
+                break;
+
+            case 13: // ARMORED_SKIN — passive; no on-press action
+                LogToFile("[Player.ExperimentalSample] Armored skin effect triggered (passive; no on-press action)");
+                break;
+
+            case 14: // AUTO_RELOAD — passive; no on-press action
+                LogToFile("[Player.ExperimentalSample] Auto-reload effect triggered (passive; no on-press action)");
+                break;
+
+            case 15: // DRILLING_BULLETS — passive magazine effect; no on-press action
+                LogToFile("[Player.ExperimentalSample] Drilling bullets effect triggered (passive; no on-press action)");
+                break;
+
+            case 16: // RECOIL_COMPENSATOR — hold-Space item; skip
+                LogToFile("[Player.ExperimentalSample] Recoil compensator effect triggered (hold-Space item; skipped)");
+                break;
+
+            case 17: // COMBAT_DISPOSITION — passive; no on-press action
+                LogToFile("[Player.ExperimentalSample] Combat disposition effect triggered (passive; no on-press action)");
+                break;
+
+            default:
+                LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — no effect");
+                break;
+        }
+    }
+
+    #endregion
 }

@@ -26,7 +26,7 @@
 
 ---
 
-## Owner Bug Report (2026-03-18 ~06:47)
+## Owner Bug Report 1 (2026-03-18 ~06:47)
 
 After the initial implementation was merged into the PR, the owner tested it and reported:
 
@@ -36,6 +36,53 @@ After the initial implementation was merged into the PR, the owner tested it and
 The owner attached two artefacts:
 - `game_log_20260318_064519.txt` — live game log from Windows build
 - `screenshot_owner_report.png` — screenshot showing the bug in the UI
+
+---
+
+## Owner Bug Report 2 (2026-03-18 ~08:43)
+
+After the icon fix was applied, the owner tested again and reported:
+
+> **«значок появился, предмет не работает»**
+> ("icon appeared, item not working")
+
+The owner attached:
+- `game_log_20260318_084243.txt` — new game log from updated Windows build
+
+### Log Analysis (game_log_20260318_084243.txt)
+
+**Key observation:**
+- Line 287: `[ActiveItemManager] Active item changed from Invisibility to Experimental Sample` (08:42:58)
+- Lines 337–355: Player `_ready()` logs all 17 item checks (Flashlight, TeleportBracers, Homing, … RecoilCompensator) — all present and correct
+- **Zero `[Player.ExperimentalSample]` log entries in the entire session**
+- The level restarted multiple times (08:43:01, 08:43:03, 08:43:05) — none produced ExperimentalSample init
+
+**Critical clue (line 512):**
+```
+[LabyrinthLevel] AKGL already equipped by C# Player - skipping GDScript weapon swap
+```
+
+This log line reveals that **the active player is `Scripts/Characters/Player.cs`** (C# class), not `scripts/characters/player.gd` (GDScript). The game uses a C# player in normal levels. All previous implementation was in GDScript only, which is never called for the C# player.
+
+### Root Cause of Bug Report 2
+
+**The implementation was placed entirely in the wrong file.**
+
+| File we changed | File the game actually uses |
+|---|---|
+| `scripts/characters/player.gd` | `Scripts/Characters/Player.cs` |
+
+The GDScript `player.gd` is loaded only in certain contexts (tutorial/test scenes). The production LabyrinthLevel uses `Scripts/Characters/Player.cs`. That is why:
+- The icon appeared (it was added to `active_item_manager.gd` which is GDScript autoload — correctly loaded)
+- But the item did not work (the C# Player.cs had no ExperimentalSample logic)
+
+### Fix Applied (Bug Report 2)
+
+Added full Experimental Sample implementation to `Scripts/Characters/Player.cs`:
+- `InitExperimentalSample()` — called in `_Ready()` after `InitRecoilCompensator()`
+- `HandleExperimentalSampleInput()` — called in `_PhysicsProcess()` after `HandleRecoilCompensatorInput()`
+- `TriggerExperimentalSampleEffect(int itemType)` — switch-based dispatcher for effects 1–17
+- Fields: `_experimentalSampleEquipped`, `_experimentalSampleCharges`, `ExperimentalSampleMinCharges=1`, `ExperimentalSampleMaxCharges=5`
 
 ---
 
@@ -247,8 +294,8 @@ Item data registered: icon path, description, hint text, `has_experimental_sampl
 
 ## Alternative Solutions Considered
 
-### A. C# implementation (rejected)
-The player character's movement and core logic is in C# (`Player.cs`). However, all active item logic lives in GDScript `player.gd`. Keeping the Experimental Sample in GDScript maintains consistency and avoids C#↔GDScript bridging overhead.
+### A. C# implementation (initially rejected, then required)
+The player character's movement and core logic is in C# (`Player.cs`). The initial assumption was that active item logic lived in GDScript `player.gd`. This was incorrect — production levels use the C# player. The fix required implementing the feature in **both** `player.gd` (for test/tutorial scenes) and `Player.cs` (for production levels).
 
 ### B. Delegate pattern — store random item ref at level start (rejected)
 Instead of re-rolling on each press, store a single random item ref at level load and execute the same item each press. Rejected: the issue requirements explicitly say "при каждой активации используется случайный активный предмет" — **each activation** picks randomly, not once per level.
@@ -275,7 +322,8 @@ A dictionary mapping type → callable would be more extensible than a `match` s
 | File | Change Type |
 |---|---|
 | `scripts/autoload/active_item_manager.gd` | Modified — added EXPERIMENTAL_SAMPLE=18, data, helper |
-| `scripts/characters/player.gd` | Modified — added full item implementation |
+| `scripts/characters/player.gd` | Modified — GDScript implementation (tutorial/test scenes) |
+| `Scripts/Characters/Player.cs` | Modified — **C# implementation (production levels)** — this was the missing fix |
 | `assets/sprites/weapons/experimental_sample_icon.png` | **New** — unique pixel-art icon |
 | `tests/unit/test_experimental_sample.gd` | **New** — 40+ GUT unit tests |
 | `tests/unit/test_active_item_manager.gd` | Modified — updated mock enum/count |
