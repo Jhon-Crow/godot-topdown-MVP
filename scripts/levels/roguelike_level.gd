@@ -446,6 +446,12 @@ func _build_corridors(parent: Node) -> void:
 ## ============================================================
 
 func _spawn_enemies_in_room(room_node: Node2D, room_index: int) -> void:
+	# Room 0 is the player starting room — keep it enemy-free so the player is not
+	# immediately in the line of sight of enemies upon spawn.
+	if room_index == 0:
+		print("[RoguelikeLevel] Room 0 is the safe start room — no enemies spawned")
+		return
+
 	var room_type: int = _selected_types[room_index]
 	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
 	if enemy_scene == null:
@@ -575,15 +581,29 @@ func _spawn_player() -> void:
 		push_error("[RoguelikeLevel] Failed to load Player scene!")
 		return
 
-	var entities_node := Node2D.new()
-	entities_node.name = "Entities"
-	add_child(entities_node)
+	# Remove any pre-existing Player node to prevent duplicates (e.g. from scene editor).
+	# Use free() (not queue_free()) so the node is gone before we add the new player below.
+	var existing_entities: Node = get_node_or_null("Entities")
+	if existing_entities:
+		var existing_player: Node = existing_entities.get_node_or_null("Player")
+		if existing_player:
+			print("[RoguelikeLevel] Removing pre-existing Player node to prevent duplicate spawn")
+			existing_player.free()
+
+	var entities_node: Node2D = existing_entities
+	if entities_node == null:
+		entities_node = Node2D.new()
+		entities_node.name = "Entities"
+		add_child(entities_node)
 
 	var player: Node2D = player_scene.instantiate()
 	player.name = "Player"
 
-	# Start in the first room, just right of the left wall
-	var spawn_x: float = _room_offsets[0] + 80.0
+	# Spawn player in a safe entry area left of the first room (outside enemy sight lines).
+	# The first room boundary wall is at x = _room_offsets[0] (with corridor opening at mid-height).
+	# We place the player just inside the left wall opening so they have a wall segment
+	# ahead (the room interior) and no enemies immediately in front.
+	var spawn_x: float = _room_offsets[0] + 56.0  # Just past the left boundary wall (24px thick)
 	var spawn_y: float = ROOM_HEIGHT * 0.5
 	player.position = Vector2(spawn_x, spawn_y)
 

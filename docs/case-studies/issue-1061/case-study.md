@@ -251,7 +251,48 @@ The roguelike reuses `ScoreManager.start_level(total_enemy_count)` and the exist
 
 ---
 
-## 8. References
+## 8. Bug Report (2026-03-18 04:28) — Duplicate Player + Enemy Line-of-Sight
+
+**Log:** `game_log_20260318_042813.txt`
+**Reported by:** Jhon-Crow
+**Symptoms:**
+1. Two copies of the player spawn at the same position.
+2. Enemies in the first room have direct line-of-sight to the player from the moment of spawn.
+
+### 8.1 Duplicate Player — Root Cause
+
+`RoguelikeLevel.tscn` contained an embedded `[node name="Player" parent="Entities" ...]` entry (added to make the scene usable in the Godot editor). When the scene is loaded at runtime, Godot instantiates this node automatically. The `_spawn_player()` function in `roguelike_level.gd` then instantiates a **second** player and adds it to the same `Entities` parent node.
+
+**Log evidence (04:28:52 — two consecutive Player.Init events):**
+```
+[04:28:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)   # From scene-embedded player
+...
+[04:28:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)   # From _spawn_player()
+```
+
+**Fix applied:**
+1. Removed the `[node name="Player" ...]` stanza from `RoguelikeLevel.tscn`. The scene now only contains `NavigationRegion2D`; the player is always created by `_spawn_player()`.
+2. As a defensive guard, `_spawn_player()` now checks for any pre-existing Player node under `Entities` and calls `free()` on it before instantiating the new one.
+
+### 8.2 Enemy Line-of-Sight at Spawn — Root Cause
+
+The player spawned at `(x=80, y=360)` — just inside the left wall opening of Room 0. Enemy positions in Room 0 were spread across the full room width (e.g. `w*0.20, h*0.22` → x=256, y=158), with no walls between the player and enemies at the entry point.
+
+**Log evidence:**
+```
+[04:28:26] [ENEMY] [Enemy_R0_0] Spawned at (384, 216), hp: 2, behavior: GUARD
+[04:28:26] [ENEMY] [Enemy_R0_1] Spawned at (704, 360), hp: 2, behavior: GUARD
+[04:28:26] [ENEMY] [Enemy_R0_2] Spawned at (384, 489.6), hp: 1, behavior: GUARD
+```
+
+All three Room-0 enemies were within open sight lines of the spawn point.
+
+**Fix applied:**
+Room 0 (index 0) is now designated the "safe start room" — `_spawn_enemies_in_room()` returns immediately without spawning any enemies when `room_index == 0`. This guarantees the player always has at least one corridor-length of distance before encountering the first enemy. With `MIN_ROOMS = 3`, there are always at least 2 combat rooms after the safe start room.
+
+---
+
+## 9. References
 
 - Godot 4 `NavigationRegion2D` procedural baking: https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationregions.html
 - Godot 4 `StaticBody2D` + `RectangleShape2D` API: https://docs.godotengine.org/en/stable/classes/class_staticbody2d.html
