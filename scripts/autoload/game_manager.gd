@@ -137,6 +137,11 @@ var roguelike_current_level: int = 1
 ## (the special room shown between a completed level and the next level).
 var roguelike_in_treasure_room: bool = false
 
+## Weapon the player is currently carrying through the roguelike run.
+## Set when the player picks up a weapon from a treasure pedestal.
+## Empty string means the default Makarov PM starting weapon.
+var roguelike_run_weapon: String = ""
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -150,6 +155,7 @@ func roguelike_reset_session() -> void:
 	roguelike_saved_weapon = ""
 	roguelike_current_level = 1
 	roguelike_in_treasure_room = false
+	roguelike_run_weapon = ""
 
 
 func _ready() -> void:

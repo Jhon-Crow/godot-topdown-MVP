@@ -157,6 +157,36 @@ Two contributing factors were identified:
 
 **Fix**: Added `ActiveItemManager.current_active_item = 0` (NONE) in `_force_roguelike_loadout()`, followed by `active_item_changed.emit(0)` so any listening nodes update. This uses direct assignment (not `set_active_item()`) to avoid triggering a scene restart.
 
+### Bug 8: Picking a weapon from pedestal should swap old weapon back to pedestal
+
+**Log file**: `game_log_20260318_122724.txt`
+**Expected**: When the player picks a weapon from the treasure pedestal, the player's old weapon appears on the pedestal (allowing them to swap back before leaving — mirrors the active-item swap mechanic).
+**Actual**: Old weapon disappears; pedestal is removed immediately after pickup.
+
+**Root cause**: `_apply_pedestal_weapon()` removed the pedestal unconditionally after giving the player the new weapon. The active-item path already implemented the swap-back mechanic (`_apply_pedestal_active_item()`) but the weapon path did not.
+
+**Fix**: After equipping the new weapon, save the old weapon ID and update the pedestal's `_pedestal_item`, icon, and label to show the old weapon. The pedestal stays alive so the player can touch it again to swap back.
+
+---
+
+### Bug 9: Weapon resets to Makarov PM after leaving the treasure room
+
+**Log file**: `game_log_20260318_122724.txt`
+**Evidence**:
+- Line 3727: `[Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)` — player picked M16 from pedestal
+- Line 3736: `[RoguelikeLevel] Player reached exit — advancing (treasure_room=true)` — player exits treasure room
+- Line 3741: `[GameManager] Weapon selected: makarov_pm` — weapon reset to PM!
+- Line 3835: Player starts level 2 with PM, not M16
+
+**Root cause**: When the next combat room loads after the treasure room, `_force_roguelike_loadout()` always called `GameManager.set_selected_weapon("makarov_pm")`, discarding any weapon the player picked in the treasure room. The only weapon tracking field `roguelike_saved_weapon` stored the weapon from before the run started, not the current run weapon.
+
+**Fix**:
+1. Added `roguelike_run_weapon: String = ""` to `GameManager` — tracks the weapon the player is currently carrying through the run.
+2. When a weapon is picked from the pedestal, `_apply_pedestal_weapon()` now sets `GameManager.roguelike_run_weapon = new_weapon_id`.
+3. `_force_roguelike_loadout()` now uses `roguelike_run_weapon` if set, otherwise defaults to `"makarov_pm"`.
+4. `roguelike_run_weapon` is reset to `""` at the start of each new run.
+5. Active items are only cleared on level 1, room 0 (true run start), not on every room.
+
 ---
 
 ## Timeline of Events
@@ -173,7 +203,9 @@ Two contributing factors were identified:
 | 2026-03-18 ~08:00 | Log downloaded, analysed; deferred spawn + small visual identified as root cause |
 | 2026-03-18 ~08:10 | Bug 4 fixed: direct spawn, FileLogger tracing, larger visuals (`e5c805b5`) |
 | 2026-03-18 08:26 | Owner tests again, reports 3 new bugs (case icon / armory button / items at start) |
-| 2026-03-18 ~08:30 | Bugs 5–7 fixed: pre-select weapon, disable armory in roguelike, clear active items |
+| 2026-03-18 ~08:30 | Bugs 5–7 fixed: pre-select weapon, disable armory in roguelike, clear active items (`48ff5b4e`) |
+| 2026-03-18 09:29 | Owner tests again, reports 2 new bugs (no weapon swap / weapon reset after treasure room) |
+| 2026-03-18 ~09:35 | Bugs 8–9 fixed: weapon swap-back mechanic + `roguelike_run_weapon` persistence |
 
 ---
 
@@ -188,16 +220,20 @@ Two contributing factors were identified:
 | 5: Wrong icon (case not weapon) | Generic `"weapon"` string → no specific icon known at spawn time | Pre-select weapon ID in `_pick_random_pedestal_item()`, show weapon-specific icon |
 | 6: Armory accessible in roguelike | `pause_menu.gd` didn't check `roguelike_active` | Disable armory button when `GameManager.roguelike_active == true` |
 | 7: Active items not cleared | `_force_roguelike_loadout()` didn't reset `ActiveItemManager` | Reset `current_active_item = NONE` in `_force_roguelike_loadout()` |
+| 8: Old weapon lost on pickup | `_apply_pedestal_weapon()` removed pedestal unconditionally | Save old weapon, update pedestal icon+label, leave pedestal alive for swap-back |
+| 9: Weapon reset to PM after treasure room | `_force_roguelike_loadout()` always set PM, ignoring treasure room pickup | Add `roguelike_run_weapon` to `GameManager`; set on pedestal pickup; restore in `_force_roguelike_loadout()` |
 
 ---
 
 ## Files Changed
 
-- `scripts/levels/roguelike_level.gd` — treasure room spawn, pedestal icon, loadout reset
+- `scripts/levels/roguelike_level.gd` — treasure room spawn, pedestal icon, loadout reset, weapon swap-back, run weapon tracking
+- `scripts/autoload/game_manager.gd` — added `roguelike_run_weapon` field, reset in `roguelike_reset_session()`
 - `scripts/ui/pause_menu.gd` — armory button disabled in roguelike mode
 - `tests/unit/test_roguelike_level.gd` — tests for last-room pedestal logic and treasure room flow
 - `docs/case-studies/issue-1166/game_log_20260318_100318.txt` — first game log from owner
 - `docs/case-studies/issue-1166/game_log_20260318_105539.txt` — second game log from owner
+- `docs/case-studies/issue-1166/game_log_20260318_122724.txt` — third game log from owner (weapon bugs)
 
 ---
 

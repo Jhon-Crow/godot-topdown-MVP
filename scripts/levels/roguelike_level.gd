@@ -265,6 +265,8 @@ func _start_new_run() -> void:
 	GameManager.roguelike_in_treasure_room = false
 	# Save current weapon so we can restore it when the run ends
 	GameManager.roguelike_saved_weapon = GameManager.get_selected_weapon()
+	# Clear carried-weapon tracker — player always starts a fresh run with PM
+	GameManager.roguelike_run_weapon = ""
 
 	var names: Array = []
 	for t in GameManager.roguelike_room_types:
@@ -288,17 +290,25 @@ func _continue_run() -> void:
 
 func _force_roguelike_loadout() -> void:
 	if GameManager:
-		GameManager.set_selected_weapon("makarov_pm")
+		# Issue #1166 Bug 2 fix: preserve weapon picked in a treasure room across level transitions.
+		# roguelike_run_weapon is set when the player picks a weapon from the pedestal.
+		# On the very first room of a new run it is empty, so we default to Makarov PM.
+		# On subsequent level starts it carries the weapon from the last treasure room.
+		var weapon_to_equip: String = GameManager.roguelike_run_weapon if GameManager.roguelike_run_weapon != "" else "makarov_pm"
+		GameManager.set_selected_weapon(weapon_to_equip)
+		print("[RoguelikeLevel] Loadout weapon: %s (roguelike_run_weapon='%s')" % [weapon_to_equip, GameManager.roguelike_run_weapon])
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
 	if grenade_manager:
 		if grenade_manager.get("current_grenade_type") != null:
 			grenade_manager.current_grenade_type = 0  # FLASHBANG
-	# Issue #1166: player must start roguelike with no active/passive items equipped.
-	if ActiveItemManager and ActiveItemManager.current_active_item != 0:
-		ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
-		ActiveItemManager.active_item_changed.emit(0)
-		print("[RoguelikeLevel] Active item cleared for roguelike start")
-	print("[RoguelikeLevel] Loadout forced: makarov_pm + flashbang, no active items")
+	# Issue #1166: player must start roguelike with no active/passive items on the FIRST room only.
+	# On level 1 room 1 (roguelike_current_level == 1 and roguelike_current_room == 0) clear items.
+	if GameManager.roguelike_current_level == 1 and GameManager.roguelike_current_room == 0:
+		if ActiveItemManager and ActiveItemManager.current_active_item != 0:
+			ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
+			ActiveItemManager.active_item_changed.emit(0)
+			print("[RoguelikeLevel] Active item cleared for roguelike start")
+	print("[RoguelikeLevel] Loadout forced: %s + flashbang" % GameManager.get_selected_weapon())
 
 
 func _restore_loadout() -> void:
@@ -1261,19 +1271,19 @@ func _on_pedestal_body_entered(body: Node2D, pedestal: Area2D) -> void:
 
 
 ## Give the player the pre-selected weapon from the pedestal (weapon pedestal).
-## The weapon was chosen at pedestal-spawn time so the icon matches.
-## The pedestal is removed after collection.
+## Issue #1166 Bug 1 fix: the player's old weapon is put back on the pedestal so they
+## can swap back before leaving the room — mirrors the active-item swap mechanic.
 func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 	if GameManager == null:
 		pedestal.queue_free()
 		_treasure_pedestal = null
 		return
 
-	# item on the pedestal is the pre-selected weapon ID string (Issue #1166 Bug 1).
+	# The item on the pedestal is the pre-selected weapon ID string.
 	var new_weapon_id: String = _pedestal_item if (_pedestal_item is String and _pedestal_item in GameManager.WEAPON_SCENES) else ""
 
 	if new_weapon_id == "":
-		# Fallback: pick any other unlocked weapon at pickup time
+		# Fallback: pick any other unlocked weapon at pickup time.
 		var current_weapon_id: String = GameManager.get_selected_weapon()
 		var available: Array = []
 		for weapon_id in GameManager.WEAPON_SCENES.keys():
@@ -1286,14 +1296,43 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 			return
 		new_weapon_id = available[randi() % available.size()]
 
+	# Remember the player's current weapon before the swap.
+	var old_weapon_id: String = GameManager.get_selected_weapon()
+
+	# Give the new weapon to the player.
 	GameManager.set_selected_weapon(new_weapon_id)
+	# Track the carried weapon so it survives level transitions (Bug 2 fix).
+	GameManager.roguelike_run_weapon = new_weapon_id
 
 	if player.has_method("ApplySelectedWeaponFromGameManager"):
 		player.ApplySelectedWeaponFromGameManager()
 
-	print("[RoguelikeLevel] Weapon pedestal: switched to %s" % new_weapon_id)
-	pedestal.queue_free()
-	_treasure_pedestal = null
+	print("[RoguelikeLevel] Weapon pedestal: player took %s, old weapon %s returned to pedestal" % [new_weapon_id, old_weapon_id])
+
+	# Put the player's old weapon back on the pedestal so they can swap back.
+	# Only do this if the old weapon differs from the new one.
+	if old_weapon_id != "" and old_weapon_id != new_weapon_id:
+		_pedestal_item = old_weapon_id
+		pedestal.set_meta("pedestal_item", old_weapon_id)
+
+		# Update the icon on the pedestal to show the old weapon.
+		var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+		if icon_rect and old_weapon_id in WEAPON_ICON_PATHS:
+			var tex: Texture2D = load(WEAPON_ICON_PATHS[old_weapon_id]) as Texture2D
+			if tex:
+				icon_rect.texture = tex
+
+		# Update the item name label.
+		var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
+		if item_lbl:
+			item_lbl.text = _pedestal_item_label(old_weapon_id)
+
+		print("[RoguelikeLevel] Old weapon '%s' placed back on pedestal" % old_weapon_id)
+		# Leave pedestal alive so player can pick it back up.
+	else:
+		# No meaningful old weapon — remove pedestal.
+		pedestal.queue_free()
+		_treasure_pedestal = null
 
 
 ## Give the player an active item (active-item pedestal).
