@@ -26,6 +26,7 @@ const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
 
 var _parent: Node2D = null
 var _has_triggered: bool = false  ## True after shards have been spawned — prevents re-triggering (Issue #1143).
+var _trigger_frame: int = -1  ## Physics frame when the effect triggered; used to absorb same-frame burst hits (Issue #1143).
 
 
 func _ready() -> void:
@@ -76,14 +77,21 @@ func apply_hp_bonus(current_health: int, max_health: int) -> Array[int]:
 ## Try to spawn shards when the enemy is hit at low HP.
 ## Call from enemy.on_hit_with_bullet_info() before applying damage.
 ## Triggers at most once — subsequent hits at low HP are handled normally.
+## Same-frame hits after the trigger are also absorbed so that area-of-effect
+## damage bursts (e.g. grenade explosions) cannot kill the enemy in the same
+## physics frame as the trigger (Issue #1143).
 ## @param current_health: Health *before* this hit is applied.
-## @return true if shards were spawned — the triggering hit's damage must be absorbed (Issue #1143).
+## @return true if the hit must be absorbed (initial trigger or same-frame burst hit).
 func try_spawn_shards(current_health: int) -> bool:
+	# Absorb all hits on the same physics frame as the trigger (grenade burst fix).
+	if _has_triggered and Engine.get_physics_frames() == _trigger_frame:
+		return true
 	if _has_triggered:
 		return false
 	if current_health > HP_THRESHOLD:
 		return false
 	_has_triggered = true
+	_trigger_frame = Engine.get_physics_frames()
 	_spawn_shards()
 	_remove_armor_visual()
 	return true
