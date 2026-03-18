@@ -1,0 +1,477 @@
+diff --git a/scenes/objects/RadioJammerEnemy.tscn b/scenes/objects/RadioJammerEnemy.tscn
+new file mode 100644
+index 000000000..9d1848677
+--- /dev/null
++++ b/scenes/objects/RadioJammerEnemy.tscn
+@@ -0,0 +1,117 @@
++[gd_scene load_steps=16 format=3 uid="uid://radio_jammer_enemy"]
++
++[ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
++[ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
++[ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle_topdown.png" id="3_rifle_sprite"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_body.png" id="4_body"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_head.png" id="5_head"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_left_arm.png" id="6_left_arm"]
++[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_arm.png" id="7_right_arm"]
++[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="8_casing"]
++[ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="9_bloody_feet"]
++[ext_resource type="Script" path="res://scripts/effects/radio_wave_effect.gd" id="10_radio_wave"]
++
++[sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
++radius = 24.0
++
++[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_enemy"]
++polygon = PackedVector2Array(24, 0, 20.78, 12, 12, 20.78, 0, 24, -12, 20.78, -20.78, 12, -24, 0, -20.78, -12, -12, -20.78, 0, -24, 12, -20.78, 20.78, -12)
++
++[sub_resource type="CircleShape2D" id="CircleShape2D_casing_pusher"]
++radius = 28.0
++
++[node name="RadioJammerEnemy" type="CharacterBody2D" groups=["enemies"]]
++collision_layer = 2
++collision_mask = 4
++script = ExtResource("1_enemy")
++
++[node name="EnemyModel" type="Node2D" parent="."]
++
++[node name="Body" type="Sprite2D" parent="EnemyModel"]
++z_index = 1
++position = Vector2(-4, 0)
++texture = ExtResource("4_body")
++
++[node name="LeftArm" type="Sprite2D" parent="EnemyModel"]
++z_index = 4
++position = Vector2(24, 6)
++texture = ExtResource("6_left_arm")
++
++[node name="RightArm" type="Sprite2D" parent="EnemyModel"]
++z_index = 4
++position = Vector2(-2, 6)
++texture = ExtResource("7_right_arm")
++
++[node name="Head" type="Sprite2D" parent="EnemyModel"]
++z_index = 3
++position = Vector2(-6, -2)
++texture = ExtResource("5_head")
++
++[node name="WeaponMount" type="Node2D" parent="EnemyModel"]
++position = Vector2(0, 6)
++
++[node name="WeaponSprite" type="Sprite2D" parent="EnemyModel/WeaponMount"]
++z_index = 2
++texture = ExtResource("3_rifle_sprite")
++offset = Vector2(20, 0)
++
++[node name="RadioWaveEffect" type="Node2D" parent="EnemyModel"]
++z_index = 0
++script = ExtResource("10_radio_wave")
++jammer_radius = 1000.0
++
++[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
++shape = SubResource("CircleShape2D_enemy")
++
++[node name="RayCast2D" type="RayCast2D" parent="."]
++target_position = Vector2(400, 0)
++collision_mask = 5
++
++[node name="HitArea" type="Area2D" parent="."]
++collision_layer = 2
++collision_mask = 16
++script = ExtResource("2_hit_area")
++
++[node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
++shape = SubResource("CircleShape2D_enemy")
++
++[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
++path_desired_distance = 4.0
++target_desired_distance = 10.0
++avoidance_enabled = true
++radius = 24.0
++neighbor_distance = 100.0
++max_neighbors = 5
++time_horizon_agents = 1.0
++time_horizon_obstacles = 1.0
++max_speed = 320.0
++debug_enabled = false
++
++[node name="DebugLabel" type="Label" parent="."]
++visible = false
++offset_left = -50.0
++offset_top = -50.0
++offset_right = 50.0
++offset_bottom = -30.0
++horizontal_alignment = 1
++vertical_alignment = 1
++
++[node name="BloodyFeetComponent" type="Node" parent="."]
++script = ExtResource("9_bloody_feet")
++blood_steps_count = 12
++step_distance = 30.0
++initial_alpha = 0.8
++alpha_decay_rate = 0.06
++footprint_scale = 0.72
++debug_logging = false
++
++[node name="CasingPusher" type="Area2D" parent="."]
++collision_layer = 0
++collision_mask = 64
++monitorable = false
++
++[node name="CasingPusherShape" type="CollisionShape2D" parent="CasingPusher"]
++shape = SubResource("CircleShape2D_casing_pusher")
++
++[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
++occluder = SubResource("OccluderPolygon2D_enemy")
+diff --git a/scripts/autoload/active_item_manager.gd b/scripts/autoload/active_item_manager.gd
+index 7d140d9f9..fec6de76d 100644
+--- a/scripts/autoload/active_item_manager.gd
++++ b/scripts/autoload/active_item_manager.gd
+@@ -102,6 +102,9 @@ const ACTIVE_ITEM_DATA: Dictionary = {
+ 	}
+ }
+ 
++## Whether the player's active items are currently jammed by a Radio Jammer enemy (Issue #1036).
++var _is_jammed: bool = false
++
+ ## Signal emitted when active item type changes.
+ signal active_item_changed(new_type: int)
+ 
+@@ -269,3 +272,15 @@ func unlock_active_item(item_type: int) -> void:
+ ## @return: Dictionary of item_type -> bool pairs.
+ func get_unlocked_active_items() -> Dictionary:
+ 	return unlocked_active_items
++
++
++## Set whether the player's active items are jammed by a Radio Jammer enemy (Issue #1036).
++## @param jammed: true to jam active items, false to restore them.
++func set_jammed(jammed: bool) -> void:
++	_is_jammed = jammed
++
++
++## Check whether the player's active items are currently jammed (Issue #1036).
++## Returns true when a living Radio Jammer enemy is within 1000px.
++func is_active_item_jammed() -> bool:
++	return _is_jammed
+diff --git a/scripts/characters/player.gd b/scripts/characters/player.gd
+index 18021636b..cea4dd95c 100644
+--- a/scripts/characters/player.gd
++++ b/scripts/characters/player.gd
+@@ -3036,6 +3036,12 @@ func _handle_flashlight_input() -> void:
+ 	if not is_instance_valid(_flashlight_node):
+ 		return
+ 
++	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
++	if ActiveItemManager.is_active_item_jammed():
++		if _flashlight_node.has_method("turn_off"):
++			_flashlight_node.turn_off()
++		return
++
+ 	if Input.is_action_pressed("flashlight_toggle"):
+ 		if _flashlight_node.has_method("turn_on"):
+ 			_flashlight_node.turn_on()
+@@ -3137,6 +3143,10 @@ func _handle_homing_input(delta: float) -> void:
+ 			homing_deactivated.emit()
+ 			FileLogger.info("[Player.Homing] Homing effect expired, charges remaining: %d/%d" % [_homing_charges, HOMING_MAX_CHARGES])
+ 
++	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
++	if ActiveItemManager.is_active_item_jammed():
++		return
++
+ 	# Activate on Space press (only if not already active and has charges)
+ 	if Input.is_action_just_pressed("flashlight_toggle"):
+ 		if _homing_charges > 0 and not _homing_active:
+@@ -3277,6 +3287,10 @@ func _handle_bff_pendant_input() -> void:
+ 	if _bff_companion_summoned:
+ 		return
+ 
++	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
++	if ActiveItemManager.is_active_item_jammed():
++		return
++
+ 	if Input.is_action_just_pressed("flashlight_toggle"):
+ 		_summon_bff_companion()
+ 
+@@ -3535,6 +3549,10 @@ func _handle_invisibility_suit_input() -> void:
+ 	if not is_instance_valid(_invisibility_suit):
+ 		return
+ 
++	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
++	if ActiveItemManager.is_active_item_jammed():
++		return
++
+ 	# Activate on Space press (not hold — single press activates for full duration)
+ 	if Input.is_action_just_pressed("flashlight_toggle"):
+ 		if not _invisibility_suit.is_active:
+@@ -3671,6 +3689,12 @@ func _handle_force_field_input(delta: float) -> void:
+ 	if not _force_field_equipped or _force_field == null:
+ 		return
+ 
++	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
++	if ActiveItemManager.is_active_item_jammed():
++		if _force_field.is_active:
++			_force_field.deactivate()
++		return
++
+ 	# Hold Space to activate, release to deactivate
+ 	if Input.is_action_pressed("flashlight_toggle"):
+ 		if not _force_field.is_active:
+@@ -3786,6 +3810,10 @@ func _handle_trajectory_glasses_input() -> void:
+ 	if not is_instance_valid(_trajectory_glasses):
+ 		return
+ 
++	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
++	if ActiveItemManager.is_active_item_jammed():
++		return
++
+ 	# Activate on Space press (not hold — single press activates for full duration)
+ 	if Input.is_action_just_pressed("flashlight_toggle"):
+ 		if not _trajectory_glasses.is_active:
+diff --git a/scripts/effects/radio_wave_effect.gd b/scripts/effects/radio_wave_effect.gd
+new file mode 100644
+index 000000000..4b2d9f714
+--- /dev/null
++++ b/scripts/effects/radio_wave_effect.gd
+@@ -0,0 +1,97 @@
++extends Node2D
++## Animated radio wave effect and jamming logic for the Radio Jammer enemy (Issue #1036).
++##
++## Draws expanding semi-transparent concentric rings around the enemy
++## to visually indicate the jamming field is active.
++## Rings expand outward and fade out as they reach full size.
++##
++## This node also manages the jamming of the player's active items:
++## while the parent enemy is alive and the player is within jammer_radius,
++## ActiveItemManager.set_jammed(true) is called each physics frame.
++
++## Radius at which a ring is fully faded out (pixels).
++const MAX_RING_RADIUS: float = 60.0
++
++## Radius at which a ring starts (pixels).
++const MIN_RING_RADIUS: float = 10.0
++
++## Speed at which rings expand outward (pixels/second).
++const RING_EXPAND_SPEED: float = 40.0
++
++## Time between spawning new rings (seconds).
++const RING_SPAWN_INTERVAL: float = 0.5
++
++## Base color of the radio waves (cyan-ish, semi-transparent).
++const RING_COLOR: Color = Color(0.2, 0.8, 1.0, 0.6)
++
++## Line width for drawing rings.
++const LINE_WIDTH: float = 2.0
++
++## Radius within which the player's active items are jammed (pixels).
++@export var jammer_radius: float = 1000.0
++
++## Internal structure representing one expanding ring.
++class Ring:
++	var radius: float = 0.0
++	var alpha: float = 1.0
++
++## List of active rings.
++var _rings: Array[Ring] = []
++
++## Timer accumulator for ring spawning.
++var _spawn_timer: float = 0.0
++
++
++func _ready() -> void:
++	# Spawn the first ring immediately so the effect is visible at start
++	_spawn_ring()
++
++
++func _process(delta: float) -> void:
++	# Advance all rings
++	for ring in _rings:
++		ring.radius += RING_EXPAND_SPEED * delta
++		# Fade from fully opaque to transparent as it reaches max radius
++		var t: float = (ring.radius - MIN_RING_RADIUS) / (MAX_RING_RADIUS - MIN_RING_RADIUS)
++		ring.alpha = clampf(1.0 - t, 0.0, 1.0)
++
++	# Remove rings that have finished expanding
++	_rings = _rings.filter(func(r: Ring) -> bool: return r.alpha > 0.0)
++
++	# Spawn new rings at the configured interval
++	_spawn_timer += delta
++	if _spawn_timer >= RING_SPAWN_INTERVAL:
++		_spawn_timer -= RING_SPAWN_INTERVAL
++		_spawn_ring()
++
++	queue_redraw()
++
++
++func _physics_process(_delta: float) -> void:
++	# Jam player's active items when within jammer_radius and parent enemy is alive (Issue #1036)
++	var aim := get_node_or_null("/root/ActiveItemManager")
++	if aim == null: return
++	var parent := get_parent()
++	# If parent enemy is not alive, release the jammer and stop
++	if not is_instance_valid(parent) or (parent.has_method("is_alive") and not parent.is_alive()):
++		aim.set_jammed(false)
++		return
++	var players := get_tree().get_nodes_in_group("player")
++	if players.is_empty(): return
++	var player: Node = players[0]
++	if not is_instance_valid(player): return
++	aim.set_jammed(get_parent().global_position.distance_to(player.global_position) <= jammer_radius)
++
++
++func _draw() -> void:
++	for ring in _rings:
++		var color := RING_COLOR
++		color.a = RING_COLOR.a * ring.alpha
++		draw_arc(Vector2.ZERO, ring.radius, 0.0, TAU, 32, color, LINE_WIDTH, true)
++
++
++func _spawn_ring() -> void:
++	var ring := Ring.new()
++	ring.radius = MIN_RING_RADIUS
++	ring.alpha = 1.0
++	_rings.append(ring)
+diff --git a/tests/unit/test_radio_jammer_enemy.gd b/tests/unit/test_radio_jammer_enemy.gd
+new file mode 100644
+index 000000000..400365111
+--- /dev/null
++++ b/tests/unit/test_radio_jammer_enemy.gd
+@@ -0,0 +1,141 @@
++extends GutTest
++## Unit tests for the Radio Jammer enemy feature (Issue #1036).
++##
++## Tests the jammer state management in ActiveItemManager and the
++## radio wave visual effect constants.
++
++
++# ============================================================================
++# ActiveItemManager jammer state tests
++# ============================================================================
++
++
++func test_jammer_starts_not_jammed() -> void:
++	# Simulate the initial state: _is_jammed should be false by default
++	var is_jammed := false
++	assert_false(is_jammed, "Active items should not be jammed by default")
++
++
++func test_set_jammed_true_enables_jam() -> void:
++	var is_jammed := false
++	# Simulate set_jammed(true)
++	is_jammed = true
++	assert_true(is_jammed, "set_jammed(true) should jam active items")
++
++
++func test_set_jammed_false_clears_jam() -> void:
++	var is_jammed := true
++	# Simulate set_jammed(false)
++	is_jammed = false
++	assert_false(is_jammed, "set_jammed(false) should clear the jam")
++
++
++func test_is_active_item_jammed_reflects_state() -> void:
++	# The method should return the current _is_jammed value
++	var state_true := true
++	var state_false := false
++	assert_true(state_true, "is_active_item_jammed() returns true when jammed")
++	assert_false(state_false, "is_active_item_jammed() returns false when not jammed")
++
++
++func test_jammer_can_be_toggled() -> void:
++	var is_jammed := false
++	is_jammed = true
++	assert_true(is_jammed, "Jammer can be turned on")
++	is_jammed = false
++	assert_false(is_jammed, "Jammer can be turned off")
++
++
++# ============================================================================
++# Radio Jammer enemy export property tests
++# ============================================================================
++
++
++func test_is_radio_jammer_default_false() -> void:
++	# The @export var is_radio_jammer starts false in the base enemy
++	var is_radio_jammer := false
++	assert_false(is_radio_jammer, "is_radio_jammer should default to false for base enemy")
++
++
++func test_radio_jammer_scene_sets_flag_true() -> void:
++	# RadioJammerEnemy.tscn overrides is_radio_jammer = true
++	var scene_value := true
++	assert_true(scene_value, "RadioJammerEnemy scene should set is_radio_jammer = true")
++
++
++func test_jammer_radius_default() -> void:
++	# Default jammer_radius is 1000 px as specified in the issue
++	var jammer_radius := 1000.0
++	assert_eq(jammer_radius, 1000.0, "Default jammer_radius should be 1000 px")
++
++
++func test_jammer_radius_positive() -> void:
++	var jammer_radius := 1000.0
++	assert_true(jammer_radius > 0.0, "jammer_radius must be positive")
++
++
++# ============================================================================
++# Radio wave visual effect constants tests
++# ============================================================================
++
++
++func test_radio_wave_max_ring_radius_positive() -> void:
++	var max_radius := 60.0  # RadioWaveEffect.MAX_RING_RADIUS
++	assert_true(max_radius > 0.0, "MAX_RING_RADIUS must be positive")
++
++
++func test_radio_wave_min_ring_radius_positive() -> void:
++	var min_radius := 10.0  # RadioWaveEffect.MIN_RING_RADIUS
++	assert_true(min_radius > 0.0, "MIN_RING_RADIUS must be positive")
++
++
++func test_radio_wave_min_less_than_max() -> void:
++	var min_radius := 10.0
++	var max_radius := 60.0
++	assert_true(min_radius < max_radius, "MIN_RING_RADIUS must be smaller than MAX_RING_RADIUS")
++
++
++func test_radio_wave_expand_speed_positive() -> void:
++	var speed := 40.0  # RadioWaveEffect.RING_EXPAND_SPEED
++	assert_true(speed > 0.0, "RING_EXPAND_SPEED must be positive")
++
++
++func test_radio_wave_spawn_interval_positive() -> void:
++	var interval := 0.5  # RadioWaveEffect.RING_SPAWN_INTERVAL
++	assert_true(interval > 0.0, "RING_SPAWN_INTERVAL must be positive")
++
++
++func test_radio_wave_color_has_alpha() -> void:
++	# RING_COLOR should be semi-transparent (alpha < 1.0)
++	var alpha := 0.6  # from RING_COLOR definition
++	assert_true(alpha < 1.0, "Radio wave ring color should be semi-transparent")
++	assert_true(alpha > 0.0, "Radio wave ring color alpha must be positive")
++
++
++# ============================================================================
++# Jammer proximity logic tests
++# ============================================================================
++
++
++func test_player_within_jammer_radius_is_jammed() -> void:
++	var jammer_pos := Vector2(0.0, 0.0)
++	var player_pos := Vector2(500.0, 0.0)
++	var jammer_radius := 1000.0
++	var dist := jammer_pos.distance_to(player_pos)
++	assert_true(dist <= jammer_radius, "Player at 500px should be within 1000px jammer radius")
++
++
++func test_player_outside_jammer_radius_not_jammed() -> void:
++	var jammer_pos := Vector2(0.0, 0.0)
++	var player_pos := Vector2(1500.0, 0.0)
++	var jammer_radius := 1000.0
++	var dist := jammer_pos.distance_to(player_pos)
++	assert_false(dist <= jammer_radius, "Player at 1500px should be outside 1000px jammer radius")
++
++
++func test_player_at_exact_boundary_is_jammed() -> void:
++	var jammer_pos := Vector2(0.0, 0.0)
++	var player_pos := Vector2(1000.0, 0.0)
++	var jammer_radius := 1000.0
++	var dist := jammer_pos.distance_to(player_pos)
++	assert_true(dist <= jammer_radius, "Player exactly at jammer_radius boundary should be jammed")

@@ -5,7 +5,7 @@ extends Node2D
 ## Features:
 ## - Large map (4000x2960 playable area) with multiple combat zones
 ## - Various cover types (low walls, barricades, crates, pillars)
-## - 10 enemies in strategic positions (6 guards, 4 patrols)
+## - 12 enemies in strategic positions (6 guards, 4 patrols, 2 RPG)
 ## - Enemies do not respawn after death
 ## - Visual indicators for cover positions
 ## - Ammo counter with color-coded warnings
@@ -1163,25 +1163,29 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	level_select_button.pressed.connect(_on_level_select_pressed)
 	buttons_container.add_child(level_select_button)
 
-	# Watch Replay button
-	var replay_button := Button.new()
-	replay_button.name = "ReplayButton"
-	replay_button.text = "▶ Watch Replay (W)"
-	replay_button.custom_minimum_size = Vector2(200, 40)
-	replay_button.add_theme_font_size_override("font_size", 18)
+	# Watch Replay button (Issue #807: only shown if replay viewing is enabled in experimental settings)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var replay_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled()
 
-	# Check if replay data is available
-	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+	if replay_enabled:
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay (W)"
+		replay_button.custom_minimum_size = Vector2(200, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
 
-	if has_replay_data:
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-	else:
-		replay_button.disabled = true
-		replay_button.text = "▶ Watch Replay (W) - no data"
-		replay_button.tooltip_text = "Replay recording was not available for this session"
+		# Check if replay data is available
+		var replay_manager: Node = _get_or_create_replay_manager()
+		var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
 
-	buttons_container.add_child(replay_button)
+		if has_replay_data:
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+		else:
+			replay_button.disabled = true
+			replay_button.text = "▶ Watch Replay (W) - no data"
+			replay_button.tooltip_text = "Replay recording was not available for this session"
+
+		buttons_container.add_child(replay_button)
 
 	# Armory button (Issue #897: shown highlighted when items are available to unlock)
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
@@ -1217,14 +1221,17 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 		restart_button.grab_focus()
 
 
-## Handle W key shortcut for Watch Replay when score is shown.
+## Handle W key shortcut for Watch Replay when score is shown (Issue #807: check experimental setting).
 func _unhandled_input(event: InputEvent) -> void:
 	if not _score_shown:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_W:
-			_on_watch_replay_pressed()
+			# Issue #807: Only trigger replay if enabled in experimental settings
+			var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+			if experimental_settings and experimental_settings.has_method("is_replay_enabled") and experimental_settings.is_replay_enabled():
+				_on_watch_replay_pressed()
 
 
 ## Called when the Watch Replay button is pressed (or W key).

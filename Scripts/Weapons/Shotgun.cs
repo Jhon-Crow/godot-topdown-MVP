@@ -345,6 +345,25 @@ public partial class Shotgun : BaseWeapon
             }
         }
 
+        // Apply extended magazine passive item (Issue #1065):
+        // 2.5x tube capacity, 5% less total ammo.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTube = TubeMagazineCapacity;
+            int newTubeCapacity = Mathf.Max(1, Mathf.RoundToInt(TubeMagazineCapacity * magSizeMultiplier));
+            int newReserve = Mathf.Max(0, Mathf.RoundToInt(maxReserve * totalAmmoMultiplier));
+
+            GD.Print($"[Shotgun] Extended Magazine: tube {originalTube}->{newTubeCapacity}, reserve {maxReserve}->{newReserve}");
+
+            TubeMagazineCapacity = newTubeCapacity;
+            maxReserve = newReserve;
+        }
+
         // Create 2 magazines:
         // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
         // - 1 spare magazine: holds the actual reserve shells
@@ -1572,7 +1591,9 @@ public partial class Shotgun : BaseWeapon
         int pelletCount = GD.RandRange(MinPellets, MaxPellets);
 
         // Get spread angle from weapon data
-        float spreadAngle = WeaponData.SpreadAngle;
+        // Suppress spread when recoil compensator is active (Issue #1073)
+        bool compensatorActive = GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive();
+        float spreadAngle = compensatorActive ? 0.0f : WeaponData.SpreadAngle;
         float spreadRadians = Mathf.DegToRad(spreadAngle);
         float halfSpread = spreadRadians / 2.0f;
 
@@ -1580,6 +1601,12 @@ public partial class Shotgun : BaseWeapon
 
         // Fire all pellets simultaneously with spatial distribution (cloud effect)
         FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
+
+        // Decrement drilling bullets counter once per shot (not per pellet) (Issue #751)
+        if (DrillingBulletsRemaining > 0)
+        {
+            DrillingBulletsRemaining--;
+        }
 
         // Spawn muzzle flash at the barrel position (same as M16)
         Vector2 muzzleFlashPosition = GlobalPosition + fireDirection * BulletSpawnOffset;
@@ -1817,6 +1844,22 @@ public partial class Shotgun : BaseWeapon
             }
         }
 
+        // Set drilling bullet flag if drilling bullets are active for this magazine (Issue #751)
+        // Note: each call to SpawnPelletWithOffset is for one pellet of the same shotgun blast.
+        // We only decrement the counter once per Fire() call (not per pellet), so we check
+        // DrillingBulletsRemaining WITHOUT decrementing here — decrement happens in Fire().
+        if (DrillingBulletsRemaining > 0)
+        {
+            if (pellet is GodotTopDownTemplate.Projectiles.ShotgunPellet drillingPellet)
+            {
+                drillingPellet.IsDrillingBullet = true;
+            }
+            else
+            {
+                pellet.Set("is_drilling_bullet", true);
+            }
+        }
+
         GetTree().CurrentScene.AddChild(pellet);
 
         // Enable homing on the pellet if the player's homing effect is active (Issue #704)
@@ -1966,6 +2009,10 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;

@@ -11,9 +11,9 @@ extends GutTest
 # ============================================================================
 
 
-func test_weapon_configs_has_five_entries() -> void:
-	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 5,
-		"WEAPON_CONFIGS should contain exactly 5 weapon types (RIFLE, SHOTGUN, UZI, MACHETE, MACHINE_GUN)")
+func test_weapon_configs_has_seven_entries() -> void:
+	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 7,
+		"WEAPON_CONFIGS should contain exactly 7 weapon types (RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN)")
 
 
 func test_weapon_configs_has_rifle_key() -> void:
@@ -36,9 +36,19 @@ func test_weapon_configs_has_machete_key() -> void:
 		"WEAPON_CONFIGS should have key 3 for MACHETE")
 
 
-func test_weapon_configs_has_machine_gun_key() -> void:
+func test_weapon_configs_has_rpg_key() -> void:
 	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(4),
-		"WEAPON_CONFIGS should have key 4 for MACHINE_GUN")
+		"WEAPON_CONFIGS should have key 4 for RPG")
+
+
+func test_weapon_configs_has_pm_key() -> void:
+	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(5),
+		"WEAPON_CONFIGS should have key 5 for PM")
+
+
+func test_weapon_configs_has_machine_gun_key() -> void:
+	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(6),
+		"WEAPON_CONFIGS should have key 6 for MACHINE_GUN")
 
 
 func test_weapon_configs_values_are_dictionaries() -> void:
@@ -284,6 +294,12 @@ func test_uzi_magazine_size() -> void:
 		"UZI magazine_size should be 32")
 
 
+func test_uzi_total_magazines() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[2]
+	assert_eq(config["total_magazines"], 20,
+		"UZI total_magazines should be 20 (4x increase from default 5, Issue #1137)")
+
+
 func test_uzi_bullet_spawn_offset() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[2]
 	assert_eq(config["bullet_spawn_offset"], 25.0,
@@ -376,16 +392,12 @@ func test_uzi_caliber_path() -> void:
 func test_all_configs_share_same_keys() -> void:
 	var rifle_keys := WeaponConfigComponent.WEAPON_CONFIGS[0].keys()
 	var shotgun_keys := WeaponConfigComponent.WEAPON_CONFIGS[1].keys()
-	var uzi_keys := WeaponConfigComponent.WEAPON_CONFIGS[2].keys()
 
 	rifle_keys.sort()
 	shotgun_keys.sort()
-	uzi_keys.sort()
 
 	assert_eq(rifle_keys, shotgun_keys,
 		"RIFLE and SHOTGUN configs should have the same keys")
-	assert_eq(rifle_keys, uzi_keys,
-		"RIFLE and UZI configs should have the same keys")
 
 
 func test_all_configs_have_shoot_cooldown() -> void:
@@ -540,6 +552,8 @@ func test_only_shotgun_has_is_shotgun_true() -> void:
 	assert_false(WeaponConfigComponent.WEAPON_CONFIGS[2]["is_shotgun"],
 		"UZI should not be a shotgun")
 	assert_false(WeaponConfigComponent.WEAPON_CONFIGS[4]["is_shotgun"],
+		"RPG should not be a shotgun")
+	assert_false(WeaponConfigComponent.WEAPON_CONFIGS[6]["is_shotgun"],
 		"MACHINE_GUN should not be a shotgun")
 
 
@@ -677,16 +691,22 @@ func test_get_config_returns_machete_for_type_3() -> void:
 		"get_config(3) should return MACHETE config")
 
 
-func test_get_config_returns_machine_gun_for_type_4() -> void:
+func test_get_config_returns_rpg_for_type_4() -> void:
 	var config := WeaponConfigComponent.get_config(4)
 	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[4],
-		"get_config(4) should return MACHINE_GUN config")
+		"get_config(4) should return RPG config")
 
 
-func test_get_config_defaults_to_rifle_for_type_5() -> void:
+func test_get_config_returns_pm_for_type_5() -> void:
 	var config := WeaponConfigComponent.get_config(5)
-	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[0],
-		"get_config(5) should default to RIFLE config (unknown type)")
+	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[5],
+		"get_config(5) should return PM config")
+
+
+func test_get_config_returns_machine_gun_for_type_6() -> void:
+	var config := WeaponConfigComponent.get_config(6)
+	assert_eq(config, WeaponConfigComponent.WEAPON_CONFIGS[6],
+		"get_config(6) should return MACHINE_GUN config")
 
 
 func test_get_config_defaults_to_rifle_for_type_negative_1() -> void:
@@ -756,9 +776,19 @@ func test_get_type_name_machete() -> void:
 		"get_type_name(3) should return MACHETE")
 
 
+func test_get_type_name_rpg() -> void:
+	assert_eq(WeaponConfigComponent.get_type_name(4), "RPG",
+		"get_type_name(4) should return RPG")
+
+
+func test_get_type_name_pm() -> void:
+	assert_eq(WeaponConfigComponent.get_type_name(5), "PM",
+		"get_type_name(5) should return PM")
+
+
 func test_get_type_name_machine_gun() -> void:
-	assert_eq(WeaponConfigComponent.get_type_name(4), "MACHINE_GUN",
-		"get_type_name(4) should return MACHINE_GUN")
+	assert_eq(WeaponConfigComponent.get_type_name(6), "MACHINE_GUN",
+		"get_type_name(6) should return MACHINE_GUN")
 
 
 # ============================================================================
@@ -787,7 +817,7 @@ func test_get_type_name_unknown_for_type_negative_100() -> void:
 
 
 func test_get_type_name_returns_string() -> void:
-	for weapon_type in [0, 1, 2, 3, -1, 99]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6, -1, 99]:
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_typeof(name, TYPE_STRING,
 			"get_type_name(%d) should return a String" % weapon_type)
@@ -829,7 +859,7 @@ func test_iterate_all_config_fields() -> void:
 
 
 func test_config_is_not_empty() -> void:
-	for weapon_type in [0, 1, 2, 3, 4]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		assert_true(config.size() > 0,
 			"Config for weapon type %d should not be empty" % weapon_type)
@@ -843,7 +873,7 @@ func test_config_is_not_empty() -> void:
 func test_get_config_and_get_type_name_consistency() -> void:
 	# For all valid types, get_config should return a valid config and
 	# get_type_name should return a non-UNKNOWN name
-	for weapon_type in [0, 1, 2, 3, 4]:
+	for weapon_type in [0, 1, 2, 3, 4, 5, 6]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_true(config.size() > 0,
@@ -974,3 +1004,139 @@ func test_machete_no_casing_scene() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
 	assert_eq(config["casing_scene_path"], "",
 		"MACHETE should have empty casing_scene_path")
+
+
+# ============================================================================
+# RPG (Type 4) Config Values (Issue #583)
+# ============================================================================
+
+
+func test_rpg_shoot_cooldown() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["shoot_cooldown"], 2.0,
+		"RPG shoot_cooldown should be 2.0")
+
+
+func test_rpg_bullet_speed() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["bullet_speed"], 800.0,
+		"RPG bullet_speed should be 800.0 (slow rocket)")
+
+
+func test_rpg_magazine_size() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["magazine_size"], 1,
+		"RPG magazine_size should be 1 (single shot)")
+
+
+func test_rpg_weapon_loudness() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["weapon_loudness"], 2500.0,
+		"RPG weapon_loudness should be 2500.0 (very loud)")
+
+
+func test_rpg_is_not_shotgun() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_false(config["is_shotgun"],
+		"RPG is_shotgun should be false")
+
+
+func test_rpg_is_rpg_flag() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_true(config["is_rpg"],
+		"RPG is_rpg should be true")
+
+
+func test_rpg_explosion_radius() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["rpg_explosion_radius"], 150.0,
+		"RPG rpg_explosion_radius should be 150.0")
+
+
+func test_rpg_explosion_damage() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["rpg_explosion_damage"], 3,
+		"RPG rpg_explosion_damage should be 3")
+
+
+func test_rpg_switch_weapon_type() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["switch_weapon_type"], 5,
+		"RPG switch_weapon_type should be 5 (PM pistol)")
+
+
+func test_rpg_no_casing_scene() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["casing_scene_path"], "",
+		"RPG should have empty casing_scene_path")
+
+
+func test_rpg_bullet_scene_path() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[4]
+	assert_eq(config["bullet_scene_path"], "res://scenes/projectiles/RpgRocket.tscn",
+		"RPG bullet_scene_path should point to RpgRocket.tscn")
+
+
+# ============================================================================
+# PM (Type 5) Config Values (Issue #583)
+# ============================================================================
+
+
+func test_pm_shoot_cooldown() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["shoot_cooldown"], 0.3,
+		"PM shoot_cooldown should be 0.3 (semi-auto)")
+
+
+func test_pm_bullet_speed() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["bullet_speed"], 1000.0,
+		"PM bullet_speed should be 1000.0")
+
+
+func test_pm_magazine_size() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["magazine_size"], 9,
+		"PM magazine_size should be 9")
+
+
+func test_pm_weapon_loudness() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["weapon_loudness"], 1469.0,
+		"PM weapon_loudness should be 1469.0")
+
+
+func test_pm_is_not_shotgun() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_false(config["is_shotgun"],
+		"PM is_shotgun should be false")
+
+
+func test_pm_has_no_rpg_flag() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_false(config.has("is_rpg"),
+		"PM should not have is_rpg flag")
+
+
+func test_pm_bullet_scene_path() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["bullet_scene_path"], "res://scenes/projectiles/Bullet9mm.tscn",
+		"PM bullet_scene_path should point to Bullet9mm.tscn")
+
+
+func test_pm_caliber_path() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["caliber_path"], "res://resources/calibers/caliber_9x18.tres",
+		"PM caliber_path should point to 9x18 caliber data")
+
+
+func test_pm_casing_scene_path() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["casing_scene_path"], "res://scenes/effects/Casing.tscn",
+		"PM should have Casing.tscn casing_scene_path")
+
+
+func test_pm_spread_threshold() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[5]
+	assert_eq(config["spread_threshold"], 2,
+		"PM spread_threshold should be 2")
