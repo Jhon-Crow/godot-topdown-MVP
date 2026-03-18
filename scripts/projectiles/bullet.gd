@@ -164,25 +164,26 @@ var is_drilling_bullet: bool = false
 ## Whether this is an RPG rocket (Issue #583).
 ## When true, bullet explodes on any impact instead of ricocheting/penetrating.
 ## Enables realistic RPG-7 acceleration and area-of-effect explosion damage.
-var is_rpg_rocket: bool = false
+## MUST be @export so RpgRocket.tscn can set it to true (non-@export vars cannot be set from .tscn).
+@export var is_rpg_rocket: bool = false
 
 ## RPG rocket: initial launch speed (pixels per second, like real RPG-7 initial charge).
-var rpg_speed_initial: float = 600.0
+@export var rpg_speed_initial: float = 600.0
 
 ## RPG rocket: cruise speed after acceleration phase (pixels per second).
-var rpg_speed_max: float = 1800.0
+@export var rpg_speed_max: float = 1800.0
 
 ## RPG rocket: distance over which rocket accelerates from initial to cruise speed (pixels).
-var rpg_accel_distance: float = 800.0
+@export var rpg_accel_distance: float = 800.0
 
 ## RPG rocket: explosion radius in pixels.
-var rpg_explosion_radius: float = 150.0
+@export var rpg_explosion_radius: float = 150.0
 
 ## RPG rocket: number of damage hits applied to each entity in radius.
-var rpg_explosion_damage: int = 3
+@export var rpg_explosion_damage: int = 3
 
 ## RPG rocket: seconds of spawn immunity (ignores all collisions, avoids immediate explosion).
-var rpg_spawn_immunity: float = 0.15
+@export var rpg_spawn_immunity: float = 0.15
 
 ## RPG rocket internal state: distance traveled so far.
 var _rpg_distance_traveled: float = 0.0

@@ -59,6 +59,24 @@ Rather than adding a full weapon switching system (which would be overengineered
 | game_log_20260317_081404 | `load()` returns null → `bullet_scene` stays Bullet | Use `preload()` directly |
 | game_log_20260317_090725 | `has_method("launch")` false before `add_child()` | Move check to after `add_child()` |
 | game_log_20260317_094557 | `has_method("launch")` still false after `add_child()` — rocket spawns but doesn't fly | Use `call_deferred("launch", dir)` — eliminates `has_method` entirely |
+| game_log_20260318_011519 | `[RpgRocket] Spawned:` never appears — `_ready()` in `rpg_rocket.gd` never called in export | Switch to `bullet.gd` — same script as all other working projectiles |
+| game_log_20260318_032745 | Rocket flies but no explosion — `[RpgRocket]` entries absent from log entirely | Add `@export` to `is_rpg_rocket` and all RPG vars in `bullet.gd` — plain `var` cannot be set from `.tscn` |
+
+## Root Cause of Session 17 (game_log_20260318_032745)
+
+Despite switching to `bullet.gd`, the explosion still didn't fire. The root cause:
+
+```gdscript
+# bullet.gd — BEFORE fix (broken):
+var is_rpg_rocket: bool = false   # NOT @export
+
+# RpgRocket.tscn:
+is_rpg_rocket = true              # Silently IGNORED — can't set non-@export vars from scene file
+```
+
+In Godot 4, `.tscn` scene file property assignments only work for `@export` variables. Regular `var` declarations are instance-local and cannot be set via scene serialization. Without `@export`, `is_rpg_rocket` stays `false` at runtime, so all RPG explosion logic is bypassed.
+
+**Fix**: Add `@export` to `is_rpg_rocket` and all related RPG parameters in `bullet.gd`.
 
 ## References
 - Similar pattern: MACHETE weapon (Issue #579) - weapon type with special behavior
