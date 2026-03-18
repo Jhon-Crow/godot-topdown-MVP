@@ -4,7 +4,9 @@ class_name RpgRocket
 ##
 ## Travels in a direction and explodes on hitting walls, enemies, or player.
 ## Deals area-of-effect damage within explosion radius.
-## No ricochet or penetration - always explodes on first contact.
+## No ricochet — always explodes on first contact.
+## Wall penetration (Issue #1131): hitting a StaticBody2D wall carves a 120 px passage
+## at the impact point, identical to the "Breaching Charges" active item effect.
 ##
 ## Movement: Uses Area2D with manual position updates in _physics_process(),
 ## identical to how bullet.gd works. This ensures reliable body_entered
@@ -73,6 +75,9 @@ var _exhaust: GPUParticles2D = null
 
 ## History of global positions for the trail effect.
 var _position_history: Array[Vector2] = []
+
+## StaticBody2D wall that was hit last, stored for passage creation in _explode().
+var _hit_wall: StaticBody2D = null
 
 ## Maximum number of trail points.
 @export var trail_length: int = 20
@@ -169,6 +174,9 @@ func _on_body_entered(body: Node) -> void:
 	# Explode on any solid body: walls, tilemap, player, enemies, other projectiles
 	if body is StaticBody2D or body is TileMap or body is CharacterBody2D or body is RigidBody2D or body is AnimatableBody2D:
 		FileLogger.info("[RpgRocket] Impact on %s (type: %s) after %.2fs dist=%.0fpx" % [body.name, body.get_class(), _time_alive, _distance_traveled])
+		# Record wall for passage creation (Issue #1131)
+		if body is StaticBody2D:
+			_hit_wall = body as StaticBody2D
 		_explode()
 
 
@@ -188,6 +196,13 @@ func _explode() -> void:
 	_has_exploded = true
 
 	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs, dist=%.0fpx" % [str(global_position), _time_alive, _distance_traveled])
+
+	# Carve a wall passage when the rocket hits a StaticBody2D wall (Issue #1131).
+	# Uses WallBreachHelper — same 120 px passage as the "Breaching Charges" active item.
+	if _hit_wall != null and is_instance_valid(_hit_wall):
+		FileLogger.info("[RpgRocket] Creating wall passage in '%s'" % _hit_wall.name)
+		WallBreachHelper.open_wall_passage(_hit_wall, global_position)
+		_hit_wall = null
 
 	if _exhaust:
 		_exhaust.emitting = false

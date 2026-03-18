@@ -200,6 +200,9 @@ var _rpg_has_exploded: bool = false
 ## RPG rocket internal state: position from the previous physics frame (for raycast hit detection).
 var _rpg_prev_position: Vector2 = Vector2.ZERO
 
+## RPG rocket internal state: StaticBody2D wall hit, stored for wall-passage creation (Issue #1131).
+var _rpg_hit_wall: StaticBody2D = null
+
 ## Whether this bullet penetrates through enemies (Issue #829).
 ## When true, the bullet deals damage to enemies but continues flying through them.
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
@@ -364,6 +367,9 @@ func _physics_process(delta: float) -> void:
 			if not result.is_empty():
 				FileLogger.info("[RpgRocket] Raycast impact on %s at %s after %.2fs dist=%.0fpx" % [
 					result.collider.name, str(result.position), _rpg_time_alive, _rpg_distance_traveled])
+				# Record wall for passage creation (Issue #1131)
+				if result.collider is StaticBody2D:
+					_rpg_hit_wall = result.collider as StaticBody2D
 				_rpg_explode()
 				return
 		_rpg_prev_position = global_position
@@ -441,6 +447,9 @@ func _on_body_entered(body: Node2D) -> void:
 			return  # Pass through dead entities
 		FileLogger.info("[RpgRocket] Impact on %s (type: %s) after %.2fs dist=%.0fpx" % [
 			body.name, body.get_class(), _rpg_time_alive, _rpg_distance_traveled])
+		# Record wall for passage creation (Issue #1131)
+		if body is StaticBody2D:
+			_rpg_hit_wall = body as StaticBody2D
 		_rpg_explode()
 		return
 
@@ -1870,6 +1879,13 @@ func _rpg_explode() -> void:
 
 	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs, dist=%.0fpx" % [
 		str(global_position), _rpg_time_alive, _rpg_distance_traveled])
+
+	# Carve a wall passage when the rocket hits a StaticBody2D wall (Issue #1131).
+	# Uses WallBreachHelper — same 120 px passage as the "Breaching Charges" active item.
+	if _rpg_hit_wall != null and is_instance_valid(_rpg_hit_wall):
+		FileLogger.info("[RpgRocket] Creating wall passage in '%s'" % _rpg_hit_wall.name)
+		WallBreachHelper.open_wall_passage(_rpg_hit_wall, global_position)
+		_rpg_hit_wall = null
 
 	# Stop exhaust particles
 	var exhaust: Node = get_node_or_null("ExhaustParticles")
