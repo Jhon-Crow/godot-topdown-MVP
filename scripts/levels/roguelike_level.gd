@@ -2,24 +2,31 @@ extends Node2D
 ## Roguelike level — one room at a time, Binding of Isaac style.
 ##
 ## Issue #1061: добавить режим рогалика
+## Issue #1166: treasure room after each level + multi-level progression.
 ##
-## Each run consists of 3–5 rooms of different types (Labyrinth, Building,
-## Beach, Docks, City). The player clears one room at a time:
+## A "run" consists of multiple levels. Each level = 3–5 combat rooms.
+## After clearing all combat rooms in a level the player enters a TREASURE ROOM
+## (no enemies — just a pedestal with a free item). After collecting the item
+## (or skipping via the exit) the NEXT LEVEL starts, with the same number of
+## rooms but harder enemies (more health, better weapons).
 ##
+## Flow per level:
 ##   1. Enter room → enemies appear → fight.
 ##   2. Kill all enemies → exit zone activates.
-##   3. Player reaches exit → next room loads (scene reloads).
-##   4. After clearing the last room the full-run score is shown.
+##   3. Player reaches exit → next combat room loads.
+##   4. After clearing the LAST combat room → treasure room loads.
+##   5. In treasure room: pedestal appears immediately (no enemies).
+##      Player touches pedestal to collect item, then walks to exit.
+##   6. Exit from treasure room → next level starts (difficulty +1).
 ##
-## Run state (room index, total rooms, room type sequence, accumulated stats)
-## is stored in GameManager so it survives the scene reload between rooms.
+## Run state is stored in GameManager so it survives scene reloads.
 ##
 ## Features:
-## - Procedural room layouts by type (each type has characteristic geometry)
-## - Player always starts with Makarov PM + Flashbang (armory ignored during run)
+## - Procedural room layouts by type
+## - Player always starts with Makarov PM + Flashbang (armory ignored)
 ## - 3–4 enemies per room maximum (performance constraint)
 ## - No ReplayManager in roguelike (saves memory/CPU)
-## - Score shown only after ALL rooms are cleared (not after each room)
+## - Difficulty scales each level: enemy health +1, harder weapon pool
 ## - Q restarts the whole run; Menu returns to LabyrinthLevel
 
 ## ============================================================
@@ -72,6 +79,35 @@ const ROOM_TYPE_NAMES: Dictionary = {
 const SATURATION_DURATION:  float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 
+## ============================================================
+## Treasure pedestal constants (Issue #1166)
+## ============================================================
+
+## Pedestal size (visual square)
+const PEDESTAL_SIZE: float = 48.0
+
+## Pedestal collision radius (touch-to-collect)
+const PEDESTAL_RADIUS: float = 36.0
+
+## Color of the pedestal base
+const PEDESTAL_BASE_COLOR: Color = Color(0.55, 0.42, 0.20, 1.0)   ## Warm gold/wood
+## Color of the item glow orb on the pedestal
+const PEDESTAL_ITEM_GLOW:  Color = Color(0.90, 0.75, 0.20, 0.85)  ## Golden glow
+
+## Passive active-item types — picking these up does NOT replace the current
+## active item, it just adds their passive benefit (they always stay equipped
+## alongside whatever the player already has).  All other types are "active"
+## and replace the current one.
+## NOTE: this list mirrors the passives in ActiveItemManager.ActiveItemType.
+const PASSIVE_ACTIVE_ITEM_TYPES: Array = [
+	2,   # BREAKER_BULLETS
+	8,   # LASER_SIGHT
+	9,   # EXTENDED_MAGAZINE
+	12,  # ARMORED_SKIN
+	13,  # AUTO_RELOAD
+	16,  # COMBAT_DISPOSITION
+]
+
 
 ## ============================================================
 ## Runtime state
@@ -109,6 +145,11 @@ var _player_dead:     bool = false
 
 var _exit_zone: Area2D = null
 
+## Treasure pedestal (Issue #1166) — spawned when room is cleared.
+var _treasure_pedestal: Area2D = null
+## Item type stored on the current pedestal ("weapon" or an int ActiveItemType).
+var _pedestal_item = null
+
 
 ## ============================================================
 ## _ready: entry point
@@ -117,7 +158,34 @@ var _exit_zone: Area2D = null
 func _ready() -> void:
 	randomize()
 
-	# ── Start new run or continue existing one ────────────────
+	if GameManager.roguelike_in_treasure_room:
+		# ── Treasure room: no combat, just item pedestal + exit ──────────
+		_current_room_idx = GameManager.roguelike_current_room
+		_total_rooms       = GameManager.roguelike_total_rooms
+		_room_type         = RoomType.BEACH  # Open layout suits a treasure room
+		var _log_tr := "[RoguelikeLevel] TREASURE ROOM — Level %d" % GameManager.roguelike_current_level
+		print(_log_tr)
+		FileLogger.info(_log_tr)
+		_build_room_scene_treasure()
+		_spawn_player()
+		_setup_navigation()
+		_setup_player_tracking()
+		_setup_exit_zone()
+		_setup_debug_ui()
+		_setup_saturation_overlay()
+		_setup_debug_ui_treasure()
+		if GameManager:
+			GameManager.stats_updated.connect(_update_debug_ui)
+		# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
+		# The monitoring flag is still set deferred so body_entered fires for existing overlaps.
+		_spawn_treasure_pedestal()
+		call_deferred("_activate_exit_zone")
+		var _log_tr2 := "[RoguelikeLevel] Treasure room ready — pedestal spawned: %s" % str(_treasure_pedestal != null)
+		print(_log_tr2)
+		FileLogger.info(_log_tr2)
+		return
+
+	# ── Normal combat room ────────────────────────────────────
 	if not GameManager.roguelike_active:
 		_start_new_run()
 	else:
@@ -128,7 +196,8 @@ func _ready() -> void:
 	_total_rooms       = GameManager.roguelike_total_rooms
 	_room_type         = GameManager.roguelike_room_types[_current_room_idx]
 
-	print("[RoguelikeLevel] Room %d/%d — type: %s" % [
+	print("[RoguelikeLevel] Level %d — Room %d/%d — type: %s" % [
+		GameManager.roguelike_current_level,
 		_current_room_idx + 1, _total_rooms,
 		ROOM_TYPE_NAMES.get(_room_type, "?")])
 
@@ -184,16 +253,20 @@ func _start_new_run() -> void:
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
 	count = min(count, all_types.size())
 
-	GameManager.roguelike_active       = true
-	GameManager.roguelike_current_room = 0
-	GameManager.roguelike_total_rooms  = count
-	GameManager.roguelike_room_types   = all_types.slice(0, count)
-	GameManager.roguelike_run_seed     = run_seed
-	GameManager.roguelike_total_kills  = 0
-	GameManager.roguelike_total_shots  = 0
-	GameManager.roguelike_total_hits   = 0
+	GameManager.roguelike_active           = true
+	GameManager.roguelike_current_room     = 0
+	GameManager.roguelike_total_rooms      = count
+	GameManager.roguelike_room_types       = all_types.slice(0, count)
+	GameManager.roguelike_run_seed         = run_seed
+	GameManager.roguelike_total_kills      = 0
+	GameManager.roguelike_total_shots      = 0
+	GameManager.roguelike_total_hits       = 0
+	GameManager.roguelike_current_level    = 1
+	GameManager.roguelike_in_treasure_room = false
 	# Save current weapon so we can restore it when the run ends
 	GameManager.roguelike_saved_weapon = GameManager.get_selected_weapon()
+	# Clear carried-weapon tracker — player always starts a fresh run with PM
+	GameManager.roguelike_run_weapon = ""
 
 	var names: Array = []
 	for t in GameManager.roguelike_room_types:
@@ -217,12 +290,25 @@ func _continue_run() -> void:
 
 func _force_roguelike_loadout() -> void:
 	if GameManager:
-		GameManager.set_selected_weapon("makarov_pm")
+		# Issue #1166 Bug 2 fix: preserve weapon picked in a treasure room across level transitions.
+		# roguelike_run_weapon is set when the player picks a weapon from the pedestal.
+		# On the very first room of a new run it is empty, so we default to Makarov PM.
+		# On subsequent level starts it carries the weapon from the last treasure room.
+		var weapon_to_equip: String = GameManager.roguelike_run_weapon if GameManager.roguelike_run_weapon != "" else "makarov_pm"
+		GameManager.set_selected_weapon(weapon_to_equip)
+		print("[RoguelikeLevel] Loadout weapon: %s (roguelike_run_weapon='%s')" % [weapon_to_equip, GameManager.roguelike_run_weapon])
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
 	if grenade_manager:
 		if grenade_manager.get("current_grenade_type") != null:
 			grenade_manager.current_grenade_type = 0  # FLASHBANG
-	print("[RoguelikeLevel] Loadout forced: makarov_pm + flashbang")
+	# Issue #1166: player must start roguelike with no active/passive items on the FIRST room only.
+	# On level 1 room 1 (roguelike_current_level == 1 and roguelike_current_room == 0) clear items.
+	if GameManager.roguelike_current_level == 1 and GameManager.roguelike_current_room == 0:
+		if ActiveItemManager and ActiveItemManager.current_active_item != 0:
+			ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
+			ActiveItemManager.active_item_changed.emit(0)
+			print("[RoguelikeLevel] Active item cleared for roguelike start")
+	print("[RoguelikeLevel] Loadout forced: %s + flashbang" % GameManager.get_selected_weapon())
 
 
 func _restore_loadout() -> void:
@@ -410,7 +496,9 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		return
 
 	var positions: Array[Vector2] = _get_enemy_positions(_room_type)
-	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(ENEMIES_PER_ROOM_MAX, positions.size()))
+	# More enemies each level (cap at positions.size() and an absolute max of 6)
+	var level_enemy_max: int = min(ENEMIES_PER_ROOM_MAX + (GameManager.roguelike_current_level - 1), 6)
+	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(level_enemy_max, positions.size()))
 
 	# Shuffle positions
 	for i in range(positions.size() - 1, 0, -1):
@@ -427,8 +515,10 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		enemy.behavior_mode = _random_enemy_behavior(i)
 		if enemy.behavior_mode == 0:  # PATROL
 			enemy.patrol_offsets = [Vector2(80, 0), Vector2(-80, 0)]
-		enemy.min_health = 1
-		enemy.max_health = 2
+		# Difficulty scaling: each level adds 1 to enemy health pool (Issue #1166)
+		var level_bonus: int = max(0, GameManager.roguelike_current_level - 1)
+		enemy.min_health = 1 + level_bonus
+		enemy.max_health = 2 + level_bonus
 		# Must destroy on death so they don't respawn (Issue #1061 round 5).
 		enemy.destroy_on_death = true
 		room_node.add_child(enemy)
@@ -756,7 +846,8 @@ func _setup_debug_ui() -> void:
 
 func _get_room_progress_text() -> String:
 	var type_name: String = ROOM_TYPE_NAMES.get(_room_type, "?")
-	return "РОГАЛИК — Комната %d / %d — %s" % [
+	return "РОГАЛИК — Уровень %d — Комната %d / %d — %s" % [
+		GameManager.roguelike_current_level,
 		_current_room_idx + 1, _total_rooms, type_name]
 
 
@@ -842,6 +933,8 @@ func _on_enemy_died() -> void:
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies in room %d eliminated!" % (_current_room_idx + 1))
 		_room_cleared = true
+		# After the last combat room, the exit leads to the treasure room (not another combat room).
+		# No pedestal in combat rooms — the pedestal is in the dedicated treasure room.
 		call_deferred("_activate_exit_zone")
 
 
@@ -924,9 +1017,12 @@ func _on_game_manager_enemy_killed() -> void:
 
 
 func _on_player_reached_exit() -> void:
-	if not _room_cleared:
+	# Treasure room is always "cleared" (no enemies)
+	if not _room_cleared and not GameManager.roguelike_in_treasure_room:
 		return
-	print("[RoguelikeLevel] Player reached exit — advancing to next room")
+	var _log_exit := "[RoguelikeLevel] Player reached exit — advancing (treasure_room=%s)" % str(GameManager.roguelike_in_treasure_room)
+	print(_log_exit)
+	FileLogger.info(_log_exit)
 	call_deferred("_advance_to_next_room")
 
 
@@ -961,6 +1057,338 @@ func _on_combo_changed(combo: int, points: int) -> void:
 
 
 ## ============================================================
+## Treasure pedestal (Issue #1166) — Isaac-style item pickup
+## ============================================================
+
+## Weapon icon paths for pedestal display (Issue #1166 Bug 1 — show actual weapon icon).
+const WEAPON_ICON_PATHS: Dictionary = {
+	"makarov_pm":    "res://assets/sprites/weapons/makarov_pm_icon.png",
+	"m16":           "res://assets/sprites/weapons/m16_simple.png",
+	"shotgun":       "res://assets/sprites/weapons/shotgun_icon.png",
+	"mini_uzi":      "res://assets/sprites/weapons/mini_uzi_icon.png",
+	"silenced_pistol": "res://assets/sprites/weapons/silenced_pistol_icon.png",
+	"sniper":        "res://assets/sprites/weapons/weapon_case_icon.png",
+	"revolver":      "res://assets/sprites/weapons/revolver_icon.png",
+	"ak_gl":         "res://assets/sprites/weapons/ak_gl_icon.png",
+}
+
+
+## Pick a random item for the pedestal.
+## Returns either a weapon ID String (e.g. "m16") or an int (ActiveItemType).
+## The weapon is pre-selected so the pedestal can show the correct icon.
+func _pick_random_pedestal_item():
+	# 40% chance of a weapon pickup, 60% chance of an active item.
+	if randi() % 10 < 4:
+		# Pre-select a specific weapon (different from what the player has now).
+		var current_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
+		var available: Array = []
+		for weapon_id in GameManager.WEAPON_SCENES.keys():
+			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
+				available.append(weapon_id)
+		if available.is_empty():
+			# Fallback to active item if no other weapons are available
+			pass
+		else:
+			return available[randi() % available.size()]
+
+	# Choose a random active item (skip NONE index 0).
+	var all_types: Array = ActiveItemManager.get_all_active_item_types()
+	var candidates: Array = []
+	for t in all_types:
+		if t != 0:  # Skip ActiveItemType.NONE
+			candidates.append(t)
+
+	if candidates.is_empty():
+		return "makarov_pm"  # Ultimate fallback
+
+	return candidates[randi() % candidates.size()]
+
+
+## Spawn the treasure pedestal at the centre of the room.
+## Called directly in _ready() for the treasure room (not deferred) so it
+## appears on the very first frame.  Issue #1166.
+func _spawn_treasure_pedestal() -> void:
+	if _treasure_pedestal != null:
+		return  # Already spawned
+
+	var item = _pick_random_pedestal_item()
+	_pedestal_item = item
+
+	var item_label_str: String = _pedestal_item_label(item)
+	var _log_ped := "[RoguelikeLevel] Spawning treasure pedestal: %s" % item_label_str
+	print(_log_ped)
+	FileLogger.info(_log_ped)
+
+	# ── Build the Area2D pedestal ──────────────────────────────────────────
+	var pedestal := Area2D.new()
+	pedestal.name = "TreasurePedestal"
+	pedestal.collision_layer = 0
+	pedestal.collision_mask = 1   # Detect player CharacterBody2D (layer 1)
+	# Bug fix #1166 (Bug 2): keep monitoring disabled until after add_child so that
+	# body_entered fires correctly even if the player already overlaps the area.
+	pedestal.monitoring = false
+	# Render above all world-space objects.
+	pedestal.z_index = 10
+
+	# Position at room centre
+	pedestal.position = Vector2(ROOM_WIDTH * 0.5, ROOM_HEIGHT * 0.5)
+
+	# Collision circle (larger than visual so the player can't miss it)
+	var col := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = PEDESTAL_RADIUS
+	col.shape = circle
+	pedestal.add_child(col)
+
+	# Visual: glowing ring on the floor to draw the player's eye
+	var glow_ring := ColorRect.new()
+	glow_ring.size    = Vector2(PEDESTAL_SIZE * 2.2, PEDESTAL_SIZE * 2.2)
+	glow_ring.color   = Color(0.90, 0.75, 0.10, 0.35)
+	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, -PEDESTAL_SIZE * 1.1)
+	pedestal.add_child(glow_ring)
+
+	# Visual: base platform (wider and taller than before)
+	var base := ColorRect.new()
+	base.size    = Vector2(PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.5)
+	base.color   = PEDESTAL_BASE_COLOR
+	base.position = Vector2(-PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.1)
+	pedestal.add_child(base)
+
+	# Visual: item icon — Bug fix #1166 (Bug 3): show actual icon texture without
+	# background instead of a plain coloured square.
+	# Bug fix #1166 (Bug 1): weapon pedestal now pre-selects a specific weapon,
+	# so we show that weapon's icon instead of a generic case icon.
+	var icon_path: String = ""
+	if item is String and item != "" and item in WEAPON_ICON_PATHS:
+		icon_path = WEAPON_ICON_PATHS[item]
+		if not ResourceLoader.exists(icon_path):
+			icon_path = "res://assets/sprites/weapons/weapon_case_icon.png"
+	elif item is int and ActiveItemManager:
+		icon_path = ActiveItemManager.get_active_item_icon_path(item)
+
+	var icon_ok := false
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		var icon_tex = load(icon_path)
+		if icon_tex != null:
+			var icon_rect := TextureRect.new()
+			icon_rect.texture = icon_tex
+			icon_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
+			icon_rect.custom_minimum_size = icon_size
+			icon_rect.size = icon_size
+			icon_rect.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+			pedestal.add_child(icon_rect)
+			icon_ok = true
+
+	if not icon_ok:
+		# Fallback: bright coloured orb if icon not found or failed to load
+		var orb := ColorRect.new()
+		orb.size    = Vector2(PEDESTAL_SIZE * 0.8, PEDESTAL_SIZE * 0.8)
+		orb.color   = PEDESTAL_ITEM_GLOW
+		orb.position = Vector2(-PEDESTAL_SIZE * 0.4, -PEDESTAL_SIZE * 0.9)
+		pedestal.add_child(orb)
+
+	# Label: item name (larger font)
+	var label := Label.new()
+	label.name = "ItemLabel"
+	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.6, 1.0))
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.text = item_label_str
+	label.position = Vector2(-80, -PEDESTAL_SIZE * 1.3 - 22)
+	label.custom_minimum_size = Vector2(160, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pedestal.add_child(label)
+
+	# Hint label (larger font)
+	var hint := Label.new()
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.9))
+	hint.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	hint.add_theme_constant_override("shadow_offset_x", 1)
+	hint.add_theme_constant_override("shadow_offset_y", 1)
+	hint.text = "подойди, чтобы взять"
+	hint.position = Vector2(-80, PEDESTAL_SIZE * 0.5)
+	hint.custom_minimum_size = Vector2(160, 0)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pedestal.add_child(hint)
+
+	pedestal.set_meta("pedestal_item", item)
+	pedestal.body_entered.connect(_on_pedestal_body_entered.bind(pedestal))
+
+	add_child(pedestal)
+	_treasure_pedestal = pedestal
+	# Enable monitoring after add_child so body_entered fires for existing overlaps
+	pedestal.set_deferred("monitoring", true)
+
+	var _log_ped2 := "[RoguelikeLevel] Treasure pedestal added to scene at (%d, %d)" % [
+		int(pedestal.position.x), int(pedestal.position.y)]
+	print(_log_ped2)
+	FileLogger.info(_log_ped2)
+
+
+## Returns a human-readable name for the pedestal item.
+## Weapon pedestal shows the specific pre-selected weapon name (Issue #1166 Bug 1).
+const WEAPON_DISPLAY_NAMES: Dictionary = {
+	"makarov_pm":      "Макаров ПМ",
+	"m16":             "M16",
+	"shotgun":         "Дробовик",
+	"mini_uzi":        "Мини-Узи",
+	"silenced_pistol": "Тихий пистолет",
+	"sniper":          "Снайперская винтовка",
+	"revolver":        "Револьвер",
+	"ak_gl":           "АК-74 + ГП",
+}
+
+func _pedestal_item_label(item) -> String:
+	if item is String and item in WEAPON_DISPLAY_NAMES:
+		return WEAPON_DISPLAY_NAMES[item]
+	if item is int and ActiveItemManager:
+		return ActiveItemManager.get_active_item_name(item)
+	return "???"
+
+
+## Called when the player's body enters the pedestal Area2D.
+func _on_pedestal_body_entered(body: Node2D, pedestal: Area2D) -> void:
+	if body.name != "Player" and not body.is_in_group("player"):
+		return
+	if not is_instance_valid(pedestal):
+		return
+
+	var item = pedestal.get_meta("pedestal_item", null)
+	if item == null:
+		return
+
+	print("[RoguelikeLevel] Pedestal collected by player: %s" % _pedestal_item_label(item))
+
+	if item is String and item in GameManager.WEAPON_SCENES:
+		_apply_pedestal_weapon(body, pedestal)
+	elif item is int:
+		_apply_pedestal_active_item(body, item, pedestal)
+
+
+## Give the player the pre-selected weapon from the pedestal (weapon pedestal).
+## Issue #1166 Bug 1 fix: the player's old weapon is put back on the pedestal so they
+## can swap back before leaving the room — mirrors the active-item swap mechanic.
+func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
+	if GameManager == null:
+		pedestal.queue_free()
+		_treasure_pedestal = null
+		return
+
+	# The item on the pedestal is the pre-selected weapon ID string.
+	var new_weapon_id: String = _pedestal_item if (_pedestal_item is String and _pedestal_item in GameManager.WEAPON_SCENES) else ""
+
+	if new_weapon_id == "":
+		# Fallback: pick any other unlocked weapon at pickup time.
+		var current_weapon_id: String = GameManager.get_selected_weapon()
+		var available: Array = []
+		for weapon_id in GameManager.WEAPON_SCENES.keys():
+			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
+				available.append(weapon_id)
+		if available.is_empty():
+			print("[RoguelikeLevel] Weapon pedestal: no other weapons available — skipping")
+			pedestal.queue_free()
+			_treasure_pedestal = null
+			return
+		new_weapon_id = available[randi() % available.size()]
+
+	# Remember the player's current weapon before the swap.
+	var old_weapon_id: String = GameManager.get_selected_weapon()
+
+	# Give the new weapon to the player.
+	GameManager.set_selected_weapon(new_weapon_id)
+	# Track the carried weapon so it survives level transitions (Bug 2 fix).
+	GameManager.roguelike_run_weapon = new_weapon_id
+
+	if player.has_method("ApplySelectedWeaponFromGameManager"):
+		player.ApplySelectedWeaponFromGameManager()
+
+	print("[RoguelikeLevel] Weapon pedestal: player took %s, old weapon %s returned to pedestal" % [new_weapon_id, old_weapon_id])
+
+	# Put the player's old weapon back on the pedestal so they can swap back.
+	# Only do this if the old weapon differs from the new one.
+	if old_weapon_id != "" and old_weapon_id != new_weapon_id:
+		_pedestal_item = old_weapon_id
+		pedestal.set_meta("pedestal_item", old_weapon_id)
+
+		# Update the icon on the pedestal to show the old weapon.
+		var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+		if icon_rect and old_weapon_id in WEAPON_ICON_PATHS:
+			var tex: Texture2D = load(WEAPON_ICON_PATHS[old_weapon_id]) as Texture2D
+			if tex:
+				icon_rect.texture = tex
+
+		# Update the item name label.
+		var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
+		if item_lbl:
+			item_lbl.text = _pedestal_item_label(old_weapon_id)
+
+		print("[RoguelikeLevel] Old weapon '%s' placed back on pedestal" % old_weapon_id)
+		# Leave pedestal alive so player can pick it back up.
+	else:
+		# No meaningful old weapon — remove pedestal.
+		pedestal.queue_free()
+		_treasure_pedestal = null
+
+
+## Give the player an active item (active-item pedestal).
+## Passive items accumulate (player keeps both the old and new).
+## Active (non-passive) items replace the current one without scene restart;
+## the displaced item is put back on the pedestal for the player to reconsider.
+func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2D) -> void:
+	if ActiveItemManager == null:
+		pedestal.queue_free()
+		_treasure_pedestal = null
+		return
+
+	var is_passive: bool = item_type in PASSIVE_ACTIVE_ITEM_TYPES
+	var current: int = ActiveItemManager.current_active_item
+
+	if is_passive:
+		# Passive: just set it without restart (it coexists with any active item).
+		# If it's the same as the current one, nothing to do.
+		if item_type == current:
+			print("[RoguelikeLevel] Active-item pedestal: already have %s — skipping" %
+				ActiveItemManager.get_active_item_name(item_type))
+			pedestal.queue_free()
+			_treasure_pedestal = null
+			return
+		ActiveItemManager.set_active_item(item_type, false)  # false = no scene restart
+		print("[RoguelikeLevel] Passive item collected: %s" %
+			ActiveItemManager.get_active_item_name(item_type))
+		pedestal.queue_free()
+		_treasure_pedestal = null
+	else:
+		# Active item: swap — put the old item back on the pedestal so the player
+		# can take it again if they change their mind.
+		var old_type: int = current
+
+		ActiveItemManager.set_active_item(item_type, false)  # false = no scene restart
+		print("[RoguelikeLevel] Active item collected: %s (replaced %s)" % [
+			ActiveItemManager.get_active_item_name(item_type),
+			ActiveItemManager.get_active_item_name(old_type)])
+
+		if old_type != 0 and old_type != item_type:
+			# Update pedestal to offer the displaced item
+			pedestal.set_meta("pedestal_item", old_type)
+			_pedestal_item = old_type
+			# Update item name label (identified by its name set during spawn)
+			var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
+			if item_lbl:
+				item_lbl.text = _pedestal_item_label(old_type)
+			print("[RoguelikeLevel] Displaced item '%s' placed back on pedestal" %
+				ActiveItemManager.get_active_item_name(old_type))
+		else:
+			# No old item to put back — remove pedestal
+			pedestal.queue_free()
+			_treasure_pedestal = null
+
+
+## ============================================================
 ## Room progression — Isaac-style
 ## ============================================================
 
@@ -974,6 +1402,11 @@ func _activate_exit_zone() -> void:
 
 
 func _advance_to_next_room() -> void:
+	if GameManager.roguelike_in_treasure_room:
+		## Leaving the treasure room → start the next level
+		_start_next_level()
+		return
+
 	## Accumulate this room's stats into the run totals in GameManager
 	if GameManager:
 		GameManager.roguelike_total_kills += GameManager.kills
@@ -983,14 +1416,158 @@ func _advance_to_next_room() -> void:
 	var next_room: int = _current_room_idx + 1
 
 	if next_room >= _total_rooms:
-		## Last room cleared — show full-run score
-		print("[RoguelikeLevel] Run complete! All %d rooms cleared." % _total_rooms)
-		_complete_run_with_score()
+		## Last combat room cleared — enter the treasure room
+		print("[RoguelikeLevel] Level %d complete! Entering treasure room." % GameManager.roguelike_current_level)
+		_enter_treasure_room()
 	else:
-		## More rooms remaining — load next room
+		## More combat rooms remaining — load next room
 		GameManager.roguelike_current_room = next_room
 		print("[RoguelikeLevel] Advancing to room %d/%d" % [next_room + 1, _total_rooms])
 		_show_room_transition(next_room)
+
+
+## Transition into the treasure room after all combat rooms are cleared.
+func _enter_treasure_room() -> void:
+	GameManager.roguelike_in_treasure_room = true
+
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
+		return
+
+	# Dark overlay with "level cleared" message
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+
+	var lbl := Label.new()
+	lbl.text = "Уровень %d пройден!\nДобро пожаловать в Сокровищницу!" % GameManager.roguelike_current_level
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(lbl)
+
+	var tween := create_tween()
+	tween.tween_property(bg, "color:a", 0.85, 0.4)
+	tween.tween_interval(1.5)
+	tween.tween_callback(func():
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
+
+
+## Start the next roguelike level after leaving the treasure room.
+## Increases difficulty and resets room progression.
+func _start_next_level() -> void:
+	GameManager.roguelike_in_treasure_room = false
+	GameManager.roguelike_current_level   += 1
+
+	# Generate a fresh seed so rooms differ from previous levels
+	var new_seed: int = randi()
+	seed(new_seed)
+	GameManager.roguelike_run_seed = new_seed
+
+	# Build a new room sequence for the next level (re-randomise)
+	var all_types: Array = [
+		RoomType.LABYRINTH,
+		RoomType.BUILDING,
+		RoomType.BEACH,
+		RoomType.DOCKS,
+		RoomType.CITY,
+	]
+	for i in range(all_types.size() - 1, 0, -1):
+		var j: int = randi_range(0, i)
+		var tmp = all_types[i]
+		all_types[i] = all_types[j]
+		all_types[j] = tmp
+
+	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
+	count = min(count, all_types.size())
+
+	GameManager.roguelike_total_rooms  = count
+	GameManager.roguelike_room_types   = all_types.slice(0, count)
+	GameManager.roguelike_current_room = 0
+	# Keep roguelike_active = true; the run continues
+
+	print("[RoguelikeLevel] Starting Level %d — %d rooms, difficulty ×%d" % [
+		GameManager.roguelike_current_level, count, GameManager.roguelike_current_level])
+
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
+		return
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+
+	var lbl := Label.new()
+	lbl.text = "УРОВЕНЬ %d\nВраги стали опаснее!" % GameManager.roguelike_current_level
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 44)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(lbl)
+
+	var tween := create_tween()
+	tween.tween_property(bg, "color:a", 0.85, 0.4)
+	tween.tween_interval(1.5)
+	tween.tween_callback(func():
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
+
+
+## Build the treasure room scene: simple open floor, no enemies, warm golden colours.
+func _build_room_scene_treasure() -> void:
+	var bg := ColorRect.new()
+	bg.name  = "WorldBackground"
+	bg.position = Vector2(-200, -200)
+	bg.size     = Vector2(ROOM_WIDTH + 400, ROOM_HEIGHT + 400)
+	bg.color    = Color(0.08, 0.06, 0.02, 1.0)  ## Dark warm background
+	add_child(bg)
+
+	var room_container := Node2D.new()
+	room_container.name = "Room"
+	add_child(room_container)
+
+	# Floor — warm golden tone to distinguish from combat rooms
+	var floor_rect := ColorRect.new()
+	floor_rect.position = Vector2(0, 0)
+	floor_rect.size     = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.color    = Color(0.22, 0.18, 0.08, 1.0)
+	room_container.add_child(floor_rect)
+
+	_build_room_boundary_closed(room_container)
+
+	# Decorative pillars in the four corners (treasure room feel)
+	var pillar_size := Vector2(40, 40)
+	var offsets := [
+		Vector2(60, 60), Vector2(ROOM_WIDTH - 100, 60),
+		Vector2(60, ROOM_HEIGHT - 100), Vector2(ROOM_WIDTH - 100, ROOM_HEIGHT - 100),
+	]
+	for pos in offsets:
+		_create_cover(room_container, Rect2(pos.x, pos.y, pillar_size.x, pillar_size.y))
+
+
+## Add a "СОКРОВИЩНИЦА" header label for the treasure room HUD.
+func _setup_debug_ui_treasure() -> void:
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return
+	var lbl := Label.new()
+	lbl.name = "TreasureRoomLabel"
+	lbl.text = "✦ СОКРОВИЩНИЦА — Уровень %d ✦" % GameManager.roguelike_current_level
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	lbl.offset_top    = 10
+	lbl.offset_bottom = 40
+	lbl.add_theme_font_size_override("font_size", 20)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
+	ui.add_child(lbl)
 
 
 func _show_room_transition(next_room_idx: int) -> void:
