@@ -160,15 +160,41 @@ Evidence:
 
 ## How to Verify the Fix
 
-To confirm the fix works, the user must build a new executable from the PR branch:
+### Option 1 — Download the pre-built CI artifact (recommended)
+
+A Windows build from the PR branch (`issue-1142-4c23df595a38`) was automatically built by GitHub Actions CI.
+
+1. Go to the CI run page: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/23233743387
+2. Scroll to the bottom of the page — under **Artifacts**, download `windows-build`
+3. Extract the zip, run `Godot-Top-Down-Template.exe`
+4. Select "Armored Skin" in Armory
+5. Verify:
+   - Log contains `"[Player.ArmoredSkin] Armor shader applied to 5 sprites"`
+   - Player character shows blue glassy crystal overlay, matching the enemy Armored Skin visual
+
+> **Note**: The download link requires GitHub login. If you are logged in to GitHub, the artifact will download from the Actions page.
+
+### Option 2 — Build from source
 
 1. Check out branch `issue-1142-4c23df595a38`
 2. Open the project in Godot 4.3
 3. Export to a new `.exe` (or run directly from editor)
 4. Select "Armored Skin" in Armory
-5. Verify:
-   - Log contains `"Armor shader applied to 5 sprites"` (or similar count depending on active sprites)
-   - Player character shows blue glassy crystal overlay, matching the enemy Armored Skin visual
+5. Check that log contains `"Armor shader applied to 5 sprites"` and player shows the armor overlay
+
+---
+
+## Third User Report (2026-03-18 07:44) — "Still No Changes"
+
+After the second log analysis, the user posted a third complaint: `"всё ещё нет изменений"` ("still no changes"), this time **without attaching a new game log**.
+
+This confirms the user has not yet tried the new binary from the PR branch — they are running the same pre-existing old `.exe` and seeing no change, which is expected.
+
+**Key insight**: Previous AI session responses correctly identified the root cause (old binary) but never provided a direct download link to the pre-built CI artifact. The user would need to either:
+1. Download the `windows-build` artifact from the CI run (see "How to Verify the Fix" above), OR
+2. Build the project from source themselves using Godot 4.3
+
+Neither of these was clearly communicated with actionable download links until this update.
 
 ---
 
