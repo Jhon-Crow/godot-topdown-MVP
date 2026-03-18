@@ -119,6 +119,11 @@ public partial class SniperBullet : Area2D
             _trail.ClearPoints();
             _trail.TopLevel = true;
             _trail.Position = Vector2.Zero;
+            // Pre-populate with barrel (spawn) position so the trail starts exactly
+            // at the muzzle. Without this, the first recorded position is already
+            // one physics frame (~167px at 10000px/s) ahead of the barrel, making
+            // the tracer appear to start away from the barrel. (Issue #1171 fix)
+            _positionHistory.Add(GlobalPosition);
         }
 
         // Set initial rotation

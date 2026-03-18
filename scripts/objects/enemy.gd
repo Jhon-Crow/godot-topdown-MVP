@@ -358,6 +358,7 @@ var _death_animation: Node = null  ## Death animation component reference.
 var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component (extracted for Issue #377 CI fix).
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _teleport_component: EnemyTeleportComponent = null  ## Teleport component (Issue #752).
+var _sniper_component: EnemySniperComponent = null  ## Sniper hitscan component (Issue #1171).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #583).
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
@@ -402,6 +403,7 @@ func _ready() -> void:
 	_setup_aggression_component(); _suppressive_fire = SuppressiveFireComponent.new(); add_child(_suppressive_fire)  # Issue #675, #910
 	_pacifist = PacifistComponent.new(self)  # Issue #959
 	_setup_machete_component(); if has_force_field: _force_field_component = EnemyForceFieldComponent.new(); _force_field_component.name = "ForceFieldComponent"; add_child(_force_field_component); _force_field_component.setup(); if _shield_icon: _shield_icon.visible = true  # Issue #579, #1034, #1079
+	_sniper_component = EnemySniperComponent.new(); _sniper_component.enemy = self; _sniper_component.log_to_file_fn = _log_to_file; _sniper_component.name = "SniperComponent"; add_child(_sniper_component)  # Issue #1171
 	if has_armored_skin: _armored_skin_component = EnemyArmoredSkinComponent.new(); _armored_skin_component.name = "ArmoredSkinComponent"; add_child(_armored_skin_component); _current_health += 1; _max_health += 1; _update_health_visual()  # Issue #1123: +1 HP bonus from Armored Skin
 	if is_teleporter: _teleport_component = EnemyTeleportComponent.new(); _teleport_component.name = "TeleportComponent"; add_child(_teleport_component); EnemyTeleportComponent.add_backpack(_enemy_model)  # Issue #752
 	_setup_enemy_flashlight()  # Issue #824
@@ -3865,6 +3867,7 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 	var direction := weapon_forward
 	if _is_rpg_weapon and not _rpg_fired: _fire_rpg_rocket(direction, bullet_spawn_pos)  # Issue #583
 	elif _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	elif weapon_type == WeaponType.SNIPER_RIFLE: _sniper_component.shoot_sniper_hitscan(direction, bullet_spawn_pos)  # [#1171] Hitscan avoids physics tunneling at 10000px/s
 	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	if not _is_rpg_weapon: _spawn_casing(direction, weapon_forward)  # Issue #583: no casing for RPG
