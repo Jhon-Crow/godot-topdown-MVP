@@ -9,13 +9,14 @@ extends Node2D
 const OFFSET_Y: float = -56.0
 
 ## Radius of the prohibition circle in pixels.
-const CIRCLE_RADIUS: float = 14.0
+## Sized to match the Combat Disposition item icon (~32 px) shown above the player (Issue #1115).
+const CIRCLE_RADIUS: float = 10.0
 
 ## Color of the prohibition sign (red, slightly transparent).
 const SIGN_COLOR: Color = Color(0.9, 0.1, 0.05, 0.95)
 
 ## Line width for both the circle and diagonal bar.
-const LINE_WIDTH: float = 4.0
+const LINE_WIDTH: float = 3.0
 
 
 func _ready() -> void:
