@@ -14,6 +14,16 @@ class_name WallBreachHelper
 ## breaches) and removes prior dynamic visual nodes before placing new ones.
 ## This prevents invisible-wall "ghost" shapes that blocked movement after multiple
 ## RPG hits on the same wall (Issue #1144 follow-up).
+##
+## PHYSICS SAFETY NOTE (Issue #1144, Root Cause 6):
+## Godot requires that CollisionShape2D.disabled must NOT be changed directly during a
+## physics callback (body_entered, _physics_process, etc.).  Direct assignment in those
+## contexts is silently ignored by the physics server — shapes appear disabled in GDScript
+## but remain active in the physics world, producing permanent invisible obstacles.
+## See: https://docs.godotengine.org/en/stable/classes/class_collisionshape2d.html
+##
+## Fix: open_wall_passage() uses call_deferred to schedule _apply_wall_passage(), so all
+## collision-shape modifications run after the current physics step, when they are safe.
 
 ## Width of the passage carved through a wall (pixels).
 ## Must match BreachingChargesEffect.BREACH_PASSAGE_WIDTH for consistent feel.
@@ -29,12 +39,37 @@ const DYNAMIC_NODE_META: StringName = &"wall_breach_dynamic"
 
 ## Carve a passage through a StaticBody2D wall at the given world-space position.
 ##
+## This is the public entry point.  It immediately captures wall dimensions (so the
+## correct shape is measured even if called before a previous deferred disable runs),
+## then defers the actual collision-shape changes to run after the current physics step.
+##
+## Deferring is required because Godot's physics server does not allow modifying
+## CollisionShape2D.disabled (or adding/removing CollisionShape2D children) during a
+## physics callback (body_entered, _physics_process, etc.).  Attempting direct changes
+## in those contexts is silently ignored by the physics server, leaving shapes active
+## as invisible obstacles.  call_deferred queues the work to run when it is safe.
+##
 ## @param wall            The StaticBody2D to modify (must not be null).
 ## @param breach_world_pos  World-space point where the passage should be centered
 ##                          (typically the impact/explosion position).
 static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	if wall == null or not is_instance_valid(wall):
 		FileLogger.info("[WallBreachHelper] WARNING: invalid wall reference, skipping")
+		return
+
+	# Defer the actual work so that physics-callback callers (RPG rocket body_entered,
+	# _physics_process) do not try to modify collision shapes mid-physics-step.
+	# A lambda Callable is used because static method Callables have limited reflection
+	# support in Godot 4.  The lambda captures wall and breach_world_pos by value and
+	# runs via call_deferred() at the end of the current frame, after physics completes.
+	(func(): WallBreachHelper._apply_wall_passage(wall, breach_world_pos)).call_deferred()
+
+
+## Internal implementation — called deferred by open_wall_passage.
+## All collision-shape modifications happen here, safely outside physics processing.
+static func _apply_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
+	if wall == null or not is_instance_valid(wall):
+		FileLogger.info("[WallBreachHelper] WARNING: wall freed before deferred breach applied, skipping")
 		return
 
 	# Remove dynamic nodes added by any previous breach on this same wall.
@@ -61,6 +96,8 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	# Disable ALL original collision shapes (non-dynamic scene nodes).
 	# Dynamic nodes were already disabled+freed above; skipping them here avoids
 	# a redundant write to already-freed objects.
+	# Direct assignment is safe here because _apply_wall_passage always runs deferred
+	# (i.e. outside of a physics callback), so the physics server is not mid-step.
 	for child in wall.get_children():
 		if child.has_meta(DYNAMIC_NODE_META):
 			continue  # Already disabled in _remove_dynamic_nodes above
@@ -184,16 +221,14 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 ## Remove all dynamically-added nodes from a prior breach on this wall.
 ## Only nodes tagged with DYNAMIC_NODE_META are removed; original scene nodes are untouched.
 ##
-## IMPORTANT: CollisionShape2D and CollisionPolygon2D nodes are disabled IMMEDIATELY before
-## queue_free() to remove them from the physics world on this same frame.
-## Without this, queue_free() defers deletion to end-of-frame, leaving ghost collision shapes
-## active in the physics engine while new breach shapes are being added — causing invisible
-## obstacles when the same wall is breached multiple times in quick succession (Issue #1144).
+## Always called from _apply_wall_passage which itself runs deferred, so direct
+## assignment of .disabled is safe here (physics server is not mid-step).
+## Disabling before queue_free() ensures the shape is removed from physics immediately
+## within this deferred frame rather than waiting until queue_free() takes effect.
 static func _remove_dynamic_nodes(wall: Node) -> void:
 	for child in wall.get_children():
 		if child.has_meta(DYNAMIC_NODE_META):
-			# Disable collision immediately so the physics world stops using this shape
-			# this frame — queue_free() alone only defers scene-tree removal to end-of-frame.
+			# Disable collision so the physics world drops this shape right now.
 			if child is CollisionShape2D:
 				(child as CollisionShape2D).disabled = true
 			elif child is CollisionPolygon2D:

@@ -404,3 +404,74 @@ func test_remove_dynamic_nodes_clears_tagged_children() -> void:
 		"The remaining child should be the original (untagged) CollisionShape2D")
 
 	wall.queue_free()
+
+# ============================================================================
+# Physics Callback Safety Tests (Issue #1144, Root Cause 6)
+# ============================================================================
+
+
+func test_open_wall_passage_defers_work() -> void:
+	## open_wall_passage() must schedule work via call_deferred so that it is safe
+	## to call from physics callbacks (body_entered, _physics_process).
+	## Godot's physics server ignores direct CollisionShape2D.disabled assignments
+	## inside physics callbacks — deferring the work is required for correctness.
+	##
+	## This test verifies that a real wall StaticBody2D with a CollisionShape2D
+	## has its shape disabled AFTER the current frame (not before await process_frame).
+	add_child(auto_free(Node.new()))  # Ensure we have a scene tree
+
+	var wall := StaticBody2D.new()
+	wall.name = "DeferTestWall"
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(200.0, 24.0)
+	var col := CollisionShape2D.new()
+	col.shape = rect
+	wall.add_child(col)
+	add_child(wall)
+
+	# Shape starts enabled
+	assert_false(col.disabled,
+		"CollisionShape2D should be enabled before breach")
+
+	# Call open_wall_passage — shape should NOT be disabled YET (work is deferred)
+	WallBreachHelper.open_wall_passage(wall, Vector2(0.0, 0.0))
+	assert_false(col.disabled,
+		"CollisionShape2D must still be enabled immediately after open_wall_passage call (deferred)")
+
+	# After one frame, the deferred work should have run and disabled the shape
+	await get_tree().process_frame
+	assert_true(col.disabled,
+		"CollisionShape2D must be disabled AFTER process_frame (deferred work executed)")
+
+
+func test_dynamic_segments_added_after_deferred_frame() -> void:
+	## New collision segments should only be present AFTER the deferred frame.
+	## Verifies that call_deferred correctly schedules _apply_wall_passage.
+	add_child(auto_free(Node.new()))  # Ensure we have a scene tree
+
+	var wall := StaticBody2D.new()
+	wall.name = "DeferSegmentWall"
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(400.0, 24.0)  # Wide wall — will be split into segments
+	var col := CollisionShape2D.new()
+	col.shape = rect
+	wall.add_child(col)
+	add_child(wall)
+
+	var children_before := wall.get_child_count()
+	assert_eq(children_before, 1, "Wall should have 1 child before breach")
+
+	# Call open_wall_passage — segments should NOT exist yet (deferred)
+	WallBreachHelper.open_wall_passage(wall, Vector2(0.0, 0.0))
+	assert_eq(wall.get_child_count(), 1,
+		"No new children should be added immediately (deferred breach)")
+
+	# After one frame, the deferred work runs
+	await get_tree().process_frame
+	# Expect: original col disabled + 2 new segment shapes + visual ColorRects
+	var dynamic_cols := 0
+	for child in wall.get_children():
+		if child is CollisionShape2D and child.has_meta(WallBreachHelper.DYNAMIC_NODE_META):
+			dynamic_cols += 1
+	assert_gt(dynamic_cols, 0,
+		"Dynamic collision segment(s) should be added after deferred frame")
