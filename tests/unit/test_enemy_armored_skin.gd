@@ -22,9 +22,11 @@ class MockEnemyArmoredSkinComponent:
 	func apply_hp_bonus(current_health: int, max_health: int) -> Array[int]:
 		return [current_health + 1, max_health + 1]
 
-	func try_spawn_shards(current_health: int) -> void:
+	func try_spawn_shards(current_health: int) -> bool:
 		if current_health <= HP_THRESHOLD:
 			shard_spawn_count += 1
+			return true
+		return false
 
 
 # ============================================================================
@@ -49,7 +51,9 @@ class MockArmoredSkinEnemy:
 
 	func take_hit() -> void:
 		if _component:
-			_component.try_spawn_shards(_current_health)
+			# Issue #1143: absorb the triggering hit when shards spawn
+			if _component.try_spawn_shards(_current_health):
+				return
 		_current_health -= 1
 		if _current_health < 0:
 			_current_health = 0
@@ -185,3 +189,70 @@ func test_enemy_no_shards_without_component() -> void:
 	enemy.take_hit()
 	assert_eq(enemy.get_shard_spawn_count(), 0,
 		"Shards should NOT spawn when armored skin is not equipped")
+
+
+# ============================================================================
+# Damage absorption tests (Issue #1143)
+# ============================================================================
+
+
+func test_try_spawn_shards_returns_true_at_threshold() -> void:
+	var absorbed := _component.try_spawn_shards(2)
+	assert_true(absorbed,
+		"try_spawn_shards should return true (damage absorbed) when HP <= threshold")
+
+
+func test_try_spawn_shards_returns_true_at_1hp() -> void:
+	var absorbed := _component.try_spawn_shards(1)
+	assert_true(absorbed,
+		"try_spawn_shards should return true (damage absorbed) when HP is 1")
+
+
+func test_try_spawn_shards_returns_false_above_threshold() -> void:
+	var absorbed := _component.try_spawn_shards(3)
+	assert_false(absorbed,
+		"try_spawn_shards should return false (damage applied) when HP > threshold")
+
+
+func test_triggering_hit_damage_absorbed_at_2hp() -> void:
+	# Issue #1143: the hit that triggers shards must not reduce enemy HP.
+	var enemy := MockArmoredSkinEnemy.new()
+	enemy.setup(3, 3)
+	enemy.add_armored_skin()
+	enemy._current_health = 2
+	enemy.take_hit()
+	assert_eq(enemy._current_health, 2,
+		"Enemy HP must NOT decrease when the triggering hit is absorbed by Armored Skin")
+
+
+func test_triggering_hit_damage_absorbed_at_1hp() -> void:
+	# Issue #1143: even at 1 HP the triggering hit is absorbed.
+	var enemy := MockArmoredSkinEnemy.new()
+	enemy.setup(3, 3)
+	enemy.add_armored_skin()
+	enemy._current_health = 1
+	enemy.take_hit()
+	assert_eq(enemy._current_health, 1,
+		"Enemy HP must NOT decrease when armored skin absorbs the triggering hit at 1 HP")
+
+
+func test_damage_applied_above_threshold() -> void:
+	# Hits above the threshold are NOT absorbed.
+	var enemy := MockArmoredSkinEnemy.new()
+	enemy.setup(4, 4)
+	enemy.add_armored_skin()
+	# Enemy has 5 HP. Hit at 5 HP (above threshold of 2).
+	var hp_before := enemy._current_health
+	enemy.take_hit()
+	assert_eq(enemy._current_health, hp_before - 1,
+		"Enemy HP should decrease normally when hit above armored skin threshold")
+
+
+func test_damage_applied_without_armored_skin() -> void:
+	# No component → damage always applied.
+	var enemy := MockArmoredSkinEnemy.new()
+	enemy.setup(3, 3)
+	enemy._current_health = 2
+	enemy.take_hit()
+	assert_eq(enemy._current_health, 1,
+		"Enemy HP should decrease normally when armored skin is not equipped")

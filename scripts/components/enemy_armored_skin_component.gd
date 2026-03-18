@@ -75,10 +75,12 @@ func apply_hp_bonus(current_health: int, max_health: int) -> Array[int]:
 ## Try to spawn shards when the enemy is hit at low HP.
 ## Call from enemy.on_hit_with_bullet_info() before applying damage.
 ## @param current_health: Health *before* this hit is applied.
-func try_spawn_shards(current_health: int) -> void:
+## @return true if shards were spawned — the triggering hit's damage must be absorbed (Issue #1143).
+func try_spawn_shards(current_health: int) -> bool:
 	if current_health > HP_THRESHOLD:
-		return
+		return false
 	_spawn_shards()
+	return true
 
 
 ## Spawn 20 glass shards in all directions from the enemy position.
