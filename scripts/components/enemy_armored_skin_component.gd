@@ -7,6 +7,7 @@ extends Node
 ## - +1 HP bonus applied at spawn (added after base health is set).
 ## - When the enemy is at ≤2 HP and takes a hit, 20 glass/crystal shards
 ##   fly outward in all directions.
+## - Visual: enemy sprites get a glassy transparent bluish armor shader overlay.
 ##
 ## Shards use the existing ArmoredSkinShard scene (same as the player).
 ## They deal 1 damage each, do NOT ricochet, and do NOT hit the source enemy.
@@ -20,11 +21,45 @@ const SHARD_COUNT: int = 20
 ## Path to the shard scene (shared with the player implementation).
 const SHARD_SCENE_PATH: String = "res://scenes/projectiles/ArmoredSkinShard.tscn"
 
+## Path to the armored skin visual shader.
+const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
+
 var _parent: Node2D = null
 
 
 func _ready() -> void:
 	_parent = get_parent() as Node2D
+	_apply_armor_visual()
+
+
+## Apply the glassy armor shader to all enemy body sprites so the enemy
+## looks like it is covered in transparent crystal/glass armor (Issue #1123).
+func _apply_armor_visual() -> void:
+	if _parent == null:
+		return
+	if not ResourceLoader.exists(ARMOR_SHADER_PATH):
+		FileLogger.info("[EnemyArmoredSkin] WARNING: Shader not found: %s" % ARMOR_SHADER_PATH)
+		return
+	var shader: Shader = load(ARMOR_SHADER_PATH)
+	if shader == null:
+		FileLogger.info("[EnemyArmoredSkin] WARNING: Failed to load armor shader")
+		return
+
+	# Apply shader to all Sprite2D children inside EnemyModel.
+	var model: Node = _parent.get_node_or_null("EnemyModel")
+	if model == null:
+		FileLogger.info("[EnemyArmoredSkin] WARNING: EnemyModel node not found, skipping visual")
+		return
+
+	var applied_count: int = 0
+	for child in model.get_children():
+		if child is Sprite2D:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			child.material = mat
+			applied_count += 1
+
+	FileLogger.info("[EnemyArmoredSkin] Armor shader applied to %d sprites" % applied_count)
 
 
 ## Apply the +1 HP bonus to the enemy's current and max health.

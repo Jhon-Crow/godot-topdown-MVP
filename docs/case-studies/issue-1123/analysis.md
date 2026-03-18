@@ -48,3 +48,21 @@ Following the established pattern (`has_force_field` → `EnemyForceFieldCompone
 - **Component pattern**: Keeps `enemy.gd` from growing further and is consistent with the codebase convention.
 - **Enemy placement**: Positioned near `ForceFieldEnemy` at (1700, 1050) — in the final zone with other difficult enemies, providing a natural challenge escalation.
 - **Effect parity**: Exactly mirrors the player's Armored Skin: +1 HP at spawn, 20 shards at ≤2 HP on hit.
+
+## Visual Update (PR comment feedback)
+
+**Request**: The armored skin enemy should visually look as if covered in transparent armor — specifically a shimmering glassy effect with a bluish color.
+
+**Solution**: A dedicated canvas_item shader `scripts/shaders/armored_skin.gdshader` was created and applied automatically by `EnemyArmoredSkinComponent._apply_armor_visual()` when the component initializes.
+
+**Shader design** (`armored_skin.gdshader`):
+- Overlays a semi-transparent bluish glass tint on each enemy Sprite2D.
+- Animated iridescent shimmer mixing icy-blue (`#6ECCFF`) and white-blue (`#B3E6FF`) tones driven by `TIME`.
+- Fresnel-like rim highlight: samples neighboring pixels to detect sprite edges and applies a brighter glow at boundaries, giving the hard-shell crystal armor silhouette.
+- Shader parameters: `armor_opacity` (0.55), `armor_color` (r=0.55, g=0.80, b=1.0, a=0.45), `shimmer_speed` (1.8), `iridescence` (0.45).
+- Applied to all `Sprite2D` children of `EnemyModel` (Body, Head, LeftArm, RightArm).
+
+| File | Change |
+|------|--------|
+| `scripts/shaders/armored_skin.gdshader` | **New** — glass armor shader with bluish shimmer |
+| `scripts/components/enemy_armored_skin_component.gd` | Added `_apply_armor_visual()` called from `_ready()` |
