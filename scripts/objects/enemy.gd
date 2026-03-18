@@ -789,8 +789,7 @@ func _physics_process(delta: float) -> void:
 				audio.play_asvk_bolt_step(_bolt_cycle_step)  # [#1177] Play current bolt step sound
 			if _bolt_cycle_step >= 4:
 				_is_bolt_cycling = false; _bolt_cycle_step = 0  # Cycle complete
-			else:
-				_bolt_cycle_step += 1  # Advance to next step
+			else: _bolt_cycle_step += 1  # Advance to next step
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	_update_reload(delta)
 
