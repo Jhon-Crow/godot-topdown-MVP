@@ -29,15 +29,16 @@ func process_combat(delta: float, can_see_player: bool, player: Node,
 	if player == null:
 		return false
 
-	var distance_to_player := _enemy.global_position.distance_to(player.global_position)
-	var direction_to_player := (player.global_position - _enemy.global_position).normalized()
+	var player_pos: Vector2 = (player as Node2D).global_position
+	var distance_to_player: float = _enemy.global_position.distance_to(player_pos)
+	var direction_to_player: Vector2 = (player_pos - _enemy.global_position).normalized()
 
 	blind_fire_timer += delta
 
 	if can_see_player:
 		if distance_to_player < MIN_DISTANCE:
 			var retreat_dir := -direction_to_player
-			retreat_dir = _enemy._apply_wall_avoidance(retreat_dir)
+			retreat_dir = (_enemy._apply_wall_avoidance(retreat_dir) as Vector2)
 			_enemy.velocity = retreat_dir * _enemy.combat_move_speed
 			_enemy._log_debug("Sniper: player too close (%.0f px), retreating" % distance_to_player)
 		else:
@@ -104,7 +105,7 @@ func fire_at_predicted_position(target_pos: Vector2) -> void:
 	if enemy_model: enemy_model.global_rotation = to_target.angle()
 	_enemy.rotation = to_target.angle()
 
-	var spawn_pos := _enemy._get_bullet_spawn_position(to_target)
+	var spawn_pos: Vector2 = _enemy._get_bullet_spawn_position(to_target)
 	var spread := deg_to_rad(randf_range(-3.0, 3.0))
 	var direction := to_target.rotated(spread)
 	_enemy._spawn_projectile(direction, spawn_pos)
