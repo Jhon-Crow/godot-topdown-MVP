@@ -98,7 +98,7 @@ const MAX_GRENADE_ROWS_COLLAPSED: int = 1
 const GRID_COLUMNS: int = 4
 
 ## Number of columns in the special items grid.
-const SPECIAL_GRID_COLUMNS: int = 8
+const SPECIAL_GRID_COLUMNS: int = 7
 
 ## Maximum number of visible active item rows before accordion hides the rest.
 const MAX_ACTIVE_ITEM_ROWS_COLLAPSED: int = 1
