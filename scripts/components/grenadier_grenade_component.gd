@@ -162,13 +162,24 @@ func initialize() -> void:
 	_offensive_scene = load("res://scenes/projectiles/FragGrenade.tscn")
 	_defensive_scene = load("res://scenes/projectiles/DefensiveGrenade.tscn")
 
+	# Issue #1129: Load chemical grenade scene for 50% substitution chance
+	chemical_grenade_scene = load("res://scenes/projectiles/ChemicalGasGrenade.tscn")
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if chemical_grenade_scene == null:
+		_log("WARNING: ChemicalGasGrenade.tscn not found — chemical grenade disabled for grenadier")
+		if file_logger and file_logger.has_method("warning"):
+			file_logger.warning("[EnemyGrenade] ChemicalGasGrenade.tscn not found — chemical grenade disabled (Issue #1129)")
+	else:
+		if file_logger and file_logger.has_method("info"):
+			file_logger.info("[EnemyGrenade] ChemicalGasGrenade.tscn loaded — chemical grenade enabled with 50%% chance (Issue #1129)")
+
 	# Build grenade bag based on difficulty
 	_build_grenade_bag()
 
 	grenades_remaining = _grenade_bag.size()
 	# Set grenade_scene to the first type for compatibility with parent methods
 	grenade_scene = _get_next_grenade_scene()
-	_log("Grenadier initialized: %d grenades in bag" % grenades_remaining)
+	_log("Grenadier initialized: %d grenades in bag, chemical_grenade_scene=%s" % [grenades_remaining, str(chemical_grenade_scene)])
 
 
 ## Build the grenade bag based on current difficulty.
@@ -325,8 +336,22 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 		_blocking_passage = false
 		return
 
+	# Issue #1129: With 50% chance substitute chemical grenade for the bag grenade,
+	# unless player is already under illusion. Set grenade_scene so _choose_grenade_scene()
+	# knows what default to fall back to, then let it decide.
+	grenade_scene = next_scene
+	var chosen_scene := _choose_grenade_scene()
+	var is_chemical := chosen_scene != next_scene and chemical_grenade_scene != null
+	if is_chemical:
+		grenade_type_name = "Chemical"
+		fuse = 4.0  # Chemical grenade always has 4-second fuse (gas release, no impact)
+		var file_logger: Node = get_node_or_null("/root/FileLogger")
+		if file_logger and file_logger.has_method("info"):
+			file_logger.info("[EnemyGrenade] Chemical grenade selected (50%% chance) — substituting %s (Issue #1129)" % _get_next_grenade_type_name())
+		_log("Chemical grenade substituted for %s (50%% chance, Issue #1129)" % _get_next_grenade_type_name())
+
 	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
-	var grenade: Node2D = next_scene.instantiate()
+	var grenade: Node2D = chosen_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
 
 	# Issue #692: Set thrower_id on the grenade so it won't damage the throwing enemy
@@ -338,10 +363,13 @@ func _execute_grenadier_throw(target: Vector2, is_alive: bool, is_stunned: bool,
 
 	# Attach C# GrenadeTimer component for reliable explosion handling
 	var grenade_timer_type := "Frag"
-	match _grenade_bag[0]:
-		GrenadeType.FLASHBANG: grenade_timer_type = "Flashbang"
-		GrenadeType.DEFENSIVE: grenade_timer_type = "Frag"  # Similar timer behavior
-		GrenadeType.OFFENSIVE: grenade_timer_type = "Frag"
+	if is_chemical:
+		grenade_timer_type = "Gas"  # Chemical gas grenade (no C# timer needed for gas release)
+	else:
+		match _grenade_bag[0]:
+			GrenadeType.FLASHBANG: grenade_timer_type = "Flashbang"
+			GrenadeType.DEFENSIVE: grenade_timer_type = "Frag"  # Similar timer behavior
+			GrenadeType.OFFENSIVE: grenade_timer_type = "Frag"
 	_attach_grenade_timer(grenade as RigidBody2D, grenade_timer_type)
 
 	# Activate timer for timer-based grenades

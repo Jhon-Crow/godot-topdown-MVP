@@ -425,3 +425,93 @@ func test_illusion_position_fix_works_with_nonzero_parent_offset() -> void:
 		"Fix: child x correct even with large world coordinates")
 	assert_almost_eq(helper.child_effective_global_pos().y, expected.y, 0.1,
 		"Fix: child y correct even with large world coordinates")
+
+
+# ============================================================================
+# GrenadierGrenadeComponent Chemical Grenade Tests (Bug #4, 2026-03-18)
+# ============================================================================
+# Root cause: GrenadierGrenadeComponent overrides EnemyGrenadeComponent and its
+# _execute_grenadier_throw() never called _choose_grenade_scene(). The chemical
+# grenade was added to EnemyGrenadeComponent._execute_throw() which is bypassed
+# by the Grenadier, making the chemical grenade unreachable in-game.
+# Fix: _execute_grenadier_throw() now calls _choose_grenade_scene() after
+# loading chemical_grenade_scene in initialize().
+# ============================================================================
+
+
+class MockGrenadierComponent:
+	## Mirrors GrenadierGrenadeComponent's chemical substitution logic.
+	var grenade_scene: PackedScene = null         # the bag's current grenade scene
+	var chemical_grenade_scene: PackedScene = null
+	var chemical_grenade_chance: float = 0.5
+	var _mock_player_under_illusion: bool = false
+	var _mock_rand: float = -1.0  # -1 = use real randf()
+
+	## Mirrors the fixed _choose_grenade_scene() call sequence in _execute_grenadier_throw().
+	func choose_for_throw(bag_scene: PackedScene) -> PackedScene:
+		# Set grenade_scene to bag scene so _choose_grenade_scene() knows the fallback
+		grenade_scene = bag_scene
+		return _choose_grenade_scene()
+
+	func _choose_grenade_scene() -> PackedScene:
+		if chemical_grenade_scene == null:
+			return grenade_scene
+		if _mock_player_under_illusion:
+			return grenade_scene
+		var roll := _mock_rand if _mock_rand >= 0.0 else randf()
+		if roll < chemical_grenade_chance:
+			return chemical_grenade_scene
+		return grenade_scene
+
+
+func test_grenadier_chemical_substitutes_bag_grenade_at_50pct() -> void:
+	## Bug fix #4: GrenadierGrenadeComponent must call _choose_grenade_scene().
+	## With roll < 0.5, chemical grenade replaces the bag grenade.
+	var gc := MockGrenadierComponent.new()
+	gc.grenade_scene = preload("res://scenes/projectiles/FragGrenade.tscn")
+	var chem_scene := load("res://scenes/projectiles/ChemicalGasGrenade.tscn")
+	gc.chemical_grenade_scene = chem_scene if chem_scene else preload("res://scenes/projectiles/DefensiveGrenade.tscn")
+	gc._mock_rand = 0.1
+	var bag_scene := preload("res://scenes/projectiles/FlashbangGrenade.tscn")
+	var chosen := gc.choose_for_throw(bag_scene)
+	assert_eq(chosen, gc.chemical_grenade_scene,
+		"Grenadier should substitute chemical grenade for bag grenade when roll < 0.5")
+
+
+func test_grenadier_uses_bag_grenade_when_roll_too_high() -> void:
+	## With roll >= 0.5, the bag grenade is used as-is.
+	var gc := MockGrenadierComponent.new()
+	var bag_scene := preload("res://scenes/projectiles/FragGrenade.tscn")
+	gc.grenade_scene = bag_scene
+	var chem_scene := load("res://scenes/projectiles/ChemicalGasGrenade.tscn")
+	gc.chemical_grenade_scene = chem_scene if chem_scene else preload("res://scenes/projectiles/DefensiveGrenade.tscn")
+	gc._mock_rand = 0.8
+	var chosen := gc.choose_for_throw(bag_scene)
+	assert_eq(chosen, bag_scene,
+		"Grenadier should use bag grenade when roll >= 0.5")
+
+
+func test_grenadier_uses_bag_grenade_when_player_under_illusion() -> void:
+	## req.9 guard: when player is already under illusion, bag grenade is used.
+	var gc := MockGrenadierComponent.new()
+	var bag_scene := preload("res://scenes/projectiles/FlashbangGrenade.tscn")
+	gc.grenade_scene = bag_scene
+	var chem_scene := load("res://scenes/projectiles/ChemicalGasGrenade.tscn")
+	gc.chemical_grenade_scene = chem_scene if chem_scene else preload("res://scenes/projectiles/DefensiveGrenade.tscn")
+	gc._mock_rand = 0.0  # Would pick chemical
+	gc._mock_player_under_illusion = true
+	var chosen := gc.choose_for_throw(bag_scene)
+	assert_eq(chosen, bag_scene,
+		"Grenadier must not throw chemical grenade when player is already under illusion (req.9)")
+
+
+func test_grenadier_uses_bag_grenade_when_no_chemical_scene_loaded() -> void:
+	## When ChemicalGasGrenade.tscn not found, grenadier uses bag grenade normally.
+	var gc := MockGrenadierComponent.new()
+	var bag_scene := preload("res://scenes/projectiles/FragGrenade.tscn")
+	gc.grenade_scene = bag_scene
+	gc.chemical_grenade_scene = null  # Not loaded
+	gc._mock_rand = 0.0
+	var chosen := gc.choose_for_throw(bag_scene)
+	assert_eq(chosen, bag_scene,
+		"Grenadier should use bag grenade when chemical_grenade_scene is null")
