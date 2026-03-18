@@ -232,7 +232,7 @@ func _on_reset_pressed() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Only handle ESC as back when not in rebinding mode (rebinding uses _input).
-	if event.is_action_pressed("pause") and _rebinding_action.is_empty():
+	if visible and event.is_action_pressed("pause") and _rebinding_action.is_empty():
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
 

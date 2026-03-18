@@ -181,6 +181,54 @@ This ensures `PauseMenu` continues to receive `_unhandled_input` while the game 
 
 ---
 
+## Second Bug Report (2026-03-18, after regression fix)
+
+After the regression fix (adding `process_mode = PROCESS_MODE_ALWAYS` to `PauseMenu`), Jhon-Crow reported the problem persisted:
+
+> "проблема не исчезла - esc срабатывает только один раз" (the problem has not gone away — ESC fires only once)
+>
+> Log: `docs/case-studies/issue-1141/logs/game_log_20260318_080605.txt`
+
+### Root Cause of Second Regression
+
+**Hidden submenus were consuming ESC events without a `visible` guard.**
+
+All submenus are instantiated once and reused (cached in `_settings_menu`, `_armory_menu`, `_levels_menu` etc. in `PauseMenu`). When a submenu is closed, it is only hidden (`.hide()` is called) — it remains a child node with `process_mode = PROCESS_MODE_ALWAYS`.
+
+Since `_unhandled_input` fires for all nodes that process input, a **hidden** submenu with no `visible` check would intercept ESC, emit `back_pressed` (triggering its back handler in PauseMenu), and mark the input as handled — preventing `PauseMenu._unhandled_input` from ever seeing it.
+
+**Example scenario:**
+1. User opens PauseMenu → Settings → Sound, then presses ESC
+2. SoundMenu handles ESC → emits `back_pressed` → hides SoundMenu, shows SettingsMenu list ✓
+3. User presses ESC again on SettingsMenu list
+4. The now-hidden SoundMenu fires `_unhandled_input`, its guard `if event.is_action_pressed("pause")` passes (no visibility check!), it emits `back_pressed` again → PauseMenu runs `_on_settings_back()` (hides SettingsMenu, shows main pause menu list) — but this was unintended! ✗
+5. Or alternatively: SoundMenu consumes ESC, marks it handled → SettingsMenu and PauseMenu never see the event
+
+**Affected files (missing `visible` guard):**
+- `difficulty_menu.gd`
+- `sound_menu.gd`
+- `gameplay_menu.gd`
+- `levels_menu.gd`
+- `armory_menu.gd`
+- `controls_menu.gd`
+- `experimental_menu.gd`
+- `settings_menu.gd` (had `menu_container.visible` but not the outer `visible` check)
+
+### Fix
+
+Added `visible and` guard to every submenu's `_unhandled_input` so hidden menus don't consume ESC:
+
+```gdscript
+func _unhandled_input(event: InputEvent) -> void:
+    if visible and event.is_action_pressed("pause"):
+        _on_back_pressed()
+        get_viewport().set_input_as_handled()
+```
+
+This ensures only the currently-visible topmost menu handles ESC. Hidden menus pass the event through to their parent.
+
+---
+
 ## References
 
 - Godot 4 Input handling: https://docs.godotengine.org/en/stable/tutorials/inputs/inputevent.html

@@ -1579,7 +1579,7 @@ func _animate_slot_reveal(slot: PanelContainer) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
+	if visible and event.is_action_pressed("pause"):
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
 
