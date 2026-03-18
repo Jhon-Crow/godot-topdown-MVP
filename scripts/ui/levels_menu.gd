@@ -555,5 +555,11 @@ func _on_level_selected(level_path: String) -> void:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause"):
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()

@@ -115,5 +115,11 @@ func _on_sub_back(sub_menu: CanvasLayer, focus_button: Button) -> void:
 	focus_button.grab_focus()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause") and menu_container.visible:
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
