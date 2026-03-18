@@ -882,7 +882,10 @@ func _on_enemy_died() -> void:
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies in room %d eliminated!" % (_current_room_idx + 1))
 		_room_cleared = true
-		call_deferred("_spawn_treasure_pedestal")
+		# Pedestal only appears after the LAST room (after clearing the full stage/level).
+		# Bug fix #1166: previously appeared after every room.
+		if _current_room_idx + 1 >= _total_rooms:
+			call_deferred("_spawn_treasure_pedestal")
 		call_deferred("_activate_exit_zone")
 
 
@@ -1039,7 +1042,9 @@ func _spawn_treasure_pedestal() -> void:
 	pedestal.name = "TreasurePedestal"
 	pedestal.collision_layer = 0
 	pedestal.collision_mask = 1   # Detect player CharacterBody2D (layer 1)
-	pedestal.monitoring = true
+	# Bug fix #1166 (Bug 2): keep monitoring disabled until after add_child so that
+	# body_entered fires correctly even if the player already overlaps the area.
+	pedestal.monitoring = false
 
 	# Position at room centre
 	pedestal.position = Vector2(ROOM_WIDTH * 0.5, ROOM_HEIGHT * 0.5)
@@ -1058,15 +1063,36 @@ func _spawn_treasure_pedestal() -> void:
 	base.position = Vector2(-PEDESTAL_SIZE * 0.5, PEDESTAL_SIZE * 0.1)
 	pedestal.add_child(base)
 
-	# Visual: glowing orb representing the item
-	var orb := ColorRect.new()
-	orb.size    = Vector2(PEDESTAL_SIZE * 0.55, PEDESTAL_SIZE * 0.55)
-	orb.color   = PEDESTAL_ITEM_GLOW
-	orb.position = Vector2(-PEDESTAL_SIZE * 0.275, -PEDESTAL_SIZE * 0.55)
-	pedestal.add_child(orb)
+	# Visual: item icon — Bug fix #1166 (Bug 3): show actual icon texture without
+	# background instead of a plain coloured square.
+	var icon_path: String = ""
+	if item == "weapon":
+		icon_path = "res://assets/sprites/weapons/weapon_case_icon.png"
+	elif item is int and ActiveItemManager:
+		icon_path = ActiveItemManager.get_active_item_icon_path(item)
+
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		var icon_tex: Texture2D = load(icon_path)
+		var icon_rect := TextureRect.new()
+		icon_rect.texture = icon_tex
+		icon_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var icon_size := Vector2(PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.75)
+		icon_rect.custom_minimum_size = icon_size
+		icon_rect.size = icon_size
+		icon_rect.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 0.75)
+		pedestal.add_child(icon_rect)
+	else:
+		# Fallback: coloured orb if icon not found
+		var orb := ColorRect.new()
+		orb.size    = Vector2(PEDESTAL_SIZE * 0.55, PEDESTAL_SIZE * 0.55)
+		orb.color   = PEDESTAL_ITEM_GLOW
+		orb.position = Vector2(-PEDESTAL_SIZE * 0.275, -PEDESTAL_SIZE * 0.55)
+		pedestal.add_child(orb)
 
 	# Label: item name
 	var label := Label.new()
+	label.name = "ItemLabel"
 	label.add_theme_font_size_override("font_size", 12)
 	label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.6, 1.0))
 	label.text = _pedestal_item_label(item)
@@ -1090,6 +1116,8 @@ func _spawn_treasure_pedestal() -> void:
 
 	add_child(pedestal)
 	_treasure_pedestal = pedestal
+	# Enable monitoring after add_child so body_entered fires for existing overlaps
+	pedestal.set_deferred("monitoring", true)
 
 	print("[RoguelikeLevel] Treasure pedestal spawned: %s" % _pedestal_item_label(item))
 
@@ -1194,12 +1222,10 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 			# Update pedestal to offer the displaced item
 			pedestal.set_meta("pedestal_item", old_type)
 			_pedestal_item = old_type
-			# Update labels
-			for child in pedestal.get_children():
-				if child is Label:
-					var lbl: Label = child
-					if lbl.position.y < 0:  # Item name label (above the orb)
-						lbl.text = _pedestal_item_label(old_type)
+			# Update item name label (identified by its name set during spawn)
+			var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
+			if item_lbl:
+				item_lbl.text = _pedestal_item_label(old_type)
 			print("[RoguelikeLevel] Displaced item '%s' placed back on pedestal" %
 				ActiveItemManager.get_active_item_name(old_type))
 		else:

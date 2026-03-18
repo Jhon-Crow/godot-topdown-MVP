@@ -7,6 +7,7 @@ extends GutTest
 ##  - Active item swap (displaced item returned to pedestal)
 ##  - Weapon pedestal (new weapon applied, pedestal removed)
 ##  - Same-item dedup (no-op when player already has the item)
+##  - Pedestal only spawns on the last room (Bug fix #1166 comment 4080211471)
 ##
 ## Issue #1166.
 
@@ -111,9 +112,20 @@ class MockRoguelikeLevel:
 	## Whether ApplySelectedWeaponFromGameManager was called on mock player.
 	var weapon_applied: bool = false
 
+	## Room tracking for pedestal-spawn logic (Bug fix #1166).
+	var current_room_idx: int = 0
+	var total_rooms: int = 3
+	## Whether _spawn_treasure_pedestal was requested.
+	var pedestal_spawn_requested: bool = false
+
 	func _init(aim: MockActiveItemManager, gm: MockGameManager) -> void:
 		active_item_manager = aim
 		game_manager = gm
+
+	## Mirrors _on_enemy_died pedestal-spawn condition (Bug fix #1166).
+	## Returns true if pedestal should spawn (only on last room).
+	func should_spawn_pedestal_on_room_clear() -> bool:
+		return current_room_idx + 1 >= total_rooms
 
 	func _pedestal_item_label(item) -> String:
 		if item == "weapon":
@@ -338,3 +350,59 @@ func test_item_label_none_returns_none_name() -> void:
 	var level := _make_level()
 	assert_eq(level._pedestal_item_label(0), "None",
 		"Type 0 (NONE) label should be 'None'")
+
+
+# ============================================================================
+# Tests — pedestal only spawns on the last room (Bug fix #1166 comment 4080211471)
+# ============================================================================
+
+
+func test_pedestal_does_not_spawn_on_intermediate_rooms() -> void:
+	## Bug fix: pedestal previously spawned after every room clear.
+	## Now it should only spawn after the LAST room.
+	var level := _make_level()
+	level.total_rooms = 3
+
+	# Clearing room 0 (not the last)
+	level.current_room_idx = 0
+	assert_false(level.should_spawn_pedestal_on_room_clear(),
+		"Pedestal should NOT spawn after room 1 of 3")
+
+	# Clearing room 1 (not the last)
+	level.current_room_idx = 1
+	assert_false(level.should_spawn_pedestal_on_room_clear(),
+		"Pedestal should NOT spawn after room 2 of 3")
+
+
+func test_pedestal_spawns_on_last_room() -> void:
+	## Pedestal must spawn when the last room is cleared.
+	var level := _make_level()
+	level.total_rooms = 3
+
+	level.current_room_idx = 2  # Last room (0-based)
+	assert_true(level.should_spawn_pedestal_on_room_clear(),
+		"Pedestal MUST spawn after clearing the last room (room 3 of 3)")
+
+
+func test_pedestal_spawns_on_last_room_single_room_run() -> void:
+	## Edge case: a single-room run — pedestal spawns immediately.
+	var level := _make_level()
+	level.total_rooms = 1
+	level.current_room_idx = 0
+	assert_true(level.should_spawn_pedestal_on_room_clear(),
+		"Pedestal must spawn on the only room in a 1-room run")
+
+
+func test_pedestal_spawns_on_last_room_five_room_run() -> void:
+	## Edge case: max 5-room run — only last room triggers pedestal.
+	var level := _make_level()
+	level.total_rooms = 5
+
+	for idx in range(4):  # Rooms 0–3 are not last
+		level.current_room_idx = idx
+		assert_false(level.should_spawn_pedestal_on_room_clear(),
+			"Pedestal should NOT spawn at room %d of 5" % (idx + 1))
+
+	level.current_room_idx = 4  # Room 5 is the last
+	assert_true(level.should_spawn_pedestal_on_room_clear(),
+		"Pedestal must spawn after room 5 of 5")
