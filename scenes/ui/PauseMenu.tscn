@@ -67,6 +67,16 @@ custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Training"
 
+[node name="RoguelikeButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Рогалик"
+
+[node name="ArenaButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Arena"
+
 [node name="SettingsButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2

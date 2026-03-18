@@ -371,8 +371,8 @@ func _build_bolt_polyline(start: Vector2, end_pt: Vector2,
 func _lerp_along_bolt(points: PackedVector2Array, t: float) -> Vector2:
 	if points.size() < 2:
 		return Vector2.ZERO
-	var idx := clamp(int(t * float(points.size() - 1)), 0, points.size() - 2)
-	var local_t := (t * float(points.size() - 1)) - float(idx)
+	var idx: int = clamp(int(t * float(points.size() - 1)), 0, points.size() - 2)
+	var local_t: float = (t * float(points.size() - 1)) - float(idx)
 	return points[idx].lerp(points[idx + 1], local_t)
 
 
@@ -388,7 +388,7 @@ func _hash(n: float) -> float:
 
 
 func _smooth_noise_1d(t: float, s: float) -> float:
-	var i := floor(t)
+	var i: float = floor(t)
 	var f := fmod(t, 1.0)
 	var a := _hash(i + s * 37.3)
 	var b := _hash(i + 1.0 + s * 37.3)
@@ -462,17 +462,17 @@ class _LightningBoltDrawer extends Node2D:
 			var base_width: float = bolt["width"]
 
 			# Outer glow: wider, blue-white, softer
-			var glow_alpha := clamp(cf * intensity * 0.5, 0.0, 1.0)
+			var glow_alpha: float = clamp(cf * intensity * 0.5, 0.0, 1.0)
 			var glow_color := Color(0.5, 0.65, 1.0, glow_alpha)
 			draw_polyline(points, glow_color, base_width * 4.0, true)
 
 			# Mid glow: medium width, brighter blue-white
-			var mid_alpha := clamp(cf * intensity * 0.75, 0.0, 1.0)
+			var mid_alpha: float = clamp(cf * intensity * 0.75, 0.0, 1.0)
 			var mid_color := Color(0.7, 0.82, 1.0, mid_alpha)
 			draw_polyline(points, mid_color, base_width * 2.0, true)
 
 			# Core: narrow, near-white
-			var core_alpha := clamp(cf * intensity, 0.0, 1.0)
+			var core_alpha: float = clamp(cf * intensity, 0.0, 1.0)
 			var core_color := Color(0.95, 0.97, 1.0, core_alpha)
 			draw_polyline(points, core_color, base_width, true)
 
@@ -481,7 +481,7 @@ class _LightningBoltDrawer extends Node2D:
 			var first_points: PackedVector2Array = bolt_data[0]["points"]
 			if first_points.size() > 0:
 				var origin: Vector2 = first_points[0]
-				var corona_alpha := clamp(intensity * 0.35, 0.0, 1.0)
+				var corona_alpha: float = clamp(intensity * 0.35, 0.0, 1.0)
 				# Large soft corona
 				draw_circle(origin, 60.0, Color(0.55, 0.70, 1.0, corona_alpha * 0.3))
 				draw_circle(origin, 25.0, Color(0.75, 0.85, 1.0, corona_alpha * 0.6))
