@@ -298,10 +298,6 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 			print("[ImpactEffectsManager] Dust effect skipped - pool exhausted (concurrent limit reached)")
 		return
 
-	# Reset emitting=false first to allow re-triggering a one-shot effect from the pool.
-	# Setting emitting=true on an already-finished one-shot restarts the cycle correctly.
-	effect.emitting = false
-
 	effect.global_position = position
 
 	# Rotate effect to face away from surface (in the direction of the normal)
@@ -316,8 +312,11 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 	# Make visible (node stays as child of autoload — same approach as explosion light pool).
 	effect.visible = true
 
-	# Start emitting
-	effect.emitting = true
+	# Use restart() to re-trigger a pooled one-shot effect.
+	# Toggling emitting=false/true is unreliable: Godot bug #58778 causes emissions to be
+	# silently dropped when the GPU-side inactive_time window has not yet expired after the
+	# previous one-shot cycle. restart() bypasses that window and always starts a fresh cycle.
+	effect.restart()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Dust effect spawned from pool successfully")

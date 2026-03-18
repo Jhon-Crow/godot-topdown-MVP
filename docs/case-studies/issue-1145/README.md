@@ -19,6 +19,7 @@
 | `game_log_20260318_081028.txt` | Session 2 | All drops from shader warmup/scene load; 0 listeners, no gameplay drops |
 | `game_log_20260318_083455.txt` | Session 3 | Old build; 1 drop at 22fps during scene load; shooting with 0 listeners, no gameplay drops |
 | `logs/game_log_20260318_085720.txt` | Session 4 | **Fixed EMPTY_CLICK build confirmed** — no empty-click drops; **new finding**: 29fps drop during 32-bullet wall-shooting burst confirms DustEffect instantiation as remaining root cause |
+| `game_log_20260318_094946.txt` | Session 5 | **Fixed pool build confirmed** — FPS stable during shooting; **new finding**: dust effect invisible due to Godot bug #58778; **new finding**: blood decal FPS drops on large map with 20 enemies |
 
 ---
 
@@ -238,7 +239,7 @@ effect.emitting = true
 - After 2.5s, up to 37 concurrent nodes active: 37 × 25 particles = 925 active particles
 - Without a pool, each `instantiate()` also allocates GPU resource IDs → CPU stall
 
-**Fix applied**: Pre-allocate 16 `GPUParticles2D` nodes in a pool at startup (same pattern as explosion light pool from Issue #724). Reuse by repositioning and resetting `emitting`. Hard cap: 16 concurrent effects max (vs. unlimited before).
+**Fix applied**: Pre-allocate 16 `GPUParticles2D` nodes in a pool at startup (same pattern as explosion light pool from Issue #724). Reuse by repositioning and calling `restart()`. Hard cap: 16 concurrent effects max (vs. unlimited before).
 
 ```gdscript
 # After fix: pool reuse, no allocation during gameplay
@@ -247,8 +248,7 @@ if effect == null:
     return  # Cap reached — skip extra dust effect
 effect.global_position = position
 effect.rotation = surface_normal.angle()
-effect.emitting = false  # Reset one-shot cycle
-effect.emitting = true   # Re-trigger
+effect.restart()  # Re-trigger (see Session 5 / Godot bug #58778 below)
 # Timer-based return to pool after 3.5s instead of queue_free()
 ```
 
@@ -256,6 +256,44 @@ effect.emitting = true   # Re-trigger
 - 20 GUNSHOTS in 1 second → 29fps drop 2 seconds later
 - No EMPTY_CLICK events in log → EMPTY_CLICK fix confirmed working
 - First GUNSHOT: 10 listeners immediately cleaned up → no sound propagation overhead
+
+### Session 5 — Log: `game_log_20260318_094946.txt`
+
+| Time | Event |
+|------|-------|
+| 09:49:46 | Game start. Dust pool initialized (16 nodes). Explosion light pool initialized (12 nodes). |
+| 09:49:47 | Particle shader warmup complete (1035 ms). |
+| 09:49:57–09:49:59 | Player fires Mini UZI at wall (28 shots, `listeners=0`). **No FPS drops**. Pool fix working. |
+| 09:50:01 | Scene changed (twice). |
+| 09:50:20–09:50:37 | Player fighting 20 enemies on large map. FPS drops: 24fps, 16fps, 7fps, 6fps. All drops correlate with `Blood decals scheduled: 15/30` log entries — NOT with wall hits. |
+
+**Key observations for Session 5**:
+1. **No FPS drops during wall shooting** — DustEffect pool fix confirmed working. 28 shots in 2 seconds, 60fps maintained.
+2. **Dust effect invisible** — confirmed by user ("no dust effect"). Root cause: Godot bug #58778 (see below).
+3. **FPS drops on large map** — caused by `_spawn_blood_decals_at_particle_landing()` spawning 15–30 `await`-based delayed raycasts per enemy hit, running concurrently across 20 enemies. This is a **separate pre-existing issue** unrelated to wall-shooting.
+
+### Root Cause 4 (Session 5): Dust Effect Invisible Due to Godot Bug #58778
+
+**File**: `scripts/autoload/impact_effects_manager.gd` — `spawn_dust_effect()`
+
+The initial pool implementation used `emitting = false` then `emitting = true` to restart the one-shot particle effect. This was **unreliable** due to [Godot bug #58778](https://github.com/godotengine/godot/issues/58778):
+
+> "Cannot emit one-shot particles right after it's disabled automatically"
+>
+> With `one_shot = true` and `explosiveness > 0`, there is a mandatory GPU-side inactive timer after the system auto-deactivates. Setting `emitting = true` during this window is **silently dropped** — the node repositions correctly but emits zero particles.
+
+DustEffect.tscn has `explosiveness = 0.85` (burst mode), which makes it especially prone to this bug.
+
+```gdscript
+# Before Session 5 fix: unreliable — emitting=true silently dropped during inactive_time
+effect.emitting = false
+effect.emitting = true  # ← BUG #58778: may emit 0 particles
+
+# After Session 5 fix: restart() bypasses inactive_time window
+effect.restart()  # ← always starts a fresh cycle
+```
+
+`restart()` is the official workaround documented in Godot bug #58778 comments. It bypasses the inactive time accounting and always starts a fresh one-shot cycle.
 
 **Online research confirming this root cause**:
 - [Godot #103308](https://github.com/godotengine/godot/issues/103308): "Brief stutter/pause when emitting GPUParticles2D for the first time"
@@ -271,6 +309,7 @@ effect.emitting = true   # Re-trigger
 | `scripts/projectiles/bullet.gd` | Cache `_get_surface_normal()` result; pass to `_spawn_wall_hit_effect()` and `_try_ricochet()` | 50% fewer raycasts per bullet-wall hit |
 | `scripts/autoload/sound_propagation.gd` | Add `EMPTY_CLICK_PROPAGATION_COOLDOWN = 0.4s` throttle to `emit_player_empty_click()` | 97% fewer enemy callbacks when holding empty trigger |
 | `scripts/autoload/impact_effects_manager.gd` | DustEffect object pool (16 pre-allocated nodes, max 16 concurrent) replacing per-hit `instantiate()` | Eliminates first-emit stutters; bounds GPU particle load |
+| `scripts/autoload/impact_effects_manager.gd` | Use `restart()` instead of `emitting=false/true` to re-trigger pooled one-shot particles | Fixes invisible dust effect (Godot bug #58778: emitting=true silently dropped during inactive_time) |
 
 ---
 
@@ -285,3 +324,5 @@ effect.emitting = true   # Re-trigger
 - [Godot Forum: Multithreading intersect_ray raycasts](https://forum.godotengine.org/t/multithreading-intersect-ray-raycasts/52663)
 - [Issue #969: CASING_KICK throttling](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/969)
 - [Issue #343: Shader warmup](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/343)
+- [Godot #58778: Cannot emit one-shot particles right after auto-disable (inactive_time window bug)](https://github.com/godotengine/godot/issues/58778)
+- [Godot #83599: Particle system one-shot issues — restart() workaround](https://github.com/godotengine/godot/issues/83599)
