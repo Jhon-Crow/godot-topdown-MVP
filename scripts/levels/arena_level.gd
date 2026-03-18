@@ -51,6 +51,9 @@ const HEALTH_PICKUPS_PER_WAVE: int = 2
 ## Number of ammo pickups to spawn between waves.
 const AMMO_PICKUPS_PER_WAVE: int = 2
 
+## Number of grenade pickups to spawn between waves (F-1 grenades).
+const GRENADE_PICKUPS_PER_WAVE: int = 1
+
 ## Whether a weapon pickup spawns between waves (every other wave).
 const WEAPON_PICKUP_WAVE_INTERVAL: int = 2
 
@@ -252,6 +255,14 @@ func _spawn_wave_enemies() -> void:
 
 ## Called when an enemy dies during a wave.
 func _on_enemy_died() -> void:
+	# Guard: only process enemy deaths while a wave is in progress.
+	# Without this guard, enemies that die during the inter-wave cooldown (or
+	# from previous waves whose signals are still connected) would decrement
+	# _enemies_alive below zero and trigger _end_wave() multiple times, which
+	# caused _spawn_wave_pickups() to be called 7+ times per wave.
+	if not _wave_in_progress:
+		return
+
 	_enemies_alive -= 1
 	_update_enemy_count_label()
 
@@ -424,15 +435,41 @@ func _spawn_wave_pickups() -> void:
 	for i in range(AMMO_PICKUPS_PER_WAVE):
 		_spawn_pickup("ammo")
 
+	# Spawn grenade pickups.
+	for i in range(GRENADE_PICKUPS_PER_WAVE):
+		_spawn_pickup("grenade")
+
 	# Spawn weapon pickup every WEAPON_PICKUP_WAVE_INTERVAL waves.
 	if _wave_number % WEAPON_PICKUP_WAVE_INTERVAL == 0:
 		_spawn_pickup("weapon")
 
+	# Spawn active item charge pickup if the player has a charge-based active item.
+	_maybe_spawn_active_item_charge_pickup()
+
+	_log_to_file("Spawned pickups for wave %d" % _wave_number)
 	print("[ArenaLevel] Spawned pickups for wave %d" % _wave_number)
 
 
+## Spawn an active item charge pickup if the player's current active item uses charges.
+func _maybe_spawn_active_item_charge_pickup() -> void:
+	if ActiveItemManager == null:
+		return
+	var item_type: int = ActiveItemManager.current_active_item
+	# ActiveItemType.NONE = 0; skip items with unlimited charges (laser sight, flashlight, etc.)
+	var charge_based_items: Array[int] = [
+		2,  # HOMING_BULLETS
+		3,  # TELEPORT_BRACERS
+		5,  # INVISIBILITY_SUIT
+		8,  # TRAJECTORY_GLASSES
+		10, # LOUDSPEAKER
+		11, # BREACHING_CHARGES
+	]
+	if item_type in charge_based_items:
+		_spawn_pickup("active_item_charge")
+
+
 ## Create and place a pickup of the given type.
-## @param pickup_type: "health", "ammo", or "weapon"
+## @param pickup_type: "health", "ammo", "weapon", "grenade", or "active_item_charge"
 func _spawn_pickup(pickup_type: String) -> void:
 	if _pickup_spawn_points.is_empty():
 		return
@@ -445,16 +482,21 @@ func _spawn_pickup(pickup_type: String) -> void:
 	)
 
 	# Build the pickup node.
+	# Use collision_layer = 1 so the Area2D sits on the same physics layer as
+	# other interactables; collision_mask = 1 so it detects the player's body
+	# (CharacterBody2D is on layer 1 in all arena scenes).
 	var pickup := Area2D.new()
 	pickup.name = "Pickup_%s_%d" % [pickup_type, randi()]
-	pickup.collision_layer = 0
-	pickup.collision_mask = 1  # Detect player (layer 1)
+	pickup.collision_layer = 1
+	pickup.collision_mask = 1  # Detect player CharacterBody2D (layer 1)
+	pickup.monitoring = true
+	pickup.monitorable = true
 	pickup.global_position = pos
 
 	# Add collision shape.
 	var col := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
-	shape.radius = 24.0
+	shape.radius = 28.0
 	col.shape = shape
 	pickup.add_child(col)
 
@@ -469,14 +511,18 @@ func _spawn_pickup(pickup_type: String) -> void:
 			visual.color = Color(0.95, 0.85, 0.1, 0.85)
 		"weapon":
 			visual.color = Color(0.1, 0.8, 0.95, 0.85)
+		"grenade":
+			visual.color = Color(0.9, 0.3, 0.1, 0.85)
+		"active_item_charge":
+			visual.color = Color(0.8, 0.2, 0.9, 0.85)
 	pickup.add_child(visual)
 
 	# Add label.
 	var lbl := Label.new()
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.size = Vector2(40, 20)
-	lbl.position = Vector2(-20, -28)
+	lbl.size = Vector2(50, 20)
+	lbl.position = Vector2(-25, -28)
 	lbl.add_theme_font_size_override("font_size", 11)
 	match pickup_type:
 		"health":
@@ -488,20 +534,23 @@ func _spawn_pickup(pickup_type: String) -> void:
 		"weapon":
 			lbl.text = "+WPN"
 			lbl.add_theme_color_override("font_color", Color(0.1, 0.9, 1.0, 1.0))
+		"grenade":
+			lbl.text = "+GRN"
+			lbl.add_theme_color_override("font_color", Color(1.0, 0.5, 0.1, 1.0))
+		"active_item_charge":
+			lbl.text = "+CHG"
+			lbl.add_theme_color_override("font_color", Color(0.9, 0.4, 1.0, 1.0))
 	pickup.add_child(lbl)
 
 	# Store the type for use in the signal callback.
 	pickup.set_meta("pickup_type", pickup_type)
 
-	# Connect signal.
+	# Connect signal — use body_entered so CharacterBody2D (player) triggers it.
 	pickup.body_entered.connect(_on_pickup_body_entered.bind(pickup))
 
-	# Add to scene.
-	var environment := get_node_or_null("Environment")
-	if environment:
-		environment.add_child(pickup)
-	else:
-		add_child(pickup)
+	# Add to scene root (not Environment) so the Area2D's global_position is
+	# unaffected by any parent transform and physics works correctly.
+	add_child(pickup)
 
 	_pickups.append(pickup)
 
@@ -516,6 +565,8 @@ func _spawn_pickup(pickup_type: String) -> void:
 ## Called when a body enters a pickup area.
 func _on_pickup_body_entered(pickup: Area2D, body: Node2D) -> void:
 	# Only the player should collect pickups.
+	# The C# Player is a CharacterBody2D named "Player" and is NOT in a group,
+	# so we check the node name. We also accept the "player" group as a fallback.
 	if body.name != "Player" and not body.is_in_group("player"):
 		return
 
@@ -523,6 +574,7 @@ func _on_pickup_body_entered(pickup: Area2D, body: Node2D) -> void:
 		return
 
 	var pickup_type: String = pickup.get_meta("pickup_type", "")
+	_log_to_file("Pickup collected: %s by %s" % [pickup_type, body.name])
 	match pickup_type:
 		"health":
 			_apply_health_pickup(body)
@@ -530,6 +582,10 @@ func _on_pickup_body_entered(pickup: Area2D, body: Node2D) -> void:
 			_apply_ammo_pickup(body)
 		"weapon":
 			_apply_weapon_pickup(body)
+		"grenade":
+			_apply_grenade_pickup(body)
+		"active_item_charge":
+			_apply_active_item_charge_pickup(body)
 
 	pickup.queue_free()
 	_pickups = _pickups.filter(func(p): return is_instance_valid(p))
@@ -553,21 +609,98 @@ func _apply_health_pickup(player: Node2D) -> void:
 
 
 ## Add ammo to the player's active weapon.
+## For AK+GL (AKGL): also restores the underbarrel grenade launcher round.
 func _apply_ammo_pickup(player: Node2D) -> void:
 	# Find the active weapon on the player.
 	var weapon := _find_player_weapon(player)
 	if weapon == null:
 		print("[ArenaLevel] Ammo pickup: no weapon found on player")
+		_log_to_file("Ammo pickup: no weapon found on player")
 		return
 
 	# Add 2 magazines worth of ammo.
 	if weapon.has_method("AddAmmo"):
 		var mag_size: int = weapon.get("MagazineSize") if weapon.get("MagazineSize") != null else 30
+		if mag_size <= 0:
+			mag_size = 30
 		weapon.AddAmmo(mag_size * 2)
 		print("[ArenaLevel] Ammo pickup collected: +%d rounds" % (mag_size * 2))
 		_log_to_file("Ammo pickup collected: +%d" % (mag_size * 2))
 	else:
 		push_warning("[ArenaLevel] Ammo pickup: weapon has no AddAmmo method")
+
+	# For AK+GL: ammo pickup also restores the underbarrel grenade launcher.
+	# The launcher holds 1 VOG-25 grenade; picking up ammo replenishes it.
+	if weapon.name == "AKGL" and weapon.get("GrenadeAvailable") == false:
+		weapon.set("GrenadeAvailable", true)
+		print("[ArenaLevel] Ammo pickup: AKGL grenade launcher restored")
+		_log_to_file("Ammo pickup: AKGL grenade launcher restored")
+
+
+## Add grenades to the player (F-1 frag grenades for throwing).
+func _apply_grenade_pickup(player: Node2D) -> void:
+	# C# Player exposes AddGrenades(int) for programmatic grenade refills.
+	if player.has_method("AddGrenades"):
+		player.AddGrenades(1)
+		print("[ArenaLevel] Grenade pickup collected: +1 grenade")
+		_log_to_file("Grenade pickup collected: +1")
+	elif player.has_method("add_grenades"):
+		player.add_grenades(1)
+	else:
+		push_warning("[ArenaLevel] Grenade pickup: player has no AddGrenades method")
+
+
+## Restore one charge to the player's current active item (charge-based items only).
+func _apply_active_item_charge_pickup(player: Node2D) -> void:
+	if ActiveItemManager == null:
+		return
+	var item_type: int = ActiveItemManager.current_active_item
+
+	match item_type:
+		2:  # HOMING_BULLETS — restore via player field
+			var current: int = player.get("_homingCharges") if player.get("_homingCharges") != null else 0
+			var max_val: int = player.get("MaxHomingCharges") if player.get("MaxHomingCharges") != null else 2
+			if current < max_val:
+				player.set("_homingCharges", min(current + 1, max_val))
+				print("[ArenaLevel] Active item charge pickup: homing +1")
+				_log_to_file("Active item charge pickup: homing +1")
+		3:  # TELEPORT_BRACERS
+			var current: int = player.get("_teleportCharges") if player.get("_teleportCharges") != null else 0
+			var max_val: int = player.get("MaxTeleportCharges") if player.get("MaxTeleportCharges") != null else 6
+			if current < max_val:
+				player.set("_teleportCharges", min(current + 1, max_val))
+				print("[ArenaLevel] Active item charge pickup: teleport +1")
+				_log_to_file("Active item charge pickup: teleport +1")
+		5:  # INVISIBILITY_SUIT — managed by the effect node
+			var effect := player.get_node_or_null("InvisibilitySuitEffect")
+			if effect and effect.has_method("add_charge"):
+				effect.add_charge(1)
+				print("[ArenaLevel] Active item charge pickup: invisibility +1")
+				_log_to_file("Active item charge pickup: invisibility +1")
+		8:  # TRAJECTORY_GLASSES
+			var effect := player.get_node_or_null("TrajectoryGlassesEffect")
+			if effect and effect.has_method("add_charge"):
+				effect.add_charge(1)
+				print("[ArenaLevel] Active item charge pickup: trajectory +1")
+				_log_to_file("Active item charge pickup: trajectory +1")
+		10: # LOUDSPEAKER — charges managed via LoudspeakerProgress node
+			var loudspeaker_progress := player.get_node_or_null("LoudspeakerProgress")
+			if loudspeaker_progress:
+				var current: int = loudspeaker_progress.get("charges_remaining") if loudspeaker_progress.get("charges_remaining") != null else 0
+				var max_val: int = loudspeaker_progress.call("get_max_charges") if loudspeaker_progress.has_method("get_max_charges") else 2
+				if max_val > 0 and current < max_val:
+					loudspeaker_progress.set("charges_remaining", min(current + 1, max_val))
+					print("[ArenaLevel] Active item charge pickup: loudspeaker +1")
+					_log_to_file("Active item charge pickup: loudspeaker +1")
+		11: # BREACHING_CHARGES — restore via player field
+			var current: int = player.get("_breachingChargesRemaining") if player.get("_breachingChargesRemaining") != null else 0
+			var max_val: int = 2
+			if current < max_val:
+				player.set("_breachingChargesRemaining", min(current + 1, max_val))
+				print("[ArenaLevel] Active item charge pickup: breaching charges +1")
+				_log_to_file("Active item charge pickup: breaching charges +1")
+		_:
+			print("[ArenaLevel] Active item charge pickup: item %d has no charge system" % item_type)
 
 
 ## Swap the player's weapon for a random unlocked weapon.
@@ -601,7 +734,17 @@ func _apply_weapon_pickup(player: Node2D) -> void:
 
 
 ## Find the currently active weapon node on the player.
+## Prefers the C# Player's CurrentWeapon property to avoid returning a stale
+## first weapon when the player has been equipped with a different weapon since
+## construction (e.g. after ApplySelectedWeaponFromGameManager replaced MakarovPM
+## with AKGL — searching by name would still find any renamed duplicate "AKGL2").
 func _find_player_weapon(player: Node2D) -> Node:
+	# Primary: use the C# Player.CurrentWeapon property (always the active weapon).
+	var current := player.get("CurrentWeapon")
+	if current != null and is_instance_valid(current):
+		return current
+
+	# Fallback: search child nodes by known weapon names.
 	var weapon_names: Array[String] = [
 		"AssaultRifle", "Shotgun", "MiniUzi", "SilencedPistol",
 		"SniperRifle", "AKGL", "Revolver", "MakarovPM"
@@ -662,9 +805,13 @@ func _setup_player_tracking() -> void:
 	# Add realistic visibility component.
 	_setup_realistic_visibility()
 
-	# Equip selected weapon from GameManager.
-	if _player.has_method("ApplySelectedWeaponFromGameManager"):
-		_player.ApplySelectedWeaponFromGameManager()
+	# NOTE: Do NOT call _player.ApplySelectedWeaponFromGameManager() here.
+	# The C# Player._Ready() already calls it, so a second call would create a
+	# duplicate weapon node (e.g. "AKGL2") because Godot auto-renames nodes with
+	# the same name. _find_player_weapon would then find the stale first node,
+	# and AmmoChanged / Fired signals would be connected to the wrong weapon,
+	# causing all counters (ammo, magazines) to never update for non-PM weapons.
+	# See labyrinth_level.gd for the same fix (comment at line 1447).
 
 	# Register player with GameManager.
 	if GameManager:
@@ -676,12 +823,32 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 
+	# Connect health signals for real-time HP counter updates.
+	# Using call_deferred so the C# HealthComponent is fully initialized.
+	call_deferred("_connect_health_signals_deferred")
+
 	# Connect weapon signals after a deferred frame so the C# Player has finished
 	# its own _ready and ApplySelectedWeaponFromGameManager — otherwise we may
 	# connect to the old default weapon node that gets replaced on the next frame.
 	call_deferred("_connect_weapon_signals_deferred")
 
 	print("[ArenaLevel] Player tracking setup complete")
+
+
+## Connect player health signals for real-time HP label updates.
+## The C# Healed and Damaged signals fire immediately when HP changes, so the
+## arena HP counter updates without waiting for the next enemy count poll.
+func _connect_health_signals_deferred() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	if _player.has_signal("Healed"):
+		if not _player.Healed.is_connected(_on_player_healed):
+			_player.Healed.connect(_on_player_healed)
+	if _player.has_signal("Damaged"):
+		if not _player.Damaged.is_connected(_on_player_damaged):
+			_player.Damaged.connect(_on_player_damaged)
+	_update_health_label()
+	print("[ArenaLevel] Health signals connected")
 
 
 ## Connect weapon signals after a deferred frame so the C# Player has finished
@@ -965,6 +1132,30 @@ func _on_enemy_hit() -> void:
 func _on_shot_fired() -> void:
 	if GameManager:
 		GameManager.register_shot()
+
+
+## Called when the player takes damage (C# Damaged signal: amount, currentHealth).
+func _on_player_damaged(_amount: float, current_health: float) -> void:
+	if _health_label == null:
+		return
+	var max_health: float = 0.0
+	if _player:
+		var hc := _player.get_node_or_null("HealthComponent")
+		if hc:
+			max_health = hc.get("MaxHealth") if hc.get("MaxHealth") != null else 0.0
+	_health_label.text = "Здоровье: %d/%d" % [int(current_health), int(max_health)]
+
+
+## Called when the player heals (C# Healed signal: amount, currentHealth).
+func _on_player_healed(_amount: float, current_health: float) -> void:
+	if _health_label == null:
+		return
+	var max_health: float = 0.0
+	if _player:
+		var hc := _player.get_node_or_null("HealthComponent")
+		if hc:
+			max_health = hc.get("MaxHealth") if hc.get("MaxHealth") != null else 0.0
+	_health_label.text = "Здоровье: %d/%d" % [int(current_health), int(max_health)]
 
 
 ## Called when player ammo changes (C# weapon).

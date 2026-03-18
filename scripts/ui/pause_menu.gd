@@ -15,6 +15,7 @@ extends CanvasLayer
 @onready var armory_button: Button = $MenuContainer/VBoxContainer/ArmoryButton
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var training_button: Button = $MenuContainer/VBoxContainer/TrainingButton
+@onready var arena_button: Button = $MenuContainer/VBoxContainer/ArenaButton
 @onready var sound_button: Button = $MenuContainer/VBoxContainer/SoundButton
 @onready var gameplay_button: Button = $MenuContainer/VBoxContainer/GameplayButton
 @onready var experimental_button: Button = $MenuContainer/VBoxContainer/ExperimentalButton
@@ -72,6 +73,7 @@ func _ready() -> void:
 	armory_button.pressed.connect(_on_armory_pressed)
 	levels_button.pressed.connect(_on_levels_pressed)
 	training_button.pressed.connect(_on_training_pressed)
+	arena_button.pressed.connect(_on_arena_pressed)
 	sound_button.pressed.connect(_on_sound_pressed)
 	gameplay_button.pressed.connect(_on_gameplay_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
@@ -378,6 +380,19 @@ func _on_training_pressed() -> void:
 	if error != OK:
 		push_error("Failed to load tutorial level: %s" % error)
 		# Re-pause and show cursor if error occurs
+		get_tree().paused = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+func _on_arena_pressed() -> void:
+	# Load the Arena level directly (same pattern as Training button).
+	get_tree().paused = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	var arena_path: String = "res://scenes/levels/ArenaLevel.tscn"
+	var error := get_tree().change_scene_to_file(arena_path)
+	if error != OK:
+		push_error("Failed to load arena level: %s" % error)
 		get_tree().paused = true
 		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 

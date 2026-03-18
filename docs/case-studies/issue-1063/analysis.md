@@ -188,3 +188,89 @@ bottom-right corner. ±40px scatter around one point produced dense clustering.
 **Fix:** Sort spawn points by distance from player (farthest first), then pick randomly
 from the top half. This distributes enemies along all four walls while still keeping
 them away from the player's starting position.
+
+---
+
+## Round 2 Bug Fixes (Owner Feedback, 2026-03-18)
+
+Game logs provided: `game_log_20260318_025454.txt`, `game_log_20260318_030642.txt`, `game_log_20260318_031040.txt`
+
+### Bug 4 — Counters not working for all weapons except PM (second report)
+
+**Log evidence (03:10:48 session):**
+```
+[Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[Player.Weapon] Removed default MakarovPM
+[Player.Weapon] Equipped AKGL (ammo: 30/30)          ← first AKGL
+...
+[Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+[Player.Weapon] Equipped AKGL (ammo: 30/30)           ← second AKGL (duplicate!)
+```
+
+**Root Cause:** Despite the previous `call_deferred` fix, `_setup_player_tracking()` was
+still calling `_player.ApplySelectedWeaponFromGameManager()` explicitly. This created a
+**second** AKGL weapon node. Godot auto-renames it to "AKGL2". `_find_player_weapon` then
+found "AKGL" (the first, inactive node), connected `AmmoChanged` to it, but the player's
+`CurrentWeapon` was "AKGL2". All ammo changes fired through AKGL2's signal which had no
+listener, so counters stayed frozen.
+
+**Fix:** Removed the `_player.ApplySelectedWeaponFromGameManager()` call from
+`_setup_player_tracking()` (the C# Player._Ready() already calls it). Updated
+`_find_player_weapon` to first check `player.get("CurrentWeapon")` (always returns the
+active weapon), falling back to name-based search only if needed.
+
+### Bug 5 — HP counter not updating
+
+**Root Cause:** `_update_health_label()` was polled only when `_update_enemy_count_label()`
+or `_update_debug_ui()` fired. These are called on enemy death events, not on player heal
+events, so the HP label stayed stale after collecting a health pack.
+
+**Fix:** Connected to the C# `Damaged` and `Healed` signals on the player via
+`_connect_health_signals_deferred()` (called with `call_deferred` so the HealthComponent
+is fully initialized). Both handlers immediately update the HP label.
+
+### Bug 6 — Items not being picked up
+
+**Root Cause (primary):** `_on_enemy_died()` lacked a `if not _wave_in_progress: return`
+guard. Enemies from previous wave sessions (whose `died` signals survived a quick-restart
+scene reload) triggered repeated calls to `_end_wave()`, causing `_spawn_wave_pickups()` to
+fire 7+ times. The resulting pickup nodes were valid but the game was in an unstable state.
+
+**Log evidence (game_log_20260318_031040.txt):**
+```
+[ArenaLevel] Wave 1 complete   ← lines 1159, 1221, 1233, 1310, 1341, 1367, 1451
+```
+Wave 1 "completes" seven times because enemy death signals keep arriving from previous
+scene instances that share the same node IDs (Godot reuses freed object IDs).
+
+**Fix (primary):** Added `if not _wave_in_progress: return` at the start of
+`_on_enemy_died()`. Only deaths occurring while a wave is active are processed.
+
+**Fix (secondary):** Changed pickup `collision_layer` from 0 to 1 and set
+`monitoring = true` / `monitorable = true` explicitly. Moved pickup parent from
+`Environment` to root scene so global positions are unaffected by any parent transform.
+Added logging in `_on_pickup_body_entered` so future debug sessions can confirm detection.
+
+### New Feature 4 — Active item charge pickup
+
+When the player has a charge-based active item (Homing Bullets, Teleport Bracers,
+Invisibility Suit, Trajectory Glasses, Loudspeaker, Breaching Charges), a "+CHG" pickup
+now spawns between waves (purple). Each pickup restores 1 charge via the appropriate
+C#/GDScript property on the Player node.
+
+### New Feature 5 — Grenade launcher ammo restored by ammo pickup
+
+When the player uses AKGL and collects an ammo pickup, `AKGL.GrenadeAvailable` is
+restored to `true`. This matches the intuitive expectation that "getting ammo" also
+refills the launcher's single grenade round.
+
+### New Feature 6 — Grenade pickups
+
+1 grenade pickup (red "+GRN") now spawns between every wave. Collecting it calls
+`player.AddGrenades(1)` (C# method), adding 1 F-1 frag grenade up to the player's max.
+
+### New Feature 7 — Arena button in pause menu
+
+Arena mode is now directly accessible from the pause menu (alongside "Training"), 
+matching the owner's request to "вынеси арену в отдельный пункт меню (как в случае с Обучением)".
+A dedicated "Arena" button was added to `PauseMenu.tscn` and wired in `pause_menu.gd`.

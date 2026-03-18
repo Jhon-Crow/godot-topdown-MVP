@@ -2,7 +2,8 @@ extends GutTest
 ## Unit tests for arena_level.gd — Arena Mode.
 ##
 ## Tests wave progression, enemy spawning logic, pickup spawning,
-## health/ammo/weapon pickup application, and score-on-death.
+## health/ammo/weapon/grenade pickup application, wave-in-progress guard,
+## and score-on-death.
 ## All tests use a lightweight mock class and do not require a running Godot scene.
 ##
 ## Issue #1063.
@@ -22,6 +23,7 @@ class MockArenaLevel:
 	const FIRST_WAVE_DELAY: float = 2.0
 	const HEALTH_PICKUPS_PER_WAVE: int = 2
 	const AMMO_PICKUPS_PER_WAVE: int = 2
+	const GRENADE_PICKUPS_PER_WAVE: int = 1
 	const WEAPON_PICKUP_WAVE_INTERVAL: int = 2
 
 	## Current wave number.
@@ -74,7 +76,12 @@ class MockArenaLevel:
 		enemies_spawned_this_wave += 1
 
 	## Called when enemy dies.
+	## Guard: only process deaths while a wave is in progress to prevent
+	## _end_wave() from being called multiple times (bug fix #1063 round 2).
 	func on_enemy_died() -> void:
+		if not _wave_in_progress:
+			return
+
 		_enemies_alive -= 1
 
 		# Spawn additional if more remain.
@@ -98,6 +105,8 @@ class MockArenaLevel:
 			pickups_spawned.append("health")
 		for i in range(AMMO_PICKUPS_PER_WAVE):
 			pickups_spawned.append("ammo")
+		for i in range(GRENADE_PICKUPS_PER_WAVE):
+			pickups_spawned.append("grenade")
 		if _wave_number % WEAPON_PICKUP_WAVE_INTERVAL == 0:
 			pickups_spawned.append("weapon")
 
@@ -112,6 +121,15 @@ class MockArenaLevel:
 	## Apply weapon pickup (simulates weapon ID change).
 	func apply_weapon_pickup(new_weapon_id: String) -> void:
 		mock_player.weapon_id = new_weapon_id
+
+	## Apply grenade pickup (+1 grenade to player inventory).
+	func apply_grenade_pickup() -> void:
+		mock_player.grenades = mini(mock_player.grenades + 1, mock_player.max_grenades)
+
+	## Apply active item charge pickup (+1 charge if player has charge-based item).
+	func apply_active_item_charge_pickup() -> void:
+		if mock_player.active_item_charges < mock_player.max_active_item_charges:
+			mock_player.active_item_charges += 1
 
 	## Calculate enemies per wave.
 	func get_enemies_for_wave(wave: int) -> int:
@@ -142,6 +160,10 @@ class MockPlayer:
 	var max_health: int = 4
 	var reserve_ammo: int = 30
 	var weapon_id: String = "makarov_pm"
+	var grenades: int = 1
+	var max_grenades: int = 3
+	var active_item_charges: int = 1
+	var max_active_item_charges: int = 2
 
 
 # ============================================================================
@@ -227,17 +249,19 @@ func test_wave_ends_trigger_inter_wave_timer() -> void:
 # ============================================================================
 
 
-func test_wave_1_spawns_health_and_ammo_pickups_not_weapon() -> void:
+func test_wave_1_spawns_health_ammo_grenade_not_weapon() -> void:
 	var arena := MockArenaLevel.new()
 	arena.start_wave()
 	for i in range(arena._wave_enemy_target):
 		arena.on_enemy_died()
-	# Wave 1 should spawn 2 health + 2 ammo, no weapon (weapon only on even waves).
+	# Wave 1 should spawn 2 health + 2 ammo + 1 grenade, no weapon (weapon only on even waves).
 	var health_count: int = arena.pickups_spawned.count("health")
 	var ammo_count: int = arena.pickups_spawned.count("ammo")
+	var grenade_count: int = arena.pickups_spawned.count("grenade")
 	var weapon_count: int = arena.pickups_spawned.count("weapon")
 	assert_eq(health_count, MockArenaLevel.HEALTH_PICKUPS_PER_WAVE, "Should spawn HEALTH_PICKUPS_PER_WAVE health pickups")
 	assert_eq(ammo_count, MockArenaLevel.AMMO_PICKUPS_PER_WAVE, "Should spawn AMMO_PICKUPS_PER_WAVE ammo pickups")
+	assert_eq(grenade_count, MockArenaLevel.GRENADE_PICKUPS_PER_WAVE, "Should spawn GRENADE_PICKUPS_PER_WAVE grenade pickups")
 	assert_eq(weapon_count, 0, "Wave 1 should not spawn weapon pickup (odd wave)")
 
 
@@ -397,3 +421,95 @@ func test_wave_ends_only_when_all_spawned_and_dead() -> void:
 	assert_true(arena._wave_in_progress, "Wave should still be in progress with 1 enemy alive")
 	arena.on_enemy_died()
 	assert_false(arena._wave_in_progress, "Wave should end when all enemies dead")
+
+
+# ============================================================================
+# Bug Fix: _wave_in_progress guard prevents duplicate _end_wave calls
+# ============================================================================
+
+
+func test_enemy_death_after_wave_ends_does_not_respawn_pickups() -> void:
+	## Regression: before the _wave_in_progress guard, enemies dying after
+	## the wave ended (due to deferred signal connections) would call
+	## _end_wave() again, causing pickups to spawn 7+ times per wave.
+	var arena := MockArenaLevel.new()
+	arena.start_wave()  # wave 1: 3 enemies
+	for i in range(arena._wave_enemy_target):
+		arena.on_enemy_died()
+	assert_false(arena._wave_in_progress, "Wave should have ended")
+	var pickup_count_after_wave: int = arena.pickups_spawned.size()
+
+	# Simulate stale enemy death signals arriving after wave ends.
+	arena.on_enemy_died()
+	arena.on_enemy_died()
+	arena.on_enemy_died()
+
+	assert_eq(
+		arena.pickups_spawned.size(),
+		pickup_count_after_wave,
+		"Stale enemy deaths after wave ends must not spawn extra pickups"
+	)
+
+
+func test_end_wave_called_once_even_with_extra_deaths() -> void:
+	## _wave_in_progress guard: once a wave ends, subsequent on_enemy_died()
+	## calls are no-ops. This verifies the pickup list is not duplicated.
+	var arena := MockArenaLevel.new()
+	arena.start_wave()
+	# Kill all enemies normally.
+	for i in range(arena._wave_enemy_target):
+		arena.on_enemy_died()
+	var expected_pickups: int = arena.pickups_spawned.size()
+
+	# Extra deaths should have no effect.
+	for i in range(5):
+		arena.on_enemy_died()
+	assert_eq(arena.pickups_spawned.size(), expected_pickups, "Extra deaths must not add more pickups")
+
+
+# ============================================================================
+# New Pickup Types: grenade and active item charge
+# ============================================================================
+
+
+func test_grenade_pickup_adds_one_grenade() -> void:
+	var arena := MockArenaLevel.new()
+	arena.mock_player.grenades = 1
+	arena.mock_player.max_grenades = 3
+	arena.apply_grenade_pickup()
+	assert_eq(arena.mock_player.grenades, 2, "Grenade pickup should add 1 grenade")
+
+
+func test_grenade_pickup_does_not_exceed_max() -> void:
+	var arena := MockArenaLevel.new()
+	arena.mock_player.grenades = 3
+	arena.mock_player.max_grenades = 3
+	arena.apply_grenade_pickup()
+	assert_eq(arena.mock_player.grenades, 3, "Grenade pickup should not exceed max_grenades")
+
+
+func test_active_item_charge_pickup_adds_one_charge() -> void:
+	var arena := MockArenaLevel.new()
+	arena.mock_player.active_item_charges = 1
+	arena.mock_player.max_active_item_charges = 2
+	arena.apply_active_item_charge_pickup()
+	assert_eq(arena.mock_player.active_item_charges, 2, "Active item charge pickup should add 1 charge")
+
+
+func test_active_item_charge_pickup_does_not_exceed_max() -> void:
+	var arena := MockArenaLevel.new()
+	arena.mock_player.active_item_charges = 2
+	arena.mock_player.max_active_item_charges = 2
+	arena.apply_active_item_charge_pickup()
+	assert_eq(arena.mock_player.active_item_charges, 2, "Charge pickup should not exceed max charges")
+
+
+func test_grenade_pickup_spawned_every_wave() -> void:
+	## Every wave should produce GRENADE_PICKUPS_PER_WAVE grenade pickups.
+	var arena := MockArenaLevel.new()
+	arena.start_wave()
+	for i in range(arena._wave_enemy_target):
+		arena.on_enemy_died()
+	var grenade_count: int = arena.pickups_spawned.count("grenade")
+	assert_eq(grenade_count, MockArenaLevel.GRENADE_PICKUPS_PER_WAVE,
+		"Every wave should spawn GRENADE_PICKUPS_PER_WAVE grenade pickups")
