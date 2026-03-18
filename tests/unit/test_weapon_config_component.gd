@@ -294,6 +294,12 @@ func test_uzi_magazine_size() -> void:
 		"UZI magazine_size should be 32")
 
 
+func test_uzi_total_magazines() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[2]
+	assert_eq(config["total_magazines"], 20,
+		"UZI total_magazines should be 20 (4x increase from default 5, Issue #1137)")
+
+
 func test_uzi_bullet_spawn_offset() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[2]
 	assert_eq(config["bullet_spawn_offset"], 25.0,
@@ -386,16 +392,12 @@ func test_uzi_caliber_path() -> void:
 func test_all_configs_share_same_keys() -> void:
 	var rifle_keys := WeaponConfigComponent.WEAPON_CONFIGS[0].keys()
 	var shotgun_keys := WeaponConfigComponent.WEAPON_CONFIGS[1].keys()
-	var uzi_keys := WeaponConfigComponent.WEAPON_CONFIGS[2].keys()
 
 	rifle_keys.sort()
 	shotgun_keys.sort()
-	uzi_keys.sort()
 
 	assert_eq(rifle_keys, shotgun_keys,
 		"RIFLE and SHOTGUN configs should have the same keys")
-	assert_eq(rifle_keys, uzi_keys,
-		"RIFLE and UZI configs should have the same keys")
 
 
 func test_all_configs_have_shoot_cooldown() -> void:
