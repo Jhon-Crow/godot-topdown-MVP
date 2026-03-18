@@ -365,6 +365,9 @@ var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
+var _is_bolt_cycling: bool = false  ## [#1161] True while sniper enemy bolt-action cycle is in progress (after each shot).
+var _bolt_cycle_timer: float = 0.0  ## [#1161] Timer for bolt-action cycle animation.
+const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## [#1161] Delay after shot before bolt-cycle sound plays (seconds).
 
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
@@ -775,6 +778,16 @@ func _physics_process(delta: float) -> void:
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
 	# Update shoot cooldown timer
 	_shoot_timer += delta
+
+	# [#1161] Update sniper bolt-action cycle timer
+	if _is_bolt_cycling:
+		_bolt_cycle_timer += delta
+		if _bolt_cycle_timer >= SNIPER_BOLT_CYCLE_DELAY:
+			_is_bolt_cycling = false
+			_bolt_cycle_timer = 0.0
+			var audio: Node = get_node_or_null("/root/AudioManager")
+			if audio and audio.has_method("play_asvk_bolt_step"):
+				audio.play_asvk_bolt_step(1)  # Unlock bolt sound for enemy bolt cycle
 
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	# Update reload timer
@@ -1683,7 +1696,8 @@ func _process_in_cover_state(delta: float) -> void:
 	# we need to find new cover
 	if _is_visible_from_player():
 		# If in alarm mode and can see player, fire a burst before escaping
-		if _in_alarm_mode and _can_see_player and _player:
+		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
+		if _in_alarm_mode and _can_see_player and _player and weapon_type != WeaponType.SNIPER_RIFLE:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1825,7 +1839,8 @@ func _process_suppressed_state(delta: float) -> void:
 	if _is_visible_from_player():
 		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player/companion
 		# Issue #934: also consider companion visibility
-		if (_can_see_player and _player) or (_can_see_companion and _companion != null):
+		# [#1161] Sniper rifle is bolt-action: no burst fire (flee immediately)
+		if ((_can_see_player and _player) or (_can_see_companion and _companion != null)) and weapon_type != WeaponType.SNIPER_RIFLE:
 			if not _cover_burst_pending:
 				# Start the cover burst
 				_cover_burst_pending = true
@@ -1950,6 +1965,11 @@ func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> voi
 
 ## Process ONE_HIT retreat: quick burst of 2-4 shots in an arc while turning, then face cover.
 func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void:
+	# [#1161] Sniper rifle is bolt-action: skip burst phase and run to cover immediately
+	if weapon_type == WeaponType.SNIPER_RIFLE:
+		_retreat_burst_complete = true
+		_move_to_target_nav(_cover_position, combat_move_speed)
+		return
 	if not _retreat_burst_complete:
 		# During burst phase
 		_retreat_burst_timer += delta
@@ -2483,6 +2503,10 @@ func _shoot_with_inaccuracy() -> void:
 ## Shoot a burst shot with arc spread for ONE_HIT retreat.
 func _shoot_burst_shot() -> void:
 	if bullet_scene == null or _player == null:
+		return
+
+	# [#1161] Sniper rifle is bolt-action: no burst fire allowed
+	if weapon_type == WeaponType.SNIPER_RIFLE:
 		return
 
 	if not _can_shoot():
@@ -3882,6 +3906,10 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 		_last_gunshot_propagation_time = _now3
 	if not _is_rpg_weapon: _play_delayed_shell_sound()  # Issue #583: no shell sound for RPG
+	# [#1161] Trigger bolt-action cycle for sniper rifle (visual/audio after each shot)
+	if weapon_type == WeaponType.SNIPER_RIFLE:
+		_is_bolt_cycling = true
+		_bolt_cycle_timer = 0.0
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _is_rpg_weapon and not _rpg_fired: _rpg_fired = true; _switch_to_secondary_weapon(); return  # Issue #583
