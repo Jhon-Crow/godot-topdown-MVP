@@ -180,6 +180,8 @@ var _patrol_points: Array[Vector2] = []  ## Patrol state
 var _current_patrol_index: int = 0
 var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
+var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
+const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -4053,33 +4055,31 @@ func _calculate_lead_prediction() -> Vector2:
 
 ## Process patrol behavior - move between patrol points with corner checking.
 func _process_patrol(delta: float) -> void:
-	if _patrol_points.is_empty():
-		return
-
-	# Handle waiting at patrol point
+	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
+	if _patrol_points.is_empty(): return
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
 		if _patrol_wait_timer >= patrol_wait_time:
-			_is_waiting_at_patrol_point = false
-			_patrol_wait_timer = 0.0
+			_is_waiting_at_patrol_point = false; _patrol_wait_timer = 0.0
 			_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
-		velocity = Vector2.ZERO
-		return
-
-	# Move towards current patrol point
+		velocity = Vector2.ZERO; return
 	var target_point := _patrol_points[_current_patrol_index]
-	var direction := (target_point - global_position).normalized()
-	var distance := global_position.distance_to(target_point)
-
-	if distance < 5.0:
-		_is_waiting_at_patrol_point = true
-		velocity = Vector2.ZERO
-	else:
-		direction = _apply_wall_avoidance(direction)
-		velocity = direction * move_speed
-		rotation = direction.angle()
-		# Check for corners/openings perpendicular to movement direction
-		_process_corner_check(get_physics_process_delta_time(), direction, "PATROL")
+	if _nav_agent == null:  # Fallback if nav agent unavailable
+		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
+		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
+	_nav_agent.target_position = target_point
+	if _nav_agent.is_navigation_finished():
+		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return
+	var dir := (_nav_agent.get_next_path_position() - global_position).normalized()
+	velocity = dir * move_speed; move_and_slide(); _push_casings()
+	if dir.length() > 0.1: rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta); _process_corner_check(delta, dir, "PATROL")
+	var moved := global_position.distance_to(_patrol_stuck_last_position)  # Stuck detection
+	if moved < PATROL_STUCK_DISTANCE_THRESHOLD:
+		_patrol_stuck_timer += delta
+		if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
+			_log_to_file("PATROL STUCK: pos=%s for %.1fs, skipping" % [global_position, _patrol_stuck_timer])
+			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO
+	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
 ## Detect openings perpendicular to movement (for corner checking). Issue #347: smooth rotation.
 func _detect_perpendicular_opening(move_dir: Vector2) -> bool:
@@ -4377,6 +4377,7 @@ func _reset() -> void:
 	_current_patrol_index = 0
 	_is_waiting_at_patrol_point = false
 	_patrol_wait_timer = 0.0
+	_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = Vector2.ZERO
 	_current_state = AIState.IDLE
 	_has_valid_cover = false
 	_under_fire = false
