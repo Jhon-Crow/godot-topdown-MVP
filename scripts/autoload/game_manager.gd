@@ -97,6 +97,50 @@ var _f8_spawn_triggered: bool = false
 ## Hold duration in seconds required to trigger F8 spawn (Issue #1112).
 const F8_HOLD_THRESHOLD: float = 0.2
 
+## ── Roguelike session state (Issue #1061) ─────────────────────────────────
+## Persists across room-to-room scene reloads so the run can advance
+## one room at a time (Binding of Isaac style).
+
+## Whether a roguelike run is currently active.
+var roguelike_active: bool = false
+
+## 0-based index of the room currently being played.
+var roguelike_current_room: int = 0
+
+## Total number of rooms planned for this run (3–5, chosen at run start).
+var roguelike_total_rooms: int = 0
+
+## Predetermined sequence of RoomType values for the full run.
+## Stored as Array so the room order is fixed for the entire run.
+var roguelike_room_types: Array = []
+
+## Initial random seed for the run (for reproducibility / future sharing).
+var roguelike_run_seed: int = 0
+
+## Accumulated kills across all rooms in the current run.
+var roguelike_total_kills: int = 0
+
+## Accumulated shots across all rooms in the current run.
+var roguelike_total_shots: int = 0
+
+## Accumulated hits across all rooms in the current run.
+var roguelike_total_hits: int = 0
+
+## Saved weapon selection before roguelike started (restored on exit/death).
+var roguelike_saved_weapon: String = ""
+
+## Resets all roguelike session variables to their default (not-in-run) state.
+func roguelike_reset_session() -> void:
+	roguelike_active = false
+	roguelike_current_room = 0
+	roguelike_total_rooms = 0
+	roguelike_room_types = []
+	roguelike_run_seed = 0
+	roguelike_total_kills = 0
+	roguelike_total_shots = 0
+	roguelike_total_hits = 0
+	roguelike_saved_weapon = ""
+
 
 func _ready() -> void:
 	# Reset stats when starting

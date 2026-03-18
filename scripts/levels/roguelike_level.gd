@@ -1,20 +1,26 @@
 extends Node2D
-## Roguelike level with procedural room generation by type.
+## Roguelike level — one room at a time, Binding of Isaac style.
 ##
 ## Issue #1061: добавить режим рогалика
 ##
-## Each run generates 3–5 rooms of different types (Labyrinth, Building, Beach, Docks, City)
-## with procedurally placed walls, covers and enemies. This avoids the heavy overhead of
-## loading full level scenes (which caused 55+ enemies and 2–6 fps drops).
+## Each run consists of 3–5 rooms of different types (Labyrinth, Building,
+## Beach, Docks, City). The player clears one room at a time:
+##
+##   1. Enter room → enemies appear → fight.
+##   2. Kill all enemies → exit zone activates.
+##   3. Player reaches exit → next room loads (scene reloads).
+##   4. After clearing the last room the full-run score is shown.
+##
+## Run state (room index, total rooms, room type sequence, accumulated stats)
+## is stored in GameManager so it survives the scene reload between rooms.
 ##
 ## Features:
-## - Procedural room layouts by type — each type has a characteristic geometry
-## - Player always starts with Makarov PM + Flashbang grenade (armory ignored)
+## - Procedural room layouts by type (each type has characteristic geometry)
+## - Player always starts with Makarov PM + Flashbang (armory ignored during run)
 ## - 3–4 enemies per room maximum (performance constraint)
 ## - No ReplayManager in roguelike (saves memory/CPU)
-## - Q restarts with a new seed
-## - Exit zone activates after all enemies are cleared
-
+## - Score shown only after ALL rooms are cleared (not after each room)
+## - Q restarts the whole run; Menu returns to LabyrinthLevel
 
 ## ============================================================
 ## Room types — each gets a distinct procedural layout
@@ -28,13 +34,9 @@ enum RoomType {
 	CITY         ## Urban: L-shaped cover blocks, car-like barriers
 }
 
-## Room size for procedural generation (all rooms same size for simplicity)
-const ROOM_WIDTH: float  = 1280.0
+## Room size for procedural generation
+const ROOM_WIDTH:  float = 1280.0
 const ROOM_HEIGHT: float = 720.0
-
-## Corridor connecting rooms
-const CORRIDOR_GAP: float    = 200.0   ## Horizontal space between rooms
-const CORRIDOR_HEIGHT: float = 180.0   ## Opening height for the corridor
 
 ## Enemy count limits per room
 const ENEMIES_PER_ROOM_MIN: int = 3
@@ -75,8 +77,12 @@ const SATURATION_INTENSITY: float = 0.25
 ## Runtime state
 ## ============================================================
 
-var _selected_types:  Array[int]   = []   ## RoomType values
-var _room_offsets:    Array[float] = []   ## World-space X start of each room
+## Room type for THIS room instance (read from GameManager session)
+var _room_type: int = RoomType.LABYRINTH
+## 0-based index of the current room within the run
+var _current_room_idx: int = 0
+## Total rooms in this run
+var _total_rooms: int = 3
 
 var _player: Node2D = null
 
@@ -87,6 +93,7 @@ var _kills_label:        Label = null
 var _accuracy_label:     Label = null
 var _magazines_label:    Label = null
 var _combo_label:        Label = null
+var _room_progress_label: Label = null
 var _saturation_overlay: ColorRect = null
 
 ## Enemy tracking
@@ -95,16 +102,12 @@ var _initial_enemy_count:   int   = 0
 var _current_enemy_count:   int   = 0
 
 ## State flags
-var _level_cleared:   bool = false
+var _room_cleared:    bool = false
 var _game_over_shown: bool = false
 var _score_shown:     bool = false
-var _level_completed: bool = false
-var _player_dead:     bool = false  ## True after player dies — blocks Q-restart until death screen shown
+var _player_dead:     bool = false
 
 var _exit_zone: Area2D = null
-
-## Saved GameManager weapon before roguelike (restored on exit)
-var _saved_weapon: String = ""
 
 
 ## ============================================================
@@ -113,13 +116,24 @@ var _saved_weapon: String = ""
 
 func _ready() -> void:
 	randomize()
-	var seed_used: int = randi()
-	seed(seed_used)
-	print("[RoguelikeLevel] Generating level with seed: %d" % seed_used)
+
+	# ── Start new run or continue existing one ────────────────
+	if not GameManager.roguelike_active:
+		_start_new_run()
+	else:
+		_continue_run()
+
+	# Load session into local vars for convenience
+	_current_room_idx = GameManager.roguelike_current_room
+	_total_rooms       = GameManager.roguelike_total_rooms
+	_room_type         = GameManager.roguelike_room_types[_current_room_idx]
+
+	print("[RoguelikeLevel] Room %d/%d — type: %s" % [
+		_current_room_idx + 1, _total_rooms,
+		ROOM_TYPE_NAMES.get(_room_type, "?")])
 
 	_force_roguelike_loadout()
-	_select_room_types()
-	_build_level()
+	_build_room_scene()
 	_spawn_player()
 	_setup_navigation()
 	_setup_player_tracking()
@@ -135,7 +149,7 @@ func _ready() -> void:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
-	print("[RoguelikeLevel] Level ready — %d rooms, %d enemies" % [_selected_types.size(), _initial_enemy_count])
+	print("[RoguelikeLevel] Room ready — %d enemies" % _initial_enemy_count)
 
 
 func _process(_delta: float) -> void:
@@ -145,166 +159,135 @@ func _process(_delta: float) -> void:
 
 
 ## ============================================================
-## Loadout override — PM + flashbang, no armory
+## Run lifecycle
 ## ============================================================
 
-func _force_roguelike_loadout() -> void:
-	if GameManager:
-		_saved_weapon = GameManager.get_selected_weapon()
-		GameManager.set_selected_weapon("makarov_pm")
-	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
-	if grenade_manager:
-		# GrenadeType.FLASHBANG = 0
-		if grenade_manager.get("current_grenade_type") != null:
-			grenade_manager.current_grenade_type = 0  # FLASHBANG
-	print("[RoguelikeLevel] Loadout forced: makarov_pm + flashbang")
+func _start_new_run() -> void:
+	## First room of a new run: choose seed, room count, and room type sequence.
+	var run_seed: int = randi()
+	seed(run_seed)
 
-
-func _restore_loadout() -> void:
-	if GameManager and _saved_weapon != "":
-		GameManager.set_selected_weapon(_saved_weapon)
-
-
-## ============================================================
-## Room type selection
-## ============================================================
-
-func _select_room_types() -> void:
-	_selected_types.clear()
-	var all_types: Array[int] = [
+	var all_types: Array = [
 		RoomType.LABYRINTH,
 		RoomType.BUILDING,
 		RoomType.BEACH,
 		RoomType.DOCKS,
 		RoomType.CITY,
 	]
-	# Shuffle
+	# Fisher-Yates shuffle
 	for i in range(all_types.size() - 1, 0, -1):
 		var j: int = randi_range(0, i)
-		var tmp: int = all_types[i]
+		var tmp = all_types[i]
 		all_types[i] = all_types[j]
 		all_types[j] = tmp
 
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
 	count = min(count, all_types.size())
-	for i in range(count):
-		_selected_types.append(all_types[i])
 
-	var names: Array[String] = []
-	for t in _selected_types:
+	GameManager.roguelike_active       = true
+	GameManager.roguelike_current_room = 0
+	GameManager.roguelike_total_rooms  = count
+	GameManager.roguelike_room_types   = all_types.slice(0, count)
+	GameManager.roguelike_run_seed     = run_seed
+	GameManager.roguelike_total_kills  = 0
+	GameManager.roguelike_total_shots  = 0
+	GameManager.roguelike_total_hits   = 0
+	# Save current weapon so we can restore it when the run ends
+	GameManager.roguelike_saved_weapon = GameManager.get_selected_weapon()
+
+	var names: Array = []
+	for t in GameManager.roguelike_room_types:
 		names.append(ROOM_TYPE_NAMES.get(t, "?"))
-	print("[RoguelikeLevel] Room types: %s" % str(names))
+	print("[RoguelikeLevel] New run — seed=%d, rooms: %s" % [run_seed, str(names)])
+
+
+func _continue_run() -> void:
+	## Resuming mid-run: restore the seed offset so room geometry varies per room.
+	## We re-seed with (run_seed + current_room_idx) so each room is different but
+	## the sequence is reproducible from the original run seed.
+	seed(GameManager.roguelike_run_seed + GameManager.roguelike_current_room)
+	print("[RoguelikeLevel] Continuing run at room %d/%d" % [
+		GameManager.roguelike_current_room + 1,
+		GameManager.roguelike_total_rooms])
 
 
 ## ============================================================
-## Level construction
+## Loadout override — PM + flashbang, no armory
 ## ============================================================
 
-func _build_level() -> void:
-	_room_offsets.clear()
+func _force_roguelike_loadout() -> void:
+	if GameManager:
+		GameManager.set_selected_weapon("makarov_pm")
+	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+	if grenade_manager:
+		if grenade_manager.get("current_grenade_type") != null:
+			grenade_manager.current_grenade_type = 0  # FLASHBANG
+	print("[RoguelikeLevel] Loadout forced: makarov_pm + flashbang")
 
-	var current_x: float = 0.0
-	for _t in _selected_types:
-		_room_offsets.append(current_x)
-		current_x += ROOM_WIDTH + CORRIDOR_GAP
 
-	var total_width: float = current_x
+func _restore_loadout() -> void:
+	if GameManager and GameManager.roguelike_saved_weapon != "":
+		GameManager.set_selected_weapon(GameManager.roguelike_saved_weapon)
 
+
+## ============================================================
+## Room construction — only ONE room per scene instance
+## ============================================================
+
+func _build_room_scene() -> void:
 	# Background
 	var bg := ColorRect.new()
-	bg.name = "WorldBackground"
+	bg.name  = "WorldBackground"
 	bg.position = Vector2(-200, -200)
-	bg.size = Vector2(total_width + 400, ROOM_HEIGHT + 400)
-	bg.color = BG_COLOR
+	bg.size     = Vector2(ROOM_WIDTH + 400, ROOM_HEIGHT + 400)
+	bg.color    = BG_COLOR
 	add_child(bg)
 
-	# Build each room
-	var rooms_container := Node2D.new()
-	rooms_container.name = "Rooms"
-	add_child(rooms_container)
+	var room_container := Node2D.new()
+	room_container.name = "Room"
+	room_container.position = Vector2.ZERO
+	add_child(room_container)
 
-	for i in range(_selected_types.size()):
-		_build_room(rooms_container, i)
-
-	# Corridors between rooms
-	var corridor_container := Node2D.new()
-	corridor_container.name = "Corridors"
-	add_child(corridor_container)
-	_build_corridors(corridor_container)
+	_build_room(room_container)
+	_spawn_enemies_in_room(room_container)
 
 
-func _build_room(parent: Node, room_index: int) -> void:
-	var room_type: int = _selected_types[room_index]
-	var offset_x: float = _room_offsets[room_index]
-
-	var room_node := Node2D.new()
-	room_node.name = "Room%d" % room_index
-	room_node.position = Vector2(offset_x, 0.0)
-	parent.add_child(room_node)
-
-	# Floor
-	var floor_color: Color = ROOM_FLOOR_COLORS.get(room_type, FLOOR_COLOR)
+func _build_room(parent: Node) -> void:
+	var floor_color: Color = ROOM_FLOOR_COLORS.get(_room_type, FLOOR_COLOR)
 	var floor_rect := ColorRect.new()
 	floor_rect.position = Vector2(0, 0)
-	floor_rect.size = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
-	floor_rect.color = floor_color
-	room_node.add_child(floor_rect)
+	floor_rect.size     = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.color    = floor_color
+	parent.add_child(floor_rect)
 
-	# Boundary walls (with corridor openings on left/right sides)
-	_build_room_boundary(room_node, room_index)
+	# Boundary walls — closed on all sides (single room, no corridors)
+	_build_room_boundary_closed(parent)
 
-	# Interior layout
-	match room_type:
+	# Interior layout by type
+	match _room_type:
 		RoomType.LABYRINTH:
-			_build_labyrinth_interior(room_node)
+			_build_labyrinth_interior(parent)
 		RoomType.BUILDING:
-			_build_building_interior(room_node)
+			_build_building_interior(parent)
 		RoomType.BEACH:
-			_build_beach_interior(room_node)
+			_build_beach_interior(parent)
 		RoomType.DOCKS:
-			_build_docks_interior(room_node)
+			_build_docks_interior(parent)
 		RoomType.CITY:
-			_build_city_interior(room_node)
+			_build_city_interior(parent)
 
-	# Spawn enemies in this room
-	_spawn_enemies_in_room(room_node, room_index)
-
-	print("[RoguelikeLevel] Room %d built: type=%s, offset_x=%.0f" % [room_index, ROOM_TYPE_NAMES.get(room_type, "?"), offset_x])
+	print("[RoguelikeLevel] Room built: type=%s" % ROOM_TYPE_NAMES.get(_room_type, "?"))
 
 
-## Boundary walls with openings where corridors connect.
-func _build_room_boundary(room_node: Node2D, room_index: int) -> void:
+## Fully-enclosed boundary walls (no corridor openings — single room).
+func _build_room_boundary_closed(room_node: Node2D) -> void:
 	var w: float = ROOM_WIDTH
 	var h: float = ROOM_HEIGHT
-	var wall_t: float = 24.0
-
-	var corridor_mid_y: float = h * 0.5
-	var half_opening: float   = CORRIDOR_HEIGHT * 0.5
-
-	# Top wall (full)
-	_create_wall(room_node, Rect2(0, 0, w, wall_t))
-	# Bottom wall (full)
-	_create_wall(room_node, Rect2(0, h - wall_t, w, wall_t))
-
-	# Left wall — open if not first room
-	var is_first: bool = (room_index == 0)
-	if is_first:
-		_create_wall(room_node, Rect2(0, 0, wall_t, h))
-	else:
-		# Left wall above opening
-		_create_wall(room_node, Rect2(0, 0, wall_t, corridor_mid_y - half_opening))
-		# Left wall below opening
-		_create_wall(room_node, Rect2(0, corridor_mid_y + half_opening, wall_t, h - (corridor_mid_y + half_opening)))
-
-	# Right wall — open if not last room
-	var is_last: bool = (room_index == _selected_types.size() - 1)
-	if is_last:
-		_create_wall(room_node, Rect2(w - wall_t, 0, wall_t, h))
-	else:
-		# Right wall above opening
-		_create_wall(room_node, Rect2(w - wall_t, 0, wall_t, corridor_mid_y - half_opening))
-		# Right wall below opening
-		_create_wall(room_node, Rect2(w - wall_t, corridor_mid_y + half_opening, wall_t, h - (corridor_mid_y + half_opening)))
+	var t: float = 24.0  ## Wall thickness
+	_create_wall(room_node, Rect2(0,     0,     w, t))   ## Top
+	_create_wall(room_node, Rect2(0,     h - t, w, t))   ## Bottom
+	_create_wall(room_node, Rect2(0,     0,     t, h))   ## Left
+	_create_wall(room_node, Rect2(w - t, 0,     t, h))   ## Right
 
 
 ## ─── Labyrinth: horizontal and vertical divider walls ───────────────────────
@@ -368,7 +351,6 @@ func _build_beach_interior(room_node: Node2D) -> void:
 		Vector2(w * 0.80, h * 0.44),
 	]
 	for pos in positions:
-		# Alternate between small and large covers
 		var sz: float = 44.0 if (int(pos.x) % 2 == 0) else 32.0
 		_create_cover(room_node, Rect2(pos.x - sz * 0.5, pos.y - sz * 0.5, sz, sz))
 
@@ -380,7 +362,6 @@ func _build_beach_interior(room_node: Node2D) -> void:
 func _build_docks_interior(room_node: Node2D) -> void:
 	var w: float = ROOM_WIDTH
 	var h: float = ROOM_HEIGHT
-	var gap: float = 110.0  ## Aisle width
 
 	# Three pairs of container walls (horizontal, parallel)
 	for row in range(3):
@@ -419,47 +400,16 @@ func _build_city_interior(room_node: Node2D) -> void:
 
 
 ## ============================================================
-## Corridor floors and walls between rooms
+## Enemy spawning
 ## ============================================================
 
-func _build_corridors(parent: Node) -> void:
-	for i in range(_selected_types.size() - 1):
-		var left_x: float   = _room_offsets[i] + ROOM_WIDTH
-		var right_x: float  = _room_offsets[i + 1]
-		var mid_y: float    = ROOM_HEIGHT * 0.5
-		var half_h: float   = CORRIDOR_HEIGHT * 0.5
-
-		# Floor strip
-		var floor_rect := ColorRect.new()
-		floor_rect.position = Vector2(left_x, mid_y - half_h)
-		floor_rect.size = Vector2(CORRIDOR_GAP, CORRIDOR_HEIGHT)
-		floor_rect.color = FLOOR_COLOR
-		parent.add_child(floor_rect)
-
-		# Top wall of corridor
-		_create_wall(parent, Rect2(left_x, mid_y - half_h - 24, CORRIDOR_GAP, 24))
-		# Bottom wall of corridor
-		_create_wall(parent, Rect2(left_x, mid_y + half_h, CORRIDOR_GAP, 24))
-
-
-## ============================================================
-## Enemy spawning (procedural, per room)
-## ============================================================
-
-func _spawn_enemies_in_room(room_node: Node2D, room_index: int) -> void:
-	# Room 0 is the player starting room — keep it enemy-free so the player is not
-	# immediately in the line of sight of enemies upon spawn.
-	if room_index == 0:
-		print("[RoguelikeLevel] Room 0 is the safe start room — no enemies spawned")
-		return
-
-	var room_type: int = _selected_types[room_index]
+func _spawn_enemies_in_room(room_node: Node2D) -> void:
 	var enemy_scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
 	if enemy_scene == null:
 		push_error("[RoguelikeLevel] Enemy.tscn not found!")
 		return
 
-	var positions: Array[Vector2] = _get_enemy_positions(room_type)
+	var positions: Array[Vector2] = _get_enemy_positions(_room_type)
 	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(ENEMIES_PER_ROOM_MAX, positions.size()))
 
 	# Shuffle positions
@@ -471,24 +421,18 @@ func _spawn_enemies_in_room(room_node: Node2D, room_index: int) -> void:
 
 	for i in range(count):
 		var enemy: Node = enemy_scene.instantiate()
-		enemy.name = "Enemy_R%d_%d" % [room_index, i]
+		enemy.name = "Enemy_%d" % i
 		enemy.position = positions[i]
-		# Randomise weapon
-		enemy.weapon_type = _random_enemy_weapon(room_type)
-		enemy.behavior_mode = _random_enemy_behavior(room_type, i)
+		enemy.weapon_type   = _random_enemy_weapon(_room_type)
+		enemy.behavior_mode = _random_enemy_behavior(i)
 		if enemy.behavior_mode == 0:  # PATROL
 			enemy.patrol_offsets = [Vector2(80, 0), Vector2(-80, 0)]
 		enemy.min_health = 1
 		enemy.max_health = 2
-		# Roguelike enemies must NOT respawn — destroy on death so each enemy dies
-		# permanently. Without this (default=false) the enemy resets after respawn_delay
-		# seconds and can die again, which incorrectly decrements _current_enemy_count
-		# multiple times and fires the "died" signal repeatedly (visible as enemies
-		# "respawning on the spot" after being killed — Issue #1061 round 5).
+		# Must destroy on death so they don't respawn (Issue #1061 round 5).
 		enemy.destroy_on_death = true
 		room_node.add_child(enemy)
 
-		# Track enemy
 		_enemies.append(enemy)
 		if enemy.has_signal("died"):
 			enemy.died.connect(_on_enemy_died)
@@ -498,7 +442,6 @@ func _spawn_enemies_in_room(room_node: Node2D, room_index: int) -> void:
 			enemy.hit.connect(_on_enemy_hit)
 
 
-## Enemy spawn positions per room type (relative to room origin).
 func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 	var w: float = ROOM_WIDTH
 	var h: float = ROOM_HEIGHT
@@ -556,20 +499,20 @@ func _random_enemy_weapon(room_type: int) -> int:
 	# WeaponType: RIFLE=0, SHOTGUN=1, UZI=2, MACHETE=3
 	match room_type:
 		RoomType.LABYRINTH:
-			return [0, 2][randi() % 2]           # Rifle or UZI — good in corridors
+			return [0, 2][randi() % 2]
 		RoomType.BUILDING:
-			return [0, 1, 2][randi() % 3]        # All ranged
+			return [0, 1, 2][randi() % 3]
 		RoomType.BEACH:
-			return [0, 1][randi() % 2]           # Rifle or Shotgun — open area
+			return [0, 1][randi() % 2]
 		RoomType.DOCKS:
-			return [0, 2, 3][randi() % 3]        # Rifle, UZI, or Machete between containers
+			return [0, 2, 3][randi() % 3]
 		RoomType.CITY:
-			return [0, 1, 2][randi() % 3]        # All ranged
+			return [0, 1, 2][randi() % 3]
 		_:
-			return 0  # Default RIFLE
+			return 0
 
 
-func _random_enemy_behavior(room_type: int, enemy_index: int) -> int:
+func _random_enemy_behavior(enemy_index: int) -> int:
 	# BehaviorMode: PATROL=0, GUARD=1
 	if enemy_index == 0:
 		return 1  # First enemy is always a guard
@@ -588,8 +531,7 @@ func _spawn_player() -> void:
 		push_error("[RoguelikeLevel] Failed to load Player scene!")
 		return
 
-	# Remove any pre-existing Player node to prevent duplicates (e.g. from scene editor).
-	# Use free() (not queue_free()) so the node is gone before we add the new player below.
+	# Remove any pre-existing Player node to prevent duplicates
 	var existing_entities: Node = get_node_or_null("Entities")
 	if existing_entities:
 		var existing_player: Node = existing_entities.get_node_or_null("Player")
@@ -606,14 +548,8 @@ func _spawn_player() -> void:
 	var player: Node2D = player_scene.instantiate()
 	player.name = "Player"
 
-	# Spawn player in a safe entry area left of the first room (outside enemy sight lines).
-	# The first room boundary wall is at x = _room_offsets[0] (with corridor opening at mid-height).
-	# We place the player just inside the left wall opening so they have a wall segment
-	# ahead (the room interior) and no enemies immediately in front.
-	var spawn_x: float = _room_offsets[0] + 56.0  # Just past the left boundary wall (24px thick)
-	var spawn_y: float = ROOM_HEIGHT * 0.5
-	player.position = Vector2(spawn_x, spawn_y)
-
+	# Spawn at the left-centre of the room, just inside the boundary wall
+	player.position = Vector2(80.0, ROOM_HEIGHT * 0.5)
 	entities_node.add_child(player)
 	print("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
 
@@ -630,7 +566,7 @@ func _setup_navigation() -> void:
 		var nav_poly := NavigationPolygon.new()
 		nav_poly.parsed_geometry_type = NavigationPolygon.PARSED_GEOMETRY_STATIC_COLLIDERS
 		nav_poly.parsed_collision_mask = 4
-		nav_poly.source_geometry_mode = NavigationPolygon.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
+		nav_poly.source_geometry_mode  = NavigationPolygon.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
 		nav_poly.agent_radius = 24.0
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
@@ -644,17 +580,13 @@ func _setup_player_tracking() -> void:
 	if GameManager:
 		GameManager.set_player(_player)
 
-	# Remove camera limits so the player can follow the full multi-room map.
-	# Without this the Camera2D keeps its default limits (~screen size) and the
-	# player disappears off the right edge when moving past room 0.
-	# Same fix is applied in DocksLevel, CastleLevel, CityLevel (Issue #1061 r5).
+	# Remove camera limits so the camera follows freely within the room
 	var camera: Camera2D = _player.get_node_or_null("Camera2D")
 	if camera:
 		camera.limit_left   = -10000000
 		camera.limit_top    = -10000000
 		camera.limit_right  =  10000000
 		camera.limit_bottom =  10000000
-		print("[RoguelikeLevel] Camera limits removed — follows player across all rooms")
 
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
@@ -723,11 +655,10 @@ func _setup_exit_zone() -> void:
 
 	_exit_zone = exit_scene.instantiate()
 
-	# Place in last room — near the right wall
-	var last_idx: int   = _selected_types.size() - 1
-	var exit_x: float   = _room_offsets[last_idx] + ROOM_WIDTH - 120.0
-	var exit_y: float   = ROOM_HEIGHT * 0.5
-	_exit_zone.position = Vector2(exit_x, exit_y)
+	# Place near the right wall, vertically centred
+	var exit_x: float = ROOM_WIDTH - 120.0
+	var exit_y: float = ROOM_HEIGHT * 0.5
+	_exit_zone.position    = Vector2(exit_x, exit_y)
 	_exit_zone.zone_width  = 100.0
 	_exit_zone.zone_height = 100.0
 
@@ -754,10 +685,22 @@ func _setup_debug_ui() -> void:
 		var pm: Node = pause_menu_scene.instantiate()
 		canvas_layer.add_child(pm)
 
-	# Enemy count
+	# Room progress label (top-centre): "Комната 2 / 4 — Здание"
+	_room_progress_label = Label.new()
+	_room_progress_label.name = "RoomProgressLabel"
+	_room_progress_label.text = _get_room_progress_text()
+	_room_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_room_progress_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_room_progress_label.offset_top    = 10
+	_room_progress_label.offset_bottom = 36
+	_room_progress_label.add_theme_font_size_override("font_size", 16)
+	_room_progress_label.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.9))
+	ui.add_child(_room_progress_label)
+
+	# Enemy count (top-right)
 	_enemy_count_label = Label.new()
 	_enemy_count_label.name = "EnemyCountLabel"
-	_enemy_count_label.text = "Enemies: 0"
+	_enemy_count_label.text = "Враги: 0"
 	_enemy_count_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_enemy_count_label.offset_left   = -200
 	_enemy_count_label.offset_right  = -10
@@ -766,7 +709,7 @@ func _setup_debug_ui() -> void:
 	_enemy_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	ui.add_child(_enemy_count_label)
 
-	# Ammo
+	# Ammo (top-left)
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
 	_ammo_label.text = "AMMO: -"
@@ -777,7 +720,7 @@ func _setup_debug_ui() -> void:
 	_ammo_label.offset_bottom = 40
 	ui.add_child(_ammo_label)
 
-	# Kills
+	# Kills (top-left, below ammo)
 	_kills_label = Label.new()
 	_kills_label.name = "KillsLabel"
 	_kills_label.text = "Kills: 0"
@@ -810,20 +753,11 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
-	# Mode label
-	var names: Array[String] = []
-	for t in _selected_types:
-		names.append(ROOM_TYPE_NAMES.get(t, "?"))
-	var mode_label := Label.new()
-	mode_label.name  = "ModeLabel"
-	mode_label.text  = "РОГАЛИК — %s" % " → ".join(names)
-	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mode_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	mode_label.offset_top    = 10
-	mode_label.offset_bottom = 36
-	mode_label.add_theme_font_size_override("font_size", 14)
-	mode_label.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.8))
-	ui.add_child(mode_label)
+
+func _get_room_progress_text() -> String:
+	var type_name: String = ROOM_TYPE_NAMES.get(_room_type, "?")
+	return "РОГАЛИК — Комната %d / %d — %s" % [
+		_current_room_idx + 1, _total_rooms, type_name]
 
 
 func _setup_saturation_overlay() -> void:
@@ -864,17 +798,16 @@ func _create_wall(parent: Node, rect: Rect2) -> void:
 	shape_node.shape = shape
 	body.add_child(shape_node)
 
-	var visual        := ColorRect.new()
-	visual.color      = WALL_COLOR
-	visual.size       = rect.size
-	visual.position   = -rect.size / 2.0
+	var visual      := ColorRect.new()
+	visual.color    = WALL_COLOR
+	visual.size     = rect.size
+	visual.position = -rect.size / 2.0
 	body.add_child(visual)
 
 	parent.add_child(body)
 
 
 func _create_cover(parent: Node, rect: Rect2) -> void:
-	# Same as wall but slightly lighter colour (movable cover appearance)
 	var body := StaticBody2D.new()
 	body.collision_layer = 4
 	body.collision_mask  = 0
@@ -887,7 +820,7 @@ func _create_cover(parent: Node, rect: Rect2) -> void:
 	body.add_child(shape_node)
 
 	var visual     := ColorRect.new()
-	visual.color   = Color(0.42, 0.38, 0.34, 1.0)   ## Brownish — crate/barrel colour
+	visual.color   = Color(0.42, 0.38, 0.34, 1.0)
 	visual.size    = rect.size
 	visual.position = -rect.size / 2.0
 	body.add_child(visual)
@@ -907,8 +840,8 @@ func _on_enemy_died() -> void:
 		GameManager.register_kill()
 
 	if _current_enemy_count <= 0:
-		print("[RoguelikeLevel] All enemies eliminated!")
-		_level_cleared = true
+		print("[RoguelikeLevel] All enemies in room %d eliminated!" % (_current_room_idx + 1))
+		_room_cleared = true
 		call_deferred("_activate_exit_zone")
 
 
@@ -979,10 +912,8 @@ func _on_player_reload_completed() -> void:
 
 func _on_player_died() -> void:
 	_player_dead = true
-	# Do NOT call GameManager.on_player_death() — that would auto-reload the scene
-	# immediately, causing enemies to spawn in front of the player while death
-	# effects are still playing (reported bug: "враги массово респавнятся на глазах").
-	# Instead we show a death screen and let the player manually trigger the next run.
+	# Do NOT call GameManager.on_player_death() — that auto-reloads the scene
+	# immediately, causing enemies to appear while death effects play (Issue #1061 r4).
 	await get_tree().create_timer(1.5).timeout
 	if is_instance_valid(self):
 		_show_death_screen()
@@ -993,10 +924,10 @@ func _on_game_manager_enemy_killed() -> void:
 
 
 func _on_player_reached_exit() -> void:
-	if not _level_cleared:
+	if not _room_cleared:
 		return
-	print("[RoguelikeLevel] Player reached exit — showing score!")
-	call_deferred("_complete_level_with_score")
+	print("[RoguelikeLevel] Player reached exit — advancing to next room")
+	call_deferred("_advance_to_next_room")
 
 
 func _on_combo_changed(combo: int, points: int) -> void:
@@ -1030,32 +961,94 @@ func _on_combo_changed(combo: int, points: int) -> void:
 
 
 ## ============================================================
-## Level completion / score
+## Room progression — Isaac-style
 ## ============================================================
 
 func _activate_exit_zone() -> void:
 	if _exit_zone and _exit_zone.has_method("activate"):
 		_exit_zone.activate()
-		print("[RoguelikeLevel] Exit zone activated!")
+		print("[RoguelikeLevel] Exit zone activated — proceed to next room!")
 	else:
-		_complete_level_with_score()
+		# No exit zone — advance automatically
+		_advance_to_next_room()
 
 
-func _complete_level_with_score() -> void:
-	if _level_completed:
+func _advance_to_next_room() -> void:
+	## Accumulate this room's stats into the run totals in GameManager
+	if GameManager:
+		GameManager.roguelike_total_kills += GameManager.kills
+		GameManager.roguelike_total_shots += GameManager.shots_fired
+		GameManager.roguelike_total_hits  += GameManager.hits_landed
+
+	var next_room: int = _current_room_idx + 1
+
+	if next_room >= _total_rooms:
+		## Last room cleared — show full-run score
+		print("[RoguelikeLevel] Run complete! All %d rooms cleared." % _total_rooms)
+		_complete_run_with_score()
+	else:
+		## More rooms remaining — load next room
+		GameManager.roguelike_current_room = next_room
+		print("[RoguelikeLevel] Advancing to room %d/%d" % [next_room + 1, _total_rooms])
+		_show_room_transition(next_room)
+
+
+func _show_room_transition(next_room_idx: int) -> void:
+	## Brief "КОМНАТА ПРОЙДЕНА" flash before loading the next room.
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
 		return
-	_level_completed = true
+
+	# Dark overlay
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+
+	# "Room cleared" message
+	var next_type: int = GameManager.roguelike_room_types[next_room_idx]
+	var next_type_name: String = ROOM_TYPE_NAMES.get(next_type, "?")
+	var lbl := Label.new()
+	lbl.text = "Комната пройдена!\nСледующая: %s (%d/%d)" % [
+		next_type_name, next_room_idx + 1, _total_rooms]
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(lbl)
+
+	# Fade in overlay, then load next room
+	var tween := create_tween()
+	tween.tween_property(bg, "color:a", 0.85, 0.4)
+	tween.tween_interval(1.0)
+	tween.tween_callback(func():
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
+
+
+## ============================================================
+## Run completion / score (shown only after ALL rooms cleared)
+## ============================================================
+
+func _complete_run_with_score() -> void:
 	_restore_loadout()
+	GameManager.roguelike_active = false   # Run is over
 
 	var sm: Node = get_node_or_null("/root/ScoreManager")
 	if sm and sm.has_method("complete_level"):
 		var data: Dictionary = sm.complete_level()
+		# Merge accumulated run stats into score data
+		data["total_kills_run"]  = GameManager.roguelike_total_kills
+		data["total_rooms"]      = _total_rooms
 		_show_score_screen(data)
 	else:
 		_show_victory_message()
 
 
 func _show_score_screen(score_data: Dictionary) -> void:
+	_score_shown = true
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		_show_victory_message()
@@ -1102,8 +1095,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	container.set_anchors_preset(Control.PRESET_CENTER)
 	container.offset_left   = -250
 	container.offset_right  = 250
-	container.offset_top    = -200
-	container.offset_bottom = 200
+	container.offset_top    = -220
+	container.offset_bottom = 220
 	container.add_theme_constant_override("separation", 10)
 	ui.add_child(container)
 
@@ -1113,6 +1106,20 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	title.add_theme_font_size_override("font_size", 36)
 	title.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 1.0))
 	container.add_child(title)
+
+	var rooms_lbl := Label.new()
+	rooms_lbl.text = "Комнат пройдено: %d" % score_data.get("total_rooms", _total_rooms)
+	rooms_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rooms_lbl.add_theme_font_size_override("font_size", 20)
+	rooms_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 1.0))
+	container.add_child(rooms_lbl)
+
+	var kills_lbl := Label.new()
+	kills_lbl.text = "Всего убийств: %d" % score_data.get("total_kills_run", GameManager.roguelike_total_kills)
+	kills_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kills_lbl.add_theme_font_size_override("font_size", 20)
+	kills_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 1.0))
+	container.add_child(kills_lbl)
 
 	var total := Label.new()
 	total.text = "ИТОГО: %d | РАНГ: %s" % [score_data.get("total_score", 0), score_data.get("rank", "?")]
@@ -1131,14 +1138,14 @@ func _show_victory_message() -> void:
 		return
 
 	var lbl := Label.new()
-	lbl.text = "РОГАЛИК ПРОЙДЕН!"
+	lbl.text = "РОГАЛИК ПРОЙДЕН!\n%d комнат / %d убийств" % [_total_rooms, GameManager.roguelike_total_kills]
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_size_override("font_size", 48)
 	lbl.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 1.0))
 	lbl.set_anchors_preset(Control.PRESET_CENTER)
-	lbl.offset_left   = -250
-	lbl.offset_right  = 250
+	lbl.offset_left   = -300
+	lbl.offset_right  = 300
 	lbl.offset_top    = -80
 	lbl.offset_bottom = -30
 	ui.add_child(lbl)
@@ -1211,15 +1218,23 @@ func _show_saturation_effect() -> void:
 	tween.tween_property(_saturation_overlay, "color:a", 0.0, SATURATION_DURATION * 0.7)
 
 
+## ============================================================
+## Death screen (shown if player dies mid-run)
+## ============================================================
+
 func _show_death_screen() -> void:
 	if _game_over_shown:
 		return
 	_game_over_shown = true
+
+	# Run is aborted on death
+	_restore_loadout()
+	GameManager.roguelike_reset_session()
+
 	var ui: Node = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
-	## Dark overlay so the game world is not visible during the death screen
 	var bg := ColorRect.new()
 	bg.color = Color(0.0, 0.0, 0.0, 0.80)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1241,6 +1256,13 @@ func _show_death_screen() -> void:
 	lbl.add_theme_font_size_override("font_size", 64)
 	lbl.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15, 1.0))
 	container.add_child(lbl)
+
+	var room_lbl := Label.new()
+	room_lbl.text = "Комната %d / %d" % [_current_room_idx + 1, _total_rooms]
+	room_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	room_lbl.add_theme_font_size_override("font_size", 22)
+	room_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.8))
+	container.add_child(room_lbl)
 
 	var btn_restart := Button.new()
 	btn_restart.text = "↻ Снова (Q)"
@@ -1299,15 +1321,9 @@ func _broadcast_player_ammo_empty(is_empty: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.physical_keycode == KEY_Q:
-			# Only allow Q-restart after the death screen is fully shown
-			# (_game_over_shown is set inside _show_death_screen which runs after a 1.5s delay).
-			# This prevents the scene from reloading while death visual effects are still playing,
-			# which would cause enemies to "respawn on the player's eyes" (Issue #1061 round 4).
-			if _game_over_shown or _level_cleared:
+			# Only allow Q-restart after death or run completion
+			if _game_over_shown or _score_shown:
 				_on_restart_pressed()
-		elif event.physical_keycode == KEY_W and _level_cleared:
-			if not _score_shown:
-				_complete_level_with_score()
 
 
 ## ============================================================
@@ -1315,12 +1331,15 @@ func _input(event: InputEvent) -> void:
 ## ============================================================
 
 func _on_restart_pressed() -> void:
+	## Start a brand-new run from room 1
+	GameManager.roguelike_reset_session()
 	get_tree().paused = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
 
 
 func _on_level_select_pressed() -> void:
+	GameManager.roguelike_reset_session()
 	get_tree().paused = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 	_restore_loadout()
@@ -1329,7 +1348,3 @@ func _on_level_select_pressed() -> void:
 		sl.load_level("res://scenes/levels/LabyrinthLevel.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/levels/LabyrinthLevel.tscn")
-
-
-func _get_next_level_path() -> String:
-	return "res://scenes/levels/RoguelikeLevel.tscn"

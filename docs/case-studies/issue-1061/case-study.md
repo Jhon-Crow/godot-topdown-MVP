@@ -401,10 +401,106 @@ if camera:
 
 ---
 
-## 12. References
+---
+
+## 12. Round 6 — Isaac-style room-by-room progression
+
+**Owner feedback (2026-03-18 03:21):**
+> Сейчас всё хорошо, зафиксируй прогресс.
+> 1. после прохождения одной комнаты не должен показываться счёт, а игрок, дойдя до выхода должен переходить в следующую (новую генерацию).
+> Посмотри как строятся уровни, этажи и подобное в the binding of isaac и сделай примерно так.
+
+**Feedback summary:** After clearing a room the score screen must NOT appear. The player reaching the exit should transition to the next room (new procedural generation). The overall structure should resemble The Binding of Isaac's room-by-room floor progression.
+
+### 12.1 Design Analysis — The Binding of Isaac
+
+The Binding of Isaac uses a **single-room-at-a-time** progression model:
+- The entire dungeon map for a floor is pre-planned (room count and room graph determined at run start).
+- Only ONE room is visible/active at a time.
+- The player clears all enemies → exit doors unlock → player walks through exit → next room loads (instant or with a short transition).
+- Score / stats are accumulated across all rooms and shown only at the very end of the run (after the final boss).
+- A persistent HUD shows current floor / total floors and room-level progress.
+
+Key differences from a "big open world with corridors" layout:
+- No large spatial map with corridors — each room is isolated.
+- Enemies in the current room are the only active AI agents at any time → O(1) CPU per room regardless of total run length.
+- Room type, layout, and enemies are determined at run start but each room loads fresh when entered.
+
+### 12.2 Implementation — Session State in GameManager
+
+To survive the `change_scene_to_file()` reload between rooms, run state is stored in `GameManager` (an autoload singleton that persists across scene changes):
+
+```gdscript
+# In game_manager.gd — new fields (Issue #1061 Round 6):
+var roguelike_active: bool = false
+var roguelike_current_room: int = 0
+var roguelike_total_rooms: int = 0
+var roguelike_room_types: Array = []      ## predetermined sequence
+var roguelike_run_seed: int = 0
+var roguelike_total_kills: int = 0
+var roguelike_total_shots: int = 0
+var roguelike_total_hits: int = 0
+var roguelike_saved_weapon: String = ""
+
+func roguelike_reset_session() -> void:
+    roguelike_active = false
+    roguelike_current_room = 0
+    ...
+```
+
+### 12.3 Progression flow
+
+```
+Pause menu → "Рогалик"
+    │
+    ▼
+RoguelikeLevel _ready()
+    │
+    ├─ [roguelike_active == false] → _start_new_run()
+    │       randomize seed, choose 3–5 room types,
+    │       store in GameManager, set current_room=0
+    │
+    └─ [roguelike_active == true]  → _continue_run()
+            restore seed offset (seed = run_seed + current_room)
+
+Build ONE room (current type from GameManager.roguelike_room_types[current_room])
+Spawn player + enemies
+Wait for all enemies to die → exit zone activates
+Player reaches exit → _advance_to_next_room()
+    │
+    ├─ [next < total_rooms] → accumulate stats in GM,
+    │   increment GM.roguelike_current_room,
+    │   show brief "Комната пройдена! Следующая: X (N/M)" flash (1.4s),
+    │   change_scene_to_file(RoguelikeLevel.tscn)   ← reloads, _continue_run() branch
+    │
+    └─ [next >= total_rooms] → _complete_run_with_score()
+            show full-run score (rooms cleared, total kills, rank)
+            roguelike_reset_session()
+
+Player dies at any point → _show_death_screen()
+    shows "YOU DIED — Комната X / Y"
+    roguelike_reset_session()
+    Q = restart new run / Menu = back to LabyrinthLevel
+```
+
+### 12.4 Score accumulation
+
+Stats are accumulated in `GameManager` roguelike fields at the end of each room:
+```gdscript
+GameManager.roguelike_total_kills += GameManager.kills
+GameManager.roguelike_total_shots += GameManager.shots_fired
+GameManager.roguelike_total_hits  += GameManager.hits_landed
+```
+Final score screen shows total kills across all rooms + per-room score from ScoreManager.
+
+---
+
+## 13. References
 
 - Godot 4 `NavigationRegion2D` procedural baking: https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationregions.html
 - Godot 4 `StaticBody2D` + `RectangleShape2D` API: https://docs.godotengine.org/en/stable/classes/class_staticbody2d.html
 - Bob Nystrom — Rooms and Mazes algorithm: https://journal.stuffwithstuff.com/2014/12/21/rooms-and-mazes/
 - Binary Space Partitioning for dungeon generation: https://roguebasin.com/index.php/Basic_BSP_Dungeon_generation
+- The Binding of Isaac room progression analysis: https://www.boristhebrave.com/2020/09/12/dungeon-generation-in-binding-of-isaac/
+- Binding of Isaac Rebirth Wiki — Rooms: https://bindingofisaacrebirth.fandom.com/wiki/Rooms
 - Related issue fix: Issue #1073 (index collision and jammer fix) — docs/case-studies/issue-1073/README.md
