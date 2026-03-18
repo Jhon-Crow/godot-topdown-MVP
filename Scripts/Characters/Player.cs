@@ -1522,9 +1522,6 @@ public partial class Player : BaseCharacter
         // Handle drilling bullets input (press Space to activate, Issue #751)
         HandleDrillingBulletsInput();
 
-        // Update drilling bullets charge bar auto-hide timer (Issue #751)
-        UpdateDrillingBarTimer((float)delta);
-
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
     }
@@ -5823,21 +5820,6 @@ public partial class Player : BaseCharacter
     private bool _drillingBulletsUsed = false;
 
     /// <summary>
-    /// Whether the charge bar auto-hide is pending (shown briefly after activation).
-    /// </summary>
-    private bool _drillingChargeBarPending = false;
-
-    /// <summary>
-    /// Timer for auto-hiding the drilling charge bar after activation.
-    /// </summary>
-    private float _drillingChargeBarHideTimer = 0.0f;
-
-    /// <summary>
-    /// Delay in seconds before hiding the drilling charge bar.
-    /// </summary>
-    private const float DrillingChargeBarHideDelay = 0.3f;
-
-    /// <summary>
     /// Initialize drilling bullets if the ActiveItemManager has them selected (Issue #751).
     /// One charge per battle — press Space to apply wall-piercing to current magazine.
     /// </summary>
@@ -5896,11 +5878,6 @@ public partial class Player : BaseCharacter
                     int magazineAmmo = activeAmmo;
                     CurrentWeapon.DrillingBulletsRemaining = magazineAmmo;
                     LogToFile($"[Player.DrillingBullets] Activated! Magazine has {magazineAmmo} drilling bullets. Charge consumed.");
-
-                    // Show charge bar briefly (now empty — charge spent)
-                    _drillingChargeBarPending = true;
-                    _drillingChargeBarHideTimer = DrillingChargeBarHideDelay;
-                    QueueRedraw();
                 }
                 else
                 {
@@ -5910,46 +5887,6 @@ public partial class Player : BaseCharacter
         }
     }
 
-    /// <summary>
-    /// Update drilling bullets progress bar auto-hide timer (Issue #751).
-    /// </summary>
-    private void UpdateDrillingBarTimer(float delta)
-    {
-        if (_drillingChargeBarPending)
-        {
-            _drillingChargeBarHideTimer -= delta;
-            if (_drillingChargeBarHideTimer <= 0.0f)
-            {
-                _drillingChargeBarPending = false;
-                QueueRedraw();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Draw the drilling bullets single-charge indicator.
-    /// Cyan = charge available, dark = charge used.
-    /// </summary>
-    private void DrawDrillingChargeBar()
-    {
-        const float barWidth = 40.0f;
-        const float barHeight = 6.0f;
-        const float barYOffset = -30.0f;
-        const float borderWidth = 1.0f;
-
-        bool chargeAvailable = !_drillingBulletsUsed;
-        Color fillColor = chargeAvailable
-            ? new Color(0.2f, 0.8f, 0.9f, 0.85f)   // Cyan — charge available
-            : new Color(0.2f, 0.2f, 0.2f, 0.4f);    // Dark grey — charge spent
-
-        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
-        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
-
-        Rect2 bgRect = new Rect2(-barWidth / 2.0f, barYOffset, barWidth, barHeight);
-        DrawRect(bgRect, bgColor);
-        DrawRect(bgRect, fillColor);
-        DrawRect(bgRect, borderColor, false, borderWidth);
-    }
 
     #endregion
 
@@ -7341,12 +7278,6 @@ public partial class Player : BaseCharacter
         // Trajectory glasses progress bar removed (Issue #1049).
         // Charge pips are shown by TrajectoryGlassesHUD for 300ms, then auto-hide.
         // The trajectory ray blinks during the last 2 seconds as a low-time warning.
-
-        // Draw drilling bullets charge bar (Issue #751)
-        if (_drillingBulletsEquipped && (_drillingChargeBarPending || !_drillingBulletsUsed))
-        {
-            DrawDrillingChargeBar();
-        }
 
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
