@@ -11,6 +11,11 @@ extends Node
 const INVISIBLE_SHADER_PATH: String = "res://scripts/shaders/invisibility_cloak.gdshader"
 const REVEAL_DURATION: float = 2.0  ## Seconds enemy stays visible after shooting/throwing.
 
+## Slower ripple speed makes enemies harder to spot than the player's cloak.
+const ENEMY_RIPPLE_SPEED: float = 0.6
+## Near-zero shimmer so the blue tint outline is barely visible.
+const ENEMY_SHIMMER_INTENSITY: float = 0.05
+
 ## Whether the enemy invisibility cloak is currently active.
 var is_cloaked: bool = false
 
@@ -92,6 +97,8 @@ func _apply_to_canvas_item(canvas_item: CanvasItem) -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = _shader
 	mat.set_shader_parameter("mix_amount", 1.0)
+	mat.set_shader_parameter("ripple_speed", ENEMY_RIPPLE_SPEED)
+	mat.set_shader_parameter("shimmer_intensity", ENEMY_SHIMMER_INTENSITY)
 	canvas_item.material = mat
 	_affected_sprites.append(canvas_item)
 
