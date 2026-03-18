@@ -8,6 +8,12 @@ class_name WallBreachHelper
 ## The passage is BREACH_PASSAGE_WIDTH pixels wide, carved perpendicular to the wall's
 ## long axis.  Thin walls (shorter than the passage in the split axis) are made fully
 ## passable with a faded visual instead of being split.
+##
+## Safe to call multiple times on the same wall (e.g. two rockets hit the same wall).
+## Each call disables ALL existing collision shapes (including segment shapes from prior
+## breaches) and removes prior dynamic visual nodes before placing new ones.
+## This prevents invisible-wall "ghost" shapes that blocked movement after multiple
+## RPG hits on the same wall (Issue #1144 follow-up).
 
 ## Width of the passage carved through a wall (pixels).
 ## Must match BreachingChargesEffect.BREACH_PASSAGE_WIDTH for consistent feel.
@@ -15,6 +21,10 @@ const BREACH_PASSAGE_WIDTH: float = 120.0
 
 ## Minimum segment length to keep after splitting; smaller segments are dropped.
 const MIN_SEGMENT_SIZE: float = 8.0
+
+## Metadata key used to mark dynamically-added collision/visual nodes created by this helper.
+## Allows cleanup of prior-breach remnants when the same wall is breached again.
+const DYNAMIC_NODE_META: StringName = &"wall_breach_dynamic"
 
 
 ## Carve a passage through a StaticBody2D wall at the given world-space position.
@@ -27,20 +37,33 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 		FileLogger.info("[WallBreachHelper] WARNING: invalid wall reference, skipping")
 		return
 
-	# Find the first RectangleShape2D collision child to determine wall dimensions.
+	# Remove dynamic nodes added by any previous breach on this same wall.
+	# This cleans up ghost collision shapes and stale visual segments.
+	_remove_dynamic_nodes(wall)
+
+	# Find the original RectangleShape2D collision child to determine wall dimensions.
+	# We look for the shape with the LARGEST area — this is the original full-wall shape
+	# even if it was disabled by a previous breach call.
 	var col_shape: CollisionShape2D = null
+	var largest_area: float = -1.0
 	for child in wall.get_children():
 		if child is CollisionShape2D and (child as CollisionShape2D).shape is RectangleShape2D:
-			col_shape = child as CollisionShape2D
-			break
+			var s: RectangleShape2D = (child as CollisionShape2D).shape as RectangleShape2D
+			var area := s.size.x * s.size.y
+			if area > largest_area:
+				largest_area = area
+				col_shape = child as CollisionShape2D
 
-	# Fallback: disable all shapes if no RectangleShape2D found.
+	# Disable ALL existing collision shapes (original + any remaining from prior breaches).
+	# This prevents invisible-wall ghost shapes left by repeated calls on the same wall.
+	for child in wall.get_children():
+		if child is CollisionShape2D:
+			(child as CollisionShape2D).disabled = true
+		elif child is CollisionPolygon2D:
+			(child as CollisionPolygon2D).disabled = true
+
+	# Fallback: all shapes disabled above; just fade visuals if no RectangleShape2D found.
 	if col_shape == null:
-		for child in wall.get_children():
-			if child is CollisionShape2D:
-				(child as CollisionShape2D).disabled = true
-			elif child is CollisionPolygon2D:
-				(child as CollisionPolygon2D).disabled = true
 		_fade_wall_visuals(wall)
 		FileLogger.info("[WallBreachHelper] Fallback: disabled all shapes on '%s'" % wall.name)
 		return
@@ -61,7 +84,6 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	if is_horizontal:
 		# Thin wall (shorter than one passage width) — make fully passable.
 		if wall_size.x < BREACH_PASSAGE_WIDTH:
-			col_shape.disabled = true
 			_fade_wall_visuals(wall)
 			FileLogger.info("[WallBreachHelper] Thin wall '%s' breached (fully passable)" % wall.name)
 			return
@@ -78,12 +100,9 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 
 		# Short wall — make fully passable.
 		if left_width < MIN_SEGMENT_SIZE and right_width < MIN_SEGMENT_SIZE:
-			col_shape.disabled = true
 			_fade_wall_visuals(wall)
 			FileLogger.info("[WallBreachHelper] Short wall '%s' breached (fully passable)" % wall.name)
 			return
-
-		col_shape.disabled = true
 
 		if left_width >= MIN_SEGMENT_SIZE:
 			var left_shape := RectangleShape2D.new()
@@ -91,6 +110,7 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			var left_col := CollisionShape2D.new()
 			left_col.shape = left_shape
 			left_col.position = Vector2(-half_w + left_width * 0.5, 0.0)
+			left_col.set_meta(DYNAMIC_NODE_META, true)
 			wall.add_child(left_col)
 
 		if right_width >= MIN_SEGMENT_SIZE:
@@ -99,6 +119,7 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			var right_col := CollisionShape2D.new()
 			right_col.shape = right_shape
 			right_col.position = Vector2(half_w - right_width * 0.5, 0.0)
+			right_col.set_meta(DYNAMIC_NODE_META, true)
 			wall.add_child(right_col)
 
 		_split_visual_horizontal(wall, bx, half_w, half_h)
@@ -109,7 +130,6 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 	else:
 		# Thin wall (shorter than one passage height) — make fully passable.
 		if wall_size.y < BREACH_PASSAGE_WIDTH:
-			col_shape.disabled = true
 			_fade_wall_visuals(wall)
 			FileLogger.info("[WallBreachHelper] Thin wall '%s' breached (fully passable)" % wall.name)
 			return
@@ -125,12 +145,9 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 
 		# Short wall — make fully passable.
 		if top_height < MIN_SEGMENT_SIZE and bottom_height < MIN_SEGMENT_SIZE:
-			col_shape.disabled = true
 			_fade_wall_visuals(wall)
 			FileLogger.info("[WallBreachHelper] Short wall '%s' breached (fully passable)" % wall.name)
 			return
-
-		col_shape.disabled = true
 
 		if top_height >= MIN_SEGMENT_SIZE:
 			var top_shape := RectangleShape2D.new()
@@ -138,6 +155,7 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			var top_col := CollisionShape2D.new()
 			top_col.shape = top_shape
 			top_col.position = Vector2(0.0, -half_h + top_height * 0.5)
+			top_col.set_meta(DYNAMIC_NODE_META, true)
 			wall.add_child(top_col)
 
 		if bottom_height >= MIN_SEGMENT_SIZE:
@@ -146,6 +164,7 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 			var bot_col := CollisionShape2D.new()
 			bot_col.shape = bot_shape
 			bot_col.position = Vector2(0.0, half_h - bottom_height * 0.5)
+			bot_col.set_meta(DYNAMIC_NODE_META, true)
 			wall.add_child(bot_col)
 
 		_split_visual_vertical(wall, by, half_w, half_h)
@@ -153,6 +172,14 @@ static func open_wall_passage(wall: Node, breach_world_pos: Vector2) -> void:
 		FileLogger.info("[WallBreachHelper] Vertical passage in '%s' at local y=%.0f (height %.0fpx)" % [
 			wall.name, by, BREACH_PASSAGE_WIDTH
 		])
+
+
+## Remove all dynamically-added nodes from a prior breach on this wall.
+## Only nodes tagged with DYNAMIC_NODE_META are removed; original scene nodes are untouched.
+static func _remove_dynamic_nodes(wall: Node) -> void:
+	for child in wall.get_children():
+		if child.has_meta(DYNAMIC_NODE_META):
+			child.queue_free()
 
 
 ## Fade all CanvasItem children to alpha 0.25 to show the wall is breached
@@ -188,6 +215,7 @@ static func _split_visual_horizontal(wall: Node, breach_cx: float, half_w: float
 		cr.size = Vector2(left_width, wall_height)
 		cr.position = Vector2(-half_w, -half_h)
 		cr.color = wall_color
+		cr.set_meta(DYNAMIC_NODE_META, true)
 		wall.add_child(cr)
 
 	if right_width >= MIN_SEGMENT_SIZE:
@@ -195,6 +223,7 @@ static func _split_visual_horizontal(wall: Node, breach_cx: float, half_w: float
 		cr.size = Vector2(right_width, wall_height)
 		cr.position = Vector2(half_w - right_width, -half_h)
 		cr.color = wall_color
+		cr.set_meta(DYNAMIC_NODE_META, true)
 		wall.add_child(cr)
 
 
@@ -223,6 +252,7 @@ static func _split_visual_vertical(wall: Node, breach_cy: float, half_w: float, 
 		cr.size = Vector2(wall_width, top_height)
 		cr.position = Vector2(-half_w, -half_h)
 		cr.color = wall_color
+		cr.set_meta(DYNAMIC_NODE_META, true)
 		wall.add_child(cr)
 
 	if bottom_height >= MIN_SEGMENT_SIZE:
@@ -230,4 +260,5 @@ static func _split_visual_vertical(wall: Node, breach_cy: float, half_w: float, 
 		cr.size = Vector2(wall_width, bottom_height)
 		cr.position = Vector2(-half_w, half_h - bottom_height)
 		cr.color = wall_color
+		cr.set_meta(DYNAMIC_NODE_META, true)
 		wall.add_child(cr)

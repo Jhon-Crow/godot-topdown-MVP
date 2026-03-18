@@ -335,3 +335,72 @@ func test_null_already_hit_wall_processes_all_in_radius() -> void:
 
 	wall1.queue_free()
 	wall2.queue_free()
+
+
+# ============================================================================
+# Double-Breach Ghost Collision Shape Tests (Issue #1144 follow-up)
+# ============================================================================
+
+
+func test_dynamic_nodes_tagged_with_meta() -> void:
+	## Dynamically-added collision segments and visual ColorRects should have
+	## the DYNAMIC_NODE_META metadata so they can be cleaned up on re-breach.
+	var col := CollisionShape2D.new()
+	col.set_meta(WallBreachHelper.DYNAMIC_NODE_META, true)
+
+	assert_true(col.has_meta(WallBreachHelper.DYNAMIC_NODE_META),
+		"Dynamically-added CollisionShape2D should have DYNAMIC_NODE_META tag")
+
+	col.queue_free()
+
+
+func test_dynamic_meta_constant_is_string_name() -> void:
+	## DYNAMIC_NODE_META should be a StringName (prefixed with &) for performance.
+	assert_eq(typeof(WallBreachHelper.DYNAMIC_NODE_META), TYPE_STRING_NAME,
+		"DYNAMIC_NODE_META should be a StringName for efficient Godot node metadata lookup")
+
+
+func test_remove_dynamic_nodes_clears_tagged_children() -> void:
+	## _remove_dynamic_nodes should remove only nodes tagged with DYNAMIC_NODE_META.
+	## Original scene nodes (no tag) should remain untouched.
+	var wall := StaticBody2D.new()
+	wall.name = "TestWallDouble"
+
+	# Add "original" collision shape (not tagged — simulates scene node)
+	var original_col := CollisionShape2D.new()
+	var orig_rect := RectangleShape2D.new()
+	orig_rect.size = Vector2(200.0, 24.0)
+	original_col.shape = orig_rect
+	wall.add_child(original_col)
+
+	# Add "dynamic" collision segments from a prior breach (tagged)
+	var seg_left := CollisionShape2D.new()
+	var seg_rect_l := RectangleShape2D.new()
+	seg_rect_l.size = Vector2(40.0, 24.0)
+	seg_left.shape = seg_rect_l
+	seg_left.set_meta(WallBreachHelper.DYNAMIC_NODE_META, true)
+	wall.add_child(seg_left)
+
+	var seg_right := CollisionShape2D.new()
+	var seg_rect_r := RectangleShape2D.new()
+	seg_rect_r.size = Vector2(40.0, 24.0)
+	seg_right.shape = seg_rect_r
+	seg_right.set_meta(WallBreachHelper.DYNAMIC_NODE_META, true)
+	wall.add_child(seg_right)
+
+	# Before cleanup: 3 children total
+	assert_eq(wall.get_child_count(), 3,
+		"Wall should have 3 children before cleanup (1 original + 2 dynamic segments)")
+
+	# Run the cleanup (queue_free is deferred; we need to process the tree)
+	WallBreachHelper._remove_dynamic_nodes(wall)
+	# Flush deferred queue_free calls
+	await get_tree().process_frame
+
+	# After cleanup: only the original shape remains
+	assert_eq(wall.get_child_count(), 1,
+		"After _remove_dynamic_nodes, only the original (untagged) shape should remain")
+	assert_eq(wall.get_child(0), original_col,
+		"The remaining child should be the original (untagged) CollisionShape2D")
+
+	wall.queue_free()
