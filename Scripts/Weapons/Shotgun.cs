@@ -345,6 +345,25 @@ public partial class Shotgun : BaseWeapon
             }
         }
 
+        // Apply extended magazine passive item (Issue #1065):
+        // 2.5x tube capacity, 5% less total ammo.
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager != null && activeItemManager.HasMethod("has_extended_magazine")
+            && activeItemManager.Call("has_extended_magazine").AsBool())
+        {
+            float magSizeMultiplier = activeItemManager.Call("get_magazine_size_multiplier").AsSingle();
+            float totalAmmoMultiplier = activeItemManager.Call("get_total_ammo_multiplier").AsSingle();
+
+            int originalTube = TubeMagazineCapacity;
+            int newTubeCapacity = Mathf.Max(1, Mathf.RoundToInt(TubeMagazineCapacity * magSizeMultiplier));
+            int newReserve = Mathf.Max(0, Mathf.RoundToInt(maxReserve * totalAmmoMultiplier));
+
+            GD.Print($"[Shotgun] Extended Magazine: tube {originalTube}->{newTubeCapacity}, reserve {maxReserve}->{newReserve}");
+
+            TubeMagazineCapacity = newTubeCapacity;
+            maxReserve = newReserve;
+        }
+
         // Create 2 magazines:
         // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
         // - 1 spare magazine: holds the actual reserve shells
@@ -1572,7 +1591,9 @@ public partial class Shotgun : BaseWeapon
         int pelletCount = GD.RandRange(MinPellets, MaxPellets);
 
         // Get spread angle from weapon data
-        float spreadAngle = WeaponData.SpreadAngle;
+        // Suppress spread when recoil compensator is active (Issue #1073)
+        bool compensatorActive = GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive();
+        float spreadAngle = compensatorActive ? 0.0f : WeaponData.SpreadAngle;
         float spreadRadians = Mathf.DegToRad(spreadAngle);
         float halfSpread = spreadRadians / 2.0f;
 
@@ -1988,6 +2009,10 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
+        // Suppress screen shake when recoil compensator is active (Issue #1073)
+        if (GetParent() is Player compensatorPlayer && compensatorPlayer.IsRecoilCompensatorActive())
+            return;
+
         if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
             return;

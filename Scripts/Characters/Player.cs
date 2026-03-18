@@ -867,6 +867,19 @@ public partial class Player : BaseCharacter
     /// </summary>
     private const float LoudspeakerHoldDuration = 0.6f;
 
+    // Recoil Compensator fields (Issue #1073)
+    /// <summary>Whether the recoil compensator is equipped (active item selected in armory).</summary>
+    private bool _recoilCompensatorEquipped = false;
+
+    /// <summary>Whether the recoil compensator is currently active (Space held and charge > 0).</summary>
+    private bool _recoilCompensatorActive = false;
+
+    /// <summary>Remaining charge in seconds (depletes at 1 s/s while active).</summary>
+    private float _recoilCompensatorCharge = 0.0f;
+
+    /// <summary>Maximum charge duration in seconds.</summary>
+    private const float RecoilCompensatorMaxCharge = 15.0f;
+
     #endregion
 
     public override void _Ready()
@@ -1190,6 +1203,9 @@ public partial class Player : BaseCharacter
         // Initialize auto-reload if active item manager has it selected (Issue #1067)
         InitAutoReload();
 
+        // Initialize recoil compensator if active item manager has it selected (Issue #1073)
+        InitRecoilCompensator();
+
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
 
@@ -1496,6 +1512,9 @@ public partial class Player : BaseCharacter
 
         // Handle loudspeaker input (press Space to emit sound cone) (Issue #959)
         HandleLoudspeakerInput((float)delta);
+
+        // Handle recoil compensator input (hold Space to eliminate recoil/spread and boost fire rate) (Issue #1073)
+        HandleRecoilCompensatorInput((float)delta);
 
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
@@ -4396,15 +4415,31 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Issue #1036 / #1115: Block active item use when jammed by a Radio Jammer enemy,
+        // and cancel the flashlight immediately if it is on when the player enters jammer range.
+        // Use silent check (hold action fires every frame — verbose would flood the log)
+        if (IsActiveItemJammedSilent())
+        {
+            if (_flashlightHasScript)
+            {
+                _flashlightNode.Call("turn_off");
+            }
+            else if (_flashlightIsOn)
+            {
+                _flashlightIsOn = false;
+                if (_flashlightPointLight != null)
+                {
+                    _flashlightPointLight.Visible = false;
+                    _flashlightPointLight.Energy = 0.0f;
+                }
+            }
+            if (Input.IsActionJustPressed("flashlight_toggle"))
+                LogToFile("[Player.Flashlight] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
         if (Input.IsActionPressed("flashlight_toggle"))
         {
-            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
-            // Use silent check (hold action fires every frame — verbose would flood the log)
-            if (IsActiveItemJammedSilent())
-            {
-                return;
-            }
-
             if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_on");
@@ -4864,6 +4899,20 @@ public partial class Player : BaseCharacter
         if (!_homingBulletsEquipped)
         {
             return;
+        }
+
+        // Issue #1115: Cancel homing effect immediately if player enters jammer range while active
+        if (_homingActive && IsActiveItemJammedSilent())
+        {
+            _homingActive = false;
+            _homingTimer = 0.0f;
+            StopHomingScanner();
+            _homingBarVisible = false;
+            _homingChargeBarPending = true;
+            _homingChargeBarHideTimer = HomingChargeBarHideDelay;
+            QueueRedraw();
+            EmitSignal(SignalName.HomingDeactivated);
+            LogToFile("[Player.Homing] Homing cancelled by Radio Jammer (Issue #1115)");
         }
 
         // Handle active timer countdown
@@ -5442,6 +5491,17 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Issue #1115: Cancel invisibility immediately if player enters jammer range while active
+        if (IsActiveItemJammedSilent())
+        {
+            bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
+            if (isActive)
+            {
+                _invisibilitySuitEffect.Call("deactivate");
+                LogToFile("[Player.InvisibilitySuit] Invisibility cancelled by Radio Jammer (Issue #1115)");
+            }
+        }
+
         if (Input.IsActionJustPressed("flashlight_toggle"))
         {
             // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
@@ -5627,6 +5687,17 @@ public partial class Player : BaseCharacter
         if (!IsInstanceValid(_trajectoryGlassesEffect))
         {
             return;
+        }
+
+        // Issue #1115: Cancel trajectory glasses immediately if player enters jammer range while active
+        if (IsActiveItemJammedSilent())
+        {
+            bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
+            if (isActive)
+            {
+                _trajectoryGlassesEffect.Call("deactivate");
+                LogToFile("[Player.TrajectoryGlasses] Trajectory glasses cancelled by Radio Jammer (Issue #1115)");
+            }
         }
 
         if (Input.IsActionJustPressed("flashlight_toggle"))
@@ -6113,15 +6184,25 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Issue #1036 / #1115: Block active item use when jammed by a Radio Jammer enemy,
+        // and deactivate the force field immediately if it is active when the player enters jammer range.
+        // Use silent check (hold action fires every frame — verbose would flood the log)
+        if (IsActiveItemJammedSilent())
+        {
+            bool isActiveJammed = (bool)_forceFieldEffect.Get("is_active");
+            if (isActiveJammed)
+            {
+                _forceFieldEffect.Call("deactivate");
+                LogToFile("[Player.ForceField] Force field cancelled by Radio Jammer (Issue #1115)");
+            }
+            if (Input.IsActionJustPressed("flashlight_toggle"))
+                LogToFile("[Player.ForceField] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        // Hold Space to activate, release to deactivate
         if (Input.IsActionPressed("flashlight_toggle"))
         {
-            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
-            // Use silent check (hold action fires every frame — verbose would flood the log)
-            if (IsActiveItemJammedSilent())
-            {
-                return;
-            }
-
             bool isActive = (bool)_forceFieldEffect.Get("is_active");
             if (!isActive)
             {
@@ -6978,6 +7059,142 @@ public partial class Player : BaseCharacter
 
     #endregion
 
+    #region Recoil Compensator System (Issue #1073)
+
+    /// <summary>
+    /// Initialize the recoil compensator if the ActiveItemManager has it selected (Issue #1073).
+    /// </summary>
+    private void InitRecoilCompensator()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.RecoilCompensator] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_recoil_compensator"))
+        {
+            LogToFile("[Player.RecoilCompensator] ActiveItemManager missing has_recoil_compensator method");
+            return;
+        }
+
+        bool hasCompensator = (bool)activeItemManager.Call("has_recoil_compensator");
+        if (!hasCompensator)
+        {
+            LogToFile("[Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager");
+            return;
+        }
+
+        _recoilCompensatorEquipped = true;
+        _recoilCompensatorCharge = RecoilCompensatorMaxCharge;
+        _recoilCompensatorActive = false;
+
+        LogToFile($"[Player.RecoilCompensator] Recoil compensator initialized, charge: {_recoilCompensatorCharge:F1} s");
+    }
+
+    /// <summary>
+    /// Handle recoil compensator input: hold Space to activate, release to deactivate.
+    /// While active: eliminates weapon spread and screen shake, boosts fire rate by 10%.
+    /// Charge depletes at 1 s/s while active; deactivates automatically when empty.
+    /// </summary>
+    private void HandleRecoilCompensatorInput(float delta)
+    {
+        if (!_recoilCompensatorEquipped)
+            return;
+
+        // Fire rate boost: accelerate weapon fire timer by 10% while active
+        if (_recoilCompensatorActive && CurrentWeapon != null)
+        {
+            CurrentWeapon.AccelerateFireTimer(delta * 0.1f);
+        }
+
+        if (Input.IsActionPressed("flashlight_toggle") && _recoilCompensatorCharge > 0.0f)
+        {
+            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+            // Use silent check (hold action fires every frame — verbose would flood the log)
+            if (IsActiveItemJammedSilent())
+            {
+                if (_recoilCompensatorActive)
+                {
+                    _recoilCompensatorActive = false;
+                    QueueRedraw();
+                }
+                return;
+            }
+
+            // Activate: deplete charge
+            if (!_recoilCompensatorActive)
+            {
+                _recoilCompensatorActive = true;
+                LogToFile($"[Player.RecoilCompensator] Activated, charge: {_recoilCompensatorCharge:F2} s");
+                QueueRedraw();
+            }
+
+            _recoilCompensatorCharge -= delta;
+            if (_recoilCompensatorCharge <= 0.0f)
+            {
+                _recoilCompensatorCharge = 0.0f;
+                _recoilCompensatorActive = false;
+                LogToFile("[Player.RecoilCompensator] Charge depleted, deactivating");
+            }
+
+            QueueRedraw();
+        }
+        else
+        {
+            if (_recoilCompensatorActive)
+            {
+                _recoilCompensatorActive = false;
+                LogToFile($"[Player.RecoilCompensator] Deactivated, charge: {_recoilCompensatorCharge:F2} s");
+                QueueRedraw();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns true when the recoil compensator is equipped and currently active (Space held, charge > 0).
+    /// Called by weapon scripts to suppress spread and screen shake.
+    /// </summary>
+    public bool IsRecoilCompensatorActive()
+    {
+        return _recoilCompensatorEquipped && _recoilCompensatorActive;
+    }
+
+    /// <summary>
+    /// Draw a continuous timer bar above the player showing remaining compensator charge.
+    /// Shown while active and while charge < max (i.e., after first use).
+    /// </summary>
+    private void DrawRecoilCompensatorBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 4.0f;
+        const float barYOffset = -30.0f;
+        const float borderWidth = 1.0f;
+
+        float fillRatio = Mathf.Clamp(_recoilCompensatorCharge / RecoilCompensatorMaxCharge, 0.0f, 1.0f);
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+        // Active: orange/amber; inactive (charge remaining): dim version
+        Color fillColor = _recoilCompensatorActive
+            ? new Color(1.0f, 0.6f, 0.0f, 0.95f)
+            : new Color(0.6f, 0.4f, 0.0f, 0.6f);
+
+        Rect2 bgRect = new Rect2(-barWidth / 2.0f, barYOffset, barWidth, barHeight);
+        DrawRect(bgRect, bgColor);
+
+        if (fillRatio > 0.0f)
+        {
+            Rect2 fillRect = new Rect2(-barWidth / 2.0f, barYOffset, barWidth * fillRatio, barHeight);
+            DrawRect(fillRect, fillColor);
+        }
+
+        DrawRect(bgRect, borderColor, false, borderWidth);
+    }
+
+    #endregion
+
     #region Logging
 
     /// <summary>
@@ -7111,6 +7328,12 @@ public partial class Player : BaseCharacter
     /// </summary>
     public override void _Draw()
     {
+        // Draw recoil compensator timer bar (Issue #1073)
+        if (_recoilCompensatorEquipped && (_recoilCompensatorActive || _recoilCompensatorCharge < RecoilCompensatorMaxCharge))
+        {
+            DrawRecoilCompensatorBar();
+        }
+
         // Draw homing bullets progress bar (Issue #974)
         if (_homingBulletsEquipped)
         {

@@ -1264,7 +1264,7 @@ enable_cover = true
 [node name="Enemy4" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1100, 700)
 behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(150, 0), Vector2(-150, 0)])
+patrol_offsets = Array[Vector2]([Vector2(200, 0), Vector2(-200, 0)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1301,7 +1301,7 @@ grenade_throw_cooldown = 3.0
 [node name="Enemy8" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(2900, 300)
 behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(0, 150), Vector2(0, -150)])
+patrol_offsets = Array[Vector2]([Vector2(0, 200), Vector2(0, -200)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1323,7 +1323,7 @@ enable_cover = true
 [node name="Enemy11" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1900, 1400)
 behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
+patrol_offsets = Array[Vector2]([Vector2(200, 0), Vector2(-200, 0)])
 weapon_type = 1
 min_health = 1
 max_health = 2
@@ -1366,6 +1366,28 @@ max_health = 7
 destroy_on_death = true
 enable_flanking = false
 enable_cover = true
+
+[node name="InvisibleEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1500, 700)
+behavior_mode = 1
+min_health = 2
+max_health = 3
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+start_invisible = true
+initial_state = 9
+
+[node name="InvisibleEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2200, 1700)
+behavior_mode = 1
+min_health = 2
+max_health = 3
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+start_invisible = true
+initial_state = 9
 
 [node name="RoomLabels" type="Node2D" parent="Environment"]
 
@@ -1508,7 +1530,7 @@ offset_top = 45.0
 offset_right = -10.0
 offset_bottom = 75.0
 grow_horizontal = 0
-text = "Enemies: 15"
+text = "Enemies: 17"
 horizontal_alignment = 2
 
 [node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
