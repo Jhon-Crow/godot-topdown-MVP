@@ -292,6 +292,16 @@ func _on_enemies_table_back_pressed() -> void:
 		enemies_table_menu.hide()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		# If a sub-window (unlock table or enemies table) is open, let it handle ESC.
+		var sub_open: bool = (unlock_table_menu != null and unlock_table_menu.visible) \
+				or (enemies_table_menu != null and enemies_table_menu.visible)
+		if not sub_open:
+			_on_back_pressed()
+			get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
 

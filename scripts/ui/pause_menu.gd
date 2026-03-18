@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var training_button: Button = $MenuContainer/VBoxContainer/TrainingButton
 @onready var roguelike_button: Button = $MenuContainer/VBoxContainer/RoguelikeButton
+@onready var arena_button: Button = $MenuContainer/VBoxContainer/ArenaButton
 @onready var settings_button: Button = $MenuContainer/VBoxContainer/SettingsButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
@@ -38,6 +39,8 @@ func _ready() -> void:
 	# Start hidden
 	hide()
 	set_process_unhandled_input(true)
+	# Must process even when tree is paused so ESC can toggle the menu.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	# Connect button signals
 	resume_button.pressed.connect(_on_resume_pressed)
@@ -45,6 +48,7 @@ func _ready() -> void:
 	levels_button.pressed.connect(_on_levels_pressed)
 	training_button.pressed.connect(_on_training_pressed)
 	roguelike_button.pressed.connect(_on_roguelike_pressed)
+	arena_button.pressed.connect(_on_arena_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
@@ -244,6 +248,19 @@ func _on_roguelike_pressed() -> void:
 			push_error("Failed to load roguelike level: %s" % error)
 			get_tree().paused = true
 			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+func _on_arena_pressed() -> void:
+	# Load the Arena level directly (same pattern as Training button).
+	get_tree().paused = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+	var arena_path: String = "res://scenes/levels/ArenaLevel.tscn"
+	var error := get_tree().change_scene_to_file(arena_path)
+	if error != OK:
+		push_error("Failed to load arena level: %s" % error)
+		get_tree().paused = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
 func _on_quit_pressed() -> void:
