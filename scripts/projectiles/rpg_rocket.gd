@@ -43,6 +43,15 @@ class_name RpgRocket
 ## Seconds after spawn during which collisions are ignored (avoids immediate explosion near shooter).
 @export var spawn_immunity_time: float = 0.3
 
+## Weak homing: turning speed toward the player in radians per second (Issue #1135).
+## A small value gives a subtle "guided missile" feel without making it unavoidable.
+## Set to 0.0 to disable homing entirely.
+@export var homing_steer_speed: float = 1.2
+
+## Maximum total turn from the original firing direction (radians) (Issue #1135).
+## Limits how far the rocket can veer — keeps it feeling like a light correction.
+@export var homing_max_turn_angle: float = deg_to_rad(30.0)
+
 ## Direction the rocket travels (set by the shooter before add_child).
 var direction: Vector2 = Vector2.RIGHT
 
@@ -79,6 +88,9 @@ var _position_history: Array[Vector2] = []
 ## StaticBody2D wall that was hit last, stored for passage creation in _explode().
 var _hit_wall: StaticBody2D = null
 
+## Original firing direction, stored when rocket spawns (for homing angle limit) (Issue #1135).
+var _homing_original_direction: Vector2 = Vector2.ZERO
+
 ## Maximum number of trail points.
 @export var trail_length: int = 20
 
@@ -109,6 +121,9 @@ func _ready() -> void:
 	# Set initial speed
 	_current_speed = speed_initial
 
+	# Store original direction for homing angle limit (Issue #1135)
+	_homing_original_direction = direction.normalized()
+
 	FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f" % [str(global_position), str(direction), speed_initial, speed])
 
 
@@ -137,6 +152,10 @@ func _physics_process(delta: float) -> void:
 		_current_speed = lerpf(speed_initial, speed, t * t)
 	else:
 		_current_speed = speed
+
+	# Weak homing: gently steer toward the player (Issue #1135)
+	if homing_steer_speed > 0.0:
+		_apply_homing_steering(delta)
 
 	# Move in travel direction (same pattern as bullet.gd)
 	var movement := direction.normalized() * _current_speed * delta
@@ -312,6 +331,54 @@ func _create_explosion_texture(radius: int) -> ImageTexture:
 			else:
 				image.set_pixel(x, y, Color(0, 0, 0, 0))
 	return ImageTexture.create_from_image(image)
+
+
+## Gently steers the rocket toward the player (Issue #1135).
+## Uses the same angular-clamping pattern as bullet.gd homing:
+##   1. Find player position.
+##   2. Compute angle difference between current direction and direction-to-player.
+##   3. Clamp the per-frame turn to homing_steer_speed * delta (smooth).
+##   4. Reject the turn if it would exceed homing_max_turn_angle from the original
+##      firing direction — keeps the effect subtle.
+func _apply_homing_steering(delta: float) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	# Find the player
+	var players := tree.get_nodes_in_group("player")
+	if players.is_empty():
+		return
+	var player: Node = players[0]
+	if not player is Node2D:
+		return
+	# Skip dead player
+	if player.has_method("is_alive") and not player.is_alive():
+		return
+
+	var target_pos: Vector2 = (player as Node2D).global_position
+
+	# Direction toward player from current rocket position
+	var to_target := (target_pos - global_position).normalized()
+
+	# Signed angle between current direction and desired direction
+	var angle_diff := direction.angle_to(to_target)
+
+	# Clamp per-frame turn (smooth steering)
+	var max_steer_this_frame := homing_steer_speed * delta
+	angle_diff = clampf(angle_diff, -max_steer_this_frame, max_steer_this_frame)
+
+	# Candidate new direction
+	var new_direction := direction.rotated(angle_diff).normalized()
+
+	# Do not exceed total turn limit from original firing direction
+	var angle_from_original := _homing_original_direction.angle_to(new_direction)
+	if absf(angle_from_original) > homing_max_turn_angle:
+		return
+
+	# Apply steering and update sprite/trail orientation
+	direction = new_direction
+	rotation = direction.angle()
 
 
 func _scatter_casings() -> void:

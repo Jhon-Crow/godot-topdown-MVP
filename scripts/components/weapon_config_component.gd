@@ -59,6 +59,7 @@ const WEAPON_CONFIGS := {
 		"shoot_cooldown": 0.06,
 		"bullet_speed": 2200.0,
 		"magazine_size": 32,
+		"total_magazines": 20,  # Issue #1137: 4x increase from default 5
 		"bullet_spawn_offset": 25.0,
 		"weapon_loudness": 1200.0,
 		"sprite_path": "res://assets/sprites/weapons/mini_uzi_topdown.png",

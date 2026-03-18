@@ -52,16 +52,6 @@ custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Resume"
 
-[node name="ControlsButton" type="Button" parent="MenuContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Controls"
-
-[node name="DifficultyButton" type="Button" parent="MenuContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Difficulty"
-
 [node name="ArmoryButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
@@ -82,20 +72,10 @@ custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Arena"
 
-[node name="SoundButton" type="Button" parent="MenuContainer/VBoxContainer"]
+[node name="SettingsButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Sound"
-
-[node name="GameplayButton" type="Button" parent="MenuContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Gameplay"
-
-[node name="ExperimentalButton" type="Button" parent="MenuContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Experimental"
+text = "Settings"
 
 [node name="QuitButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)

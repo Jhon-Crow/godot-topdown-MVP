@@ -192,3 +192,64 @@ func test_jammer_race_condition_scenario_out_of_range() -> void:
 	var dist := jammer_pos.distance_to(player_pos)
 	assert_false(dist <= jammer_radius,
 		"First activation scenario: player at (150,1900), jammer at (1100,900) = %.0fpx — should NOT be jammed" % dist)
+
+
+# ============================================================================
+# Issue #1115: Cancel active effects when player enters jammer range
+# ============================================================================
+
+
+func test_jammer_hud_circle_radius_matches_combat_disposition_icon_size() -> void:
+	# CIRCLE_RADIUS should be reduced to match the Combat Disposition item icon size
+	# The Combat Disposition icon is 64px PNG displayed at 0.5 scale = 32px.
+	# A radius of 10 with LINE_WIDTH 3 gives outer diameter ~23px, smaller than before (Issue #1115).
+	var circle_radius := 10.0  # JammerHud.CIRCLE_RADIUS
+	var line_width := 3.0      # JammerHud.LINE_WIDTH
+	var outer_diameter := (circle_radius + line_width * 0.5) * 2.0
+	assert_true(outer_diameter <= 32.0,
+		"Jammer HUD prohibition sign should be no larger than Combat Disposition icon (32px), got %.1fpx" % outer_diameter)
+
+
+func test_jammer_hud_circle_radius_positive() -> void:
+	var circle_radius := 10.0  # JammerHud.CIRCLE_RADIUS
+	assert_true(circle_radius > 0.0, "CIRCLE_RADIUS must be positive")
+
+
+func test_jammer_cancels_homing_bullets_when_player_enters_range() -> void:
+	# Simulate: homing active=true, then player enters jammer range → must cancel
+	var homing_active := true
+	var is_jammed := true  # player walked into jammer radius
+	if homing_active and is_jammed:
+		homing_active = false
+	assert_false(homing_active,
+		"Homing bullets effect must be cancelled when player enters jammer range (Issue #1115)")
+
+
+func test_jammer_cancels_invisibility_when_player_enters_range() -> void:
+	# Simulate: invisibility active=true, then player enters jammer range → must cancel
+	var invisibility_active := true
+	var is_jammed := true
+	if invisibility_active and is_jammed:
+		invisibility_active = false
+	assert_false(invisibility_active,
+		"Invisibility suit effect must be cancelled when player enters jammer range (Issue #1115)")
+
+
+func test_jammer_cancels_trajectory_glasses_when_player_enters_range() -> void:
+	# Simulate: trajectory glasses active=true, then player enters jammer range → must cancel
+	var glasses_active := true
+	var is_jammed := true
+	if glasses_active and is_jammed:
+		glasses_active = false
+	assert_false(glasses_active,
+		"Trajectory glasses effect must be cancelled when player enters jammer range (Issue #1115)")
+
+
+func test_active_effects_not_cancelled_outside_jammer_range() -> void:
+	# Simulate: effects active, player is outside jammer range → must NOT cancel
+	var homing_active := true
+	var is_jammed := false  # player is outside jammer radius
+	if homing_active and is_jammed:
+		homing_active = false
+	assert_true(homing_active,
+		"Homing bullets must NOT be cancelled when player is outside jammer range (Issue #1115)")

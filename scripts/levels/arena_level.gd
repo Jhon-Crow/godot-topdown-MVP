@@ -25,7 +25,7 @@ const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 
 ## Seconds to wait between waves (pickup window).
-const INTER_WAVE_DELAY: float = 15.0
+const INTER_WAVE_DELAY: float = 150.0
 
 ## Seconds before the first wave starts.
 const FIRST_WAVE_DELAY: float = 2.0
@@ -39,20 +39,21 @@ const ENEMIES_PER_WAVE_INCREMENT: int = 2
 ## Maximum enemies that can be active on the map at once.
 const MAX_CONCURRENT_ENEMIES: int = 12
 
-## Health of pickups (timeout in seconds before auto-despawn).
-const PICKUP_LIFETIME: float = 20.0
+## How long pickups persist before auto-despawn.
+## Set to match INTER_WAVE_DELAY so pickups survive the full between-wave window.
+const PICKUP_LIFETIME: float = 180.0
 
 ## Radius around pickup spawn points within which pickups are placed randomly.
 const PICKUP_SPAWN_SCATTER: float = 30.0
 
 ## Number of health pickups to spawn between waves.
-const HEALTH_PICKUPS_PER_WAVE: int = 2
+const HEALTH_PICKUPS_PER_WAVE: int = 4
 
 ## Number of ammo pickups to spawn between waves.
-const AMMO_PICKUPS_PER_WAVE: int = 2
+const AMMO_PICKUPS_PER_WAVE: int = 4
 
 ## Number of grenade pickups to spawn between waves (F-1 grenades).
-const GRENADE_PICKUPS_PER_WAVE: int = 1
+const GRENADE_PICKUPS_PER_WAVE: int = 2
 
 ## Whether a weapon pickup spawns between waves (every other wave).
 const WEAPON_PICKUP_WAVE_INTERVAL: int = 2
@@ -583,10 +584,11 @@ func _spawn_pickup(pickup_type: String) -> void:
 
 
 ## Called when a body enters a pickup area.
-func _on_pickup_body_entered(pickup: Area2D, body: Node2D) -> void:
+## NOTE: body_entered emits (body) as first arg; .bind(pickup) appends pickup as
+## the SECOND argument. So the correct signature is (body, pickup), not (pickup, body).
+func _on_pickup_body_entered(body: Node2D, pickup: Area2D) -> void:
 	# Only the player should collect pickups.
-	# The C# Player is a CharacterBody2D named "Player" and is NOT in a group,
-	# so we check the node name. We also accept the "player" group as a fallback.
+	# The C# Player is a CharacterBody2D named "Player" and is in group "player".
 	if body.name != "Player" and not body.is_in_group("player"):
 		return
 
@@ -594,6 +596,7 @@ func _on_pickup_body_entered(pickup: Area2D, body: Node2D) -> void:
 		return
 
 	var pickup_type: String = pickup.get_meta("pickup_type", "")
+	print("[ArenaLevel] Pickup collected: %s by %s" % [pickup_type, body.name])
 	_log_to_file("Pickup collected: %s by %s" % [pickup_type, body.name])
 	match pickup_type:
 		"health":
