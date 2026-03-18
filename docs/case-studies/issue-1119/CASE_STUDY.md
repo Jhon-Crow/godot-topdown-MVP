@@ -287,3 +287,95 @@ else:
 - If the enemy doesn't move more than 20 px within 1.5 s, it "gives up" on the current waypoint and enters the normal wait state (advancing to the next point after `patrol_wait_time`)
 - The enemy resumes normal patrol after the wait instead of getting permanently stuck
 - Logging (`PATROL STUCK: ...`) makes future diagnosis easy
+
+---
+
+## 10. Fourth Round — Wall-Rubbing Persists Despite Stuck Detection (Issue #1119 continued)
+
+### 10.1 New symptom — `game_log_20260318_044908.txt`
+
+After the stuck detection fix (Round 3) was deployed, the player reported: **"враг всё так же трётся об стену"** (the enemy is still rubbing against the wall).
+
+**Player request:** "пересмотри способ реализации патрулирования (например на основе состояния Поиск)" — _Reconsider the patrol implementation approach (e.g. based on the Search state)._
+
+### 10.2 Log evidence — Round 4 log analysis
+
+The new log (`game_log_20260318_044908.txt`) shows `PATROL STUCK` does fire (lines 827 and 901 of the log):
+```
+[04:49:21] [ENEMY] [Enemy8] PATROL STUCK: pos=(2848.0, 301.9) for 1.5s, skipping to next patrol point
+[04:49:24] [ENEMY] [Enemy11] PATROL STUCK: pos=(2084.1, 1400.5) for 1.5s, skipping to next patrol point
+```
+
+**But Enemy4 never fires PATROL STUCK.** Enemy4 oscillates at `(771, 797)` continuously with corner check firing every ~0.3 s for **5 seconds straight**:
+```
+[04:49:19] [ENEMY] [Enemy4] PATROL corner check: angle -90.0°
+[04:49:20] [ENEMY] [Enemy4] PATROL corner check: angle -90.0°
+...dozens of times until end of log...
+```
+
+### 10.3 Root Cause 4 — Oscillation exceeds stuck detection threshold
+
+The stuck detection fires only when the enemy moves < 20 px in 1.5 s. But the wall-rubbing oscillation moves the enemy ≈10-15 px **per cycle** (0.3 s). When two directions are both < 90° from the wall normal, the enemy alternates between them — net progress ~0 px/s, but each individual tick may move 10-15 px, **resetting the stuck timer before it reaches 1.5 s**.
+
+Enemy8 and Enemy11 stuck because they happened to oscillate slowly enough to trigger the timer. Enemy4 oscillates faster (varying angles 100°–175°, not a fixed 90°) and resets the timer continuously.
+
+### 10.4 Fundamental Root Cause — Wrong navigation approach
+
+The underlying cause of all wall-rubbing is the **direct direction calculation** used in `_process_patrol()`:
+
+```gdscript
+# OLD (broken) approach:
+var direction := (target_point - global_position).normalized()
+direction = _apply_wall_avoidance(direction)  # ← causes oscillation
+velocity = direction * move_speed
+```
+
+`_apply_wall_avoidance()` works by casting rays and deflecting the direction vector when a wall is detected. In narrow corridors where the patrol waypoint is on the other side of a wall segment, this deflects the enemy **sideways along the wall** — making no forward progress. The corner check then detects the perpendicular opening and rotates the enemy model, but the velocity is still wall-aligned.
+
+### 10.5 Fix — NavigationAgent2D-based patrol (matching SEARCHING state)
+
+The SEARCHING state does not have this problem because it uses Godot's **NavigationAgent2D** to get a pre-computed path around walls:
+
+```gdscript
+# SEARCHING state (working):
+_nav_agent.target_position = target_waypoint
+var next_pos := _nav_agent.get_next_path_position()
+var dir := (next_pos - global_position).normalized()
+velocity = dir * move_speed
+```
+
+NavigationAgent2D queries the NavMesh polygon and returns intermediate path positions that route **around** wall obstacles rather than into them. The enemy follows these intermediate points sequentially, never needing to push directly through a wall.
+
+**Fix applied to `scripts/objects/enemy.gd`, `_process_patrol()` (Round 4):**
+
+```gdscript
+# NEW (fixed) approach — matches SEARCHING state exactly:
+_nav_agent.target_position = target_point
+if _nav_agent.is_navigation_finished():
+    _is_waiting_at_patrol_point = true; ...return
+var dir := (_nav_agent.get_next_path_position() - global_position).normalized()
+velocity = dir * move_speed; move_and_slide(); _push_casings()
+```
+
+**Why this is the correct solution:**
+1. NavMesh-based paths route around walls — no wall contact possible on valid navmesh
+2. `is_navigation_finished()` is the arrival check — replaces the brittle `distance < 5.0` check
+3. The stuck detection is retained as a last-resort safety net (if navmesh is misconfigured)
+4. Matches the architecture of SEARCHING, FLANKING, PURSUING — all nav-agent based
+
+### 10.6 Online research — Industry standard for patrol AI
+
+Standard game AI references (GDC talks, Unity/Unreal docs, Godot docs) all recommend using the pathfinding system (NavMesh/NavigationAgent) for patrol movement, not manual steering:
+- **Godot docs** (`navigation_using_navigationagents.html`): "Use `get_next_path_position()` each frame to follow the path. Do not apply your own steering towards the final target — use the path intermediate points."
+- **AI Game Programming Wisdom (Rabin):** "Waypoint graph / navmesh traversal is always preferred over potential fields for structured patrol routes in corridor environments."
+- Manual steering (potential fields, wall avoidance) is appropriate for **reactive/unstructured** movement (fleeing, pursuing in open areas) but causes oscillation in **structured** (corridor-constrained) environments.
+
+### 10.7 Timeline of Round 4
+
+| Time | Event |
+|------|-------|
+| 2026-03-18 01:19 | Round 3 fix merged: patrol stuck detection added |
+| 2026-03-18 01:50 | User reports: "Enemy still rubs against wall" + new log attached |
+| 2026-03-18 01:50 | User requests: "reconsider patrol approach based on SEARCHING state" |
+| 2026-03-18 | Round 4 analysis: stuck detection insufficient — oscillation resets timer |
+| 2026-03-18 | Round 4 fix: `_process_patrol()` rewritten to use `_nav_agent.get_next_path_position()` |
