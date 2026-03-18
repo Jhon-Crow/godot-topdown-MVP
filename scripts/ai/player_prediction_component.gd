@@ -162,6 +162,11 @@ var _velocity_samples: Array = []  # Array of Vector2
 ## Enable debug logging (off by default, toggleable).
 var debug_logging: bool = false
 
+## Issue #1163: Frame counter for throttling prediction updates (reduces per-frame GC pressure).
+var _update_frame_counter: int = 0
+## How many physics frames to skip between full prediction updates (~20fps precision at 60fps).
+const UPDATE_INTERVAL: int = 3
+
 # ============================================================================
 # Public Methods
 # ============================================================================
@@ -255,16 +260,26 @@ func generate_predictions(last_pos: Vector2, enemy_pos: Vector2, enemy_facing: V
 
 ## Update predictions over time. Call every frame when predictions are active.
 ## Expands hypothesis positions based on time passed and decays probabilities.
+## Issue #1163: Throttled to run every UPDATE_INTERVAL physics frames to reduce per-frame
+## GC pressure (filter() allocation + sort_custom lambda) from 20 enemies × 60fps.
 func update_predictions(delta: float) -> void:
 	if not has_predictions:
 		return
 
+	_update_frame_counter += 1
 	hypothesis_age += delta
+
+	# Issue #1163: Skip full update on non-throttle frames — age tracking above is sufficient.
+	if (_update_frame_counter % UPDATE_INTERVAL) != 0:
+		return
+
+	# Scale delta to account for skipped frames.
+	var scaled_delta: float = delta * UPDATE_INTERVAL
 
 	# Decay probabilities over time (slower decay = predictions last longer)
 	for h in hypotheses:
 		if not h.checked:
-			h.probability = maxf(h.probability - HYPOTHESIS_DECAY_RATE * delta, 0.0)
+			h.probability = maxf(h.probability - HYPOTHESIS_DECAY_RATE * scaled_delta, 0.0)
 
 	# Expand positions based on time (player could have moved further)
 	for h in hypotheses:
@@ -272,11 +287,15 @@ func update_predictions(delta: float) -> void:
 			# Shift hypothesis in its predicted direction at 40% potential speed
 			var shift_dir: Vector2 = ((h.position as Vector2) - last_known_position).normalized()
 			if shift_dir.length_squared() > 0.01:
-				var expansion := PLAYER_SPEED * delta * 0.4
+				var expansion := PLAYER_SPEED * scaled_delta * 0.4
 				h.position += shift_dir * expansion
 
-	# Remove dead hypotheses
-	hypotheses = hypotheses.filter(func(h: Hypothesis) -> bool: return h.probability > MIN_HYPOTHESIS_PROBABILITY)
+	# Remove dead hypotheses (in-place to avoid per-frame Array allocation)
+	var i: int = hypotheses.size() - 1
+	while i >= 0:
+		if (hypotheses[i] as Hypothesis).probability <= MIN_HYPOTHESIS_PROBABILITY:
+			hypotheses.remove_at(i)
+		i -= 1
 
 	# Check if predictions are still relevant
 	if hypotheses.is_empty() or hypothesis_age > MAX_HYPOTHESIS_AGE:
@@ -410,6 +429,7 @@ func reset() -> void:
 	_prev_player_position = Vector2.ZERO
 	_has_prev_position = false
 	_velocity_samples.clear()
+	_update_frame_counter = 0
 	# Note: player_style and counters are NOT reset — they persist across encounters
 
 

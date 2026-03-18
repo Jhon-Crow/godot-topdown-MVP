@@ -556,6 +556,11 @@ func _unregister_sound_listener() -> void:
 	if sound_propagation and sound_propagation.has_method("unregister_listener"):
 		sound_propagation.unregister_listener(self)
 
+## Unregister from SoundPropagation on scene change / node removal (Issue #1163: FPS fix).
+## Prevents stale listener accumulation across level reloads in the autoload singleton.
+func _exit_tree() -> void:
+	_unregister_sound_listener()
+
 ## Called by SoundPropagation when a sound is heard. Delegates to on_sound_heard_with_intensity.
 func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source_node: Node2D) -> void:
 	# Default to full intensity if called without intensity parameter

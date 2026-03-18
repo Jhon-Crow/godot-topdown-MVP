@@ -289,3 +289,119 @@ var cross: float = abs(move_dir.x * to_enemy.y - move_dir.y * to_enemy.x)
 ## Attached Data
 
 - `game_log_20260318_095818.txt` — User's game log showing enemy breaking (0 enemies registered)
+
+---
+
+## Part 3 — FPS Drop Bug (Second Follow-up Report)
+
+### Symptom
+
+After the enemy-breaking fix was merged (Part 2), the user reported very low FPS in-game — particularly in DocksLevel with 20 enemies present:
+
+> "хорошо, но очень мало fps (так раньше не было)."
+> ("good, but very low FPS — wasn't like this before.")
+>
+> Attached: `game_log_20260318_110712.txt`, `game_log_20260318_110901.txt`
+
+### Observed FPS Data
+
+From game logs (FPS drop logging enabled, threshold = 30 fps):
+
+| Level | Enemy count | Measured FPS | Normal expected |
+|-------|------------|--------------|-----------------|
+| LabyrinthLevel | 5 | 60 (stable) | 60 |
+| DocksLevel (first visit) | 20 | 25 fps initial drop | 60 |
+| DocksLevel (after reload) | 20 + 25 stale listeners | 1–7 fps sustained | 60 |
+
+### Root Cause Analysis
+
+#### Problem 1: SoundPropagation listener accumulation
+
+SoundPropagation is an **autoload singleton** that persists across scene changes. When DocksLevel is loaded multiple times (the game reloads the level after clearing it), enemies re-register as listeners. However, the old instances from the previous load **are not cleaned up** before the new registration because:
+
+1. The `register_listener` check `not _listeners.has(listener)` compares **object identity** — new scene instances are new objects, so duplicates slip through
+2. `_unregister_sound_listener()` is only called `_die()` — not on `_exit_tree()` / scene change
+3. Stale instances accumulate: after 3 level loads = 5 + 25 + 45 listeners (evidence: `total: 45` in log)
+
+**Evidence:** Line 977 of `game_log_20260318_110712.txt`:
+```
+[SoundPropagation] Cleaned up 25 invalid listeners
+```
+This appears on the **first gunshot after** a scene reload — the `filter()` cleanup only runs inside `emit_sound()`, not proactively.
+
+**Impact:** `emit_sound()` iterates all listeners (including stale) on every gunshot. With 45 listeners, the first shot after a reload triggers a mass cleanup. More importantly, with 45 listeners notified of every sound, `on_sound_heard_with_intensity()` fires 45 times per shot — including expensive state machine checks.
+
+**Fix:** Add `_exit_tree()` to `enemy.gd` that calls `_unregister_sound_listener()`, ensuring cleanup happens automatically on scene change.
+
+#### Problem 2: PlayerPredictionComponent per-frame array operations (primary FPS cause)
+
+`PlayerPredictionComponent.update_predictions(delta)` is called **every physics frame** (via `_update_memory(delta)` → `_prediction.process_frame(...)`) for every enemy with active predictions:
+
+```gdscript
+func update_predictions(delta: float) -> void:
+    # ...
+    # Expand positions based on time (player could have moved further)
+    for h in hypotheses:       # ← loop
+        if not h.checked:
+            var shift_dir: Vector2 = ((h.position as Vector2) - last_known_position).normalized()
+            if shift_dir.length_squared() > 0.01:
+                var expansion := PLAYER_SPEED * delta * 0.4
+                h.position += shift_dir * expansion
+
+    # Remove dead hypotheses ← creates new Array every frame
+    hypotheses = hypotheses.filter(func(h: Hypothesis) -> bool: return h.probability > MIN_HYPOTHESIS_PROBABILITY)
+    # ...
+```
+
+**With 20 enemies × 10 hypotheses × 60fps = 12,000 iterations/second** just for the position expansion loop, plus:
+- `hypotheses.filter()` — allocates a new Array every frame (GDScript garbage pressure)
+- The decay loop iterates all hypotheses again
+
+Additionally, `update_observations()` calls `_classify_observation()` which calls `_update_style_classification()` every **3 frames** from the start (threshold = `STYLE_OBSERVATION_THRESHOLD = 3`), then on every subsequent frame — meaning every frame once enough data is collected.
+
+**Timeline correlation:** FPS drops become sustained (5 fps) immediately after DocksLevel loads with 20 enemies. The drops are periodic (~every 1 second), suggesting the GC pressure from `filter()` allocations causes periodic pauses.
+
+**Fix:** Throttle `update_predictions` to run every `N` frames (e.g., every 3 physics frames = 20 fps precision), since prediction positions don't need millisecond accuracy. Also replace `filter()` with an in-place removal to reduce GC pressure.
+
+#### Problem 3: Vision raycasts at 20-enemy scale (secondary)
+
+The existing vision stagger (`VISION_CHECK_INTERVAL = 6`) means 20 enemies × 1 raycast / 6 frames = ~3.3 raycasts per frame. With multi-point visibility checks (using `_get_player_check_points`), this could be 3–5 raycasts per frame, which compounds the prediction overhead.
+
+### Fix Applied
+
+**Fix 1 (SoundPropagation listener leak):** Add `_exit_tree()` to `enemy.gd`:
+```gdscript
+func _exit_tree() -> void:
+    _unregister_sound_listener()
+```
+
+**Fix 2 (Prediction per-frame overhead):** Throttle `update_predictions` to every 3 physics frames:
+```gdscript
+# In PlayerPredictionComponent
+var _update_frame_counter: int = 0
+const UPDATE_INTERVAL: int = 3  ## Update predictions every N physics frames (~20fps precision)
+
+func update_predictions(delta: float) -> void:
+    if not has_predictions:
+        return
+    _update_frame_counter += 1
+    if (_update_frame_counter % UPDATE_INTERVAL) != 0:
+        hypothesis_age += delta  # Still track age on skipped frames
+        return
+    # ... rest of update (scaled delta = delta * UPDATE_INTERVAL)
+```
+
+### References
+
+- `game_log_20260318_110712.txt` — FPS drops in DocksLevel (20 enemies)
+- `game_log_20260318_110901.txt` — FPS drops in DocksLevel (second session, invincibility enabled)
+- Issue #969: Previous throttling work for sound propagation (CASING_KICK throttle)
+- Issue #883: Vision raycast stagger (VISION_CHECK_INTERVAL = 6)
+
+---
+
+## Attached Data
+
+- `game_log_20260318_095818.txt` — User's game log showing enemy breaking (0 enemies registered)
+- `game_log_20260318_110712.txt` — User's game log showing FPS drops with 20 enemies
+- `game_log_20260318_110901.txt` — User's game log showing FPS drops (invincibility enabled)
