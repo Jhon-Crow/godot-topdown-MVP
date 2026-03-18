@@ -293,7 +293,12 @@ func _force_roguelike_loadout() -> void:
 	if grenade_manager:
 		if grenade_manager.get("current_grenade_type") != null:
 			grenade_manager.current_grenade_type = 0  # FLASHBANG
-	print("[RoguelikeLevel] Loadout forced: makarov_pm + flashbang")
+	# Issue #1166: player must start roguelike with no active/passive items equipped.
+	if ActiveItemManager and ActiveItemManager.current_active_item != 0:
+		ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
+		ActiveItemManager.active_item_changed.emit(0)
+		print("[RoguelikeLevel] Active item cleared for roguelike start")
+	print("[RoguelikeLevel] Loadout forced: makarov_pm + flashbang, no active items")
 
 
 func _restore_loadout() -> void:
@@ -1045,12 +1050,36 @@ func _on_combo_changed(combo: int, points: int) -> void:
 ## Treasure pedestal (Issue #1166) — Isaac-style item pickup
 ## ============================================================
 
+## Weapon icon paths for pedestal display (Issue #1166 Bug 1 — show actual weapon icon).
+const WEAPON_ICON_PATHS: Dictionary = {
+	"makarov_pm":    "res://assets/sprites/weapons/makarov_pm_icon.png",
+	"m16":           "res://assets/sprites/weapons/m16_simple.png",
+	"shotgun":       "res://assets/sprites/weapons/shotgun_icon.png",
+	"mini_uzi":      "res://assets/sprites/weapons/mini_uzi_icon.png",
+	"silenced_pistol": "res://assets/sprites/weapons/silenced_pistol_icon.png",
+	"sniper":        "res://assets/sprites/weapons/weapon_case_icon.png",
+	"revolver":      "res://assets/sprites/weapons/revolver_icon.png",
+	"ak_gl":         "res://assets/sprites/weapons/ak_gl_icon.png",
+}
+
+
 ## Pick a random item for the pedestal.
-## Returns either the String "weapon" or an int (ActiveItemType).
+## Returns either a weapon ID String (e.g. "m16") or an int (ActiveItemType).
+## The weapon is pre-selected so the pedestal can show the correct icon.
 func _pick_random_pedestal_item():
 	# 40% chance of a weapon pickup, 60% chance of an active item.
 	if randi() % 10 < 4:
-		return "weapon"
+		# Pre-select a specific weapon (different from what the player has now).
+		var current_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
+		var available: Array = []
+		for weapon_id in GameManager.WEAPON_SCENES.keys():
+			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
+				available.append(weapon_id)
+		if available.is_empty():
+			# Fallback to active item if no other weapons are available
+			pass
+		else:
+			return available[randi() % available.size()]
 
 	# Choose a random active item (skip NONE index 0).
 	var all_types: Array = ActiveItemManager.get_all_active_item_types()
@@ -1060,7 +1089,7 @@ func _pick_random_pedestal_item():
 			candidates.append(t)
 
 	if candidates.is_empty():
-		return "weapon"  # Fallback
+		return "makarov_pm"  # Ultimate fallback
 
 	return candidates[randi() % candidates.size()]
 
@@ -1117,9 +1146,13 @@ func _spawn_treasure_pedestal() -> void:
 
 	# Visual: item icon — Bug fix #1166 (Bug 3): show actual icon texture without
 	# background instead of a plain coloured square.
+	# Bug fix #1166 (Bug 1): weapon pedestal now pre-selects a specific weapon,
+	# so we show that weapon's icon instead of a generic case icon.
 	var icon_path: String = ""
-	if item == "weapon":
-		icon_path = "res://assets/sprites/weapons/weapon_case_icon.png"
+	if item is String and item != "" and item in WEAPON_ICON_PATHS:
+		icon_path = WEAPON_ICON_PATHS[item]
+		if not ResourceLoader.exists(icon_path):
+			icon_path = "res://assets/sprites/weapons/weapon_case_icon.png"
 	elif item is int and ActiveItemManager:
 		icon_path = ActiveItemManager.get_active_item_icon_path(item)
 
@@ -1188,9 +1221,21 @@ func _spawn_treasure_pedestal() -> void:
 
 
 ## Returns a human-readable name for the pedestal item.
+## Weapon pedestal shows the specific pre-selected weapon name (Issue #1166 Bug 1).
+const WEAPON_DISPLAY_NAMES: Dictionary = {
+	"makarov_pm":      "Макаров ПМ",
+	"m16":             "M16",
+	"shotgun":         "Дробовик",
+	"mini_uzi":        "Мини-Узи",
+	"silenced_pistol": "Тихий пистолет",
+	"sniper":          "Снайперская винтовка",
+	"revolver":        "Револьвер",
+	"ak_gl":           "АК-74 + ГП",
+}
+
 func _pedestal_item_label(item) -> String:
-	if item == "weapon":
-		return "Оружие (случайное)"
+	if item is String and item in WEAPON_DISPLAY_NAMES:
+		return WEAPON_DISPLAY_NAMES[item]
 	if item is int and ActiveItemManager:
 		return ActiveItemManager.get_active_item_name(item)
 	return "???"
@@ -1209,13 +1254,14 @@ func _on_pedestal_body_entered(body: Node2D, pedestal: Area2D) -> void:
 
 	print("[RoguelikeLevel] Pedestal collected by player: %s" % _pedestal_item_label(item))
 
-	if item == "weapon":
+	if item is String and item in GameManager.WEAPON_SCENES:
 		_apply_pedestal_weapon(body, pedestal)
 	elif item is int:
 		_apply_pedestal_active_item(body, item, pedestal)
 
 
-## Give the player a random unlocked weapon (weapon pedestal).
+## Give the player the pre-selected weapon from the pedestal (weapon pedestal).
+## The weapon was chosen at pedestal-spawn time so the icon matches.
 ## The pedestal is removed after collection.
 func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 	if GameManager == null:
@@ -1223,19 +1269,23 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 		_treasure_pedestal = null
 		return
 
-	var current_weapon_id: String = GameManager.get_selected_weapon()
-	var available: Array = []
-	for weapon_id in GameManager.WEAPON_SCENES.keys():
-		if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
-			available.append(weapon_id)
+	# item on the pedestal is the pre-selected weapon ID string (Issue #1166 Bug 1).
+	var new_weapon_id: String = _pedestal_item if (_pedestal_item is String and _pedestal_item in GameManager.WEAPON_SCENES) else ""
 
-	if available.is_empty():
-		print("[RoguelikeLevel] Weapon pedestal: no other weapons available — skipping")
-		pedestal.queue_free()
-		_treasure_pedestal = null
-		return
+	if new_weapon_id == "":
+		# Fallback: pick any other unlocked weapon at pickup time
+		var current_weapon_id: String = GameManager.get_selected_weapon()
+		var available: Array = []
+		for weapon_id in GameManager.WEAPON_SCENES.keys():
+			if weapon_id != current_weapon_id and GameManager.is_weapon_unlocked(weapon_id):
+				available.append(weapon_id)
+		if available.is_empty():
+			print("[RoguelikeLevel] Weapon pedestal: no other weapons available — skipping")
+			pedestal.queue_free()
+			_treasure_pedestal = null
+			return
+		new_weapon_id = available[randi() % available.size()]
 
-	var new_weapon_id: String = available[randi() % available.size()]
 	GameManager.set_selected_weapon(new_weapon_id)
 
 	if player.has_method("ApplySelectedWeaponFromGameManager"):

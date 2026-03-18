@@ -53,7 +53,8 @@ func _ready() -> void:
 	quit_button.pressed.connect(_on_quit_pressed)
 
 	# Highlight armory button if there are available unlocks
-	_refresh_armory_button_highlight()
+	# Disable it entirely in roguelike mode (Issue #1166)
+	_refresh_armory_button_state()
 
 	# Preload levels menu if not set
 	if levels_menu_scene == null:
@@ -99,8 +100,8 @@ func pause_game() -> void:
 	# Ensure main menu container is visible
 	menu_container.show()
 
-	# Refresh armory highlight each time the menu opens
-	_refresh_armory_button_highlight()
+	# Refresh armory button state each time the menu opens
+	_refresh_armory_button_state()
 
 	show()
 	resume_button.grab_focus()
@@ -189,8 +190,8 @@ func _on_armory_back() -> void:
 	if _armory_menu:
 		_armory_menu.hide()
 	menu_container.show()
-	# Refresh highlight in case the player just unlocked an item
-	_refresh_armory_button_highlight()
+	# Refresh armory button state in case the player just unlocked an item
+	_refresh_armory_button_state()
 	armory_button.grab_focus()
 
 
@@ -268,10 +269,26 @@ func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 
-## Refresh the armory button highlight to indicate if there are items available to unlock.
-## The button turns gold when the player has earned the right to unlock an item in the armory
-## but has not yet done so. The highlight disappears once all available items are opened.
-func _refresh_armory_button_highlight() -> void:
+## Refresh the armory button state:
+## - Disabled (greyed out) in roguelike mode (Issue #1166) — armory is not available during a run.
+## - Gold highlight when available unlocks exist (normal mode).
+## - No highlight when all available items are already unlocked.
+func _refresh_armory_button_state() -> void:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	var in_roguelike: bool = game_manager != null and game_manager.get("roguelike_active") == true
+
+	if in_roguelike:
+		# Disable armory button entirely in roguelike mode
+		armory_button.disabled = true
+		armory_button.tooltip_text = "Арсенал недоступен в режиме рогалика"
+		armory_button.remove_theme_stylebox_override("normal")
+		armory_button.remove_theme_color_override("font_color")
+		return
+
+	# Normal mode — re-enable and check for available unlocks
+	armory_button.disabled = false
+	armory_button.tooltip_text = ""
+
 	var unlock_manager: Node = get_node_or_null("/root/UnlockManager")
 	if unlock_manager == null or not unlock_manager.has_method("has_any_available_unlock"):
 		return

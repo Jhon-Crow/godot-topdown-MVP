@@ -122,6 +122,43 @@ Two contributing factors were identified:
 
 ---
 
+## Third Bug Report (Comment on PR, 2026-03-18 ~08:26 UTC)
+
+**Reporter**: Jhon-Crow (repo owner)
+**Issues**:
+1. Pedestal showed a weapon **case** icon instead of the actual weapon/item icon
+2. Armory button should be **disabled** (inaccessible) in roguelike mode
+3. Player should start roguelike with **no active/passive items** (clean slate)
+
+### Bug 5: Wrong icon on weapon pedestal
+
+**Expected**: When the pedestal holds a weapon pickup, it shows the actual weapon's icon (e.g., M16 icon, revolver icon).
+**Actual**: Always showed a generic `weapon_case_icon.png` (suitcase graphic) regardless of which weapon was offered.
+
+**Root cause**: The `_pick_random_pedestal_item()` function returned the generic string `"weapon"` without specifying which weapon. The weapon was chosen randomly only **at pickup time** (in `_apply_pedestal_weapon`), so at spawn time there was no specific weapon to display. The icon fallback was `weapon_case_icon.png` for any `"weapon"` item.
+
+**Fix**: Pre-select a specific weapon ID in `_pick_random_pedestal_item()` (e.g., return `"m16"` instead of `"weapon"`). Added `WEAPON_ICON_PATHS` dictionary mapping weapon IDs to their icon files. `_apply_pedestal_weapon` now uses the pre-selected weapon ID. `_pedestal_item_label` now shows the actual weapon name via `WEAPON_DISPLAY_NAMES`.
+
+### Bug 6: Armory button accessible in roguelike mode
+
+**Expected**: The Armory button in the pause menu is greyed out / disabled during a roguelike run. The roguelike is a separate mode where equipment is awarded via treasure pedestals, not the pre-game armory.
+**Actual**: Armory button was always fully interactive.
+
+**Root cause**: `pause_menu.gd` had no awareness of the current game mode; it always showed/enabled the armory button.
+
+**Fix**: Replaced `_refresh_armory_button_highlight()` with `_refresh_armory_button_state()` which checks `GameManager.roguelike_active`. When true: `armory_button.disabled = true` with a tooltip explaining why. When false: normal highlight logic.
+
+### Bug 7: Player starts roguelike with active items from previous session
+
+**Expected**: No active/passive items at the start of a roguelike run (clean inventory).
+**Actual**: `ActiveItemManager.current_active_item` retained whatever was set from the previous armory session.
+
+**Root cause**: `_force_roguelike_loadout()` reset weapon and grenade type but did not reset `ActiveItemManager.current_active_item`.
+
+**Fix**: Added `ActiveItemManager.current_active_item = 0` (NONE) in `_force_roguelike_loadout()`, followed by `active_item_changed.emit(0)` so any listening nodes update. This uses direct assignment (not `set_active_item()`) to avoid triggering a scene restart.
+
+---
+
 ## Timeline of Events
 
 | Time (UTC) | Event |
@@ -134,7 +171,9 @@ Two contributing factors were identified:
 | 2026-03-18 07:34 | Treasure room + multi-level progression implemented (`e20299db`) |
 | 2026-03-18 07:57 | Owner tests again, reports pedestal missing in treasure room |
 | 2026-03-18 ~08:00 | Log downloaded, analysed; deferred spawn + small visual identified as root cause |
-| 2026-03-18 ~08:10 | Bug 4 fixed: direct spawn, FileLogger tracing, larger visuals |
+| 2026-03-18 ~08:10 | Bug 4 fixed: direct spawn, FileLogger tracing, larger visuals (`e5c805b5`) |
+| 2026-03-18 08:26 | Owner tests again, reports 3 new bugs (case icon / armory button / items at start) |
+| 2026-03-18 ~08:30 | Bugs 5–7 fixed: pre-select weapon, disable armory in roguelike, clear active items |
 
 ---
 
@@ -146,13 +185,18 @@ Two contributing factors were identified:
 | 2: Item not picked up | `monitoring=true` set before `add_child`, skips existing overlaps in Godot 4 | Set `monitoring=false`, then `set_deferred("monitoring", true)` after `add_child` |
 | 3: Square display | `ColorRect` orb instead of icon texture | Use `TextureRect` with `get_active_item_icon_path()` / `weapon_case_icon.png` |
 | 4: Pedestal missing in treasure room | Deferred spawn (could fail silently in export) + too small to notice | Direct spawn in `_ready()`, FileLogger tracing, larger visuals |
+| 5: Wrong icon (case not weapon) | Generic `"weapon"` string → no specific icon known at spawn time | Pre-select weapon ID in `_pick_random_pedestal_item()`, show weapon-specific icon |
+| 6: Armory accessible in roguelike | `pause_menu.gd` didn't check `roguelike_active` | Disable armory button when `GameManager.roguelike_active == true` |
+| 7: Active items not cleared | `_force_roguelike_loadout()` didn't reset `ActiveItemManager` | Reset `current_active_item = NONE` in `_force_roguelike_loadout()` |
 
 ---
 
 ## Files Changed
 
-- `scripts/levels/roguelike_level.gd` — treasure room spawn, pedestal visibility, FileLogger tracing
+- `scripts/levels/roguelike_level.gd` — treasure room spawn, pedestal icon, loadout reset
+- `scripts/ui/pause_menu.gd` — armory button disabled in roguelike mode
 - `tests/unit/test_roguelike_level.gd` — tests for last-room pedestal logic and treasure room flow
+- `docs/case-studies/issue-1166/game_log_20260318_100318.txt` — first game log from owner
 - `docs/case-studies/issue-1166/game_log_20260318_105539.txt` — second game log from owner
 
 ---
