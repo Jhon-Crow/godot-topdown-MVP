@@ -497,17 +497,18 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 
 func _random_enemy_weapon(room_type: int) -> int:
 	# WeaponType: RIFLE=0, SHOTGUN=1, UZI=2, MACHETE=3
+	# Machete is available in all room types — close-quarters rooms skew higher.
 	match room_type:
 		RoomType.LABYRINTH:
-			return [0, 2][randi() % 2]
+			return [0, 2, 3][randi() % 3]   # tight corridors suit machete
 		RoomType.BUILDING:
-			return [0, 1, 2][randi() % 3]
+			return [0, 1, 2, 3][randi() % 4]
 		RoomType.BEACH:
-			return [0, 1][randi() % 2]
+			return [0, 1][randi() % 2]       # open area: ranged preferred
 		RoomType.DOCKS:
 			return [0, 2, 3][randi() % 3]
 		RoomType.CITY:
-			return [0, 1, 2][randi() % 3]
+			return [0, 1, 2, 3][randi() % 4]
 		_:
 			return 0
 
@@ -570,6 +571,10 @@ func _setup_navigation() -> void:
 		nav_poly.agent_radius = 24.0
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
+	# Bake nav mesh after procedural room walls are in place so enemies can
+	# navigate to the player. Without this, NavigationAgent2D has no valid map
+	# and machete enemies get stuck in an infinite COMBAT→PURSUING loop.
+	nav_region.bake_navigation_polygon(false)
 
 
 func _setup_player_tracking() -> void:

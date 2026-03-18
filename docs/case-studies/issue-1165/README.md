@@ -272,6 +272,31 @@ The bug is not a crash but significantly degrades gameplay quality when it occur
 
 ---
 
+## Fix Applied (PR #1168)
+
+Two changes were made to `scripts/levels/roguelike_level.gd`:
+
+### 1. Bake nav mesh after procedural room walls are built
+
+```gdscript
+# scripts/levels/roguelike_level.gd — _setup_navigation()
+func _setup_navigation() -> void:
+    var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
+    if nav_region == null:
+        # ... create nav region ...
+        add_child(nav_region)
+    # Bake AFTER room walls are in place so enemies can navigate to the player.
+    nav_region.bake_navigation_polygon(false)
+```
+
+This is the same pattern already used in `beach_level.gd`.
+
+### 2. Add MACHETE to more room types
+
+Machete is now available in LABYRINTH, BUILDING, DOCKS, and CITY rooms — not only DOCKS. Beach remains ranged-only (open area).
+
+---
+
 ## Related Issues
 
 - **Issue #579**: Original machete enemy implementation
