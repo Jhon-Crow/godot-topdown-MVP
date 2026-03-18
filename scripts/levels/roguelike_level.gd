@@ -163,7 +163,9 @@ func _ready() -> void:
 		_current_room_idx = GameManager.roguelike_current_room
 		_total_rooms       = GameManager.roguelike_total_rooms
 		_room_type         = RoomType.BEACH  # Open layout suits a treasure room
-		print("[RoguelikeLevel] TREASURE ROOM — Level %d" % GameManager.roguelike_current_level)
+		var _log_tr := "[RoguelikeLevel] TREASURE ROOM — Level %d" % GameManager.roguelike_current_level
+		print(_log_tr)
+		FileLogger.info(_log_tr)
 		_build_room_scene_treasure()
 		_spawn_player()
 		_setup_navigation()
@@ -174,9 +176,13 @@ func _ready() -> void:
 		_setup_debug_ui_treasure()
 		if GameManager:
 			GameManager.stats_updated.connect(_update_debug_ui)
-		call_deferred("_spawn_treasure_pedestal")
+		# Spawn pedestal immediately (not deferred) so it is visible from the first frame.
+		# The monitoring flag is still set deferred so body_entered fires for existing overlaps.
+		_spawn_treasure_pedestal()
 		call_deferred("_activate_exit_zone")
-		print("[RoguelikeLevel] Treasure room ready")
+		var _log_tr2 := "[RoguelikeLevel] Treasure room ready — pedestal spawned: %s" % str(_treasure_pedestal != null)
+		print(_log_tr2)
+		FileLogger.info(_log_tr2)
 		return
 
 	# ── Normal combat room ────────────────────────────────────
@@ -999,7 +1005,9 @@ func _on_player_reached_exit() -> void:
 	# Treasure room is always "cleared" (no enemies)
 	if not _room_cleared and not GameManager.roguelike_in_treasure_room:
 		return
-	print("[RoguelikeLevel] Player reached exit — advancing")
+	var _log_exit := "[RoguelikeLevel] Player reached exit — advancing (treasure_room=%s)" % str(GameManager.roguelike_in_treasure_room)
+	print(_log_exit)
+	FileLogger.info(_log_exit)
 	call_deferred("_advance_to_next_room")
 
 
@@ -1058,13 +1066,19 @@ func _pick_random_pedestal_item():
 
 
 ## Spawn the treasure pedestal at the centre of the room.
-## Called (deferred) when all enemies are cleared.
+## Called directly in _ready() for the treasure room (not deferred) so it
+## appears on the very first frame.  Issue #1166.
 func _spawn_treasure_pedestal() -> void:
 	if _treasure_pedestal != null:
 		return  # Already spawned
 
 	var item = _pick_random_pedestal_item()
 	_pedestal_item = item
+
+	var item_label_str: String = _pedestal_item_label(item)
+	var _log_ped := "[RoguelikeLevel] Spawning treasure pedestal: %s" % item_label_str
+	print(_log_ped)
+	FileLogger.info(_log_ped)
 
 	# ── Build the Area2D pedestal ──────────────────────────────────────────
 	var pedestal := Area2D.new()
@@ -1074,22 +1088,31 @@ func _spawn_treasure_pedestal() -> void:
 	# Bug fix #1166 (Bug 2): keep monitoring disabled until after add_child so that
 	# body_entered fires correctly even if the player already overlaps the area.
 	pedestal.monitoring = false
+	# Render above all world-space objects.
+	pedestal.z_index = 10
 
 	# Position at room centre
 	pedestal.position = Vector2(ROOM_WIDTH * 0.5, ROOM_HEIGHT * 0.5)
 
-	# Collision circle
+	# Collision circle (larger than visual so the player can't miss it)
 	var col := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = PEDESTAL_RADIUS
 	col.shape = circle
 	pedestal.add_child(col)
 
-	# Visual: base platform
+	# Visual: glowing ring on the floor to draw the player's eye
+	var glow_ring := ColorRect.new()
+	glow_ring.size    = Vector2(PEDESTAL_SIZE * 2.2, PEDESTAL_SIZE * 2.2)
+	glow_ring.color   = Color(0.90, 0.75, 0.10, 0.35)
+	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, -PEDESTAL_SIZE * 1.1)
+	pedestal.add_child(glow_ring)
+
+	# Visual: base platform (wider and taller than before)
 	var base := ColorRect.new()
-	base.size    = Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE * 0.4)
+	base.size    = Vector2(PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.5)
 	base.color   = PEDESTAL_BASE_COLOR
-	base.position = Vector2(-PEDESTAL_SIZE * 0.5, PEDESTAL_SIZE * 0.1)
+	base.position = Vector2(-PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.1)
 	pedestal.add_child(base)
 
 	# Visual: item icon — Bug fix #1166 (Bug 3): show actual icon texture without
@@ -1100,43 +1123,53 @@ func _spawn_treasure_pedestal() -> void:
 	elif item is int and ActiveItemManager:
 		icon_path = ActiveItemManager.get_active_item_icon_path(item)
 
+	var icon_ok := false
 	if icon_path != "" and ResourceLoader.exists(icon_path):
-		var icon_tex: Texture2D = load(icon_path)
-		var icon_rect := TextureRect.new()
-		icon_rect.texture = icon_tex
-		icon_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
-		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		var icon_size := Vector2(PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.75)
-		icon_rect.custom_minimum_size = icon_size
-		icon_rect.size = icon_size
-		icon_rect.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 0.75)
-		pedestal.add_child(icon_rect)
-	else:
-		# Fallback: coloured orb if icon not found
+		var icon_tex = load(icon_path)
+		if icon_tex != null:
+			var icon_rect := TextureRect.new()
+			icon_rect.texture = icon_tex
+			icon_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
+			icon_rect.custom_minimum_size = icon_size
+			icon_rect.size = icon_size
+			icon_rect.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+			pedestal.add_child(icon_rect)
+			icon_ok = true
+
+	if not icon_ok:
+		# Fallback: bright coloured orb if icon not found or failed to load
 		var orb := ColorRect.new()
-		orb.size    = Vector2(PEDESTAL_SIZE * 0.55, PEDESTAL_SIZE * 0.55)
+		orb.size    = Vector2(PEDESTAL_SIZE * 0.8, PEDESTAL_SIZE * 0.8)
 		orb.color   = PEDESTAL_ITEM_GLOW
-		orb.position = Vector2(-PEDESTAL_SIZE * 0.275, -PEDESTAL_SIZE * 0.55)
+		orb.position = Vector2(-PEDESTAL_SIZE * 0.4, -PEDESTAL_SIZE * 0.9)
 		pedestal.add_child(orb)
 
-	# Label: item name
+	# Label: item name (larger font)
 	var label := Label.new()
 	label.name = "ItemLabel"
-	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_font_size_override("font_size", 16)
 	label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.6, 1.0))
-	label.text = _pedestal_item_label(item)
-	label.position = Vector2(-60, -PEDESTAL_SIZE * 0.9 - 18)
-	label.custom_minimum_size = Vector2(120, 0)
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.text = item_label_str
+	label.position = Vector2(-80, -PEDESTAL_SIZE * 1.3 - 22)
+	label.custom_minimum_size = Vector2(160, 0)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pedestal.add_child(label)
 
-	# Hint label
+	# Hint label (larger font)
 	var hint := Label.new()
-	hint.add_theme_font_size_override("font_size", 10)
-	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.7))
-	hint.text = "(подойди, чтобы взять)"
-	hint.position = Vector2(-60, PEDESTAL_SIZE * 0.25)
-	hint.custom_minimum_size = Vector2(120, 0)
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.9))
+	hint.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	hint.add_theme_constant_override("shadow_offset_x", 1)
+	hint.add_theme_constant_override("shadow_offset_y", 1)
+	hint.text = "подойди, чтобы взять"
+	hint.position = Vector2(-80, PEDESTAL_SIZE * 0.5)
+	hint.custom_minimum_size = Vector2(160, 0)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pedestal.add_child(hint)
 
@@ -1148,7 +1181,10 @@ func _spawn_treasure_pedestal() -> void:
 	# Enable monitoring after add_child so body_entered fires for existing overlaps
 	pedestal.set_deferred("monitoring", true)
 
-	print("[RoguelikeLevel] Treasure pedestal spawned: %s" % _pedestal_item_label(item))
+	var _log_ped2 := "[RoguelikeLevel] Treasure pedestal added to scene at (%d, %d)" % [
+		int(pedestal.position.x), int(pedestal.position.y)]
+	print(_log_ped2)
+	FileLogger.info(_log_ped2)
 
 
 ## Returns a human-readable name for the pedestal item.
