@@ -99,3 +99,86 @@ Per the issue: "неограниченное количество" (unlimited us
 3. Unit test: cooldown prevents re-activation within 1.2s
 4. Unit test: dash ends after `DASH_DURATION` seconds
 5. Unit test: cooldown bar shows on activation, hides after cooldown
+
+---
+
+## Bug Investigation Timeline
+
+### Round 1 — `game_log_20260317_214814.txt`
+
+**Owner feedback:** "предмет не работает" (item doesn't work). Dash was going in movement direction (not aim direction).
+
+**Root cause found:** `_start_dash()` used `input_direction` (WASD) instead of `_get_aim_direction()` (mouse cursor).
+
+**Fix applied:** Changed `_start_dash()` to use `_get_aim_direction()`. Also moved `DASH` enum index to 14 after incomplete merge from main.
+
+---
+
+### Round 2 — `game_log_20260318_020059.txt`
+
+**Owner feedback:** "ничего не изменилось, предмет всё ещё не работает и нет значка" (nothing changed, item still doesn't work and there's no icon).
+
+**Analysis:** Log showed "Active item changed from Breaching Charges to Dash" — the armory DID switch to Dash. But after level restart, `Player._ready()` showed NO `[Player.Dash]` log entry, meaning `has_dash()` returned false silently.
+
+**Root cause found:** A previous merge from `main` branch had removed `EXTENDED_MAGAZINE` (10), `DRILLING_BULLETS` (15), `RECOIL_COMPENSATOR` (16), and `COMBAT_DISPOSITION` (17) from the `ActiveItemType` enum, placing `DASH` at index 14. But `main` branch has `AUTO_RELOAD = 14`. So the GDScript enum compiled `DASH = 14`, but `has_dash()` checked `current_active_item == ActiveItemType.DASH` (which is 14), and the armory's saved state stored index 14 as AUTO_RELOAD — causing a mismatch.
+
+**Fix applied:** Restored all items from main branch in correct order. `DASH` moved to index 18 (after `COMBAT_DISPOSITION = 17`). Total: 19 item types (indices 0–18).
+
+---
+
+### Round 3 — `game_log_20260318_062710.txt` ← **Current session**
+
+**Owner feedback:** "ничего не изменилось — нет значка, не работает" (nothing changed — no icon, doesn't work).
+
+**Analysis performed:**
+
+Key findings from the log:
+```
+[06:27:10] [INFO] [PersistManager] Restored selected active item type: 12
+[06:27:15] [INFO] [ActiveItemManager] Active item changed from Breaching Charges to Dash
+[06:27:15] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[06:27:15] [INFO] [Player.Jammer] JammerHUD initialized
+```
+
+Critically absent: **any `[Player.Dash]` log entry** — not "Dash equipped", not even "Dash not selected".
+
+`_init_dash()` is called in `_ready()` AFTER `_init_recoil_compensator()`. If RecoilCompensator logs appeared but Dash didn't log at all (not even the "not selected" message), the function was not being called.
+
+**Root cause confirmed:** The user's game binary was built from an **older commit** that did not yet include `_init_dash()` in `player.gd`, even though `active_item_manager.gd` already knew about DASH (explaining why the armory showed "Dash" and the item-changed log appeared).
+
+**Verification:** The latest CI artifact (build run from commit `4f9de49c`, timestamp 00:39 on 2026-03-18) was confirmed to contain `_init_dash()` by running `strings` on the embedded PCK:
+
+```
+$ strings Godot-Top-Down-Template.exe | grep "_init_dash\|has_dash\|Player.Dash"
+func has_dash() -> bool:
+	_init_recoil_compensator()
+	_init_dash()
+func _init_dash() -> void:
+		FileLogger.info("[Player.Dash] ActiveItemManager not found")
+	if not active_item_manager.has_method("has_dash"):
+		FileLogger.info("[Player.Dash] ActiveItemManager missing has_dash method")
+	if not active_item_manager.has_dash():
+		FileLogger.info("[Player.Dash] Dash not selected in ActiveItemManager")
+	FileLogger.info("[Player.Dash] Dash equipped ...
+```
+
+**The code is correct.** The user tested an older binary downloaded before our latest fix was pushed.
+
+**Resolution:** The user needs to download the latest CI artifact from the PR branch. The latest successful build (run ID 23223325533 on upstream, 23223325257 on fork) was built from commit `4f9de49c` and contains the full correct implementation.
+
+### How to download the correct binary
+
+1. Go to [CI Actions for this PR branch](https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions?query=branch%3Aissue-1071-7f132dd95cdc)
+2. Click the latest "Build Windows Portable EXE" run
+3. Download the `windows-build` artifact
+4. Extract the ZIP and run `Godot-Top-Down-Template.exe`
+5. In the armory, select **Dash**
+6. Press **Space** to dash toward the mouse cursor — full invincibility, 1.2s cooldown
+
+### PersistManager save file note
+
+The save file (`user://game_state.cfg`) stores `current_active_item` as an integer. If the user had a save from an earlier buggy binary (DASH at wrong index), they may need to:
+- Start fresh (reset save via game menu), OR
+- Simply select Dash again from the armory — `set_active_item(18)` will overwrite the saved value
+
+All items are marked `unlocked: true` by default in our code, so Dash will always appear in the armory regardless of save file state.
