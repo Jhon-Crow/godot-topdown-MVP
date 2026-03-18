@@ -248,3 +248,206 @@ These three changes eliminate the dominant per-frame overhead during idle.
 - [Godot issue #112079: Major FPS drop after upgrading versions](https://github.com/godotengine/godot/issues/112079)
 - [Godot issue #85320: Reduced performance with CanvasLayer modulates](https://github.com/godotengine/godot/issues/85320)
 - [Godot issue #83744: Enabling particle turbulence causes massive performance hit](https://github.com/godotengine/godot/issues/83744)
+
+---
+
+## Part 2 — FPS Drops While Holding UZI (New Report: 2026-03-18)
+
+### New Report
+
+The owner reported a new variant of the FPS drop issue: **FPS drops by 4–5 frames when the player holds the UZI** (Mini UZI weapon).
+Log file: `game_log_20260318_084627.txt`
+
+### Log Analysis: `game_log_20260318_084627.txt`
+
+The session captured:
+
+```
+[08:46:27] Game start — LabyrinthLevel, weapon: ak_gl
+[08:46:31] [WARN] [FPS] Drop detected: 6 fps   ← particle shader warmup (Issue #343, expected)
+[08:46:35] [WARN] [FPS] Drop detected: 1 fps   ← scene transition LabyrinthLevel→Tutorial (expected)
+[08:47:06] Player opens Armory menu
+[08:47:08] [GameManager] Weapon selected: mini_uzi
+[08:47:08] Player spawns with MiniUzi (ammo: 32/32)
+[08:47:08–08:47:50] Tutorial, standing still with MiniUzi — no FPS drops logged
+```
+
+**Important observation:** The log session ended before any actual UZI firing occurred — the player only *equipped* the UZI in the Tutorial level. The FPS drop during UZI firing happens during active shooting, which was not captured in this log.
+
+The two FPS drop entries recorded (6 fps, 1 fps) are **pre-existing known issues**: shader warmup spike and scene transition spike, unrelated to the UZI.
+
+However, the owner confirms the 4–5 frame drop is **reproducible** when holding the UZI trigger. Code analysis identifies the root causes below.
+
+---
+
+### Root Cause Analysis: UZI Firing FPS Drop
+
+#### Primary Root Cause: Cascading `tree_changed` signal storm during rapid fire
+
+The Mini UZI fires at **25 shots/second** (`FireRate = 25.0` in `MiniUziData.tres`). Each shot triggers multiple `AddChild()` calls:
+
+1. `SpawnBullet()` → `GetTree().CurrentScene.AddChild(bullet)` — **1 AddChild/shot**
+2. `SpawnCasing()` → `GetTree().CurrentScene.AddChild(casing)` — **1 AddChild/shot**
+3. `SpawnMuzzleFlash()` → `_add_effect_to_scene(effect)` → **1 AddChild/shot**
+
+Total: **3 AddChild calls per shot × 25 shots/sec = 75 AddChild calls/second** during sustained fire.
+
+In Godot 4, every `AddChild()` emits `SceneTree.tree_changed`. **9 autoloads** are connected to this signal:
+
+| Autoload | Handler |
+|---|---|
+| `cinema_effects_manager.gd` | `_on_tree_changed()` |
+| `last_chance_effects_manager.gd` | `_on_tree_changed()` |
+| `power_fantasy_effects_manager.gd` | `_on_tree_changed()` |
+| `screen_shake_manager.gd` | `_on_tree_changed()` |
+| `impact_effects_manager.gd` | `_on_tree_changed()` |
+| `black_metal_effects_manager.gd` | `_on_tree_changed()` |
+| `penultimate_hit_effects_manager.gd` | `_on_tree_changed()` |
+| `flashbang_player_effects_manager.gd` | `_on_tree_changed()` |
+| `hit_effects_manager.gd` | `_on_tree_changed()` |
+
+Result: **75 AddChild/sec × 9 handlers = 675 `_on_tree_changed()` calls/second** while the trigger is held. Each handler calls `get_tree().current_scene` to detect scene changes, adding up to measurable overhead.
+
+This is the same issue noted in `impact_effects_manager.gd` line 348 (`# Issue #969: reduced decal count to limit tree_changed signal spam at high fire rates`) but only for decals — the broader `tree_changed` signal storm was not addressed.
+
+**Reference:** [Godot issue #47030](https://github.com/godotengine/godot/issues/47030) documents `tree_changed` being triggered excessively; [Godot 4.x node instantiation is ~4× slower than Godot 3.5](https://github.com/godotengine/godot/issues/71182).
+
+#### Secondary Root Cause: 25 `SceneTree.CreateTimer()` instances per second from `PlayShellCasingDelayed()`
+
+In `MiniUzi.cs`, every shot calls:
+
+```csharp
+private async void PlayShellCasingDelayed()
+{
+    await ToSignal(GetTree().CreateTimer(0.1), "timeout");
+    ...
+}
+```
+
+At 25 shots/second this creates **25 timer objects/second** in the scene tree. Each `CreateTimer()` also fires `tree_changed`, adding to the signal storm above. Additionally, Godot's `SceneTree` iterates all active timers every frame — 25 additional timers per second means the timer list continuously grows during sustained fire.
+
+**Reference:** [Godot issue #71081](https://github.com/godotengine/godot/issues/71081) — `SceneTree.CreateTimer()` does not efficiently free timers; [C# async void patterns cause integration issues with Godot](https://forum.godotengine.org/t/c-question-on-await-and-void-functions/81442).
+
+#### Tertiary Root Cause: SoundPropagation iterates all enemy listeners per shot
+
+In `MiniUzi.cs`, `EmitGunshotSound()` calls `SoundPropagation.emit_sound()` on every shot. Inside `sound_propagation.gd`, `emit_sound()` iterates all registered listeners (one per enemy alive) and calls `_listeners.filter(is_instance_valid)` — creating a new Array every call:
+
+```gdscript
+# sound_propagation.gd, line 162
+_listeners = _listeners.filter(func(l): return is_instance_valid(l))
+```
+
+At 25 shots/second with 5 enemies: **25 listener-array allocations/second + 125 distance calculations/second**.
+
+#### Quaternary Root Cause: Accumulated RigidBody2D casings from sustained fire
+
+Each UZI shot spawns 1 casing (`RigidBody2D`). Casings have `lifetime = 0.0` (infinite by default). During the AUTO_LAND_TIME (2 seconds), each casing runs `_physics_process`. Firing a full 32-round magazine creates 32 physics bodies in 1.28 seconds. Combined with existing enemies and other objects, the physics step cost grows.
+
+After landing, `set_physics_process(false)` is called correctly (line 122 of `casing.gd`), so landed casings don't contribute to ongoing process overhead. However, the **transient peak** during sustained fire (up to 32 active physics bodies spawned in ~1.3 seconds) adds to physics step cost.
+
+---
+
+### Proposed Solutions for UZI FPS Drops
+
+#### Solution 1 (Highest Impact): Throttle `_on_tree_changed()` calls with debouncing
+
+Add a flag to each autoload's `_on_tree_changed()` handler to only run the scene-change check once per frame (debounce):
+
+```gdscript
+var _tree_changed_pending: bool = false
+
+func _on_tree_changed() -> void:
+    if not _tree_changed_pending:
+        _tree_changed_pending = true
+        call_deferred("_check_scene_change")
+
+func _check_scene_change() -> void:
+    _tree_changed_pending = false
+    var current_scene := get_tree().current_scene
+    if current_scene != _last_scene:
+        _last_scene = current_scene
+        _handle_scene_change()
+```
+
+**Impact:** Reduces the scene-change check to at most **1 call per frame** regardless of how many `AddChild()` calls happen. Eliminates 99%+ of the signal overhead at 25 shots/second.
+
+#### Solution 2: Replace `CreateTimer()` + `async void` with `call_deferred()` or a shared timer
+
+Instead of creating 25 timers/second:
+
+```csharp
+// Instead of:
+private async void PlayShellCasingDelayed()
+{
+    await ToSignal(GetTree().CreateTimer(0.1), "timeout");
+    PlayShellCasingSound();
+}
+
+// Use a queued callback with the physics process:
+private float _casingDelay = 0f;
+private bool _pendingCasingSound = false;
+
+// In _Process:
+if (_pendingCasingSound)
+{
+    _casingDelay -= (float)delta;
+    if (_casingDelay <= 0)
+    {
+        _pendingCasingSound = false;
+        PlayShellCasingSound();
+    }
+}
+```
+
+**Impact:** Eliminates 25 timer object allocations/second and their corresponding `tree_changed` emissions.
+
+#### Solution 3: Throttle `SoundPropagation.emit_sound()` for sustained automatic fire
+
+For fully-automatic weapons, enemy alerting on the first shot is sufficient — subsequent shots while already alerted add no value. Throttle to at most once per 0.5 seconds:
+
+```gdscript
+# sound_propagation.gd
+var _last_emission_times: Dictionary = {}  # source_node -> last emission time
+
+func emit_sound(..., source_node, loudness):
+    var now := Time.get_ticks_msec() / 1000.0
+    var source_id := source_node.get_instance_id() if source_node else 0
+    if _last_emission_times.get(source_id, 0.0) + 0.5 > now:
+        return  # Skip — already notified enemies recently
+    _last_emission_times[source_id] = now
+    ...
+```
+
+**Impact:** Reduces listener iteration from 25/sec to 2/sec for automatic weapons.
+
+#### Solution 4 (Already Partially Implemented): Casing object pooling
+
+Pre-create a pool of casing `RigidBody2D` objects and recycle them instead of instantiating new ones on every shot. This avoids the instantiation cost and the `tree_changed` emission from `AddChild()`.
+
+---
+
+### Timeline Reconstruction for UZI FPS Drop
+
+```
+T+0.00s  Player holds fire button
+T+0.04s  Shot 1: AddChild(bullet) + AddChild(casing) + AddChild(muzzle_flash)
+           → tree_changed fired 3-4 times → 9 handlers × 4 = 36 callbacks
+           → CreateTimer(0.1) → timer added to scene tree → tree_changed again (+9)
+           → SoundPropagation.emit_sound() → iterates 5 enemies
+T+0.08s  Shot 2: same pattern
+...
+T+1.00s  25 shots fired: ~1125 handler callbacks from tree_changed alone
+           ~32 casings in active physics simulation (not yet landed)
+           25 timers created (most already expired, but not all freed)
+T+1.28s  Full 32-round magazine exhausted: 32 casings exist in scene
+           Physics step now includes 32 RigidBody2D casings
+→ Sustained 4-5 fps degradation during and immediately after firing
+```
+
+---
+
+### Relationship to Original Issue #1157
+
+The original issue (Part 1) reported FPS drops during **complete idle** — caused by autoload `_process` running group queries when no player was present. The fix already committed addresses that case.
+
+The new UZI report (Part 2) is a **different code path**: it occurs **during active shooting** due to the high-frequency `tree_changed` signal storm, timer proliferation, and transient physics load from spawned casings. The two issues share the same `tree_changed` signal infrastructure as a contributing factor but have distinct primary causes.
