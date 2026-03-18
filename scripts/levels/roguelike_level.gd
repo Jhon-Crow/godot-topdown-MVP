@@ -2,30 +2,31 @@ extends Node2D
 ## Roguelike level — one room at a time, Binding of Isaac style.
 ##
 ## Issue #1061: добавить режим рогалика
-## Issue #1166: update roguelike mode — treasure room after each cleared room.
+## Issue #1166: treasure room after each level + multi-level progression.
 ##
-## Each run consists of 3–5 rooms of different types (Labyrinth, Building,
-## Beach, Docks, City). The player clears one room at a time:
+## A "run" consists of multiple levels. Each level = 3–5 combat rooms.
+## After clearing all combat rooms in a level the player enters a TREASURE ROOM
+## (no enemies — just a pedestal with a free item). After collecting the item
+## (or skipping via the exit) the NEXT LEVEL starts, with the same number of
+## rooms but harder enemies (more health, better weapons).
 ##
+## Flow per level:
 ##   1. Enter room → enemies appear → fight.
-##   2. Kill all enemies → treasure pedestal appears in the centre.
-##   3. Player touches pedestal to collect a random item (Isaac style — no button).
-##      - Passive active items stack/accumulate.
-##      - Active items replace the current one (old item put back on pedestal).
-##      - Weapons replace the current weapon.
-##   4. Exit zone activates alongside the pedestal (player can skip the item).
-##   5. Player reaches exit → next room loads (scene reloads).
-##   6. After clearing the last room the full-run score is shown.
+##   2. Kill all enemies → exit zone activates.
+##   3. Player reaches exit → next combat room loads.
+##   4. After clearing the LAST combat room → treasure room loads.
+##   5. In treasure room: pedestal appears immediately (no enemies).
+##      Player touches pedestal to collect item, then walks to exit.
+##   6. Exit from treasure room → next level starts (difficulty +1).
 ##
-## Run state (room index, total rooms, room type sequence, accumulated stats)
-## is stored in GameManager so it survives the scene reload between rooms.
+## Run state is stored in GameManager so it survives scene reloads.
 ##
 ## Features:
-## - Procedural room layouts by type (each type has characteristic geometry)
-## - Player always starts with Makarov PM + Flashbang (armory ignored during run)
+## - Procedural room layouts by type
+## - Player always starts with Makarov PM + Flashbang (armory ignored)
 ## - 3–4 enemies per room maximum (performance constraint)
 ## - No ReplayManager in roguelike (saves memory/CPU)
-## - Score shown only after ALL rooms are cleared (not after each room)
+## - Difficulty scales each level: enemy health +1, harder weapon pool
 ## - Q restarts the whole run; Menu returns to LabyrinthLevel
 
 ## ============================================================
@@ -157,7 +158,28 @@ var _pedestal_item = null
 func _ready() -> void:
 	randomize()
 
-	# ── Start new run or continue existing one ────────────────
+	if GameManager.roguelike_in_treasure_room:
+		# ── Treasure room: no combat, just item pedestal + exit ──────────
+		_current_room_idx = GameManager.roguelike_current_room
+		_total_rooms       = GameManager.roguelike_total_rooms
+		_room_type         = RoomType.BEACH  # Open layout suits a treasure room
+		print("[RoguelikeLevel] TREASURE ROOM — Level %d" % GameManager.roguelike_current_level)
+		_build_room_scene_treasure()
+		_spawn_player()
+		_setup_navigation()
+		_setup_player_tracking()
+		_setup_exit_zone()
+		_setup_debug_ui()
+		_setup_saturation_overlay()
+		_setup_debug_ui_treasure()
+		if GameManager:
+			GameManager.stats_updated.connect(_update_debug_ui)
+		call_deferred("_spawn_treasure_pedestal")
+		call_deferred("_activate_exit_zone")
+		print("[RoguelikeLevel] Treasure room ready")
+		return
+
+	# ── Normal combat room ────────────────────────────────────
 	if not GameManager.roguelike_active:
 		_start_new_run()
 	else:
@@ -168,7 +190,8 @@ func _ready() -> void:
 	_total_rooms       = GameManager.roguelike_total_rooms
 	_room_type         = GameManager.roguelike_room_types[_current_room_idx]
 
-	print("[RoguelikeLevel] Room %d/%d — type: %s" % [
+	print("[RoguelikeLevel] Level %d — Room %d/%d — type: %s" % [
+		GameManager.roguelike_current_level,
 		_current_room_idx + 1, _total_rooms,
 		ROOM_TYPE_NAMES.get(_room_type, "?")])
 
@@ -224,14 +247,16 @@ func _start_new_run() -> void:
 	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
 	count = min(count, all_types.size())
 
-	GameManager.roguelike_active       = true
-	GameManager.roguelike_current_room = 0
-	GameManager.roguelike_total_rooms  = count
-	GameManager.roguelike_room_types   = all_types.slice(0, count)
-	GameManager.roguelike_run_seed     = run_seed
-	GameManager.roguelike_total_kills  = 0
-	GameManager.roguelike_total_shots  = 0
-	GameManager.roguelike_total_hits   = 0
+	GameManager.roguelike_active           = true
+	GameManager.roguelike_current_room     = 0
+	GameManager.roguelike_total_rooms      = count
+	GameManager.roguelike_room_types       = all_types.slice(0, count)
+	GameManager.roguelike_run_seed         = run_seed
+	GameManager.roguelike_total_kills      = 0
+	GameManager.roguelike_total_shots      = 0
+	GameManager.roguelike_total_hits       = 0
+	GameManager.roguelike_current_level    = 1
+	GameManager.roguelike_in_treasure_room = false
 	# Save current weapon so we can restore it when the run ends
 	GameManager.roguelike_saved_weapon = GameManager.get_selected_weapon()
 
@@ -450,7 +475,9 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		return
 
 	var positions: Array[Vector2] = _get_enemy_positions(_room_type)
-	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(ENEMIES_PER_ROOM_MAX, positions.size()))
+	# More enemies each level (cap at positions.size() and an absolute max of 6)
+	var level_enemy_max: int = min(ENEMIES_PER_ROOM_MAX + (GameManager.roguelike_current_level - 1), 6)
+	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(level_enemy_max, positions.size()))
 
 	# Shuffle positions
 	for i in range(positions.size() - 1, 0, -1):
@@ -467,8 +494,10 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		enemy.behavior_mode = _random_enemy_behavior(i)
 		if enemy.behavior_mode == 0:  # PATROL
 			enemy.patrol_offsets = [Vector2(80, 0), Vector2(-80, 0)]
-		enemy.min_health = 1
-		enemy.max_health = 2
+		# Difficulty scaling: each level adds 1 to enemy health pool (Issue #1166)
+		var level_bonus: int = max(0, GameManager.roguelike_current_level - 1)
+		enemy.min_health = 1 + level_bonus
+		enemy.max_health = 2 + level_bonus
 		# Must destroy on death so they don't respawn (Issue #1061 round 5).
 		enemy.destroy_on_death = true
 		room_node.add_child(enemy)
@@ -796,7 +825,8 @@ func _setup_debug_ui() -> void:
 
 func _get_room_progress_text() -> String:
 	var type_name: String = ROOM_TYPE_NAMES.get(_room_type, "?")
-	return "РОГАЛИК — Комната %d / %d — %s" % [
+	return "РОГАЛИК — Уровень %d — Комната %d / %d — %s" % [
+		GameManager.roguelike_current_level,
 		_current_room_idx + 1, _total_rooms, type_name]
 
 
@@ -882,10 +912,8 @@ func _on_enemy_died() -> void:
 	if _current_enemy_count <= 0:
 		print("[RoguelikeLevel] All enemies in room %d eliminated!" % (_current_room_idx + 1))
 		_room_cleared = true
-		# Pedestal only appears after the LAST room (after clearing the full stage/level).
-		# Bug fix #1166: previously appeared after every room.
-		if _current_room_idx + 1 >= _total_rooms:
-			call_deferred("_spawn_treasure_pedestal")
+		# After the last combat room, the exit leads to the treasure room (not another combat room).
+		# No pedestal in combat rooms — the pedestal is in the dedicated treasure room.
 		call_deferred("_activate_exit_zone")
 
 
@@ -968,9 +996,10 @@ func _on_game_manager_enemy_killed() -> void:
 
 
 func _on_player_reached_exit() -> void:
-	if not _room_cleared:
+	# Treasure room is always "cleared" (no enemies)
+	if not _room_cleared and not GameManager.roguelike_in_treasure_room:
 		return
-	print("[RoguelikeLevel] Player reached exit — advancing to next room")
+	print("[RoguelikeLevel] Player reached exit — advancing")
 	call_deferred("_advance_to_next_room")
 
 
@@ -1248,6 +1277,11 @@ func _activate_exit_zone() -> void:
 
 
 func _advance_to_next_room() -> void:
+	if GameManager.roguelike_in_treasure_room:
+		## Leaving the treasure room → start the next level
+		_start_next_level()
+		return
+
 	## Accumulate this room's stats into the run totals in GameManager
 	if GameManager:
 		GameManager.roguelike_total_kills += GameManager.kills
@@ -1257,14 +1291,158 @@ func _advance_to_next_room() -> void:
 	var next_room: int = _current_room_idx + 1
 
 	if next_room >= _total_rooms:
-		## Last room cleared — show full-run score
-		print("[RoguelikeLevel] Run complete! All %d rooms cleared." % _total_rooms)
-		_complete_run_with_score()
+		## Last combat room cleared — enter the treasure room
+		print("[RoguelikeLevel] Level %d complete! Entering treasure room." % GameManager.roguelike_current_level)
+		_enter_treasure_room()
 	else:
-		## More rooms remaining — load next room
+		## More combat rooms remaining — load next room
 		GameManager.roguelike_current_room = next_room
 		print("[RoguelikeLevel] Advancing to room %d/%d" % [next_room + 1, _total_rooms])
 		_show_room_transition(next_room)
+
+
+## Transition into the treasure room after all combat rooms are cleared.
+func _enter_treasure_room() -> void:
+	GameManager.roguelike_in_treasure_room = true
+
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
+		return
+
+	# Dark overlay with "level cleared" message
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+
+	var lbl := Label.new()
+	lbl.text = "Уровень %d пройден!\nДобро пожаловать в Сокровищницу!" % GameManager.roguelike_current_level
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(lbl)
+
+	var tween := create_tween()
+	tween.tween_property(bg, "color:a", 0.85, 0.4)
+	tween.tween_interval(1.5)
+	tween.tween_callback(func():
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
+
+
+## Start the next roguelike level after leaving the treasure room.
+## Increases difficulty and resets room progression.
+func _start_next_level() -> void:
+	GameManager.roguelike_in_treasure_room = false
+	GameManager.roguelike_current_level   += 1
+
+	# Generate a fresh seed so rooms differ from previous levels
+	var new_seed: int = randi()
+	seed(new_seed)
+	GameManager.roguelike_run_seed = new_seed
+
+	# Build a new room sequence for the next level (re-randomise)
+	var all_types: Array = [
+		RoomType.LABYRINTH,
+		RoomType.BUILDING,
+		RoomType.BEACH,
+		RoomType.DOCKS,
+		RoomType.CITY,
+	]
+	for i in range(all_types.size() - 1, 0, -1):
+		var j: int = randi_range(0, i)
+		var tmp = all_types[i]
+		all_types[i] = all_types[j]
+		all_types[j] = tmp
+
+	var count: int = randi_range(MIN_ROOMS, MAX_ROOMS)
+	count = min(count, all_types.size())
+
+	GameManager.roguelike_total_rooms  = count
+	GameManager.roguelike_room_types   = all_types.slice(0, count)
+	GameManager.roguelike_current_room = 0
+	# Keep roguelike_active = true; the run continues
+
+	print("[RoguelikeLevel] Starting Level %d — %d rooms, difficulty ×%d" % [
+		GameManager.roguelike_current_level, count, GameManager.roguelike_current_level])
+
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn")
+		return
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.0, 0.0, 0.0, 0.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(bg)
+
+	var lbl := Label.new()
+	lbl.text = "УРОВЕНЬ %d\nВраги стали опаснее!" % GameManager.roguelike_current_level
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 44)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3, 1.0))
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(lbl)
+
+	var tween := create_tween()
+	tween.tween_property(bg, "color:a", 0.85, 0.4)
+	tween.tween_interval(1.5)
+	tween.tween_callback(func():
+		get_tree().change_scene_to_file("res://scenes/levels/RoguelikeLevel.tscn"))
+
+
+## Build the treasure room scene: simple open floor, no enemies, warm golden colours.
+func _build_room_scene_treasure() -> void:
+	var bg := ColorRect.new()
+	bg.name  = "WorldBackground"
+	bg.position = Vector2(-200, -200)
+	bg.size     = Vector2(ROOM_WIDTH + 400, ROOM_HEIGHT + 400)
+	bg.color    = Color(0.08, 0.06, 0.02, 1.0)  ## Dark warm background
+	add_child(bg)
+
+	var room_container := Node2D.new()
+	room_container.name = "Room"
+	add_child(room_container)
+
+	# Floor — warm golden tone to distinguish from combat rooms
+	var floor_rect := ColorRect.new()
+	floor_rect.position = Vector2(0, 0)
+	floor_rect.size     = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.color    = Color(0.22, 0.18, 0.08, 1.0)
+	room_container.add_child(floor_rect)
+
+	_build_room_boundary_closed(room_container)
+
+	# Decorative pillars in the four corners (treasure room feel)
+	var pillar_size := Vector2(40, 40)
+	var offsets := [
+		Vector2(60, 60), Vector2(ROOM_WIDTH - 100, 60),
+		Vector2(60, ROOM_HEIGHT - 100), Vector2(ROOM_WIDTH - 100, ROOM_HEIGHT - 100),
+	]
+	for pos in offsets:
+		_create_cover(room_container, Rect2(pos.x, pos.y, pillar_size.x, pillar_size.y))
+
+
+## Add a "СОКРОВИЩНИЦА" header label for the treasure room HUD.
+func _setup_debug_ui_treasure() -> void:
+	var ui: Node = get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return
+	var lbl := Label.new()
+	lbl.name = "TreasureRoomLabel"
+	lbl.text = "✦ СОКРОВИЩНИЦА — Уровень %d ✦" % GameManager.roguelike_current_level
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	lbl.offset_top    = 10
+	lbl.offset_bottom = 40
+	lbl.add_theme_font_size_override("font_size", 20)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
+	ui.add_child(lbl)
 
 
 func _show_room_transition(next_room_idx: int) -> void:

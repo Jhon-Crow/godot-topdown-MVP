@@ -129,6 +129,14 @@ var roguelike_total_hits: int = 0
 ## Saved weapon selection before roguelike started (restored on exit/death).
 var roguelike_saved_weapon: String = ""
 
+## Current stage/level number within the roguelike run (1 = first level, increments each time
+## all rooms of a level are cleared and the treasure room is passed).
+var roguelike_current_level: int = 1
+
+## Whether the player is currently inside the treasure room
+## (the special room shown between a completed level and the next level).
+var roguelike_in_treasure_room: bool = false
+
 ## Resets all roguelike session variables to their default (not-in-run) state.
 func roguelike_reset_session() -> void:
 	roguelike_active = false
@@ -140,6 +148,8 @@ func roguelike_reset_session() -> void:
 	roguelike_total_shots = 0
 	roguelike_total_hits = 0
 	roguelike_saved_weapon = ""
+	roguelike_current_level = 1
+	roguelike_in_treasure_room = false
 
 
 func _ready() -> void:

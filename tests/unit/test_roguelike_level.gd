@@ -7,7 +7,8 @@ extends GutTest
 ##  - Active item swap (displaced item returned to pedestal)
 ##  - Weapon pedestal (new weapon applied, pedestal removed)
 ##  - Same-item dedup (no-op when player already has the item)
-##  - Pedestal only spawns on the last room (Bug fix #1166 comment 4080211471)
+##  - Treasure room always has a pedestal (Issue #1166 — new level flow)
+##  - Next level starts after exiting the treasure room
 ##
 ## Issue #1166.
 
@@ -112,20 +113,30 @@ class MockRoguelikeLevel:
 	## Whether ApplySelectedWeaponFromGameManager was called on mock player.
 	var weapon_applied: bool = false
 
-	## Room tracking for pedestal-spawn logic (Bug fix #1166).
+	## Room tracking (Issue #1166 new level flow).
 	var current_room_idx: int = 0
 	var total_rooms: int = 3
-	## Whether _spawn_treasure_pedestal was requested.
-	var pedestal_spawn_requested: bool = false
+	var current_level: int = 1
+	var in_treasure_room: bool = false
 
 	func _init(aim: MockActiveItemManager, gm: MockGameManager) -> void:
 		active_item_manager = aim
 		game_manager = gm
 
-	## Mirrors _on_enemy_died pedestal-spawn condition (Bug fix #1166).
-	## Returns true if pedestal should spawn (only on last room).
-	func should_spawn_pedestal_on_room_clear() -> bool:
-		return current_room_idx + 1 >= total_rooms
+	## Treasure room always has a pedestal (Issue #1166 new flow).
+	## The pedestal no longer depends on room index — it lives in its own scene.
+	func should_spawn_pedestal_in_treasure_room() -> bool:
+		return in_treasure_room
+
+	## Mirrors _advance_to_next_room routing (Issue #1166 new flow).
+	## Returns "treasure_room", "next_room", or "next_level".
+	func advance_route() -> String:
+		if in_treasure_room:
+			return "next_level"
+		var next: int = current_room_idx + 1
+		if next >= total_rooms:
+			return "treasure_room"
+		return "next_room"
 
 	func _pedestal_item_label(item) -> String:
 		if item == "weapon":
@@ -353,56 +364,75 @@ func test_item_label_none_returns_none_name() -> void:
 
 
 # ============================================================================
-# Tests — pedestal only spawns on the last room (Bug fix #1166 comment 4080211471)
+# Tests — treasure room / next-level flow (Issue #1166 new design)
 # ============================================================================
 
 
-func test_pedestal_does_not_spawn_on_intermediate_rooms() -> void:
-	## Bug fix: pedestal previously spawned after every room clear.
-	## Now it should only spawn after the LAST room.
+func test_pedestal_always_present_in_treasure_room() -> void:
+	## Treasure room always has a pedestal regardless of room index.
+	var level := _make_level()
+	level.in_treasure_room = true
+	assert_true(level.should_spawn_pedestal_in_treasure_room(),
+		"Treasure room must always have a pedestal")
+
+
+func test_pedestal_not_present_in_combat_room() -> void:
+	## Combat rooms never have a pedestal — pedestal is exclusive to treasure room.
+	var level := _make_level()
+	level.in_treasure_room = false
+	assert_false(level.should_spawn_pedestal_in_treasure_room(),
+		"Combat rooms must NOT have a pedestal")
+
+
+func test_advance_route_intermediate_room_goes_to_next_room() -> void:
+	## Clearing a non-last combat room advances to the next combat room.
 	var level := _make_level()
 	level.total_rooms = 3
-
-	# Clearing room 0 (not the last)
 	level.current_room_idx = 0
-	assert_false(level.should_spawn_pedestal_on_room_clear(),
-		"Pedestal should NOT spawn after room 1 of 3")
-
-	# Clearing room 1 (not the last)
-	level.current_room_idx = 1
-	assert_false(level.should_spawn_pedestal_on_room_clear(),
-		"Pedestal should NOT spawn after room 2 of 3")
+	level.in_treasure_room = false
+	assert_eq(level.advance_route(), "next_room",
+		"Clearing room 1 of 3 should route to next_room")
 
 
-func test_pedestal_spawns_on_last_room() -> void:
-	## Pedestal must spawn when the last room is cleared.
+func test_advance_route_last_room_goes_to_treasure_room() -> void:
+	## Clearing the last combat room routes to the treasure room.
 	var level := _make_level()
 	level.total_rooms = 3
-
 	level.current_room_idx = 2  # Last room (0-based)
-	assert_true(level.should_spawn_pedestal_on_room_clear(),
-		"Pedestal MUST spawn after clearing the last room (room 3 of 3)")
+	level.in_treasure_room = false
+	assert_eq(level.advance_route(), "treasure_room",
+		"Clearing last room (3/3) should route to treasure_room")
 
 
-func test_pedestal_spawns_on_last_room_single_room_run() -> void:
-	## Edge case: a single-room run — pedestal spawns immediately.
+func test_advance_route_treasure_room_goes_to_next_level() -> void:
+	## Exiting the treasure room starts the next level.
+	var level := _make_level()
+	level.in_treasure_room = true
+	assert_eq(level.advance_route(), "next_level",
+		"Exiting treasure room should route to next_level")
+
+
+func test_advance_route_single_room_goes_to_treasure_room() -> void:
+	## Edge case: single-room level — clearing it immediately goes to treasure room.
 	var level := _make_level()
 	level.total_rooms = 1
 	level.current_room_idx = 0
-	assert_true(level.should_spawn_pedestal_on_room_clear(),
-		"Pedestal must spawn on the only room in a 1-room run")
+	level.in_treasure_room = false
+	assert_eq(level.advance_route(), "treasure_room",
+		"Clearing the only room should route to treasure_room")
 
 
-func test_pedestal_spawns_on_last_room_five_room_run() -> void:
-	## Edge case: max 5-room run — only last room triggers pedestal.
+func test_advance_route_five_room_run_intermediate_rooms() -> void:
+	## Rooms 0–3 in a 5-room level go to next_room, room 4 goes to treasure_room.
 	var level := _make_level()
 	level.total_rooms = 5
+	level.in_treasure_room = false
 
 	for idx in range(4):  # Rooms 0–3 are not last
 		level.current_room_idx = idx
-		assert_false(level.should_spawn_pedestal_on_room_clear(),
-			"Pedestal should NOT spawn at room %d of 5" % (idx + 1))
+		assert_eq(level.advance_route(), "next_room",
+			"Room %d of 5 should go to next_room" % (idx + 1))
 
-	level.current_room_idx = 4  # Room 5 is the last
-	assert_true(level.should_spawn_pedestal_on_room_clear(),
-		"Pedestal must spawn after room 5 of 5")
+	level.current_room_idx = 4  # Room 5 is last
+	assert_eq(level.advance_route(), "treasure_room",
+		"Room 5 of 5 should go to treasure_room")
