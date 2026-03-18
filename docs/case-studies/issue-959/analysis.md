@@ -327,13 +327,71 @@ To reproduce without FPS drops: disable Debug mode in ExperimentalSettings (pres
 
 ---
 
+---
+
+## Session 5 Analysis (game_log_20260318_022713.txt) — Bugs 9–11 Revisited
+
+**Log date:** 2026-03-18, 02:27–02:45 UTC
+**Build:** Release, Debug: true
+**Result:** Player completed 10 levels, loudspeaker advanced to Level 6 (had_kills=false on Labyrinth2). Level progression confirmed working.
+
+### Bug 12 — Level completes while retaliating pacifist attacks player
+
+**Screenshot evidence:** Enemy actively attacking player (red trajectory visible), but Enemies counter shows 0 and EXIT zone is open.
+
+**Root cause:** When `became_pacifist` fires, `_on_enemy_became_pacifist()` runs once: it decrements the counter and calls `_has_retaliating_pacifists()`. If at that exact moment the enemy is not yet retaliating (they just became pacifist), the check passes and the exit zone opens. Later, if the player damages that pacifist, it starts retaliating — but no re-check is triggered. The exit zone stays open.
+
+**Fix:** Added periodic re-check in `_process()` of all 11 level scripts:
+```gdscript
+if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+    _level_cleared = true
+    call_deferred("_activate_exit_zone")
+```
+This runs every frame (no cost when `_level_cleared = true`) and ensures the exit opens only after all retaliation ends.
+
+### Bug 13 — Pacifist permanently exits pacifist state when hit
+
+**Root cause:** When a pacifist enemy was damaged, the code called `_transition_to_combat()`, fully entering the COMBAT state machine. In COMBAT, the enemy targets anyone (not just the attacker), and any number of state transitions could prevent return to PACIFIST state.
+
+**Requirement:** "If someone attacks a pacifist, it stays pacifist but attacks only whoever hit it."
+
+**Fix:** Changed hit handler to NOT call `_transition_to_combat()`. Instead, `start_retaliation()` is called and the enemy remains in `AIState.PACIFIST`. The `_process_pacifist_state()` function now checks `is_retaliating()` and pursues/shoots only `_pacifist.attacker` (the specific player who hit it). When the 3-second retaliation timer expires, it returns to passive pacifist behavior.
+
+Key code (`enemy.gd:_process_pacifist_state`):
+```gdscript
+if _pacifist and _pacifist.is_retaliating():
+    var tgt := _pacifist.attacker if _pacifist.attacker != null else _player
+    velocity = move_toward_attacker if dist > 80 else Vector2.ZERO
+    if aimed_at_attacker: _shoot()
+    return
+# otherwise: move to cover
+```
+
+### Level progression summary from game_log_20260318_022713.txt
+
+| Level completion | Loudspeaker level | had_kills |
+|---|---|---|
+| LabyrinthLevel (02:28:47) | → 2 | true |
+| BuildingLevel (02:29:33) | → 3 | true |
+| CastleLevel (02:32:42) | → 4 | true |
+| RevolverLevel (02:33:49) | → 5 | true |
+| BeachLevel ×3 (02:35–02:37) | stays 5 | true |
+| DocksLevel (02:40:12) | stays 5 | true |
+| FactoryLevel (02:42:07) | stays 5 | true |
+| DecadenceLevel (02:44:05) | stays 5 | true |
+| **Labyrinth2Level (02:45:40)** | **→ 6** | **false** |
+
+Level 6 was reached when player completed a level without kills (`had_kills=false`). Progression is working correctly.
+
+---
+
 ## References
 
 - Issue #959: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/959
 - PR #1018 (original implementation): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1018
 - PR #1092 (this fix): https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1092
 - Issue #1105 case study (same FPS root cause): `docs/case-studies/issue-1105/CASE_STUDY.md`
-- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`, `game_log_20260317_091947.txt`, `game_log_20260317_092204.txt`, `game_log_20260317_101421.txt`, `game_log_20260317_130346.txt`, `game_log_20260317_130449.txt`, `game_log_20260317_204537.txt`
+- Game logs: `game_log_20260317_082332.txt`, `game_log_20260317_085835.txt`, `game_log_20260317_091947.txt`, `game_log_20260317_092204.txt`, `game_log_20260317_101421.txt`, `game_log_20260317_130346.txt`, `game_log_20260317_130449.txt`, `game_log_20260317_204537.txt`, `game_log_20260318_022713.txt`
 - `scripts/components/loudspeaker_progress.gd` — progression logic
 - `scripts/autoload/active_item_manager.gd` — persistent progress storage
 - `scripts/characters/player.gd` — activation and effect application

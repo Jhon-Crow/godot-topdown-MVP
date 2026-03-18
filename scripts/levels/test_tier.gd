@@ -141,6 +141,14 @@ func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
+	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		print("All enemies neutralized! Arena cleared!")
+		var replay_manager: Node = _get_or_create_replay_manager()
+		if replay_manager and replay_manager.has_method("StopRecording"):
+			replay_manager.StopRecording()
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
 
 
 ## Initialize the ScoreManager for this level.

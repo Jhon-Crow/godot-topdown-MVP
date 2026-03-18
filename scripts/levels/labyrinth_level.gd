@@ -508,6 +508,11 @@ func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
+	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		print("All enemies eliminated or pacified! Labyrinth cleared!")
+		_level_cleared = true
+		call_deferred("_activate_exit_zone")
 
 	# Update tutorial hint positions to follow player (Issue #808)
 	_update_tutorial_hint_positions()

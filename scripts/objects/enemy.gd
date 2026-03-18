@@ -755,10 +755,8 @@ func _physics_process(delta: float) -> void:
 	if _flashbang_status:
 		_flashbang_status.update(delta)
 
-	# Issue #959: Update pacifist retaliation timer
-	if _pacifist and _pacifist.update(delta) and _current_state != AIState.PACIFIST:
-		_log_to_file("[#959] Pacifist retaliation ended, returning to PACIFIST state")
-		_transition_to_pacifist(false)  # Don't emit signal again, already counted as pacifist
+	# Issue #959: Pacifist stays in PACIFIST state; retaliation is a temporary sub-behavior within it.
+	if _pacifist and _pacifist.update(delta): _log_to_file("[#959] Pacifist retaliation ended"); if _current_state != AIState.PACIFIST: _transition_to_pacifist(false)
 
 	# Update shoot cooldown timer
 	_shoot_timer += delta
@@ -2393,7 +2391,13 @@ func _return_from_grenade_evasion() -> void:
 		AIState.SEARCHING: _transition_to_searching(global_position)
 		AIState.PACIFIST: _transition_to_pacifist(false)
 		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
-func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover (#959)
+func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / retaliate vs attacker (#959)
+	if _pacifist and _pacifist.is_retaliating():  ## Issue #959: pursue+shoot attacker; stay PACIFIST
+		var tgt: Node2D = _pacifist.attacker if _pacifist.attacker != null else _player
+		if tgt == null: velocity = Vector2.ZERO; return
+		velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed if global_position.distance_to(tgt.global_position) > 80.0 else Vector2.ZERO
+		if _shoot_timer >= shoot_cooldown and _can_shoot() and (tgt.global_position - global_position).normalized().dot(_get_weapon_forward_direction()) > AIM_TOLERANCE_DOT: _shoot()
+		return
 	if not _has_valid_cover: _find_cover_position()
 	if not _has_valid_cover: velocity = Vector2.ZERO; return
 	if global_position.distance_to(_cover_position) > 20.0: velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
@@ -4203,12 +4207,11 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()  # [Issue #919] check_retaliation removed: aggression must not propagate to hit enemies
-		# Issue #959: Pacifist retaliation - temporarily attack the attacker
+		# Issue #959: Pacifist stays in PACIFIST state when hit; only attacks the attacker temporarily.
 		if _pacifist and _pacifist.is_pacifist and _current_state == AIState.PACIFIST:
-			_pacifist.start_retaliation(_player)
-			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
+			_pacifist.start_retaliation(_player); var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
 			if _memory: _memory.update_position(est_pos, 0.8); _memory_reset_confusion_timer = 0.0
-			_log_to_file("[#959] Pacifist hit - retaliating"); _transition_to_combat(); return
+			_log_to_file("[#959] Pacifist hit - retaliates in PACIFIST state (attacker only)"); return
 		# Issue #910: When hit in non-combat state, transition to COMBAT and fire back
 		if _current_state in [AIState.IDLE, AIState.SEARCHING, AIState.RETREATING, AIState.SEEKING_COVER]:
 			var est_pos := global_position + attacker_direction * 300.0; _last_known_player_position = est_pos
@@ -4927,7 +4930,6 @@ func _setup_grenade_avoidance() -> void:
 
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
-
 func _calculate_grenade_evasion_target() -> void:
 	if _grenade_avoidance: _grenade_avoidance.calculate_evasion_target(_nav_agent)
 
