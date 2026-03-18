@@ -1,8 +1,8 @@
-# Case Study: Patrolling Enemies Walk in Place — LabyrinthLevel (Issue #1119)
+# Case Study: Patrolling Enemies Walk in Place — LabyrinthLevel & Labyrinth2Level (Issue #1119)
 
 **Issue:** #1119 — fix патрулирующие враги (Fix patrolling enemies)
 **PR:** #1120
-**Status:** Fixed
+**Status:** Fixed (LabyrinthLevel) + Fixed (Labyrinth2Level — follow-up, same root cause)
 **Analyst:** konard (AI)
 **Date:** 2026-03-18
 
@@ -169,4 +169,42 @@ These changes would reduce the "twitchy" side-glance during patrol, but are out 
 | 02:55:29 | Corner check fires once (perpendicular corridor opening detected) — brief model rotation |
 | 02:55:33 | Scene reloaded (player died or restarted) |
 | 2026-03-18 | Issue #1119 reported: "patrolling enemies walk in place on LabyrinthLevel" |
-| 2026-03-18 | PR #1120: increase patrol_offsets to `±200 px`, add regression test |
+| 2026-03-18 | PR #1120 (first fix): increase LabyrinthLevel Enemy3 patrol_offsets to `±200 px` |
+| 2026-03-18 03:36:09 | Player proceeds to Labyrinth2Level. Enemy4 (1100,700) and Enemy11 (1900,1400) still exhibit stuck patrol behavior — same root cause, same fix needed |
+| 2026-03-18 | PR #1120 (extended fix): increase Labyrinth2Level Enemy4 `±150→±200 px`, Enemy8 `±150→±200 px`, Enemy11 `±100→±200 px` |
+
+---
+
+## 8. Labyrinth2Level — Follow-up Finding
+
+### 8.1 Evidence — `game_log_20260318_033609.txt`
+
+After the LabyrinthLevel fix was merged, the player continued to **Labyrinth2Level (Labyrinth Complex)** and reported the same visual bug.
+
+**Affected patrol enemies:**
+
+| Enemy | Position | Old offsets | New offsets |
+|-------|----------|-------------|-------------|
+| Enemy4 | (1100, 700) | `Vector2(150, 0), Vector2(-150, 0)` | `Vector2(200, 0), Vector2(-200, 0)` |
+| Enemy8 | (2900, 300) | `Vector2(0, 150), Vector2(0, -150)` | `Vector2(0, 200), Vector2(0, -200)` |
+| Enemy11 | (1900, 1400) | `Vector2(100, 0), Vector2(-100, 0)` | `Vector2(200, 0), Vector2(-200, 0)` |
+
+### 8.2 Key log evidence
+
+Enemy4's continuous stuck behavior (from 03:36:30 onwards, dozens of times per minute):
+```
+[03:36:30] [ENEMY] [Enemy4] PATROL corner check: angle 90.0°
+[03:36:31] [ENEMY] [Enemy4] PATROL corner check: angle 90.0°
+[03:36:32] [ENEMY] [Enemy4] PATROL corner check: angle 90.0°
+...
+```
+The corner check repeating at exactly `90.0°` every frame means the enemy is trapped in a corridor — it detects a perpendicular opening continuously, triggering the corner look every 0.3 s, but never makes forward progress toward its patrol waypoint.
+
+Enemy11 exhibits the same pattern with `angle -89.9°` / `angle -90.0°` alternating each frame.
+
+### 8.3 Screenshot
+
+From PR comment (2026-03-18T00:37:39Z) — enemy visually wedged in narrow corridor:
+![enemy stuck in corridor](https://github.com/user-attachments/assets/d94cb45d-09d5-4344-b7d6-c8d4b61b5956)
+
+The enemy is between two parallel walls with barely enough space to move. With ±100–150 px offsets, both patrol waypoints may be within or very close to wall geometry, leaving the enemy oscillating at the corridor entrance.
