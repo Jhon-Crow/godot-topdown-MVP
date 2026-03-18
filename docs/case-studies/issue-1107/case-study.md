@@ -97,17 +97,27 @@ In Godot 4, `CharacterBody2D.move_and_slide()` handles wall sliding by computing
 
 **Fix**: Use `get_slide_collision(i).get_normal()` to read what walls were hit, then add those normals as a bias to the next frame's movement direction. This "escape" direction pushes the character away from the corner.
 
-### Godot GitHub Issues
-- **#60546**: 2D navigation agent radius not applied in path baking (fixed in 4.1)
+### Godot GitHub Issues (confirmed from online research)
+- **#60354**: NavigationAgent colliding with walls when rounding corners — confirmed common issue
+- **#85247**: `path_desired_distance > target_desired_distance` causes `is_navigation_finished()` to fire prematurely
+- **#88648**: `safe_velocity` (RVO) returns (0,0) in narrow spaces — reason to keep `avoidance_enabled = false`
+- **#94709**: NavigationAgent2D gets stuck when agent and target are on opposite sides of an obstacle
 - **#57967**: NavigationObstacle2D issues with static bodies
 - **#69988**: RVO avoidance rework (Godot 4.1)
-- **#88540**: CharacterBody2D stuck in corners — confirmed behavior, escape via collision normals recommended
+
+### Key Finding: move_and_slide() vs NavigationAgent2D Interference
+`move_and_slide()` modifies the velocity vector during wall collisions (sliding along wall surface). This
+modified velocity is NOT fed back into NavigationAgent2D, so the agent repeatedly re-issues the same
+direction, compounding the wall push rather than re-routing. This is the fundamental mechanism behind
+corridor oscillation when side-wall slide normals are blended back into the nav direction.
 
 ### Best Practices for Corner Navigation
-1. **Use `get_slide_collision()` normals**: After `move_and_slide()`, check collision normals and add them to velocity direction next frame
+1. **Use `get_slide_collision()` normals ONLY for true corners**: Side-wall contacts should be left to NavAgent
 2. **Shorter stuck timer**: Detect stuck state faster (0.8s vs 1.5s) for better responsiveness
 3. **Agent radius**: Set `agent_radius = 24.0` in ALL levels' nav baking (not just 4 of 8)
 4. **Navigation Server nearest point**: When target is outside nav mesh, use `NavigationServer2D.map_get_closest_point()` to clamp target
+5. **Keep `avoidance_enabled = false`**: RVO avoidance returns (0,0) velocity in narrow corridors (#88648)
+6. **Match path_desired_distance to target_desired_distance**: Both at 10px (done) avoids premature nav_finished (#85247)
 
 ---
 
