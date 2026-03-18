@@ -327,6 +327,12 @@ func _spawn_enemy() -> void:
 	# Scale difficulty with wave number.
 	_configure_enemy_for_wave(enemy, _wave_number)
 
+	# Arena enemies must be destroyed on death, not respawned.
+	# Enemy.gd exports destroy_on_death (default false) — when false, enemies
+	# respawn after respawn_delay seconds via _reset(). Setting it to true
+	# ensures they are permanently removed once killed.
+	enemy.set("destroy_on_death", true)
+
 	# Add to scene.
 	var entities := get_node_or_null("Entities/Enemies")
 	if entities:
@@ -470,22 +476,18 @@ func _spawn_wave_pickups() -> void:
 	print("[ArenaLevel] Spawned pickups for wave %d" % _wave_number)
 
 
-## Spawn an active item charge pickup if the player's current active item uses charges.
+## Spawn active item charge pickups — always 1 per wave regardless of active item type.
+## They spawn rarer than health packs (1 vs 4 per wave) so the player has
+## a meaningful but not overwhelming supply of charges.
+## ActiveItemType.NONE = 0 — skip if no active item is equipped.
 func _maybe_spawn_active_item_charge_pickup() -> void:
 	if ActiveItemManager == null:
 		return
 	var item_type: int = ActiveItemManager.current_active_item
-	# ActiveItemType.NONE = 0; skip items with unlimited charges (laser sight, flashlight, etc.)
-	var charge_based_items: Array[int] = [
-		2,  # HOMING_BULLETS
-		3,  # TELEPORT_BRACERS
-		5,  # INVISIBILITY_SUIT
-		8,  # TRAJECTORY_GLASSES
-		10, # LOUDSPEAKER
-		11, # BREACHING_CHARGES
-	]
-	if item_type in charge_based_items:
-		_spawn_pickup("active_item_charge")
+	if item_type == 0:
+		# No active item equipped; skip.
+		return
+	_spawn_pickup("active_item_charge")
 
 
 ## Create and place a pickup of the given type.

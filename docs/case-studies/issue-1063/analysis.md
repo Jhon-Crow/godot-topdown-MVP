@@ -274,3 +274,40 @@ refills the launcher's single grenade round.
 Arena mode is now directly accessible from the pause menu (alongside "Training"), 
 matching the owner's request to "вынеси арену в отдельный пункт меню (как в случае с Обучением)".
 A dedicated "Arena" button was added to `PauseMenu.tscn` and wired in `pause_menu.gd`.
+
+---
+
+## Round 5 Bug Analysis (game_log_20260318_075653.txt)
+
+### Bug 7 — Enemies infinitely resurrect
+
+**Log evidence (game_log_20260318_075653.txt):**
+```
+[07:58:21] [INFO] [ArenaLevel] Spawned pickups for wave 1   ← wave should be over
+[07:58:23] [ENEMY] [@CharacterBody2D@3387] Enemy died       ← same enemy dying again
+[07:58:26] [ENEMY] [Enemy] Enemy died                       ← and again
+[07:58:27] [ENEMY] [@CharacterBody2D@3387] Enemy died       ← ...
+[08:00:41] [INFO] [ArenaLevel] Spawned pickups for wave 1   ← wave "ends" a second time
+```
+
+The same 3 enemies (identified by their node IDs `@CharacterBody2D@3387`,
+`@CharacterBody2D@3414`, `Enemy`) keep dying every 2-6 seconds indefinitely.
+
+**Root cause:** `enemy.gd` exports `destroy_on_death: bool = false`. When this is `false`,
+the `_on_enemy_died()` handler calls `_reset()` after `respawn_delay` seconds (default 2.0s),
+restoring full health and re-enabling collision. The arena spawner never set
+`destroy_on_death = true`, so all arena enemies respawned forever.
+
+**Fix:** Added `enemy.set("destroy_on_death", true)` in `_spawn_enemy()` before
+`add_child(enemy)`. This mirrors the fix applied in PR #1062 (roguelike mode).
+
+### New Feature 8 — Active item charge pickups always spawn
+
+**Previous behaviour:** `_maybe_spawn_active_item_charge_pickup()` only spawned a "+CHG"
+pickup if the player's active item was in a hardcoded list of 6 charge-based items.
+Force Field (type 7) and other items were excluded, so many players never saw charge
+pickups.
+
+**New behaviour:** Any equipped active item (type != 0) triggers 1 charge pickup per wave.
+Spawning 1 charge vs 4 health packs keeps them rarer, as requested
+("должны спавниться реже чем аптечки").
