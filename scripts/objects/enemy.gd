@@ -2028,7 +2028,8 @@ func _process_pursuing_state(delta: float) -> void:
 				(_can_see_companion and _companion != null and global_position.distance_to(_companion.global_position) <= CLOSE_COMBAT_DISTANCE)):
 			_transition_to_combat(); return
 	# [#1163] Sniper holds position and blind-fires; returns false when too close (fall through to reposition).
-	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null and _sniper_component.process_pursuing(delta, _last_known_player_position, _prediction):
+	# [#1161] Pass can_see_player so sniper falls through to COMBAT when player is visible.
+	if weapon_type == WeaponType.SNIPER_RIFLE and _sniper_component != null and _sniper_component.process_pursuing(delta, _can_see_player, _player, _last_known_player_position, _prediction):
 		return
 
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:

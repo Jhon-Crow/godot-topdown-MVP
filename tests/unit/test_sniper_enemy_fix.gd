@@ -162,3 +162,76 @@ func test_sniper_get_config_returns_correct_total_magazines() -> void:
 func test_sniper_get_type_name_returns_sniper_rifle() -> void:
 	assert_eq(WeaponConfigComponent.get_type_name(7), "SNIPER_RIFLE",
 		"get_type_name(7) should return SNIPER_RIFLE")
+
+
+# ============================================================================
+# Bug #4: Sniper misses visible stationary player — process_pursuing (Issue #1161)
+# ============================================================================
+
+
+class MockNode2D:
+	var global_position: Vector2 = Vector2(400.0, 2200.0)
+
+
+class MockEnemySniperComponent extends EnemySniperComponent:
+	var shoot_called: bool = false
+	var fire_at_called: bool = false
+	var last_fire_at_pos: Vector2 = Vector2.ZERO
+
+	class MockEnemy:
+		var global_position: Vector2 = Vector2(4500.0, 444.0)
+		var velocity: Vector2 = Vector2.ZERO
+		var shoot_cooldown: float = 3.0
+		var _shoot_timer: float = 10.0
+		var _can_shoot_result: bool = true
+		func _can_shoot() -> bool: return _can_shoot_result
+		func _shoot() -> void: pass
+
+	func _init() -> void:
+		enemy = MockEnemy.new()
+
+	func fire_at_predicted_position(target_pos: Vector2) -> void:
+		fire_at_called = true
+		last_fire_at_pos = target_pos
+
+
+func test_process_pursuing_returns_false_when_player_visible_and_at_safe_range() -> void:
+	# When player is visible and at safe range (>= MIN_DISTANCE = 350px),
+	# process_pursuing should return false so normal PURSUING code can transition to COMBAT.
+	var component := MockEnemySniperComponent.new()
+	var player := MockNode2D.new()
+	# Distance ~4145px (sniper at 4500,444 → player at 400,2200) >> MIN_DISTANCE=350
+	var result := component.process_pursuing(0.1, true, player, player.global_position, null)
+	assert_false(result,
+		"process_pursuing must return false when player visible at safe range (Issue #1161: sniper should engage, not blind-fire)")
+
+
+func test_process_pursuing_returns_false_when_player_visible_too_close() -> void:
+	# When player is visible but too close, sniper should also return false to let
+	# retreat logic handle it (not blind-fire at close range).
+	var component := MockEnemySniperComponent.new()
+	var player := MockNode2D.new()
+	player.global_position = Vector2(4500.0, 644.0)  # 200px away (< MIN_DISTANCE=350)
+	var result := component.process_pursuing(0.1, true, player, player.global_position, null)
+	assert_false(result,
+		"process_pursuing must return false when player is too close (retreat, not blind-fire)")
+
+
+func test_process_pursuing_holds_position_and_blindfires_when_player_not_visible() -> void:
+	# When player is NOT visible: sniper holds position (returns true) and may blind-fire.
+	var component := MockEnemySniperComponent.new()
+	var last_known := Vector2(400.0, 2200.0)
+	# Distance from sniper(4500,444) to last_known(400,2200) is ~4145px > MIN_DISTANCE
+	var result := component.process_pursuing(0.1, false, null, last_known, null)
+	assert_true(result,
+		"process_pursuing must return true (hold position) when player NOT visible (Issue #1161)")
+
+
+func test_process_pursuing_does_not_blindfire_when_player_visible() -> void:
+	# When player IS visible, no blind-fire should happen.
+	var component := MockEnemySniperComponent.new()
+	component.blind_fire_timer = 999.0  # Force timer to exceed cooldown
+	var player := MockNode2D.new()
+	component.process_pursuing(0.1, true, player, player.global_position, null)
+	assert_false(component.fire_at_called,
+		"process_pursuing must NOT call fire_at_predicted_position when player is visible (Issue #1161)")
