@@ -25,7 +25,7 @@ const SATURATION_DURATION: float = 0.15
 const SATURATION_INTENSITY: float = 0.25
 
 ## Seconds to wait between waves (pickup window).
-const INTER_WAVE_DELAY: float = 5.0
+const INTER_WAVE_DELAY: float = 15.0
 
 ## Seconds before the first wave starts.
 const FIRST_WAVE_DELAY: float = 2.0
@@ -356,47 +356,66 @@ func _spawn_enemy() -> void:
 
 
 ## Configure enemy properties based on wave number.
+## Difficulty scaling:
+##   Wave 1:   1HP, RIFLE (slow shoot 0.5s cooldown = PM-like pistol)
+##   Wave 2-3: 1-2HP, RIFLE (normal 0.1s cooldown), no cover/flanking
+##   Wave 4-5: 2-3HP, RIFLE + SHOTGUN mix, cover enabled
+##   Wave 6+:  3+HP, RIFLE / SHOTGUN / UZI mix, cover + flanking
 func _configure_enemy_for_wave(enemy: Node, wave: int) -> void:
-	# Weapon type distribution changes per wave.
-	# wave 1-2: mostly RIFLE
-	# wave 3-4: mix of RIFLE and SHOTGUN
-	# wave 5+:  mix of RIFLE, SHOTGUN, UZI
 	var weapon_roll: float = randf()
 
-	if wave <= 2:
+	if wave == 1:
+		# Wave 1: weakest enemies — 1HP, Makarov PM pistol.
+		enemy.set("weapon_type", 5)  # PM (Makarov pistol, added in Issue #583)
+		enemy.set("min_health", 1)
+		enemy.set("max_health", 1)
+		enemy.set("enable_cover", false)
+		enemy.set("enable_flanking", false)
+		enemy.set("behavior_mode", 0)  # GUARD
+	elif wave <= 3:
+		# Wave 2-3: normal rifle speed, still low HP, no tactics.
 		enemy.set("weapon_type", 0)  # RIFLE
-	elif wave <= 4:
-		if weapon_roll < 0.5:
+		enemy.set("shoot_cooldown", 0.1)
+		enemy.set("min_health", 1)
+		enemy.set("max_health", 2)
+		enemy.set("enable_cover", false)
+		enemy.set("enable_flanking", false)
+		enemy.set("behavior_mode", 0)  # GUARD
+	elif wave <= 5:
+		# Wave 4-5: rifle + shotgun mix, cover enabled, medium HP.
+		if weapon_roll < 0.6:
 			enemy.set("weapon_type", 0)  # RIFLE
 		else:
 			enemy.set("weapon_type", 1)  # SHOTGUN
+		enemy.set("shoot_cooldown", 0.1)
+		enemy.set("min_health", 2)
+		enemy.set("max_health", 3)
+		enemy.set("enable_cover", true)
+		enemy.set("enable_flanking", false)
+		var behavior_roll: float = randf()
+		if behavior_roll < 0.25:
+			enemy.set("behavior_mode", 1)  # PATROL
+		else:
+			enemy.set("behavior_mode", 0)  # GUARD
 	else:
+		# Wave 6+: full mix, cover + flanking, scaling HP.
 		if weapon_roll < 0.4:
 			enemy.set("weapon_type", 0)  # RIFLE
 		elif weapon_roll < 0.7:
 			enemy.set("weapon_type", 2)  # UZI
 		else:
 			enemy.set("weapon_type", 1)  # SHOTGUN
-
-	# Alternate behavior: GUARD most of the time, some PATROL later.
-	var behavior_roll: float = randf()
-	if wave >= 3 and behavior_roll < 0.3:
-		enemy.set("behavior_mode", 1)  # PATROL
-	else:
-		enemy.set("behavior_mode", 0)  # GUARD
-
-	# Scale health: +1 extra HP every 3 waves.
-	var extra_hp: int = (wave - 1) / 3
-	enemy.set("min_health", 1 + extra_hp)
-	enemy.set("max_health", 3 + extra_hp)
-
-	# Enable cover and flanking from wave 2 onwards.
-	if wave >= 2:
+		enemy.set("shoot_cooldown", 0.1)
+		var extra_hp: int = (wave - 5) / 2  # +1HP every 2 waves beyond wave 5
+		enemy.set("min_health", 2 + extra_hp)
+		enemy.set("max_health", 4 + extra_hp)
 		enemy.set("enable_cover", true)
 		enemy.set("enable_flanking", true)
-	else:
-		enemy.set("enable_cover", false)
-		enemy.set("enable_flanking", false)
+		var behavior_roll: float = randf()
+		if behavior_roll < 0.35:
+			enemy.set("behavior_mode", 1)  # PATROL
+		else:
+			enemy.set("behavior_mode", 0)  # GUARD
 
 
 ## Return a random enemy spawn position distributed along the arena walls.
@@ -482,16 +501,17 @@ func _spawn_pickup(pickup_type: String) -> void:
 	)
 
 	# Build the pickup node.
-	# Use collision_layer = 1 so the Area2D sits on the same physics layer as
-	# other interactables; collision_mask = 1 so it detects the player's body
-	# (CharacterBody2D is on layer 1 in all arena scenes).
+	# collision_layer=0 (pickups do not need to be detected by others),
+	# collision_mask=1 so the Area2D detects the player's CharacterBody2D (layer 1).
+	# NOTE: global_position must be set AFTER add_child() in Godot 4; we use
+	# position (local) here since the root node's transform is identity.
 	var pickup := Area2D.new()
 	pickup.name = "Pickup_%s_%d" % [pickup_type, randi()]
-	pickup.collision_layer = 1
+	pickup.collision_layer = 0
 	pickup.collision_mask = 1  # Detect player CharacterBody2D (layer 1)
 	pickup.monitoring = true
-	pickup.monitorable = true
-	pickup.global_position = pos
+	pickup.monitorable = false
+	pickup.position = pos  # Use local position (identity parent transform = same as global)
 
 	# Add collision shape.
 	var col := CollisionShape2D.new()
@@ -946,16 +966,20 @@ func _setup_spawn_points() -> void:
 		Vector2(1800, 800),
 	]
 
-	# Pickup spawns: central cluster and mid-sides.
+	# Pickup spawns: clear open floor areas, away from all cover objects.
+	# Cover positions: CoverA1(400,400), CoverA2(960,300), CoverA3(1520,400),
+	#                  CoverB1(600,680), CoverB2(960,780), CoverB3(1320,680).
+	# These points are placed in the open corridors between covers.
 	_pickup_spawn_points = [
-		Vector2(640, 540),
-		Vector2(960, 300),
-		Vector2(960, 780),
-		Vector2(1280, 540),
-		Vector2(500, 400),
-		Vector2(1400, 680),
-		Vector2(700, 750),
-		Vector2(1200, 340),
+		Vector2(200, 540),    # Far left center corridor
+		Vector2(700, 200),    # Top-left open area
+		Vector2(1200, 200),   # Top-right open area
+		Vector2(1750, 540),   # Far right center corridor
+		Vector2(700, 900),    # Bottom-left open area
+		Vector2(1200, 900),   # Bottom-right open area
+		Vector2(960, 540),    # Center (between all covers)
+		Vector2(400, 200),    # Top-left corner open
+		Vector2(1550, 850),   # Bottom-right corner open
 	]
 
 # ---------------------------------------------------------------------------
