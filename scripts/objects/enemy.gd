@@ -4976,11 +4976,9 @@ func _switch_to_secondary_weapon() -> void:
 	if sc.get("sprite_path", "") != "" and _weapon_sprite:  # Issue #583: update weapon sprite to PM
 		var tex := load(sc["sprite_path"]) as Texture2D; if tex: _weapon_sprite.texture = tex
 	print("[Enemy] RPG fired, switched to secondary weapon (PM)")
-
 ## Setup enemy flashlight for night mode (Issue #824).
 func _setup_enemy_flashlight() -> void:
 	_enemy_flashlight = EnemyFlashlightComponent.new(); _enemy_flashlight.debug_logging = debug_logging; add_child(_enemy_flashlight)
-
 ## Apply machete attack animation to weapon mount and arms (Issue #595).
 func _apply_machete_attack_animation() -> void:
 	if not _is_melee_weapon or _machete == null: return
