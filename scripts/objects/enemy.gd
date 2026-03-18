@@ -4404,14 +4404,12 @@ func _reset() -> void:
 	_retreat_burst_angle_offset = 0.0
 	_in_alarm_mode = false
 	_cover_burst_pending = false
-	# Reset combat state variables
 	_combat_shoot_timer = 0.0
 	_combat_shoot_duration = 2.5
 	_combat_exposed = false
 	_combat_approaching = false
 	_combat_approach_timer = 0.0
 	_combat_state_timer = 0.0
-	# Reset pursuit state variables
 	_pursuit_cover_wait_timer = 0.0
 	_pursuit_next_cover = Vector2.ZERO
 	_has_pursuit_cover = false
@@ -4422,7 +4420,6 @@ func _reset() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = Vector2.ZERO
-	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false
 	_in_assault = false
