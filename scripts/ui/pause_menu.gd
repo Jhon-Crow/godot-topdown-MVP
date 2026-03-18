@@ -37,6 +37,8 @@ func _ready() -> void:
 	# Start hidden
 	hide()
 	set_process_unhandled_input(true)
+	# Must process even when tree is paused so ESC can toggle the menu.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	# Connect button signals
 	resume_button.pressed.connect(_on_resume_pressed)

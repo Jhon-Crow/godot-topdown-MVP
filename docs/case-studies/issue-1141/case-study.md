@@ -147,9 +147,44 @@ Also, `process_mode = Node.PROCESS_MODE_ALWAYS` must be set in each menu so inpu
 
 ---
 
+## Post-Fix Bug Report (2026-03-18)
+
+After the initial fix (adding `_unhandled_input` to all submenus), Jhon-Crow reported a regression:
+
+> "ESC allows exit only from ONE menu — you can't navigate back through menus sequentially with ESC, and after unpausing you can't reopen the pause menu with ESC."
+>
+> Log: `docs/case-studies/issue-1141/logs/game_log_20260318_075032.txt`
+
+### Root Cause of Regression
+
+**`pause_menu.gd` was missing `process_mode = Node.PROCESS_MODE_ALWAYS`.**
+
+The `PauseMenu` node is a child of the level scene (e.g., `LabyrinthLevel`), not an autoload. When `pause_game()` calls `get_tree().paused = true`, all nodes with `PROCESS_MODE_INHERIT` (the default) stop processing — including `PauseMenu` itself.
+
+This meant:
+- Opening the pause menu: works (game is not yet paused when the first ESC fires)
+- After `pause_game()` runs: `PauseMenu._unhandled_input` stops receiving events
+- ESC in submenus: works (all submenus set `process_mode = PROCESS_MODE_ALWAYS` in their `_ready()`)
+- ESC to close the main pause menu (resume game): BROKEN — `PauseMenu` can't receive input
+
+The symptom "can only exit one menu level" makes sense now: the submenus (which have `PROCESS_MODE_ALWAYS`) handle ESC to go back one step. But once back at the main pause menu list, ESC can't resume the game because `PauseMenu` is paused itself.
+
+### Additional Fix
+
+Added to `pause_menu.gd`'s `_ready()`:
+
+```gdscript
+process_mode = Node.PROCESS_MODE_ALWAYS
+```
+
+This ensures `PauseMenu` continues to receive `_unhandled_input` while the game tree is paused, allowing ESC to resume the game from the main pause menu screen.
+
+---
+
 ## References
 
 - Godot 4 Input handling: https://docs.godotengine.org/en/stable/tutorials/inputs/inputevent.html
 - `set_input_as_handled()` prevents propagation: https://docs.godotengine.org/en/stable/classes/class_viewport.html#class-viewport-method-set-input-as-handled
 - `_unhandled_input` vs `_input`: `_unhandled_input` is called only when no other node consumed the event. Since submenus render on top, their `_unhandled_input` will fire before `pause_menu`'s.
 - Godot issue on CanvasLayer input ordering: CanvasLayer nodes receive input based on their layer value, but `_unhandled_input` propagation follows the scene tree order.
+- Godot 4 `process_mode`: https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-property-process-mode — nodes with `PROCESS_MODE_INHERIT` stop when the tree is paused; use `PROCESS_MODE_ALWAYS` for UI that must work while the game is paused.
