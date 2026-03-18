@@ -83,6 +83,8 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, MACHINE_GUN }
 @export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type (Issue #604).
 @export var is_teleporter: bool = false  ## Whether this enemy can teleport (Issue #752).
 @export var has_force_field: bool = false  ## Whether this enemy has a Force Field (Issue #1034).
+@export var start_invisible: bool = false  ## Start with invisibility cloak, reveal only when shooting/throwing grenade (Issue #1121).
+@export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -383,6 +385,15 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 
+## Issue #1121: Invisible enemy — shader and reveal state.
+const INVISIBLE_SHADER_PATH: String = "res://scripts/shaders/invisibility_cloak.gdshader"
+const INVISIBLE_REVEAL_DURATION: float = 2.0  ## Seconds the enemy stays visible after shooting/throwing.
+var _is_enemy_invisible: bool = false  ## Whether enemy invisibility cloak is active.
+var _invisible_reveal_timer: float = 0.0  ## Countdown until re-cloaking after reveal.
+var _invisible_shader: Shader = null  ## Loaded cloak shader resource.
+var _invisible_affected_sprites: Array[CanvasItem] = []  ## Sprites with shader applied.
+var _invisible_original_materials: Dictionary = {}  ## Original materials saved before cloak.
+
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
@@ -449,6 +460,7 @@ func _ready() -> void:
 	_init_death_animation()
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
+	_init_enemy_invisibility()  # Issue #1121: apply cloak and set initial state after all nodes ready
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -777,6 +789,9 @@ func _physics_process(delta: float) -> void:
 	if _pacifist and _pacifist.update(delta) and _current_state != AIState.PACIFIST:
 		_log_to_file("[#959] Pacifist retaliation ended, returning to PACIFIST state")
 		_transition_to_pacifist(false)  # Don't emit signal again, already counted as pacifist
+
+	# Issue #1121: tick invisible reveal timer (re-cloak after shooting window expires)
+	_process_invisible_reveal(delta)
 
 	# Update shoot cooldown timer
 	_shoot_timer += delta
@@ -3850,6 +3865,7 @@ func _shoot() -> void:
 
 func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting callback.
 	_is_pre_attack_flashing = false
+	_invisible_reveal()  # Issue #1121: briefly reveal cloaked enemy when shooting
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
 	var weapon_forward := _get_weapon_forward_direction()
@@ -4329,6 +4345,7 @@ func _notify_nearby_enemies_of_death() -> void:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
+	if _is_enemy_invisible: _remove_invisible_shader()  # Issue #1121: reveal enemy on death
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
@@ -4497,6 +4514,101 @@ func _init_death_animation() -> void:
 		_right_arm_sprite,
 		_enemy_model
 	)
+
+## Issue #1121: Initialize enemy invisibility cloak and optional initial AI state.
+## Loads the cloak shader, applies it to all model sprites, and transitions to initial_state.
+func _init_enemy_invisibility() -> void:
+	# Apply initial AI state if requested (e.g. SEARCHING from spawn)
+	if initial_state != AIState.IDLE:
+		match initial_state:
+			AIState.SEARCHING:
+				_has_left_idle = true  # Engaged enemy: search indefinitely (Issue #330)
+				_transition_to_searching(global_position)
+			_:
+				_current_state = initial_state
+		_log_to_file("[Invisible] Initial state set to %s" % AIState.keys()[_current_state])
+
+	if not start_invisible:
+		return
+
+	# Load the invisibility cloak shader (same one used by the player)
+	if not ResourceLoader.exists(INVISIBLE_SHADER_PATH):
+		_log_to_file("[Invisible] WARNING: Shader not found: %s" % INVISIBLE_SHADER_PATH)
+		return
+	_invisible_shader = load(INVISIBLE_SHADER_PATH)
+	if _invisible_shader == null:
+		_log_to_file("[Invisible] WARNING: Failed to load shader")
+		return
+
+	_is_enemy_invisible = true
+	_apply_invisible_shader()
+	_log_to_file("[Invisible] Enemy cloaked at spawn")
+
+
+## Apply the invisibility cloak shader to all CanvasItem children of EnemyModel (Issue #1121).
+func _apply_invisible_shader() -> void:
+	if _enemy_model == null or _invisible_shader == null:
+		return
+	_invisible_affected_sprites.clear()
+	_invisible_original_materials.clear()
+	_apply_invisible_shader_recursive(_enemy_model)
+
+
+## Recursively apply the cloak shader to all CanvasItem children of a node (Issue #1121).
+func _apply_invisible_shader_recursive(node: Node) -> void:
+	for child in node.get_children():
+		if child is CanvasItem:
+			_apply_invisible_shader_to_canvas_item(child as CanvasItem)
+		_apply_invisible_shader_recursive(child)
+
+
+## Apply the cloak shader to a single CanvasItem, saving the original material (Issue #1121).
+func _apply_invisible_shader_to_canvas_item(canvas_item: CanvasItem) -> void:
+	var key: String = str(canvas_item.get_instance_id())
+	if _invisible_original_materials.has(key):
+		return
+	_invisible_original_materials[key] = canvas_item.material
+	var mat := ShaderMaterial.new()
+	mat.shader = _invisible_shader
+	mat.set_shader_parameter("mix_amount", 1.0)
+	canvas_item.material = mat
+	_invisible_affected_sprites.append(canvas_item)
+
+
+## Set the cloak mix_amount on all affected sprites (Issue #1121). 0.0=visible, 1.0=cloaked.
+func _set_invisible_mix(amount: float) -> void:
+	for sprite in _invisible_affected_sprites:
+		if is_instance_valid(sprite) and sprite.material is ShaderMaterial:
+			(sprite.material as ShaderMaterial).set_shader_parameter("mix_amount", amount)
+
+
+## Remove the invisibility shader from all sprites, restoring originals (Issue #1121).
+func _remove_invisible_shader() -> void:
+	for sprite in _invisible_affected_sprites:
+		if is_instance_valid(sprite):
+			var key: String = str(sprite.get_instance_id())
+			sprite.material = _invisible_original_materials.get(key, null)
+	_invisible_affected_sprites.clear()
+	_invisible_original_materials.clear()
+	_is_enemy_invisible = false
+
+
+## Temporarily reveal the invisible enemy (e.g. when shooting or throwing grenade) (Issue #1121).
+func _invisible_reveal() -> void:
+	if not _is_enemy_invisible:
+		return
+	_set_invisible_mix(0.0)
+	_invisible_reveal_timer = INVISIBLE_REVEAL_DURATION
+
+
+## Tick the reveal timer and re-cloak if the reveal window has expired (Issue #1121).
+func _process_invisible_reveal(delta: float) -> void:
+	if not _is_enemy_invisible or _invisible_reveal_timer <= 0.0:
+		return
+	_invisible_reveal_timer -= delta
+	if _invisible_reveal_timer <= 0.0:
+		_set_invisible_mix(1.0)
+		_invisible_reveal_timer = 0.0
 
 	# Connect signals
 	_death_animation.death_animation_completed.connect(_on_death_animation_completed)
@@ -4911,7 +5023,9 @@ func try_throw_grenade() -> bool:
 	return _execute_grenade_throw(tgt)
 
 func _execute_grenade_throw(tgt: Vector2) -> bool:  ## Issue #824: grenade throw callback.
-	_is_pre_attack_flashing = false; var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
+	_is_pre_attack_flashing = false
+	_invisible_reveal()  # Issue #1121: briefly reveal cloaked enemy when throwing grenade
+	var result := _grenade_component.try_throw(tgt, _is_alive, _is_stunned, _is_blinded)
 	if result: grenade_thrown.emit(null, tgt)
 	return result
 
