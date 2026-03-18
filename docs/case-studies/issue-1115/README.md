@@ -13,6 +13,7 @@
 | **Date of game log (first)** | 2026-03-18T01:01:26Z |
 | **Date of game log (second)** | 2026-03-18T02:06:55Z |
 | **Date of game log (third)** | 2026-03-18T03:38:31Z |
+| **Date of game log (fourth)** | 2026-03-18T04:14:07Z |
 | **Predecessor issue** | [#1036 — Add Radio Jammer enemy](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1036) |
 
 ---
@@ -63,15 +64,15 @@ However, it does **not** check whether a previously activated effect is *current
 
 **Effect-by-effect breakdown:**
 
-| Active Item | Had cancellation on enter? | Mechanism |
-|-------------|---------------------------|-----------|
-| Homing Bullets | ❌ No | Timer-based (`_homing_timer`); ticks down regardless of jammer proximity |
-| Invisibility Suit | ❌ No | Toggle (`_invisibility_suit.is_active`); duration runs in the effect node |
-| Trajectory Glasses | ❌ No | Timer-based (`is_active`, internal timer); blink phase also unaffected |
-| Force Field | ✅ Yes (Issue #1036) | `_force_field.deactivate()` was already called on jammer entry |
-| Flashlight | ✅ Yes (Issue #1036) | Turned off in flashlight handler on jammer detection |
+| Active Item | Had cancellation on enter (GDScript)? | Had cancellation on enter (C#)? | Mechanism |
+|-------------|--------------------------------------|---------------------------------|-----------|
+| Homing Bullets | ❌ No | ❌ No | Timer-based (`_homing_timer`); ticks down regardless of jammer proximity |
+| Invisibility Suit | ❌ No | ❌ No | Toggle (`_invisibility_suit.is_active`); duration runs in the effect node |
+| Trajectory Glasses | ❌ No | ❌ No | Timer-based (`is_active`, internal timer); blink phase also unaffected |
+| Force Field | ✅ Yes (Issue #1036) | ❌ No (bug revealed in 4th log) | `_force_field.deactivate()` was called in GDScript, but C# just returned early |
+| Flashlight | ✅ Yes (Issue #1036) | ❌ No (bug revealed in 4th log) | GDScript called `turn_off()` on jammer entry; C# only blocked new activation |
 
-The asymmetry existed because Force Field and Flashlight had their jammer handling implemented as part of the original Issue #1036 implementation, while the three remaining timed effects were only blocked from *starting*, not from *continuing*.
+The asymmetry existed because Force Field and Flashlight had their jammer handling implemented as part of the original Issue #1036 implementation in GDScript, while the C# implementation only blocked new activations (`return` early) but did not actively cancel. The three remaining timed effects were only blocked from *starting*, not from *continuing* — in both GDScript and C#.
 
 ### 3.2 Oversized HUD Icon (Secondary UX Issue)
 
@@ -189,12 +190,12 @@ const LINE_WIDTH: float = 3.0
 
 ---
 
-## 6. Items NOT affected (already correct)
+## 6. Items NOT affected (already correct or fixed)
 
-| Item | Reason no change needed |
-|------|------------------------|
-| Force Field | `_force_field.deactivate()` was explicitly called in jammer handler (Issue #1036) |
-| Flashlight | Turned off on jammer detection (Issue #1036) |
+| Item | Reason |
+|------|--------|
+| Force Field | GDScript had `_force_field.deactivate()` in jammer handler (Issue #1036). C# was missing this — **fixed in Issue #1115** (4th log analysis) |
+| Flashlight | GDScript called `turn_off()` on jammer detection (Issue #1036). C# was missing this — **fixed in Issue #1115** (4th log analysis) |
 | BFF Pendant | Instant-use (no running state to cancel) |
 | Loudspeaker | Instant-use (no running state to cancel) |
 | Breaching Charges | Instant-use (no running state to cancel) |
@@ -392,24 +393,102 @@ if (IsActiveItemJammedSilent())
 | `game_log_20260318_010126.txt` | First game log (2026-03-18 01:01:26) demonstrating the bug |
 | `game_log_20260318_020655.txt` | Second game log (2026-03-18 02:06:55) — same binary, same bug |
 | `game_log_20260318_033831.txt` | Third game log (2026-03-18 03:38:31) — reveals C# Player.cs was missing the fix |
+| `game_log_20260318_041407.txt` | Fourth game log (2026-03-18 04:14:07) — confirms homing/invisibility fixed, reveals flashlight/force field not cancelled in C# |
 
 ---
 
-## 12. Conclusions
+## 12. Fourth Game Log — `game_log_20260318_041407.txt`
+
+A fourth log confirmed that the fix for homing bullets and invisibility worked, but the user reported that **flashlight** and **force field** were still not being interrupted when entering jammer range.
+
+### Session summary
+
+- Captured: 2026-03-18, 04:14:07
+- Build: **Godot 4.3-stable, Windows pre-compiled exe** at `I:/Загрузки/godot exe/радио враг/Godot-Top-Down-Template.exe`
+- Level: `LabyrinthLevel`
+- Sessions tested: Flashlight, then Homing Bullets
+- RadioJammer spawned at: **(1100, 900)** with hp=2–3, radius=1000
+
+### Key evidence
+
+```
+04:15:22  [FlashlightEffect] Beam hit RadioJammer at distance 596    ← flashlight ON, player inside range
+04:15:23  [ActiveItemManager.Jammer] Periodic: dist=427.3            ← well inside 1000 px radius
+04:15:22  [Player] Hit blocked by invincibility mode (C#)            ← C# player confirmed
+(no [Player.Flashlight] Flashlight cancelled/turned off entry)       ← BUG: flashlight not cancelled
+
+04:15:30  [Player.Homing] Homing cancelled by Radio Jammer (Issue #1115)  ← homing: FIXED ✅
+```
+
+### Root cause
+
+The C# `HandleFlashlightInput` and `HandleForceFieldInput` methods had jammer blocking logic that only guarded new activations via early return, but **did not actively cancel** the effect when jammed. The GDScript equivalents already did this correctly (Issue #1036):
+
+- `_handle_flashlight_input()` (GDScript): calls `_flashlight_node.turn_off()` when jammed
+- `_handle_force_field_input()` (GDScript): calls `_force_field.deactivate()` when jammed
+
+The C# handlers only did `return` — they blocked starting, not stopping.
+
+### Fix applied to Player.cs (Issue #1115 extension)
+
+**`HandleFlashlightInput`** — moved jammer check to top of method, calls `turn_off()` when jammed:
+```csharp
+// Issue #1036 / #1115: Block active item use when jammed, and cancel if already on
+if (IsActiveItemJammedSilent())
+{
+    if (_flashlightHasScript)
+        _flashlightNode.Call("turn_off");
+    else if (_flashlightIsOn)
+    {
+        _flashlightIsOn = false;
+        if (_flashlightPointLight != null)
+        {
+            _flashlightPointLight.Visible = false;
+            _flashlightPointLight.Energy = 0.0f;
+        }
+    }
+    return;
+}
+```
+
+**`HandleForceFieldInput`** — added active cancellation when jammed:
+```csharp
+// Issue #1036 / #1115: Block and cancel force field if active when jammed
+if (IsActiveItemJammedSilent())
+{
+    bool isActiveJammed = (bool)_forceFieldEffect.Get("is_active");
+    if (isActiveJammed)
+    {
+        _forceFieldEffect.Call("deactivate");
+        LogToFile("[Player.ForceField] Force field cancelled by Radio Jammer (Issue #1115)");
+    }
+    return;
+}
+```
+
+---
+
+## 13. Conclusions
 
 ### Root Cause
 The original Issue #1036 implementation correctly blocked **new** activations while jammed, but did not add cancellation logic for **already-running** effects. Three active items (Homing Bullets, Invisibility Suit, Trajectory Glasses) were missing this check in **both** player implementations.
 
-**The project has two player implementations**: `scripts/characters/player.gd` (GDScript) and `Scripts/Characters/Player.cs` (C#). The runtime uses the C# implementation (confirmed by `(C#)` markers in game logs). The initial Issue #1115 fix was only applied to the GDScript file, leaving the C# implementation unchanged. This meant no compiled binary from this branch would have shown the bug fixed.
+Additionally, the C# implementation of `HandleFlashlightInput` and `HandleForceFieldInput` only blocked new activations via early return but did not actively turn off or deactivate the effect — unlike the GDScript equivalents which did so correctly (Issue #1036 had the right intent but the C# port was incomplete).
+
+**The project has two player implementations**: `scripts/characters/player.gd` (GDScript) and `Scripts/Characters/Player.cs` (C#). The runtime uses the C# implementation (confirmed by `(C#)` markers in game logs).
 
 ### Evidence
-All three game logs show the same pattern:
-1. TrajectoryGlasses (or other active item) activated outside jammer range — correct
-2. Player walked inside jammer range (< 1000 px from RadioJammer at (1100, 900))
-3. Effect continued running uninterrupted — bug
-4. No `(Issue #1115)` cancellation log line appears — confirming the fix was not present in the executed code path
+All four game logs show the progression of fixes:
+1. Logs 1–3: No cancellation for homing/invisibility/trajectory → fixed in C# after 3rd log
+2. Log 4: Homing cancellation confirmed working; flashlight not cancelled → fixed in C# after 4th log
 
-The third log (`game_log_20260318_033831.txt`) was the key diagnostic: it contains `(C#)` markers in player log entries, revealing the C# implementation is active.
+### Fix Summary
+| Handler | GDScript fix (Issue #1036/1115) | C# fix (Issue #1115 — when applied) |
+|---------|--------------------------------|--------------------------------------|
+| `HandleHomingBulletsInput` | ✅ cancels on jammer enter | ✅ fixed after 3rd log |
+| `HandleInvisibilitySuitInput` | ✅ cancels on jammer enter | ✅ fixed after 3rd log |
+| `HandleTrajectoryGlassesInput` | ✅ cancels on jammer enter | ✅ fixed after 3rd log |
+| `HandleFlashlightInput` | ✅ turns off on jammer enter | ✅ fixed after 4th log |
+| `HandleForceFieldInput` | ✅ deactivates on jammer enter | ✅ fixed after 4th log |
 
-### Fix
-Added per-frame `IsActiveItemJammedSilent()` guards in `HandleHomingBulletsInput`, `HandleInvisibilitySuitInput`, and `HandleTrajectoryGlassesInput` in `Scripts/Characters/Player.cs`. The same fix already existed in `scripts/characters/player.gd`. Also resized the JammerHUD prohibition sign from radius=14/width=4 to radius=10/width=3 to match Combat Disposition icon proportions.
+Also resized the JammerHUD prohibition sign from radius=14/width=4 to radius=10/width=3 to match Combat Disposition icon proportions.

@@ -4383,15 +4383,31 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Issue #1036 / #1115: Block active item use when jammed by a Radio Jammer enemy,
+        // and cancel the flashlight immediately if it is on when the player enters jammer range.
+        // Use silent check (hold action fires every frame — verbose would flood the log)
+        if (IsActiveItemJammedSilent())
+        {
+            if (_flashlightHasScript)
+            {
+                _flashlightNode.Call("turn_off");
+            }
+            else if (_flashlightIsOn)
+            {
+                _flashlightIsOn = false;
+                if (_flashlightPointLight != null)
+                {
+                    _flashlightPointLight.Visible = false;
+                    _flashlightPointLight.Energy = 0.0f;
+                }
+            }
+            if (Input.IsActionJustPressed("flashlight_toggle"))
+                LogToFile("[Player.Flashlight] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
         if (Input.IsActionPressed("flashlight_toggle"))
         {
-            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
-            // Use silent check (hold action fires every frame — verbose would flood the log)
-            if (IsActiveItemJammedSilent())
-            {
-                return;
-            }
-
             if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_on");
@@ -5993,15 +6009,25 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Issue #1036 / #1115: Block active item use when jammed by a Radio Jammer enemy,
+        // and deactivate the force field immediately if it is active when the player enters jammer range.
+        // Use silent check (hold action fires every frame — verbose would flood the log)
+        if (IsActiveItemJammedSilent())
+        {
+            bool isActiveJammed = (bool)_forceFieldEffect.Get("is_active");
+            if (isActiveJammed)
+            {
+                _forceFieldEffect.Call("deactivate");
+                LogToFile("[Player.ForceField] Force field cancelled by Radio Jammer (Issue #1115)");
+            }
+            if (Input.IsActionJustPressed("flashlight_toggle"))
+                LogToFile("[Player.ForceField] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        // Hold Space to activate, release to deactivate
         if (Input.IsActionPressed("flashlight_toggle"))
         {
-            // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
-            // Use silent check (hold action fires every frame — verbose would flood the log)
-            if (IsActiveItemJammedSilent())
-            {
-                return;
-            }
-
             bool isActive = (bool)_forceFieldEffect.Get("is_active");
             if (!isActive)
             {
