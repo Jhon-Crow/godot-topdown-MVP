@@ -161,6 +161,45 @@ var is_breaker_bullet: bool = false
 ## Set via BaseWeapon.SpawnBullet() → bullet.Call("set_is_drilling_bullet", true).
 var is_drilling_bullet: bool = false
 
+## Whether this is an RPG rocket (Issue #583).
+## When true, bullet explodes on any impact instead of ricocheting/penetrating.
+## Enables realistic RPG-7 acceleration and area-of-effect explosion damage.
+## MUST be @export so RpgRocket.tscn can set it to true (non-@export vars cannot be set from .tscn).
+@export var is_rpg_rocket: bool = false
+
+## RPG rocket: initial launch speed (pixels per second, like real RPG-7 initial charge).
+@export var rpg_speed_initial: float = 600.0
+
+## RPG rocket: cruise speed after acceleration phase (pixels per second).
+@export var rpg_speed_max: float = 1800.0
+
+## RPG rocket: distance over which rocket accelerates from initial to cruise speed (pixels).
+@export var rpg_accel_distance: float = 800.0
+
+## RPG rocket: explosion radius in pixels.
+@export var rpg_explosion_radius: float = 150.0
+
+## RPG rocket: number of damage hits applied to each entity in radius.
+@export var rpg_explosion_damage: int = 3
+
+## RPG rocket: seconds of spawn immunity (ignores all collisions, avoids immediate explosion).
+@export var rpg_spawn_immunity: float = 0.15
+
+## RPG rocket internal state: distance traveled so far.
+var _rpg_distance_traveled: float = 0.0
+
+## RPG rocket internal state: current speed (increases during acceleration phase).
+var _rpg_current_speed: float = 0.0
+
+## RPG rocket internal state: time since spawn (for spawn immunity).
+var _rpg_time_alive: float = 0.0
+
+## RPG rocket internal state: whether rocket has already exploded (prevent double-explosion).
+var _rpg_has_exploded: bool = false
+
+## RPG rocket internal state: position from the previous physics frame (for raycast hit detection).
+var _rpg_prev_position: Vector2 = Vector2.ZERO
+
 ## Whether this bullet penetrates through enemies (Issue #829).
 ## When true, the bullet deals damage to enemies but continues flying through them.
 ## Used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
@@ -241,6 +280,13 @@ func _ready() -> void:
 			FileLogger.info("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
 				"loaded" if _breaker_shrapnel_scene else "MISSING"))
 
+	# Initialize RPG rocket speed and raycast tracking position
+	if is_rpg_rocket:
+		_rpg_current_speed = rpg_speed_initial
+		_rpg_prev_position = global_position
+		FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f" % [
+			str(global_position), str(direction), rpg_speed_initial, rpg_speed_max])
+
 
 ## Calculates the viewport diagonal distance for post-ricochet lifetime.
 func _calculate_viewport_diagonal() -> void:
@@ -284,11 +330,43 @@ func _physics_process(delta: float) -> void:
 	if homing_enabled:
 		_apply_homing_steering(delta)
 
-	# Calculate movement this frame
-	var movement := direction * speed * delta
+	# RPG rocket: update spawn immunity timer
+	if is_rpg_rocket:
+		_rpg_time_alive += delta
+
+	# Calculate movement this frame (RPG uses accelerating speed, others use constant speed)
+	var current_speed: float = speed
+	if is_rpg_rocket:
+		# Smooth ease-in acceleration: speed_initial → speed_max over accel_distance
+		if _rpg_distance_traveled < rpg_accel_distance:
+			var t := _rpg_distance_traveled / rpg_accel_distance  # 0.0 → 1.0
+			_rpg_current_speed = lerpf(rpg_speed_initial, rpg_speed_max, t * t)
+		else:
+			_rpg_current_speed = rpg_speed_max
+		current_speed = _rpg_current_speed
+	var movement := direction * current_speed * delta
 
 	# Move in the set direction
 	position += movement
+
+	# Track distance for RPG acceleration curve and keep sprite oriented toward travel direction
+	if is_rpg_rocket:
+		_rpg_distance_traveled += movement.length()
+		rotation = direction.angle()  # Stay pointed in travel direction (direction set after _ready)
+		# Raycast-based collision: detect wall/body hits that body_entered may miss (Issue #583).
+		# Cast a ray from previous position to current position each frame as a reliable fallback.
+		if _rpg_time_alive >= rpg_spawn_immunity and not _rpg_has_exploded and _rpg_prev_position != Vector2.ZERO:
+			var space_state := get_world_2d().direct_space_state
+			var ray := PhysicsRayQueryParameters2D.create(_rpg_prev_position, global_position)
+			ray.collision_mask = 39  # same as rocket collision_mask: walls (4), enemies (2), player (1)
+			ray.exclude = [self]
+			var result := space_state.intersect_ray(ray)
+			if not result.is_empty():
+				FileLogger.info("[RpgRocket] Raycast impact on %s at %s after %.2fs dist=%.0fpx" % [
+					result.collider.name, str(result.position), _rpg_time_alive, _rpg_distance_traveled])
+				_rpg_explode()
+				return
+		_rpg_prev_position = global_position
 
 	# Track distance traveled since last ricochet (for viewport-based lifetime)
 	if _has_ricocheted:
@@ -351,6 +429,21 @@ func _update_trail() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	# RPG rocket: explode on any body after spawn immunity expires
+	if is_rpg_rocket:
+		if _rpg_has_exploded:
+			return
+		if _rpg_time_alive < rpg_spawn_immunity:
+			return  # Spawn immunity - ignore until clear of shooter
+		if shooter_id == body.get_instance_id():
+			return  # Never hit the shooter
+		if body.has_method("is_alive") and not body.is_alive():
+			return  # Pass through dead entities
+		FileLogger.info("[RpgRocket] Impact on %s (type: %s) after %.2fs dist=%.0fpx" % [
+			body.name, body.get_class(), _rpg_time_alive, _rpg_distance_traveled])
+		_rpg_explode()
+		return
+
 	# Check if this is the shooter - don't collide with own body
 	if shooter_id == body.get_instance_id():
 		return  # Pass through the shooter
@@ -455,6 +548,18 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
+	# RPG rocket: explode when hitting any hit-area (enemy/player HitArea)
+	if is_rpg_rocket:
+		if _rpg_has_exploded or _rpg_time_alive < rpg_spawn_immunity:
+			return
+		if area.has_method("on_hit"):
+			var parent: Node = area.get_parent()
+			if parent and shooter_id == parent.get_instance_id():
+				return  # Don't hit shooter
+			FileLogger.info("[RpgRocket] Hit area %s - exploding" % area.name)
+			_rpg_explode()
+		return
+
 	# Hit another area (like a target or hit detection area)
 	# Only destroy bullet if the area has on_hit method (actual hit targets)
 	# This allows bullets to pass through detection-only areas like ThreatSpheres
@@ -1754,3 +1859,102 @@ static func from_pool() -> Node:
 	if pool_manager and pool_manager.has_method("get_bullet"):
 		return pool_manager.get_bullet()
 	return null
+
+
+## RPG rocket explosion (Issue #583).
+## Called instead of normal bullet destruction when is_rpg_rocket = true.
+func _rpg_explode() -> void:
+	if _rpg_has_exploded:
+		return
+	_rpg_has_exploded = true
+
+	FileLogger.info("[RpgRocket] Exploded at pos=%s after %.2fs, dist=%.0fpx" % [
+		str(global_position), _rpg_time_alive, _rpg_distance_traveled])
+
+	# Stop exhaust particles
+	var exhaust: Node = get_node_or_null("ExhaustParticles")
+	if exhaust and exhaust.has_method("set"):
+		exhaust.set("emitting", false)
+
+	# Power Fantasy rocket explosion effect
+	var power_fantasy_manager: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+	if power_fantasy_manager and power_fantasy_manager.has_method("on_grenade_exploded"):
+		power_fantasy_manager.on_grenade_exploded()
+
+	# Explosion sound via AudioManager
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_offensive_grenade_explosion"):
+		audio_manager.play_offensive_grenade_explosion(global_position)
+
+	# Sound propagation
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		var viewport := get_viewport()
+		var vp_diagonal := 1469.0
+		if viewport:
+			var sz := viewport.get_visible_rect().size
+			vp_diagonal = sqrt(sz.x * sz.x + sz.y * sz.y)
+		sound_propagation.emit_sound(1, global_position, 1, self, vp_diagonal * 2.0)
+
+	# Damage all entities in explosion radius
+	_rpg_damage_in_radius()
+
+	# Spawn visual explosion effect
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
+		impact_manager.spawn_explosion_effect(global_position, rpg_explosion_radius)
+	else:
+		_rpg_simple_explosion_flash()
+
+	# Destroy after brief delay for visual effect
+	await get_tree().create_timer(0.1).timeout
+	_destroy()
+
+
+## RPG rocket: apply explosion damage to all entities in radius.
+func _rpg_damage_in_radius() -> void:
+	var space_state := get_world_2d().direct_space_state
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if enemy is Node2D and _rpg_in_radius(enemy.global_position) and _rpg_has_los(space_state, enemy.global_position):
+			_rpg_apply_damage(enemy)
+	var players := get_tree().get_nodes_in_group("player")
+	for player in players:
+		if player is Node2D and _rpg_in_radius(player.global_position) and _rpg_has_los(space_state, player.global_position):
+			_rpg_apply_damage(player)
+
+
+func _rpg_in_radius(pos: Vector2) -> bool:
+	return global_position.distance_to(pos) <= rpg_explosion_radius
+
+
+func _rpg_has_los(space_state: PhysicsDirectSpaceState2D, target_pos: Vector2) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(global_position, target_pos)
+	query.collision_mask = 4
+	query.exclude = [self]
+	return space_state.intersect_ray(query).is_empty()
+
+
+func _rpg_apply_damage(entity: Node2D) -> void:
+	var hit_dir := (entity.global_position - global_position).normalized()
+	if entity.has_method("on_hit_with_info"):
+		for i in range(rpg_explosion_damage):
+			entity.on_hit_with_info(hit_dir, null)
+	elif entity.has_method("on_hit"):
+		for i in range(rpg_explosion_damage):
+			entity.on_hit()
+
+
+## RPG rocket: simple orange explosion flash when ImpactEffectsManager unavailable.
+func _rpg_simple_explosion_flash() -> void:
+	if not is_inside_tree():
+		return
+	var flash := ColorRect.new()
+	flash.size = Vector2(rpg_explosion_radius * 2, rpg_explosion_radius * 2)
+	flash.position = global_position - Vector2(rpg_explosion_radius, rpg_explosion_radius)
+	flash.color = Color(1.0, 0.5, 0.1, 0.7)
+	flash.z_index = 100
+	get_tree().current_scene.add_child(flash)
+	var tween := get_tree().create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(flash.queue_free)
