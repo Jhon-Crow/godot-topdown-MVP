@@ -395,3 +395,38 @@ Level 6 was reached when player completed a level without kills (`had_kills=fals
 - `scripts/components/loudspeaker_progress.gd` — progression logic
 - `scripts/autoload/active_item_manager.gd` — persistent progress storage
 - `scripts/characters/player.gd` — activation and effect application
+
+---
+
+## Session 5 (2026-03-18): Bugs 14–15 Analysis
+
+### Logs analyzed
+- `game_log_20260318_065844.txt` — Full playthrough from Labyrinth → Building → Castle → Revolver → Beach/Docks/Factory/Decadence → Labyrinth2 (reaches Loudspeaker Level 6)
+- `game_log_20260318_073427.txt` — Speed run, reaches Level 7 area but victory message never shown
+
+### Bug 14 — Double-subtraction when pacifist dies (Enemy counter goes to -1)
+
+**Evidence from game_log_20260318_065844.txt:**
+Enemy6 (BuildingLevel) transitions to PACIFIST at 07:07:35 → `_on_enemy_became_pacifist()` decrements counter.
+Enemy6 is killed at 07:07:37 → `_on_enemy_died()` also decrements counter.
+Result: Enemy6 was counted twice — level counter goes negative, causing premature level completion.
+
+**Root cause:** Both `became_pacifist` signal and `died` signal were connected to counter-decrement handlers. Neither one disconnected the other.
+
+**Fix (commit TBD):** Changed `became_pacifist` connection to bind the enemy node. In `_on_enemy_became_pacifist(enemy)`, disconnect `died` from that enemy immediately, so death is no longer counted. Applied to all 10 level scripts.
+
+### Bug 15 — Level 6+ loudspeaker pacification always 0 enemies (90% chance, 0 results)
+
+**Evidence from game_log_20260318_073427.txt:**
+```
+[07:40:00] Effect applied: 0/14 enemies pacified  ← Effect chance: 90%
+[07:40:01] Effect applied: 0/14 enemies pacified
+... (70+ attempts, 0 pacified each time)
+```
+
+**Root cause:** `_apply_loudspeaker_effect()` in `player.gd` filtered enemies via `was_attacked_by_player()`, which returns `_hits_taken_in_encounter > 0 OR _in_alarm_mode`. The loudspeaker's own `_alert_all_enemies_loudspeaker()` call sets `_in_alarm_mode = true` on all enemies via `alert_from_loudspeaker()` → `_transition_to_pursuing()`. So every loudspeaker use immediately marks ALL enemies as "attacked", blocking the pacifism effect on all of them.
+
+**Fix (commit TBD):** Added `was_hit_by_player()` method to `enemy.gd` that checks only `_hits_taken_in_encounter > 0` (actual bullet hits). Player.gd now uses this method instead of `was_attacked_by_player()` for the loudspeaker filter.
+
+### Victory message status
+The player in log_073427 never killed the immune enemy (level 7 requires killing the immune enemy designated at level 6 start). Level 6 was completed multiple times but the immune enemy was never found/killed. The victory path (level 6 → kill immune enemy → level 7 → all pacifist + victory message) is implemented correctly in code; the player needs to locate and kill the single immune enemy.

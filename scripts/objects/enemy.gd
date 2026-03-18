@@ -2764,6 +2764,7 @@ func apply_pacifism(hc: float = 0.5) -> bool:
 	return true
 
 func was_attacked_by_player() -> bool: return _hits_taken_in_encounter > 0 or _in_alarm_mode
+func was_hit_by_player() -> bool: return _hits_taken_in_encounter > 0  ## Issue #959: hits only, ignores alarm mode (used by loudspeaker level 6+)
 func is_pacifist() -> bool: return _pacifist.is_pacifist if _pacifist else false
 func is_retaliating() -> bool: return _pacifist != null and _pacifist.is_retaliating()  ## True if pacifist is temporarily retaliating (#959)
 func is_immune_to_pacifism() -> bool: return _pacifist.is_immune if _pacifist else false
@@ -4860,7 +4861,6 @@ func _on_grenade_face_throw_direction(target_direction: Vector2) -> void:
 	_grenade_throw_facing_direction = target_direction; _is_facing_for_grenade_throw = true
 func _on_grenade_component_thrown(_grenade: Node, _target_position: Vector2) -> void:
 	_grenade_throw_facing_direction = Vector2.ZERO; _is_facing_for_grenade_throw = false
-
 ## Called when ally dies. Handles grenade awareness (#407) and death observation (#409).
 func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction: Vector2 = Vector2.ZERO) -> void:
 	if _grenade_component: _grenade_component.on_ally_died(ally_position, killer_is_player, _is_position_in_fov(ally_position) and _can_see_position(ally_position))

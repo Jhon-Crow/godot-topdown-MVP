@@ -427,7 +427,7 @@ func _setup_enemy_tracking() -> void:
 			_enemies.append(enemy)
 		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
 		if enemy.has_signal("became_pacifist"):
-			enemy.became_pacifist.connect(_on_enemy_became_pacifist)
+			enemy.became_pacifist.connect(_on_enemy_became_pacifist.bind(enemy))
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -518,8 +518,11 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy becomes a pacifist (Issue #959).
-func _on_enemy_became_pacifist() -> void:
+func _on_enemy_became_pacifist(enemy: Node) -> void:
 	_current_enemy_count -= 1
+	# Issue #959: Do not count pacifist again when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
 	_update_enemy_count_label()
 	print("[Labyrinth2Level] Enemy became pacifist - counting as eliminated")
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():

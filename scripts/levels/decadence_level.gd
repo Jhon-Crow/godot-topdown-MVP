@@ -404,7 +404,7 @@ func _setup_enemy_tracking() -> void:
 			child.hit.connect(_on_enemy_hit)
 		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
 		if child.has_signal("became_pacifist"):
-			child.became_pacifist.connect(_on_enemy_became_pacifist)
+			child.became_pacifist.connect(_on_enemy_became_pacifist.bind(child))
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
@@ -486,9 +486,12 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
 
 
-func _on_enemy_became_pacifist() -> void:
+func _on_enemy_became_pacifist(enemy: Node) -> void:
 	# Issue #959: Pacifists count as eliminated for level completion
 	_current_enemy_count -= 1
+	# Issue #959: Do not count pacifist again when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
 	_update_enemy_count_label()
 	_log_to_file("[DecadenceLevel] Enemy became pacifist - counting as eliminated")
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():

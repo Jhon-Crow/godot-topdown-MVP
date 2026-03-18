@@ -4147,8 +4147,11 @@ func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostili
 		if not enemy.has_method("is_pacifist") or enemy.is_pacifist():
 			continue  # Already pacifist
 
-		# Check if enemy was attacked by player (only unengaged enemies can be pacified)
-		if enemy.has_method("was_attacked_by_player") and enemy.was_attacked_by_player():
+		# Issue #959: Skip enemies who were actually shot/hit by the player.
+		# Note: was_attacked_by_player() also returns true for _in_alarm_mode (merely alerted),
+		# but the loudspeaker itself alerts all enemies, which would block level 6+ pacification.
+		# Use was_hit_by_player() which checks only actual hits (_hits_taken_in_encounter > 0).
+		if enemy.has_method("was_hit_by_player") and enemy.was_hit_by_player():
 			continue
 
 		var to_enemy: Vector2 = enemy.global_position - global_position
