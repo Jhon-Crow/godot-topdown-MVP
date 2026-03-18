@@ -208,3 +208,82 @@ From PR comment (2026-03-18T00:37:39Z) — enemy visually wedged in narrow corri
 ![enemy stuck in corridor](https://github.com/user-attachments/assets/d94cb45d-09d5-4344-b7d6-c8d4b61b5956)
 
 The enemy is between two parallel walls with barely enough space to move. With ±100–150 px offsets, both patrol waypoints may be within or very close to wall geometry, leaving the enemy oscillating at the corridor entrance.
+
+---
+
+## 9. Third Round — Wall-Rubbing Bug (Issue #1119 continued)
+
+### 9.1 New symptom — `game_log_20260318_041119.txt`
+
+After the Labyrinth2Level offset fix was applied, the player reported a new (but related) symptom: **"враг трётся об стену, а не патрулирует"** (enemy rubs against the wall rather than patrolling).
+
+**Screenshot from PR comment (2026-03-18T01:12:50Z):**
+
+![enemy rubbing against wall](https://github.com/user-attachments/assets/afee8ad1-5bb5-4ea9-8040-4c138e6b048e)
+
+The screenshot shows an enemy pressed diagonally against a wall corner, oscillating in place.
+
+### 9.2 Log evidence — Enemy4 and Enemy11 still stuck
+
+After the offset fix, continuous corner check logs resumed immediately after spawn in Labyrinth2Level:
+
+```
+[04:11:35] [ENEMY] [Enemy4] PATROL corner check: angle -90.0°
+[04:11:35] [ENEMY] [Enemy11] PATROL corner check: angle -90.0°
+...
+(Enemy11 logs angle 90.0° every ~0.5 seconds from 04:11:35 to 04:12:07 — 32 seconds straight)
+(Enemy4 logs varying angles 100°–175° at same rate)
+```
+
+Enemy11 at (1900, 1400) reports exactly `90.0°` hundreds of times in 32 seconds — the enemy is perfectly aligned with a corridor opening perpendicular to its patrol direction and cannot advance.
+
+### 9.3 Root Cause 3 — No stuck detection in PATROL state
+
+**The patrol offsets alone are insufficient when the corridor geometry prevents reaching the waypoint.**
+
+The existing code (`_process_patrol`) moves toward the target waypoint and applies `_apply_wall_avoidance()` to steer around nearby walls. However, in narrow corridors (< 200 px wide), the wall avoidance force can redirect the enemy sideways along the wall without making forward progress toward the waypoint. The enemy slides along the wall, never getting within the 5.0 px arrival threshold.
+
+Meanwhile `_detect_perpendicular_opening()` fires every 0.3 s (the `CORNER_CHECK_DURATION`), detecting the same open corridor to the side. This means:
+1. Enemy moves slowly sideways along a wall
+2. Every 0.3 s the enemy model rotates to "look at" the side opening
+3. The 0.3 s timer expires, the opening is immediately re-detected → timer resets
+4. **Result: enemy is permanently stuck in a corner-check oscillation loop with no forward progress**
+
+Other AI states already have stuck detection:
+- **PURSUING/FLANKING:** `_global_stuck_timer` / `GLOBAL_STUCK_MAX_TIME = 1.5 s` → transitions to SEARCHING
+- **FLANKING:** `_flank_stuck_timer` / `FLANK_STUCK_MAX_TIME = 2.0 s` → triggers reroute
+- **SEARCHING:** `_search_stuck_timer` / `SEARCH_STUCK_MAX_TIME = 2.0 s` → transitions to IDLE
+
+But **PATROL has no stuck detection**, which is why the bug survived the offset increase.
+
+### 9.4 Fix — Add stuck detection to `_process_patrol`
+
+Added to `scripts/objects/enemy.gd`:
+
+```gdscript
+# New variables (line ~183):
+var _patrol_stuck_timer: float = 0.0
+var _patrol_stuck_last_position: Vector2 = Vector2.ZERO
+const PATROL_STUCK_MAX_TIME: float = 1.5
+const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0
+
+# New logic in _process_patrol() (after the waiting-point block):
+var moved_distance := global_position.distance_to(_patrol_stuck_last_position)
+if moved_distance < PATROL_STUCK_DISTANCE_THRESHOLD:
+    _patrol_stuck_timer += delta
+    if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
+        _log_to_file("PATROL STUCK: pos=%s for %.1fs, skipping to next patrol point" % [...])
+        _patrol_stuck_timer = 0.0
+        _patrol_stuck_last_position = global_position
+        _is_waiting_at_patrol_point = true  # advance to next point after normal wait
+        velocity = Vector2.ZERO
+        return
+else:
+    _patrol_stuck_timer = 0.0
+    _patrol_stuck_last_position = global_position
+```
+
+**Behavior after fix:**
+- If the enemy doesn't move more than 20 px within 1.5 s, it "gives up" on the current waypoint and enters the normal wait state (advancing to the next point after `patrol_wait_time`)
+- The enemy resumes normal patrol after the wait instead of getting permanently stuck
+- Logging (`PATROL STUCK: ...`) makes future diagnosis easy

@@ -180,6 +180,10 @@ var _patrol_points: Array[Vector2] = []  ## Patrol state
 var _current_patrol_index: int = 0
 var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
+var _patrol_stuck_timer: float = 0.0  ## Issue #1119: Stuck detection for PATROL state
+var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## Issue #1119: Last pos for patrol stuck check
+const PATROL_STUCK_MAX_TIME: float = 1.5  ## Issue #1119: Skip patrol point after being stuck this long
+const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## Issue #1119: Min movement to consider not stuck
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -4063,8 +4067,25 @@ func _process_patrol(delta: float) -> void:
 
 	if distance < 5.0:
 		_is_waiting_at_patrol_point = true
+		_patrol_stuck_timer = 0.0
+		_patrol_stuck_last_position = global_position
 		velocity = Vector2.ZERO
 	else:
+		# Issue #1119: Detect when patrol enemy is stuck against a wall and skip to next point.
+		var moved_distance := global_position.distance_to(_patrol_stuck_last_position)
+		if moved_distance < PATROL_STUCK_DISTANCE_THRESHOLD:
+			_patrol_stuck_timer += delta
+			if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
+				_log_to_file("PATROL STUCK: pos=%s for %.1fs, skipping to next patrol point" % [global_position, _patrol_stuck_timer])
+				_patrol_stuck_timer = 0.0
+				_patrol_stuck_last_position = global_position
+				_is_waiting_at_patrol_point = true
+				velocity = Vector2.ZERO
+				return
+		else:
+			_patrol_stuck_timer = 0.0
+			_patrol_stuck_last_position = global_position
+
 		direction = _apply_wall_avoidance(direction)
 		velocity = direction * move_speed
 		rotation = direction.angle()
@@ -4367,6 +4388,8 @@ func _reset() -> void:
 	_current_patrol_index = 0
 	_is_waiting_at_patrol_point = false
 	_patrol_wait_timer = 0.0
+	_patrol_stuck_timer = 0.0
+	_patrol_stuck_last_position = Vector2.ZERO
 	_current_state = AIState.IDLE
 	_has_valid_cover = false
 	_under_fire = false

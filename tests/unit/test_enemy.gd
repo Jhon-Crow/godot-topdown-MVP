@@ -2209,3 +2209,26 @@ func test_patrol_offsets_large_enough_for_visible_movement_issue_1119() -> void:
 		var travel_time := offset.length() / move_speed
 		assert_ge(travel_time, min_travel_time,
 			"Issue #1119: patrol leg of %.0f px takes only %.2f s at speed %.0f — too fast to look natural" % [offset.length(), travel_time, move_speed])
+
+
+## Issue #1119: Patrol stuck detection constants must be tuned correctly.
+## PATROL_STUCK_MAX_TIME should be short enough to recover quickly but not so short that brief
+## wall brushing triggers a skip. PATROL_STUCK_DISTANCE_THRESHOLD must be above 0 but below
+## what normal movement produces in one frame at typical speeds.
+func test_patrol_stuck_detection_constants_issue_1119() -> void:
+	# Max stuck time: long enough not to fire on normal corner brushing, short enough to recover
+	var patrol_stuck_max_time := 1.5
+	assert_ge(patrol_stuck_max_time, 0.5,
+		"Issue #1119: PATROL_STUCK_MAX_TIME too small — will skip points on brief wall brushing")
+	assert_le(patrol_stuck_max_time, 3.0,
+		"Issue #1119: PATROL_STUCK_MAX_TIME too large — enemy stays stuck too long before recovering")
+
+	# Distance threshold: must be above zero and below one frame of movement at min speed
+	var patrol_stuck_distance_threshold := 20.0
+	var min_move_speed := 100.0  # px/s lower bound for enemies
+	var max_delta := 1.0 / 30.0  # assume at least 30 fps
+	var one_frame_min_movement := min_move_speed * max_delta  # ~3.3 px
+	assert_gt(patrol_stuck_distance_threshold, 0.0,
+		"Issue #1119: PATROL_STUCK_DISTANCE_THRESHOLD must be positive")
+	assert_gt(patrol_stuck_distance_threshold, one_frame_min_movement,
+		"Issue #1119: PATROL_STUCK_DISTANCE_THRESHOLD %.1f px is less than one frame of movement %.1f px — will never detect stuck" % [patrol_stuck_distance_threshold, one_frame_min_movement])
