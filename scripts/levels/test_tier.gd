@@ -579,7 +579,7 @@ func _on_enemy_died() -> void:
 	if GameManager:
 		GameManager.register_kill()
 
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated! Arena cleared!")
 		# Stop replay recording
 		var replay_manager: Node = _get_or_create_replay_manager()

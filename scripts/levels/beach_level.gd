@@ -511,7 +511,7 @@ func _on_enemy_died() -> void:
 	if GameManager:
 		GameManager.register_kill()
 
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		_level_cleared = true
 		call_deferred("_activate_exit_zone")
 

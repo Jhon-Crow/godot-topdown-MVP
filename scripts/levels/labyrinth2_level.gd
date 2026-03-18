@@ -511,7 +511,7 @@ func _on_enemy_died() -> void:
 	_update_enemy_count_label()
 	_trigger_saturation_effect()
 
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		_level_cleared = true
 		_activate_exit_zone()
 		print("[Labyrinth2Level] All enemies eliminated! Go to exit.")

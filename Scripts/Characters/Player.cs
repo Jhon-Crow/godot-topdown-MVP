@@ -6854,6 +6854,117 @@ public partial class Player : BaseCharacter
         bool usedThisLevelLog = (bool)_loudspeakerProgress.Get("used_this_level");
         bool allChargesUsedLog = (bool)_loudspeakerProgress.Get("all_charges_used_this_level");
         LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, level: {currentLevel}, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}, effect: {effectChancePct:F0}%, used_this_level: {usedThisLevelLog}, all_charges_used: {allChargesUsedLog}");
+
+        // Apply level start states for levels 6 and 7 (Issue #959)
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (shouldStartWithPacifists || isVictoryState)
+            CallDeferred(MethodName.ApplyLoudspeakerLevelStartState);
+    }
+
+    /// <summary>
+    /// Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
+    /// Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
+    /// Level 7: ALL enemies start as pacifists; show victory message.
+    /// Called deferred from InitLoudspeaker so all enemy nodes are ready.
+    /// </summary>
+    private void ApplyLoudspeakerLevelStartState()
+    {
+        if (_loudspeakerProgress == null)
+            return;
+
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+            return;
+
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (isVictoryState)
+        {
+            // Level 7: ALL enemies become pacifists
+            LogToFile("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!");
+            foreach (var enemy in enemies)
+            {
+                if (enemy is Node enemyNode && enemyNode.HasMethod("apply_pacifism") && enemyNode.HasMethod("is_alive"))
+                {
+                    bool isAlive = (bool)enemyNode.Call("is_alive");
+                    if (isAlive)
+                        enemyNode.Call("apply_pacifism", 0.0f);
+                }
+            }
+            ShowLoudspeakerVictoryMessage();
+            return;
+        }
+
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        if (!shouldStartWithPacifists)
+            return;
+
+        // Level 6: 50% enemies start as pacifists; designate 1 as immune
+        var aliveEnemies = new Godot.Collections.Array<Node>();
+        foreach (var enemy in enemies)
+        {
+            if (enemy is Node enemyNode && enemyNode.HasMethod("is_alive"))
+            {
+                bool isAlive = (bool)enemyNode.Call("is_alive");
+                if (isAlive)
+                    aliveEnemies.Add(enemyNode);
+            }
+        }
+
+        // Pick 1 random immune enemy first (before pacifying others)
+        bool hasImmuneEnemy = (bool)_loudspeakerProgress.Call("has_immune_enemy");
+        if (aliveEnemies.Count > 0 && hasImmuneEnemy)
+        {
+            int immuneIdx = GD.RandRange(0, aliveEnemies.Count - 1);
+            var immuneEnemy = aliveEnemies[immuneIdx];
+            if (immuneEnemy.HasMethod("set_immune_to_pacifism"))
+            {
+                immuneEnemy.Call("set_immune_to_pacifism", true);
+                var posStr = immuneEnemy is Node2D n2d ? n2d.GlobalPosition.ToString() : "?";
+                LogToFile($"[Player.Loudspeaker] Level 6: enemy at {posStr} is immune to pacifism");
+            }
+            aliveEnemies.RemoveAt(immuneIdx);
+        }
+
+        // Pacify 50% of remaining enemies
+        aliveEnemies.Shuffle();
+        int pacifyCount = (int)(aliveEnemies.Count * 0.5f);
+        int pacified = 0;
+        for (int i = 0; i < pacifyCount; i++)
+        {
+            var enemy = aliveEnemies[i];
+            if (enemy.HasMethod("apply_pacifism"))
+            {
+                enemy.Call("apply_pacifism", 0.0f);
+                pacified++;
+            }
+        }
+        LogToFile($"[Player.Loudspeaker] Level 6: {pacified}/{aliveEnemies.Count + 1} enemies start as pacifists");
+    }
+
+    /// <summary>
+    /// Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerVictoryMessage()
+    {
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerVictoryCanvas";
+        canvas.Layer = 100;
+        AddChild(canvas);
+
+        var label = new Label();
+        label.Text = "Все враги теперь пацифисты.\nВы победили без единого выстрела.\nСпасибо за игру!";
+        label.AddThemeFontSizeOverride("font_size", 36);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.SetAnchorsPreset(Control.LayoutPreset.Center);
+        label.SetAnchor(Side.Left, 0.0f);
+        label.SetAnchor(Side.Right, 1.0f);
+        label.SetAnchor(Side.Top, 0.3f);
+        label.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(label);
+
+        LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
     }
 
     /// <summary>
