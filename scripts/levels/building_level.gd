@@ -299,16 +299,26 @@ func _setup_weapon_hints() -> void:
 
 ## Setup warm ceiling lights in the centers of large rooms (Issue #1206).
 ## Adds PointLight2D nodes with warm yellow-orange color to make the rooms
-## look cozy and aesthetically pleasing. Each large room gets one ceiling light
-## placed at its geometric center.
+## look cozy and aesthetically pleasing.
+##
+## ## Light placement rules
+## 1. Default position: geometric center of the room (average of its bounding box).
+## 2. If a large obstacle (table, server rack, wall junction, etc.) sits at the
+##    geometric center, shift the light to the nearest open area — typically
+##    offset toward the side that has the most free floor space.
+## 3. If a wall junction or shadow-casting surface is close (< 30 px) to the
+##    light source, move the light inward until it is fully inside the open
+##    floor area so shadows don't block the cone.
+## 4. Prefer the upper half of a room when the lower half is crowded or when
+##    the room label ("OFFICE 2", etc.) already anchors the top edge visually.
 ##
 ## Room centers (derived from RoomLabel bounds in the scene):
-## - Conference Room: ~(1918, 340)
-## - Break Room:      ~(1918, 994)
-## - Server Room:     ~(2074, 1630)
-## - Main Hall:       ~(1200, 1724)
-## - Office 1:        ~(290, 384)
-## - Office 2:        ~(718, 856)
+## - Conference Room: ~(1918, 340)  — geometric center, no obstacles
+## - Break Room:      ~(1918, 994)  — geometric center, no obstacles
+## - Server Room:     ~(2200, 1638) — shifted right, away from right-wall junction
+## - Main Hall:       ~(1200, 1724) — geometric center, no obstacles
+## - Office 1:        ~(290, 384)   — geometric center, no obstacles
+## - Office 2:        ~(718, 780)   — shifted up from center (856) to upper half
 func _setup_room_warm_lights() -> void:
 	var environment := get_node_or_null("Environment")
 	if environment == null:
@@ -329,7 +339,9 @@ func _setup_room_warm_lights() -> void:
 		[Vector2(1200, 1724), 0.85, 4.5, "MainHall"],
 		# Smaller rooms — softer lights
 		[Vector2(290, 384),   0.7, 3.5, "Office1"],
-		[Vector2(718, 856),   0.7, 3.5, "Office2"],
+		# Office 2: shifted to upper half (y=780 instead of centre y=856)
+		# so the glow covers the label zone and the lower-half corridor approach.
+		[Vector2(718, 780),   0.7, 3.5, "Office2"],
 	]
 
 	for cfg in room_configs:
