@@ -384,6 +384,24 @@ text = "How often enemies perform raycast vision checks.\nLower Hz = fewer rayca
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="NavMeshVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Nav Mesh"
+autowrap_mode = 2
+
+[node name="NavMeshVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws the AI navigation mesh overlay.\nShows where enemies can walk and helps debug\nincorrectly built areas of the mesh."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
