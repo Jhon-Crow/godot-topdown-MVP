@@ -243,12 +243,11 @@ func _setup_navigation() -> void:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
 
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
 	print("Baking navigation mesh...")
 	nav_poly.clear()
 
-	# Re-add the outline for the walkable floor area (approximate oval)
-	# Using a polygon that roughly follows the castle oval shape
+	# Walkable area outline (approximate oval matching the castle shape)
+	# Walls (collision layer 4) are carved out during bake — Issue #1188
 	var floor_outline: PackedVector2Array = PackedVector2Array([
 		Vector2(500, 1280),    # Left edge
 		Vector2(600, 800),
@@ -269,10 +268,9 @@ func _setup_navigation() -> void:
 	])
 	nav_poly.add_outline(floor_outline)
 
-	# Use NavigationServer2D to bake from source geometry
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	nav_region.bake_navigation_polygon(false)
 
 	print("Navigation mesh baked successfully")
 

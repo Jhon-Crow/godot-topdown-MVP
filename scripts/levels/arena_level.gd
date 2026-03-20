@@ -806,6 +806,7 @@ func _setup_navigation() -> void:
 	nav_poly.clear()
 
 	# Arena playable area: 128 to 1792 (x), 128 to 952 (y).
+	# Walls (collision layer 4) are carved out during bake — Issue #1188
 	var floor_outline: PackedVector2Array = PackedVector2Array([
 		Vector2(128, 128),
 		Vector2(1792, 128),
@@ -814,9 +815,9 @@ func _setup_navigation() -> void:
 	])
 	nav_poly.add_outline(floor_outline)
 
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	nav_region.bake_navigation_polygon(false)
 	print("[ArenaLevel] Navigation mesh baked")
 
 

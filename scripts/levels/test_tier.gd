@@ -202,7 +202,7 @@ func _on_combo_changed(combo: int, points: int) -> void:
 
 
 ## Setup the navigation mesh for enemy pathfinding.
-## Bakes the NavigationPolygon using physics collision layer 4 (walls).
+## Bakes the NavigationPolygon using physics collision layer 4 (walls) — Issue #1188.
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -214,13 +214,10 @@ func _setup_navigation() -> void:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
 
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
 	print("Baking navigation mesh...")
 	nav_poly.clear()
 
-	# Re-add the outline for the walkable floor area
+	# Walkable area outline — walls (collision layer 4) are carved out during bake
 	var floor_outline: PackedVector2Array = PackedVector2Array([
 		Vector2(64, 64),
 		Vector2(4064, 64),
@@ -229,10 +226,9 @@ func _setup_navigation() -> void:
 	])
 	nav_poly.add_outline(floor_outline)
 
-	# Use NavigationServer2D to bake from source geometry
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	nav_region.bake_navigation_polygon(false)
 
 	print("Navigation mesh baked successfully")
 

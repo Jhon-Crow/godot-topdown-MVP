@@ -661,6 +661,22 @@ func _setup_navigation() -> void:
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
 
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		return
+
+	nav_poly.clear()
+	# Walkable area outline for the room — walls (collision layer 4) carved out during bake
+	nav_poly.add_outline(PackedVector2Array([
+		Vector2(24, 24),
+		Vector2(ROOM_WIDTH - 24, 24),
+		Vector2(ROOM_WIDTH - 24, ROOM_HEIGHT - 24),
+		Vector2(24, ROOM_HEIGHT - 24),
+	]))
+	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	nav_region.bake_navigation_polygon(false)
+
 
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")

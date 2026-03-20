@@ -409,8 +409,9 @@ func _setup_navigation() -> void:
 		return
 
 	print("Baking navigation mesh...")
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, NavigationMeshSourceGeometryData2D.new())
-	nav_region.bake_navigation_polygon()
+	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 

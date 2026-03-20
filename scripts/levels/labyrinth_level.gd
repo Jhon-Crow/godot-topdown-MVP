@@ -571,6 +571,7 @@ func _setup_navigation() -> void:
 	print("Baking navigation mesh...")
 	nav_poly.clear()
 
+	# Walkable area outline — walls (collision layer 4) are carved out during bake
 	var floor_outline: PackedVector2Array = PackedVector2Array([
 		Vector2(48, 48),
 		Vector2(1968, 48),
@@ -579,9 +580,9 @@ func _setup_navigation() -> void:
 	])
 	nav_poly.add_outline(floor_outline)
 
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	nav_region.bake_navigation_polygon(false)
 
 	print("Navigation mesh baked successfully")
 
