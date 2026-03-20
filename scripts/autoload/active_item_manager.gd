@@ -36,9 +36,10 @@ var current_active_item: int = ActiveItemType.NONE
 ## Unlocked active items tracking.
 ## NONE is always unlocked (it's not a real item).
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
-## INVISIBILITY_SUIT (Beach S + Building S), and HOMING_BULLETS
-## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S)
-## have unlock conditions (Issue #894, Issue #1000).
+## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
+## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
+## and LASER_SIGHT (1000 kills without laser sight equipped)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1196).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -49,7 +50,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
-	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LASER_SIGHT: false,         # Condition: 1000 kills without laser sight equipped (Issue #1196)
 	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)

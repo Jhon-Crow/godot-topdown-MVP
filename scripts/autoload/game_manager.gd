@@ -7,6 +7,10 @@ extends Node
 ## Total enemies killed in current session.
 var kills: int = 0
 
+## Cumulative kills made without the Laser Sight active item equipped.
+## Persists across sessions — used as the unlock condition for Laser Sight (Issue #1196).
+var kills_without_laser_sight: int = 0
+
 ## Total shots fired in current session.
 var shots_fired: int = 0
 
@@ -64,6 +68,10 @@ const WEAPON_SCENES: Dictionary = {
 
 ## Signal emitted when an enemy is killed (for screen effects).
 signal enemy_killed
+
+## Signal emitted when kills_without_laser_sight changes (for kill-based unlock checks).
+## Issue #1196.
+signal kills_without_laser_sight_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -226,10 +234,22 @@ func register_hit() -> void:
 
 
 ## Registers an enemy kill.
+## Also increments kills_without_laser_sight when the Laser Sight is not equipped (Issue #1196).
 func register_kill() -> void:
 	kills += 1
 	enemy_killed.emit()
 	stats_updated.emit()
+	# Track kills made without the Laser Sight active item (used for its unlock condition).
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager and active_item_manager.has_method("has_laser_sight"):
+		if not active_item_manager.has_laser_sight():
+			kills_without_laser_sight += 1
+			kills_without_laser_sight_updated.emit(kills_without_laser_sight)
+			_log_to_file("kills_without_laser_sight: %d" % kills_without_laser_sight)
+	elif active_item_manager == null:
+		# Fallback when ActiveItemManager not yet available (e.g. early startup tests).
+		kills_without_laser_sight += 1
+		kills_without_laser_sight_updated.emit(kills_without_laser_sight)
 
 
 ## Returns the current accuracy as a percentage (0-100).
