@@ -303,18 +303,41 @@ func _sample_gradient(t: float) -> Color:
 	return colors[segment_index].lerp(colors[segment_index + 1], segment_t)
 
 
-## Setup tooltip and label behaviour for a settings row container (Issue #1200).
-## Sets a short name tooltip on the container and all its children so it appears
-## when hovering anywhere over the row. Also makes the container act as a label:
-## clicking anywhere on the row triggers the first interactive control inside
-## (CheckButton, Button, or OptionButton).
-func _setup_row_hover(container: Control, tooltip: String) -> void:
+## Hover highlight colour applied to a settings row when the cursor is over it.
+## Matches the brightness boost used by Button's hover state in the neon theme.
+const ROW_HOVER_MODULATE: Color = Color(1.35, 1.35, 1.35, 1.0)
+
+## Setup tooltip, hover highlight, and label behaviour for a settings row (Issue #1200).
+## @param container   The HBoxContainer that holds the label + interactive control.
+## @param tooltip     Short name shown in the tooltip and applied to all child nodes.
+## @param description Optional sibling Label with the long description text.
+##                    When provided it receives the same tooltip, hover highlight,
+##                    and click-forwarding as the main container.
+func _setup_row_hover(container: Control, tooltip: String,
+		description: Control = null) -> void:
 	container.tooltip_text = tooltip
 	container.mouse_filter = Control.MOUSE_FILTER_STOP
 	for child in container.get_children():
 		if child is Control:
 			child.tooltip_text = tooltip
+	container.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+	container.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
 	container.gui_input.connect(_on_row_gui_input.bind(container))
+	if description != null:
+		description.tooltip_text = tooltip
+		description.mouse_filter = Control.MOUSE_FILTER_STOP
+		description.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+		description.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+		description.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Apply or remove hover highlight on the row container and its description label.
+func _on_row_hovered(container: Control, description: Control,
+		hovered: bool) -> void:
+	var tint: Color = ROW_HOVER_MODULATE if hovered else Color.WHITE
+	container.self_modulate = tint
+	if description != null:
+		description.self_modulate = tint
 
 
 ## Forward a left-click on the row container to the first interactive control inside.

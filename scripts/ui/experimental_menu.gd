@@ -47,42 +47,58 @@ var enemies_table_menu: CanvasLayer = null
 
 
 func _ready() -> void:
-	# Setup tooltips and label behaviour for settings rows (Issue #1200)
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FOVContainer,
-			"Disable FOV Limitation")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer,
-			"Complex Grenade Throwing")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPredictionContainer,
-			"AI Player Prediction")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer,
+	# Setup tooltips, hover highlight, and label behaviour for settings rows (Issue #1200)
+	var _vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_setup_row_hover(_vbox.get_node("FOVContainer"),
+			"Disable FOV Limitation",
+			_vbox.get_node("FOVDescription"))
+	_setup_row_hover(_vbox.get_node("ComplexGrenadeContainer"),
+			"Complex Grenade Throwing",
+			_vbox.get_node("ComplexGrenadeDescription"))
+	_setup_row_hover(_vbox.get_node("AIPredictionContainer"),
+			"AI Player Prediction",
+			_vbox.get_node("AIPredictionDescription"))
+	_setup_row_hover(_vbox.get_node("DebugModeContainer"),
 			"Debug Mode")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer,
+	_setup_row_hover(_vbox.get_node("InvincibilityContainer"),
 			"Invincibility")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer,
-			"Enable Replay Viewing")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer,
-			"Enable Log Recording")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer,
-			"Enemy Flashlight Blinding")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer,
-			"Show FPS Counter")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer,
-			"Log FPS Drops")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer,
-			"Unlock All Weapons")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer,
-			"Unlock All Maps")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer,
-			"Global Stuck Max Time")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer,
-			"Show Nav Mesh")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer,
-			"Delete Saves")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer,
-			"View Unlock Table")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer,
-			"View Enemies Table")
-	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer,
+	_setup_row_hover(_vbox.get_node("ReplayContainer"),
+			"Enable Replay Viewing",
+			_vbox.get_node("ReplayDescription"))
+	_setup_row_hover(_vbox.get_node("LoggingContainer"),
+			"Enable Log Recording",
+			_vbox.get_node("LoggingDescription"))
+	_setup_row_hover(_vbox.get_node("EnemyFlashlightBlindingContainer"),
+			"Enemy Flashlight Blinding",
+			_vbox.get_node("EnemyFlashlightBlindingDescription"))
+	_setup_row_hover(_vbox.get_node("FpsCounterContainer"),
+			"Show FPS Counter",
+			_vbox.get_node("FpsCounterDescription"))
+	_setup_row_hover(_vbox.get_node("FpsDropLoggingContainer"),
+			"Log FPS Drops",
+			_vbox.get_node("FpsDropLoggingDescription"))
+	_setup_row_hover(_vbox.get_node("AllWeaponsUnlockedContainer"),
+			"Unlock All Weapons",
+			_vbox.get_node("AllWeaponsUnlockedDescription"))
+	_setup_row_hover(_vbox.get_node("AllMapsUnlockedContainer"),
+			"Unlock All Maps",
+			_vbox.get_node("AllMapsUnlockedDescription"))
+	_setup_row_hover(_vbox.get_node("GlobalStuckMaxTimeContainer"),
+			"Global Stuck Max Time",
+			_vbox.get_node("GlobalStuckMaxTimeDescription"))
+	_setup_row_hover(_vbox.get_node("NavMeshVisibleContainer"),
+			"Show Nav Mesh",
+			_vbox.get_node("NavMeshVisibleDescription"))
+	_setup_row_hover(_vbox.get_node("DeleteSavesContainer"),
+			"Delete Saves",
+			_vbox.get_node("DeleteSavesDescription"))
+	_setup_row_hover(_vbox.get_node("UnlockTableContainer"),
+			"View Unlock Table",
+			_vbox.get_node("UnlockTableDescription"))
+	_setup_row_hover(_vbox.get_node("EnemiesTableContainer"),
+			"View Enemies Table",
+			_vbox.get_node("EnemiesTableDescription"))
+	_setup_row_hover(_vbox.get_node("EnemySpawnerContainer"),
 			"Enemy Spawner")
 
 	# Connect button signals
@@ -463,18 +479,41 @@ func _log(message: String) -> void:
 		print("[ExperimentalMenu] " + message)
 
 
-## Setup tooltip and label behaviour for a settings row container (Issue #1200).
-## Sets a short name tooltip on the container and all its children so it appears
-## when hovering anywhere over the row. Also makes the container act as a label:
-## clicking anywhere on the row triggers the first interactive control inside
-## (CheckButton, Button, or OptionButton).
-func _setup_row_hover(container: Control, tooltip: String) -> void:
+## Hover highlight colour applied to a settings row when the cursor is over it.
+## Matches the brightness boost used by Button's hover state in the neon theme.
+const ROW_HOVER_MODULATE: Color = Color(1.35, 1.35, 1.35, 1.0)
+
+## Setup tooltip, hover highlight, and label behaviour for a settings row (Issue #1200).
+## @param container   The HBoxContainer that holds the label + interactive control.
+## @param tooltip     Short name shown in the tooltip and applied to all child nodes.
+## @param description Optional sibling Label with the long description text.
+##                    When provided it receives the same tooltip, hover highlight,
+##                    and click-forwarding as the main container.
+func _setup_row_hover(container: Control, tooltip: String,
+		description: Control = null) -> void:
 	container.tooltip_text = tooltip
 	container.mouse_filter = Control.MOUSE_FILTER_STOP
 	for child in container.get_children():
 		if child is Control:
 			child.tooltip_text = tooltip
+	container.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+	container.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
 	container.gui_input.connect(_on_row_gui_input.bind(container))
+	if description != null:
+		description.tooltip_text = tooltip
+		description.mouse_filter = Control.MOUSE_FILTER_STOP
+		description.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+		description.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+		description.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Apply or remove hover highlight on the row container and its description label.
+func _on_row_hovered(container: Control, description: Control,
+		hovered: bool) -> void:
+	var tint: Color = ROW_HOVER_MODULATE if hovered else Color.WHITE
+	container.self_modulate = tint
+	if description != null:
+		description.self_modulate = tint
 
 
 ## Forward a left-click on the row container to the first interactive control inside.
