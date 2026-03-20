@@ -364,13 +364,10 @@ var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
-## [#1161] Sniper bolt-action cycle state/timer/delays (4-step sequence matching player SniperRifle.cs).
-var _is_bolt_cycling: bool = false
-var _bolt_cycle_timer: float = 0.0
-var _bolt_cycle_step: int = 0  ## Current bolt-action step (0=not cycling, 1-4=in progress). [#1177]
+## [#1177] Sniper bolt-action 4-step cycle state (matching player SniperRifle.cs).
+var _is_bolt_cycling: bool = false; var _bolt_cycle_timer: float = 0.0; var _bolt_cycle_step: int = 0
 const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## Legacy: kept for compatibility.
-## Delays (seconds) before each of the 4 bolt steps fires (matched to audio cadence). [#1177]
-const SNIPER_BOLT_STEP_DELAYS: Array = [0.3, 0.5, 0.4, 0.3]
+const SNIPER_BOLT_STEP_DELAYS: Array = [0.3, 0.5, 0.4, 0.3]  ## Delays (s) for each of the 4 bolt steps. [#1177]
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -782,10 +779,8 @@ func _physics_process(delta: float) -> void:
 		if _bolt_cycle_timer >= step_delay:
 			_bolt_cycle_timer = 0.0
 			var audio: Node = get_node_or_null("/root/AudioManager")
-			if audio and audio.has_method("play_asvk_bolt_step"):
-				audio.play_asvk_bolt_step(_bolt_cycle_step)  # [#1177] Play current bolt step sound
-			if _bolt_cycle_step >= 4:
-				_is_bolt_cycling = false; _bolt_cycle_step = 0  # Cycle complete
+			if audio and audio.has_method("play_asvk_bolt_step"): audio.play_asvk_bolt_step(_bolt_cycle_step)  # [#1177]
+			if _bolt_cycle_step >= 4: _is_bolt_cycling = false; _bolt_cycle_step = 0  # Cycle complete
 			else: _bolt_cycle_step += 1  # Advance to next step
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	_update_reload(delta)
