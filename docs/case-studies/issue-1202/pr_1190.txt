@@ -1,0 +1,72 @@
+title:	fix(#1186): fix AI state disabling, add IDLE toggle, move Optimization into Performance
+state:	MERGED
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	1190
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1190
+additions:	2328
+deletions:	87
+auto-merge:	disabled
+--
+## Summary
+
+Addresses [issue #1186](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1186) and feedback from PR review.
+
+### Changes in this update
+
+1. **Fixed: AI state disabling was not working**
+   - Root cause: `filter_ai_state()` was applied once per frame *after* state transitions had already run, so enemies still called `_transition_to_combat()` (logged as \"IDLE→COMBAT\") before the filter reverted them back. The filter was cosmetic only.
+   - Fix: Each `_transition_to_X()` function now checks `PerformanceSettings` **at entry** and redirects to IDLE (or SEARCHING) if that state is disabled. Enemies can no longer enter a disabled state at all.
+
+2. **New: IDLE state toggle**
+   - When IDLE is disabled, enemies are redirected to SEARCHING instead of standing still.
+   - Useful for testing optimization *under load* — forces all enemies into active search behavior.
+
+3. **Removed: \"Optimization\" menu from Settings**
+   - The single setting it contained (Wall Hit Particles from #1145) is now in the **Performance** menu alongside other visual toggles.
+   - Reduces menu clutter: one fewer top-level Settings entry.
+
+### Performance menu now includes
+
+#### Subsystem Toggles
+| Toggle | Controls |
+|---|---|
+| **Particle Effects** | GPU particle effects (dust, blood spray, sparks, muzzle flash) |
+| **Blood Decals** | Sprite2D blood stains after hits |
+| **Screen Shake** | Camera recoil on weapon fire |
+| **Explosion/Flashbang Lights** | PointLight2D flashes (known GPU bottleneck) |
+| **Wall Hit Particles** | Dust when bullets hit walls (moved from Optimization) |
+| **Enemy AI** | AI physics processing for all enemies |
+
+#### AI State Toggles (10 states)
+| State | Disabled behavior |
+|---|---|
+| **IDLE** | Enemies redirect to SEARCHING (stay active for load testing) |
+| **COMBAT** | Enemies stay in IDLE instead of engaging |
+| **SEEKING_COVER** | Enemies stay in IDLE instead of finding cover |
+| **IN_COVER** | Enemies stay in IDLE instead of waiting in cover |
+| **FLANKING** | Enemies stay in IDLE instead of flanking |
+| **SUPPRESSED** | Enemies stay in IDLE instead of pinning down |
+| **RETREATING** | Enemies stay in IDLE instead of falling back |
+| **PURSUING** | Enemies stay in IDLE instead of advancing |
+| **ASSAULT** | Enemies stay in IDLE instead of coordinated rush |
+| **SEARCHING** | Enemies stay in IDLE instead of hunting |
+
+All defaults are ON — no change to default gameplay.  
+Settings persist to `user://performance_settings.cfg`.
+
+## Test plan
+- [ ] Settings → no \"Optimization\" button (removed)
+- [ ] Settings → Performance → shows Wall Hit Particles toggle and all AI state toggles (10 states including IDLE)
+- [ ] Toggle **AI COMBAT** OFF → enemies detect player but never enter COMBAT state (no more IDLE→COMBAT log)
+- [ ] Toggle **AI IDLE** OFF → enemies are always searching/active, never patrol idle
+- [ ] Toggle **Wall Hit Particles** OFF → no dust when shooting walls
+- [ ] All toggles persist across game restarts
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Fixes Jhon-Crow/godot-topdown-MVP#1186
