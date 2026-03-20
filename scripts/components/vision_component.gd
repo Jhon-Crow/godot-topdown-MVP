@@ -4,6 +4,10 @@ extends Node
 ##
 ## Handles checking if targets are visible, calculating visibility ratios,
 ## and managing detection state.
+##
+## Issue #1189: Added vision_check_interval to throttle raycast frequency.
+## By default, vision is checked at most every 0.05s (20 Hz) instead of
+## every physics frame (60 Hz), reducing raycasts by ~66% with multiple enemies.
 
 ## Detection range for spotting targets.
 ## Set to 0 or negative for unlimited range (line-of-sight only).
@@ -17,6 +21,16 @@ extends Node
 
 ## Minimum visibility ratio required for lead prediction.
 @export var lead_prediction_visibility_threshold: float = 0.6
+
+## How often (in seconds) to perform a full vision check (raycasts).
+## 0.0 = check every physics frame (legacy behavior, highest CPU cost).
+## 0.05 = check at 20 Hz (default, reduces raycasts ~66% vs 60 Hz physics).
+## 0.1 = check at 10 Hz (aggressive, good for low-end hardware).
+## Controlled via ExperimentalSettings.vision_check_interval_seconds.
+var vision_check_interval: float = 0.05
+
+## Accumulated time since the last vision check.
+var _vision_check_timer: float = 0.0
 
 ## Reference to the RayCast2D for line-of-sight.
 var _raycast: RayCast2D = null
@@ -52,6 +66,12 @@ signal target_detected
 func _ready() -> void:
 	_parent = get_parent() as Node2D
 	_find_raycast()
+	# Issue #1189: Read vision check interval from ExperimentalSettings if available.
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("get_vision_check_interval_seconds"):
+		vision_check_interval = experimental_settings.get_vision_check_interval_seconds()
+	# Stagger initial timer to distribute raycasts across enemies.
+	_vision_check_timer = randf_range(0.0, vision_check_interval)
 
 
 ## Set the raycast to use for line-of-sight checks.
@@ -71,10 +91,24 @@ func set_target(target: Node2D) -> void:
 
 
 ## Check visibility of the current target.
+## Issue #1189: Throttled by vision_check_interval — skips the expensive raycast work
+## on frames where the interval has not elapsed yet. The last known visibility state
+## is preserved between checks to keep AI behaviour consistent.
 func check_visibility() -> void:
 	if not _parent or not _target or not _raycast:
 		_can_see_target = false
 		return
+
+	# Issue #1189: Accumulate elapsed time and skip full check until interval expires.
+	var delta := get_physics_process_delta_time()
+	_vision_check_timer += delta
+	if vision_check_interval > 0.0 and _vision_check_timer < vision_check_interval:
+		# Interval not yet elapsed — update continuous visibility timer if target
+		# was already visible, but skip the expensive raycast.
+		if _can_see_target:
+			_continuous_visibility_timer += delta
+		return
+	_vision_check_timer = 0.0
 
 	var was_visible := _can_see_target
 
@@ -92,7 +126,7 @@ func check_visibility() -> void:
 	_can_see_target = _check_line_of_sight(_target.global_position)
 
 	if _can_see_target:
-		_continuous_visibility_timer += get_physics_process_delta_time()
+		_continuous_visibility_timer += vision_check_interval if vision_check_interval > 0.0 else delta
 		_target_visibility_ratio = _calculate_visibility_ratio()
 
 		if not was_visible:

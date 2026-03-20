@@ -23,6 +23,8 @@ signal back_pressed
 @onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
 @onready var global_stuck_max_time_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeSlider
 @onready var global_stuck_max_time_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeValueLabel
+@onready var vision_check_interval_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VisionCheckIntervalContainer/VisionCheckIntervalSlider
+@onready var vision_check_interval_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VisionCheckIntervalContainer/VisionCheckIntervalValueLabel
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
 @onready var enemies_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer/EnemiesTableButton
@@ -60,6 +62,7 @@ func _ready() -> void:
 	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
 	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
 	global_stuck_max_time_slider.value_changed.connect(_on_global_stuck_max_time_changed)
+	vision_check_interval_slider.value_changed.connect(_on_vision_check_interval_changed)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
@@ -106,6 +109,17 @@ func _update_ui() -> void:
 	global_stuck_max_time_slider.value = stuck_time
 	global_stuck_max_time_slider.set_block_signals(false)
 	global_stuck_max_time_value_label.text = "%ds" % int(stuck_time)
+
+	# Update vision check interval slider (Issue #1189)
+	if experimental_settings.has_method("get_vision_check_interval_seconds"):
+		var vision_interval: float = experimental_settings.get_vision_check_interval_seconds()
+		vision_check_interval_slider.set_block_signals(true)
+		vision_check_interval_slider.value = vision_interval
+		vision_check_interval_slider.set_block_signals(false)
+		if vision_interval <= 0.0:
+			vision_check_interval_value_label.text = "every frame"
+		else:
+			vision_check_interval_value_label.text = "%.0f Hz" % (1.0 / vision_interval)
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -242,6 +256,16 @@ func _on_global_stuck_max_time_changed(value: float) -> void:
 	if experimental_settings:
 		experimental_settings.set_global_stuck_max_time(value)
 	global_stuck_max_time_value_label.text = "%ds" % int(value)
+
+
+func _on_vision_check_interval_changed(value: float) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("set_vision_check_interval_seconds"):
+		experimental_settings.set_vision_check_interval_seconds(value)
+	if value <= 0.0:
+		vision_check_interval_value_label.text = "every frame"
+	else:
+		vision_check_interval_value_label.text = "%.0f Hz" % (1.0 / value)
 
 
 func _on_delete_saves_pressed() -> void:

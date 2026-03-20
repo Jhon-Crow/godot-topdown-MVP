@@ -86,6 +86,14 @@ var selected_enemy_type_index: int = 0
 ## Higher values let enemies navigate longer without giving up pursuit.
 var global_stuck_max_time: float = 20.0
 
+## Vision raycast check interval in seconds (Issue #1189).
+## How often each enemy performs a full line-of-sight check (raycasts).
+## Lower = more accurate vision but higher CPU cost.
+## 0.0 = check every physics frame (legacy, highest CPU cost).
+## 0.05 = check 20 times per second (default, good balance).
+## 0.1 = check 10 times per second (aggressive throttle for low-end hardware).
+var vision_check_interval_seconds: float = 0.05
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -97,7 +105,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Vision check interval: %.3fs" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, vision_check_interval_seconds])
 
 
 ## Set FOV enabled/disabled.
@@ -313,6 +321,20 @@ func get_global_stuck_max_time() -> float:
 	return global_stuck_max_time
 
 
+## Set vision raycast check interval in seconds (Issue #1189).
+func set_vision_check_interval_seconds(value: float) -> void:
+	if vision_check_interval_seconds != value:
+		vision_check_interval_seconds = value
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Vision check interval set to %.3fs" % value)
+
+
+## Get vision raycast check interval in seconds (Issue #1189).
+func get_vision_check_interval_seconds() -> float:
+	return vision_check_interval_seconds
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -331,6 +353,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "all_maps_unlocked", all_maps_unlocked)
 	config.set_value("experimental", "selected_enemy_type_index", selected_enemy_type_index)
 	config.set_value("experimental", "global_stuck_max_time", global_stuck_max_time)
+	config.set_value("experimental", "vision_check_interval_seconds", vision_check_interval_seconds)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -356,6 +379,7 @@ func _load_settings() -> void:
 		all_maps_unlocked = config.get_value("experimental", "all_maps_unlocked", false)
 		selected_enemy_type_index = config.get_value("experimental", "selected_enemy_type_index", 0)
 		global_stuck_max_time = config.get_value("experimental", "global_stuck_max_time", 20.0)
+		vision_check_interval_seconds = config.get_value("experimental", "vision_check_interval_seconds", 0.05)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -373,6 +397,7 @@ func _load_settings() -> void:
 		all_maps_unlocked = false
 		selected_enemy_type_index = 0
 		global_stuck_max_time = 20.0
+		vision_check_interval_seconds = 0.05
 
 
 ## Log a message to the file logger if available.

@@ -146,6 +146,16 @@ project/assembly_name="GodotTopDownTemplate"
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
+[physics]
+
+; Issue #1189: Run 2D physics on a separate thread to free the main thread for rendering.
+; This moves all _physics_process() calls (enemy AI, raycasts, pathfinding) off the main
+; thread, allowing the CPU to work on physics and rendering concurrently.
+2d/run_on_separate_thread=true
+; Issue #1189: Enable physics interpolation to eliminate visual jitter between physics ticks.
+; Objects' visual positions are smoothly interpolated between physics frames.
+common/physics_interpolation=true
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

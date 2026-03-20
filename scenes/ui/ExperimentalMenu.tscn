@@ -356,6 +356,37 @@ autowrap_mode = 2
 [node name="HSeparator12c" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="VisionCheckIntervalContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VisionCheckIntervalLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VisionCheckIntervalContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Vision Check Rate"
+autowrap_mode = 2
+
+[node name="VisionCheckIntervalSlider" type="HSlider" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VisionCheckIntervalContainer"]
+custom_minimum_size = Vector2(200, 30)
+layout_mode = 2
+min_value = 0.0
+max_value = 0.2
+step = 0.01
+value = 0.05
+
+[node name="VisionCheckIntervalValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VisionCheckIntervalContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "20 Hz"
+
+[node name="VisionCheckIntervalDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "How often enemies perform raycast vision checks.\nLower Hz = fewer raycasts = better performance.\n0.05s interval (20 Hz) reduces CPU load ~66% vs every-frame."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
