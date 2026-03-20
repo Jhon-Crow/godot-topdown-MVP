@@ -352,13 +352,13 @@ func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale:
 	light_node.position = pos
 	parent.add_child(light_node)
 
-	# Small visual indicator — a dim warm-colored circle representing the lamp fixture
-	var fixture := ColorRect.new()
-	fixture.color = Color(1.0, 0.85, 0.5, 0.35)  # Pale warm amber, semi-transparent
-	fixture.offset_left = -8.0
-	fixture.offset_top = -8.0
-	fixture.offset_right = 8.0
-	fixture.offset_bottom = 8.0
+	# Small visual indicator — a dim warm-colored circle representing the lamp fixture.
+	# Uses Sprite2D (not Control/ColorRect) so it does NOT intercept mouse events and
+	# cannot break pause-menu or UI clicks.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(1.0, 0.85, 0.5, 0.5)  # Pale warm amber, semi-transparent
 	light_node.add_child(fixture)
 
 	# The actual PointLight2D
@@ -376,29 +376,49 @@ func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale:
 
 
 ## Create a soft radial gradient texture for the warm room lights.
-## The gradient fades to absolute zero at ~60 % of the radius, leaving a
-## 40 % pure-black buffer so there is no hard visible edge at the quad boundary.
-func _create_warm_light_texture() -> GradientTexture2D:
-	var gradient := Gradient.new()
-	# Bright warm core
-	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
-	# Gradual warm falloff
-	gradient.add_point(0.15, Color(0.85, 0.85, 0.85, 1.0))
-	gradient.add_point(0.30, Color(0.55, 0.55, 0.55, 1.0))
-	gradient.add_point(0.45, Color(0.28, 0.28, 0.28, 1.0))
-	gradient.add_point(0.55, Color(0.08, 0.08, 0.08, 1.0))
-	# Hard fade to zero — 40 % black buffer zone prevents visible edges
-	gradient.add_point(0.60, Color(0.0, 0.0, 0.0, 1.0))
-	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
+## Uses a smooth natural falloff (bright core → gentle taper → complete black).
+## No abrupt cutoff — the light fades organically like a real overhead lamp.
+func _create_warm_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
 
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 512
-	texture.height = 512
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(0.5, 0.0)
-	return texture
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = center, 1 = edge
+			# Smooth inverse-square-ish falloff using a cosine curve:
+			# bright centre → smooth mid-field → natural fade at rim
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the lamp fixture visual indicator.
+## Returns a soft-edged disc so the fixture looks like a round ceiling lamp,
+## not a square. Drawn with per-pixel math so the disc has smooth anti-aliased edges.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				# Full brightness in the core, soft fade toward the rim
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Setup window lights in corridors and rooms without enemies (Issue #593).
