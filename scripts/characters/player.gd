@@ -1351,32 +1351,20 @@ var _reload_anim_timer: float = 0.0
 ## Reload animation phase duration in seconds.
 var _reload_anim_duration: float = 0.0
 
-## Target positions for reload arm animations (relative offsets from base positions).
-## These are in local PlayerModel space.
-## Base positions: LeftArm (24, 6), RightArm (-2, 6)
-## For reload, left arm goes to chest (vest/mag pouch area), then to weapon
-
-# Step 1: Grab magazine from chest - left arm moves back toward body
-const RELOAD_ARM_LEFT_GRAB := Vector2(-18, -2)        # Left hand at chest/vest mag pouch
-const RELOAD_ARM_RIGHT_HOLD := Vector2(0, 0)          # Right hand stays on weapon grip
-
-# Step 2: Insert magazine - left arm moves to weapon magwell
-const RELOAD_ARM_LEFT_INSERT := Vector2(8, 2)         # Left hand at weapon magwell (forward)
-const RELOAD_ARM_RIGHT_STEADY := Vector2(0, 1)        # Right hand steadies weapon
-
-# Step 3: Pull bolt - both arms involved, right pulls charging handle
-const RELOAD_ARM_LEFT_SUPPORT := Vector2(12, 0)       # Left hand holds foregrip
-const RELOAD_ARM_RIGHT_BOLT := Vector2(-6, -3)        # Right hand pulls bolt back
-
-## Target rotations for reload arm animations (in degrees).
+## Reload arm animation positions (offsets in local PlayerModel space from base LeftArm(24,6)/RightArm(-2,6)).
+const RELOAD_ARM_LEFT_GRAB := Vector2(-18, -2)        # Step 1: Left hand at chest/vest mag pouch
+const RELOAD_ARM_RIGHT_HOLD := Vector2(0, 0)          # Step 1: Right hand stays on weapon grip
+const RELOAD_ARM_LEFT_INSERT := Vector2(8, 2)         # Step 2: Left hand at weapon magwell (forward)
+const RELOAD_ARM_RIGHT_STEADY := Vector2(0, 1)        # Step 2: Right hand steadies weapon
+const RELOAD_ARM_LEFT_SUPPORT := Vector2(12, 0)       # Step 3: Left hand holds foregrip
+const RELOAD_ARM_RIGHT_BOLT := Vector2(-6, -3)        # Step 3: Right hand pulls bolt back
+## Reload arm rotation targets (degrees) and animation durations (seconds).
 const RELOAD_ARM_ROT_LEFT_GRAB := -50.0      # Arm rotation when grabbing mag from chest
 const RELOAD_ARM_ROT_RIGHT_HOLD := 0.0       # Right arm steady during grab
 const RELOAD_ARM_ROT_LEFT_INSERT := -10.0    # Left arm rotation when inserting
 const RELOAD_ARM_ROT_RIGHT_STEADY := 5.0     # Slight tilt while steadying
 const RELOAD_ARM_ROT_LEFT_SUPPORT := 0.0     # Left arm on foregrip
 const RELOAD_ARM_ROT_RIGHT_BOLT := -20.0     # Right arm rotation when pulling bolt
-
-## Animation durations for each reload phase (in seconds).
 const RELOAD_ANIM_GRAB_DURATION := 0.25      # Time to grab magazine from chest
 const RELOAD_ANIM_INSERT_DURATION := 0.3     # Time to insert magazine
 const RELOAD_ANIM_BOLT_DURATION := 0.2       # Time to pull bolt
@@ -1540,12 +1528,7 @@ var _base_weapon_mount_pos: Vector2 = Vector2.ZERO
 ## Base weapon mount rotation (for sling animation).
 var _base_weapon_mount_rot: float = 0.0
 
-## Target positions for arm animations (relative offsets from base positions).
-## These are in local PlayerModel space.
-## Base positions: LeftArm (24, 6), RightArm (-2, 6)
-## Body position: (-4, 0), so left shoulder area is approximately x=0 to x=5
-## To move left arm from x=24 to shoulder (x~5), we need offset of ~-20
-## During grenade operations, left arm should be BEHIND the body (toward shoulder)
+## Grenade arm animation positions (offsets in local PlayerModel space from base LeftArm(24,6)/RightArm(-2,6)).
 const ARM_LEFT_CHEST := Vector2(-15, 0)         # Left hand moves back to chest/shoulder area
 const ARM_RIGHT_PIN := Vector2(2, -2)           # Right hand slightly up for pin pull
 const ARM_LEFT_EXTENDED := Vector2(-10, 2)      # Left hand at chest level with grenade
@@ -1556,8 +1539,7 @@ const ARM_RIGHT_WIND_MIN := Vector2(4, 3)       # Minimum wind-up position
 const ARM_RIGHT_WIND_MAX := Vector2(8, 5)       # Maximum wind-up position
 const ARM_RIGHT_THROW := Vector2(-4, -2)        # Throw follow-through
 const ARM_LEFT_RELAXED := Vector2(-20, 2)       # Left arm at shoulder/body during wind-up/throw
-
-## Target rotations for arm animations (in degrees).
+## Grenade arm rotation targets (degrees), animation durations (seconds), and lerp speeds.
 const ARM_ROT_GRAB := -45.0           # Arm rotation when grabbing at chest
 const ARM_ROT_PIN_PULL := -15.0       # Right arm rotation when pulling pin
 const ARM_ROT_LEFT_AT_CHEST := -30.0  # Left arm rotation while holding grenade at chest
@@ -1565,32 +1547,20 @@ const ARM_ROT_WIND_MIN := 15.0        # Right arm minimum wind-up rotation
 const ARM_ROT_WIND_MAX := 35.0        # Right arm maximum wind-up rotation
 const ARM_ROT_THROW := -25.0          # Right arm throw rotation
 const ARM_ROT_LEFT_RELAXED := -60.0   # Left arm hangs down at side during wind-up/throw
-
-## Animation durations for each phase (in seconds).
 const ANIM_GRAB_DURATION := 0.2
 const ANIM_PIN_DURATION := 0.15
 const ANIM_APPROACH_DURATION := 0.2
 const ANIM_TRANSFER_DURATION := 0.15
 const ANIM_THROW_DURATION := 0.2
 const ANIM_RETURN_DURATION := 0.3
-
-## Animation lerp speeds.
 const ANIM_LERP_SPEED := 15.0         # Position interpolation speed
 const ANIM_LERP_SPEED_FAST := 25.0    # Fast interpolation for snappy movements
-
 ## Weapon sling position (lowered and rotated for chest carry).
 const WEAPON_SLING_OFFSET := Vector2(0, 15)     # Lower weapon
 const WEAPON_SLING_ROTATION := 1.2              # Rotate to hang down (radians, ~70 degrees)
 
 
-## Handle grenade input.
-## COMPLEX MODE (experimental, 3-step mechanic):
-##   Step 1: G + RMB drag right = start timer (pull pin)
-##   Step 2: Hold G → press+hold RMB → release G = ready to throw
-##   Step 3: RMB drag and release = throw
-## SIMPLE MODE (default):
-##   Hold RMB = show trajectory preview, cursor position = landing point
-##   Release RMB = throw grenade to landing point
+## Handle grenade input (complex 3-step mode or simple RMB-hold-and-release mode).
 func _handle_grenade_input() -> void:
 	# Handle throw rotation animation
 	_handle_throw_rotation_animation(get_physics_process_delta_time())
@@ -2093,13 +2063,7 @@ func _throw_grenade(drag_end: Vector2) -> void:
 	_reset_grenade_state()
 
 
-## Get a safe spawn position for the grenade that doesn't spawn behind/inside a wall.
-## Uses raycast to check if there's an obstacle between player and intended spawn position.
-## This prevents the grenade from tunneling through walls when thrown at close range ("в упор").
-## @param from_pos: The player's current position.
-## @param intended_pos: The intended spawn position (offset from player).
-## @param throw_direction: The normalized throw direction.
-## @return: A safe spawn position that is not behind a wall.
+## Raycast-adjusted grenade spawn position to prevent tunneling through walls at close range.
 func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, throw_direction: Vector2) -> Vector2:
 	# Get the physics space state for raycasting
 	var space_state := get_world_2d().direct_space_state
@@ -2414,9 +2378,7 @@ func _update_wind_up_intensity() -> void:
 # Reload Animation Functions
 # ============================================================================
 
-## Start a new reload animation phase.
-## @param phase: The ReloadAnimPhase to transition to.
-## @param duration: How long this phase should last.
+## Start a new reload animation phase (transition to phase, run for duration seconds).
 func _start_reload_anim_phase(phase: int, duration: float) -> void:
 	_reload_anim_phase = phase
 	_reload_anim_timer = duration
@@ -2426,13 +2388,7 @@ func _start_reload_anim_phase(phase: int, duration: float) -> void:
 	])
 
 
-## Update reload animation based on current phase.
-## Called every frame from _physics_process.
-## Implements three steps as requested:
-## 1. Left hand grabs magazine from chest
-## 2. Left hand inserts magazine into rifle
-## 3. Pull the bolt/charging handle
-## @param delta: Time since last frame.
+## Update reload animation based on current phase (called every frame from _physics_process).
 func _update_reload_animation(delta: float) -> void:
 	# Early exit if no animation active
 	if _reload_anim_phase == ReloadAnimPhase.NONE:
@@ -4152,16 +4108,8 @@ func _get_aim_direction() -> Vector2:
 	return Vector2.RIGHT
 
 
-## Apply the loudspeaker pacifism effect to enemies in the cone sector (Issue #959, Stage 5).
-##
-## Rules (from issue spec):
-## - Cone half-angle: 50 degrees (same as LoudspeakerConeEffect)
-## - Not behind a wall: raycasted (collision mask 4 = walls)
-## - Behind cover but within 500px: still gets effect
-## - Only enemies NOT previously attacked by player (not wounded/suppressed)
-## - Effect chance: 100% on first use, per-level chance on subsequent uses
-## - Hostility: each enemy independently rolls hostility toward any pacifist created
-## - max_pacify: maximum enemies to pacify this activation (-1 = unlimited)
+## Apply loudspeaker pacifism effect in a 50° cone. Ignores enemies already hit by player.
+## 100% chance on first use; per-level chance afterwards. max_pacify=-1 means unlimited.
 func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float, max_pacify: int = -1) -> void:
 	const CONE_HALF_ANGLE: float = 0.872664625997  # 50 degrees in radians
 	const COVER_MAX_DISTANCE: float = 500.0
@@ -4471,12 +4419,7 @@ func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void
 	)
 
 
-## Show a combined charge + timer bar above the player (Issue #974).
-## Used for items that have limited charges AND a duration per use.
-## @param charges_current: Number of charges remaining.
-## @param charges_maximum: Maximum number of charges.
-## @param time_remaining: Time remaining for current activation.
-## @param time_maximum: Maximum duration per activation.
+## Show combined charge+timer bar (Issue #974) for items with limited charges and per-use duration.
 func _show_active_item_combined_bar(charges_current: int, charges_maximum: int, time_remaining: float, time_maximum: float) -> void:
 	_ensure_progress_bar_node()
 	_active_item_progress_bar.show_combined_bar(
@@ -4488,7 +4431,6 @@ func _show_active_item_combined_bar(charges_current: int, charges_maximum: int, 
 
 
 ## Update the timer value in combined mode.
-## @param time_remaining: New time remaining value.
 func _update_active_item_timer(time_remaining: float) -> void:
 	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
 		_active_item_progress_bar.update_timer(time_remaining)

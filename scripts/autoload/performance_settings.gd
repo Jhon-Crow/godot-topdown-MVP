@@ -57,6 +57,11 @@ func _ready() -> void:
 	_apply_screen_shake()
 	_log_to_file("PerformanceSettings initialized - particles: %s, blood_decals: %s, screen_shake: %s, explosion_lights: %s, ai: %s" % [
 		particles_enabled, blood_decals_enabled, screen_shake_enabled, explosion_lights_enabled, ai_enabled])
+	_log_to_file("AI state toggles - idle: %s, combat: %s, seeking_cover: %s, in_cover: %s, flanking: %s, suppressed: %s, retreating: %s, pursuing: %s, assault: %s, searching: %s" % [
+		ai_state_idle_enabled, ai_state_combat_enabled, ai_state_seeking_cover_enabled,
+		ai_state_in_cover_enabled, ai_state_flanking_enabled, ai_state_suppressed_enabled,
+		ai_state_retreating_enabled, ai_state_pursuing_enabled, ai_state_assault_enabled,
+		ai_state_searching_enabled])
 
 
 ## Set particles enabled/disabled (Issue #1186).

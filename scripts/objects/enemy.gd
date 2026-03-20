@@ -178,7 +178,7 @@ var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
-var _corner_check_timer: float = 0.0  ## Timer for corner check duration
+var _corner_check_timer: float = 0.0; var _corner_check_cooldown: float = 0.0  ## Corner check timers; cooldown prevents P4↔P3 oscillation
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
 const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
@@ -306,6 +306,7 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
+var _combat_count_cache: int = 0; var _combat_count_timer: float = 0.0; var _nav_map_rid: RID; var _perf_settings_node: Node = null; var _exp_settings_node: Node = null; var _active_item_manager_node: Node = null; var _separation_frame: int = 0  ## Issue #1184
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -362,6 +363,9 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	# Issue #1184: Stagger intel-share timer so enemies don't all fire group queries on the same frame.
+	_intel_share_timer = randf() * INTEL_SHARE_INTERVAL
+	_perf_settings_node = get_node_or_null("/root/PerformanceSettings"); _exp_settings_node = get_node_or_null("/root/ExperimentalSettings"); _active_item_manager_node = get_node_or_null("/root/ActiveItemManager"); _separation_frame = get_instance_id() % 3  ## Issue #1184: cache autoloads; stagger separation
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -752,8 +756,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
-	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	if _perf_settings_node and not _perf_settings_node.is_ai_enabled(): return  # Issue #1184: use cached node
 
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
@@ -795,10 +798,9 @@ func _physics_process(delta: float) -> void:
 			# Only count if NOT in direct player contact (can't see and shoot player)
 			if not (_can_see_player and _can_hit_player_from_current_position()):
 				_global_stuck_timer += delta
-				var _experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
-				if _experimental_settings != null and _experimental_settings.has_method("get_global_stuck_max_time"):
-					_effective_stuck_max_time = _experimental_settings.get_global_stuck_max_time()
+				if _exp_settings_node != null and _exp_settings_node.has_method("get_global_stuck_max_time"):  ## Issue #1184: use cached node
+					_effective_stuck_max_time = _exp_settings_node.get_global_stuck_max_time()
 				if _global_stuck_timer >= _effective_stuck_max_time:
 					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
 					_global_stuck_timer = 0.0
@@ -853,8 +855,7 @@ func _physics_process(delta: float) -> void:
 
 	_update_walk_animation(delta)  # Update walking animation based on movement
 	_apply_machete_attack_animation()  # Issue #595: machete swing animation
-	# Issue #1146: Apply separation force to prevent enemies from overlapping each other.
-	if _is_alive:
+	if _is_alive and (Engine.get_physics_frames() % 3) == _separation_frame:  ## Issue #1184: throttle O(N²) separation to every 3rd frame
 		velocity = _apply_separation_force(velocity, delta)
 	move_and_slide()
 
@@ -876,7 +877,12 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	# Issue #1184: Throttle O(N²) combat count — refresh at most every 0.5s instead of every frame.
+	_combat_count_timer += get_physics_process_delta_time()
+	if _combat_count_timer >= INTEL_SHARE_INTERVAL:
+		_combat_count_timer = 0.0
+		_combat_count_cache = _count_enemies_in_combat()
+	_goap_world_state["enemies_in_combat"] = _combat_count_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 	# Memory system states (Issue #297)
@@ -2272,17 +2278,18 @@ func _generate_search_waypoints() -> void:
 
 ## Check if position is navigable via NavigationServer2D.
 func _is_waypoint_navigable(pos: Vector2) -> bool:
-	var nav_map := get_world_2d().navigation_map
-	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
+	if not _nav_map_rid.is_valid(): _nav_map_rid = get_world_2d().navigation_map  # Issue #1184: cache RID
+	var closest := NavigationServer2D.map_get_closest_point(_nav_map_rid, pos)
 	return pos.distance_to(closest) < 50.0
 
 ## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
-func _get_zone_key(pos: Vector2) -> String:
-	return "%d,%d" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)]
+## Issue #1184: key is int (gx*100000+gy) to avoid String allocation in hot path.
+func _get_zone_key(pos: Vector2) -> int:
+	return int(pos.x / SEARCH_ZONE_SNAP_SIZE) * 100000 + int(pos.y / SEARCH_ZONE_SNAP_SIZE)
 func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
 func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
-	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
+	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %d as visited (total: %d)" % [k, _search_visited_zones.size()])
 
 ## Process SEARCHING state - waypoint scanning (#322, #330: engaged enemies search infinitely).
 func _process_searching_state(delta: float) -> void:
@@ -2560,7 +2567,7 @@ func _shoot_burst_shot() -> void:
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 func _transition_to_idle() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings")
+	var _ps := _perf_settings_node  ## Issue #1184: use cached node
 	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
 		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
 	_current_state = AIState.IDLE
@@ -2569,7 +2576,7 @@ func _transition_to_idle() -> void:
 	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
 
 func _transition_to_combat() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_combat_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.COMBAT
 	_has_left_idle = true  # Issue #330
 	_detection_timer = 0.0; _detection_delay_elapsed = false
@@ -2582,7 +2589,7 @@ func _transition_to_combat() -> void:
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 
 func _transition_to_seeking_cover() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.SEEKING_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2590,7 +2597,7 @@ func _transition_to_seeking_cover() -> void:
 	_find_cover_position()
 
 func _transition_to_in_cover() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_in_cover_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_in_cover_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.IN_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2612,7 +2619,7 @@ func _can_attempt_flanking() -> bool:
 	return true
 
 func _transition_to_flanking() -> bool:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_flanking_enabled(): _transition_to_idle(); return false  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_flanking_enabled(): _transition_to_idle(); return false  ## Issue #1184+#1186: use cached node
 	# Check if flanking is available
 	if not _can_attempt_flanking():
 		_log_debug("Cannot transition to FLANKING - disabled or on cooldown")
@@ -2685,12 +2692,12 @@ func _is_flank_target_reachable() -> bool:
 	return true
 
 func _transition_to_suppressed() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
 func _transition_to_pursuing() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.PURSUING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2709,7 +2716,7 @@ func _transition_to_pursuing() -> void:
 	_detection_delay_elapsed = false
 
 func _transition_to_assault() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_assault_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.ASSAULT
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2723,7 +2730,7 @@ func _transition_to_assault() -> void:
 	_find_cover_closest_to_player()
 
 func _transition_to_searching(center_position: Vector2) -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_searching_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.SEARCHING
 	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
 	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
@@ -2750,7 +2757,7 @@ func _transition_to_evading_grenade() -> void:
 	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(evasion_target))
 
 func _transition_to_retreating() -> void:
-	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
+	if _perf_settings_node and not _perf_settings_node.is_ai_state_retreating_enabled(): _transition_to_idle(); return  ## Issue #1184+#1186: use cached node
 	_current_state = AIState.RETREATING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2815,7 +2822,7 @@ func on_new_pacifist_created(p: Node2D, hc: float) -> void:
 ## Issue #959: Level 5+ pacifism spread — on first LoS to a pacifist, roll to become pacifist.
 func _check_pacifism_spread() -> void:
 	if not _is_alive or (_pacifist and _pacifist.is_pacifist): return
-	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	var aim: Node = _active_item_manager_node  ## Issue #1184: use cached node
 	if aim == null or not aim.has_loudspeaker(): return
 	var lp: LoudspeakerProgress = aim.get("loudspeaker_progress")
 	if lp == null or not lp.can_pacifism_spread(): return
@@ -3611,8 +3618,7 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 
 ## Check if target is within FOV cone. FOV uses _enemy_model.global_rotation for facing.
 func _is_position_in_fov(target_pos: Vector2) -> bool:
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	var global_fov_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_fov_enabled") and experimental_settings.is_fov_enabled()
+	var global_fov_enabled: bool = _exp_settings_node != null and _exp_settings_node.has_method("is_fov_enabled") and _exp_settings_node.is_fov_enabled()  ## Issue #1184: use cached node
 	if not global_fov_enabled or not fov_enabled or fov_angle <= 0.0:
 		return true  # FOV disabled - 360 degree vision
 	var facing_angle := _enemy_model.global_rotation if _enemy_model else rotation
@@ -3694,8 +3700,7 @@ func _update_memory(delta: float) -> void:
 
 	# [Issue #574] Flashlight beam detection: enemy detects beam when any part of it falls within their FOV
 	if _flashlight_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
-		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
-		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
+		var _fov_on: bool = fov_enabled and _exp_settings_node != null and _exp_settings_node.has_method("is_fov_enabled") and _exp_settings_node.is_fov_enabled()  ## Issue #1184: use cached node
 		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta)
 		if flashlight_detected:
 			# Update memory with flashlight-based detection
@@ -4095,8 +4100,10 @@ func _detect_perpendicular_opening(move_dir: Vector2) -> bool:
 func _process_corner_check(delta: float, move_dir: Vector2, state_name: String) -> void:
 	if _corner_check_timer > 0:
 		_corner_check_timer -= delta  # #347: rotation via _update_enemy_model_rotation()
+		if _corner_check_timer <= 0: _corner_check_cooldown = CORNER_CHECK_DURATION  ## Issue #1184: start cooldown AFTER timer expires (not together)
+	elif _corner_check_cooldown > 0: _corner_check_cooldown -= delta  ## Issue #1184: prevent P4↔P3 oscillation
 	elif _detect_perpendicular_opening(move_dir):
-		_corner_check_timer = CORNER_CHECK_DURATION
+		_corner_check_timer = CORNER_CHECK_DURATION  ## Issue #1184: cooldown set when timer expires, not here
 		_log_to_file("%s corner check: angle %.1f°" % [state_name, rad_to_deg(_corner_check_angle)])
 
 ## Process guard behavior - scan for threats every IDLE_SCAN_INTERVAL seconds.
@@ -4580,10 +4587,7 @@ func _draw() -> void:
 	var color_clear_shot := Color.YELLOW; var color_pursuit := Color.ORANGE
 	var color_flank := Color.MAGENTA; var color_bullet_spawn := Color.GREEN; var color_blocked := Color.RED
 	# FOV cone: green=active, gray=disabled
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	var global_fov_enabled := false
-	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
-		global_fov_enabled = experimental_settings.is_fov_enabled()
+	var global_fov_enabled := _exp_settings_node != null and _exp_settings_node.has_method("is_fov_enabled") and _exp_settings_node.is_fov_enabled()  ## Issue #1184: use cached node
 	var fov_active := global_fov_enabled and fov_enabled and fov_angle > 0.0
 	var color_fov: Color; var color_fov_edge: Color
 	if fov_active:
