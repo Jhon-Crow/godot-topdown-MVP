@@ -152,6 +152,10 @@ func fire_at_predicted_position(target_pos: Vector2) -> void:
 		enemy._last_gunshot_propagation_time = now_s
 
 	enemy._play_delayed_shell_sound()
+	# [#1177] Trigger 4-step bolt-action cycle for blind-fire shots (same as direct shots)
+	enemy._is_bolt_cycling = true
+	enemy._bolt_cycle_timer = 0.0
+	enemy._bolt_cycle_step = 1
 	enemy._shoot_timer = 0.0
 	enemy._current_ammo -= 1
 	enemy._shot_count += 1

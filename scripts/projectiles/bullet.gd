@@ -544,8 +544,12 @@ func _on_body_entered(body: Node2D) -> void:
 	# Hit a static body (wall or obstacle) or alive enemy body
 	# Try to ricochet off static bodies (walls/obstacles)
 	if body is StaticBody2D or body is TileMap:
+		# Issue #1145: compute surface normal once and reuse it for both the dust effect
+		# and ricochet calculation to avoid a duplicate physics raycast per wall hit.
+		var cached_normal := _get_surface_normal(body)
+
 		# Always spawn dust effect when hitting walls, regardless of ricochet
-		_spawn_wall_hit_effect(body)
+		_spawn_wall_hit_effect(body, cached_normal)
 
 		# Calculate distance from shooter to determine penetration behavior
 		var distance_to_wall := _get_distance_to_shooter()
@@ -562,7 +566,7 @@ func _on_body_entered(body: Node2D) -> void:
 		elif distance_ratio <= RICOCHET_RULES_DISTANCE_RATIO:
 			_log_penetration("Within ricochet range - trying ricochet first")
 			# First try ricochet
-			if _try_ricochet(body):
+			if _try_ricochet(body, cached_normal):
 				return  # Bullet ricocheted, don't destroy
 			# Ricochet failed - try penetration (if not ricochet, then penetrate)
 			if _try_penetration(body):
@@ -570,7 +574,7 @@ func _on_body_entered(body: Node2D) -> void:
 		# Beyond 40% of viewport: distance-based penetration chance
 		else:
 			# First try ricochet (shallow angles still ricochet)
-			if _try_ricochet(body):
+			if _try_ricochet(body, cached_normal):
 				return  # Bullet ricocheted, don't destroy
 
 			# Calculate penetration chance based on distance
@@ -666,12 +670,13 @@ func _on_area_entered(area: Area2D) -> void:
 		var effective_damage: float = damage * damage_multiplier
 
 		# Call on_hit with extended parameters if supported, otherwise use basic call
+		var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source
 		if area.has_method("on_hit_with_bullet_info_and_damage"):
-			# Pass full bullet information including damage amount
-			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage)
+			# Pass full bullet information including damage amount and player kill source
+			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player)
 		elif area.has_method("on_hit_with_bullet_info"):
 			# Legacy path - pass bullet info without explicit damage (will use default)
-			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated)
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
@@ -701,7 +706,9 @@ func _on_area_entered(area: Area2D) -> void:
 ## Attempts to ricochet the bullet off a surface.
 ## Returns true if ricochet occurred, false if bullet should be destroyed.
 ## @param body: The body the bullet collided with.
-func _try_ricochet(body: Node2D) -> bool:
+## @param precomputed_normal: Pre-computed surface normal from _on_body_entered (Issue #1145).
+##   Pass a non-zero vector to skip the internal raycast (avoids a duplicate intersect_ray call).
+func _try_ricochet(body: Node2D, precomputed_normal: Vector2 = Vector2.ZERO) -> bool:
 	# Check if we've exceeded maximum ricochets (-1 = unlimited)
 	var max_ricochets := _get_max_ricochets()
 	if max_ricochets >= 0 and _ricochet_count >= max_ricochets:
@@ -709,8 +716,8 @@ func _try_ricochet(body: Node2D) -> bool:
 			print("[Bullet] Max ricochets reached: ", _ricochet_count)
 		return false
 
-	# Get the surface normal at the collision point
-	var surface_normal := _get_surface_normal(body)
+	# Use pre-computed normal when available (Issue #1145: avoids duplicate raycast per wall hit)
+	var surface_normal := precomputed_normal if precomputed_normal != Vector2.ZERO else _get_surface_normal(body)
 	if surface_normal == Vector2.ZERO:
 		if _debug_ricochet:
 			print("[Bullet] Could not determine surface normal")
@@ -989,14 +996,16 @@ func can_ricochet() -> bool:
 
 
 ## Spawns dust/debris particles when bullet hits a wall or static body.
-## @param body: The body that was hit (used to get surface normal).
-func _spawn_wall_hit_effect(body: Node2D) -> void:
+## @param body: The body that was hit (used to get surface normal if precomputed_normal is zero).
+## @param precomputed_normal: Pre-computed surface normal from _on_body_entered (Issue #1145).
+##   Pass a non-zero vector to skip the internal raycast (avoids a duplicate intersect_ray call).
+func _spawn_wall_hit_effect(body: Node2D, precomputed_normal: Vector2 = Vector2.ZERO) -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
 		return
 
-	# Get surface normal for particle direction
-	var surface_normal := _get_surface_normal(body)
+	# Use pre-computed normal when available (Issue #1145: avoids duplicate raycast per wall hit)
+	var surface_normal := precomputed_normal if precomputed_normal != Vector2.ZERO else _get_surface_normal(body)
 
 	# Spawn dust effect at hit position
 	impact_manager.spawn_dust_effect(global_position, surface_normal, caliber_data)
@@ -1626,9 +1635,10 @@ func _breaker_apply_explosion_damage(center: Vector2) -> void:
 ## Applies damage to a target.
 func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
 	var hit_direction := (target.global_position - global_position).normalized()
+	var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source for unlock conditions
 
 	if target.has_method("on_hit_with_bullet_info_and_damage"):
-		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount)
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount, from_player)
 	elif target.has_method("on_hit_with_info"):
 		target.on_hit_with_info(hit_direction, null)
 	elif target.has_method("on_hit"):

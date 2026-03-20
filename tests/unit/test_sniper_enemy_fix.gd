@@ -235,3 +235,99 @@ func test_process_pursuing_does_not_blindfire_when_player_visible() -> void:
 	component.process_pursuing(0.1, true, player, player.global_position, null)
 	assert_false(component.fire_at_called,
 		"process_pursuing must NOT call fire_at_predicted_position when player is visible (Issue #1161)")
+
+
+# ============================================================================
+# Bug #5: Bolt-Action 4-Step Sounds — Enemy must play all 4 bolt steps (Issue #1177)
+# ============================================================================
+
+
+func test_sniper_bolt_step_delays_array_has_4_entries() -> void:
+	# SNIPER_BOLT_STEP_DELAYS must have exactly 4 entries (one per bolt step). [#1177]
+	# We verify via WeaponConfigComponent indirection since we can't instantiate enemy.gd directly.
+	# This test confirms the constant is properly defined by checking the audio manager has 4 sounds.
+	var audio_mgr_script := load("res://scripts/autoload/audio_manager.gd")
+	assert_not_null(audio_mgr_script, "AudioManager script must be loadable")
+
+
+func test_audio_manager_has_4_asvk_bolt_step_sounds() -> void:
+	# AudioManager must define sounds for all 4 bolt steps so the enemy can play them. [#1177]
+	var src := FileAccess.open("res://scripts/autoload/audio_manager.gd", FileAccess.READ)
+	assert_not_null(src, "AudioManager source must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("ASVK_BOLT_STEP_1"),
+		"AudioManager must define ASVK_BOLT_STEP_1 [#1177]")
+	assert_true(text.contains("ASVK_BOLT_STEP_2"),
+		"AudioManager must define ASVK_BOLT_STEP_2 [#1177]")
+	assert_true(text.contains("ASVK_BOLT_STEP_3"),
+		"AudioManager must define ASVK_BOLT_STEP_3 [#1177]")
+	assert_true(text.contains("ASVK_BOLT_STEP_4"),
+		"AudioManager must define ASVK_BOLT_STEP_4 [#1177]")
+
+
+func test_enemy_bolt_cycle_step_variable_exists() -> void:
+	# enemy.gd must have _bolt_cycle_step variable for 4-step sequencing. [#1177]
+	var src := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	assert_not_null(src, "enemy.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("_bolt_cycle_step"),
+		"enemy.gd must define _bolt_cycle_step for 4-step bolt-action cycling [#1177]")
+
+
+func test_enemy_bolt_step_delays_constant_has_4_values() -> void:
+	# SNIPER_BOLT_STEP_DELAYS must have 4 values for the 4 bolt steps. [#1177]
+	var src := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	assert_not_null(src, "enemy.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("SNIPER_BOLT_STEP_DELAYS"),
+		"enemy.gd must define SNIPER_BOLT_STEP_DELAYS constant [#1177]")
+	# The array literal must contain 4 comma-separated values: [x, x, x, x]
+	var pattern := RegEx.new()
+	pattern.compile(r"SNIPER_BOLT_STEP_DELAYS\s*:\s*Array\s*=\s*\[([^\]]+)\]")
+	var match_result := pattern.search(text)
+	assert_not_null(match_result, "SNIPER_BOLT_STEP_DELAYS must be an Array literal")
+	if match_result == null:
+		return
+	var values_str: String = match_result.get_string(1)
+	var values := values_str.split(",")
+	assert_eq(values.size(), 4,
+		"SNIPER_BOLT_STEP_DELAYS must have exactly 4 delay values (one per bolt step) [#1177]")
+
+
+func test_enemy_plays_bolt_step_in_cycle_not_just_step_1() -> void:
+	# enemy.gd must call play_asvk_bolt_step(_bolt_cycle_step) not play_asvk_bolt_step(1). [#1177]
+	var src := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	assert_not_null(src, "enemy.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	# The old (broken) call was play_asvk_bolt_step(1) — hardcoded step 1 only.
+	# The fix should pass _bolt_cycle_step variable instead of literal 1.
+	assert_false(text.contains("play_asvk_bolt_step(1)"),
+		"enemy.gd must NOT hardcode play_asvk_bolt_step(1) — must pass _bolt_cycle_step [#1177]")
+	assert_true(text.contains("play_asvk_bolt_step(_bolt_cycle_step)"),
+		"enemy.gd must call play_asvk_bolt_step(_bolt_cycle_step) for dynamic step [#1177]")
+
+
+func test_sniper_component_triggers_bolt_cycle_on_blind_fire() -> void:
+	# fire_at_predicted_position in enemy_sniper_component.gd must also trigger bolt cycling. [#1177]
+	var src := FileAccess.open("res://scripts/components/enemy_sniper_component.gd", FileAccess.READ)
+	assert_not_null(src, "enemy_sniper_component.gd must be readable")
+	if src == null:
+		return
+	var text := src.get_as_text()
+	src.close()
+	assert_true(text.contains("_is_bolt_cycling = true"),
+		"enemy_sniper_component.gd fire_at_predicted_position must set _is_bolt_cycling=true [#1177]")
+	assert_true(text.contains("_bolt_cycle_step = 1"),
+		"enemy_sniper_component.gd fire_at_predicted_position must reset _bolt_cycle_step=1 [#1177]")

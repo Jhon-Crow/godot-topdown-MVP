@@ -1,0 +1,13 @@
+title:	fix не работает отключение idle
+state:	OPEN
+author:	Jhon-Crow
+labels:	
+comments:	0
+assignees:	
+projects:	
+milestone:	
+number:	1202
+--
+в https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1190 не работает отключение IDLE состояния (при выключенном IDLE враги должны с самого начала находиться в другом доступном состоянии).
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
