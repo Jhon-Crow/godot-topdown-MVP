@@ -178,7 +178,7 @@ var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
-var _corner_check_timer: float = 0.0  ## Timer for corner check duration
+var _corner_check_timer: float = 0.0; var _corner_check_cooldown: float = 0.0  ## Corner check timers; cooldown prevents P4↔P3 oscillation
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
 const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
@@ -306,7 +306,7 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
-var _combat_count_cache: int = 0; var _combat_count_timer: float = 0.0; var _nav_map_rid: RID  ## Issue #1184
+var _combat_count_cache: int = 0; var _combat_count_timer: float = 0.0; var _nav_map_rid: RID; var _perf_settings_node: Node = null; var _separation_frame: int = 0  ## Issue #1184
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -364,6 +364,7 @@ func _ready() -> void:
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	# Issue #1184: Stagger intel-share timer so enemies don't all fire group queries on the same frame.
 	_intel_share_timer = randf() * INTEL_SHARE_INTERVAL
+	_perf_settings_node = get_node_or_null("/root/PerformanceSettings"); _separation_frame = get_instance_id() % 3  ## Issue #1184: cache autoload; stagger separation
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -754,8 +755,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
-	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
-	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+	if _perf_settings_node and not _perf_settings_node.is_ai_enabled(): return  # Issue #1184: use cached node
 
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
@@ -855,8 +855,7 @@ func _physics_process(delta: float) -> void:
 
 	_update_walk_animation(delta)  # Update walking animation based on movement
 	_apply_machete_attack_animation()  # Issue #595: machete swing animation
-	# Issue #1146: Apply separation force to prevent enemies from overlapping each other.
-	if _is_alive:
+	if _is_alive and (Engine.get_physics_frames() % 3) == _separation_frame:  ## Issue #1184: throttle O(N²) separation to every 3rd frame
 		velocity = _apply_separation_force(velocity, delta)
 	move_and_slide()
 
@@ -4103,8 +4102,9 @@ func _detect_perpendicular_opening(move_dir: Vector2) -> bool:
 func _process_corner_check(delta: float, move_dir: Vector2, state_name: String) -> void:
 	if _corner_check_timer > 0:
 		_corner_check_timer -= delta  # #347: rotation via _update_enemy_model_rotation()
+	elif _corner_check_cooldown > 0: _corner_check_cooldown -= delta  ## Issue #1184: prevent P4↔P3 oscillation
 	elif _detect_perpendicular_opening(move_dir):
-		_corner_check_timer = CORNER_CHECK_DURATION
+		_corner_check_timer = CORNER_CHECK_DURATION; _corner_check_cooldown = CORNER_CHECK_DURATION  ## Issue #1184
 		_log_to_file("%s corner check: angle %.1f°" % [state_name, rad_to_deg(_corner_check_angle)])
 
 ## Process guard behavior - scan for threats every IDLE_SCAN_INTERVAL seconds.
