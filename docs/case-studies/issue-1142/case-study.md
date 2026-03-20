@@ -239,3 +239,78 @@ Added `ApplyItemVisual()` and `ApplyArmoredSkinVisual()` to `Scripts/Characters/
 Also added build info logging to `file_logger.gd`:
 - Reads `res://build_info.cfg` (branch, commit, date) and logs it in the game log header
 - `build_info.cfg` is updated on each commit/push so every exported build is traceable
+
+---
+
+## Second Bug Report: Shader Applied But Not Visible (2026-03-20 06:05)
+
+### Owner Comment
+
+> «не работает, должно работать примерно как в the binding of isaac — предмет визуал предмета
+> должен накладываться поверх игрока. приложи скриншот результата»
+>
+> Translation: "doesn't work, should work roughly like in The Binding of Isaac — the item's visual
+> should be overlaid on top of the player. attach a screenshot of the result."
+
+### Root Cause
+
+The previous fix (shader applied to existing `Sprite2D` materials) may have worked on paper, but
+the owner's expectation is a **visual overlay** — a separate set of sprites drawn **on top** of the
+player, not a material modification.
+
+In The Binding of Isaac, items overlay as **additional sprites** on the character model: the base
+character is untouched and an item-specific sprite layer is composited above it. This is
+fundamentally different from a shader modifying the base sprite.
+
+Additionally, Godot's `ResourceLoader.Exists()` can fail silently in exported builds when textures
+have not been explicitly preloaded into the export preset, meaning the shader-based approach could
+appear to succeed at runtime but produce no visible result.
+
+### Solution: Overlay Sprite System
+
+**Approach:** Create dedicated crystal armor overlay sprites (one per body part), and add them as
+new `Sprite2D` children of `PlayerModel` at runtime when Armored Skin is equipped.
+
+| File | Change |
+|------|--------|
+| `assets/sprites/characters/player/armored_skin/armored_skin_body.png` | New — crystal blue overlay for body |
+| `assets/sprites/characters/player/armored_skin/armored_skin_head.png` | New — crystal blue overlay for head |
+| `assets/sprites/characters/player/armored_skin/armored_skin_left_arm.png` | New — crystal blue overlay for left arm |
+| `assets/sprites/characters/player/armored_skin/armored_skin_right_arm.png` | New — crystal blue overlay for right arm |
+| `assets/sprites/characters/player/armored_skin/armored_skin_armband.png` | New — crystal blue overlay for armband |
+| `Scripts/Characters/Player.cs` | `ApplyArmoredSkinVisual()` rewrote to add overlay sprites |
+| `docs/screenshots/armored_skin_preview.png` | Side-by-side preview screenshot |
+
+### Overlay Sprites
+
+The overlay sprites are derived from the original player body part sprites:
+- Same dimensions and silhouette
+- All non-transparent pixels filled with `rgba(100, 200, 255, 120)` — azure blue at ~47% opacity
+- This lets the original character show through while adding the crystal armor tint
+
+Generated via: `experiments/generate_armored_skin_overlays.py`
+
+### Implementation Detail
+
+`ApplyArmoredSkinVisual()` in `Player.cs`:
+1. Iterates `_playerModel` children (only `Sprite2D` nodes in the overlayMap)
+2. For each matching body part, creates a new `Sprite2D` overlay node
+3. Sets position and offset to match the base sprite
+4. Sets `ZIndex = baseSprite.ZIndex + 10` so the overlay is always on top
+5. Adds the overlay as a child of `_playerModel`
+
+This exactly matches the Isaac pattern: the player's body is unchanged; new colored sprites float
+above each body part.
+
+### Preview Screenshot
+
+See `docs/screenshots/armored_skin_preview.png` — side-by-side comparison of player without armor
+and with crystal armor overlays active.
+
+### Timeline Update
+
+| Time | Event |
+|------|-------|
+| 2026-03-20 06:05 | Owner reports visual still not working; requests Isaac-style overlay + screenshot |
+| 2026-03-20 | Root cause: shader approach doesn't match expected overlay visual pattern |
+| 2026-03-20 | Fix: overlay sprite system — new crystal overlay PNGs + Sprite2D nodes added at runtime |

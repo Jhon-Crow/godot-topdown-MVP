@@ -6686,45 +6686,66 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Apply the glassy armor shader to all player body sprites (Issue #1142).
-    /// Gives the player the same transparent crystal/glass armor appearance as enemies with Armored Skin.
+    /// Apply crystal armor overlay sprites on top of each player body part (Issue #1142).
+    /// Like The Binding of Isaac — a separate set of semi-transparent blue crystal sprites is
+    /// placed over the player model, matching the exact position and size of each body part.
+    /// The original sprites are unchanged; overlays sit above them via a higher ZIndex.
     /// </summary>
     private void ApplyArmoredSkinVisual()
     {
-        const string ArmorShaderPath = "res://scripts/shaders/armored_skin.gdshader";
-
-        if (!ResourceLoader.Exists(ArmorShaderPath))
-        {
-            LogToFile($"[Player.ArmoredSkin] WARNING: Shader not found: {ArmorShaderPath}");
-            return;
-        }
-
-        var shader = GD.Load<Godot.Shader>(ArmorShaderPath);
-        if (shader == null)
-        {
-            LogToFile("[Player.ArmoredSkin] WARNING: Failed to load armor shader");
-            return;
-        }
-
         if (_playerModel == null)
         {
             LogToFile("[Player.ArmoredSkin] WARNING: _playerModel is null, skipping visual");
             return;
         }
 
-        int appliedCount = 0;
+        // Map each body-part Sprite2D name to its crystal overlay texture path.
+        var overlayMap = new System.Collections.Generic.Dictionary<string, string>
+        {
+            { "Body",     "res://assets/sprites/characters/player/armored_skin/armored_skin_body.png" },
+            { "Head",     "res://assets/sprites/characters/player/armored_skin/armored_skin_head.png" },
+            { "LeftArm",  "res://assets/sprites/characters/player/armored_skin/armored_skin_left_arm.png" },
+            { "RightArm", "res://assets/sprites/characters/player/armored_skin/armored_skin_right_arm.png" },
+            { "Armband",  "res://assets/sprites/characters/player/armored_skin/armored_skin_armband.png" },
+        };
+
+        int addedCount = 0;
         foreach (var child in _playerModel.GetChildren())
         {
-            if (child is Sprite2D sprite)
+            if (child is not Sprite2D baseSprite)
+                continue;
+
+            string partName = baseSprite.Name;
+            if (!overlayMap.TryGetValue(partName, out string? overlayPath))
+                continue;
+
+            if (!ResourceLoader.Exists(overlayPath))
             {
-                var mat = new ShaderMaterial();
-                mat.Shader = shader;
-                sprite.Material = mat;
-                appliedCount++;
+                LogToFile($"[Player.ArmoredSkin] WARNING: Overlay texture not found: {overlayPath}");
+                continue;
             }
+
+            var texture = GD.Load<Texture2D>(overlayPath);
+            if (texture == null)
+            {
+                LogToFile($"[Player.ArmoredSkin] WARNING: Failed to load overlay texture: {overlayPath}");
+                continue;
+            }
+
+            // Create the overlay sprite with the same position/offset as the base sprite,
+            // but rendered above it (ZIndex +10 relative to base).
+            var overlay = new Sprite2D();
+            overlay.Name = $"{partName}ArmorOverlay";
+            overlay.Texture = texture;
+            overlay.Position = baseSprite.Position;
+            overlay.Offset = baseSprite.Offset;
+            overlay.ZIndex = baseSprite.ZIndex + 10;
+
+            _playerModel.AddChild(overlay);
+            addedCount++;
         }
 
-        LogToFile($"[Player.ArmoredSkin] Armor shader applied to {appliedCount} sprites");
+        LogToFile($"[Player.ArmoredSkin] Crystal armor overlays added: {addedCount} sprites");
     }
 
     /// <summary>
