@@ -185,3 +185,72 @@ All 13 level scripts updated to use `call_deferred()`:
 - `scripts/levels/docks_level.gd` (preventive)
 - `scripts/levels/factory_level.gd` (preventive)
 - `scripts/levels/decadence_level.gd` (preventive)
+
+---
+
+## Session 4 — Further Investigation and Fixes (2026-03-20)
+
+### Owner Feedback (after Session 3)
+
+> "1. теперь навмеш не отображается при включённом отображении"
+> "2. враги всё так же идут в стену"
+> (1. navmesh no longer shows when display is enabled. 2. enemies still walk into walls.)
+
+Screenshot: navmesh overlay shows **nothing at all** (not even a flat rectangle).
+
+Game log saved: `docs/case-studies/issue-1188/game_log_20260320_090955.txt`
+
+### Root Causes Identified (Session 4)
+
+#### Display Bug — `nav_mesh_monitor.gd` reads wrong data
+
+The overlay's `refresh()` function was reading `nav_poly.get_outline_count()` (the pre-bake input outlines) instead of the baked polygon data (`get_polygon_count()` + `get_polygon()` + `get_vertices()`).
+
+After `bake_navigation_polygon()`, Godot updates the **triangulated polygon data** (vertices + polygons), not the input outlines. The outlines remain as the original floor boundary. So the overlay was either showing a flat rectangle (the floor outline) or nothing (if the outlines had been cleared).
+
+The `call_deferred` bake timing also meant the overlay refreshed BEFORE the bake completed, seeing empty polygon data.
+
+#### Level Scripts — Unnecessary `nav_poly.clear()` + `add_outline()` calls
+
+Level scripts `arena_level.gd`, `building_level.gd`, `castle_level.gd`, `city_level.gd`, `labyrinth_level.gd`, `revolver_level.gd`, `test_tier.gd` were calling:
+1. `nav_poly.clear()` — removes ALL data including outlines
+2. `nav_poly.add_outline(floor_outline)` — re-adds the floor boundary
+
+This was unnecessary since all these level `.tscn` files already have the correct outlines pre-set. The `clear()` call actually caused the overlay to see empty data (the outline was cleared by `clear()`, then the deferred bake hadn't run yet, so `get_outline_count() == 0` and `get_polygon_count() == 0`).
+
+### Session 4 Fixes
+
+#### Fix 1: `nav_mesh_monitor.gd` — Read baked polygon data
+
+Changed `refresh()` to read triangulated baked polygon data (`get_polygon_count()` / `get_polygon()` / `get_vertices()`) which reflects the actual carved navmesh, falling back to outlines only if no baked data exists.
+
+Added timing fix: use `NavigationRegion2D.bake_finished` signal + a 0.2s timer fallback to ensure overlay refreshes AFTER the bake completes.
+
+#### Fix 2: Level scripts — Remove `clear()` + `add_outline()`
+
+For all levels that already have outlines in their `.tscn` files, removed the redundant `nav_poly.clear()` + `nav_poly.add_outline()` calls. These levels now use the same simple pattern as `beach_level.gd`:
+
+```gdscript
+func _setup_navigation() -> void:
+    var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
+    if nav_region == null:
+        push_warning("...")
+        return
+    # Bake navmesh with walls (collision layer 4) carved out — Issue #1188
+    # call_deferred ensures StaticBody2D nodes are fully registered before baking
+    nav_region.bake_navigation_polygon.call_deferred(false)
+```
+
+`roguelike_level.gd` retains `clear()` + `add_outline()` since its `.tscn` has no pre-baked outline.
+
+### Files Updated (Session 4)
+
+- `scripts/autoload/nav_mesh_monitor.gd` — fixed display and timing
+- `scripts/levels/arena_level.gd` — removed clear()+add_outline()
+- `scripts/levels/building_level.gd` — removed clear()+add_outline()
+- `scripts/levels/castle_level.gd` — removed clear()+add_outline()
+- `scripts/levels/city_level.gd` — removed clear()+add_outline()
+- `scripts/levels/labyrinth_level.gd` — removed clear()+add_outline()
+- `scripts/levels/revolver_level.gd` — removed clear()+add_outline()
+- `scripts/levels/test_tier.gd` — removed clear()+add_outline()
+- `docs/case-studies/issue-1188/game_log_20260320_090955.txt` — owner's session 4 game log

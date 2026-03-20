@@ -797,28 +797,9 @@ func _setup_navigation() -> void:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("[ArenaLevel] NavigationPolygon not found")
-		return
-
-	print("[ArenaLevel] Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Arena playable area: 128 to 1792 (x), 128 to 952 (y).
-	# Walls (collision layer 4) are carved out during bake — Issue #1188
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(128, 128),
-		Vector2(1792, 128),
-		Vector2(1792, 952),
-		Vector2(128, 952)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# call_deferred ensures StaticBody2D nodes are fully registered before baking —
-	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	# Bake navmesh with walls (collision layer 4) carved out — Issue #1188
+	# call_deferred ensures StaticBody2D nodes are fully registered before baking
 	nav_region.bake_navigation_polygon.call_deferred(false)
-	print("[ArenaLevel] Navigation mesh bake scheduled (deferred)")
 
 
 ## Setup player tracking and connect weapon signals.

@@ -563,28 +563,9 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
-		return
-
-	print("Scheduling deferred navigation mesh bake...")
-	nav_poly.clear()
-
-	# Walkable area outline — walls (collision layer 4) are carved out during bake
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(48, 48),
-		Vector2(1968, 48),
-		Vector2(1968, 1128),
-		Vector2(48, 1128)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# call_deferred ensures StaticBody2D nodes are fully registered before baking —
-	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
+	# Bake navmesh with walls (collision layer 4) carved out — Issue #1188
+	# call_deferred ensures StaticBody2D nodes are fully registered before baking
 	nav_region.bake_navigation_polygon.call_deferred(false)
-
-	print("Navigation mesh bake scheduled (deferred)")
 
 
 ## Setup tracking for the player.
