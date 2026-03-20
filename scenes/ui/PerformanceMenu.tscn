@@ -161,6 +161,28 @@ autowrap_mode = 2
 [node name="HSeparator5" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="WallHitParticlesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="WallHitParticlesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Wall Hit Particles"
+autowrap_mode = 2
+
+[node name="WallHitParticlesCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer"]
+layout_mode = 2
+
+[node name="WallHitParticlesDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), dust particles appear when bullets
+hit walls. Disable to reduce GPU particle spawning."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator5b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="AIContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -182,8 +204,20 @@ autowrap_mode = 2
 
 [node name="AIStatesSectionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "  AI States (disable to lock enemies in IDLE):"
+text = "  AI States (disable individual states for profiling):"
 autowrap_mode = 2
+
+[node name="AIIdleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIIdleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIIdleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  IDLE (patrol/guard scan) — disable to force active states"
+autowrap_mode = 2
+
+[node name="AIIdleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIIdleContainer"]
+layout_mode = 2
 
 [node name="AICombatContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2

@@ -14,7 +14,9 @@ signal back_pressed
 @onready var blood_decals_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BloodDecalsContainer/BloodDecalsCheckbox
 @onready var screen_shake_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ScreenShakeContainer/ScreenShakeCheckbox
 @onready var explosion_lights_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ExplosionLightsContainer/ExplosionLightsCheckbox
+@onready var wall_hit_particles_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/WallHitParticlesContainer/WallHitParticlesCheckbox
 @onready var ai_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIContainer/AICheckbox
+@onready var ai_idle_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIIdleContainer/AIIdleCheckbox
 @onready var ai_combat_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AICombatContainer/AICombatCheckbox
 @onready var ai_seeking_cover_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISeekingCoverContainer/AISeekingCoverCheckbox
 @onready var ai_in_cover_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIInCoverContainer/AIInCoverCheckbox
@@ -34,7 +36,9 @@ func _ready() -> void:
 	blood_decals_checkbox.toggled.connect(_on_blood_decals_toggled)
 	screen_shake_checkbox.toggled.connect(_on_screen_shake_toggled)
 	explosion_lights_checkbox.toggled.connect(_on_explosion_lights_toggled)
+	wall_hit_particles_checkbox.toggled.connect(_on_wall_hit_particles_toggled)
 	ai_checkbox.toggled.connect(_on_ai_toggled)
+	ai_idle_checkbox.toggled.connect(func(e): _on_ai_state_toggled("idle", e))
 	ai_combat_checkbox.toggled.connect(func(e): _on_ai_state_toggled("combat", e))
 	ai_seeking_cover_checkbox.toggled.connect(func(e): _on_ai_state_toggled("seeking_cover", e))
 	ai_in_cover_checkbox.toggled.connect(func(e): _on_ai_state_toggled("in_cover", e))
@@ -53,6 +57,9 @@ func _ready() -> void:
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings:
 		perf_settings.settings_changed.connect(_update_ui)
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings and gameplay_settings.has_signal("settings_changed"):
+		gameplay_settings.settings_changed.connect(_update_ui)
 
 	# Allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -68,7 +75,10 @@ func _update_ui() -> void:
 	blood_decals_checkbox.button_pressed = perf_settings.is_blood_decals_enabled()
 	screen_shake_checkbox.button_pressed = perf_settings.is_screen_shake_enabled()
 	explosion_lights_checkbox.button_pressed = perf_settings.is_explosion_lights_enabled()
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	wall_hit_particles_checkbox.button_pressed = gameplay_settings.is_wall_hit_particles_enabled() if gameplay_settings else true
 	ai_checkbox.button_pressed = perf_settings.is_ai_enabled()
+	ai_idle_checkbox.button_pressed = perf_settings.is_ai_state_idle_enabled()
 	ai_combat_checkbox.button_pressed = perf_settings.is_ai_state_combat_enabled()
 	ai_seeking_cover_checkbox.button_pressed = perf_settings.is_ai_state_seeking_cover_enabled()
 	ai_in_cover_checkbox.button_pressed = perf_settings.is_ai_state_in_cover_enabled()
@@ -85,7 +95,10 @@ func _update_ui() -> void:
 	if not perf_settings.is_blood_decals_enabled(): disabled_parts.append("Blood decals")
 	if not perf_settings.is_screen_shake_enabled(): disabled_parts.append("Screen shake")
 	if not perf_settings.is_explosion_lights_enabled(): disabled_parts.append("Explosion lights")
+	var gs: Node = get_node_or_null("/root/GameplaySettings")
+	if gs and not gs.is_wall_hit_particles_enabled(): disabled_parts.append("Wall hit particles")
 	if not perf_settings.is_ai_enabled(): disabled_parts.append("AI")
+	if not perf_settings.is_ai_state_idle_enabled(): disabled_parts.append("AI:IDLE")
 	if not perf_settings.is_ai_state_combat_enabled(): disabled_parts.append("AI:COMBAT")
 	if not perf_settings.is_ai_state_seeking_cover_enabled(): disabled_parts.append("AI:SEEKING_COVER")
 	if not perf_settings.is_ai_state_in_cover_enabled(): disabled_parts.append("AI:IN_COVER")
@@ -130,6 +143,13 @@ func _on_explosion_lights_toggled(enabled: bool) -> void:
 	_update_ui()
 
 
+func _on_wall_hit_particles_toggled(enabled: bool) -> void:
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings:
+		gameplay_settings.set_wall_hit_particles_enabled(enabled)
+	_update_ui()
+
+
 func _on_ai_toggled(enabled: bool) -> void:
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings:
@@ -142,6 +162,7 @@ func _on_ai_state_toggled(state_name: String, enabled: bool) -> void:
 	if perf_settings == null:
 		return
 	match state_name:
+		"idle": perf_settings.set_ai_state_idle_enabled(enabled)
 		"combat": perf_settings.set_ai_state_combat_enabled(enabled)
 		"seeking_cover": perf_settings.set_ai_state_seeking_cover_enabled(enabled)
 		"in_cover": perf_settings.set_ai_state_in_cover_enabled(enabled)

@@ -34,8 +34,9 @@ var explosion_lights_enabled: bool = true
 var ai_enabled: bool = true
 
 ## Per-state AI toggles (Issue #1186).
-## When a state is disabled, enemies skip that state's logic and stay in IDLE.
+## When a state is disabled, enemies redirect to another state for performance profiling.
 ## Use these to isolate CPU cost of individual AI state logic.
+var ai_state_idle_enabled: bool = true        ## IDLE state: patrol/guard scanning. Disable to force all enemies into active states.
 var ai_state_combat_enabled: bool = true      ## COMBAT state: cover peek, shoot, return.
 var ai_state_seeking_cover_enabled: bool = true  ## SEEKING_COVER state: pathfind to cover.
 var ai_state_in_cover_enabled: bool = true    ## IN_COVER state: wait, peek-and-shoot.
@@ -130,6 +131,13 @@ func is_ai_enabled() -> bool:
 
 
 ## Per-state AI toggle getters/setters (Issue #1186).
+func set_ai_state_idle_enabled(enabled: bool) -> void:
+	if ai_state_idle_enabled != enabled:
+		ai_state_idle_enabled = enabled; settings_changed.emit(); _save_settings()
+		_log_to_file("AI state IDLE %s" % ("enabled" if enabled else "disabled"))
+
+func is_ai_state_idle_enabled() -> bool: return ai_state_idle_enabled
+
 func set_ai_state_combat_enabled(enabled: bool) -> void:
 	if ai_state_combat_enabled != enabled:
 		ai_state_combat_enabled = enabled; settings_changed.emit(); _save_settings()
@@ -194,11 +202,13 @@ func set_ai_state_searching_enabled(enabled: bool) -> void:
 func is_ai_state_searching_enabled() -> bool: return ai_state_searching_enabled
 
 
-## Filter AI state - returns IDLE (0) if the given state is disabled (Issue #1186).
-## Used by enemy.gd to redirect disabled states to IDLE for performance profiling.
+## Filter AI state - redirects disabled states (Issue #1186).
+## Used by enemy.gd at transition time to skip disabled states during profiling.
+## IDLE disabled -> SEARCHING (keeps enemies busy); other states disabled -> IDLE.
 func filter_ai_state(state: int) -> int:
 	match state:
-		1: if not ai_state_combat_enabled: return 0       # COMBAT -> IDLE
+		0: if not ai_state_idle_enabled: return 9          # IDLE -> SEARCHING
+		1: if not ai_state_combat_enabled: return 0        # COMBAT -> IDLE
 		2: if not ai_state_seeking_cover_enabled: return 0 # SEEKING_COVER -> IDLE
 		3: if not ai_state_in_cover_enabled: return 0      # IN_COVER -> IDLE
 		4: if not ai_state_flanking_enabled: return 0      # FLANKING -> IDLE
@@ -225,6 +235,7 @@ func _save_settings() -> void:
 	config.set_value("performance", "screen_shake_enabled", screen_shake_enabled)
 	config.set_value("performance", "explosion_lights_enabled", explosion_lights_enabled)
 	config.set_value("performance", "ai_enabled", ai_enabled)
+	config.set_value("ai_states", "idle", ai_state_idle_enabled)
 	config.set_value("ai_states", "combat", ai_state_combat_enabled)
 	config.set_value("ai_states", "seeking_cover", ai_state_seeking_cover_enabled)
 	config.set_value("ai_states", "in_cover", ai_state_in_cover_enabled)
@@ -249,6 +260,7 @@ func _load_settings() -> void:
 		screen_shake_enabled = config.get_value("performance", "screen_shake_enabled", true)
 		explosion_lights_enabled = config.get_value("performance", "explosion_lights_enabled", true)
 		ai_enabled = config.get_value("performance", "ai_enabled", true)
+		ai_state_idle_enabled = config.get_value("ai_states", "idle", true)
 		ai_state_combat_enabled = config.get_value("ai_states", "combat", true)
 		ai_state_seeking_cover_enabled = config.get_value("ai_states", "seeking_cover", true)
 		ai_state_in_cover_enabled = config.get_value("ai_states", "in_cover", true)
@@ -264,6 +276,7 @@ func _load_settings() -> void:
 		screen_shake_enabled = true
 		explosion_lights_enabled = true
 		ai_enabled = true
+		ai_state_idle_enabled = true
 		ai_state_combat_enabled = true
 		ai_state_seeking_cover_enabled = true
 		ai_state_in_cover_enabled = true

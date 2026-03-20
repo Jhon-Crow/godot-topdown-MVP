@@ -6,6 +6,7 @@ extends CanvasLayer
 ## - Difficulty
 ## - Sound
 ## - Gameplay
+## - Performance (includes wall hit particles, AI toggles - Issue #1186)
 ## - Experimental
 
 ## Signal emitted when the back button is pressed.
@@ -18,7 +19,6 @@ signal back_pressed
 @export var gameplay_menu_scene: PackedScene
 @export var performance_menu_scene: PackedScene
 @export var experimental_menu_scene: PackedScene
-@export var optimization_menu_scene: PackedScene
 
 ## Instantiated sub-menus.
 var _controls_menu: CanvasLayer = null
@@ -27,7 +27,6 @@ var _sound_menu: CanvasLayer = null
 var _gameplay_menu: CanvasLayer = null
 var _performance_menu: CanvasLayer = null
 var _experimental_menu: CanvasLayer = null
-var _optimization_menu: CanvasLayer = null
 
 ## Reference to the menu container (hidden when a sub-menu is open).
 @onready var menu_container: Control = $MenuContainer
@@ -37,7 +36,6 @@ var _optimization_menu: CanvasLayer = null
 @onready var gameplay_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/GameplayButton
 @onready var performance_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/PerformanceButton
 @onready var experimental_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ExperimentalButton
-@onready var optimization_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/OptimizationButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
 
@@ -48,7 +46,6 @@ func _ready() -> void:
 	gameplay_button.pressed.connect(_on_gameplay_pressed)
 	performance_button.pressed.connect(_on_performance_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
-	optimization_button.pressed.connect(_on_optimization_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	if controls_menu_scene == null:
@@ -63,8 +60,6 @@ func _ready() -> void:
 		performance_menu_scene = preload("res://scenes/ui/PerformanceMenu.tscn")
 	if experimental_menu_scene == null:
 		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
-	if optimization_menu_scene == null:
-		optimization_menu_scene = preload("res://scenes/ui/OptimizationMenu.tscn")
 
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -127,16 +122,6 @@ func _on_experimental_pressed() -> void:
 		add_child(_experimental_menu)
 	else:
 		_experimental_menu.show()
-
-
-func _on_optimization_pressed() -> void:
-	menu_container.hide()
-	if _optimization_menu == null:
-		_optimization_menu = optimization_menu_scene.instantiate()
-		_optimization_menu.back_pressed.connect(_on_sub_back.bind(_optimization_menu, optimization_button))
-		add_child(_optimization_menu)
-	else:
-		_optimization_menu.show()
 
 
 ## Generic back handler for all sub-menus.

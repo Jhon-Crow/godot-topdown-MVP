@@ -1321,8 +1321,6 @@ func _process_ai_state(delta: float) -> void:
 		if try_throw_grenade():
 			return
 
-	var _ps2: Node = get_node_or_null("/root/PerformanceSettings"); if _ps2: _current_state = _ps2.filter_ai_state(_current_state)  # Issue #1186: per-state AI state filter
-
 	# State transitions based on conditions
 	match _current_state:
 		AIState.IDLE: _process_idle_state(delta)
@@ -2576,15 +2574,17 @@ func _shoot_burst_shot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Transition to IDLE state.
 func _transition_to_idle() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings")
+	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
+		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
 	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
 
-## Transition to COMBAT state.
 func _transition_to_combat() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.COMBAT
 	_has_left_idle = true  # Issue #330
 	_detection_timer = 0.0; _detection_delay_elapsed = false
@@ -2596,16 +2596,16 @@ func _transition_to_combat() -> void:
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 
-## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEEKING_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
 	_seeking_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
 	_find_cover_position()
 
-## Transition to IN_COVER state.
 func _transition_to_in_cover() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_in_cover_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.IN_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2626,8 +2626,8 @@ func _can_attempt_flanking() -> bool:
 		return false
 	return true
 
-## Transition to FLANKING state. Returns true if transition succeeded.
 func _transition_to_flanking() -> bool:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_flanking_enabled(): _transition_to_idle(); return false  # Issue #1186
 	# Check if flanking is available
 	if not _can_attempt_flanking():
 		_log_debug("Cannot transition to FLANKING - disabled or on cooldown")
@@ -2699,13 +2699,13 @@ func _is_flank_target_reachable() -> bool:
 
 	return true
 
-## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
-## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.PURSUING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2723,8 +2723,8 @@ func _transition_to_pursuing() -> void:
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
 
-## Transition to ASSAULT state.
 func _transition_to_assault() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.ASSAULT
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2737,8 +2737,8 @@ func _transition_to_assault() -> void:
 	# Find closest cover to player for assault position
 	_find_cover_closest_to_player()
 
-## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
 func _transition_to_searching(center_position: Vector2) -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEARCHING
 	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
 	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
@@ -2764,8 +2764,8 @@ func _transition_to_evading_grenade() -> void:
 	_log_debug("EVADING_GRENADE: Fleeing from grenade at %s, target=%s" % [str(grenade_pos), str(evasion_target)])
 	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(evasion_target))
 
-## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.RETREATING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
