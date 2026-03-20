@@ -248,7 +248,7 @@ func _setup_navigation() -> void:
 	if nav_poly == null:
 		push_warning("NavigationPolygon not found")
 		return
-	print("Baking navigation mesh...")
+	print("Scheduling deferred navigation mesh bake...")
 	nav_poly.clear()
 	# Walkable area outline — walls (collision layer 4) are carved out during bake — Issue #1188
 	var floor_outline: PackedVector2Array = PackedVector2Array([
@@ -258,10 +258,10 @@ func _setup_navigation() -> void:
 		Vector2(64, 5064)
 	])
 	nav_poly.add_outline(floor_outline)
-	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# call_deferred ensures StaticBody2D nodes are fully registered before baking —
 	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
-	nav_region.bake_navigation_polygon(false)
-	print("Navigation mesh baked successfully")
+	nav_region.bake_navigation_polygon.call_deferred(false)
+	print("Navigation mesh bake scheduled (deferred)")
 
 
 ## Configure the player's camera to follow without limits on this large map.

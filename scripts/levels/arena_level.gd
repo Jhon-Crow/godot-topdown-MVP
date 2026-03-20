@@ -815,10 +815,10 @@ func _setup_navigation() -> void:
 	])
 	nav_poly.add_outline(floor_outline)
 
-	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# call_deferred ensures StaticBody2D nodes are fully registered before baking —
 	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
-	nav_region.bake_navigation_polygon(false)
-	print("[ArenaLevel] Navigation mesh baked")
+	nav_region.bake_navigation_polygon.call_deferred(false)
+	print("[ArenaLevel] Navigation mesh bake scheduled (deferred)")
 
 
 ## Setup player tracking and connect weapon signals.

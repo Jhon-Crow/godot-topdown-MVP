@@ -175,7 +175,7 @@ func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region:
 		nav_region.navigation_polygon.agent_radius = 24.0
-		nav_region.bake_navigation_polygon(false)
+		nav_region.bake_navigation_polygon.call_deferred(false)
 
 
 func _setup_player_tracking() -> void:

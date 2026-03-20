@@ -673,9 +673,9 @@ func _setup_navigation() -> void:
 		Vector2(ROOM_WIDTH - 24, ROOM_HEIGHT - 24),
 		Vector2(24, ROOM_HEIGHT - 24),
 	]))
-	# bake_navigation_polygon(false) runs synchronously and correctly carves out
+	# call_deferred ensures StaticBody2D nodes are fully registered before baking —
 	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
-	nav_region.bake_navigation_polygon(false)
+	nav_region.bake_navigation_polygon.call_deferred(false)
 
 
 func _setup_player_tracking() -> void:

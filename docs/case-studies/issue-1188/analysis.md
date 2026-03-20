@@ -103,3 +103,85 @@ NavigationAgent2D is the correct choice as the project already uses it and all l
 
 ## Files Modified
 - `scripts/objects/enemy.gd` — COMBAT approach, clear shot, pacifist state, `_can_reach_position`
+
+---
+
+## Session 3 Update: NavMesh Still Not Carving Walls (2026-03-20)
+
+### New Evidence
+
+Owner confirmed (with screenshot) that even after Session 2 fix, the navmesh still appears as a solid rectangle with no wall cutouts. Screenshot `navmesh_no_wall_carving_screenshot.png` shows the BuildingLevel with nav mesh debug overlay enabled — the entire level is one blue rectangle with room walls NOT carved out.
+
+Game log `game_log_20260320_084058.txt` shows BuildingLevel being tested, with PATROL STUCK events still occurring.
+
+### Deeper Root Cause: Timing of `bake_navigation_polygon()` in `_ready()`
+
+The Session 2 fix replaced the async `NavigationServer2D.parse_source_geometry_data()` approach with `nav_region.bake_navigation_polygon(false)`. However, calling `bake_navigation_polygon(false)` **directly** in `_ready()` is **still unreliable**.
+
+#### Why `_ready()` Is Too Early for NavMesh Baking
+
+Godot 4's navigation server runs on a **separate thread** from the main game logic. It synchronizes with the physics server only at **physics frame boundaries**. When `_ready()` runs:
+
+1. All nodes have entered the scene tree ✅
+2. All `StaticBody2D` nodes have called `add_child()` ✅
+3. **BUT**: The `PhysicsServer2D` may not have fully processed the registration of all collision shapes yet ⚠️
+4. **AND**: The navigation server's geometry parser queries `PhysicsServer2D` — if it hasn't synced, it finds no obstacles
+
+This is a confirmed behavior documented by Godot navigation system core contributor **smix8** (godotengine/godot#57022):
+
+> "Any change like registering a map, a region or an agent, changing their transform … takes time to sync as the NavigationServer runs on a different thread. Don't expect changes to be in effect immediately or a path to return on the same frame you setup all the regions and maps. You need to wait at least 1 physics tick for the NavigationServer sync and queue flush before changes can take place."
+
+The official Godot documentation on navigation mesh baking (navigation_using_navigationmeshes.rst) also states:
+
+> "Some mega-nodes like TileMap are often not ready on the first frame. Also the parsing needs to happen on the main thread. So do a deferred call to avoid common parsing issues."
+
+#### Evidence: Why Beach/Docks Appeared to Work
+
+The beach and docks levels use the same `bake_navigation_polygon(false)` approach. They may have appeared to work due to:
+- Different scene loading order where physics bodies happened to be registered before the nav region bake ran
+- Or the pre-baked polygon data in the `.tscn` file was not being overwritten (the beach level doesn't call `nav_poly.clear()`)
+
+With the building/labyrinth levels, `nav_poly.clear()` is called before baking, which removes the pre-baked polygon data, so there's no fallback if the bake produces no geometry.
+
+### Correct Fix: `call_deferred()`
+
+The solution is to use `call_deferred()` to defer the bake until after all `_ready()` callbacks have completed and all physics bodies are fully registered:
+
+```gdscript
+# INCORRECT — may run before physics bodies are registered:
+nav_region.bake_navigation_polygon(false)
+
+# CORRECT — deferred, runs after entire scene is fully ready:
+nav_region.bake_navigation_polygon.call_deferred(false)
+```
+
+`call_deferred()` schedules the call to the **end of the current frame**, after:
+1. All `_ready()` callbacks on all nodes have completed
+2. All deferred `add_child()` calls have executed
+3. All physics bodies have fully registered their collision shapes
+
+This guarantees that when the geometry parser runs, all `StaticBody2D` obstacles with `collision_layer = 4` are present and queryable, and the navmesh will correctly carve them out.
+
+### References
+
+- [godotengine/godot#57022 — NavigationServer sync requires 1 physics tick](https://github.com/godotengine/godot/issues/57022)
+- [godotengine/godot#92003 — Runtime-baked navmesh not recognized by agents](https://github.com/godotengine/godot/issues/92003)
+- [Godot Forum #127936 — NavigationRegion2D not baking at runtime (deferred timing issue)](https://forum.godotengine.org/t/navigationregion2d-not-baking-at-runtime/127936)
+- [Godot Docs — Using NavigationServer](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationservers.html)
+
+### Files Updated (Session 3)
+
+All 13 level scripts updated to use `call_deferred()`:
+- `scripts/levels/building_level.gd`
+- `scripts/levels/labyrinth_level.gd`
+- `scripts/levels/labyrinth2_level.gd`
+- `scripts/levels/arena_level.gd`
+- `scripts/levels/castle_level.gd`
+- `scripts/levels/city_level.gd`
+- `scripts/levels/revolver_level.gd`
+- `scripts/levels/test_tier.gd`
+- `scripts/levels/roguelike_level.gd`
+- `scripts/levels/beach_level.gd` (preventive)
+- `scripts/levels/docks_level.gd` (preventive)
+- `scripts/levels/factory_level.gd` (preventive)
+- `scripts/levels/decadence_level.gd` (preventive)
