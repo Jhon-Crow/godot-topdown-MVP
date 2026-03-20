@@ -780,12 +780,8 @@ func _physics_process(delta: float) -> void:
 		_bolt_cycle_timer += delta
 		var step_delay: float = SNIPER_BOLT_STEP_DELAYS[_bolt_cycle_step - 1] if _bolt_cycle_step >= 1 and _bolt_cycle_step <= 4 else SNIPER_BOLT_CYCLE_DELAY
 		if _bolt_cycle_timer >= step_delay:
-			_bolt_cycle_timer = 0.0
-			var audio: Node = get_node_or_null("/root/AudioManager")
-			if audio and audio.has_method("play_asvk_bolt_step"):
-				audio.play_asvk_bolt_step(_bolt_cycle_step)  # [#1177] Play current bolt step sound
-			if _bolt_cycle_step >= 4:
-				_is_bolt_cycling = false; _bolt_cycle_step = 0  # Cycle complete
+			_bolt_cycle_timer = 0.0; var audio: Node = get_node_or_null("/root/AudioManager"); if audio and audio.has_method("play_asvk_bolt_step"): audio.play_asvk_bolt_step(_bolt_cycle_step)  # [#1177]
+			if _bolt_cycle_step >= 4: _is_bolt_cycling = false; _bolt_cycle_step = 0  # Cycle complete
 			else: _bolt_cycle_step += 1  # Advance to next step
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	_update_reload(delta)
