@@ -132,6 +132,9 @@ func _ready() -> void:
 	# Setup window lights in corridors without enemies (Issue #593)
 	_setup_window_lights()
 
+	# Setup warm ceiling lights in the center of large rooms (Issue #1206)
+	_setup_room_warm_lights()
+
 	# Start replay recording
 	_start_replay_recording()
 
@@ -292,6 +295,110 @@ func _setup_weapon_hints() -> void:
 	if _weapon_hints_component.has_method("setup"):
 		_weapon_hints_component.setup(_player, canvas_layer)
 		print("[BuildingLevel] Weapon hints component added and setup")
+
+
+## Setup warm ceiling lights in the centers of large rooms (Issue #1206).
+## Adds PointLight2D nodes with warm yellow-orange color to make the rooms
+## look cozy and aesthetically pleasing. Each large room gets one ceiling light
+## placed at its geometric center.
+##
+## Room centers (derived from RoomLabel bounds in the scene):
+## - Conference Room: ~(1918, 340)
+## - Break Room:      ~(1918, 994)
+## - Server Room:     ~(2074, 1630)
+## - Main Hall:       ~(1200, 1724)
+## - Office 1:        ~(290, 384)
+## - Office 2:        ~(718, 856)
+func _setup_room_warm_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Container node for all room lights
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Large rooms get prominent warm lights; smaller rooms get subtler ones.
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Large rooms — bigger lights
+		[Vector2(1918, 340),  0.9, 5.0, "ConferenceRoom"],
+		[Vector2(1918, 994),  0.9, 5.0, "BreakRoom"],
+		[Vector2(2074, 1630), 0.9, 5.0, "ServerRoom"],
+		[Vector2(1200, 1724), 0.85, 4.5, "MainHall"],
+		# Smaller rooms — softer lights
+		[Vector2(290, 384),   0.7, 3.5, "Office1"],
+		[Vector2(718, 856),   0.7, 3.5, "Office2"],
+	]
+
+	for cfg in room_configs:
+		_create_room_warm_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[BuildingLevel] Warm ceiling lights placed in all rooms (Issue #1206)")
+
+
+## Create a single warm ceiling light at the given room-center position.
+## Uses a soft radial gradient that fades smoothly to black, producing a natural
+## "overhead lamp" feel with no hard visible edge.
+## @param parent: Container node.
+## @param pos: World-space position (room center).
+## @param energy: Light brightness (0–1 range, typical 0.7–0.9).
+## @param scale: Texture scale controlling the light radius.
+## @param room_name: Name suffix for the node (debug convenience).
+func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "WarmLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small visual indicator — a dim warm-colored circle representing the lamp fixture
+	var fixture := ColorRect.new()
+	fixture.color = Color(1.0, 0.85, 0.5, 0.35)  # Pale warm amber, semi-transparent
+	fixture.offset_left = -8.0
+	fixture.offset_top = -8.0
+	fixture.offset_right = 8.0
+	fixture.offset_bottom = 8.0
+	light_node.add_child(fixture)
+
+	# The actual PointLight2D
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(1.0, 0.75, 0.3, 1.0)   # Warm amber-orange
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 3.0
+	light.shadow_color = Color(0.0, 0.0, 0.0, 0.6)
+	light.texture = _create_warm_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the warm room lights.
+## The gradient fades to absolute zero at ~60 % of the radius, leaving a
+## 40 % pure-black buffer so there is no hard visible edge at the quad boundary.
+func _create_warm_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	# Bright warm core
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	# Gradual warm falloff
+	gradient.add_point(0.15, Color(0.85, 0.85, 0.85, 1.0))
+	gradient.add_point(0.30, Color(0.55, 0.55, 0.55, 1.0))
+	gradient.add_point(0.45, Color(0.28, 0.28, 0.28, 1.0))
+	gradient.add_point(0.55, Color(0.08, 0.08, 0.08, 1.0))
+	# Hard fade to zero — 40 % black buffer zone prevents visible edges
+	gradient.add_point(0.60, Color(0.0, 0.0, 0.0, 1.0))
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 512
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(0.5, 0.0)
+	return texture
 
 
 ## Setup window lights in corridors and rooms without enemies (Issue #593).
