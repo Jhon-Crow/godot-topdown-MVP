@@ -333,9 +333,7 @@ const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Max evasion time before giving u
 var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after grenade evasion
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
-
 var _flashlight_detection: FlashlightDetectionComponent = null  ## [Issue #574] Flashlight detection component — detects player flashlight beam.
-
 var _enemy_flashlight: EnemyFlashlightComponent = null  ## [Issue #824] Enemy flashlight for night mode.
 var _is_pre_attack_flashing: bool = false  ## [Issue #824] Pre-attack flash phase.
 var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (used for death animation).
@@ -360,7 +358,6 @@ var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
-
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
 
 func _ready() -> void:
@@ -1305,7 +1302,6 @@ func _process_ai_state(delta: float) -> void:
 		if _current_state != AIState.PURSUING and _current_state != AIState.ASSAULT:
 			_transition_to_pursuing()
 			# Don't return - let the state machine continue to process the PURSUING state
-
 	if _teleport_component and _teleport_component.is_ready() and _under_fire and _current_state != AIState.IN_COVER:  # #752: cover-teleport
 		if not _has_valid_cover: _find_cover_position()
 		if _has_valid_cover and _teleport_component.try_teleport(_cover_position): _transition_to_in_cover(); return
@@ -1359,7 +1355,6 @@ func _process_idle_state(delta: float) -> void:
 			_transition_to_pursuing()
 			return
 		# Low confidence: Continue normal patrol but may wander toward suspected area
-
 	# Execute idle behavior
 	match behavior_mode:
 		BehaviorMode.PATROL: _process_patrol(delta)
@@ -1718,7 +1713,6 @@ func _process_in_cover_state(delta: float) -> void:
 		return
 
 	# NOTE: ASSAULT state transition removed per issue #169
-
 	# Decision making based on target (player or companion) distance and visibility (#934)
 	var can_see_target := _can_see_player or _can_see_companion
 	var has_target := (_player != null) or (_companion != null and _can_see_companion)
@@ -3156,7 +3150,6 @@ func _find_pursuit_cover_toward_player() -> void:
 			# 3. Not too far from our current position
 			# 4. Preferably on a different obstacle than current cover
 			# 5. Reachable (no walls blocking the path)
-
 			var cover_distance_to_player := cover_pos.distance_to(player_pos)
 			var cover_distance_from_me := global_position.distance_to(cover_pos)
 			var progress := my_distance_to_player - cover_distance_to_player
@@ -3492,7 +3485,6 @@ func _find_flank_cover_toward_target() -> void:
 			# 1. Closer to the flank target than we currently are
 			# 2. Not too far from our current position
 			# 3. Reachable (has clear path)
-
 			var my_distance_to_target := global_position.distance_to(_flank_target)
 			var cover_distance_to_target := cover_pos.distance_to(_flank_target)
 			var cover_distance_from_me := global_position.distance_to(cover_pos)
@@ -4607,7 +4599,6 @@ func _draw() -> void:
 		color_fov = Color(0.5, 0.5, 0.5, 0.2); color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)
 	if fov_angle > 0.0:
 		_draw_fov_cone(color_fov, color_fov_edge)
-
 	# Draw line to player if visible
 	if _can_see_player and _player:
 		var to_player := _player.global_position - global_position
@@ -4616,7 +4607,6 @@ func _draw() -> void:
 	if _can_see_companion and _companion != null:
 		var to_companion := _companion.global_position - global_position
 		draw_line(Vector2.ZERO, to_companion, Color.ORANGE, 1.5)
-
 		# Draw bullet spawn point (actual muzzle position) and check if blocked
 		var weapon_forward := _get_weapon_forward_direction()
 		var muzzle_global := _get_bullet_spawn_position(weapon_forward)
@@ -4627,14 +4617,12 @@ func _draw() -> void:
 			# Draw X for blocked spawn point
 			draw_line(spawn_point + Vector2(-5, -5), spawn_point + Vector2(5, 5), color_blocked, 2.0)
 			draw_line(spawn_point + Vector2(-5, 5), spawn_point + Vector2(5, -5), color_blocked, 2.0)
-
 	# Draw line to cover position if we have one
 	if _has_valid_cover:
 		var to_cover := _cover_position - global_position
 		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5)
 		# Draw small circle at cover position
 		draw_circle(to_cover, 8.0, color_to_cover)
-
 	# Draw line to clear shot target if seeking clear shot
 	if _seeking_clear_shot and _clear_shot_target != Vector2.ZERO:
 		var to_target := _clear_shot_target - global_position
@@ -4644,13 +4632,11 @@ func _draw() -> void:
 		draw_line(target_pos + Vector2(-6, 6), target_pos + Vector2(6, 6), color_clear_shot, 2.0)
 		draw_line(target_pos + Vector2(6, 6), target_pos + Vector2(0, -8), color_clear_shot, 2.0)
 		draw_line(target_pos + Vector2(0, -8), target_pos + Vector2(-6, 6), color_clear_shot, 2.0)
-
 	# Draw line to pursuit cover if pursuing
 	if _current_state == AIState.PURSUING and _has_pursuit_cover:
 		var to_pursuit := _pursuit_next_cover - global_position
 		draw_line(Vector2.ZERO, to_pursuit, color_pursuit, 2.0)
 		draw_circle(to_pursuit, 8.0, color_pursuit)
-
 	# Draw line to flank target if flanking
 	if _current_state == AIState.FLANKING:
 		if _has_flank_cover:
@@ -4666,7 +4652,6 @@ func _draw() -> void:
 			draw_line(flank_pos + Vector2(8, 0), flank_pos + Vector2(0, 8), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
-
 	# Draw suspected position from memory system (Issue #297)
 	# The circle radius is inversely proportional to confidence (larger = less certain)
 	if _memory and _memory.has_target():
@@ -4689,7 +4674,6 @@ func _draw() -> void:
 			draw_line(p1, p2, confidence_color, 1.5)
 		# Draw small filled circle at center
 		draw_circle(to_suspected, 5.0, confidence_color)
-
 ## Draw FOV cone with obstacle occlusion. Follows model rotation, rays stop at walls.
 func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
 	var half_fov := deg_to_rad(fov_angle / 2.0)
