@@ -924,8 +924,9 @@ public partial class Player : BaseCharacter
         {
             _bodySprite = _playerModel.GetNodeOrNull<Sprite2D>("Body");
             _headSprite = _playerModel.GetNodeOrNull<Sprite2D>("Head");
-            _leftArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("LeftArm");
-            _rightArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightArm");
+            // RightShoulder is the upper arm; RightForearm is its child and follows automatically.
+            _leftArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightShoulder");
+            _rightArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightShoulder/RightForearm");
             // Legacy compatibility - _sprite points to body
             _sprite = _bodySprite;
         }
@@ -1135,24 +1136,18 @@ public partial class Player : BaseCharacter
         {
             LogToFile("[Player.Init] WARNING: Head sprite NOT found!");
         }
+        // Only store the shoulder base position — forearm follows as a child node automatically.
         if (_leftArmSprite != null)
         {
             _baseLeftArmPos = _leftArmSprite.Position;
-            LogToFile($"[Player.Init] Left arm sprite found at position: {_baseLeftArmPos}");
+            LogToFile($"[Player.Init] RightShoulder found at position: {_baseLeftArmPos}");
         }
         else
         {
-            LogToFile("[Player.Init] WARNING: Left arm sprite NOT found!");
+            LogToFile("[Player.Init] WARNING: RightShoulder sprite NOT found!");
         }
-        if (_rightArmSprite != null)
-        {
-            _baseRightArmPos = _rightArmSprite.Position;
-            LogToFile($"[Player.Init] Right arm sprite found at position: {_baseRightArmPos}");
-        }
-        else
-        {
-            LogToFile("[Player.Init] WARNING: Right arm sprite NOT found!");
-        }
+        // _baseRightArmPos is unused (forearm follows parent); keep for legacy compatibility.
+        _baseRightArmPos = Vector2.Zero;
 
         // Apply scale to player model for larger appearance
         if (_playerModel != null)
@@ -1180,11 +1175,8 @@ public partial class Player : BaseCharacter
         }
         if (_leftArmSprite != null)
         {
-            _leftArmSprite.ZIndex = 2;  // Arms between body and head
-        }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.ZIndex = 2;  // Arms between body and head
+            _leftArmSprite.ZIndex = 4;  // Shoulder visible (outer/gun-side arm segment)
+            // RightForearm has z_as_relative=false in scene, so its z_index=0 is absolute (hidden behind body)
         }
 
         // Connect to GameManager's debug mode signal for F7 toggle
@@ -1310,14 +1302,9 @@ public partial class Player : BaseCharacter
         }
         if (_leftArmSprite != null)
         {
+            // Modulate the shoulder; RightForearm inherits it as a child node.
+            // The armband is a separate sibling sprite that keeps its own color.
             _leftArmSprite.Modulate = color;
-        }
-        if (_rightArmSprite != null)
-        {
-            // Right arm uses the same color as other body parts.
-            // The armband is now a separate sibling sprite (Armband node under PlayerModel)
-            // that doesn't inherit this modulate, keeping its bright red color visible.
-            _rightArmSprite.Modulate = color;
         }
         // If using old single sprite structure
         if (_playerModel == null && _sprite != null)
@@ -1917,64 +1904,49 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void ApplyWeaponArmOffsets()
     {
-        // Original positions from Player.tscn: LeftArm (24, 6), RightArm (-2, 6)
-        var originalLeftArmPos = new Vector2(24, 6);
-        var originalRightArmPos = new Vector2(-2, 6);
+        // Original position from Player.tscn: RightShoulder (24, 6).
+        // RightForearm is a child of RightShoulder at local offset (-26, 0) and follows automatically.
+        var originalShoulderPos = new Vector2(24, 6);
 
         switch (_currentWeaponType)
         {
             case WeaponType.SMG:
-                // SMG pose: Compact two-handed grip
-                // Left arm moves back toward body for shorter weapon
-                // Right arm moves forward slightly to meet left hand
-                _baseLeftArmPos = originalLeftArmPos + SmgLeftArmOffset;
-                _baseRightArmPos = originalRightArmPos + SmgRightArmOffset;
-                LogToFile($"[Player] Applied SMG arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                // SMG pose: Compact two-handed grip — shoulder moves back toward body
+                _baseLeftArmPos = originalShoulderPos + SmgLeftArmOffset;
+                LogToFile($"[Player] Applied SMG arm pose: Shoulder={_baseLeftArmPos}");
                 break;
 
             case WeaponType.Shotgun:
                 // Shotgun pose: Similar to rifle but slightly tighter
-                _baseLeftArmPos = originalLeftArmPos + new Vector2(-3, 0);
-                _baseRightArmPos = originalRightArmPos + new Vector2(1, 0);
-                LogToFile($"[Player] Applied Shotgun arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                _baseLeftArmPos = originalShoulderPos + new Vector2(-3, 0);
+                LogToFile($"[Player] Applied Shotgun arm pose: Shoulder={_baseLeftArmPos}");
                 break;
 
             case WeaponType.Pistol:
-                // Pistol pose: Two-handed pistol grip (Weaver/Isoceles stance)
-                // Extended forward so the pistol is held away from body
-                // Left arm supports under the right hand
-                // Right arm extends forward for aiming
-                _baseLeftArmPos = originalLeftArmPos + new Vector2(-8, 0);  // Extended forward (was -14)
-                _baseRightArmPos = originalRightArmPos + new Vector2(6, 0);  // Further forward for aiming (was 4)
-                LogToFile($"[Player] Applied Pistol arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                // Pistol pose: Two-handed pistol grip
+                _baseLeftArmPos = originalShoulderPos + new Vector2(-8, 0);
+                LogToFile($"[Player] Applied Pistol arm pose: Shoulder={_baseLeftArmPos}");
                 break;
 
             case WeaponType.Sniper:
                 // Sniper pose: Extended forward grip for long heavy weapon (ASVK)
-                // Left arm reaches further forward to support the heavy barrel
-                // Right arm stays close to body for stable trigger control
-                _baseLeftArmPos = originalLeftArmPos + new Vector2(4, 0);
-                _baseRightArmPos = originalRightArmPos + new Vector2(-1, 0);
-                LogToFile($"[Player] Applied Sniper arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                _baseLeftArmPos = originalShoulderPos + new Vector2(4, 0);
+                LogToFile($"[Player] Applied Sniper arm pose: Shoulder={_baseLeftArmPos}");
                 break;
 
             case WeaponType.Rifle:
             default:
-                // Rifle pose: Standard extended grip (original positions)
-                _baseLeftArmPos = originalLeftArmPos;
-                _baseRightArmPos = originalRightArmPos;
-                LogToFile($"[Player] Applied Rifle arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                // Rifle pose: Standard extended grip (original position)
+                _baseLeftArmPos = originalShoulderPos;
+                LogToFile($"[Player] Applied Rifle arm pose: Shoulder={_baseLeftArmPos}");
                 break;
         }
 
-        // Apply new base positions to sprites immediately
+        // Apply new base position to shoulder immediately.
+        // RightForearm follows as a child node automatically.
         if (_leftArmSprite != null)
         {
             _leftArmSprite.Position = _baseLeftArmPos;
-        }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.Position = _baseRightArmPos;
         }
     }
 
@@ -2054,14 +2026,8 @@ public partial class Player : BaseCharacter
 
             if (_leftArmSprite != null)
             {
-                // Left arm swings forward/back (y-axis in top-down)
+                // Shoulder swings forward/back during walk; forearm follows as child node.
                 _leftArmSprite.Position = _baseLeftArmPos + new Vector2(armSwing, 0);
-            }
-
-            if (_rightArmSprite != null)
-            {
-                // Right arm swings opposite to left arm
-                _rightArmSprite.Position = _baseRightArmPos + new Vector2(-armSwing, 0);
             }
         }
         else
@@ -2086,10 +2052,6 @@ public partial class Player : BaseCharacter
             if (_leftArmSprite != null)
             {
                 _leftArmSprite.Position = _leftArmSprite.Position.Lerp(_baseLeftArmPos, lerpSpeed);
-            }
-            if (_rightArmSprite != null)
-            {
-                _rightArmSprite.Position = _rightArmSprite.Position.Lerp(_baseRightArmPos, lerpSpeed);
             }
         }
     }
@@ -3934,70 +3896,64 @@ public partial class Player : BaseCharacter
             progress = Mathf.Clamp(1.0f - (_grenadeAnimTimer / _grenadeAnimDuration), 0.0f, 1.0f);
         }
 
-        // Calculate target positions based on current phase
-        Vector2 leftArmTarget = _baseLeftArmPos;
-        Vector2 rightArmTarget = _baseRightArmPos;
-        float leftArmRot = 0.0f;
-        float rightArmRot = 0.0f;
+        // Calculate target position for the shoulder.
+        // RightForearm local rotation creates elbow bend: forearm_local_rot = forearm_world_rot - shoulder_rot.
+        Vector2 shoulderTarget = _baseLeftArmPos;
+        float shoulderRot = 0.0f;
+        float forearmLocalRot = 0.0f;  // Forearm rotation relative to shoulder (elbow bend)
         float lerpSpeed = AnimLerpSpeed * delta;
 
-        // Set arms to lower z-index during grenade operations (below weapon)
-        // This ensures arms appear below the weapon as user requested
+        // Set arm to lower z-index during grenade operations (below weapon)
         SetGrenadeAnimZIndex();
 
         switch (_grenadeAnimPhase)
         {
             case GrenadeAnimPhase.GrabGrenade:
-                // Left arm moves back to shoulder/chest area (away from weapon) to grab grenade
-                // Large negative X offset pulls the arm from weapon front (x=24) toward body (x~5)
-                leftArmTarget = _baseLeftArmPos + ArmLeftChest;
-                leftArmRot = Mathf.DegToRad(ArmRotGrab);
+                // Arm pulls back to chest area; forearm stays at world-horizontal
+                shoulderTarget = _baseLeftArmPos + ArmLeftChest;
+                shoulderRot = Mathf.DegToRad(ArmRotGrab);
+                forearmLocalRot = Mathf.DegToRad(0.0f - ArmRotGrab);  // forearm world=0 → local = -shoulder
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case GrenadeAnimPhase.PullPin:
-                // Left hand holds grenade at chest level, right hand pulls pin
-                leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
-                rightArmTarget = _baseRightArmPos + ArmRightPin;
-                rightArmRot = Mathf.DegToRad(ArmRotPinPull);
+                // Arm at chest level; forearm angled for pin pull
+                shoulderTarget = _baseLeftArmPos + ArmLeftExtended;
+                shoulderRot = Mathf.DegToRad(ArmRotLeftAtChest);
+                forearmLocalRot = Mathf.DegToRad(ArmRotPinPull - ArmRotLeftAtChest);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case GrenadeAnimPhase.HandsApproach:
-                // Both hands at chest level, preparing for transfer
-                leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
-                rightArmTarget = _baseRightArmPos + ArmRightApproach;
+                // Arm at chest level, preparing to throw; forearm stays at world-horizontal
+                shoulderTarget = _baseLeftArmPos + ArmLeftExtended;
+                shoulderRot = Mathf.DegToRad(ArmRotLeftAtChest);
+                forearmLocalRot = Mathf.DegToRad(0.0f - ArmRotLeftAtChest);
                 break;
 
             case GrenadeAnimPhase.Transfer:
-                // Left arm drops back toward body, right hand takes grenade
-                leftArmTarget = _baseLeftArmPos + ArmLeftTransfer;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f);
-                rightArmTarget = _baseRightArmPos + ArmRightHold;
+                // Arm drops back toward body; forearm stays at world-horizontal
+                shoulderTarget = _baseLeftArmPos + ArmLeftTransfer;
+                shoulderRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f);
+                forearmLocalRot = Mathf.DegToRad(0.0f - ArmRotLeftRelaxed * 0.5f);
                 lerpSpeed = AnimLerpSpeed * delta;
                 break;
 
             case GrenadeAnimPhase.WindUp:
-                // LEFT ARM: Fully retracted to shoulder/body area, hangs at side
-                // This is the key position - arm must be clearly NOT on the weapon
-                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
-                // RIGHT ARM: Interpolate between min and max wind-up based on intensity
+                // Arm winds up for throw; arm stays straight during wind-up
                 Vector2 windUpOffset = ArmRightWindMin.Lerp(ArmRightWindMax, _windUpIntensity);
-                rightArmTarget = _baseRightArmPos + windUpOffset;
+                shoulderTarget = _baseLeftArmPos + windUpOffset;
                 float windUpRot = Mathf.Lerp(ArmRotWindMin, ArmRotWindMax, _windUpIntensity);
-                rightArmRot = Mathf.DegToRad(windUpRot);
+                shoulderRot = Mathf.DegToRad(windUpRot);
+                forearmLocalRot = 0.0f;  // Arm straight during wind-up
                 lerpSpeed = AnimLerpSpeedFast * delta; // Responsive to input
                 break;
 
             case GrenadeAnimPhase.Throw:
-                // Throwing motion - right arm swings forward, left stays at body
-                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
-                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
-                rightArmTarget = _baseRightArmPos + ArmRightThrow;
-                rightArmRot = Mathf.DegToRad(ArmRotThrow);
+                // Throwing motion — arm swings forward; arm straight during throw
+                shoulderTarget = _baseLeftArmPos + ArmRightThrow;
+                shoulderRot = Mathf.DegToRad(ArmRotThrow);
+                forearmLocalRot = 0.0f;  // Arm straight during throw
                 lerpSpeed = AnimLerpSpeedFast * delta;
 
                 // When throw animation completes, transition to return
@@ -4008,9 +3964,9 @@ public partial class Player : BaseCharacter
                 break;
 
             case GrenadeAnimPhase.ReturnIdle:
-                // Arms returning to base positions (back to holding weapon)
-                leftArmTarget = _baseLeftArmPos;
-                rightArmTarget = _baseRightArmPos;
+                // Arm returning to base position (back to holding weapon)
+                shoulderTarget = _baseLeftArmPos;
+                forearmLocalRot = 0.0f;
                 lerpSpeed = AnimLerpSpeed * delta;
 
                 // When return animation completes, end animation
@@ -4024,17 +3980,15 @@ public partial class Player : BaseCharacter
                 break;
         }
 
-        // Apply arm positions with smooth interpolation
+        // Apply shoulder position and forearm local rotation with smooth interpolation.
         if (_leftArmSprite != null)
         {
-            _leftArmSprite.Position = _leftArmSprite.Position.Lerp(leftArmTarget, lerpSpeed);
-            _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, leftArmRot, lerpSpeed);
+            _leftArmSprite.Position = _leftArmSprite.Position.Lerp(shoulderTarget, lerpSpeed);
+            _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, shoulderRot, lerpSpeed);
         }
-
         if (_rightArmSprite != null)
         {
-            _rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
-            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, rightArmRot, lerpSpeed);
+            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, forearmLocalRot, lerpSpeed);
         }
 
         // Update weapon sling animation
@@ -4046,31 +4000,24 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void SetGrenadeAnimZIndex()
     {
-        // During grenade operations, arms should appear below the weapon
-        // Weapon has z_index = 1, so set arms to 0
+        // During grenade operations, arm should appear below the weapon
         if (_leftArmSprite != null)
         {
             _leftArmSprite.ZIndex = 0;
-        }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.ZIndex = 0;
+            // RightForearm has z_as_relative=false, so its z_index=0 absolute stays behind body regardless
         }
     }
 
     /// <summary>
-    /// Restore normal arm z-index (arms above weapon for normal aiming).
+    /// Restore normal arm z-index (shoulder visible at z=4, forearm hidden at absolute z=0).
     /// </summary>
     private void RestoreArmZIndex()
     {
-        // Normal state: arms at z_index 2 (between body and head)
+        // Normal state: shoulder visible (z=4, outer/gun-side arm segment)
+        // RightForearm has z_as_relative=false with z_index=0, so it stays behind body regardless
         if (_leftArmSprite != null)
         {
-            _leftArmSprite.ZIndex = 2;
-        }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.ZIndex = 2;
+            _leftArmSprite.ZIndex = 4;
         }
     }
 
@@ -4184,15 +4131,12 @@ public partial class Player : BaseCharacter
     private void SetReloadAnimZIndex()
     {
         // During reload operations, arms should appear BELOW the weapon
-        // Weapon has z_index = 1, so set arms to 0
+        // Weapon has z_index = 1, so set shoulder to 0
         if (_leftArmSprite != null)
         {
             _leftArmSprite.ZIndex = 0;
         }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.ZIndex = 0;
-        }
+        // RightForearm has z_as_relative=false with z_index=0 absolute — already hidden behind body.
     }
 
     /// <summary>
@@ -4216,11 +4160,11 @@ public partial class Player : BaseCharacter
             _reloadAnimTimer -= delta;
         }
 
-        // Calculate target positions based on current phase
+        // Calculate target positions for the shoulder (left arm sprite).
+        // Forearm local rotation creates elbow bend: forearm_local_rot = forearm_world_rot - shoulder_rot.
         Vector2 leftArmTarget = _baseLeftArmPos;
-        Vector2 rightArmTarget = _baseRightArmPos;
         float leftArmRot = 0.0f;
-        float rightArmRot = 0.0f;
+        float forearmLocalRot = 0.0f;  // Forearm rotation relative to shoulder (elbow bend)
         float lerpSpeed = AnimLerpSpeed * delta;
 
         // Set arms to lower z-index during reload operations (BELOW weapon)
@@ -4230,42 +4174,35 @@ public partial class Player : BaseCharacter
         switch (_reloadAnimPhase)
         {
             case ReloadAnimPhase.GrabMagazine:
-                // Step 1: Left arm moves to chest to grab new magazine
+                // Step 1: Left arm moves to chest to grab new magazine; forearm stays at world-horizontal
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftGrab;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftGrab);
-                rightArmTarget = _baseRightArmPos + ReloadArmRightHold;
-                rightArmRot = Mathf.DegToRad(ReloadArmRotRightHold);
+                forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightHold - ReloadArmRotLeftGrab);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case ReloadAnimPhase.InsertMagazine:
-                // Step 2: Left arm brings magazine to weapon magwell (at middle of weapon)
-                // User feedback: "step 2 should end at middle of weapon length, not at the end"
+                // Step 2: Left arm brings magazine to weapon magwell
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftInsert;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftInsert);
-                rightArmTarget = _baseRightArmPos + ReloadArmRightSteady;
-                rightArmRot = Mathf.DegToRad(ReloadArmRotRightSteady);
+                forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightSteady - ReloadArmRotLeftInsert);
                 lerpSpeed = AnimLerpSpeed * delta;
                 break;
 
             case ReloadAnimPhase.PullBolt:
-                // Step 3: Right hand traces rifle contour - back and forth motion
-                // User feedback: "step 3 should be a movement along the rifle contour
-                // right towards and away from oneself (back and forth)"
+                // Step 3: Shoulder shifts to support position while bolt is pulled.
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftSupport;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftSupport);
 
                 if (_boltPullSubPhase == 0)
                 {
-                    // Sub-phase 0: Pull bolt back (toward player)
-                    rightArmTarget = _baseRightArmPos + ReloadArmRightBoltPull;
-                    rightArmRot = Mathf.DegToRad(ReloadArmRotRightBoltPull);
+                    forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightBoltPull - ReloadArmRotLeftSupport);
                     lerpSpeed = AnimLerpSpeedFast * delta;
 
                     // Log bolt pull progress periodically
                     if (Engine.GetFramesDrawn() % 30 == 0)
                     {
-                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 0 (pull back): timer={_reloadAnimTimer:F2}s, rightArm target={rightArmTarget}");
+                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 0 (pull back): timer={_reloadAnimTimer:F2}s");
                     }
 
                     // When pull back completes, transition to return forward
@@ -4279,15 +4216,13 @@ public partial class Player : BaseCharacter
                 }
                 else
                 {
-                    // Sub-phase 1: Release bolt (return forward)
-                    rightArmTarget = _baseRightArmPos + ReloadArmRightBoltReturn;
-                    rightArmRot = Mathf.DegToRad(ReloadArmRotRightBoltReturn);
+                    forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightBoltReturn - ReloadArmRotLeftSupport);
                     lerpSpeed = AnimLerpSpeedFast * delta;
 
                     // Log bolt return progress periodically
                     if (Engine.GetFramesDrawn() % 30 == 0)
                     {
-                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 1 (return): timer={_reloadAnimTimer:F2}s, rightArm target={rightArmTarget}");
+                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 1 (return): timer={_reloadAnimTimer:F2}s");
                     }
 
                     // When return completes, transition to return idle
@@ -4300,11 +4235,10 @@ public partial class Player : BaseCharacter
                 break;
 
             case ReloadAnimPhase.ReturnIdle:
-                // Arms returning to base positions
+                // Shoulder returning to base position
                 leftArmTarget = _baseLeftArmPos;
-                rightArmTarget = _baseRightArmPos;
                 leftArmRot = 0.0f;
-                rightArmRot = 0.0f;
+                forearmLocalRot = 0.0f;
                 lerpSpeed = AnimLerpSpeed * delta;
 
                 // When return animation completes, end animation and restore z-index
@@ -4320,7 +4254,6 @@ public partial class Player : BaseCharacter
         // Apply arm positions with smooth interpolation
         if (_leftArmSprite != null)
         {
-            Vector2 oldPos = _leftArmSprite.Position;
             _leftArmSprite.Position = _leftArmSprite.Position.Lerp(leftArmTarget, lerpSpeed);
             _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, leftArmRot, lerpSpeed);
 
@@ -4335,21 +4268,11 @@ public partial class Player : BaseCharacter
             LogToFile("[Player.Reload.Anim] WARNING: Left arm sprite is null during animation!");
         }
 
+        // Apply forearm local rotation for elbow bend effect.
+        // RightForearm local position (-26, 0) stays fixed — only rotation changes for the bend.
         if (_rightArmSprite != null)
         {
-            Vector2 oldPos = _rightArmSprite.Position;
-            _rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
-            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, rightArmRot, lerpSpeed);
-
-            // Log arm position changes periodically (every 60 frames = ~1 second)
-            if (Engine.GetFramesDrawn() % 60 == 0)
-            {
-                LogToFile($"[Player.Reload.Anim] RightArm: pos={_rightArmSprite.Position}, target={rightArmTarget}, base={_baseRightArmPos}");
-            }
-        }
-        else if (Engine.GetFramesDrawn() % 60 == 0)
-        {
-            LogToFile("[Player.Reload.Anim] WARNING: Right arm sprite is null during animation!");
+            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, forearmLocalRot, lerpSpeed);
         }
     }
 
@@ -5360,7 +5283,7 @@ public partial class Player : BaseCharacter
         }
 
         var tint = new Color(0.3f, 1.0f, 0.7f, 1.0f);
-        foreach (var spriteName in new[] { "Body", "Head", "LeftArm", "RightArm" })
+        foreach (var spriteName in new[] { "Body", "Head", "RightShoulder" })
         {
             var sprite = model.GetNodeOrNull(spriteName);
             if (sprite is Sprite2D sprite2D)

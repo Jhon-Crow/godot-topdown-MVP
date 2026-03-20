@@ -82,8 +82,13 @@ var _is_alive: bool = true
 ## References to individual sprite parts for color changes.
 @onready var _body_sprite: Sprite2D = $PlayerModel/Body
 @onready var _head_sprite: Sprite2D = $PlayerModel/Head
-@onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
-@onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
+## Right arm: shoulder (upper arm) and forearm. RightForearm is a child of RightShoulder
+## so it automatically follows the shoulder during animation — no separate animation needed.
+@onready var _right_shoulder_sprite: Sprite2D = $PlayerModel/RightShoulder
+@onready var _right_forearm_sprite: Sprite2D = $PlayerModel/RightShoulder/RightForearm
+## Legacy aliases kept for compatibility with death_animation_component and other callers.
+@onready var _left_arm_sprite: Sprite2D = $PlayerModel/RightShoulder
+@onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightShoulder/RightForearm
 
 ## Reference to the casing pusher area (for pushing shell casings when walking over them).
 @onready var _casing_pusher: Area2D = $CasingPusher
@@ -327,10 +332,11 @@ func _ready() -> void:
 		_base_body_pos = _body_sprite.position
 	if _head_sprite:
 		_base_head_pos = _head_sprite.position
-	if _left_arm_sprite:
-		_base_left_arm_pos = _left_arm_sprite.position
-	if _right_arm_sprite:
-		_base_right_arm_pos = _right_arm_sprite.position
+	# Only store shoulder base position — forearm is a child of shoulder and follows automatically.
+	if _right_shoulder_sprite:
+		_base_left_arm_pos = _right_shoulder_sprite.position
+	# _base_right_arm_pos is unused (forearm follows parent); keep for legacy compatibility.
+	_base_right_arm_pos = Vector2.ZERO
 
 	# Apply scale to player model for larger appearance
 	if _player_model:
@@ -347,10 +353,9 @@ func _ready() -> void:
 		_head_sprite.z_index = 3  # Head on top (above weapon)
 	if _body_sprite:
 		_body_sprite.z_index = 1  # Body same level as weapon
-	if _left_arm_sprite:
-		_left_arm_sprite.z_index = 2  # Arms between body and head
-	if _right_arm_sprite:
-		_right_arm_sprite.z_index = 2  # Arms between body and head
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.z_index = 4  # Shoulder visible (outer/gun-side arm segment)
+	# RightForearm has z_as_relative=false in scene, so its z_index=0 is absolute (hidden behind body)
 
 	# Note: Weapon pose detection is done in _process() after a few frames
 	# to ensure level scripts have finished adding weapons to the player.
@@ -641,50 +646,35 @@ func _detect_and_apply_weapon_pose() -> void:
 
 
 ## Applies arm position offsets based on current weapon type.
-## Modifies base arm positions to create appropriate weapon-holding poses.
+## Modifies base shoulder position to create appropriate weapon-holding poses.
+## The forearm (RightForearm) is a child of RightShoulder and follows automatically.
 func _apply_weapon_arm_offsets() -> void:
-	# Reset to original scene positions first
-	# Original positions from Player.tscn: LeftArm (24, 6), RightArm (-2, 6)
-	var original_left_arm_pos := Vector2(24, 6)
-	var original_right_arm_pos := Vector2(-2, 6)
+	# Reset to original scene position first
+	# Original position from Player.tscn: RightShoulder (24, 6)
+	var original_shoulder_pos := Vector2(24, 6)
 
 	match _current_weapon_type:
 		WeaponType.SMG:
-			# SMG pose: Compact two-handed grip
-			# Left arm moves back toward body for shorter weapon
-			# Right arm moves forward slightly to meet left hand
-			_base_left_arm_pos = original_left_arm_pos + SMG_LEFT_ARM_OFFSET
-			_base_right_arm_pos = original_right_arm_pos + SMG_RIGHT_ARM_OFFSET
-			FileLogger.info("[Player] Applied SMG arm pose: Left=%s, Right=%s" % [
-				str(_base_left_arm_pos), str(_base_right_arm_pos)
-			])
+			# SMG pose: Compact two-handed grip — shoulder moves back toward body
+			_base_left_arm_pos = original_shoulder_pos + SMG_LEFT_ARM_OFFSET
+			FileLogger.info("[Player] Applied SMG arm pose: Shoulder=%s" % str(_base_left_arm_pos))
 		WeaponType.SHOTGUN:
 			# Shotgun pose: Similar to rifle but slightly tighter
-			_base_left_arm_pos = original_left_arm_pos + Vector2(-3, 0)
-			_base_right_arm_pos = original_right_arm_pos + Vector2(1, 0)
-			FileLogger.info("[Player] Applied Shotgun arm pose: Left=%s, Right=%s" % [
-				str(_base_left_arm_pos), str(_base_right_arm_pos)
-			])
+			_base_left_arm_pos = original_shoulder_pos + Vector2(-3, 0)
+			FileLogger.info("[Player] Applied Shotgun arm pose: Shoulder=%s" % str(_base_left_arm_pos))
 		WeaponType.REVOLVER:
-			# Revolver pose: Compact pistol grip, left arm supports right
-			_base_left_arm_pos = original_left_arm_pos + Vector2(-12, 0)
-			_base_right_arm_pos = original_right_arm_pos + Vector2(4, 0)
-			FileLogger.info("[Player] Applied Revolver arm pose: Left=%s, Right=%s" % [
-				str(_base_left_arm_pos), str(_base_right_arm_pos)
-			])
+			# Revolver pose: Compact pistol grip
+			_base_left_arm_pos = original_shoulder_pos + Vector2(-12, 0)
+			FileLogger.info("[Player] Applied Revolver arm pose: Shoulder=%s" % str(_base_left_arm_pos))
 		WeaponType.RIFLE, _:
-			# Rifle pose: Standard extended grip (original positions)
-			_base_left_arm_pos = original_left_arm_pos
-			_base_right_arm_pos = original_right_arm_pos
-			FileLogger.info("[Player] Applied Rifle arm pose: Left=%s, Right=%s" % [
-				str(_base_left_arm_pos), str(_base_right_arm_pos)
-			])
+			# Rifle pose: Standard extended grip (original position)
+			_base_left_arm_pos = original_shoulder_pos
+			FileLogger.info("[Player] Applied Rifle arm pose: Shoulder=%s" % str(_base_left_arm_pos))
 
-	# Apply new base positions to sprites immediately
-	if _left_arm_sprite:
-		_left_arm_sprite.position = _base_left_arm_pos
-	if _right_arm_sprite:
-		_right_arm_sprite.position = _base_right_arm_pos
+	# Apply new base position to shoulder sprite immediately.
+	# Forearm follows automatically as a child node.
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.position = _base_left_arm_pos
 
 
 ## Updates the walking animation based on player movement state.
@@ -717,13 +707,9 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 		if _head_sprite:
 			_head_sprite.position = _base_head_pos + Vector2(0, head_bob)
 
-		if _left_arm_sprite:
-			# Left arm swings forward/back (y-axis in top-down)
-			_left_arm_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
-
-		if _right_arm_sprite:
-			# Right arm swings opposite to left arm
-			_right_arm_sprite.position = _base_right_arm_pos + Vector2(-arm_swing, 0)
+		if _right_shoulder_sprite:
+			# Shoulder swings forward/back during walk; forearm follows as child node.
+			_right_shoulder_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
 	else:
 		# Return to idle pose smoothly
 		if _is_walking:
@@ -736,10 +722,8 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			_body_sprite.position = _body_sprite.position.lerp(_base_body_pos, lerp_speed)
 		if _head_sprite:
 			_head_sprite.position = _head_sprite.position.lerp(_base_head_pos, lerp_speed)
-		if _left_arm_sprite:
-			_left_arm_sprite.position = _left_arm_sprite.position.lerp(_base_left_arm_pos, lerp_speed)
-		if _right_arm_sprite:
-			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
+		if _right_shoulder_sprite:
+			_right_shoulder_sprite.position = _right_shoulder_sprite.position.lerp(_base_left_arm_pos, lerp_speed)
 
 
 ## Calculate current spread based on consecutive shots.
@@ -1215,13 +1199,10 @@ func _set_all_sprites_modulate(color: Color) -> void:
 		_body_sprite.modulate = color
 	if _head_sprite:
 		_head_sprite.modulate = color
-	if _left_arm_sprite:
-		_left_arm_sprite.modulate = color
-	if _right_arm_sprite:
-		# Right arm uses the same color as other body parts.
-		# The armband is now a separate child sprite (Armband node) that
-		# doesn't inherit this modulate, keeping its bright red color visible.
-		_right_arm_sprite.modulate = color
+	if _right_shoulder_sprite:
+		# Modulate the shoulder; RightForearm inherits it as a child node.
+		# The armband is a separate sibling sprite (Armband node) that keeps its own color.
+		_right_shoulder_sprite.modulate = color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).
@@ -1267,12 +1248,14 @@ func _init_death_animation() -> void:
 	_death_animation.name = "DeathAnimation"
 	add_child(_death_animation)
 
-	# Initialize with sprite references
+	# Initialize with sprite references.
+	# Pass null for right_arm (forearm) since RightForearm is a child of RightShoulder
+	# and follows the shoulder automatically during death animation.
 	_death_animation.initialize(
 		_body_sprite,
 		_head_sprite,
-		_left_arm_sprite,
-		_right_arm_sprite,
+		_right_shoulder_sprite,
+		null,
 		_player_model
 	)
 
@@ -1381,8 +1364,8 @@ var _reload_anim_duration: float = 0.0
 
 ## Target positions for reload arm animations (relative offsets from base positions).
 ## These are in local PlayerModel space.
-## Base positions: LeftArm (24, 6), RightArm (-2, 6)
-## For reload, left arm goes to chest (vest/mag pouch area), then to weapon
+## Base position: RightShoulder (24, 6). RightForearm is a child at local offset (-26, 0).
+## For reload, the arm goes to chest (vest/mag pouch area), then to weapon
 
 # Step 1: Grab magazine from chest - left arm moves back toward body
 const RELOAD_ARM_LEFT_GRAB := Vector2(-18, -2)        # Left hand at chest/vest mag pouch
@@ -1568,12 +1551,12 @@ var _base_weapon_mount_pos: Vector2 = Vector2.ZERO
 ## Base weapon mount rotation (for sling animation).
 var _base_weapon_mount_rot: float = 0.0
 
-## Target positions for arm animations (relative offsets from base positions).
+## Target positions for arm animations (relative offsets from base RightShoulder position).
 ## These are in local PlayerModel space.
-## Base positions: LeftArm (24, 6), RightArm (-2, 6)
-## Body position: (-4, 0), so left shoulder area is approximately x=0 to x=5
-## To move left arm from x=24 to shoulder (x~5), we need offset of ~-20
-## During grenade operations, left arm should be BEHIND the body (toward shoulder)
+## Base position: RightShoulder (24, 6). RightForearm is a child at local offset (-26, 0).
+## Body position: (-4, 0), so shoulder area is approximately x=0 to x=5.
+## To move the shoulder from x=24 to body area (x~5), we need offset of ~-20.
+## During grenade operations, the arm should pull BACK toward the body.
 const ARM_LEFT_CHEST := Vector2(-15, 0)         # Left hand moves back to chest/shoulder area
 const ARM_RIGHT_PIN := Vector2(2, -2)           # Right hand slightly up for pin pull
 const ARM_LEFT_EXTENDED := Vector2(-10, 2)      # Left hand at chest level with grenade
@@ -2290,60 +2273,56 @@ func _update_grenade_animation(delta: float) -> void:
 	if _grenade_anim_duration > 0:
 		progress = clampf(1.0 - (_grenade_anim_timer / _grenade_anim_duration), 0.0, 1.0)
 
-	# Calculate target positions based on current phase
-	var left_arm_target := _base_left_arm_pos
-	var right_arm_target := _base_right_arm_pos
-	var left_arm_rot := 0.0
-	var right_arm_rot := 0.0
+	# Calculate target position for the shoulder.
+	# RightForearm is a child of RightShoulder — we animate shoulder for world movement,
+	# and forearm local rotation for elbow bend (forearm_local_rot = forearm_world_rot - shoulder_rot).
+	var shoulder_target := _base_left_arm_pos
+	var shoulder_rot := 0.0
+	var forearm_local_rot := 0.0  # Forearm rotation relative to shoulder (elbow bend)
 	var lerp_speed := ANIM_LERP_SPEED * delta
 
 	match _grenade_anim_phase:
 		GrenadeAnimPhase.GRAB_GRENADE:
-			# Left arm moves back to shoulder/chest area (away from weapon) to grab grenade
-			# Large negative X offset pulls the arm from weapon front toward body
-			left_arm_target = _base_left_arm_pos + ARM_LEFT_CHEST
-			left_arm_rot = deg_to_rad(ARM_ROT_GRAB)
+			# Arm pulls back to chest area to grab grenade; forearm stays straight
+			shoulder_target = _base_left_arm_pos + ARM_LEFT_CHEST
+			shoulder_rot = deg_to_rad(ARM_ROT_GRAB)
+			forearm_local_rot = deg_to_rad(0.0 - ARM_ROT_GRAB)  # forearm world=0 → local = -shoulder
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		GrenadeAnimPhase.PULL_PIN:
-			# Left hand holds grenade at chest level, right hand pulls pin
-			left_arm_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
-			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
-			right_arm_target = _base_right_arm_pos + ARM_RIGHT_PIN
-			right_arm_rot = deg_to_rad(ARM_ROT_PIN_PULL)
+			# Arm at chest level to pull pin; forearm angled slightly for pin pull
+			shoulder_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
+			shoulder_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
+			forearm_local_rot = deg_to_rad(ARM_ROT_PIN_PULL - ARM_ROT_LEFT_AT_CHEST)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		GrenadeAnimPhase.HANDS_APPROACH:
-			# Both hands at chest level, preparing for transfer
-			left_arm_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
-			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
-			right_arm_target = _base_right_arm_pos + ARM_RIGHT_APPROACH
+			# Arm at chest level, preparing to throw
+			shoulder_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
+			shoulder_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
+			forearm_local_rot = deg_to_rad(0.0 - ARM_ROT_LEFT_AT_CHEST)  # forearm world=0
 
 		GrenadeAnimPhase.TRANSFER:
-			# Left arm drops back toward body, right hand takes grenade
-			left_arm_target = _base_left_arm_pos + ARM_LEFT_TRANSFER
-			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED * 0.5)
-			right_arm_target = _base_right_arm_pos + ARM_RIGHT_HOLD
+			# Arm drops back toward body, grenade in hand
+			shoulder_target = _base_left_arm_pos + ARM_LEFT_TRANSFER
+			shoulder_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED * 0.5)
+			forearm_local_rot = deg_to_rad(0.0 - ARM_ROT_LEFT_RELAXED * 0.5)
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 		GrenadeAnimPhase.WIND_UP:
-			# LEFT ARM: Fully retracted to shoulder/body area, hangs at side
-			# This is the key position - arm must be clearly NOT on the weapon
-			left_arm_target = _base_left_arm_pos + ARM_LEFT_RELAXED
-			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED)
-			# RIGHT ARM: Interpolate between min and max wind-up based on intensity
+			# Arm fully winds up for throw; intensity controls how far back; no elbow bend
 			var wind_up_offset := ARM_RIGHT_WIND_MIN.lerp(ARM_RIGHT_WIND_MAX, _wind_up_intensity)
-			right_arm_target = _base_right_arm_pos + wind_up_offset
+			shoulder_target = _base_left_arm_pos + wind_up_offset
 			var wind_up_rot := lerpf(ARM_ROT_WIND_MIN, ARM_ROT_WIND_MAX, _wind_up_intensity)
-			right_arm_rot = deg_to_rad(wind_up_rot)
+			shoulder_rot = deg_to_rad(wind_up_rot)
+			forearm_local_rot = 0.0  # Arm straight during wind-up
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta  # Responsive to input
 
 		GrenadeAnimPhase.THROW:
-			# Throwing motion - right arm swings forward, left stays at body
-			left_arm_target = _base_left_arm_pos + ARM_LEFT_RELAXED
-			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED)
-			right_arm_target = _base_right_arm_pos + ARM_RIGHT_THROW
-			right_arm_rot = deg_to_rad(ARM_ROT_THROW)
+			# Throwing motion — arm swings forward; forearm follows through
+			shoulder_target = _base_left_arm_pos + ARM_RIGHT_THROW
+			shoulder_rot = deg_to_rad(ARM_ROT_THROW)
+			forearm_local_rot = 0.0  # Arm straight during throw
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 			# When throw animation completes, transition to return
@@ -2351,9 +2330,9 @@ func _update_grenade_animation(delta: float) -> void:
 				_start_grenade_anim_phase(GrenadeAnimPhase.RETURN_IDLE, ANIM_RETURN_DURATION)
 
 		GrenadeAnimPhase.RETURN_IDLE:
-			# Arms returning to base positions (back to holding weapon)
-			left_arm_target = _base_left_arm_pos
-			right_arm_target = _base_right_arm_pos
+			# Arm returning to base position (back to holding weapon)
+			shoulder_target = _base_left_arm_pos
+			forearm_local_rot = 0.0
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 			# When return animation completes, end animation
@@ -2362,14 +2341,13 @@ func _update_grenade_animation(delta: float) -> void:
 				_weapon_slung = false
 				FileLogger.info("[Player.Grenade.Anim] Animation complete, returning to normal")
 
-	# Apply arm positions with smooth interpolation
-	if _left_arm_sprite:
-		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
-		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
-
-	if _right_arm_sprite:
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(right_arm_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, right_arm_rot, lerp_speed)
+	# Apply shoulder position with smooth interpolation.
+	# Apply forearm local rotation for elbow bend effect.
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.position = _right_shoulder_sprite.position.lerp(shoulder_target, lerp_speed)
+		_right_shoulder_sprite.rotation = lerpf(_right_shoulder_sprite.rotation, shoulder_rot, lerp_speed)
+	if _right_forearm_sprite:
+		_right_forearm_sprite.rotation = lerpf(_right_forearm_sprite.rotation, forearm_local_rot, lerp_speed)
 
 	# Update weapon sling animation
 	_update_weapon_sling(delta)
@@ -2475,41 +2453,34 @@ func _update_reload_animation(delta: float) -> void:
 	if _reload_anim_duration > 0:
 		progress = clampf(1.0 - (_reload_anim_timer / _reload_anim_duration), 0.0, 1.0)
 
-	# Calculate target positions based on current phase
-	var left_arm_target := _base_left_arm_pos
-	var right_arm_target := _base_right_arm_pos
-	var left_arm_rot := 0.0
-	var right_arm_rot := 0.0
+	# Calculate target position for the shoulder.
+	# RightForearm local rotation creates the elbow bend effect.
+	# forearm_local_rot = forearm_world_rot - shoulder_rot
+	var shoulder_target := _base_left_arm_pos
+	var shoulder_rot := 0.0
+	var forearm_local_rot := 0.0  # Forearm rotation relative to shoulder (elbow bend)
 	var lerp_speed := ANIM_LERP_SPEED * delta
 
 	match _reload_anim_phase:
 		ReloadAnimPhase.GRAB_MAGAZINE:
-			# Step 1: Left hand moves to chest/vest to grab magazine
-			# Left arm moves back toward body (chest area where mag pouches are)
-			left_arm_target = _base_left_arm_pos + RELOAD_ARM_LEFT_GRAB
-			left_arm_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_GRAB)
-			# Right hand stays on weapon grip, steadying the rifle
-			right_arm_target = _base_right_arm_pos + RELOAD_ARM_RIGHT_HOLD
-			right_arm_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_HOLD)
+			# Step 1: Arm pulls back to chest/vest; forearm stays at world-horizontal
+			shoulder_target = _base_left_arm_pos + RELOAD_ARM_LEFT_GRAB
+			shoulder_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_GRAB)
+			forearm_local_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_HOLD - RELOAD_ARM_ROT_LEFT_GRAB)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		ReloadAnimPhase.INSERT_MAGAZINE:
-			# Step 2: Left hand moves forward to weapon magwell, inserts magazine
-			left_arm_target = _base_left_arm_pos + RELOAD_ARM_LEFT_INSERT
-			left_arm_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_INSERT)
-			# Right hand steadies the weapon slightly
-			right_arm_target = _base_right_arm_pos + RELOAD_ARM_RIGHT_STEADY
-			right_arm_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_STEADY)
+			# Step 2: Arm moves forward to weapon magwell
+			shoulder_target = _base_left_arm_pos + RELOAD_ARM_LEFT_INSERT
+			shoulder_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_INSERT)
+			forearm_local_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_STEADY - RELOAD_ARM_ROT_LEFT_INSERT)
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 		ReloadAnimPhase.PULL_BOLT:
-			# Step 3: Pull bolt/charging handle
-			# Left hand moves to foregrip to support weapon
-			left_arm_target = _base_left_arm_pos + RELOAD_ARM_LEFT_SUPPORT
-			left_arm_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_SUPPORT)
-			# Right hand pulls charging handle back
-			right_arm_target = _base_right_arm_pos + RELOAD_ARM_RIGHT_BOLT
-			right_arm_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_BOLT)
+			# Step 3: Arm supports weapon; forearm pulls bolt
+			shoulder_target = _base_left_arm_pos + RELOAD_ARM_LEFT_SUPPORT
+			shoulder_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_SUPPORT)
+			forearm_local_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_BOLT - RELOAD_ARM_ROT_LEFT_SUPPORT)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 			# When bolt pull animation completes, transition to return idle
@@ -2517,9 +2488,9 @@ func _update_reload_animation(delta: float) -> void:
 				_start_reload_anim_phase(ReloadAnimPhase.RETURN_IDLE, RELOAD_ANIM_RETURN_DURATION)
 
 		ReloadAnimPhase.RETURN_IDLE:
-			# Arms returning to normal weapon-holding positions
-			left_arm_target = _base_left_arm_pos
-			right_arm_target = _base_right_arm_pos
+			# Arm returning to normal weapon-holding position
+			shoulder_target = _base_left_arm_pos
+			forearm_local_rot = 0.0
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 			# When return animation completes, end animation
@@ -2527,14 +2498,12 @@ func _update_reload_animation(delta: float) -> void:
 				_reload_anim_phase = ReloadAnimPhase.NONE
 				FileLogger.info("[Player.Reload.Anim] Reload animation complete, returning to normal")
 
-	# Apply arm positions with smooth interpolation
-	if _left_arm_sprite:
-		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
-		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
-
-	if _right_arm_sprite:
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(right_arm_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, right_arm_rot, lerp_speed)
+	# Apply shoulder position and forearm local rotation with smooth interpolation.
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.position = _right_shoulder_sprite.position.lerp(shoulder_target, lerp_speed)
+		_right_shoulder_sprite.rotation = lerpf(_right_shoulder_sprite.rotation, shoulder_rot, lerp_speed)
+	if _right_forearm_sprite:
+		_right_forearm_sprite.rotation = lerpf(_right_forearm_sprite.rotation, forearm_local_rot, lerp_speed)
 
 
 # ============================================================================
@@ -3456,7 +3425,7 @@ func _apply_companion_visual_tint(companion: Node2D) -> void:
 	# Green-cyan tint color for friendly companion
 	var tint := Color(0.3, 1.0, 0.7, 1.0)
 
-	for sprite_name in ["Body", "Head", "LeftArm", "RightArm"]:
+	for sprite_name in ["Body", "Head", "RightShoulder"]:
 		var sprite := model.get_node_or_null(sprite_name)
 		if sprite is Sprite2D:
 			sprite.modulate = tint
