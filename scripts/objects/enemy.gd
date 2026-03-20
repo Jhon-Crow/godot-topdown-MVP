@@ -94,7 +94,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 
 signal hit  ## Enemy hit
 signal died  ## Enemy died
-signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)  ## Death with kill info
+signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool)  ## Death with kill info (Issue #1196: is_player_kill distinguishes player kills from other kills)
 signal state_changed(new_state: AIState)  ## AI state changed
 signal ammo_changed(current_ammo: int, reserve_ammo: int)  ## Ammo changed
 signal reload_started  ## Reload started
@@ -315,6 +315,7 @@ var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player dire
 var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
 var _killed_by_ricochet: bool = false  ## [Score] Killed by ricochet
 var _killed_by_penetration: bool = false  ## [Score] Killed by penetration
+var _killed_by_player: bool = false  ## [Score/Issue #1196] Killed directly by player (no laser sight)
 ## [Status Effects] Component handles blindness and stun (Issue #432, #328)
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
@@ -4168,8 +4169,8 @@ func on_hit() -> void:
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	on_hit_with_bullet_info(hit_direction, caliber_data, false, false, 1.0)
 
-## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0).
-func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0) -> void:
+## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0). @param is_from_player: Whether the hit came from the player (Issue #1196).
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0, is_from_player: bool = false) -> void:
 	if not _is_alive:
 		return
 	if _force_field_component and _force_field_component.is_active(): _log_to_file("Hit blocked by force field"); return  # Issue #1034: invulnerable while force field active
@@ -4194,7 +4195,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 	if _current_health <= 0:
-		_killed_by_ricochet = has_ricocheted; _killed_by_penetration = has_penetrated
+		_killed_by_ricochet = has_ricocheted; _killed_by_penetration = has_penetrated; _killed_by_player = is_from_player  # Issue #1196: track kill source
 		# Play lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_lethal"):
 			audio_manager.play_hit_lethal(global_position)
@@ -4334,9 +4335,9 @@ func _notify_nearby_enemies_of_death() -> void:
 func _on_death() -> void:
 	_is_alive = false
 	if _invisibility and _invisibility.is_cloaked: _invisibility.remove()  # Issue #1121: reveal enemy on death
-	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
+	_log_to_file("Enemy died (ricochet: %s, penetration: %s, player_kill: %s)" % [_killed_by_ricochet, _killed_by_penetration, _killed_by_player])
 	died.emit()
-	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
+	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration, _killed_by_player)  # Issue #1196: pass player kill info
 
 	# Issue #959: Immune enemy killed → triggers Level 7
 	if _pacifist and _pacifist.is_immune:
@@ -4434,8 +4435,7 @@ func _reset() -> void:
 	_witnessed_ally_death = false
 	_suspected_directions.clear()
 	_has_left_idle = false  # Issue #921: reset so respawned patrol enemies can timeout from SEARCHING
-	_killed_by_ricochet = false
-	_killed_by_penetration = false
+	_killed_by_ricochet = false; _killed_by_penetration = false; _killed_by_player = false  # Issue #1196
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()

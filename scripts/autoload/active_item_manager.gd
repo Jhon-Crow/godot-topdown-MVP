@@ -36,9 +36,10 @@ var current_active_item: int = ActiveItemType.NONE
 ## Unlocked active items tracking.
 ## NONE is always unlocked (it's not a real item).
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
-## INVISIBILITY_SUIT (Beach S + Building S), and HOMING_BULLETS
-## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S)
-## have unlock conditions (Issue #894, Issue #1000).
+## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
+## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
+## and LASER_SIGHT (1000 kills without laser sight equipped)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1196).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -49,7 +50,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
-	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LASER_SIGHT: false,         # Condition: 1000 kills without laser sight equipped (Issue #1196)
 	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
@@ -365,6 +366,40 @@ func get_laser_sight_color() -> Color:
 ## Returns true when laser sight active item is equipped (Issue #947).
 func should_force_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if any laser sight is currently active on the player's weapon, from any source.
+## This includes: the Laser Sight active item (purple), Power Fantasy blue laser (difficulty),
+## or a weapon-level built-in laser sight (e.g. AssaultRifle's red laser).
+## Used by Issue #1196 to determine if kills should NOT count toward the Laser Sight unlock.
+func has_any_laser_sight_active() -> bool:
+	# 1. Active item laser sight (purple)
+	if has_laser_sight():
+		return true
+	# 2. Power Fantasy blue laser sight (difficulty-based)
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("should_force_blue_laser_sight"):
+		if difficulty_manager.should_force_blue_laser_sight():
+			return true
+	# 3. Weapon-level built-in laser sight (e.g. AssaultRifle's red laser).
+	# Check if the player's current weapon has a visible "LaserSight" Line2D node.
+	var players := get_tree().get_nodes_in_group("player") if get_tree() else []
+	for player in players:
+		if not is_instance_valid(player):
+			continue
+		for child in player.get_children():
+			# Check GDScript weapon with a laser_sight_enabled property or "has_laser_sight"
+			if child.has_method("get_laser_sight_enabled"):
+				if child.get_laser_sight_enabled():
+					return true
+			# Check for a Line2D node named "LaserSight" that is visible
+			var laser_node: Node = child.get_node_or_null("LaserSight")
+			if laser_node and laser_node.visible:
+				return true
+			# Check C# weapon: LaserSightEnabled exported property
+			if child.get("LaserSightEnabled") != null and child.get("LaserSightEnabled"):
+				return true
+	return false
 
 
 ## Notify loudspeaker progression that a level was completed (Issue #959).
