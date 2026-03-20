@@ -6609,6 +6609,12 @@ public partial class Player : BaseCharacter
     private bool _armoredSkinActive = false;
 
     /// <summary>
+    /// Overlay sprites added by ApplyArmoredSkinVisual (Issue #1142).
+    /// Stored so they can be freed when the armor shatters.
+    /// </summary>
+    private readonly System.Collections.Generic.List<Sprite2D> _armoredSkinOverlays = new();
+
+    /// <summary>
     /// Whether armored skin post-trigger immunity is active (Issue #1095).
     /// Set to true when shards are spawned; cleared after 0.1 seconds.
     /// Absorbs all subsequent damage calls from the same multi-hit explosion event
@@ -6687,9 +6693,9 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Apply crystal armor overlay sprites on top of each player body part (Issue #1142).
-    /// Like The Binding of Isaac — a separate set of semi-transparent blue crystal sprites is
-    /// placed over the player model, matching the exact position and size of each body part.
-    /// The original sprites are unchanged; overlays sit above them via a higher ZIndex.
+    /// Like The Binding of Isaac — a semi-transparent blue crystal overlay is added as a
+    /// child of each base sprite so it automatically follows all movements, flips, and
+    /// animations. Alpha is kept low so the player is clearly visible underneath.
     /// </summary>
     private void ApplyArmoredSkinVisual()
     {
@@ -6708,6 +6714,9 @@ public partial class Player : BaseCharacter
             { "RightArm", "res://assets/sprites/characters/player/armored_skin/armored_skin_right_arm.png" },
             { "Armband",  "res://assets/sprites/characters/player/armored_skin/armored_skin_armband.png" },
         };
+
+        // 25% opacity — visible but not overwhelming the player sprite underneath.
+        var overlayColor = new Color(1f, 1f, 1f, 0.25f);
 
         int addedCount = 0;
         foreach (var child in _playerModel.GetChildren())
@@ -6732,20 +6741,37 @@ public partial class Player : BaseCharacter
                 continue;
             }
 
-            // Create the overlay sprite with the same position/offset as the base sprite,
-            // but rendered above it (ZIndex +10 relative to base).
+            // Parent the overlay directly to the base sprite so it inherits all transforms
+            // (position, rotation, flip, scale) — the overlay moves exactly with the body part.
             var overlay = new Sprite2D();
             overlay.Name = $"{partName}ArmorOverlay";
             overlay.Texture = texture;
-            overlay.Position = baseSprite.Position;
-            overlay.Offset = baseSprite.Offset;
-            overlay.ZIndex = baseSprite.ZIndex + 10;
+            overlay.Position = Vector2.Zero;
+            overlay.Offset = Vector2.Zero;
+            overlay.ZIndex = 1;
+            overlay.Modulate = overlayColor;
 
-            _playerModel.AddChild(overlay);
+            baseSprite.AddChild(overlay);
+            _armoredSkinOverlays.Add(overlay);
             addedCount++;
         }
 
         LogToFile($"[Player.ArmoredSkin] Crystal armor overlays added: {addedCount} sprites");
+    }
+
+    /// <summary>
+    /// Remove all crystal armor overlay sprites (Issue #1142).
+    /// Called when the armor shatters so the visual matches the gameplay state.
+    /// </summary>
+    private void RemoveArmoredSkinVisual()
+    {
+        foreach (var overlay in _armoredSkinOverlays)
+        {
+            if (IsInstanceValid(overlay))
+                overlay.QueueFree();
+        }
+        _armoredSkinOverlays.Clear();
+        LogToFile("[Player.ArmoredSkin] Crystal armor overlays removed");
     }
 
     /// <summary>
@@ -6772,6 +6798,9 @@ public partial class Player : BaseCharacter
         {
             return;
         }
+
+        // Remove the crystal overlay sprites so the visual matches the gameplay state.
+        RemoveArmoredSkinVisual();
 
         LogToFile($"[Player.ArmoredSkin] Spawning {ArmoredSkinShardCount} glass shards (HP: {HealthComponent?.CurrentHealth ?? 0})");
 
