@@ -69,6 +69,58 @@ All enemies used to fire `get_nodes_in_group("enemies")` on the same frame. Now 
 ### Fix 8: Integer Zone Key (commit f2a36021)
 `_get_zone_key()` was allocating a String per waypoint. Now returns an integer.
 
+## New Log Analysis: game_log_20260320_111452.txt (2026-03-20 11:14)
+
+**Symptom**: Sustained 19-21fps on BuildingLevel with all enemies in IDLE, then 3fps spikes.
+
+**Session events**:
+- 11:15:01: BuildingLevel loaded, 10 enemies
+- 11:15:02: Player enables Invincibility, selects Invisibility suit from armory → scene reloads
+- 11:15:07: Scene reloads with invisibility equipped
+- 11:15:09: 21fps (1 sec in), Debug mode toggled ON
+- 11:15:10: 19fps (2 sec in)
+- 11:15:13: 3fps spike (frame 180 arrived 3 real seconds late = ~10fps)
+- 11:15:15: 3fps spike again
+
+**Root causes found (Fix 9-13 below)**:
+
+### Fix 9: _is_position_in_fov — ExperimentalSettings per vision-check (NEW — this commit)
+
+`_is_position_in_fov()` called `get_node_or_null("/root/ExperimentalSettings")` on every vision check frame:
+- Each enemy runs `_check_player_visibility()` → `_is_position_in_fov()` every 6 physics frames
+- 10 enemies × 10 lookups/sec = 100 autoload lookups/sec from vision alone
+
+**Fix**: Use `_exp_settings_node` cached at `_ready()`.
+
+### Fix 10: _update_memory flashlight check — ExperimentalSettings per frame (NEW — this commit)
+
+`_update_memory()` called `get_node_or_null("/root/ExperimentalSettings")` every physics frame when player is NOT visible (i.e., when using invisibility suit!):
+- 10 enemies × 60fps = 600 lookups/sec while player is invisible
+
+**Fix**: Use `_exp_settings_node` cached at `_ready()`.
+
+### Fix 11: _draw debug rendering — ExperimentalSettings per render frame (NEW — this commit)
+
+When Debug mode is ON (user toggled at 11:15:09), `_draw()` is called every render frame per enemy:
+- Called `get_node_or_null("/root/ExperimentalSettings")` for FOV cone rendering
+- 10 enemies × 60fps render = 600 lookups/sec added when debug is enabled
+
+**Fix**: Use `_exp_settings_node` cached at `_ready()`.
+
+### Fix 12: _check_pacifism_spread — ActiveItemManager per frame (NEW — this commit)
+
+`_check_pacifism_spread()` called `get_node_or_null("/root/ActiveItemManager")` every physics frame per enemy:
+- Early-exit if no loudspeaker, but the lookup happens before the check
+- 10 enemies × 60fps = 600 lookups/sec always
+
+**Fix**: Cache `_active_item_manager_node` in `_ready()` alongside other autoloads. Use in `_check_pacifism_spread()`.
+
+### Fix 13: _transition_to_* — PerformanceSettings per state change (NEW — this commit)
+
+Each of 9 state transition functions (`_transition_to_idle`, `_transition_to_combat`, etc.) called `get_node_or_null("/root/PerformanceSettings")` on every state transition. When enemies change states frequently (IDLE→PURSUING→IDLE during invisible-player gunshot react), this fires many times per second.
+
+**Fix**: Use `_perf_settings_node` cached at `_ready()`.
+
 ## Observations: Non-Code Issues in Logs
 
 - `Nav mesh visible: true` in ExperimentalSettings adds significant rendering overhead (the nav mesh polygon overlay is drawn every frame). This is a user toggle unrelated to our code changes.
