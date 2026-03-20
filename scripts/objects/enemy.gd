@@ -4057,7 +4057,10 @@ func _process_patrol(delta: float) -> void:
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
 		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
-	_nav_agent.target_position = target_point
+	# Issue #1218: snap patrol target to nearest navigable point so wall-embedded offsets don't trap the enemy.
+	var nav_map := get_world_2d().navigation_map
+	var snapped_target := NavigationServer2D.map_get_closest_point(nav_map, target_point)
+	_nav_agent.target_position = snapped_target
 	if _nav_agent.is_navigation_finished():
 		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return
 	var dir := (_nav_agent.get_next_path_position() - global_position).normalized()

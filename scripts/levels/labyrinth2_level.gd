@@ -408,9 +408,10 @@ func _setup_navigation() -> void:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
 
+	# Issue #1218: bake via NavigationRegion2D so walls are excluded and enemies route around them.
 	print("Baking navigation mesh...")
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, NavigationMeshSourceGeometryData2D.new())
-	nav_region.bake_navigation_polygon()
+	nav_poly.agent_radius = 24.0
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 

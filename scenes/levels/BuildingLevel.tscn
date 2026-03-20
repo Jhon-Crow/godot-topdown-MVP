@@ -966,7 +966,7 @@ enable_cover = true
 [node name="Enemy10" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1200, 1550)
 behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(0, 150), Vector2(0, -150)])
+patrol_offsets = Array[Vector2]([Vector2(0, 150), Vector2(0, -100)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
