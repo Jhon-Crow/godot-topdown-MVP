@@ -1,13 +1,13 @@
-[gd_scene load_steps=4 format=3 uid="uid://s3ttingsm3nu01"]
+[gd_scene load_steps=4 format=3 uid="uid://opt1m1z4t1on01"]
 
-[ext_resource type="Script" path="res://scripts/ui/settings_menu.gd" id="1_settings"]
+[ext_resource type="Script" path="res://scripts/ui/optimization_menu.gd" id="1_optimization"]
 [ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
 [ext_resource type="Theme" uid="uid://c3qneonbtn01" path="res://resources/themes/neon_button_theme.tres" id="3_neon_theme"]
 
-[node name="SettingsMenu" type="CanvasLayer"]
+[node name="OptimizationMenu" type="CanvasLayer"]
 layer = 101
 process_mode = 3
-script = ExtResource("1_settings")
+script = ExtResource("1_optimization")
 
 [node name="MenuContainer" type="Control" parent="."]
 layout_mode = 3
@@ -25,10 +25,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = -200.0
-offset_right = 150.0
-offset_bottom = 200.0
+offset_left = -200.0
+offset_top = -180.0
+offset_right = 200.0
+offset_bottom = 180.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -45,47 +45,32 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Settings"
+text = "Optimization"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ControlsButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
+[node name="WallHitParticlesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Controls"
 
-[node name="DifficultyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
+[node name="WallHitParticlesLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WallHitParticlesContainer"]
 layout_mode = 2
-text = "Difficulty"
+size_flags_horizontal = 3
+text = "Wall Hit Particles"
+autowrap_mode = 2
 
-[node name="SoundButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
+[node name="WallHitParticlesCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WallHitParticlesContainer"]
 layout_mode = 2
-text = "Sound"
+button_pressed = true
 
-[node name="GameplayButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
+[node name="WallHitParticlesDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Gameplay"
-
-[node name="PerformanceButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Performance"
-
-[node name="ExperimentalButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Experimental"
-
-[node name="OptimizationButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Optimization"
+text = "When enabled (default), a dust effect appears when
+bullets hit walls. Disable to improve FPS on slow hardware."
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="HSeparator2" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
