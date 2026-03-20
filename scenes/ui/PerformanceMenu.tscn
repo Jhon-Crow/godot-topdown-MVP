@@ -180,6 +180,119 @@ physics frame. Disable to measure AI CPU cost (enemies freeze)."
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="AIStatesSectionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "  AI States (disable to lock enemies in IDLE):"
+autowrap_mode = 2
+
+[node name="AICombatContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AICombatLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AICombatContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  COMBAT (peek, shoot, return)"
+autowrap_mode = 2
+
+[node name="AICombatCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AICombatContainer"]
+layout_mode = 2
+
+[node name="AISeekingCoverContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AISeekingCoverLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISeekingCoverContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  SEEKING_COVER (pathfind to cover)"
+autowrap_mode = 2
+
+[node name="AISeekingCoverCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISeekingCoverContainer"]
+layout_mode = 2
+
+[node name="AIInCoverContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIInCoverLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIInCoverContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  IN_COVER (wait and peek)"
+autowrap_mode = 2
+
+[node name="AIInCoverCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIInCoverContainer"]
+layout_mode = 2
+
+[node name="AIFlankingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIFlankingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIFlankingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  FLANKING (flank movement)"
+autowrap_mode = 2
+
+[node name="AIFlankingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIFlankingContainer"]
+layout_mode = 2
+
+[node name="AISuppressedContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AISuppressedLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISuppressedContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  SUPPRESSED (pinned under fire)"
+autowrap_mode = 2
+
+[node name="AISuppressedCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISuppressedContainer"]
+layout_mode = 2
+
+[node name="AIRetreatingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIRetreatingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIRetreatingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  RETREATING (fall back to cover)"
+autowrap_mode = 2
+
+[node name="AIRetreatingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIRetreatingContainer"]
+layout_mode = 2
+
+[node name="AIPursuingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIPursuingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPursuingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  PURSUING (cover-to-cover advance)"
+autowrap_mode = 2
+
+[node name="AIPursuingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPursuingContainer"]
+layout_mode = 2
+
+[node name="AIAssaultContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AIAssaultLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIAssaultContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  ASSAULT (coordinated rush)"
+autowrap_mode = 2
+
+[node name="AIAssaultCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIAssaultContainer"]
+layout_mode = 2
+
+[node name="AISearchingContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AISearchingLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "  SEARCHING (hunt last known position)"
+autowrap_mode = 2
+
+[node name="AISearchingCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer"]
+layout_mode = 2
+
 [node name="HSeparator6" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

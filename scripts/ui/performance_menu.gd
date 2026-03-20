@@ -15,6 +15,15 @@ signal back_pressed
 @onready var screen_shake_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ScreenShakeContainer/ScreenShakeCheckbox
 @onready var explosion_lights_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ExplosionLightsContainer/ExplosionLightsCheckbox
 @onready var ai_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIContainer/AICheckbox
+@onready var ai_combat_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AICombatContainer/AICombatCheckbox
+@onready var ai_seeking_cover_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISeekingCoverContainer/AISeekingCoverCheckbox
+@onready var ai_in_cover_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIInCoverContainer/AIInCoverCheckbox
+@onready var ai_flanking_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIFlankingContainer/AIFlankingCheckbox
+@onready var ai_suppressed_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISuppressedContainer/AISuppressedCheckbox
+@onready var ai_retreating_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIRetreatingContainer/AIRetreatingCheckbox
+@onready var ai_pursuing_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPursuingContainer/AIPursuingCheckbox
+@onready var ai_assault_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIAssaultContainer/AIAssaultCheckbox
+@onready var ai_searching_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AISearchingContainer/AISearchingCheckbox
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton
 
@@ -26,6 +35,15 @@ func _ready() -> void:
 	screen_shake_checkbox.toggled.connect(_on_screen_shake_toggled)
 	explosion_lights_checkbox.toggled.connect(_on_explosion_lights_toggled)
 	ai_checkbox.toggled.connect(_on_ai_toggled)
+	ai_combat_checkbox.toggled.connect(func(e): _on_ai_state_toggled("combat", e))
+	ai_seeking_cover_checkbox.toggled.connect(func(e): _on_ai_state_toggled("seeking_cover", e))
+	ai_in_cover_checkbox.toggled.connect(func(e): _on_ai_state_toggled("in_cover", e))
+	ai_flanking_checkbox.toggled.connect(func(e): _on_ai_state_toggled("flanking", e))
+	ai_suppressed_checkbox.toggled.connect(func(e): _on_ai_state_toggled("suppressed", e))
+	ai_retreating_checkbox.toggled.connect(func(e): _on_ai_state_toggled("retreating", e))
+	ai_pursuing_checkbox.toggled.connect(func(e): _on_ai_state_toggled("pursuing", e))
+	ai_assault_checkbox.toggled.connect(func(e): _on_ai_state_toggled("assault", e))
+	ai_searching_checkbox.toggled.connect(func(e): _on_ai_state_toggled("searching", e))
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI from current settings
@@ -51,19 +69,32 @@ func _update_ui() -> void:
 	screen_shake_checkbox.button_pressed = perf_settings.is_screen_shake_enabled()
 	explosion_lights_checkbox.button_pressed = perf_settings.is_explosion_lights_enabled()
 	ai_checkbox.button_pressed = perf_settings.is_ai_enabled()
+	ai_combat_checkbox.button_pressed = perf_settings.is_ai_state_combat_enabled()
+	ai_seeking_cover_checkbox.button_pressed = perf_settings.is_ai_state_seeking_cover_enabled()
+	ai_in_cover_checkbox.button_pressed = perf_settings.is_ai_state_in_cover_enabled()
+	ai_flanking_checkbox.button_pressed = perf_settings.is_ai_state_flanking_enabled()
+	ai_suppressed_checkbox.button_pressed = perf_settings.is_ai_state_suppressed_enabled()
+	ai_retreating_checkbox.button_pressed = perf_settings.is_ai_state_retreating_enabled()
+	ai_pursuing_checkbox.button_pressed = perf_settings.is_ai_state_pursuing_enabled()
+	ai_assault_checkbox.button_pressed = perf_settings.is_ai_state_assault_enabled()
+	ai_searching_checkbox.button_pressed = perf_settings.is_ai_state_searching_enabled()
 
 	# Show which features are currently disabled
 	var disabled_parts: Array[String] = []
-	if not perf_settings.is_particles_enabled():
-		disabled_parts.append("Particles")
-	if not perf_settings.is_blood_decals_enabled():
-		disabled_parts.append("Blood decals")
-	if not perf_settings.is_screen_shake_enabled():
-		disabled_parts.append("Screen shake")
-	if not perf_settings.is_explosion_lights_enabled():
-		disabled_parts.append("Explosion lights")
-	if not perf_settings.is_ai_enabled():
-		disabled_parts.append("AI")
+	if not perf_settings.is_particles_enabled(): disabled_parts.append("Particles")
+	if not perf_settings.is_blood_decals_enabled(): disabled_parts.append("Blood decals")
+	if not perf_settings.is_screen_shake_enabled(): disabled_parts.append("Screen shake")
+	if not perf_settings.is_explosion_lights_enabled(): disabled_parts.append("Explosion lights")
+	if not perf_settings.is_ai_enabled(): disabled_parts.append("AI")
+	if not perf_settings.is_ai_state_combat_enabled(): disabled_parts.append("AI:COMBAT")
+	if not perf_settings.is_ai_state_seeking_cover_enabled(): disabled_parts.append("AI:SEEKING_COVER")
+	if not perf_settings.is_ai_state_in_cover_enabled(): disabled_parts.append("AI:IN_COVER")
+	if not perf_settings.is_ai_state_flanking_enabled(): disabled_parts.append("AI:FLANKING")
+	if not perf_settings.is_ai_state_suppressed_enabled(): disabled_parts.append("AI:SUPPRESSED")
+	if not perf_settings.is_ai_state_retreating_enabled(): disabled_parts.append("AI:RETREATING")
+	if not perf_settings.is_ai_state_pursuing_enabled(): disabled_parts.append("AI:PURSUING")
+	if not perf_settings.is_ai_state_assault_enabled(): disabled_parts.append("AI:ASSAULT")
+	if not perf_settings.is_ai_state_searching_enabled(): disabled_parts.append("AI:SEARCHING")
 
 	if disabled_parts.is_empty():
 		status_label.text = "All performance features enabled"
@@ -103,6 +134,23 @@ func _on_ai_toggled(enabled: bool) -> void:
 	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
 	if perf_settings:
 		perf_settings.set_ai_enabled(enabled)
+	_update_ui()
+
+
+func _on_ai_state_toggled(state_name: String, enabled: bool) -> void:
+	var perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if perf_settings == null:
+		return
+	match state_name:
+		"combat": perf_settings.set_ai_state_combat_enabled(enabled)
+		"seeking_cover": perf_settings.set_ai_state_seeking_cover_enabled(enabled)
+		"in_cover": perf_settings.set_ai_state_in_cover_enabled(enabled)
+		"flanking": perf_settings.set_ai_state_flanking_enabled(enabled)
+		"suppressed": perf_settings.set_ai_state_suppressed_enabled(enabled)
+		"retreating": perf_settings.set_ai_state_retreating_enabled(enabled)
+		"pursuing": perf_settings.set_ai_state_pursuing_enabled(enabled)
+		"assault": perf_settings.set_ai_state_assault_enabled(enabled)
+		"searching": perf_settings.set_ai_state_searching_enabled(enabled)
 	_update_ui()
 
 
