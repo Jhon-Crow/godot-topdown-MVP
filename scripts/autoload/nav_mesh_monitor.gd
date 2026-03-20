@@ -20,7 +20,7 @@ const NAV_MESH_FILL_COLOR := Color(0.0, 0.5, 1.0, 0.25)
 ## Color for the nav mesh polygon outline.
 const NAV_MESH_OUTLINE_COLOR := Color(0.0, 0.8, 1.0, 0.85)
 ## Delay after a NavigationRegion2D is added before refreshing.
-## Level scripts bake after one physics frame (~16ms at 60fps); 0.5s ensures
+## Level scripts bake after two physics frames (~33ms at 60fps); 0.5s ensures
 ## the bake has completed before the fallback refresh triggers.
 const BAKE_WAIT_SECONDS := 0.5
 

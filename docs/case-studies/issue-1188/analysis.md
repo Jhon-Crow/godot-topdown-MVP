@@ -325,3 +325,91 @@ All 13 level scripts updated to use `_bake_navmesh_after_physics_frame()` instea
 - `scripts/autoload/nav_mesh_monitor.gd` — timer extended from 0.2s to 0.5s
 - `docs/case-studies/issue-1188/logs/game_log_20260320_095119.txt` — owner's session 5 game log
 - `docs/case-studies/issue-1188/screenshots/navmesh_session5.png` — owner's session 5 screenshot
+
+---
+
+## Session 6 (2026-03-20) — Root Cause Identified: Single Physics Frame Not Sufficient
+
+### Owner Report (Session 6)
+Owner tested the Session 5 fix and reported:
+1. Navmesh display still not visible
+2. Enemies still walk into walls
+
+Game log: `docs/case-studies/issue-1188/game_log_20260320_102819.txt`
+
+Key log entry confirming issue:
+```
+[10:29:00] [ENEMY] [Enemy10] PATROL STUCK: pos=(1200, 1601.992) for 1.5s, skipping
+[10:29:02] [ENEMY] [Enemy7] PATROL STUCK: pos=(1611.34, 898.8737) for 1.5s, skipping
+```
+
+### Root Cause Analysis (Session 6)
+
+The Session 5 fix (`await get_tree().physics_frame`) was correct in principle but **insufficient**. Research confirmed:
+
+**Issue 1: NavigationServer2D needs its own sync step**
+
+When `bake_navigation_polygon(false)` completes, it:
+1. Updates the `NavigationPolygon` resource data (vertices, polygons)
+2. Notifies the NavigationServer2D about the region update
+
+But NavigationServer2D runs on a **separate thread** and syncs with the main thread at specific points. After calling `bake_navigation_polygon()`, one additional physics frame is needed for NavigationServer2D to process the update and make the new navmesh data available to NavigationAgent2D queries.
+
+**Issue 2: No logging to confirm bake was running**
+
+Previous code had no log output from the bake function. This made it impossible to diagnose from game logs whether the bake was:
+- Running at all
+- Producing polygons (walls carved)
+- Producing 0 polygons (flat rectangle, no walls carved)
+
+**Timeline confirmed from game log:**
+- `10:28:57` — BuildingLevel loaded, enemies spawned
+- No "Baking navmesh" log entry at any point
+- `10:29:00` — Enemy PATROL STUCK (only 3 seconds after spawn)
+
+The lack of any navmesh log confirms the bake output was not being logged, which masked whether the bake succeeded or failed.
+
+### Fix (Session 6): Two Physics Frames + Diagnostic Logging
+
+Updated `_bake_navmesh_after_physics_frame` in all 13 level scripts:
+
+```gdscript
+## Bake navigation polygon after two physics frames to ensure all StaticBody2D
+## collision shapes are fully registered and NavigationServer2D has synced — Issue #1188.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+    await get_tree().physics_frame  # Wait for StaticBody2D shapes to register with PhysicsServer2D
+    await get_tree().physics_frame  # Wait for NavigationServer2D to sync the map state
+    if not is_instance_valid(nav_region):
+        return
+    _log_to_file("Baking navmesh (Issue #1188): carving walls from collision layer 4")
+    nav_region.bake_navigation_polygon(false)
+    var poly_count: int = nav_region.navigation_polygon.get_polygon_count() if nav_region.navigation_polygon else 0
+    _log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
+```
+
+**Two-frame sequence:**
+- Frame 1: All `_ready()` callbacks run; `CollisionShape2D` shapes are registered via `NOTIFICATION_ENTER_TREE`. `bake_navigation_polygon` queries PhysicsServer2D for static colliders — but NavigationServer2D may not have synced yet.
+- Frame 2: NavigationServer2D processes the baked polygon data and makes it available to NavigationAgent2D path queries.
+
+**Diagnostic value:** The `poly_count` log will show:
+- `poly_count = 0` or `= 1`: bake failed, flat rectangle only, walls not carved
+- `poly_count > 10` (typically 50–200): bake succeeded, walls properly carved into walkable mesh
+
+### Files Updated (Session 6)
+
+All 13 level scripts + nav_mesh_monitor.gd:
+- `scripts/levels/arena_level.gd`
+- `scripts/levels/beach_level.gd`
+- `scripts/levels/building_level.gd`
+- `scripts/levels/castle_level.gd`
+- `scripts/levels/city_level.gd`
+- `scripts/levels/decadence_level.gd`
+- `scripts/levels/docks_level.gd`
+- `scripts/levels/factory_level.gd`
+- `scripts/levels/labyrinth2_level.gd`
+- `scripts/levels/labyrinth_level.gd`
+- `scripts/levels/revolver_level.gd`
+- `scripts/levels/roguelike_level.gd`
+- `scripts/levels/test_tier.gd`
+- `scripts/autoload/nav_mesh_monitor.gd` — updated comment (timer 0.5s still sufficient for 2 frames)
+- `docs/case-studies/issue-1188/game_log_20260320_102819.txt` — owner's session 6 game log

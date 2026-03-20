@@ -797,19 +797,22 @@ func _setup_navigation() -> void:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
 
-	# Bake navmesh after one physics frame so StaticBody2D shapes are registered
-	# with PhysicsServer2D — Issue #1188
+	# Bake navmesh after two physics frames: first for physics shapes to register,
+	# second for NavigationServer2D to sync — Issue #1188
 	_bake_navmesh_after_physics_frame(nav_region)
 
 
-## Bake navigation polygon after one physics frame to ensure all StaticBody2D
-## collision shapes are fully registered. call_deferred alone is not enough
-## because PhysicsServer2D only processes registrations at physics frame
-## boundaries — Issue #1188.
+## Bake navigation polygon after two physics frames to ensure all StaticBody2D
+## collision shapes are fully registered and NavigationServer2D has synced — Issue #1188.
 func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
-	await get_tree().physics_frame
-	if is_instance_valid(nav_region):
-		nav_region.bake_navigation_polygon(false)
+	await get_tree().physics_frame  # Wait for StaticBody2D shapes to register with PhysicsServer2D
+	await get_tree().physics_frame  # Wait for NavigationServer2D to sync the map state
+	if not is_instance_valid(nav_region):
+		return
+	_log_to_file("Baking navmesh (Issue #1188): carving walls from collision layer 4")
+	nav_region.bake_navigation_polygon(false)
+	var poly_count: int = nav_region.navigation_polygon.get_polygon_count() if nav_region.navigation_polygon else 0
+	_log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
 
 
 ## Setup player tracking and connect weapon signals.
