@@ -45,6 +45,10 @@ var _power_fantasy_label: RichTextLabel = null
 
 
 func _ready() -> void:
+	# Setup tooltips and hover highlights for settings rows (Issue #1200)
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer,
+			"Night Mode: enables realistic visibility — player needs a flashlight to see in dark areas")
+
 	# Load gothic font for Black Metal button (Issue #1014)
 	_load_gothic_font()
 
@@ -297,6 +301,16 @@ func _sample_gradient(t: float) -> Color:
 
 	# Interpolate between the two colors
 	return colors[segment_index].lerp(colors[segment_index + 1], segment_t)
+
+
+## Setup tooltip and hover highlight for a settings row container (Issue #1200).
+## Sets the tooltip on the container and all its children so it appears when
+## hovering anywhere over the row, including labels and checkboxes.
+func _setup_row_hover(container: Control, tooltip: String) -> void:
+	container.tooltip_text = tooltip
+	for child in container.get_children():
+		if child is Control:
+			child.tooltip_text = tooltip
 
 
 ## Sets up the Black Metal button with gothic font styling (Issue #1014).

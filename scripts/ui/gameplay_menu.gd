@@ -16,6 +16,12 @@ signal back_pressed
 
 
 func _ready() -> void:
+	# Setup tooltips and hover highlights for settings rows (Issue #1200)
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer,
+			"Blood Amount: controls the number of blood decals spawned per hit (0–300%)")
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer,
+			"Weapon Hints: when to show weapon usage hints — Always, First time only, or Never")
+
 	# Connect button and slider signals
 	blood_slider.value_changed.connect(_on_blood_amount_changed)
 	_setup_weapon_hints_option()
@@ -85,3 +91,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_back_pressed() -> void:
 	back_pressed.emit()
+
+
+## Setup tooltip and hover highlight for a settings row container (Issue #1200).
+## Sets the tooltip on the container and all its children so it appears when
+## hovering anywhere over the row, including labels and checkboxes.
+func _setup_row_hover(container: Control, tooltip: String) -> void:
+	container.tooltip_text = tooltip
+	for child in container.get_children():
+		if child is Control:
+			child.tooltip_text = tooltip
