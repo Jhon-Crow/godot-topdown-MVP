@@ -8596,9 +8596,9 @@ public partial class Player : BaseCharacter
                 LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
                 return HomingDuration;
 
-            case 3: // TELEPORT_BRACERS — show crosshair for 4s then teleport (Issue #1127)
+            case 3: // TELEPORT_BRACERS — show crosshair for 2s then teleport (Issue #1127)
             {
-                const float TeleportAimDuration = 4.0f;
+                const float TeleportAimDuration = 2.0f;
                 // Borrow teleport bracers aim state; _teleportExperimentalActive prevents
                 // HandleTeleportBracersInput from firing the teleport on the next frame.
                 bool wasEquipped = _teleportBracersEquipped;
@@ -8836,8 +8836,9 @@ public partial class Player : BaseCharacter
                 return 2.0f;
             }
 
-            case 12: // BREACHING_CHARGES — place near wall and detonate; else homing burst (Issue #1127)
+            case 12: // BREACHING_CHARGES — place near wall (or at feet if no wall) and auto-detonate (Issue #1127)
             {
+                const float BreachingDetonateDelay = 2.0f;
                 // Use existing effect node if equipped; otherwise create a temporary one
                 Node? bcEffect = _breachingChargesEffect;
                 bool bcTempCreated = false;
@@ -8865,37 +8866,38 @@ public partial class Player : BaseCharacter
                         LogToFile($"[Player.ExperimentalSample] Breaching charges detonated existing charge: {detonated}");
                         if (detonated) return 1.5f;
                     }
-                    // Try to place a charge near a wall (requires wall within placement radius)
+                    // Try to place a charge near a wall; if no wall, force-place at player feet
                     bool placed = (bool)bcEffect.Call("try_place_charge");
-                    if (placed)
+                    if (!placed)
                     {
-                        const float BreachingDetonateDelay = 4.0f;
-                        LogToFile($"[Player.ExperimentalSample] Breaching charges: charge placed, detonating after {BreachingDetonateDelay}s");
-                        var bcRef = bcEffect;
-                        GetTree().CreateTimer(BreachingDetonateDelay).Timeout += () =>
-                        {
-                            if (IsInstanceValid(bcRef))
-                            {
-                                bool det = (bool)bcRef.Call("detonate");
-                                LogToFile($"[Player.ExperimentalSample] Breaching charges: detonated (delayed)={det}");
-                            }
-                            if (bcTempCreated && IsInstanceValid(bcRef)) bcRef.QueueFree();
-                        };
-                        return BreachingDetonateDelay;
+                        // No wall nearby — place the charge at the player's current position
+                        // and set state directly so detonate() fires explosion/stun without wall breach
+                        bcEffect.Set("has_placed_charge", true);
+                        bcEffect.Set("_charge_position", GlobalPosition);
+                        bcEffect.Set("_charge_wall_direction", Vector2.Down);
+                        bcEffect.Set("_charged_walls", new Godot.Collections.Array());
+                        placed = true;
+                        LogToFile("[Player.ExperimentalSample] Breaching charges: no wall nearby, placed at player feet");
                     }
-                    if (bcTempCreated && IsInstanceValid(bcEffect)) bcEffect.QueueFree();
+                    else
+                    {
+                        LogToFile("[Player.ExperimentalSample] Breaching charges: charge placed on wall");
+                    }
+                    LogToFile($"[Player.ExperimentalSample] Breaching charges: auto-detonating after {BreachingDetonateDelay}s");
+                    var bcRef = bcEffect;
+                    GetTree().CreateTimer(BreachingDetonateDelay).Timeout += () =>
+                    {
+                        if (IsInstanceValid(bcRef))
+                        {
+                            bool det = (bool)bcRef.Call("detonate");
+                            LogToFile($"[Player.ExperimentalSample] Breaching charges: detonated (delayed)={det}");
+                        }
+                        if (bcTempCreated && IsInstanceValid(bcRef)) bcRef.QueueFree();
+                    };
+                    return BreachingDetonateDelay;
                 }
-                // Not near a wall — trigger homing burst as fallback
-                if (!_homingActive)
-                {
-                    _homingActive = true;
-                    _homingTimer = HomingDuration;
-                    PlayHomingSound();
-                    StartHomingScanner();
-                    EmitSignal(SignalName.HomingActivated);
-                }
-                LogToFile("[Player.ExperimentalSample] Breaching charges: no wall nearby, homing burst triggered");
-                return HomingDuration;
+                LogToFile("[Player.ExperimentalSample] Breaching charges: failed to create effect node");
+                return 0.5f;
             }
 
             case 13: // ARMORED_SKIN — passive; trigger homing burst as visible effect

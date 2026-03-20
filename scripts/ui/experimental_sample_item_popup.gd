@@ -2,6 +2,7 @@ extends Node2D
 ## Floating item icon popup shown above the player when Experimental Sample fires an effect.
 ##
 ## Displays the icon of the triggered active item for the full effect duration, then fades out.
+## Includes a circular countdown arc that depletes as the effect timer runs down.
 ## Appears above the player slightly to the right (matching the spec in Issue #1127).
 
 ## Default duration if no duration is provided.
@@ -21,6 +22,24 @@ const ICON_SIZE: float = 48.0
 
 ## Background circle radius.
 const BG_RADIUS: float = 30.0
+
+## Countdown arc radius (slightly larger than the background circle).
+const ARC_RADIUS: float = 33.0
+
+## Width of the countdown arc stroke in pixels.
+const ARC_WIDTH: float = 4.0
+
+## Number of segments used to approximate the arc (higher = smoother).
+const ARC_SEGMENTS: int = 48
+
+## Arc color when time is plentiful (green-ish).
+const ARC_COLOR_FULL: Color = Color(0.3, 1.0, 0.4, 0.9)
+
+## Arc color when time is nearly expired (red).
+const ARC_COLOR_LOW: Color = Color(1.0, 0.2, 0.2, 0.9)
+
+## Fraction of total duration at which arc color shifts to LOW (below this = red).
+const ARC_LOW_THRESHOLD: float = 0.3
 
 ## Background color (semi-transparent dark).
 const BG_COLOR: Color = Color(0.05, 0.05, 0.05, 0.72)
@@ -113,3 +132,20 @@ func _draw() -> void:
 
 	# Draw background circle behind the icon
 	draw_circle(Vector2.ZERO, BG_RADIUS, BG_COLOR)
+
+	# Draw circular countdown arc: starts full at top (-PI/2) and depletes clockwise.
+	# Only draw the arc if there is meaningful time remaining (skip instant/very short effects).
+	var fraction: float = clampf(_timer / _total_duration, 0.0, 1.0)
+	if _total_duration >= DEFAULT_DURATION and fraction > 0.01:
+		var arc_color: Color = ARC_COLOR_FULL.lerp(ARC_COLOR_LOW, clampf(
+			(ARC_LOW_THRESHOLD - fraction) / ARC_LOW_THRESHOLD, 0.0, 1.0))
+		var start_angle: float = -PI / 2.0          # top of circle
+		var end_angle: float = start_angle + TAU * fraction  # sweeps clockwise
+		var seg_count: int = max(2, int(ARC_SEGMENTS * fraction))
+		var prev_pt: Vector2 = Vector2(cos(start_angle), sin(start_angle)) * ARC_RADIUS
+		for i in range(1, seg_count + 1):
+			var t: float = float(i) / float(seg_count)
+			var angle: float = start_angle + (end_angle - start_angle) * t
+			var pt: Vector2 = Vector2(cos(angle), sin(angle)) * ARC_RADIUS
+			draw_line(prev_pt, pt, arc_color, ARC_WIDTH, true)
+			prev_pt = pt
