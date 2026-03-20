@@ -90,6 +90,65 @@ Added two new methods to `building_level.gd`:
 
 ---
 
+## Incident: Performance Drop (2026-03-20T20:43)
+
+### Timeline
+
+| Time | Event |
+|------|-------|
+| 2026-03-20T07:42 | User reports 4 bugs (pause menu, square fixture, sharp edge, square light) in first implementation |
+| 2026-03-20T07:47 | Bugs fixed: ColorRect → Sprite2D, ImageTexture per-pixel disc, PCF5 shadows enabled |
+| 2026-03-20T08:25 | User reports Server Room light stuck in wall |
+| 2026-03-20T09:16 | Server Room light moved to x=2200 |
+| 2026-03-20T20:29 | User reports Office 2 light needs to move up; requests light placement rules |
+| 2026-03-20T20:30 | User reports pause menu buttons still not working |
+| 2026-03-20T20:35 | Office 2 shifted to y=780; placement rules documented in code |
+| 2026-03-20T20:43 | **User reports severe performance drop; requests maximally optimized variant** |
+
+### Root Causes of Performance Drop
+
+Three compounding problems were introduced when fixing the visual issues:
+
+#### 1. Six shadow-casting PointLight2D with PCF5 (primary GPU bottleneck)
+
+Each `PointLight2D` with `shadow_enabled = true` requires a dedicated shadow-map render pass per frame. With 6 room ceiling lights all using `SHADOW_FILTER_PCF5` (the most expensive filter — 5×5 kernel) this adds 6 full shadow-map passes every frame, on top of the existing window moonlight shadow passes.
+
+**Impact**: PCF5 shadow filtering is O(n²) in the filter kernel. Each additional shadow-casting light is multiplicative GPU cost. The level also has up to 10 enemies with flashlights that already add dynamic light passes, making the total light count very high.
+
+**Godot 4 reference**: See [Godot docs on 2D lights and shadows](https://docs.godotengine.org/en/stable/tutorials/2d/2d_lights_and_shadows.html) — "shadow rendering is expensive; minimize the number of lights with `shadow_enabled = true`".
+
+#### 2. Per-pixel GDScript image generation (startup CPU cost)
+
+`_create_warm_light_texture()` ran a 512×512 double loop (262,144 iterations) in GDScript to write pixels. `_create_lamp_fixture_texture()` ran a 32×32 loop. Both were called 6 times (once per room) — creating 6 identical textures on both CPU and GPU.
+
+GDScript loops are ~100× slower than C++ for numeric work. A 512×512 pixel loop in GDScript takes tens to hundreds of milliseconds, causing a noticeable hitch at level load.
+
+#### 3. No texture caching — 6 duplicate GPU uploads
+
+Each of the 6 `_create_room_warm_light()` calls created fresh `ImageTexture` objects. Although the pixels were identical, Godot treated each as a separate GPU texture resource, uploading 6×512×512×4 bytes = ~6 MB of redundant texture data.
+
+### Fixes Applied (Performance Optimization — commit after 2026-03-20T20:43)
+
+| Problem | Fix | Savings |
+|---------|-----|---------|
+| 6 PCF5 shadow-map passes | `shadow_enabled = false` on all ceiling lights | 6 shadow render passes removed per frame |
+| Per-pixel 512×512 GDScript loops | Replaced with `GradientTexture2D` (GPU-generated, no GDScript loops) | ~1.6M GDScript pixel ops → 0 |
+| 6 duplicate texture uploads | Single cached instance via `_warm_light_texture_cache` / `_lamp_fixture_texture_cache` | 5/6 GPU uploads eliminated |
+| 512×512 texture per light | Reduced to 256×256 (ample at texture_scale 3.5–5×) | Texture memory halved |
+
+**Rationale for disabling ceiling-light shadows**: Room ceiling lights are decorative ambient fills. The moonlight window lights already provide directional shadow detail from walls, furniture, and enemies. Disabling shadows on ceiling lights preserves the visual atmosphere while eliminating the dominant GPU cost.
+
+### Light Placement Rules (added to code documentation)
+
+1. **Default**: geometric centre of the room bounding box.
+2. **Obstacle at centre**: shift toward the nearest open floor area with the most free space.
+3. **Wall junction nearby (< 30 px)**: move light inward so shadows don't block the cone.
+4. **Crowded lower half**: prefer the upper half of the room so the glow is visible from the entry direction.
+
+---
+
 ## Files Changed
 
-- `scripts/levels/building_level.gd` — Added `_setup_room_warm_lights()`, `_create_room_warm_light()`, `_create_warm_light_texture()` and a call in `_ready()`.
+- `scripts/levels/building_level.gd` — Added `_setup_room_warm_lights()`, `_create_room_warm_light()`, `_get_warm_light_texture()`, `_get_lamp_fixture_texture()` and a call in `_ready()`.
+- `docs/case-studies/issue-1206/game_log_20260320_103853.txt` — Game runtime log captured before warm lights were added (no warm-light entries; baseline reference).
+- `docs/case-studies/issue-1206/analysis.md` — This document.
