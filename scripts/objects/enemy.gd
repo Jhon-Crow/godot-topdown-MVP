@@ -1503,14 +1503,10 @@ func _process_combat_state(delta: float) -> void:
 				_transition_to_pursuing()
 			return
 
-		# Move toward the clear shot target position
+		# Move toward the clear shot target position - use navmesh to route around walls (#1218)
 		var distance_to_target := global_position.distance_to(_clear_shot_target)
 		if distance_to_target > 15.0:
-			var move_direction := (_clear_shot_target - global_position).normalized()
-
-			# Apply enhanced wall avoidance with dynamic weighting
-			move_direction = _apply_wall_avoidance(move_direction)
-			velocity = move_direction * combat_move_speed
+			_move_to_target_nav(_clear_shot_target, combat_move_speed)
 			rotation = direction_to_player.angle()  # Keep facing player
 
 			# Check if the new position now has a clear shot
@@ -1560,13 +1556,10 @@ func _process_combat_state(delta: float) -> void:
 		_log_debug("COMBAT approach phase started, moving toward player")
 	_combat_approach_timer += delta
 
-	# Move toward player while approaching
+	# Move toward player while approaching - use navmesh to route around walls
 	if _player:
-		var move_direction := direction_to_player
-
-		# Apply enhanced wall avoidance with dynamic weighting
-		move_direction = _apply_wall_avoidance(move_direction)
-		velocity = move_direction * combat_move_speed
+		# Issue #1218: use navmesh so enemy routes around walls instead of pressing into them
+		_move_to_target_nav(_player.global_position, combat_move_speed)
 		rotation = direction_to_player.angle()  # Always face player
 
 		# Can shoot while approaching (only after detection delay and if have clear shot)
