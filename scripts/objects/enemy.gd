@@ -433,6 +433,7 @@ func _ready() -> void:
 	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
+	call_deferred("_log_ready_complete")  # Issue #1184: confirm full _ready() completion for diagnostics
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -4527,6 +4528,8 @@ func _log_to_file(message: String) -> void:
 	if fl and fl.has_method("log_enemy"): fl.log_enemy(name, message)
 func _log_spawn_info() -> void:
 	_log_to_file("Spawned at %s, hp: %d, behavior: %s" % [global_position, _max_health, BehaviorMode.keys()[behavior_mode]])
+func _log_ready_complete() -> void:
+	_log_to_file("_ready() complete — state: %s, player: %s" % [AIState.keys()[_current_state], _player != null])  # Issue #1184
 func _get_state_name(state: AIState) -> String:
 	return AIState.keys()[state] if state >= 0 and state < AIState.size() else "UNKNOWN"
 

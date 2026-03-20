@@ -332,3 +332,68 @@ var _ps_idle := get_node_or_null("/root/PerformanceSettings"); var _pursuing_ena
 if _memory and _memory.has_target() and _pursuing_enabled:
     if _memory.is_high_confidence(): _transition_to_pursuing(); return
 ```
+
+---
+
+## Follow-Up Analysis: game_log_20260320_092301.txt (2026-03-20)
+
+### New Issue Reported
+
+After applying the fixes for the IDLE→PURSUING loop, the owner reported:
+- "ии полностью сломан" = "AI is completely broken"
+
+### Log Analysis Summary
+
+**Session duration: 4 seconds (09:23:01 → 09:23:05)**
+
+| Field | Value |
+|---|---|
+| Level | LabyrinthLevel |
+| Enemies | 5 (Enemy1–Enemy5) |
+| PerformanceSettings | `ai: true` (all main toggles enabled) |
+| Invincibility | OFF at start, turned ON at 09:23:03 |
+| Enemy AI logs | **NONE** |
+| Enemy tracking | `has_died_signal=false` for all enemies, 0 registered |
+
+**Comparison with working log_082422:**
+
+| Metric | log_082422 (working) | log_092301 (reported broken) |
+|---|---|---|
+| `has_died_signal` | `true` for all enemies | `false` for all enemies |
+| Enemy AI messages | Present (`[ENEMY]` prefix) | Absent |
+| Session duration | ~20 seconds | 4 seconds |
+| Build commit | `686e194c` | `7a3b647a` |
+
+### Root Cause Analysis
+
+**Missing diagnostic data**: The 4-second session contains insufficient game data to determine whether AI is actually broken. No player–enemy interaction occurred during the session (player spawned, turned on invincibility, game closed). GUARD enemies stand still until seeing/hearing the player — this is expected behavior.
+
+**`has_died_signal=false` anomaly**: The `died` signal is defined at class level in `enemy.gd` (line 96) and should always be present. Possible causes:
+1. **FileLogger race condition**: `_log_to_file()` in `_init_death_animation()` calls `get_node_or_null("/root/FileLogger")` — if FileLogger isn't available when enemy `_ready()` runs, the log doesn't appear (but AI still works)
+2. **Different build timing**: In Godot 4, node initialization order can vary by scene structure — LabyrinthLevel's `_setup_enemy_tracking()` may have run before enemy scripts completed `_ready()` in this build configuration
+3. **Per-state AI toggle values**: The log only shows `ai: true` for the main toggle; individual state toggles (idle, combat, pursuing, etc.) are not logged at startup — their values are unknown for this session
+
+**Note**: All individual AI state toggles were re-enabled at the end of session log_084817 (08:50:12–08:50:16), so the saved config should have them all `true`. However, if the game was closed abnormally between the "IDLE disabled" event (08:49:20) and "IDLE enabled" event (08:49:22), the config file could still have `ai_state_idle_enabled = false`.
+
+### Improvements Applied (commit following `7a3b647a`)
+
+**Improvement 1** (`performance_settings.gd`): Log ALL per-state AI toggle values at startup:
+```
+[PerformanceSettings] AI state toggles - idle: true, combat: true, ... pursuing: true, ...
+```
+This will immediately reveal if any per-state toggle is unexpectedly disabled.
+
+**Improvement 2** (`enemy.gd`): Add deferred `_log_ready_complete()` call at end of `_ready()`:
+```
+[ENEMY] [Enemy1] _ready() complete — state: IDLE, player: true
+```
+This confirms `_ready()` completed successfully and shows the initial AI state and whether the player was found.
+
+### Recommended Testing Protocol
+
+To get actionable data on the "AI broken" complaint, a longer test session is needed:
+1. Start the game on any level with enemies
+2. Walk toward an enemy — do they react?
+3. Fire a weapon — do nearby enemies respond?
+4. Note: GUARD enemies (standing at a post) do NOT patrol; they scan and wait. This is expected behavior.
+5. Collect a game log of at least 30 seconds of interaction
