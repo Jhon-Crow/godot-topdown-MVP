@@ -661,8 +661,6 @@ func _apply_weapon_arm_offsets() -> void:
 
 ## Updates the walking animation based on player movement state.
 ## Creates a natural bobbing motion for body parts during movement.
-## @param delta: Time since last frame.
-## @param input_direction: Current movement input direction.
 func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 	var is_moving := input_direction != Vector2.ZERO or velocity.length() > 10.0
 
@@ -1080,8 +1078,6 @@ func on_hit() -> void:
 
 
 ## Called when hit by a projectile with extended hit information.
-## @param hit_direction: Direction the bullet was traveling.
-## @param caliber_data: Caliber resource for effect scaling.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
 		return
@@ -1181,7 +1177,6 @@ func refresh_health_visual() -> void:
 ## Sets the modulate color on all player sprite parts.
 ## The armband is a separate child sprite that keeps its original color,
 ## so all body parts including right arm use the same health-based color.
-## @param color: The color to apply to all sprites.
 func _set_all_sprites_modulate(color: Color) -> void:
 	if _body_sprite:
 		_body_sprite.modulate = color
@@ -1584,13 +1579,6 @@ const WEAPON_SLING_ROTATION := 1.2              # Rotate to hang down (radians, 
 
 
 ## Handle grenade input.
-## COMPLEX MODE (experimental, 3-step mechanic):
-##   Step 1: G + RMB drag right = start timer (pull pin)
-##   Step 2: Hold G → press+hold RMB → release G = ready to throw
-##   Step 3: RMB drag and release = throw
-## SIMPLE MODE (default):
-##   Hold RMB = show trajectory preview, cursor position = landing point
-##   Release RMB = throw grenade to landing point
 func _handle_grenade_input() -> void:
 	# Handle throw rotation animation
 	_handle_throw_rotation_animation(get_physics_process_delta_time())
@@ -1974,7 +1962,6 @@ func _reset_grenade_state() -> void:
 ## FIX for issue #313: Direction is determined ONLY by mouse velocity direction (how the mouse is MOVING),
 ## NOT by the mouse cursor position relative to player.
 ## Includes player rotation animation to prevent grenade hitting player.
-## @param drag_end: The position where the mouse drag ended (unused, kept for API compatibility).
 func _throw_grenade(drag_end: Vector2) -> void:
 	if _active_grenade == null or not is_instance_valid(_active_grenade):
 		FileLogger.info("[Player.Grenade] Cannot throw: no active grenade")
@@ -2096,10 +2083,6 @@ func _throw_grenade(drag_end: Vector2) -> void:
 ## Get a safe spawn position for the grenade that doesn't spawn behind/inside a wall.
 ## Uses raycast to check if there's an obstacle between player and intended spawn position.
 ## This prevents the grenade from tunneling through walls when thrown at close range ("в упор").
-## @param from_pos: The player's current position.
-## @param intended_pos: The intended spawn position (offset from player).
-## @param throw_direction: The normalized throw direction.
-## @return: A safe spawn position that is not behind a wall.
 func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, throw_direction: Vector2) -> Vector2:
 	# Get the physics space state for raycasting
 	var space_state := get_world_2d().direct_space_state
@@ -2147,8 +2130,6 @@ func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, 
 ## Uses 8 directions with 45° sectors each:
 ## - RIGHT (0°), DOWN-RIGHT (45°), DOWN (90°), DOWN-LEFT (135°)
 ## - LEFT (180°), UP-LEFT (-135°), UP (-90°), UP-RIGHT (-45°)
-## @param raw_direction: The raw normalized direction from mouse velocity.
-## @return: A snapped direction vector pointing to the nearest of 8 directions.
 func _snap_to_octant_direction(raw_direction: Vector2) -> Vector2:
 	# Calculate angle in radians (-PI to PI)
 	var angle := raw_direction.angle()
@@ -2168,7 +2149,6 @@ func _snap_to_octant_direction(raw_direction: Vector2) -> Vector2:
 
 ## Rotate player to face throw direction (with swing animation).
 ## Prevents grenade from hitting player when throwing upward.
-## @param throw_direction: The direction of the throw.
 func _rotate_player_for_throw(throw_direction: Vector2) -> void:
 	# Store current rotation to restore later
 	_player_rotation_before_throw = rotation
@@ -2187,7 +2167,6 @@ func _rotate_player_for_throw(throw_direction: Vector2) -> void:
 
 
 ## Handle throw rotation animation - restore player rotation after throw.
-## @param delta: Time since last frame.
 func _handle_throw_rotation_animation(delta: float) -> void:
 	if not _is_throw_rotating:
 		return
@@ -2226,8 +2205,6 @@ func is_preparing_grenade() -> bool:
 # ============================================================================
 
 ## Start a new grenade animation phase.
-## @param phase: The GrenadeAnimPhase to transition to.
-## @param duration: How long this phase should last (for timed phases).
 func _start_grenade_anim_phase(phase: int, duration: float) -> void:
 	_grenade_anim_phase = phase
 	_grenade_anim_timer = duration
@@ -2247,7 +2224,6 @@ func _start_grenade_anim_phase(phase: int, duration: float) -> void:
 
 ## Update grenade animation based on current phase.
 ## Called every frame from _physics_process.
-## @param delta: Time since last frame.
 func _update_grenade_animation(delta: float) -> void:
 	# Early exit if no animation active
 	if _grenade_anim_phase == GrenadeAnimPhase.NONE:
@@ -2348,7 +2324,6 @@ func _update_grenade_animation(delta: float) -> void:
 
 
 ## Update weapon sling position (lower weapon when handling grenade).
-## @param delta: Time since last frame.
 func _update_weapon_sling(delta: float) -> void:
 	if not _weapon_mount:
 		return
@@ -2415,8 +2390,6 @@ func _update_wind_up_intensity() -> void:
 # ============================================================================
 
 ## Start a new reload animation phase.
-## @param phase: The ReloadAnimPhase to transition to.
-## @param duration: How long this phase should last.
 func _start_reload_anim_phase(phase: int, duration: float) -> void:
 	_reload_anim_phase = phase
 	_reload_anim_timer = duration
@@ -2432,7 +2405,6 @@ func _start_reload_anim_phase(phase: int, duration: float) -> void:
 ## 1. Left hand grabs magazine from chest
 ## 2. Left hand inserts magazine into rifle
 ## 3. Pull the bolt/charging handle
-## @param delta: Time since last frame.
 func _update_reload_animation(delta: float) -> void:
 	# Early exit if no animation active
 	if _reload_anim_phase == ReloadAnimPhase.NONE:
@@ -2692,15 +2664,12 @@ func _get_grenade_effect_radius_with_default() -> float:
 
 ## Draw a simple straight trajectory (for contact grenades or when no bounces needed).
 func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_trajectory: Color, color_landing: Color, color_radius: Color, line_width: float) -> void:
-	# Draw trajectory arc (curved line)
 	_draw_trajectory_arc(spawn_pos, landing_pos, color_trajectory, line_width)
 
-	# Draw landing position marker (cross)
 	var cross_size := 12.0
 	draw_line(landing_pos + Vector2(-cross_size, 0), landing_pos + Vector2(cross_size, 0), color_landing, 3.0)
 	draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
-	# Draw effect radius at landing position
 	# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
 	var effect_radius := _get_grenade_effect_radius_with_default()
 	_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
@@ -2730,7 +2699,6 @@ func _draw_trajectory_arc(start_pos: Vector2, end_pos: Vector2, color: Color, wi
 		draw_line(prev_point, point, color, width)
 		prev_point = point
 
-	# Draw small dots along the arc
 	for i in range(1, num_segments):
 		var t := float(i) / float(num_segments)
 		var linear_pos := start_pos.lerp(end_pos, t)
@@ -2789,35 +2757,28 @@ func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed
 			current_pos = next_pos
 			trajectory_points.append(current_pos)
 
-	# Draw the trajectory segments
 	if trajectory_points.size() > 1:
 		var segment_start := 0
 		for i in range(trajectory_points.size()):
 			if bounce_points.has(trajectory_points[i]) or i == trajectory_points.size() - 1:
-				# Draw segment from segment_start to i
 				if i > segment_start:
 					var segment_color := color_trajectory if segment_start == 0 else color_bounce
 					_draw_trajectory_segment(trajectory_points, segment_start, i, segment_color, line_width)
 				segment_start = i
 
-	# Draw bounce markers
 	for bounce_pos in bounce_points:
 		draw_circle(bounce_pos, 5.0, color_bounce)
-		# Draw small X at bounce point
 		var x_size := 4.0
 		draw_line(bounce_pos + Vector2(-x_size, -x_size), bounce_pos + Vector2(x_size, x_size), color_bounce, 2.0)
 		draw_line(bounce_pos + Vector2(-x_size, x_size), bounce_pos + Vector2(x_size, -x_size), color_bounce, 2.0)
 
-	# Draw landing position
 	if trajectory_points.size() > 0:
 		var landing_pos := trajectory_points[trajectory_points.size() - 1]
 
-		# Draw landing marker (cross)
 		var cross_size := 12.0
 		draw_line(landing_pos + Vector2(-cross_size, 0), landing_pos + Vector2(cross_size, 0), color_landing, 3.0)
 		draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
-		# Draw effect radius at landing position
 		# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
 		var effect_radius := _get_grenade_effect_radius_with_default()
 		_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
@@ -2827,7 +2788,6 @@ func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed
 func _draw_trajectory_segment(points: Array[Vector2], start_idx: int, end_idx: int, color: Color, width: float) -> void:
 	for i in range(start_idx, end_idx):
 		draw_line(points[i], points[i + 1], color, width)
-		# Draw dots
 		if i > start_idx:
 			draw_circle(points[i], 2.0, color)
 
@@ -2854,10 +2814,6 @@ func _raycast_for_wall(from_global: Vector2, to_global: Vector2) -> Dictionary:
 
 
 ## Draw a circle outline (not filled) at the specified position.
-## @param center: Center position of the circle.
-## @param radius: Radius of the circle.
-## @param color: Color of the outline.
-## @param width: Line width.
 func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
 	var num_segments := 32
 	var angle_step := TAU / num_segments
@@ -2898,15 +2854,12 @@ func _draw_trajectory_glasses() -> void:
 	# Last index of valid segments (green). If invalid_start >= 1, green runs to invalid_start-1.
 	var last_valid_end: int = (invalid_start - 1) if invalid_start >= 1 else (points.size() - 1)
 
-	# Draw glow for valid segments
 	for i in range(last_valid_end):
 		draw_line(points[i], points[i + 1], Color(0.0, 1.0, 0.0, 0.3), 6.0)
 
-	# Draw glow for terminal invalid segment
 	if invalid_start >= 1 and invalid_start < points.size():
 		draw_line(points[invalid_start - 1], points[invalid_start], Color(1.0, 0.0, 0.0, 0.3), 6.0)
 
-	# Draw main laser for valid segments (green)
 	for i in range(last_valid_end):
 		draw_line(points[i], points[i + 1], valid_color, 2.0)
 
@@ -2914,7 +2867,6 @@ func _draw_trajectory_glasses() -> void:
 	if invalid_start >= 1 and invalid_start < points.size():
 		draw_line(points[invalid_start - 1], points[invalid_start], invalid_color, 2.0)
 
-	# Draw dot at start (bullet spawn point)
 	draw_circle(points[0], 3.0, valid_color)
 
 	# Draw small diamonds at valid bounce points (not at terminal red point)
@@ -4300,7 +4252,6 @@ func _show_loudspeaker_victory_message() -> void:
 	canvas.layer = 100
 	add_child(canvas)
 
-	# Victory message label
 	var label := Label.new()
 	label.text = "Нам нечего делить по этому мы не будем стрелять друг в друга."
 	label.add_theme_font_size_override("font_size", 36)
@@ -4313,7 +4264,6 @@ func _show_loudspeaker_victory_message() -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	canvas.add_child(label)
 
-	# "Click to continue" hint
 	var hint := Label.new()
 	hint.text = "[ нажмите, чтобы продолжить ]"
 	hint.add_theme_font_size_override("font_size", 18)
@@ -4326,7 +4276,6 @@ func _show_loudspeaker_victory_message() -> void:
 	hint.set_anchor(SIDE_BOTTOM, 0.75)
 	canvas.add_child(hint)
 
-	# Invisible click-catcher panel
 	var panel := ColorRect.new()
 	panel.color = Color(0, 0, 0, 0)
 	panel.set_anchor(SIDE_LEFT, 0.0)
@@ -4345,17 +4294,14 @@ func _show_loudspeaker_victory_message() -> void:
 
 ## Show end screen after player clicks on victory message (Issue #959).
 func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
-	# Remove victory screen
 	if is_instance_valid(victory_canvas):
 		victory_canvas.queue_free()
 
-	# Create end screen canvas
 	var canvas := CanvasLayer.new()
 	canvas.name = "LoudspeakerEndCanvas"
 	canvas.layer = 101
 	add_child(canvas)
 
-	# Black background
 	var bg := ColorRect.new()
 	bg.color = Color(0, 0, 0, 1)
 	bg.set_anchor(SIDE_LEFT, 0.0)
@@ -4364,7 +4310,6 @@ func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
 	bg.set_anchor(SIDE_BOTTOM, 1.0)
 	canvas.add_child(bg)
 
-	# "Конец" title
 	var title := Label.new()
 	title.text = "Конец"
 	title.add_theme_font_size_override("font_size", 72)
@@ -4377,7 +4322,6 @@ func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
 	title.set_anchor(SIDE_BOTTOM, 0.45)
 	canvas.add_child(title)
 
-	# Thank you message
 	var thanks := Label.new()
 	thanks.text = "Спасибо за игру!"
 	thanks.add_theme_font_size_override("font_size", 32)
@@ -4448,8 +4392,6 @@ func _ensure_progress_bar_node() -> void:
 
 
 ## Show a segmented charge bar above the player.
-## @param current_charges: Number of charges remaining.
-## @param max_charges: Maximum number of charges.
 func _show_active_item_charge_bar(current_charges: int, max_charges: int) -> void:
 	_ensure_progress_bar_node()
 	_active_item_progress_bar.show_bar(
@@ -4460,8 +4402,6 @@ func _show_active_item_charge_bar(current_charges: int, max_charges: int) -> voi
 
 
 ## Show a continuous timer bar above the player.
-## @param time_remaining: Time remaining in seconds.
-## @param max_time: Maximum time in seconds.
 func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void:
 	_ensure_progress_bar_node()
 	_active_item_progress_bar.show_bar(
@@ -4473,10 +4413,6 @@ func _show_active_item_timer_bar(time_remaining: float, max_time: float) -> void
 
 ## Show a combined charge + timer bar above the player (Issue #974).
 ## Used for items that have limited charges AND a duration per use.
-## @param charges_current: Number of charges remaining.
-## @param charges_maximum: Maximum number of charges.
-## @param time_remaining: Time remaining for current activation.
-## @param time_maximum: Maximum duration per activation.
 func _show_active_item_combined_bar(charges_current: int, charges_maximum: int, time_remaining: float, time_maximum: float) -> void:
 	_ensure_progress_bar_node()
 	_active_item_progress_bar.show_combined_bar(
@@ -4488,14 +4424,12 @@ func _show_active_item_combined_bar(charges_current: int, charges_maximum: int, 
 
 
 ## Update the timer value in combined mode.
-## @param time_remaining: New time remaining value.
 func _update_active_item_timer(time_remaining: float) -> void:
 	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
 		_active_item_progress_bar.update_timer(time_remaining)
 
 
 ## Update the progress bar value.
-## @param current: New current value.
 func _update_active_item_bar(current: float) -> void:
 	if _active_item_progress_bar != null and is_instance_valid(_active_item_progress_bar):
 		_active_item_progress_bar.update_value(current)
