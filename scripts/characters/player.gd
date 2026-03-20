@@ -497,15 +497,16 @@ func _physics_process(delta: float) -> void:
 	var can_shoot := _grenade_state == GrenadeState.IDLE or _grenade_state == GrenadeState.TIMER_STARTED or _grenade_state == GrenadeState.SIMPLE_AIMING
 	# When recoil compensator is active, allow auto-fire at boosted rate (10% faster) while holding shoot.
 	# Without compensator, preserve default semi-auto (just_pressed) behavior.
+	var rc_active := _recoil_compensator != null and _recoil_compensator.is_active()
 	var shoot_pressed: bool
-	if _recoil_compensator_active and _recoil_compensator_shoot_cooldown <= 0.0:
+	if rc_active and _recoil_compensator.shoot_cooldown <= 0.0:
 		shoot_pressed = Input.is_action_pressed("shoot")
 	else:
 		shoot_pressed = Input.is_action_just_pressed("shoot")
 	if can_shoot and shoot_pressed:
 		_shoot()
-		if _recoil_compensator_active and fire_rate > 0.0:
-			_recoil_compensator_shoot_cooldown = 1.0 / (fire_rate * RECOIL_COMPENSATOR_FIRE_RATE_BOOST)
+		if rc_active and fire_rate > 0.0:
+			_recoil_compensator.shoot_cooldown = 1.0 / (fire_rate * RecoilCompensatorComponent.FIRE_RATE_BOOST)
 
 	# Handle reload input based on weapon type and mode
 	if _current_weapon_type == WeaponType.REVOLVER:
@@ -745,7 +746,7 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 ## Calculate current spread based on consecutive shots.
 ## Returns 0.0 when recoil compensator is active (Issue #1073).
 func _get_current_spread() -> float:
-	if _recoil_compensator_active:
+	if _recoil_compensator != null and _recoil_compensator.is_active():
 		return 0.0
 	if _shot_count <= SPREAD_THRESHOLD:
 		return INITIAL_SPREAD
@@ -844,7 +845,7 @@ func _shoot() -> void:
 ## Trigger screen shake based on shooting direction and current spread.
 ## Suppressed when recoil compensator is active (Issue #1073).
 func _trigger_screen_shake(shoot_direction: Vector2) -> void:
-	if _recoil_compensator_active:
+	if _recoil_compensator != null and _recoil_compensator.is_active():
 		return
 	if screen_shake_intensity <= 0.0:
 		return
@@ -4824,83 +4825,28 @@ func _apply_item_visual() -> void:
 # Recoil Compensator (Issue #1073)
 # ============================================================================
 
-
-## Whether the recoil compensator is equipped.
-var _recoil_compensator_equipped: bool = false
-
-## Whether the recoil compensator is currently active (Space held and charge > 0).
-var _recoil_compensator_active: bool = false
-
-## Remaining charge in seconds (max 15 seconds).
-var _recoil_compensator_charge: float = 0.0
-
-## Maximum charge duration in seconds.
-const RECOIL_COMPENSATOR_MAX_CHARGE: float = 15.0
-
-## Fire rate multiplier when compensator is active (10% boost).
-const RECOIL_COMPENSATOR_FIRE_RATE_BOOST: float = 1.1
-
-## Shoot cooldown timer for fire rate boost (seconds remaining until next shot allowed).
-var _recoil_compensator_shoot_cooldown: float = 0.0
+## Recoil compensator component (see scripts/components/recoil_compensator_component.gd).
+var _recoil_compensator: RecoilCompensatorComponent = null
 
 
-## Initialize the recoil compensator if the ActiveItemManager has it selected.
+## Initialize the recoil compensator component.
 func _init_recoil_compensator() -> void:
-	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
-	if active_item_manager == null:
-		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager not found")
-		return
-
-	if not active_item_manager.has_method("has_recoil_compensator"):
-		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager does not have has_recoil_compensator method")
-		return
-
-	if not active_item_manager.has_recoil_compensator():
-		FileLogger.info("[Player.RecoilCompensator] Recoil compensator not selected")
-		return
-
-	_recoil_compensator_equipped = true
-	_recoil_compensator_charge = RECOIL_COMPENSATOR_MAX_CHARGE
-
-	FileLogger.info("[Player.RecoilCompensator] Recoil compensator initialized, charge: %.1f s" % _recoil_compensator_charge)
+	_recoil_compensator = RecoilCompensatorComponent.new()
+	_recoil_compensator.name = "RecoilCompensatorComponent"
+	add_child(_recoil_compensator)
+	_recoil_compensator.charge_bar_update_requested.connect(_show_active_item_timer_bar)
+	_recoil_compensator.setup()
 
 
 ## Handle recoil compensator input: hold Space to activate, release to deactivate.
-## Charge depletes at 1 s/s while active; deactivates automatically when empty.
 func _handle_recoil_compensator_input(delta: float) -> void:
-	if not _recoil_compensator_equipped:
-		return
-
-	# Update shoot cooldown timer
-	if _recoil_compensator_shoot_cooldown > 0.0:
-		_recoil_compensator_shoot_cooldown -= delta
-
-	if Input.is_action_pressed("flashlight_toggle") and _recoil_compensator_charge > 0.0:
-		# Activate: deplete charge
-		if not _recoil_compensator_active:
-			_recoil_compensator_active = true
-			FileLogger.info("[Player.RecoilCompensator] Activated, charge: %.2f s" % _recoil_compensator_charge)
-
-		_recoil_compensator_charge -= delta
-		if _recoil_compensator_charge <= 0.0:
-			_recoil_compensator_charge = 0.0
-			_recoil_compensator_active = false
-			FileLogger.info("[Player.RecoilCompensator] Charge depleted, deactivating")
-
-		# Update progress bar while active
-		_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
-	else:
-		# Deactivate when Space is released or charge is empty
-		if _recoil_compensator_active:
-			_recoil_compensator_active = false
-			FileLogger.info("[Player.RecoilCompensator] Deactivated, charge: %.2f s" % _recoil_compensator_charge)
-			if _recoil_compensator_charge > 0.0:
-				_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
+	if _recoil_compensator != null:
+		_recoil_compensator.handle_input(delta)
 
 
 ## Check if the recoil compensator is currently active.
 func is_recoil_compensator_active() -> bool:
-	return _recoil_compensator_equipped and _recoil_compensator_active
+	return _recoil_compensator != null and _recoil_compensator.is_active()
 
 
 # ============================================================================
