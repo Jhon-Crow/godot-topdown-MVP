@@ -6,8 +6,8 @@
 [ext_resource type="Script" path="res://scripts/components/threat_sphere.gd" id="4_threat_sphere"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_body.png" id="5_body"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_head.png" id="6_head"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_left_arm.png" id="7_left_arm"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_arm.png" id="8_right_arm"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_shoulder.png" id="7_right_shoulder"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_forearm.png" id="8_right_forearm"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_armband.png" id="9_armband"]
 [ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="10_bloody_feet"]
 
@@ -39,15 +39,15 @@ z_index = 1
 position = Vector2(-4, 0)
 texture = ExtResource("5_body")
 
-[node name="LeftArm" type="Sprite2D" parent="PlayerModel"]
+[node name="RightShoulder" type="Sprite2D" parent="PlayerModel"]
 z_index = 4
 position = Vector2(24, 6)
-texture = ExtResource("7_left_arm")
+texture = ExtResource("7_right_shoulder")
 
-[node name="RightArm" type="Sprite2D" parent="PlayerModel"]
+[node name="RightForearm" type="Sprite2D" parent="PlayerModel/RightShoulder"]
 z_index = 4
-position = Vector2(-2, 6)
-texture = ExtResource("8_right_arm")
+position = Vector2(-26, 0)
+texture = ExtResource("8_right_forearm")
 
 [node name="Armband" type="Sprite2D" parent="PlayerModel"]
 z_index = 5
