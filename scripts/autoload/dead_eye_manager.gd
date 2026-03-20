@@ -9,7 +9,7 @@ extends Node
 ## "Volley" definition:
 ## - For weapons that fire multiple projectiles (shotgun, sniper):
 ##   at least one projectile must deal damage to count as a hit.
-## - For automatic weapons: a continuous burst of fire lasting up to 1 second
+## - For automatic weapons: a continuous burst of fire lasting up to 0.5 seconds
 ##   counts as one volley. If at least one bullet hits during that window, it's a hit.
 ##
 ## Integration:
@@ -25,7 +25,8 @@ const HIT_STEP: float = 0.05
 
 ## Duration of a single volley window in seconds.
 ## Automatic weapons: bullets within this window are treated as one volley.
-const VOLLEY_WINDOW: float = 1.0
+## A miss is triggered if no new bullet is fired within this window after the last shot.
+const VOLLEY_WINDOW: float = 0.5
 
 ## Current damage multiplier.
 var _multiplier: float = BASE_MULTIPLIER

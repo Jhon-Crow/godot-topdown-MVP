@@ -6,7 +6,7 @@ Issue #1069 requested a new passive item called "Dead Eye" (Мёртвый гл�
 - Starts with **-20% damage** (multiplier = 0.8)
 - Each successful hit **increases damage by +5%** (stacks: 0.8 → 0.85 → 0.90 → ...)
 - After a miss, **damage resets** to -20%
-- "Volley" definition: for shotguns/snipers (multi-projectile), at least one pellet must hit to count as a hit; for automatic weapons, a continuous burst within 1 second counts as one volley
+- "Volley" definition: for shotguns/snipers (multi-projectile), at least one pellet must hit to count as a hit; for automatic weapons, a continuous burst within 0.5 seconds counts as one volley (reduced from 1.0s per owner feedback 2026-03-20)
 
 The initial implementation (PR #1070, commit `9f1ce199`) registered the item in `ActiveItemManager` and created `DeadEyeManager`, but the owner reported the item was **not working** after testing with a production build.
 
@@ -16,6 +16,7 @@ The initial implementation (PR #1070, commit `9f1ce199`) registered the item in 
 |---|---|---|
 | `game_log_20260317_215744.txt` | ~2 min | Windows export, 2026-03-17 21:57–21:59 |
 | `game_log_20260318_065120.txt` | ~2 min | Windows export, 2026-03-18 06:51–06:54 |
+| `game_log_20260320_102550.txt` | ~11 min | Windows export, 2026-03-20 10:25–10:36 |
 
 **Session 1 details (2026-03-17):**
 - OS: Windows (production export, non-debug build)
@@ -68,6 +69,32 @@ The initial implementation (PR #1070, commit `9f1ce199`) registered the item in 
            ← [Player.DeadEye] STILL MISSING — confirming old build lacks _init_dead_eye()
 06:53:40 - [Player] Ready! Ammo: 32/32
 ```
+
+### Session 3 (2026-03-20)
+
+```
+10:25:50 - Game starts (LabyrinthLevel)
+10:25:50 - PersistManager: Restored unlocked active item types 0–17
+           ← Types 0–17 restored (Dead Eye = 18 was NOT in the unlocked list)
+10:25:50 - [ActiveItemManager] Active item changed from None to Invisibility
+           ← Owner started with Invisibility selected (not Dead Eye)
+10:26:01 - [ActiveItemManager] Active item changed from Invisibility to Dead Eye
+           ← Owner went to armory and manually selected Dead Eye
+10:26:01 - Scene reloads (LabyrinthLevel restart after armory change)
+10:26:01 - [Player.InvisibilitySuit] No invisibility suit selected
+           ← [Player.DeadEye] MISSING — old build still lacks _init_dead_eye()
+10:26:01 - [Player.RecoilCompensator] Recoil compensator not selected
+10:26:01 - [Player.Jammer] JammerHUD initialized
+10:26:01 - [Player] Ready! Ammo: 30/30
+           ← Dead Eye activated per ActiveItemManager, but _init_dead_eye() never called
+```
+
+**Key finding in Session 3:**
+- The owner tested with build from folder `I:/Загрузки/godot exe/ДЭДАЙ/` (path suggests a dedicated "Dead Eye" test build)
+- `[ActiveItemManager] Active item changed from Invisibility to Dead Eye` — Dead Eye IS recognized
+- However `[Player.DeadEye]` is **completely absent** from the player init sequence — confirming old build
+- The sequence shows: `[Player.RecoilCompensator]` then `[Player.Jammer]` — our `_init_dead_eye()` call is between `_init_recoil_compensator()` and `_init_active_item_progress_bar()`, which would produce `[Player.DeadEye]` — but it doesn't
+- This confirms the build is **still pre-PR #1070** despite the armory showing Dead Eye as an option (item data was added to ActiveItemManager before the full implementation)
 
 ## Root Cause Analysis
 
@@ -161,3 +188,4 @@ The HUD implementation follows the same pattern as `invisibility_hud.gd` (Issue 
 2. **Add HUD** — `scripts/ui/dead_eye_hud.gd` provides persistent visual feedback for the passive item state
 3. **Extend manager** — `get_hit_streak()` added to `DeadEyeManager` for HUD polling
 4. **Document in player.gd** — `_init_dead_eye()` now creates the HUD node and logs creation
+5. **Reduce volley window to 0.5s** — Owner feedback requested that the miss timer be 0.5 seconds instead of 1.0s; `VOLLEY_WINDOW` reduced accordingly in `dead_eye_manager.gd`

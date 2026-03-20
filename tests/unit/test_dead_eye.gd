@@ -21,7 +21,7 @@ class MockDeadEyeManager:
 	const HIT_STEP: float = 0.05
 
 	## Duration of a single volley window in seconds.
-	const VOLLEY_WINDOW: float = 1.0
+	const VOLLEY_WINDOW: float = 0.5
 
 	## Current damage multiplier.
 	var _multiplier: float = BASE_MULTIPLIER
