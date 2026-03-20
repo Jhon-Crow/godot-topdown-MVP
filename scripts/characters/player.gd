@@ -4037,8 +4037,13 @@ func _init_loudspeaker() -> void:
 
 	FileLogger.info("[Player.Loudspeaker] Loudspeaker selected, initializing...")
 
-	# Create loudspeaker progress tracker
-	_loudspeaker_progress = LoudspeakerProgress.new()
+	# Reuse the persistent progress tracker from ActiveItemManager (Issue #959).
+	# Do NOT create a new one here — that would reset all progression on every scene load.
+	_loudspeaker_progress = active_item_manager.loudspeaker_progress
+	# Reset only per-run state (charges/cooldown/all_charges_used) on respawn.
+	# used_this_level is NOT reset here — it persists across deaths on the same map
+	# so the first-use 100% only fires once per level visit (Issue #959).
+	_loudspeaker_progress.reset_for_respawn()
 
 	# Create the cone visual effect node
 	_loudspeaker_cone = LoudspeakerConeEffectScript.new()
@@ -4065,9 +4070,17 @@ func _init_loudspeaker() -> void:
 			add_child(_loudspeaker_hand_sprite)
 
 	var max_charges := _loudspeaker_progress.get_max_charges()
-	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, charges: %s" % (
-		str(max_charges) if max_charges != -1 else "unlimited"
-	))
+	FileLogger.info("[Player.Loudspeaker] Loudspeaker equipped, level: %d, charges: %s, effect: %.0f%%, used_this_level: %s, all_charges_used: %s" % [
+		_loudspeaker_progress.current_level,
+		str(max_charges) + "/" + str(max_charges) if max_charges != -1 else "unlimited",
+		_loudspeaker_progress.get_effect_chance() * 100.0,
+		_loudspeaker_progress.used_this_level,
+		_loudspeaker_progress.all_charges_used_this_level
+	])
+
+	# Apply level start states for levels 6 and 7 (Issue #959)
+	if _loudspeaker_progress.should_start_with_pacifists() or _loudspeaker_progress.is_victory_state():
+		call_deferred("_apply_loudspeaker_level_start_state")
 
 
 ## Handle loudspeaker input: press Space to emit sound cone (Issue #959).
@@ -4125,15 +4138,17 @@ func _handle_loudspeaker_input() -> void:
 	if _loudspeaker_cone and is_instance_valid(_loudspeaker_cone):
 		_loudspeaker_cone.play(aim_dir)
 
-	# Effect chance: first use is always 100%, subsequent uses depend on level
-	var effect_chance := 1.0 if is_first_use else _loudspeaker_progress.get_effect_chance()
+	# Effect chance: only first use at level 1 gets 100% (exactly 1 enemy); all other uses use level chance
+	var is_level1_first_use: bool = is_first_use and _loudspeaker_progress.current_level == 1
+	var effect_chance := 1.0 if is_level1_first_use else _loudspeaker_progress.get_effect_chance()
+	var max_pacify := 1 if is_level1_first_use else -1
 
 	# Notify all enemies on the map that a loud sound was made (they all hear it)
 	_alert_all_enemies_loudspeaker()
 
 	# Apply pacifism effect to enemies in the cone sector (Stage 5)
 	var hostility_chance := _loudspeaker_progress.get_hostility_chance()
-	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance)
+	_apply_loudspeaker_effect(aim_dir, effect_chance, hostility_chance, max_pacify)
 
 	# Emit signal so level scripts can track loudspeaker activations
 	loudspeaker_activated.emit(global_position, aim_dir, effect_chance)
@@ -4143,8 +4158,9 @@ func _handle_loudspeaker_input() -> void:
 	var current_charges := _loudspeaker_progress.charges_remaining
 	loudspeaker_charges_changed.emit(current_charges, max_charges if max_charges != -1 else 0)
 
-	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%" % [
-		aim_dir, effect_chance * 100.0
+	var charges_str := "%d/%d" % [current_charges, max_charges] if max_charges != -1 else "unlimited"
+	FileLogger.info("[Player.Loudspeaker] Activated! Direction: %s, Effect chance: %.0f%%, Charges: %s" % [
+		aim_dir, effect_chance * 100.0, charges_str
 	])
 
 
@@ -4170,7 +4186,8 @@ func _get_aim_direction() -> Vector2:
 ## - Only enemies NOT previously attacked by player (not wounded/suppressed)
 ## - Effect chance: 100% on first use, per-level chance on subsequent uses
 ## - Hostility: each enemy independently rolls hostility toward any pacifist created
-func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float) -> void:
+## - max_pacify: maximum enemies to pacify this activation (-1 = unlimited)
+func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostility_chance: float, max_pacify: int = -1) -> void:
 	const CONE_HALF_ANGLE: float = 0.872664625997  # 50 degrees in radians
 	const COVER_MAX_DISTANCE: float = 500.0
 	var wall_mask: int = 4  # Physics layer for walls
@@ -4186,8 +4203,11 @@ func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostili
 		if not enemy.has_method("is_pacifist") or enemy.is_pacifist():
 			continue  # Already pacifist
 
-		# Check if enemy was attacked by player (only unengaged enemies can be pacified)
-		if enemy.has_method("was_attacked_by_player") and enemy.was_attacked_by_player():
+		# Issue #959: Skip enemies who were actually shot/hit by the player.
+		# Note: was_attacked_by_player() also returns true for _in_alarm_mode (merely alerted),
+		# but the loudspeaker itself alerts all enemies, which would block level 6+ pacification.
+		# Use was_hit_by_player() which checks only actual hits (_hits_taken_in_encounter > 0).
+		if enemy.has_method("was_hit_by_player") and enemy.was_hit_by_player():
 			continue
 
 		var to_enemy: Vector2 = enemy.global_position - global_position
@@ -4225,6 +4245,9 @@ func _apply_loudspeaker_effect(direction: Vector2, effect_chance: float, hostili
 			FileLogger.info("[Player.Loudspeaker] Pacified enemy at %s (dist=%.0f, cover=%s)" % [
 				enemy.global_position, dist, str(behind_wall)
 			])
+			# Stop after reaching the per-activation limit (e.g. 1 on very first use at level 1)
+			if max_pacify != -1 and pacified_count >= max_pacify:
+				break
 
 	FileLogger.info("[Player.Loudspeaker] Effect applied: %d/%d enemies pacified" % [
 		pacified_count, enemies.size()
@@ -4244,6 +4267,155 @@ func _alert_all_enemies_loudspeaker() -> void:
 			enemy.alert(global_position)
 			alerted += 1
 	FileLogger.info("[Player.Loudspeaker] Alerted %d enemies" % alerted)
+
+
+## Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
+## Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
+## Level 7: ALL enemies start as pacifists; show victory message.
+## Called deferred from _init_loudspeaker so all enemy nodes are ready.
+func _apply_loudspeaker_level_start_state() -> void:
+	if _loudspeaker_progress == null:
+		return
+
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return
+
+	if _loudspeaker_progress.is_victory_state():
+		# Level 7: ALL enemies become pacifists
+		FileLogger.info("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!")
+		for enemy in enemies:
+			if enemy.has_method("apply_pacifism") and enemy.has_method("is_alive") and enemy.is_alive():
+				enemy.apply_pacifism(0.0)
+		# Show victory message via a label in the UI
+		_show_loudspeaker_victory_message()
+
+	elif _loudspeaker_progress.should_start_with_pacifists():
+		# Level 6: 50% enemies start as pacifists; designate 1 as immune
+		var alive_enemies: Array = []
+		for enemy in enemies:
+			if enemy.has_method("is_alive") and enemy.is_alive():
+				alive_enemies.append(enemy)
+
+		# Pick 1 random immune enemy first (before pacifying others)
+		if not alive_enemies.is_empty() and _loudspeaker_progress.has_immune_enemy():
+			var immune_idx := randi() % alive_enemies.size()
+			var immune_enemy: Node = alive_enemies[immune_idx]
+			if immune_enemy.has_method("set_immune_to_pacifism"):
+				immune_enemy.set_immune_to_pacifism(true)
+				FileLogger.info("[Player.Loudspeaker] Level 6: enemy at %s is immune to pacifism" % immune_enemy.global_position)
+			alive_enemies.remove_at(immune_idx)
+
+		# Pacify 50% of remaining enemies
+		alive_enemies.shuffle()
+		var pacify_count: int = int(alive_enemies.size() * 0.5)
+		var pacified := 0
+		for i in range(pacify_count):
+			var enemy: Node = alive_enemies[i]
+			if enemy.has_method("apply_pacifism"):
+				enemy.apply_pacifism(0.0)
+				pacified += 1
+		FileLogger.info("[Player.Loudspeaker] Level 6: %d/%d enemies start as pacifists" % [pacified, alive_enemies.size() + 1])
+
+
+## Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+func _show_loudspeaker_victory_message() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.name = "LoudspeakerVictoryCanvas"
+	canvas.layer = 100
+	add_child(canvas)
+
+	# Victory message label
+	var label := Label.new()
+	label.text = "Нам нечего делить по этому мы не будем стрелять друг в друга."
+	label.add_theme_font_size_override("font_size", 36)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchor(SIDE_LEFT, 0.0)
+	label.set_anchor(SIDE_RIGHT, 1.0)
+	label.set_anchor(SIDE_TOP, 0.3)
+	label.set_anchor(SIDE_BOTTOM, 0.7)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	canvas.add_child(label)
+
+	# "Click to continue" hint
+	var hint := Label.new()
+	hint.text = "[ нажмите, чтобы продолжить ]"
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.8))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.set_anchor(SIDE_LEFT, 0.0)
+	hint.set_anchor(SIDE_RIGHT, 1.0)
+	hint.set_anchor(SIDE_TOP, 0.65)
+	hint.set_anchor(SIDE_BOTTOM, 0.75)
+	canvas.add_child(hint)
+
+	# Invisible click-catcher panel
+	var panel := ColorRect.new()
+	panel.color = Color(0, 0, 0, 0)
+	panel.set_anchor(SIDE_LEFT, 0.0)
+	panel.set_anchor(SIDE_RIGHT, 1.0)
+	panel.set_anchor(SIDE_TOP, 0.0)
+	panel.set_anchor(SIDE_BOTTOM, 1.0)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed:
+			_show_loudspeaker_end_screen(canvas)
+	)
+	canvas.add_child(panel)
+
+	FileLogger.info("[Player.Loudspeaker] Victory message shown (Level 7)")
+
+
+## Show end screen after player clicks on victory message (Issue #959).
+func _show_loudspeaker_end_screen(victory_canvas: CanvasLayer) -> void:
+	# Remove victory screen
+	if is_instance_valid(victory_canvas):
+		victory_canvas.queue_free()
+
+	# Create end screen canvas
+	var canvas := CanvasLayer.new()
+	canvas.name = "LoudspeakerEndCanvas"
+	canvas.layer = 101
+	add_child(canvas)
+
+	# Black background
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 1)
+	bg.set_anchor(SIDE_LEFT, 0.0)
+	bg.set_anchor(SIDE_RIGHT, 1.0)
+	bg.set_anchor(SIDE_TOP, 0.0)
+	bg.set_anchor(SIDE_BOTTOM, 1.0)
+	canvas.add_child(bg)
+
+	# "Конец" title
+	var title := Label.new()
+	title.text = "Конец"
+	title.add_theme_font_size_override("font_size", 72)
+	title.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.set_anchor(SIDE_LEFT, 0.0)
+	title.set_anchor(SIDE_RIGHT, 1.0)
+	title.set_anchor(SIDE_TOP, 0.2)
+	title.set_anchor(SIDE_BOTTOM, 0.45)
+	canvas.add_child(title)
+
+	# Thank you message
+	var thanks := Label.new()
+	thanks.text = "Спасибо за игру!"
+	thanks.add_theme_font_size_override("font_size", 32)
+	thanks.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1))
+	thanks.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	thanks.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	thanks.set_anchor(SIDE_LEFT, 0.0)
+	thanks.set_anchor(SIDE_RIGHT, 1.0)
+	thanks.set_anchor(SIDE_TOP, 0.5)
+	thanks.set_anchor(SIDE_BOTTOM, 0.7)
+	canvas.add_child(thanks)
+
+	FileLogger.info("[Player.Loudspeaker] End screen shown (Level 7)")
 
 
 ## Check if the loudspeaker is equipped (Issue #959).

@@ -19,6 +19,7 @@ const SECTION_GRENADE := "grenade"
 const SECTION_UNLOCKED_GRENADES := "unlocked_grenades"
 const SECTION_ACTIVE_ITEM := "active_item"
 const SECTION_UNLOCKED_ACTIVE_ITEMS := "unlocked_active_items"
+const SECTION_LOUDSPEAKER := "loudspeaker_progress"  # Issue #959
 
 ## Key names.
 const KEY_SELECTED_WEAPON := "selected_weapon"
@@ -206,6 +207,13 @@ func _save_state_with_level(level_path: String) -> void:
 			for item_type in unlocked_items:
 				config.set_value(SECTION_UNLOCKED_ACTIVE_ITEMS, str(item_type), unlocked_items[item_type])
 
+		# Save loudspeaker progress (Issue #959)
+		if active_item_manager.get("loudspeaker_progress") != null:
+			var lp: LoudspeakerProgress = active_item_manager.loudspeaker_progress
+			var lp_data: Dictionary = lp.to_dict()
+			for key in lp_data:
+				config.set_value(SECTION_LOUDSPEAKER, key, lp_data[key])
+
 	var error := config.save(SAVE_PATH)
 	if error != OK:
 		push_warning("PersistManager: Failed to save state: " + str(error))
@@ -292,6 +300,19 @@ func _load_state() -> void:
 				else:
 					_log_to_file("Saved active item type %d is not unlocked, keeping default" % saved_item_type)
 
+	# Restore loudspeaker progress (Issue #959)
+	var active_item_manager_lp: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager_lp and active_item_manager_lp.get("loudspeaker_progress") != null:
+		if config.has_section(SECTION_LOUDSPEAKER):
+			var lp_data: Dictionary = {}
+			for key in config.get_section_keys(SECTION_LOUDSPEAKER):
+				lp_data[key] = config.get_value(SECTION_LOUDSPEAKER, key)
+			active_item_manager_lp.loudspeaker_progress.from_dict(lp_data)
+			_log_to_file("Loudspeaker progress restored: level %d, levels_completed=%d" % [
+				active_item_manager_lp.loudspeaker_progress.current_level,
+				active_item_manager_lp.loudspeaker_progress.levels_completed_with_loudspeaker
+			])
+
 	state_loaded.emit()
 	_log_to_file("State loaded successfully")
 
@@ -325,6 +346,9 @@ func clear_all_saves() -> void:
 		for item_type in active_item_manager.unlocked_active_items.keys():
 			active_item_manager.unlocked_active_items[item_type] = item_type == active_item_manager.ActiveItemType.NONE
 		active_item_manager.current_active_item = active_item_manager.ActiveItemType.NONE
+		# Reset loudspeaker progress (Issue #959)
+		if active_item_manager.has_method("reset_loudspeaker_progress"):
+			active_item_manager.reset_loudspeaker_progress()
 
 	# Clear level progress
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")

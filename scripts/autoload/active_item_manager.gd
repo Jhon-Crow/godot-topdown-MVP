@@ -4,6 +4,8 @@ extends Node
 ## Tracks which active item is currently selected and provides
 ## data for the armory UI. Active items are equipment that
 ## the player activates during gameplay (e.g., flashlight).
+## Also holds the LoudspeakerProgress singleton so it survives
+## scene reloads (Issue #959).
 
 ## Active item types available in the game.
 enum ActiveItemType {
@@ -169,6 +171,10 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"activation_hint": "Press Space to trigger random effect"
 	}
 }
+
+## Loudspeaker progression tracker (Issue #959).
+## Stored here (autoload) so it persists across scene reloads.
+var loudspeaker_progress: LoudspeakerProgress = LoudspeakerProgress.new()
 
 ## Whether the player's active items are currently jammed by a Radio Jammer enemy (Issue #1036).
 ## NOTE: This flag is no longer the source of truth for jam state.
@@ -372,6 +378,25 @@ func get_laser_sight_color() -> Color:
 ## Returns true when laser sight active item is equipped (Issue #947).
 func should_force_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Notify loudspeaker progression that a level was completed (Issue #959).
+## @param had_kills: Whether the player killed any enemies (pacifists don't count as kills).
+## Should be called from every level script when the level is completed.
+func notify_level_completed(had_kills: bool) -> void:
+	if current_active_item == ActiveItemType.LOUDSPEAKER:
+		loudspeaker_progress.on_level_completed(had_kills)
+		FileLogger.info("[ActiveItemManager] Loudspeaker level completed (had_kills=%s). New level: %d" % [
+			had_kills, loudspeaker_progress.current_level
+		])
+		# Reset used_this_level so the next map's first activation is tracked fresh.
+		loudspeaker_progress.reset_for_new_level()
+
+
+## Reset loudspeaker progression (called from PersistManager.clear_all_saves) (Issue #959).
+func reset_loudspeaker_progress() -> void:
+	loudspeaker_progress = LoudspeakerProgress.new()
+	FileLogger.info("[ActiveItemManager] Loudspeaker progress reset")
 
 
 ## Check if auto-reload is currently equipped (Issue #1067).

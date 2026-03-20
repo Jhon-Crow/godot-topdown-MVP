@@ -21,6 +21,9 @@ signal back_pressed
 @onready var fps_drop_logging_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer/FpsDropLoggingCheckbox
 @onready var all_weapons_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer/AllWeaponsUnlockedCheckbox
 @onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
+@onready var global_stuck_max_time_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeSlider
+@onready var global_stuck_max_time_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeValueLabel
+@onready var nav_mesh_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer/NavMeshVisibleCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
 @onready var enemies_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer/EnemiesTableButton
@@ -57,6 +60,8 @@ func _ready() -> void:
 	fps_drop_logging_checkbox.toggled.connect(_on_fps_drop_logging_toggled)
 	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
 	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
+	global_stuck_max_time_slider.value_changed.connect(_on_global_stuck_max_time_changed)
+	nav_mesh_visible_checkbox.toggled.connect(_on_nav_mesh_visible_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
@@ -96,6 +101,14 @@ func _update_ui() -> void:
 	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
 	all_weapons_unlocked_checkbox.button_pressed = experimental_settings.is_all_weapons_unlocked()
 	all_maps_unlocked_checkbox.button_pressed = experimental_settings.is_all_maps_unlocked()
+	nav_mesh_visible_checkbox.button_pressed = experimental_settings.is_nav_mesh_visible_enabled()
+
+	# Update global stuck max time slider
+	var stuck_time: float = experimental_settings.get_global_stuck_max_time()
+	global_stuck_max_time_slider.set_block_signals(true)
+	global_stuck_max_time_slider.value = stuck_time
+	global_stuck_max_time_slider.set_block_signals(false)
+	global_stuck_max_time_value_label.text = "%ds" % int(stuck_time)
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -123,6 +136,8 @@ func _update_ui() -> void:
 		status_parts.append("All weapons unlocked")
 	if experimental_settings.is_all_maps_unlocked():
 		status_parts.append("All maps unlocked")
+	if experimental_settings.is_nav_mesh_visible_enabled():
+		status_parts.append("Nav mesh visible")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -227,6 +242,20 @@ func _on_all_maps_unlocked_toggled(enabled: bool) -> void:
 	_update_ui()
 
 
+func _on_global_stuck_max_time_changed(value: float) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_global_stuck_max_time(value)
+	global_stuck_max_time_value_label.text = "%ds" % int(value)
+
+
+func _on_nav_mesh_visible_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_nav_mesh_visible_enabled(enabled)
+	_update_ui()
+
+
 func _on_delete_saves_pressed() -> void:
 	var persist_manager: Node = get_node_or_null("/root/PersistManager")
 	if persist_manager and persist_manager.has_method("clear_all_saves"):
@@ -292,6 +321,16 @@ func _on_enemies_table_back_pressed() -> void:
 		enemies_table_menu.hide()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		# If a sub-window (unlock table or enemies table) is open, let it handle ESC.
+		var sub_open: bool = (unlock_table_menu != null and unlock_table_menu.visible) \
+				or (enemies_table_menu != null and enemies_table_menu.visible)
+		if not sub_open:
+			_on_back_pressed()
+			get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
 
@@ -301,7 +340,7 @@ func _on_settings_changed() -> void:
 
 
 ## Enemy spawner: populate enemy type dropdown.
-## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN).
+## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN, 7=SNIPER_RIFLE).
 ## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
@@ -312,6 +351,7 @@ func _setup_enemy_spawner() -> void:
 		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
 		{"name": "RPG + PM pistol", "weapon_type": 4, "behavior": 1},
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
+		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
 	]
 	for t in types:

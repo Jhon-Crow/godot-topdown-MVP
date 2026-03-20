@@ -26,6 +26,7 @@ StatusEffectsManager="*res://scripts/autoload/status_effects_manager.gd"
 GrenadeManager="*res://scripts/autoload/grenade_manager.gd"
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
 FpsMonitor="*res://scripts/autoload/fps_monitor.gd"
+NavMeshMonitor="*res://scripts/autoload/nav_mesh_monitor.gd"
 SoundSettings="*res://scripts/autoload/sound_settings.gd"
 GameplaySettings="*res://scripts/autoload/gameplay_settings.gd"
 CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
@@ -42,6 +43,7 @@ SceneLoader="*res://scripts/autoload/scene_loader.gd"
 PersistManager="*res://scripts/autoload/persist_manager.gd"
 UnlockManager="*res://scripts/autoload/unlock_manager.gd"
 WeaponHintsSettings="*res://scripts/autoload/weapon_hints_settings.gd"
+PerformanceSettings="*res://scripts/autoload/performance_settings.gd"
 
 [application]
 
