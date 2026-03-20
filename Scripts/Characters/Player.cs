@@ -893,6 +893,12 @@ public partial class Player : BaseCharacter
     /// <summary>Maximum charges assigned at level start.</summary>
     private const int ExperimentalSampleMaxCharges = 5;
 
+    /// <summary>Whether the experimental sample charge bar should be drawn.</summary>
+    private bool _experimentalSampleChargeBarVisible = false;
+
+    /// <summary>Floating item icon popup node (GDScript) spawned on each effect fire.</summary>
+    private GodotObject _experimentalSamplePopup = null;
+
     #endregion
 
     public override void _Ready()
@@ -5970,6 +5976,53 @@ public partial class Player : BaseCharacter
         DrawRect(bgRect, borderColor, false, borderWidth);
     }
 
+    /// <summary>
+    /// Draw segmented charge bar for Experimental Sample (Issue #1127).
+    /// Shows up to 5 charge pips above the player.
+    /// </summary>
+    private void DrawExperimentalSampleChargeBar()
+    {
+        const float barWidth = 40.0f;
+        const float barHeight = 6.0f;
+        const float barYOffset = -38.0f; // slightly higher to avoid overlap with other bars
+        const float segmentGap = 2.0f;
+        const float borderWidth = 1.0f;
+
+        int segmentCount = ExperimentalSampleMaxCharges;
+        int filledCount = _experimentalSampleCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = segmentCount > 0 ? (float)filledCount / segmentCount : 0.0f;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.5f, 0.3f, 0.9f, 0.85f); // Purple — full/high
+        else if (percent > 0.25f)
+            fillColor = new Color(0.8f, 0.5f, 0.9f, 0.85f); // Light purple — medium
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.6f, 0.85f); // Pink/red — low
+
+        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
+        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
+    }
+
     #endregion
 
     #region Combat Disposition System (Issue #1047)
@@ -7367,6 +7420,12 @@ public partial class Player : BaseCharacter
             DrawDrillingChargeBar();
         }
 
+        // Draw experimental sample charge bar (Issue #1127)
+        if (_experimentalSampleEquipped && _experimentalSampleChargeBarVisible)
+        {
+            DrawExperimentalSampleChargeBar();
+        }
+
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
         if (_teleportAiming && _teleportBracersEquipped)
@@ -8197,6 +8256,24 @@ public partial class Player : BaseCharacter
         _experimentalSampleCharges = rng.RandiRange(ExperimentalSampleMinCharges, ExperimentalSampleMaxCharges);
 
         LogToFile($"[Player.ExperimentalSample] Equipped, charges this run: {_experimentalSampleCharges}");
+
+        // Show charge bar
+        _experimentalSampleChargeBarVisible = true;
+        QueueRedraw();
+
+        // Spawn floating icon popup child (GDScript node)
+        if (_experimentalSamplePopup == null || !IsInstanceValid((GodotObject)_experimentalSamplePopup))
+        {
+            var popupScript = GD.Load("res://scripts/ui/experimental_sample_item_popup.gd");
+            if (popupScript != null)
+            {
+                var popupNode = new Node2D();
+                popupNode.SetScript(popupScript);
+                popupNode.Name = "ExperimentalSampleItemPopup";
+                AddChild(popupNode);
+                _experimentalSamplePopup = popupNode;
+            }
+        }
     }
 
     /// <summary>
@@ -8226,18 +8303,34 @@ public partial class Player : BaseCharacter
 
         _experimentalSampleCharges -= 1;
 
-        // Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18).
-        // Re-roll if the chosen type has no visible on-press action (passive items, hold-Space items,
-        // or items that require equipment the player doesn't have), so every charge spend is meaningful.
+        // Update charge bar
+        _experimentalSampleChargeBarVisible = true;
+        QueueRedraw();
+
+        // Weighted random pool: homing (type 2) and BFF (type 4) each get ~5% weight,
+        // remaining 15 types share the rest (~6% each). Total tickets = 100.
+        // Type → tickets: 2=5, 4=5, all others=6 (15×6=90, +5+5=100).
+        int[] weightedPool = new int[100];
+        int poolIdx = 0;
+        for (int t = 1; t <= 17; t++)
+        {
+            int tickets = (t == 2 || t == 4) ? 5 : 6;
+            for (int k = 0; k < tickets; k++)
+                weightedPool[poolIdx++] = t;
+        }
+
         var rng = new RandomNumberGenerator();
         rng.Randomize();
         const int maxAttempts = 20;
         bool effectFired = false;
+        int firedType = -1;
         for (int attempt = 0; attempt < maxAttempts && !effectFired; attempt++)
         {
-            int randomType = rng.RandiRange(1, 17);
+            int randomType = weightedPool[rng.RandiRange(0, 99)];
             LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {randomType} (attempt {attempt + 1})");
             effectFired = TriggerExperimentalSampleEffect(randomType);
+            if (effectFired)
+                firedType = randomType;
         }
         if (!effectFired)
         {
@@ -8248,6 +8341,19 @@ public partial class Player : BaseCharacter
             PlayHomingSound();
             StartHomingScanner();
             EmitSignal(SignalName.HomingActivated);
+            firedType = 2; // HOMING_BULLETS fallback
+        }
+
+        // Show floating icon popup for the triggered item (Issue #1127)
+        if (firedType >= 0 && _experimentalSamplePopup != null && IsInstanceValid((GodotObject)_experimentalSamplePopup))
+        {
+            var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+            if (activeItemManager != null && activeItemManager.HasMethod("get_active_item_icon_path"))
+            {
+                string iconPath = (string)activeItemManager.Call("get_active_item_icon_path", firedType);
+                if (!string.IsNullOrEmpty(iconPath))
+                    ((Node2D)_experimentalSamplePopup).Call("show_icon", iconPath);
+            }
         }
     }
 
