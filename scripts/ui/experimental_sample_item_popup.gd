@@ -1,29 +1,35 @@
 extends Node2D
 ## Floating item icon popup shown above the player when Experimental Sample fires an effect.
 ##
-## Displays the icon of the triggered active item for 300ms, then fades out.
+## Displays the icon of the triggered active item for the full effect duration, then fades out.
 ## Appears above the player slightly to the right (matching the spec in Issue #1127).
 
-## Duration the icon is visible (seconds).
-const SHOW_DURATION: float = 0.3
+## Default duration if no duration is provided.
+const DEFAULT_DURATION: float = 1.2
+
+## Fade-out duration at end of display (seconds).
+const FADE_OUT_DURATION: float = 0.4
 
 ## Vertical offset above the player center (negative = above).
-const OFFSET_Y: float = -52.0
+const OFFSET_Y: float = -60.0
 
 ## Horizontal offset to the right of the player center.
-const OFFSET_X: float = 12.0
+const OFFSET_X: float = 16.0
 
-## Size of the displayed icon in pixels.
-const ICON_SIZE: float = 20.0
+## Size of the displayed icon in pixels (larger for better visibility).
+const ICON_SIZE: float = 48.0
 
 ## Background circle radius.
-const BG_RADIUS: float = 13.0
+const BG_RADIUS: float = 30.0
 
 ## Background color (semi-transparent dark).
 const BG_COLOR: Color = Color(0.05, 0.05, 0.05, 0.72)
 
 ## Icon tint color.
 const ICON_TINT: Color = Color(1.0, 1.0, 1.0, 1.0)
+
+## Total display duration for current activation.
+var _total_duration: float = DEFAULT_DURATION
 
 ## Remaining display time.
 var _timer: float = 0.0
@@ -60,15 +66,18 @@ func _process(delta: float) -> void:
 	# Keep positioned relative to parent (player) with right-of-centre offset
 	position = Vector2(OFFSET_X, OFFSET_Y)
 
-	# Fade out in last 100ms
-	var alpha: float = clampf(_timer / SHOW_DURATION, 0.0, 1.0)
+	# Fade out only in the last FADE_OUT_DURATION seconds
+	var alpha: float = 1.0
+	if _timer < FADE_OUT_DURATION:
+		alpha = clampf(_timer / FADE_OUT_DURATION, 0.0, 1.0)
 	modulate.a = alpha
 	queue_redraw()
 
 
 ## Show the popup with the icon at the given path.
 ## @param icon_path: Resource path to the icon texture (from ActiveItemManager).
-func show_icon(icon_path: String) -> void:
+## @param duration: How long to keep the icon visible (seconds). Defaults to DEFAULT_DURATION.
+func show_icon(icon_path: String, duration: float = DEFAULT_DURATION) -> void:
 	if icon_path.is_empty():
 		return
 
@@ -89,7 +98,8 @@ func show_icon(icon_path: String) -> void:
 			var scale_factor: float = ICON_SIZE / maxf(tex_size.x, tex_size.y)
 			_sprite.scale = Vector2(scale_factor, scale_factor)
 
-	_timer = SHOW_DURATION
+	_total_duration = max(duration, DEFAULT_DURATION)
+	_timer = _total_duration
 	_active = true
 	visible = true
 	modulate.a = 1.0

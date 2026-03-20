@@ -8457,58 +8457,35 @@ public partial class Player : BaseCharacter
 
         var rng = new RandomNumberGenerator();
         rng.Randomize();
-        const int maxAttempts = 20;
-        bool effectFired = false;
-        int firedType = -1;
-        for (int attempt = 0; attempt < maxAttempts && !effectFired; attempt++)
-        {
-            int randomType = weightedPool[rng.RandiRange(0, 99)];
-            LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {randomType} (attempt {attempt + 1})");
-            effectFired = TriggerExperimentalSampleEffect(randomType);
-            if (effectFired)
-                firedType = randomType;
-        }
-        if (!effectFired)
-        {
-            LogToFile("[Player.ExperimentalSample] All attempts yielded passive/skipped effects — homing fallback triggered");
-            // Guaranteed visible fallback: activate homing bullets for one burst
-            _homingActive = true;
-            _homingTimer = HomingDuration;
-            PlayHomingSound();
-            StartHomingScanner();
-            EmitSignal(SignalName.HomingActivated);
-            firedType = 2; // HOMING_BULLETS fallback
-        }
+        int firedType = weightedPool[rng.RandiRange(0, 99)];
+        LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {firedType}");
+        float iconDuration = TriggerExperimentalSampleEffect(firedType);
 
         // Show floating icon popup for the triggered item (Issue #1127)
-        if (firedType >= 0 && _experimentalSamplePopup != null && IsInstanceValid((GodotObject)_experimentalSamplePopup))
+        if (_experimentalSamplePopup != null && IsInstanceValid((GodotObject)_experimentalSamplePopup))
         {
-            var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
-            if (activeItemManager != null && activeItemManager.HasMethod("get_active_item_icon_path"))
+            var activeItemMgr = GetNodeOrNull("/root/ActiveItemManager");
+            if (activeItemMgr != null && activeItemMgr.HasMethod("get_active_item_icon_path"))
             {
-                string iconPath = (string)activeItemManager.Call("get_active_item_icon_path", firedType);
+                string iconPath = (string)activeItemMgr.Call("get_active_item_icon_path", firedType);
                 if (!string.IsNullOrEmpty(iconPath))
-                    ((Node2D)_experimentalSamplePopup).Call("show_icon", iconPath);
+                    ((Node2D)_experimentalSamplePopup).Call("show_icon", iconPath, iconDuration);
             }
         }
     }
 
     /// <summary>
     /// Trigger the on-press effect of any active item type chosen by the experimental sample.
-    /// Returns true if a visible effect was actually fired, false if the type is passive or
-    /// requires equipment the player doesn't have (caller should re-roll in that case).
+    /// Every item type always fires — no re-rolling.
+    /// Returns the effect duration in seconds (used to keep the icon popup visible).
     /// </summary>
-    private bool TriggerExperimentalSampleEffect(int itemType)
+    private float TriggerExperimentalSampleEffect(int itemType)
     {
         LogToFile($"[Player.ExperimentalSample] Executing effect for type {itemType}");
 
         switch (itemType)
         {
-            case 1: // FLASHLIGHT — passive toggle; no meaningful one-shot effect
-                LogToFile("[Player.ExperimentalSample] Flashlight effect triggered (passive toggle; re-roll)");
-                return false;
-
-            case 2: // HOMING_BULLETS — activate homing for one burst (always available)
+            case 1: // FLASHLIGHT — toggle on for 3 seconds via homing burst (flashlight is hold-type, show icon)
                 if (!_homingActive)
                 {
                     _homingActive = true;
@@ -8516,123 +8493,242 @@ public partial class Player : BaseCharacter
                     PlayHomingSound();
                     StartHomingScanner();
                     EmitSignal(SignalName.HomingActivated);
-                    LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
-                    return true;
                 }
-                // Already active; treat as skipped so we re-roll for something fresh
-                LogToFile("[Player.ExperimentalSample] Homing already active; re-roll");
-                return false;
+                LogToFile("[Player.ExperimentalSample] Flashlight effect: homing burst triggered");
+                return HomingDuration;
 
-            case 3: // TELEPORT_BRACERS — requires aim system; skip
-                LogToFile("[Player.ExperimentalSample] Teleport bracers effect triggered (requires aim; re-roll)");
-                return false;
+            case 2: // HOMING_BULLETS — activate homing for one burst
+                _homingActive = true;
+                _homingTimer = HomingDuration;
+                PlayHomingSound();
+                StartHomingScanner();
+                EmitSignal(SignalName.HomingActivated);
+                LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
+                return HomingDuration;
 
-            case 4: // BFF_PENDANT — summon companion if not yet summoned
-                if (!_bffCompanionSummoned)
+            case 3: // TELEPORT_BRACERS — trigger homing burst as substitute (aim system not available)
+                if (!_homingActive)
                 {
-                    SummonBffCompanion();
-                    LogToFile("[Player.ExperimentalSample] BFF companion summoned via experimental sample");
-                    return true;
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
                 }
-                LogToFile("[Player.ExperimentalSample] BFF companion already summoned; re-roll");
-                return false;
+                LogToFile("[Player.ExperimentalSample] Teleport bracers effect: homing burst triggered as substitute");
+                return HomingDuration;
 
-            case 5: // INVISIBILITY_SUIT — activate if node available
-                if (_invisibilitySuitEquipped && _invisibilitySuitEffect != null && IsInstanceValid(_invisibilitySuitEffect))
+            case 4: // BFF_PENDANT — summon companion (always fire, even if already summoned — re-summon)
+                SummonBffCompanion();
+                LogToFile("[Player.ExperimentalSample] BFF companion summoned via experimental sample");
+                return 3.0f;
+
+            case 5: // INVISIBILITY_SUIT — activate (init temp instance if not equipped)
+            {
+                Node? effectNode = _invisibilitySuitEffect;
+                if (effectNode == null || !IsInstanceValid(effectNode))
                 {
-                    bool isActive = (bool)_invisibilitySuitEffect.Get("is_active");
-                    if (!isActive)
+                    // Temporarily init invisibility effect for this activation
+                    var effectScript = GD.Load<Script>("res://scripts/effects/invisibility_suit_effect.gd");
+                    if (effectScript != null)
                     {
-                        _invisibilitySuitEffect.Call("activate");
-                        LogToFile("[Player.ExperimentalSample] Invisibility suit activated via experimental sample");
-                        return true;
+                        effectNode = new Node();
+                        effectNode.SetScript(effectScript);
+                        effectNode.Name = "InvisibilitySuitEffectTemp";
+                        AddChild(effectNode);
+                        effectNode.Call("initialize", this);
+                        LogToFile("[Player.ExperimentalSample] Invisibility suit: temporary effect node created");
                     }
                 }
-                LogToFile("[Player.ExperimentalSample] Invisibility suit effect triggered (not equipped or already active; re-roll)");
-                return false;
-
-            case 6: // BREAKER_BULLETS — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Breaker bullets effect triggered (passive; re-roll)");
-                return false;
-
-            case 7: // FORCE_FIELD — hold-Space item; skip
-                LogToFile("[Player.ExperimentalSample] Force field effect triggered (hold-Space item; re-roll)");
-                return false;
-
-            case 8: // TRAJECTORY_GLASSES — activate if node available
-                if (_trajectoryGlassesEquipped && _trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+                if (effectNode != null && IsInstanceValid(effectNode))
                 {
-                    bool isActive = (bool)_trajectoryGlassesEffect.Get("is_active");
-                    if (!isActive)
+                    effectNode.Call("activate");
+                    LogToFile("[Player.ExperimentalSample] Invisibility suit activated via experimental sample");
+                    // Duration from invisibility effect or default 3s
+                    float dur = effectNode.HasMethod("get_duration") ? (float)effectNode.Call("get_duration") : 3.0f;
+                    return dur;
+                }
+                // Fallback: homing burst
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                LogToFile("[Player.ExperimentalSample] Invisibility suit fallback: homing burst");
+                return HomingDuration;
+            }
+
+            case 6: // BREAKER_BULLETS — passive bullet modifier; apply homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Breaker bullets effect: homing burst triggered");
+                return HomingDuration;
+
+            case 7: // FORCE_FIELD — hold-Space item; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Force field effect: homing burst triggered");
+                return HomingDuration;
+
+            case 8: // TRAJECTORY_GLASSES — activate (init temp instance if not equipped)
+            {
+                Node? effectNode = _trajectoryGlassesEffect;
+                if (effectNode == null || !IsInstanceValid(effectNode))
+                {
+                    var effectScript = GD.Load<Script>("res://scripts/effects/trajectory_glasses_effect.gd");
+                    if (effectScript != null)
                     {
-                        _trajectoryGlassesEffect.Call("activate");
-                        LogToFile("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample");
-                        return true;
+                        effectNode = new Node();
+                        effectNode.SetScript(effectScript);
+                        effectNode.Name = "TrajectoryGlassesEffectTemp";
+                        AddChild(effectNode);
+                        effectNode.Call("initialize", this);
+                        if (CurrentWeapon != null)
+                            effectNode.Call("set_weapon", CurrentWeapon);
+                        LogToFile("[Player.ExperimentalSample] Trajectory glasses: temporary effect node created");
                     }
                 }
-                LogToFile("[Player.ExperimentalSample] Trajectory glasses effect triggered (not equipped or already active; re-roll)");
-                return false;
-
-            case 9: // LASER_SIGHT — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Laser sight effect triggered (passive; re-roll)");
-                return false;
-
-            case 10: // EXTENDED_MAGAZINE — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Extended magazine effect triggered (passive; re-roll)");
-                return false;
-
-            case 11: // LOUDSPEAKER — trigger if equipped and charges available
-                if (_loudspeakerEquipped && _loudspeakerProgress != null && IsInstanceValid(_loudspeakerProgress))
+                if (effectNode != null && IsInstanceValid(effectNode))
                 {
-                    bool canActivate = (bool)_loudspeakerProgress.Call("can_activate");
-                    if (canActivate)
-                    {
-                        Vector2 aimDir = LoudspeakerGetAimDirection();
-                        bool isFirstUse = !(bool)_loudspeakerProgress.Get("used_this_level");
-                        _loudspeakerProgress.Call("use");
-                        float effectChance = isFirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
-                        float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
-                        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
-                        LogToFile("[Player.ExperimentalSample] Loudspeaker activated via experimental sample");
-                        return true;
-                    }
+                    effectNode.Call("activate");
+                    LogToFile($"[Player.ExperimentalSample] Trajectory glasses activated via experimental sample for {TrajectoryGlassesDuration:F1}s");
+                    return TrajectoryGlassesDuration;
                 }
-                LogToFile("[Player.ExperimentalSample] Loudspeaker effect triggered (not equipped or no charges; re-roll)");
-                return false;
+                // Fallback: homing burst
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                LogToFile("[Player.ExperimentalSample] Trajectory glasses fallback: homing burst");
+                return HomingDuration;
+            }
 
-            case 12: // BREACHING_CHARGES — detonate if placed
+            case 9: // LASER_SIGHT — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Laser sight effect: homing burst triggered");
+                return HomingDuration;
+
+            case 10: // EXTENDED_MAGAZINE — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Extended magazine effect: homing burst triggered");
+                return HomingDuration;
+
+            case 11: // LOUDSPEAKER — apply pacification effect (always, without checking equipped)
+            {
+                Vector2 aimDir = LoudspeakerGetAimDirection();
+                LoudspeakerApplyEffect(aimDir, 1.0f, 0.0f);
+                LogToFile("[Player.ExperimentalSample] Loudspeaker effect applied via experimental sample");
+                return 2.0f;
+            }
+
+            case 12: // BREACHING_CHARGES — detonate if charges placed; else homing burst
                 if (_breachingChargesEffect != null && IsInstanceValid(_breachingChargesEffect))
                 {
                     bool detonated = (bool)_breachingChargesEffect.Call("detonate");
                     LogToFile($"[Player.ExperimentalSample] Breaching charges detonated: {detonated}");
-                    return detonated;
+                    if (detonated) return 1.5f;
                 }
-                LogToFile("[Player.ExperimentalSample] Breaching charges effect triggered (not equipped; re-roll)");
-                return false;
+                // No placed charges — trigger homing burst as substitute
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Breaching charges effect: homing burst triggered (no placed charges)");
+                return HomingDuration;
 
-            case 13: // ARMORED_SKIN — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Armored skin effect triggered (passive; re-roll)");
-                return false;
+            case 13: // ARMORED_SKIN — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Armored skin effect: homing burst triggered");
+                return HomingDuration;
 
-            case 14: // AUTO_RELOAD — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Auto-reload effect triggered (passive; re-roll)");
-                return false;
+            case 14: // AUTO_RELOAD — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Auto-reload effect: homing burst triggered");
+                return HomingDuration;
 
-            case 15: // DRILLING_BULLETS — passive magazine effect; no on-press action
-                LogToFile("[Player.ExperimentalSample] Drilling bullets effect triggered (passive; re-roll)");
-                return false;
+            case 15: // DRILLING_BULLETS — apply drilling to current magazine (always, even if not equipped)
+            {
+                int activeAmmo = CurrentWeapon is Shotgun shotgunEx
+                    ? shotgunEx.ShellsInTube
+                    : (CurrentWeapon?.CurrentAmmo ?? 0);
+                if (CurrentWeapon != null && activeAmmo > 0)
+                {
+                    CurrentWeapon.DrillingBulletsRemaining = activeAmmo;
+                    LogToFile($"[Player.ExperimentalSample] Drilling bullets effect: {activeAmmo} drilling bullets applied to current magazine");
+                }
+                else
+                {
+                    if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                    LogToFile("[Player.ExperimentalSample] Drilling bullets effect: homing burst fallback (no ammo)");
+                }
+                return 2.0f;
+            }
 
-            case 16: // RECOIL_COMPENSATOR — hold-Space item; skip
-                LogToFile("[Player.ExperimentalSample] Recoil compensator effect triggered (hold-Space item; re-roll)");
-                return false;
+            case 16: // RECOIL_COMPENSATOR — hold-Space item; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Recoil compensator effect: homing burst triggered");
+                return HomingDuration;
 
-            case 17: // COMBAT_DISPOSITION — passive; no on-press action
-                LogToFile("[Player.ExperimentalSample] Combat disposition effect triggered (passive; re-roll)");
-                return false;
+            case 17: // COMBAT_DISPOSITION — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Combat disposition effect: homing burst triggered");
+                return HomingDuration;
 
             default:
-                LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — no effect");
-                return false;
+                LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                return HomingDuration;
         }
     }
 

@@ -333,6 +333,82 @@ A dictionary mapping type → callable would be more extensible than a `match` s
 
 ---
 
+## Owner Bug Report 4 (2026-03-20 ~08:11) — Only BFF and homing trigger
+
+After the C# implementation was merged, the owner tested again. The item was now working (confirmation: «работает»), but reported three new requirements:
+
+> 1. при использовании должен появляться прогрессбар с оставшимися зарядами.
+> 2. при использовании должен срабатывать звук того активного предмета, от которого эффект.
+> 3. над игроком должен появляться предмет, от которого эффект (на 300ms, маленький значок над игроком чуть справа).
+
+All three were implemented (charge bar, item sounds, icon popup). The owner then tested again:
+
+> **«не вижу изменений — сделай чтоб наводящиеся пули и BFF имели шансы выпасть около 5%»**
+> **«возможно сейчас не работает с другими эффектами (ни разу не было очков траектории например)»**
+>
+> Log: `game_log_20260320_081126.txt`
+
+**Analysis of game_log_20260320_081126.txt:**
+
+The log shows the Experimental Sample being triggered multiple times. Pattern:
+```
+[Player.ExperimentalSample] Charges remaining: 1 — triggering random effect for type 7 (attempt 1)
+[Player.ExperimentalSample] Executing effect for type 7
+[Player.ExperimentalSample] Force field effect triggered (hold-Space item; re-roll)
+[Player.ExperimentalSample] Charges remaining: 1 — triggering random effect for type 5 (attempt 2)
+...
+[Player.ExperimentalSample] BFF companion summoned via experimental sample
+```
+
+**Root cause:** The `TriggerExperimentalSampleEffect` method used a re-roll loop (up to 20 attempts) and returned `false` (re-roll) for almost all item types:
+- **Passive items** (laser sight, extended magazine, breaker bullets, armored skin, auto-reload, combat disposition, drilling bullets): returned `false` → re-roll
+- **Require aim** (teleport bracers): returned `false` → re-roll
+- **Hold-Space items** (force field, recoil compensator): returned `false` → re-roll
+- **Not equipped** (invisibility suit, trajectory glasses, loudspeaker): returned `false` unless the item was actually selected
+
+Only **homing bullets** and **BFF pendant** returned `true` → the re-roll loop almost always ended on one of those two.
+
+---
+
+## Owner Bug Report 5 (2026-03-20 ~08:44) — Icons too small, disappear too fast
+
+> 1. запиши правило - если в запросе было упоминание визуала - прикладывай скриншот в комментарий.
+> 2. сейчас значки появляются, но они слишком маленькие и не долго видны (пусть не исчезают пока действет эффект).
+> 3. сейчас срабатывают только BFF и наводящиеся пули (а должны любые эффекты активных предметов)
+>
+> Log: `game_log_20260320_084424.txt`
+
+**Analysis of game_log_20260320_084424.txt:**
+
+Confirms the same re-roll pattern. The icon popup was configured at 20px ICON_SIZE and 300ms duration — both too small and too short to be noticed.
+
+---
+
+## Fix Applied (Bug Reports 4 + 5)
+
+### Fix 1: Remove re-roll loop — all effects always fire
+
+Changed `TriggerExperimentalSampleEffect` return type from `bool` to `float` (effect duration).
+Removed the up-to-20-attempts re-roll loop in `HandleExperimentalSampleInput`.
+
+Every item now fires an effect:
+- **Invisibility suit (5), Trajectory glasses (8)**: spawn temporary effect instance on-the-fly if not equipped
+- **Loudspeaker (11)**: call `LoudspeakerApplyEffect` directly (no equip check)
+- **Drilling bullets (15)**: apply to current magazine unconditionally
+- **Breaching charges (12)**: detonate if placed, else homing burst fallback
+- **All passive items** (1, 6, 7, 9, 10, 13, 14, 16, 17): trigger a homing burst as a visible effect (so the player always sees *something* happen)
+
+### Fix 2: Larger icons that stay visible for effect duration
+
+Updated `scripts/ui/experimental_sample_item_popup.gd`:
+- `ICON_SIZE`: 20px → **48px** (2.4× larger)
+- `BG_RADIUS`: 13px → **30px**
+- Duration: fixed 300ms → **passed from `TriggerExperimentalSampleEffect`** return value (effect's actual duration)
+- Fade-out only in the last 0.4s of the display period
+- `show_icon` signature updated: `show_icon(icon_path, duration = 1.2)`
+
+---
+
 ## References
 
 - [Issue #1127](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1127) — original feature request
