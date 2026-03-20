@@ -347,13 +347,10 @@ var _is_rpg_weapon: bool = false  ## Whether this enemy starts with RPG (Issue #
 var _rpg_fired: bool = false  ## Whether the RPG shot has been fired (Issue #583).
 var _machine_gunner_pm_active: bool = false  ## [#1033] True after MACHINE_GUN belt empties and PM fallback activates.
 var _machine_gunner_suppressing_corridor: bool = false  ## [#1033] True while MG suppresses last-seen corridor instead of pursuing.
-## [#1161] Sniper bolt-action cycle state/timer/delays (4-step sequence matching player SniperRifle.cs).
-var _is_bolt_cycling: bool = false
-var _bolt_cycle_timer: float = 0.0
-var _bolt_cycle_step: int = 0  ## Current bolt-action step (0=not cycling, 1-4=in progress). [#1177]
+## [#1177] Sniper bolt-action 4-step cycle state/timer/step/delays (matching player SniperRifle.cs).
+var _is_bolt_cycling: bool = false; var _bolt_cycle_timer: float = 0.0; var _bolt_cycle_step: int = 0
 const SNIPER_BOLT_CYCLE_DELAY: float = 0.5  ## Legacy: kept for compatibility.
-## Delays (seconds) before each of the 4 bolt steps fires (matched to audio cadence). [#1177]
-const SNIPER_BOLT_STEP_DELAYS: Array = [0.3, 0.5, 0.4, 0.3]
+const SNIPER_BOLT_STEP_DELAYS: Array = [0.3, 0.5, 0.4, 0.3]  ## Per-step delays (audio cadence).
 var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
 var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
@@ -752,6 +749,10 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
+	# Issue #1186: performance toggles - skip AI if disabled; per-state filter applied below
+	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if _perf_settings and not _perf_settings.is_ai_enabled(): return
+
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
 		_flashbang_status.update(delta)
@@ -761,17 +762,13 @@ func _physics_process(delta: float) -> void:
 
 	if _invisibility: _invisibility.update(delta)  # Issue #1121: tick re-cloak timer
 	_shoot_timer += delta
-	if _is_bolt_cycling:  # [#1177] Sniper bolt-action 4-step cycle timer (all sounds like player)
+	if _is_bolt_cycling:  # [#1177] 4-step sniper bolt cycle
 		_bolt_cycle_timer += delta
-		var step_delay: float = SNIPER_BOLT_STEP_DELAYS[_bolt_cycle_step - 1] if _bolt_cycle_step >= 1 and _bolt_cycle_step <= 4 else SNIPER_BOLT_CYCLE_DELAY
-		if _bolt_cycle_timer >= step_delay:
-			_bolt_cycle_timer = 0.0
-			var audio: Node = get_node_or_null("/root/AudioManager")
-			if audio and audio.has_method("play_asvk_bolt_step"):
-				audio.play_asvk_bolt_step(_bolt_cycle_step)  # [#1177] Play current bolt step sound
-			if _bolt_cycle_step >= 4:
-				_is_bolt_cycling = false; _bolt_cycle_step = 0  # Cycle complete
-			else: _bolt_cycle_step += 1  # Advance to next step
+		if _bolt_cycle_timer >= (SNIPER_BOLT_STEP_DELAYS[_bolt_cycle_step - 1] if _bolt_cycle_step >= 1 and _bolt_cycle_step <= 4 else SNIPER_BOLT_CYCLE_DELAY):
+			_bolt_cycle_timer = 0.0; var audio: Node = get_node_or_null("/root/AudioManager")
+			if audio and audio.has_method("play_asvk_bolt_step"): audio.play_asvk_bolt_step(_bolt_cycle_step)
+			if _bolt_cycle_step >= 4: _is_bolt_cycling = false; _bolt_cycle_step = 0
+			else: _bolt_cycle_step += 1
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	_update_reload(delta)
 
@@ -2562,15 +2559,17 @@ func _shoot_burst_shot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Transition to IDLE state.
 func _transition_to_idle() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings")
+	if _ps and not _ps.is_ai_state_idle_enabled():  # Issue #1186: IDLE disabled -> stay in SEARCHING
+		_current_state = AIState.SEARCHING; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0; _search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0; _search_moving_to_waypoint = true; _search_visited_zones.clear(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; _generate_search_waypoints(); return
 	_current_state = AIState.IDLE
 	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
 	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
 
-## Transition to COMBAT state.
 func _transition_to_combat() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_combat_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.COMBAT
 	_has_left_idle = true  # Issue #330
 	_detection_timer = 0.0; _detection_delay_elapsed = false
@@ -2582,16 +2581,16 @@ func _transition_to_combat() -> void:
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 
-## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEEKING_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
 	_seeking_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
 	_find_cover_position()
 
-## Transition to IN_COVER state.
 func _transition_to_in_cover() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_in_cover_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.IN_COVER
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2612,8 +2611,8 @@ func _can_attempt_flanking() -> bool:
 		return false
 	return true
 
-## Transition to FLANKING state. Returns true if transition succeeded.
 func _transition_to_flanking() -> bool:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_flanking_enabled(): _transition_to_idle(); return false  # Issue #1186
 	# Check if flanking is available
 	if not _can_attempt_flanking():
 		_log_debug("Cannot transition to FLANKING - disabled or on cooldown")
@@ -2685,13 +2684,13 @@ func _is_flank_target_reachable() -> bool:
 
 	return true
 
-## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_suppressed_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SUPPRESSED
 	_has_left_idle = true; _in_alarm_mode = true  # Issue #330
 	_suppressed_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #969 RCA-11
-## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_pursuing_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.PURSUING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2709,8 +2708,8 @@ func _transition_to_pursuing() -> void:
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
 
-## Transition to ASSAULT state.
 func _transition_to_assault() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.ASSAULT
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -2723,8 +2722,8 @@ func _transition_to_assault() -> void:
 	# Find closest cover to player for assault position
 	_find_cover_closest_to_player()
 
-## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
 func _transition_to_searching(center_position: Vector2) -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_searching_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.SEARCHING
 	# Issue #921: Do NOT set _has_left_idle = true here; let it retain whatever value it had.
 	# Combat enemies already have it true (search indefinitely); patrol enemies have it false (timeout).
@@ -2750,8 +2749,8 @@ func _transition_to_evading_grenade() -> void:
 	_log_debug("EVADING_GRENADE: Fleeing from grenade at %s, target=%s" % [str(grenade_pos), str(evasion_target)])
 	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(evasion_target))
 
-## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
+	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_retreating_enabled(): _transition_to_idle(); return  # Issue #1186
 	_current_state = AIState.RETREATING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
@@ -3914,11 +3913,8 @@ func _execute_shoot(target_position: Vector2) -> void:  ## Issue #824: shooting 
 		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 		_last_gunshot_propagation_time = _now3
 	if not _is_rpg_weapon: _play_delayed_shell_sound()  # Issue #583: no shell sound for RPG
-	# [#1177] Trigger bolt-action 4-step cycle for sniper rifle (all sounds like player SniperRifle.cs)
-	if weapon_type == WeaponType.SNIPER_RIFLE:
-		_is_bolt_cycling = true
-		_bolt_cycle_timer = 0.0
-		_bolt_cycle_step = 1  # Start at step 1: unlock bolt
+	if weapon_type == WeaponType.SNIPER_RIFLE:  # [#1177] Trigger 4-step bolt-action cycle
+		_is_bolt_cycling = true; _bolt_cycle_timer = 0.0; _bolt_cycle_step = 1
 	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _is_rpg_weapon and not _rpg_fired: _rpg_fired = true; _switch_to_secondary_weapon(); return  # Issue #583

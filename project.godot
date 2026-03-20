@@ -43,6 +43,7 @@ SceneLoader="*res://scripts/autoload/scene_loader.gd"
 PersistManager="*res://scripts/autoload/persist_manager.gd"
 UnlockManager="*res://scripts/autoload/unlock_manager.gd"
 WeaponHintsSettings="*res://scripts/autoload/weapon_hints_settings.gd"
+PerformanceSettings="*res://scripts/autoload/performance_settings.gd"
 
 [application]
 
