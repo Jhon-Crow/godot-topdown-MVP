@@ -292,6 +292,10 @@ var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
 ## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
 var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
 const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
+## Issue #1184: Throttle expensive O(N²) enemies-in-combat count; stagger per-enemy to spread load.
+var _cached_combat_count: int = 0; var _combat_count_timer: float = 0.0
+const COMBAT_COUNT_INTERVAL: float = 0.5  ## Re-count combat enemies every 0.5s
+var _nav_map_rid: RID  ## Issue #1184: Cached navigation map RID to avoid per-call property lookup.
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -376,6 +380,8 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	# Issue #1184: Stagger intel share timer so enemies don't all share intel in the same frame.
+	_intel_share_timer = randf() * INTEL_SHARE_INTERVAL
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -879,7 +885,12 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	# Issue #1184: Throttle expensive O(N²) combat-count; recompute at most every 0.5s.
+	_combat_count_timer += get_physics_process_delta_time()
+	if _combat_count_timer >= COMBAT_COUNT_INTERVAL:
+		_combat_count_timer = 0.0
+		_cached_combat_count = _count_enemies_in_combat()
+	_goap_world_state["enemies_in_combat"] = _cached_combat_count
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 	# Memory system states (Issue #297)
@@ -2279,18 +2290,21 @@ func _generate_search_waypoints() -> void:
 	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
 
 ## Check if position is navigable via NavigationServer2D.
+## Issue #1184: Cache nav_map RID on first call to avoid repeated property lookup.
 func _is_waypoint_navigable(pos: Vector2) -> bool:
-	var nav_map := get_world_2d().navigation_map
-	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
+	if not _nav_map_rid.is_valid():
+		_nav_map_rid = get_world_2d().navigation_map
+	var closest := NavigationServer2D.map_get_closest_point(_nav_map_rid, pos)
 	return pos.distance_to(closest) < 50.0
 
 ## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
-func _get_zone_key(pos: Vector2) -> String:
-	return "%d,%d" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)]
+## Issue #1184: Use integer key instead of formatted string to avoid per-call allocation.
+func _get_zone_key(pos: Vector2) -> int:
+	return int(pos.x / SEARCH_ZONE_SNAP_SIZE) * 100000 + int(pos.y / SEARCH_ZONE_SNAP_SIZE)
 func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
 func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
-	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
+	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %d as visited (total: %d)" % [k, _search_visited_zones.size()])
 
 ## Process SEARCHING state - waypoint scanning (#322, #330: engaged enemies search infinitely).
 func _process_searching_state(delta: float) -> void:
