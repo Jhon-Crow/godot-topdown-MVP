@@ -38,6 +38,10 @@ class MockActiveItemManager:
 	var current_active_item: int = ACTIVE_ITEM_NONE
 	## Record of set_active_item calls: [{type, restart_level}]
 	var set_calls: Array = []
+	## Passive items collected in the roguelike run (Issue #1194).
+	var collected_passive_items: Array = []
+	## Record of add_passive_item calls.
+	var add_passive_calls: Array = []
 
 	func get_all_active_item_types() -> Array:
 		## Return types 0–16 (mirrors the real enum size).
@@ -60,6 +64,21 @@ class MockActiveItemManager:
 	func set_active_item(type: int, restart_level: bool = true) -> void:
 		set_calls.append({"type": type, "restart_level": restart_level})
 		current_active_item = type
+
+	## Issue #1194: add a passive item to the collection.
+	func add_passive_item(type: int) -> void:
+		if type in collected_passive_items:
+			return
+		collected_passive_items.append(type)
+		add_passive_calls.append(type)
+
+	## Issue #1194: check if a passive item is already collected.
+	func has_passive_item(type: int) -> bool:
+		return type in collected_passive_items
+
+	## Issue #1194: clear all collected passive items.
+	func reset_passive_items() -> void:
+		collected_passive_items.clear()
 
 
 # ============================================================================
@@ -174,7 +193,7 @@ class MockRoguelikeLevel:
 		pedestal_freed = true
 		pedestal_item = null
 
-	## Mirrors _apply_pedestal_active_item
+	## Mirrors _apply_pedestal_active_item (Issue #1194: passive items use add_passive_item).
 	func apply_pedestal_active_item(item_type: int) -> void:
 		if active_item_manager == null:
 			pedestal_freed = true
@@ -185,12 +204,12 @@ class MockRoguelikeLevel:
 		var current: int = active_item_manager.current_active_item
 
 		if is_passive:
-			if item_type == current:
-				# Same item — no-op, free pedestal
+			# Issue #1194: skip if already in passive collection OR in active slot.
+			if active_item_manager.has_passive_item(item_type) or item_type == current:
 				pedestal_freed = true
 				pedestal_item = null
 				return
-			active_item_manager.set_active_item(item_type, false)
+			active_item_manager.add_passive_item(item_type)
 			pedestal_freed = true
 			pedestal_item = null
 		else:
@@ -273,24 +292,42 @@ func test_weapon_pedestal_removed_when_no_alternatives() -> void:
 # ============================================================================
 
 
-func test_passive_item_collected_without_restart() -> void:
+func test_passive_item_collected_via_add_passive_item() -> void:
+	## Issue #1194: passive items use add_passive_item(), not set_active_item().
 	var level := _make_level()
 	level.active_item_manager.current_active_item = 1  # FLASHLIGHT (non-passive)
 	level.apply_pedestal_active_item(2)  # BREAKER_BULLETS (passive)
-	assert_false(level.active_item_manager.set_calls.is_empty(),
-		"set_active_item should have been called")
-	var call: Dictionary = level.active_item_manager.set_calls[0]
-	assert_eq(call["type"], 2, "Should set BREAKER_BULLETS (type 2)")
-	assert_false(call["restart_level"], "Passive item pickup must NOT trigger scene restart")
+	assert_true(level.active_item_manager.set_calls.is_empty(),
+		"set_active_item must NOT be called for passive items (Issue #1194)")
+	assert_false(level.active_item_manager.add_passive_calls.is_empty(),
+		"add_passive_item should have been called")
+	assert_eq(level.active_item_manager.add_passive_calls[0], 2,
+		"add_passive_item should be called with BREAKER_BULLETS (type 2)")
 	assert_true(level.pedestal_freed, "Pedestal removed after passive item collection")
+	# Active slot must remain unchanged (FLASHLIGHT stays equipped)
+	assert_eq(level.active_item_manager.current_active_item, 1,
+		"Active item (FLASHLIGHT) must remain unchanged when passive is collected")
 
 
-func test_passive_item_no_op_when_already_equipped() -> void:
+func test_passive_item_no_op_when_already_equipped_in_active_slot() -> void:
 	var level := _make_level()
-	level.active_item_manager.current_active_item = 8  # LASER_SIGHT (passive)
+	level.active_item_manager.current_active_item = 8  # LASER_SIGHT (passive) in active slot
 	level.apply_pedestal_active_item(8)  # Same item
 	assert_true(level.active_item_manager.set_calls.is_empty(),
-		"set_active_item should NOT be called when already equipped")
+		"set_active_item should NOT be called when already in active slot")
+	assert_true(level.active_item_manager.add_passive_calls.is_empty(),
+		"add_passive_item should NOT be called for duplicate passive (active slot)")
+	assert_true(level.pedestal_freed, "Pedestal freed on no-op duplicate pickup")
+
+
+func test_passive_item_no_op_when_already_in_collection() -> void:
+	## Issue #1194: re-picking an already-collected passive item is a no-op.
+	var level := _make_level()
+	level.active_item_manager.add_passive_item(9)  # EXTENDED_MAGAZINE already collected
+	var calls_before: int = level.active_item_manager.add_passive_calls.size()
+	level.apply_pedestal_active_item(9)  # Same item
+	assert_eq(level.active_item_manager.add_passive_calls.size(), calls_before,
+		"add_passive_item should NOT be called again for already-collected passive")
 	assert_true(level.pedestal_freed, "Pedestal freed on no-op duplicate pickup")
 
 
@@ -436,3 +473,89 @@ func test_advance_route_five_room_run_intermediate_rooms() -> void:
 	level.current_room_idx = 4  # Room 5 is last
 	assert_eq(level.advance_route(), "treasure_room",
 		"Room 5 of 5 should go to treasure_room")
+
+
+# ============================================================================
+# Tests — multiple passive items (Issue #1194)
+# ============================================================================
+
+
+func test_two_passive_items_can_be_collected() -> void:
+	## Issue #1194: player can collect multiple passive items simultaneously.
+	var level := _make_level()
+	level.active_item_manager.current_active_item = 1  # FLASHLIGHT (active)
+	level.apply_pedestal_active_item(2)   # BREAKER_BULLETS (passive)
+	level.apply_pedestal_active_item(9)   # EXTENDED_MAGAZINE (passive)
+	assert_eq(level.active_item_manager.collected_passive_items.size(), 2,
+		"Both passive items should be in the collection")
+	assert_true(level.active_item_manager.has_passive_item(2),
+		"BREAKER_BULLETS should be in the passive collection")
+	assert_true(level.active_item_manager.has_passive_item(9),
+		"EXTENDED_MAGAZINE should be in the passive collection")
+	## Active item slot must remain untouched.
+	assert_eq(level.active_item_manager.current_active_item, 1,
+		"Active item (FLASHLIGHT) must not be overwritten by passive pickups")
+
+
+func test_all_six_passive_items_can_be_collected() -> void:
+	## Issue #1194: all 6 passive item types can stack simultaneously.
+	var level := _make_level()
+	var all_passives: Array = [2, 8, 9, 12, 13, 16]  # PASSIVE_ACTIVE_ITEM_TYPES
+	for p in all_passives:
+		level.apply_pedestal_active_item(p)
+	assert_eq(level.active_item_manager.collected_passive_items.size(), 6,
+		"All 6 passive items should be collectable simultaneously")
+	for p in all_passives:
+		assert_true(level.active_item_manager.has_passive_item(p),
+			"Passive item type %d should be in the collection" % p)
+
+
+func test_passive_items_do_not_displace_active_item() -> void:
+	## Issue #1194: collecting passives must never evict the active item.
+	var level := _make_level()
+	level.active_item_manager.current_active_item = 5  # BFF_PENDANT (active)
+	level.apply_pedestal_active_item(12)  # ARMORED_SKIN (passive)
+	level.apply_pedestal_active_item(13)  # AUTO_RELOAD (passive)
+	assert_eq(level.active_item_manager.current_active_item, 5,
+		"BFF_PENDANT must remain in active slot after collecting passives")
+	assert_eq(level.active_item_manager.collected_passive_items.size(), 2,
+		"Two passive items should have been added to the collection")
+
+
+func test_active_item_swap_after_passive_collected() -> void:
+	## Swapping an active item must not remove already-collected passives.
+	var level := _make_level()
+	level.active_item_manager.current_active_item = 1  # FLASHLIGHT
+	level.apply_pedestal_active_item(2)   # BREAKER_BULLETS (passive) collected first
+	level.apply_pedestal_active_item(4)   # TELEPORT_BRACERS (active) picked up
+	## Active slot now holds TELEPORT_BRACERS.
+	assert_eq(level.active_item_manager.current_active_item, 4,
+		"Active slot should now hold TELEPORT_BRACERS")
+	## Passive from before must still be present.
+	assert_true(level.active_item_manager.has_passive_item(2),
+		"BREAKER_BULLETS passive must persist after active item swap")
+
+
+func test_reset_passive_items_clears_collection() -> void:
+	## Issue #1194: reset_passive_items() empties the collection.
+	var level := _make_level()
+	level.active_item_manager.add_passive_item(2)
+	level.active_item_manager.add_passive_item(9)
+	assert_eq(level.active_item_manager.collected_passive_items.size(), 2,
+		"Precondition: 2 passive items collected")
+	level.active_item_manager.reset_passive_items()
+	assert_true(level.active_item_manager.collected_passive_items.is_empty(),
+		"reset_passive_items() must clear all passive items")
+
+
+func test_passive_already_collected_skips_pedestal_item_pick() -> void:
+	## Issue #1194: _pick_random_pedestal_item skips already-collected passives.
+	## We verify the mock's has_passive_item check works as expected.
+	var level := _make_level()
+	level.active_item_manager.add_passive_item(2)   # BREAKER_BULLETS already collected
+	## Verify has_passive_item returns true for collected item
+	assert_true(level.active_item_manager.has_passive_item(2),
+		"has_passive_item should return true for already-collected passive")
+	## And false for not-yet-collected items
+	assert_false(level.active_item_manager.has_passive_item(9),
+		"has_passive_item should return false for not-yet-collected passive")

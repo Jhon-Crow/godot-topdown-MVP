@@ -176,11 +176,20 @@ var _is_jammed: bool = false
 ## Jam radius used by Radio Jammer enemies (pixels). Must match RadioWaveEffect.jammer_radius.
 const JAMMER_RADIUS: float = 1000.0
 
+## Passive items collected during the current roguelike run (Issue #1194).
+## Multiple passive items can be held simultaneously; their effects all apply at once.
+## This array is separate from current_active_item (the single active-item slot).
+## Cleared at the start of a new run and on run end/death via reset_passive_items().
+var collected_passive_items: Array = []
+
 ## Signal emitted when active item type changes.
 signal active_item_changed(new_type: int)
 
 ## Signal emitted when an active item is unlocked.
 signal active_item_unlocked(item_type: int)
+
+## Signal emitted when a passive item is added to collected_passive_items (Issue #1194).
+signal passive_item_added(item_type: int)
 
 
 ## Set the current active item type.
@@ -206,6 +215,35 @@ func set_active_item(type: int, restart_level: bool = true) -> void:
 
 	if restart_level:
 		_restart_current_level()
+
+
+## Add a passive item to the roguelike run collection (Issue #1194).
+## Multiple passive items can be held simultaneously.
+## Does nothing if the item is already in the collection.
+## @param type: The passive item type to add (must be in ACTIVE_ITEM_DATA).
+func add_passive_item(type: int) -> void:
+	if type not in ACTIVE_ITEM_DATA:
+		FileLogger.info("[ActiveItemManager] add_passive_item: invalid type %d" % type)
+		return
+	if type in collected_passive_items:
+		return  # Already collected
+	collected_passive_items.append(type)
+	FileLogger.info("[ActiveItemManager] Passive item added: %s (total: %d)" % [
+		ACTIVE_ITEM_DATA[type]["name"], collected_passive_items.size()])
+	passive_item_added.emit(type)
+
+
+## Check if a passive item type has been collected (Issue #1194).
+## @param type: The passive item type to check.
+func has_passive_item(type: int) -> bool:
+	return type in collected_passive_items
+
+
+## Clear all collected passive items (Issue #1194).
+## Called at the start of a new roguelike run and on run end/death.
+func reset_passive_items() -> void:
+	collected_passive_items.clear()
+	FileLogger.info("[ActiveItemManager] Passive items cleared")
 
 
 ## Restart the current level.
@@ -285,8 +323,10 @@ func has_invisibility_suit() -> bool:
 
 
 ## Check if breaker bullets are currently equipped (Issue #678).
+## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
 func has_breaker_bullets() -> bool:
-	return current_active_item == ActiveItemType.BREAKER_BULLETS
+	return current_active_item == ActiveItemType.BREAKER_BULLETS or \
+		ActiveItemType.BREAKER_BULLETS in collected_passive_items
 
 
 ## Check if force field is currently equipped (Issue #676).
@@ -300,27 +340,31 @@ func has_trajectory_glasses() -> bool:
 
 
 ## Check if laser sight is currently equipped (Issue #947).
+## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
 func has_laser_sight() -> bool:
-	return current_active_item == ActiveItemType.LASER_SIGHT
+	return current_active_item == ActiveItemType.LASER_SIGHT or \
+		ActiveItemType.LASER_SIGHT in collected_passive_items
 
 
 ## Check if extended magazine is currently equipped (Issue #1065).
+## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
 func has_extended_magazine() -> bool:
-	return current_active_item == ActiveItemType.EXTENDED_MAGAZINE
+	return current_active_item == ActiveItemType.EXTENDED_MAGAZINE or \
+		ActiveItemType.EXTENDED_MAGAZINE in collected_passive_items
 
 
 ## Get the magazine size multiplier from extended magazine item (Issue #1065).
-## Returns 2.5 when extended magazine is equipped, 1.0 otherwise.
+## Returns 2.5 when extended magazine is equipped (active slot or passive collection), 1.0 otherwise.
 func get_magazine_size_multiplier() -> float:
-	if current_active_item == ActiveItemType.EXTENDED_MAGAZINE:
+	if has_extended_magazine():
 		return 2.5
 	return 1.0
 
 
 ## Get the total ammo multiplier from extended magazine item (Issue #1065).
-## Returns 0.95 when extended magazine is equipped, 1.0 otherwise.
+## Returns 0.95 when extended magazine is equipped (active slot or passive collection), 1.0 otherwise.
 func get_total_ammo_multiplier() -> float:
-	if current_active_item == ActiveItemType.EXTENDED_MAGAZINE:
+	if has_extended_magazine():
 		return 0.95
 	return 1.0
 
@@ -336,8 +380,10 @@ func has_breaching_charges() -> bool:
 
 
 ## Check if armored skin is currently equipped (Issue #1045).
+## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
 func has_armored_skin() -> bool:
-	return current_active_item == ActiveItemType.ARMORED_SKIN
+	return current_active_item == ActiveItemType.ARMORED_SKIN or \
+		ActiveItemType.ARMORED_SKIN in collected_passive_items
 
 
 ## Check if drilling bullets are currently equipped (Issue #751).
@@ -351,8 +397,10 @@ func has_recoil_compensator() -> bool:
 
 
 ## Check if combat disposition is currently equipped (Issue #1047).
+## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
 func has_combat_disposition() -> bool:
-	return current_active_item == ActiveItemType.COMBAT_DISPOSITION
+	return current_active_item == ActiveItemType.COMBAT_DISPOSITION or \
+		ActiveItemType.COMBAT_DISPOSITION in collected_passive_items
 
 
 ## Get the laser sight color (purple).
@@ -362,9 +410,9 @@ func get_laser_sight_color() -> Color:
 
 
 ## Check if a laser sight should be forced on all weapons.
-## Returns true when laser sight active item is equipped (Issue #947).
+## Returns true when laser sight is equipped (active slot or passive collection, Issue #947/#1194).
 func should_force_laser_sight() -> bool:
-	return current_active_item == ActiveItemType.LASER_SIGHT
+	return has_laser_sight()
 
 
 ## Notify loudspeaker progression that a level was completed (Issue #959).
@@ -387,8 +435,10 @@ func reset_loudspeaker_progress() -> void:
 
 
 ## Check if auto-reload is currently equipped (Issue #1067).
+## Also returns true when collected as a passive item in the roguelike run (Issue #1194).
 func has_auto_reload() -> bool:
-	return current_active_item == ActiveItemType.AUTO_RELOAD
+	return current_active_item == ActiveItemType.AUTO_RELOAD or \
+		ActiveItemType.AUTO_RELOAD in collected_passive_items
 
 
 ## Check if an active item type is unlocked.

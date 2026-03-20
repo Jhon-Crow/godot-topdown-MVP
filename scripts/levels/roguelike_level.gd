@@ -304,10 +304,15 @@ func _force_roguelike_loadout() -> void:
 	# Issue #1166: player must start roguelike with no active/passive items on the FIRST room only.
 	# On level 1 room 1 (roguelike_current_level == 1 and roguelike_current_room == 0) clear items.
 	if GameManager.roguelike_current_level == 1 and GameManager.roguelike_current_room == 0:
-		if ActiveItemManager and ActiveItemManager.current_active_item != 0:
-			ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
-			ActiveItemManager.active_item_changed.emit(0)
-			print("[RoguelikeLevel] Active item cleared for roguelike start")
+		if ActiveItemManager:
+			if ActiveItemManager.current_active_item != 0:
+				ActiveItemManager.current_active_item = 0  # NONE — direct assignment, no restart
+				ActiveItemManager.active_item_changed.emit(0)
+				print("[RoguelikeLevel] Active item cleared for roguelike start")
+			# Issue #1194: also clear any previously collected passive items.
+			if not ActiveItemManager.collected_passive_items.is_empty():
+				ActiveItemManager.reset_passive_items()
+				print("[RoguelikeLevel] Passive items cleared for roguelike start")
 	print("[RoguelikeLevel] Loadout forced: %s + flashbang" % GameManager.get_selected_weapon())
 
 
@@ -1092,11 +1097,22 @@ func _pick_random_pedestal_item():
 			return available[randi() % available.size()]
 
 	# Choose a random active item (skip NONE index 0).
+	# Issue #1194: also skip passive items already collected in this run so the player
+	# is always offered something new.
 	var all_types: Array = ActiveItemManager.get_all_active_item_types()
 	var candidates: Array = []
 	for t in all_types:
-		if t != 0:  # Skip ActiveItemType.NONE
-			candidates.append(t)
+		if t == 0:  # Skip ActiveItemType.NONE
+			continue
+		if t in PASSIVE_ACTIVE_ITEM_TYPES and ActiveItemManager.has_passive_item(t):
+			continue  # Skip already-collected passives
+		candidates.append(t)
+
+	if candidates.is_empty():
+		# All passives collected and no weapons — offer any non-NONE item as fallback
+		for t in all_types:
+			if t != 0:
+				candidates.append(t)
 
 	if candidates.is_empty():
 		return "makarov_pm"  # Ultimate fallback
@@ -1384,17 +1400,18 @@ func _apply_pedestal_active_item(player: Node2D, item_type: int, pedestal: Area2
 	var current: int = ActiveItemManager.current_active_item
 
 	if is_passive:
-		# Passive: just set it without restart (it coexists with any active item).
-		# If it's the same as the current one, nothing to do.
-		if item_type == current:
+		# Passive: add to the roguelike passive collection (Issue #1194).
+		# Multiple passives can be held simultaneously; all their effects apply.
+		if ActiveItemManager.has_passive_item(item_type) or item_type == current:
 			print("[RoguelikeLevel] Active-item pedestal: already have %s — skipping" %
 				ActiveItemManager.get_active_item_name(item_type))
 			pedestal.queue_free()
 			_treasure_pedestal = null
 			return
-		ActiveItemManager.set_active_item(item_type, false)  # false = no scene restart
-		print("[RoguelikeLevel] Passive item collected: %s" %
-			ActiveItemManager.get_active_item_name(item_type))
+		ActiveItemManager.add_passive_item(item_type)
+		print("[RoguelikeLevel] Passive item collected: %s (total passives: %d)" % [
+			ActiveItemManager.get_active_item_name(item_type),
+			ActiveItemManager.collected_passive_items.size()])
 		pedestal.queue_free()
 		_treasure_pedestal = null
 	else:

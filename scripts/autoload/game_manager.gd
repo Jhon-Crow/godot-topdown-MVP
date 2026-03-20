@@ -156,6 +156,10 @@ func roguelike_reset_session() -> void:
 	roguelike_current_level = 1
 	roguelike_in_treasure_room = false
 	roguelike_run_weapon = ""
+	# Clear all passive items collected during the run (Issue #1194).
+	var aim: Node = get_node_or_null("/root/ActiveItemManager")
+	if aim and aim.has_method("reset_passive_items"):
+		aim.reset_passive_items()
 
 
 func _ready() -> void:
