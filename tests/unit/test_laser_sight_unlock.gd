@@ -3,7 +3,8 @@ extends GutTest
 ##
 ## Tests that:
 ## - LASER_SIGHT starts locked (no longer freely available from start)
-## - kills_without_laser_sight counter increments only when laser sight is NOT equipped
+## - kills_without_laser_sight counter increments only for player kills without laser sight
+## - Non-player kills (enemy-vs-enemy) do NOT increment the counter
 ## - The kill condition requires exactly 1000 kills without laser sight
 ## - is_kill_condition_met returns correct values based on kill count
 ## - KILL_UNLOCK_CONDITIONS contains the correct entry for Laser Sight
@@ -54,8 +55,11 @@ class MockGameManager:
 	func set_active_item_manager(aim: MockActiveItemManager) -> void:
 		_active_item_manager = aim
 
-	func register_kill() -> void:
+	func register_kill(is_player_kill: bool = true) -> void:
 		kills += 1
+		# Only count player kills (Issue #1196: enemy-vs-enemy kills don't count)
+		if not is_player_kill:
+			return
 		if _active_item_manager == null or not _active_item_manager.has_laser_sight():
 			kills_without_laser_sight += 1
 
@@ -180,6 +184,43 @@ func test_kills_only_count_when_laser_sight_not_equipped() -> void:
 		game_manager.register_kill()
 	assert_eq(game_manager.kills_without_laser_sight, 300,
 		"Only kills made without laser sight should count toward the unlock condition")
+
+
+# ============================================================================
+# Player-Kill-Only Tests (Issue #1196 requirement)
+# ============================================================================
+
+
+func test_non_player_kill_does_not_increment_counter() -> void:
+	# Enemy-vs-enemy or ally-vs-enemy kills must NOT count (Issue #1196)
+	game_manager.register_kill(false)  # is_player_kill = false
+	assert_eq(game_manager.kills_without_laser_sight, 0,
+		"Non-player kills should NOT increment kills_without_laser_sight")
+
+
+func test_non_player_kill_still_increments_total_kills() -> void:
+	game_manager.register_kill(false)
+	assert_eq(game_manager.kills, 1,
+		"Total kills counter should still increment for non-player kills")
+
+
+func test_player_kill_increments_counter() -> void:
+	game_manager.register_kill(true)  # is_player_kill = true
+	assert_eq(game_manager.kills_without_laser_sight, 1,
+		"Player kills without laser sight should increment kills_without_laser_sight")
+
+
+func test_mixed_player_and_non_player_kills() -> void:
+	# 300 player kills (no laser sight)
+	for i in range(300):
+		game_manager.register_kill(true)
+	# 200 enemy-vs-enemy kills (should not count)
+	for i in range(200):
+		game_manager.register_kill(false)
+	assert_eq(game_manager.kills_without_laser_sight, 300,
+		"Mixed kills: only player kills should count toward unlock condition")
+	assert_eq(game_manager.kills, 500,
+		"Mixed kills: total kills counter should include all kills")
 
 
 # ============================================================================
