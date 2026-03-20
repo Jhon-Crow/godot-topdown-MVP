@@ -168,6 +168,9 @@ signal homing_activated
 ## Signal emitted when homing bullets effect deactivates.
 signal homing_deactivated
 
+## Signal emitted when experimental sample charges change (Issue #1127).
+signal experimental_sample_charges_changed(current: int, maximum: int)
+
 ## Grenade scene to instantiate when throwing.
 @export var grenade_scene: PackedScene
 
@@ -397,11 +400,17 @@ func _ready() -> void:
 	# Initialize recoil compensator if active item manager has it selected (Issue #1073)
 	_init_recoil_compensator()
 
+	# Initialize experimental sample if active item manager has it selected (Issue #1127)
+	_init_experimental_sample()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
 	# Initialize jammer HUD icon (Issue #1036)
 	_init_jammer_hud()
+
+	# Apply item-specific player visual based on the equipped passive item (Issue #1142)
+	_apply_item_visual()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -535,6 +544,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle recoil compensator input (hold Space to activate) (Issue #1073)
 	_handle_recoil_compensator_input(delta)
+
+	# Handle experimental sample input (press Space to trigger random effect) (Issue #1127)
+	_handle_experimental_sample_input()
 
 	# Update jammer HUD icon visibility (Issue #1036)
 	_update_jammer_hud()
@@ -4725,6 +4737,30 @@ func _init_armored_skin() -> void:
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
 
 
+## Apply the glassy armor shader to all player body sprites so the player
+## looks like it is covered in transparent crystal/glass armor (Issue #1142).
+func _apply_armored_skin_visual() -> void:
+	const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
+	if not ResourceLoader.exists(ARMOR_SHADER_PATH):
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Shader not found: %s" % ARMOR_SHADER_PATH)
+		return
+	var shader: Shader = load(ARMOR_SHADER_PATH)
+	if shader == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: Failed to load armor shader")
+		return
+	if _player_model == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: _player_model is null, skipping visual")
+		return
+	var applied_count: int = 0
+	for child in _player_model.get_children():
+		if child is Sprite2D:
+			var mat := ShaderMaterial.new()
+			mat.shader = shader
+			child.material = mat
+			applied_count += 1
+	FileLogger.info("[Player.ArmoredSkin] Armor shader applied to %d sprites" % applied_count)
+
+
 ## Spawn 20 glass/crystal shards in all directions from the player position.
 ## Called when armored skin is active and player is at ≤2 HP while being hit.
 func _spawn_armored_skin_shards() -> void:
@@ -4755,6 +4791,33 @@ func _spawn_armored_skin_shards() -> void:
 
 		parent.add_child(shard)
 		shard.global_position = global_position
+
+
+# ============================================================================
+# Item Visual System (Issue #1142)
+# ============================================================================
+
+
+## Apply a passive visual effect to the player based on the currently equipped
+## active item.  This is the single entry point for all item-specific player
+## visuals.  Add a new branch here when a future item needs a visual effect.
+## Called once from _ready() after all item-init functions have run.
+func _apply_item_visual() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	var item_type: int = active_item_manager.current_active_item
+
+	match item_type:
+		active_item_manager.ActiveItemType.ARMORED_SKIN:
+			# Crystal/glass armor overlay — applied when Armored Skin is equipped (Issue #1142).
+			_apply_armored_skin_visual()
+		_:
+			# No passive visual for this item — nothing to do.
+			pass
+
+	FileLogger.info("[Player.ItemVisual] Visual applied for item type: %d" % item_type)
 
 
 # ============================================================================
@@ -4838,3 +4901,154 @@ func _handle_recoil_compensator_input(delta: float) -> void:
 ## Check if the recoil compensator is currently active.
 func is_recoil_compensator_active() -> bool:
 	return _recoil_compensator_equipped and _recoil_compensator_active
+
+
+# ============================================================================
+# Experimental Sample (Issue #1127)
+# ============================================================================
+
+## Whether the experimental sample is equipped.
+var _experimental_sample_equipped: bool = false
+## Remaining experimental sample charges (1–5 per battle, randomised on level start).
+var _experimental_sample_charges: int = 0
+## Minimum / maximum charges per battle.
+const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
+const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
+## Preloaded icon popup script for the experimental sample (Issue #1127).
+const ExperimentalSampleItemPopupScript = preload("res://scripts/ui/experimental_sample_item_popup.gd")
+## Floating icon popup node shown above the player when an effect fires (Issue #1127).
+var _experimental_sample_popup: Node2D = null
+
+## Initialize the experimental sample if the ActiveItemManager has it selected.
+func _init_experimental_sample() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null or not active_item_manager.has_method("has_experimental_sample"):
+		FileLogger.info("[Player.ExperimentalSample] ActiveItemManager not available")
+		return
+	if not active_item_manager.has_experimental_sample():
+		FileLogger.info("[Player.ExperimentalSample] Experimental sample not selected")
+		return
+	_experimental_sample_equipped = true
+	# Randomise charge count (1–5) at the start of each level (Issue #1127)
+	_experimental_sample_charges = randi_range(EXPERIMENTAL_SAMPLE_MIN_CHARGES, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	FileLogger.info("[Player.ExperimentalSample] Equipped, charges this run: %d" % _experimental_sample_charges)
+	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	# Create floating item icon popup node (Issue #1127)
+	_experimental_sample_popup = ExperimentalSampleItemPopupScript.new()
+	_experimental_sample_popup.name = "ExperimentalSampleItemPopup"
+	add_child(_experimental_sample_popup)
+
+## Handle experimental sample input: press Space to trigger a random active item effect.
+## The randomly chosen effect can be ANY item (even items the player has not unlocked).
+func _handle_experimental_sample_input() -> void:
+	if not _experimental_sample_equipped or not Input.is_action_just_pressed("flashlight_toggle"):
+		return
+	# Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+	if ActiveItemManager.is_active_item_jammed_verbose():
+		FileLogger.info("[Player.ExperimentalSample] Space blocked by Radio Jammer (Issue #1036)")
+		return
+	if _experimental_sample_charges <= 0:
+		FileLogger.info("[Player.ExperimentalSample] No charges remaining")
+		return
+	_experimental_sample_charges -= 1
+	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+	# Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18).
+	# Re-roll if the chosen type has no visible on-press action, so every charge spend is meaningful.
+	const MAX_ATTEMPTS := 20
+	var effect_fired := false
+	var fired_type: int = -1
+	for attempt in range(MAX_ATTEMPTS):
+		var random_type: int = randi_range(1, 17)
+		FileLogger.info("[Player.ExperimentalSample] Charges: %d — type %d attempt %d" % [_experimental_sample_charges, random_type, attempt + 1])
+		effect_fired = _trigger_experimental_sample_effect(random_type)
+		if effect_fired:
+			fired_type = random_type
+			break
+	if not effect_fired:
+		FileLogger.info("[Player.ExperimentalSample] All attempts passive/skipped — homing fallback triggered")
+		_homing_active = true
+		_homing_timer = HOMING_DURATION
+		_play_homing_sound()
+		_start_homing_scanner()
+		homing_activated.emit()
+		fired_type = 2  # HOMING_BULLETS fallback
+	# Show floating icon popup for the triggered item (Issue #1127)
+	if fired_type >= 0 and _experimental_sample_popup and is_instance_valid(_experimental_sample_popup):
+		var mgr: Node = get_node_or_null("/root/ActiveItemManager")
+		if mgr and mgr.has_method("get_active_item_icon_path"):
+			_experimental_sample_popup.show_icon(mgr.get_active_item_icon_path(fired_type))
+
+
+## Trigger on-press effect of item_type chosen by experimental sample.
+## Returns true if a visible effect fired, false if passive/unavailable (caller re-rolls).
+func _trigger_experimental_sample_effect(item_type: int) -> bool:
+	FileLogger.info("[Player.ExperimentalSample] Executing effect type %d" % item_type)
+	# Passive/hold/aim-only types always re-roll (FLASHLIGHT, TELEPORT_BRACERS, BREAKER_BULLETS,
+	# FORCE_FIELD, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS,
+	# RECOIL_COMPENSATOR, COMBAT_DISPOSITION)
+	if item_type in [1, 3, 6, 7, 9, 10, 13, 14, 15, 16, 17]:
+		return false
+
+	match item_type:
+		2:  # HOMING_BULLETS — activate homing for one burst (always available)
+			if _homing_active: return false
+			_homing_active = true
+			_homing_timer = HOMING_DURATION
+			_play_homing_sound()
+			_start_homing_scanner()
+			homing_activated.emit()
+			FileLogger.info("[Player.ExperimentalSample] Homing effect triggered for %.1fs" % HOMING_DURATION)
+			return true
+		4:  # BFF_PENDANT — summon companion if not yet summoned
+			if _bff_companion_summoned: return false
+			_summon_bff_companion()
+			FileLogger.info("[Player.ExperimentalSample] BFF companion summoned via experimental sample")
+			return true
+		5:  # INVISIBILITY_SUIT — activate invisibility if the node is available
+			if _invisibility_suit_equipped and _invisibility_suit != null \
+					and is_instance_valid(_invisibility_suit) and not _invisibility_suit.is_active:
+				_invisibility_suit.activate()
+				FileLogger.info("[Player.ExperimentalSample] Invisibility suit activated via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Invisibility suit not equipped or already active; re-roll")
+			return false
+		8:  # TRAJECTORY_GLASSES — activate glasses if node exists, else skip
+			if _trajectory_glasses_equipped and _trajectory_glasses != null \
+					and is_instance_valid(_trajectory_glasses) and not _trajectory_glasses.is_active:
+				_update_trajectory_glasses_weapon()
+				_trajectory_glasses.activate()
+				FileLogger.info("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Trajectory glasses not equipped or already active; re-roll")
+			return false
+		11: # LOUDSPEAKER — trigger loudspeaker effect if progress system allows it
+			if _loudspeaker_equipped and _loudspeaker_progress != null and _loudspeaker_progress.can_activate():
+				var is_first_use: bool = not _loudspeaker_progress.used_this_level
+				_loudspeaker_progress.use()
+				_apply_loudspeaker_effect(_get_aim_direction(),
+					1.0 if is_first_use else _loudspeaker_progress.get_effect_chance(),
+					_loudspeaker_progress.get_hostility_chance())
+				FileLogger.info("[Player.ExperimentalSample] Loudspeaker activated via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Loudspeaker not equipped or no charges; re-roll")
+			return false
+		12: # BREACHING_CHARGES — detonate existing charges if any placed, else skip
+			if _breaching_charges != null and is_instance_valid(_breaching_charges):
+				var detonated := _breaching_charges.detonate()
+				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
+				return detonated
+			return false
+		_:
+			return false
+
+
+## Get remaining experimental sample charges.
+func get_experimental_sample_charges() -> int:
+	return _experimental_sample_charges
+
+
+## Get the maximum experimental sample charges constant.
+func get_max_experimental_sample_charges() -> int:
+	return EXPERIMENTAL_SAMPLE_MAX_CHARGES

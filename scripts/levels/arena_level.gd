@@ -267,10 +267,6 @@ func _on_enemy_died() -> void:
 	_enemies_alive -= 1
 	_update_enemy_count_label()
 
-	# Register kill.
-	if GameManager:
-		GameManager.register_kill()
-
 	# If more enemies still need to be spawned, spawn the next one.
 	if _enemies_spawned < _wave_enemy_target:
 		_spawn_enemy()
@@ -281,7 +277,10 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy dies with special kill info.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)

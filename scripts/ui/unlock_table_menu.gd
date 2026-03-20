@@ -41,7 +41,7 @@ const WEAPON_NAMES: Dictionary = {
 
 ## Active item type to display name mapping.
 const ACTIVE_ITEM_NAMES: Dictionary = {
-	0: "Homing Bullets",
+	0: "None",
 	1: "Flashlight",
 	2: "Homing Bullets",
 	3: "Teleport Bracers",
@@ -49,8 +49,16 @@ const ACTIVE_ITEM_NAMES: Dictionary = {
 	5: "Invisibility Suit",
 	6: "Breaker Bullets",
 	7: "Force Field",
-	8: "Aggression Gas",
-	9: "Trajectory Glasses"
+	8: "Trajectory Glasses",
+	9: "Laser Sight",
+	10: "Extended Magazine",
+	11: "Loudspeaker",
+	12: "Breaching Charges",
+	13: "Armored Skin",
+	14: "Auto-Reload",
+	15: "Drilling Bullets",
+	16: "Recoil Compensator",
+	17: "Combat Disposition"
 }
 
 ## Grenade type to display name mapping.
@@ -145,7 +153,7 @@ func _build_ui() -> void:
 
 	# Description
 	var desc := Label.new()
-	desc.text = "Items are unlocked by completing levels at the required rank or better."
+	desc.text = "Items are unlocked by completing levels at the required rank or better, or by meeting kill milestones."
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc.add_theme_font_size_override("font_size", 12)
 	desc.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
@@ -304,6 +312,49 @@ func _populate_table() -> void:
 
 		_add_table_row(map_display, "All S", ", ".join(items_list), false, condition_met)
 
+	# Add rows for kill-based conditions
+	var kill_unlock_conditions: Array = []
+	if "KILL_UNLOCK_CONDITIONS" in unlock_manager:
+		kill_unlock_conditions = unlock_manager.KILL_UNLOCK_CONDITIONS
+
+	for kill_condition in kill_unlock_conditions:
+		var stat: String = kill_condition.get("stat", "")
+		var min_kills: int = kill_condition.get("min_kills", 0)
+
+		# Current progress from GameManager
+		var game_manager: Node = get_node_or_null("/root/GameManager")
+		var current_kills: int = 0
+		if game_manager and stat != "":
+			current_kills = game_manager.get(stat) if game_manager.get(stat) != null else 0
+
+		var map_display: String = "%d / %d kills (no Laser Sight)" % [current_kills, min_kills]
+
+		var items_list: Array[String] = []
+		for weapon_id in kill_condition.get("weapons", []):
+			var weapon_name: String = WEAPON_NAMES.get(weapon_id, weapon_id)
+			items_list.append(weapon_name)
+			if weapon_id not in weapons_with_conditions:
+				weapons_with_conditions.append(weapon_id)
+		for grenade_type in kill_condition.get("grenades", []):
+			var grenade_name: String = GRENADE_NAMES.get(grenade_type, "Grenade %d" % grenade_type)
+			items_list.append(grenade_name)
+			if grenade_type not in grenades_with_conditions:
+				grenades_with_conditions.append(grenade_type)
+		for item_type in kill_condition.get("active_items", []):
+			var item_name: String = ACTIVE_ITEM_NAMES.get(item_type, "Item %d" % item_type)
+			items_list.append(item_name)
+			if item_type not in active_items_with_conditions:
+				active_items_with_conditions.append(item_type)
+
+		var condition_met: bool = false
+		if unlock_manager.has_method("is_kill_condition_met"):
+			condition_met = unlock_manager.is_kill_condition_met(kill_condition)
+
+		if condition_met:
+			map_display = map_display + " ✓"
+
+		_add_table_row(map_display, "—", ", ".join(items_list), false, condition_met)
+
 	# Add separator before unallocated items
 	var sep := HSeparator.new()
 	sep.add_theme_constant_override("separation", 8)
@@ -322,10 +373,11 @@ func _populate_table() -> void:
 		if grenade_type not in grenades_with_conditions:
 			unallocated_items.append(GRENADE_NAMES[grenade_type])
 
-	# Find active items without conditions
+	# Find active items without conditions (skip NONE = 0)
 	for item_type in ACTIVE_ITEM_NAMES:
+		if item_type == 0:
+			continue  # Skip the "None" slot
 		if item_type not in active_items_with_conditions:
-			# Skip duplicates (Homing Bullets is at index 0 and 2)
 			var item_name: String = ACTIVE_ITEM_NAMES[item_type]
 			if item_name not in unallocated_items:
 				unallocated_items.append(item_name)

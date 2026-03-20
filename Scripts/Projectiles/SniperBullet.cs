@@ -288,14 +288,16 @@ public partial class SniperBullet : Area2D
         }
 
         bool hitEnemy = false;
+        bool fromPlayer = IsPlayerBullet(); // Issue #1196: track kill source
 
         // Deal damage to target
         // Prefer on_hit_with_bullet_info_and_damage so HitArea forwards the correct Damage
         // value instead of the hardcoded 1 HP used by the plain on_hit() fallback.
+        // Pass is_from_player (Issue #1196) so enemy.gd can track kill source for Laser Sight unlock.
         if (area.HasMethod("on_hit_with_bullet_info_and_damage"))
         {
-            GD.Print($"[SniperBullet]: Applying {Damage} damage to {area.Name} via on_hit_with_bullet_info_and_damage");
-            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, false, true, Damage);
+            GD.Print($"[SniperBullet]: Applying {Damage} damage to {area.Name} via on_hit_with_bullet_info_and_damage (from_player={fromPlayer})");
+            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, false, true, Damage, fromPlayer);
             hitEnemy = true;
         }
         else if (parent != null && parent.HasMethod("take_damage"))
