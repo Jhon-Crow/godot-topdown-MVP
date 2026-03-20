@@ -397,3 +397,48 @@ To get actionable data on the "AI broken" complaint, a longer test session is ne
 3. Fire a weapon — do nearby enemies respond?
 4. Note: GUARD enemies (standing at a post) do NOT patrol; they scan and wait. This is expected behavior.
 5. Collect a game log of at least 30 seconds of interaction
+
+---
+
+## Log 4: game_log_20260320_095930.txt — "AI still broken"
+
+**Session:** 2026-03-20 09:59:30 – 09:59:34 (4 seconds)
+
+| Field | Value |
+|---|---|
+| Level | LabyrinthLevel |
+| Enemies | 5 (Enemy1–Enemy5) |
+| Build type | Release (Debug build: false) |
+| Invincibility | **True** (in ExperimentalSettings) |
+| PerformanceSettings | All AI state toggles: `true` |
+| `has_died_signal` | **`false` for all 5 enemies** |
+| Enemies tracked | **0 enemies registered** |
+| FPS | **20 fps spike** at 09:59:32 |
+| Enemy AI messages | **NONE** |
+
+### Timeline Reconstruction
+
+```
+09:59:30  Game starts → LabyrinthLevel loaded
+09:59:30  All PerformanceSettings toggles: true (good)
+09:59:31  5 enemies spawn, scripts attached
+09:59:31  has_died_signal=false for all 5 enemies → 0 tracked
+09:59:31  0 enemies registered for replay and level
+09:59:32  20fps spike (shader warmup + BuildingLevel background load)
+09:59:34  Game closed
+```
+
+### Key Finding: `has_died_signal=false` Regression
+
+In log_082422 (earlier same day), `has_died_signal=true`. In log_092301 and log_095930, `has_died_signal=false`. The `died` signal IS present in `enemy.gd` (lines 96–97) in both the main branch and our PR branch.
+
+**Most likely cause**: The user exported a binary from an intermediate state of our PR where the signal was accidentally absent. Specifically, commit `7a3b647a` (restoring `_transition_to_idle()`) or `8225836d` (adding diagnostics) may have introduced a subtle GDScript parsing issue in the exported build. In Godot 4.3 exports, GDScript signal lookup via `has_signal()` can fail if the script cache is stale or if a script has a syntax/parse error that prevents full compilation.
+
+**Alternative cause**: The `_ready()` order issue — `_setup_enemy_tracking()` in LabyrinthLevel may run before enemy scripts fully initialize in the scene tree, causing `has_signal()` to return `false` on a partially-initialized node.
+
+### User Request: "Revert to main and try again"
+
+The user explicitly requests reverting enemy.gd to the main branch state and implementing a fresh, minimal fix. This approach eliminates any potential regression from our previous commits.
+
+**Action taken**: Revert `scripts/objects/enemy.gd` to main branch state, then apply only the minimum necessary performance optimizations without touching `_process_idle_state()` or spawn initialization logic.
+

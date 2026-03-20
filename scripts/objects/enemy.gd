@@ -287,9 +287,6 @@ var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
 ## Issue #883: Stagger vision raycasts; each enemy checks once every VISION_CHECK_INTERVAL frames.
 var _vision_frame_counter: int = 0; var _vision_frame_offset: int = 0  ## Frame stagger (set in _ready)
 const VISION_CHECK_INTERVAL: int = 6  ## Check vision every N frames (~10 fps at 60 fps physics)
-## Issue #1184: Cache combat count (O(N²)) and nav map RID to reduce per-frame overhead.
-var _cached_combat_count: int = 0; var _combat_count_timer: float = 0.0; const COMBAT_COUNT_INTERVAL: float = 0.5
-var _nav_map_rid: RID  ## Cached navigation map RID (avoids per-call property lookup).
 var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
@@ -309,6 +306,7 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
+var _combat_count_cache: int = 0; var _combat_count_timer: float = 0.0; var _nav_map_rid: RID  ## Issue #1184
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -364,7 +362,8 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
-	_intel_share_timer = randf() * INTEL_SHARE_INTERVAL  # Issue #1184: Stagger intel sharing across enemies.
+	# Issue #1184: Stagger intel-share timer so enemies don't all fire group queries on the same frame.
+	_intel_share_timer = randf() * INTEL_SHARE_INTERVAL
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -433,7 +432,6 @@ func _ready() -> void:
 	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
-	call_deferred("_log_ready_complete")  # Issue #1184: confirm full _ready() completion for diagnostics
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -880,9 +878,12 @@ func _update_goap_state() -> void:
 	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
 	_goap_world_state["player_close"] = _is_target_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_target_from_current_position()
-	_combat_count_timer += get_physics_process_delta_time()  # Issue #1184: Throttle O(N²) combat count.
-	if _combat_count_timer >= COMBAT_COUNT_INTERVAL: _combat_count_timer = 0.0; _cached_combat_count = _count_enemies_in_combat()
-	_goap_world_state["enemies_in_combat"] = _cached_combat_count
+	# Issue #1184: Throttle O(N²) combat count — refresh at most every 0.5s instead of every frame.
+	_combat_count_timer += get_physics_process_delta_time()
+	if _combat_count_timer >= INTEL_SHARE_INTERVAL:
+		_combat_count_timer = 0.0
+		_combat_count_cache = _count_enemies_in_combat()
+	_goap_world_state["enemies_in_combat"] = _combat_count_cache
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 	# Memory system states (Issue #297)
@@ -952,14 +953,12 @@ func _update_enemy_model_rotation() -> void:
 		_enemy_model.global_rotation = target_angle
 	elif angle_diff > 0:
 		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
-	else:
-		_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
+	else: _enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
 	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
 	_model_facing_left = aiming_left
 	if aiming_left:
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
-	else:
-		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+	else: _enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 ## Forces model to face direction immediately; ensures weapon sprite matches intended aim direction.
 func _force_model_to_face_direction(direction: Vector2) -> void:
@@ -1344,17 +1343,21 @@ func _process_idle_state(delta: float) -> void:
 		else: _transition_to_combat()
 		return
 
-	# Issue #297: Check memory for suspected player position. #1184: guard against IDLE→PURSUING→IDLE loop when PURSUING disabled.
-	var _ps_idle := get_node_or_null("/root/PerformanceSettings"); var _pursuing_enabled := _ps_idle == null or _ps_idle.is_ai_state_pursuing_enabled()
-	if _memory and _memory.has_target() and _pursuing_enabled:
+	# Check memory system for suspected player position (Issue #297)
+	# If we have high/medium confidence about player location, investigate
+	if _memory and _memory.has_target():
 		if _memory.is_high_confidence():
+			# High confidence: Go investigate directly
 			_log_debug("High confidence (%.0f%%) - investigating suspected position" % (_memory.confidence * 100))
 			_log_to_file("Memory: high confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing(); return
+			_transition_to_pursuing()
+			return
 		elif _memory.is_medium_confidence():
+			# Medium confidence: Investigate cautiously (also use pursuing with cover-to-cover)
 			_log_debug("Medium confidence (%.0f%%) - cautiously investigating" % (_memory.confidence * 100))
 			_log_to_file("Memory: medium confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing(); return
+			_transition_to_pursuing()
+			return
 		# Low confidence: Continue normal patrol but may wander toward suspected area
 	# Execute idle behavior
 	match behavior_mode:
@@ -2274,13 +2277,14 @@ func _generate_search_waypoints() -> void:
 			_search_leg_length += SEARCH_WAYPOINT_SPACING
 	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
 
-## Check if position is navigable via NavigationServer2D. Issue #1184: caches nav_map RID.
+## Check if position is navigable via NavigationServer2D.
 func _is_waypoint_navigable(pos: Vector2) -> bool:
-	if not _nav_map_rid.is_valid(): _nav_map_rid = get_world_2d().navigation_map
+	if not _nav_map_rid.is_valid(): _nav_map_rid = get_world_2d().navigation_map  # Issue #1184: cache RID
 	var closest := NavigationServer2D.map_get_closest_point(_nav_map_rid, pos)
 	return pos.distance_to(closest) < 50.0
 
-## Zone tracking helpers for visited areas (Issue #322/#1184): snaps to 50px grid; int key avoids string alloc.
+## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
+## Issue #1184: key is int (gx*100000+gy) to avoid String allocation in hot path.
 func _get_zone_key(pos: Vector2) -> int:
 	return int(pos.x / SEARCH_ZONE_SNAP_SIZE) * 100000 + int(pos.y / SEARCH_ZONE_SNAP_SIZE)
 func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
@@ -3212,8 +3216,7 @@ func _find_pursuit_cover_toward_player() -> void:
 		_has_pursuit_cover = true
 		_current_cover_obstacle = best_obstacle
 		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
-	else:
-		_has_pursuit_cover = false
+	else: _has_pursuit_cover = false
 
 ## Check if there's a clear path to a position (no walls blocking).
 func _can_reach_position(target: Vector2) -> bool:
@@ -3368,8 +3371,7 @@ func _find_cover_position() -> void:
 		_cover_position = best_cover
 		_has_valid_cover = true
 		_log_debug("Found cover at: %s (hidden: %s)" % [_cover_position, found_hidden_cover])
-	else:
-		_has_valid_cover = false
+	else: _has_valid_cover = false
 
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
@@ -4528,8 +4530,6 @@ func _log_to_file(message: String) -> void:
 	if fl and fl.has_method("log_enemy"): fl.log_enemy(name, message)
 func _log_spawn_info() -> void:
 	_log_to_file("Spawned at %s, hp: %d, behavior: %s" % [global_position, _max_health, BehaviorMode.keys()[behavior_mode]])
-func _log_ready_complete() -> void:
-	_log_to_file("_ready() complete — state: %s, player: %s" % [AIState.keys()[_current_state], _player != null])  # Issue #1184
 func _get_state_name(state: AIState) -> String:
 	return AIState.keys()[state] if state >= 0 and state < AIState.size() else "UNKNOWN"
 
