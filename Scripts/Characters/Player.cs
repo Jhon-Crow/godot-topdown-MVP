@@ -6715,8 +6715,8 @@ public partial class Player : BaseCharacter
             { "Armband",  "res://assets/sprites/characters/player/armored_skin/armored_skin_armband.png" },
         };
 
-        // 25% opacity — visible but not overwhelming the player sprite underneath.
-        var overlayColor = new Color(1f, 1f, 1f, 0.25f);
+        // 40% opacity — crystal armor is clearly visible while the player sprite underneath remains readable.
+        var overlayColor = new Color(1f, 1f, 1f, 0.4f);
 
         int addedCount = 0;
         foreach (var child in _playerModel.GetChildren())
