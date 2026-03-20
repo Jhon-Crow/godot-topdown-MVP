@@ -1197,6 +1197,9 @@ public partial class Player : BaseCharacter
         // Initialize armored skin if active item manager has it selected (Issue #1045)
         InitArmoredSkin();
 
+        // Apply item-specific player visual based on the equipped passive item (Issue #1142)
+        ApplyItemVisual();
+
         // Initialize loudspeaker if active item manager has it selected (Issue #959)
         InitLoudspeaker();
 
@@ -6606,6 +6609,12 @@ public partial class Player : BaseCharacter
     private bool _armoredSkinActive = false;
 
     /// <summary>
+    /// Overlay sprites added by ApplyArmoredSkinVisual (Issue #1142).
+    /// Stored so they can be freed when the armor shatters.
+    /// </summary>
+    private readonly System.Collections.Generic.List<Sprite2D> _armoredSkinOverlays = new();
+
+    /// <summary>
     /// Whether armored skin post-trigger immunity is active (Issue #1095).
     /// Set to true when shards are spawned; cleared after 0.1 seconds.
     /// Absorbs all subsequent damage calls from the same multi-hit explosion event
@@ -6658,6 +6667,114 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Apply a passive visual effect to the player based on the currently equipped active item (Issue #1142).
+    /// This is the single entry point for all item-specific player visuals.
+    /// Add a new case here when a future item needs a visual effect.
+    /// Called once from Ready() after all Init*() functions have run.
+    /// </summary>
+    private void ApplyItemVisual()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            return;
+        }
+
+        int itemType = (int)activeItemManager.Get("current_active_item");
+
+        // Check for ARMORED_SKIN — crystal/glass armor overlay (Issue #1142).
+        if (activeItemManager.HasMethod("has_armored_skin") && (bool)activeItemManager.Call("has_armored_skin"))
+        {
+            ApplyArmoredSkinVisual();
+        }
+
+        LogToFile($"[Player.ItemVisual] Visual applied for item type: {itemType}");
+    }
+
+    /// <summary>
+    /// Apply crystal armor overlay sprites on top of each player body part (Issue #1142).
+    /// Like The Binding of Isaac — a semi-transparent blue crystal overlay is added as a
+    /// child of each base sprite so it automatically follows all movements, flips, and
+    /// animations. Alpha is kept low so the player is clearly visible underneath.
+    /// </summary>
+    private void ApplyArmoredSkinVisual()
+    {
+        if (_playerModel == null)
+        {
+            LogToFile("[Player.ArmoredSkin] WARNING: _playerModel is null, skipping visual");
+            return;
+        }
+
+        // Map each body-part Sprite2D name to its crystal overlay texture path.
+        var overlayMap = new System.Collections.Generic.Dictionary<string, string>
+        {
+            { "Body",     "res://assets/sprites/characters/player/armored_skin/armored_skin_body.png" },
+            { "Head",     "res://assets/sprites/characters/player/armored_skin/armored_skin_head.png" },
+            { "LeftArm",  "res://assets/sprites/characters/player/armored_skin/armored_skin_left_arm.png" },
+            { "RightArm", "res://assets/sprites/characters/player/armored_skin/armored_skin_right_arm.png" },
+            { "Armband",  "res://assets/sprites/characters/player/armored_skin/armored_skin_armband.png" },
+        };
+
+        // 40% opacity — crystal armor is clearly visible while the player sprite underneath remains readable.
+        var overlayColor = new Color(1f, 1f, 1f, 0.4f);
+
+        int addedCount = 0;
+        foreach (var child in _playerModel.GetChildren())
+        {
+            if (child is not Sprite2D baseSprite)
+                continue;
+
+            string partName = baseSprite.Name;
+            if (!overlayMap.TryGetValue(partName, out string? overlayPath))
+                continue;
+
+            if (!ResourceLoader.Exists(overlayPath))
+            {
+                LogToFile($"[Player.ArmoredSkin] WARNING: Overlay texture not found: {overlayPath}");
+                continue;
+            }
+
+            var texture = GD.Load<Texture2D>(overlayPath);
+            if (texture == null)
+            {
+                LogToFile($"[Player.ArmoredSkin] WARNING: Failed to load overlay texture: {overlayPath}");
+                continue;
+            }
+
+            // Parent the overlay directly to the base sprite so it inherits all transforms
+            // (position, rotation, flip, scale) — the overlay moves exactly with the body part.
+            var overlay = new Sprite2D();
+            overlay.Name = $"{partName}ArmorOverlay";
+            overlay.Texture = texture;
+            overlay.Position = Vector2.Zero;
+            overlay.Offset = Vector2.Zero;
+            overlay.ZIndex = 1;
+            overlay.Modulate = overlayColor;
+
+            baseSprite.AddChild(overlay);
+            _armoredSkinOverlays.Add(overlay);
+            addedCount++;
+        }
+
+        LogToFile($"[Player.ArmoredSkin] Crystal armor overlays added: {addedCount} sprites");
+    }
+
+    /// <summary>
+    /// Remove all crystal armor overlay sprites (Issue #1142).
+    /// Called when the armor shatters so the visual matches the gameplay state.
+    /// </summary>
+    private void RemoveArmoredSkinVisual()
+    {
+        foreach (var overlay in _armoredSkinOverlays)
+        {
+            if (IsInstanceValid(overlay))
+                overlay.QueueFree();
+        }
+        _armoredSkinOverlays.Clear();
+        LogToFile("[Player.ArmoredSkin] Crystal armor overlays removed");
+    }
+
+    /// <summary>
     /// Spawn 20 glass/crystal shards in all directions from the player position (Issue #1045).
     /// Called when armored skin is active and player is at ≤2 HP while being hit.
     /// </summary>
@@ -6681,6 +6798,9 @@ public partial class Player : BaseCharacter
         {
             return;
         }
+
+        // Remove the crystal overlay sprites so the visual matches the gameplay state.
+        RemoveArmoredSkinVisual();
 
         LogToFile($"[Player.ArmoredSkin] Spawning {ArmoredSkinShardCount} glass shards (HP: {HealthComponent?.CurrentHealth ?? 0})");
 
