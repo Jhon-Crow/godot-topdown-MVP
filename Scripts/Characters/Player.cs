@@ -4083,10 +4083,8 @@ public partial class Player : BaseCharacter
         {
             _leftArmSprite.ZIndex = 0;
         }
-        if (_rightArmSprite != null)
-        {
-            _rightArmSprite.ZIndex = 0;
-        }
+        // RightForearm is a child of RightShoulder and inherits ZIndex automatically.
+        // No need to set it separately.
     }
 
     /// <summary>
@@ -4110,11 +4108,10 @@ public partial class Player : BaseCharacter
             _reloadAnimTimer -= delta;
         }
 
-        // Calculate target positions based on current phase
+        // Calculate target positions for the shoulder (left arm sprite) only.
+        // RightForearm is a child of RightShoulder and follows automatically — no separate animation.
         Vector2 leftArmTarget = _baseLeftArmPos;
-        Vector2 rightArmTarget = _baseRightArmPos;
         float leftArmRot = 0.0f;
-        float rightArmRot = 0.0f;
         float lerpSpeed = AnimLerpSpeed * delta;
 
         // Set arms to lower z-index during reload operations (BELOW weapon)
@@ -4127,8 +4124,6 @@ public partial class Player : BaseCharacter
                 // Step 1: Left arm moves to chest to grab new magazine
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftGrab;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftGrab);
-                rightArmTarget = _baseRightArmPos + ReloadArmRightHold;
-                rightArmRot = Mathf.DegToRad(ReloadArmRotRightHold);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
@@ -4137,29 +4132,23 @@ public partial class Player : BaseCharacter
                 // User feedback: "step 2 should end at middle of weapon length, not at the end"
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftInsert;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftInsert);
-                rightArmTarget = _baseRightArmPos + ReloadArmRightSteady;
-                rightArmRot = Mathf.DegToRad(ReloadArmRotRightSteady);
                 lerpSpeed = AnimLerpSpeed * delta;
                 break;
 
             case ReloadAnimPhase.PullBolt:
-                // Step 3: Right hand traces rifle contour - back and forth motion
-                // User feedback: "step 3 should be a movement along the rifle contour
-                // right towards and away from oneself (back and forth)"
+                // Step 3: Shoulder shifts to support position while bolt is pulled.
+                // The forearm (child node) follows the shoulder automatically.
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftSupport;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftSupport);
 
                 if (_boltPullSubPhase == 0)
                 {
-                    // Sub-phase 0: Pull bolt back (toward player)
-                    rightArmTarget = _baseRightArmPos + ReloadArmRightBoltPull;
-                    rightArmRot = Mathf.DegToRad(ReloadArmRotRightBoltPull);
                     lerpSpeed = AnimLerpSpeedFast * delta;
 
                     // Log bolt pull progress periodically
                     if (Engine.GetFramesDrawn() % 30 == 0)
                     {
-                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 0 (pull back): timer={_reloadAnimTimer:F2}s, rightArm target={rightArmTarget}");
+                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 0 (pull back): timer={_reloadAnimTimer:F2}s");
                     }
 
                     // When pull back completes, transition to return forward
@@ -4173,15 +4162,12 @@ public partial class Player : BaseCharacter
                 }
                 else
                 {
-                    // Sub-phase 1: Release bolt (return forward)
-                    rightArmTarget = _baseRightArmPos + ReloadArmRightBoltReturn;
-                    rightArmRot = Mathf.DegToRad(ReloadArmRotRightBoltReturn);
                     lerpSpeed = AnimLerpSpeedFast * delta;
 
                     // Log bolt return progress periodically
                     if (Engine.GetFramesDrawn() % 30 == 0)
                     {
-                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 1 (return): timer={_reloadAnimTimer:F2}s, rightArm target={rightArmTarget}");
+                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 1 (return): timer={_reloadAnimTimer:F2}s");
                     }
 
                     // When return completes, transition to return idle
@@ -4194,11 +4180,9 @@ public partial class Player : BaseCharacter
                 break;
 
             case ReloadAnimPhase.ReturnIdle:
-                // Arms returning to base positions
+                // Shoulder returning to base position
                 leftArmTarget = _baseLeftArmPos;
-                rightArmTarget = _baseRightArmPos;
                 leftArmRot = 0.0f;
-                rightArmRot = 0.0f;
                 lerpSpeed = AnimLerpSpeed * delta;
 
                 // When return animation completes, end animation and restore z-index
@@ -4214,7 +4198,6 @@ public partial class Player : BaseCharacter
         // Apply arm positions with smooth interpolation
         if (_leftArmSprite != null)
         {
-            Vector2 oldPos = _leftArmSprite.Position;
             _leftArmSprite.Position = _leftArmSprite.Position.Lerp(leftArmTarget, lerpSpeed);
             _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, leftArmRot, lerpSpeed);
 
@@ -4229,22 +4212,9 @@ public partial class Player : BaseCharacter
             LogToFile("[Player.Reload.Anim] WARNING: Left arm sprite is null during animation!");
         }
 
-        if (_rightArmSprite != null)
-        {
-            Vector2 oldPos = _rightArmSprite.Position;
-            _rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
-            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, rightArmRot, lerpSpeed);
-
-            // Log arm position changes periodically (every 60 frames = ~1 second)
-            if (Engine.GetFramesDrawn() % 60 == 0)
-            {
-                LogToFile($"[Player.Reload.Anim] RightArm: pos={_rightArmSprite.Position}, target={rightArmTarget}, base={_baseRightArmPos}");
-            }
-        }
-        else if (Engine.GetFramesDrawn() % 60 == 0)
-        {
-            LogToFile("[Player.Reload.Anim] WARNING: Right arm sprite is null during animation!");
-        }
+        // RightForearm is a child of RightShoulder and follows the shoulder automatically —
+        // no separate position/rotation animation needed. Animating it independently would
+        // move it away from the elbow joint (local offset -26, 0), causing arm separation.
     }
 
     #endregion
