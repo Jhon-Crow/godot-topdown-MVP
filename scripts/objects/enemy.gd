@@ -425,8 +425,9 @@ func _ready() -> void:
 	_init_death_animation()
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
-	if initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	if initial_state == AIState.SEARCHING: _has_left_idle = true; _transition_to_searching(global_position)  # Issue #1121
+	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
+	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
