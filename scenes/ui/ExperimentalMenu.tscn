@@ -325,6 +325,58 @@ autowrap_mode = 2
 [node name="HSeparator12b" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="GlobalStuckMaxTimeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GlobalStuckMaxTimeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Global Stuck Max Time"
+autowrap_mode = 2
+
+[node name="GlobalStuckMaxTimeSlider" type="HSlider" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer"]
+custom_minimum_size = Vector2(200, 30)
+layout_mode = 2
+min_value = 1.0
+max_value = 60.0
+step = 1.0
+value = 20.0
+
+[node name="GlobalStuckMaxTimeValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "20s"
+
+[node name="GlobalStuckMaxTimeDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "How long an enemy can stay in the same spot before\ngiving up pursuit and switching to SEARCHING state."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12c" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Nav Mesh"
+autowrap_mode = 2
+
+[node name="NavMeshVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer"]
+layout_mode = 2
+
+[node name="NavMeshVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws the AI navigation mesh overlay.\nShows where enemies can walk and helps debug\nincorrectly built areas of the mesh."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

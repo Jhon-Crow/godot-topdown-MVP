@@ -859,9 +859,19 @@ public partial class Bullet : Area2D
 
         // Track if this is a valid hit on an enemy target
         bool hitEnemy = false;
+        bool fromPlayer = IsPlayerBullet(); // Issue #1196: track kill source for Laser Sight unlock
 
-        // Check if the target implements IDamageable
-        if (area is IDamageable damageable)
+        // Issue #1196: prefer on_hit_with_bullet_info_and_damage to pass is_from_player,
+        // so enemy.gd can attribute the kill to the player for the Laser Sight unlock condition.
+        if (area.HasMethod("on_hit_with_bullet_info_and_damage"))
+        {
+            float effectiveDamage = GetEffectiveDamage();
+            if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} has on_hit_with_bullet_info_and_damage, applying {effectiveDamage} damage (from_player={fromPlayer})");
+            area.Call("on_hit_with_bullet_info_and_damage", Direction, (Godot.Resource?)null, _hasRicocheted, _hasPenetrated, effectiveDamage, fromPlayer);
+            hitEnemy = true;
+        }
+        // Check if the target implements IDamageable (C# targets)
+        else if (area is IDamageable damageable)
         {
             if (DebugHits) GD.Print($"[Bullet]: Target {area.Name} is IDamageable, applying {Damage} damage");
             damageable.TakeDamage(Damage);

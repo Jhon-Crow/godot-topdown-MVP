@@ -1197,6 +1197,9 @@ public partial class Player : BaseCharacter
         // Initialize armored skin if active item manager has it selected (Issue #1045)
         InitArmoredSkin();
 
+        // Apply item-specific player visual based on the equipped passive item (Issue #1142)
+        ApplyItemVisual();
+
         // Initialize loudspeaker if active item manager has it selected (Issue #959)
         InitLoudspeaker();
 
@@ -1521,9 +1524,6 @@ public partial class Player : BaseCharacter
 
         // Handle drilling bullets input (press Space to activate, Issue #751)
         HandleDrillingBulletsInput();
-
-        // Update drilling bullets charge bar auto-hide timer (Issue #751)
-        UpdateDrillingBarTimer((float)delta);
 
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
@@ -5823,21 +5823,6 @@ public partial class Player : BaseCharacter
     private bool _drillingBulletsUsed = false;
 
     /// <summary>
-    /// Whether the charge bar auto-hide is pending (shown briefly after activation).
-    /// </summary>
-    private bool _drillingChargeBarPending = false;
-
-    /// <summary>
-    /// Timer for auto-hiding the drilling charge bar after activation.
-    /// </summary>
-    private float _drillingChargeBarHideTimer = 0.0f;
-
-    /// <summary>
-    /// Delay in seconds before hiding the drilling charge bar.
-    /// </summary>
-    private const float DrillingChargeBarHideDelay = 0.3f;
-
-    /// <summary>
     /// Initialize drilling bullets if the ActiveItemManager has them selected (Issue #751).
     /// One charge per battle — press Space to apply wall-piercing to current magazine.
     /// </summary>
@@ -5896,11 +5881,6 @@ public partial class Player : BaseCharacter
                     int magazineAmmo = activeAmmo;
                     CurrentWeapon.DrillingBulletsRemaining = magazineAmmo;
                     LogToFile($"[Player.DrillingBullets] Activated! Magazine has {magazineAmmo} drilling bullets. Charge consumed.");
-
-                    // Show charge bar briefly (now empty — charge spent)
-                    _drillingChargeBarPending = true;
-                    _drillingChargeBarHideTimer = DrillingChargeBarHideDelay;
-                    QueueRedraw();
                 }
                 else
                 {
@@ -5910,46 +5890,6 @@ public partial class Player : BaseCharacter
         }
     }
 
-    /// <summary>
-    /// Update drilling bullets progress bar auto-hide timer (Issue #751).
-    /// </summary>
-    private void UpdateDrillingBarTimer(float delta)
-    {
-        if (_drillingChargeBarPending)
-        {
-            _drillingChargeBarHideTimer -= delta;
-            if (_drillingChargeBarHideTimer <= 0.0f)
-            {
-                _drillingChargeBarPending = false;
-                QueueRedraw();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Draw the drilling bullets single-charge indicator.
-    /// Cyan = charge available, dark = charge used.
-    /// </summary>
-    private void DrawDrillingChargeBar()
-    {
-        const float barWidth = 40.0f;
-        const float barHeight = 6.0f;
-        const float barYOffset = -30.0f;
-        const float borderWidth = 1.0f;
-
-        bool chargeAvailable = !_drillingBulletsUsed;
-        Color fillColor = chargeAvailable
-            ? new Color(0.2f, 0.8f, 0.9f, 0.85f)   // Cyan — charge available
-            : new Color(0.2f, 0.2f, 0.2f, 0.4f);    // Dark grey — charge spent
-
-        Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
-        Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
-
-        Rect2 bgRect = new Rect2(-barWidth / 2.0f, barYOffset, barWidth, barHeight);
-        DrawRect(bgRect, bgColor);
-        DrawRect(bgRect, fillColor);
-        DrawRect(bgRect, borderColor, false, borderWidth);
-    }
 
     #endregion
 
@@ -6669,6 +6609,12 @@ public partial class Player : BaseCharacter
     private bool _armoredSkinActive = false;
 
     /// <summary>
+    /// Overlay sprites added by ApplyArmoredSkinVisual (Issue #1142).
+    /// Stored so they can be freed when the armor shatters.
+    /// </summary>
+    private readonly System.Collections.Generic.List<Sprite2D> _armoredSkinOverlays = new();
+
+    /// <summary>
     /// Whether armored skin post-trigger immunity is active (Issue #1095).
     /// Set to true when shards are spawned; cleared after 0.1 seconds.
     /// Absorbs all subsequent damage calls from the same multi-hit explosion event
@@ -6721,6 +6667,114 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Apply a passive visual effect to the player based on the currently equipped active item (Issue #1142).
+    /// This is the single entry point for all item-specific player visuals.
+    /// Add a new case here when a future item needs a visual effect.
+    /// Called once from Ready() after all Init*() functions have run.
+    /// </summary>
+    private void ApplyItemVisual()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            return;
+        }
+
+        int itemType = (int)activeItemManager.Get("current_active_item");
+
+        // Check for ARMORED_SKIN — crystal/glass armor overlay (Issue #1142).
+        if (activeItemManager.HasMethod("has_armored_skin") && (bool)activeItemManager.Call("has_armored_skin"))
+        {
+            ApplyArmoredSkinVisual();
+        }
+
+        LogToFile($"[Player.ItemVisual] Visual applied for item type: {itemType}");
+    }
+
+    /// <summary>
+    /// Apply crystal armor overlay sprites on top of each player body part (Issue #1142).
+    /// Like The Binding of Isaac — a semi-transparent blue crystal overlay is added as a
+    /// child of each base sprite so it automatically follows all movements, flips, and
+    /// animations. Alpha is kept low so the player is clearly visible underneath.
+    /// </summary>
+    private void ApplyArmoredSkinVisual()
+    {
+        if (_playerModel == null)
+        {
+            LogToFile("[Player.ArmoredSkin] WARNING: _playerModel is null, skipping visual");
+            return;
+        }
+
+        // Map each body-part Sprite2D name to its crystal overlay texture path.
+        var overlayMap = new System.Collections.Generic.Dictionary<string, string>
+        {
+            { "Body",     "res://assets/sprites/characters/player/armored_skin/armored_skin_body.png" },
+            { "Head",     "res://assets/sprites/characters/player/armored_skin/armored_skin_head.png" },
+            { "LeftArm",  "res://assets/sprites/characters/player/armored_skin/armored_skin_left_arm.png" },
+            { "RightArm", "res://assets/sprites/characters/player/armored_skin/armored_skin_right_arm.png" },
+            { "Armband",  "res://assets/sprites/characters/player/armored_skin/armored_skin_armband.png" },
+        };
+
+        // 40% opacity — crystal armor is clearly visible while the player sprite underneath remains readable.
+        var overlayColor = new Color(1f, 1f, 1f, 0.4f);
+
+        int addedCount = 0;
+        foreach (var child in _playerModel.GetChildren())
+        {
+            if (child is not Sprite2D baseSprite)
+                continue;
+
+            string partName = baseSprite.Name;
+            if (!overlayMap.TryGetValue(partName, out string? overlayPath))
+                continue;
+
+            if (!ResourceLoader.Exists(overlayPath))
+            {
+                LogToFile($"[Player.ArmoredSkin] WARNING: Overlay texture not found: {overlayPath}");
+                continue;
+            }
+
+            var texture = GD.Load<Texture2D>(overlayPath);
+            if (texture == null)
+            {
+                LogToFile($"[Player.ArmoredSkin] WARNING: Failed to load overlay texture: {overlayPath}");
+                continue;
+            }
+
+            // Parent the overlay directly to the base sprite so it inherits all transforms
+            // (position, rotation, flip, scale) — the overlay moves exactly with the body part.
+            var overlay = new Sprite2D();
+            overlay.Name = $"{partName}ArmorOverlay";
+            overlay.Texture = texture;
+            overlay.Position = Vector2.Zero;
+            overlay.Offset = Vector2.Zero;
+            overlay.ZIndex = 1;
+            overlay.Modulate = overlayColor;
+
+            baseSprite.AddChild(overlay);
+            _armoredSkinOverlays.Add(overlay);
+            addedCount++;
+        }
+
+        LogToFile($"[Player.ArmoredSkin] Crystal armor overlays added: {addedCount} sprites");
+    }
+
+    /// <summary>
+    /// Remove all crystal armor overlay sprites (Issue #1142).
+    /// Called when the armor shatters so the visual matches the gameplay state.
+    /// </summary>
+    private void RemoveArmoredSkinVisual()
+    {
+        foreach (var overlay in _armoredSkinOverlays)
+        {
+            if (IsInstanceValid(overlay))
+                overlay.QueueFree();
+        }
+        _armoredSkinOverlays.Clear();
+        LogToFile("[Player.ArmoredSkin] Crystal armor overlays removed");
+    }
+
+    /// <summary>
     /// Spawn 20 glass/crystal shards in all directions from the player position (Issue #1045).
     /// Called when armored skin is active and player is at ≤2 HP while being hit.
     /// </summary>
@@ -6744,6 +6798,9 @@ public partial class Player : BaseCharacter
         {
             return;
         }
+
+        // Remove the crystal overlay sprites so the visual matches the gameplay state.
+        RemoveArmoredSkinVisual();
 
         LogToFile($"[Player.ArmoredSkin] Spawning {ArmoredSkinShardCount} glass shards (HP: {HealthComponent?.CurrentHealth ?? 0})");
 
@@ -6796,18 +6853,15 @@ public partial class Player : BaseCharacter
 
         LogToFile("[Player.Loudspeaker] Loudspeaker selected, initializing...");
 
-        // Load and instantiate the progress tracker
-        var progressScript = GD.Load<Script>("res://scripts/components/loudspeaker_progress.gd");
-        if (progressScript == null)
+        // Use the singleton LoudspeakerProgress from ActiveItemManager so progress persists
+        // across scene reloads and respawns (Issue #959 — Bug 1 fix for C# path).
+        var progressNode = activeItemManager.Get("loudspeaker_progress").AsGodotObject() as Node;
+        if (progressNode == null)
         {
-            LogToFile("[Player.Loudspeaker] WARNING: Failed to load loudspeaker_progress.gd");
+            LogToFile("[Player.Loudspeaker] WARNING: loudspeaker_progress singleton not found in ActiveItemManager");
             return;
         }
-
-        _loudspeakerProgress = new Node();
-        _loudspeakerProgress.SetScript(progressScript);
-        _loudspeakerProgress.Name = "LoudspeakerProgress";
-        AddChild(_loudspeakerProgress);
+        _loudspeakerProgress = progressNode;
 
         // Load and instantiate the cone visual effect
         var coneScript = GD.Load<Script>("res://scripts/effects/loudspeaker_cone_effect.gd");
@@ -6826,8 +6880,11 @@ public partial class Player : BaseCharacter
 
         _loudspeakerEquipped = true;
 
-        // Initialize charges for the current level (Issue #959)
-        _loudspeakerProgress.Call("reset_for_new_level");
+        // Reset per-run state (charges/cooldown/all_charges_used) on respawn.
+        // Do NOT call reset_for_new_level here — used_this_level must persist across
+        // deaths on the same map so the 100%/1-enemy first-use mechanic fires only once
+        // per level visit (Issue #959 — Bug 6 fix for C# path).
+        _loudspeakerProgress.Call("reset_for_respawn");
 
         // Create in-hand sprite shown during activation
         const string LoudspeakerTexturePath = "res://assets/sprites/weapons/loudspeaker_icon.png";
@@ -6849,7 +6906,204 @@ public partial class Player : BaseCharacter
 
         int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
         int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
-        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}");
+        int currentLevel = (int)_loudspeakerProgress.Get("current_level");
+        float effectChancePct = (float)_loudspeakerProgress.Call("get_effect_chance") * 100.0f;
+        bool usedThisLevelLog = (bool)_loudspeakerProgress.Get("used_this_level");
+        bool allChargesUsedLog = (bool)_loudspeakerProgress.Get("all_charges_used_this_level");
+        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, level: {currentLevel}, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}, effect: {effectChancePct:F0}%, used_this_level: {usedThisLevelLog}, all_charges_used: {allChargesUsedLog}");
+
+        // Apply level start states for levels 6 and 7 (Issue #959)
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (shouldStartWithPacifists || isVictoryState)
+            CallDeferred(MethodName.ApplyLoudspeakerLevelStartState);
+    }
+
+    /// <summary>
+    /// Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
+    /// Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
+    /// Level 7: ALL enemies start as pacifists; show victory message.
+    /// Called deferred from InitLoudspeaker so all enemy nodes are ready.
+    /// </summary>
+    private void ApplyLoudspeakerLevelStartState()
+    {
+        if (_loudspeakerProgress == null)
+            return;
+
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+            return;
+
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (isVictoryState)
+        {
+            // Level 7: ALL enemies become pacifists
+            LogToFile("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!");
+            foreach (var enemy in enemies)
+            {
+                if (enemy is Node enemyNode && enemyNode.HasMethod("apply_pacifism") && enemyNode.HasMethod("is_alive"))
+                {
+                    bool isAlive = (bool)enemyNode.Call("is_alive");
+                    if (isAlive)
+                        enemyNode.Call("apply_pacifism", 0.0f);
+                }
+            }
+            ShowLoudspeakerVictoryMessage();
+            return;
+        }
+
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        if (!shouldStartWithPacifists)
+            return;
+
+        // Level 6: 50% enemies start as pacifists; designate 1 as immune
+        var aliveEnemies = new Godot.Collections.Array<Node>();
+        foreach (var enemy in enemies)
+        {
+            if (enemy is Node enemyNode && enemyNode.HasMethod("is_alive"))
+            {
+                bool isAlive = (bool)enemyNode.Call("is_alive");
+                if (isAlive)
+                    aliveEnemies.Add(enemyNode);
+            }
+        }
+
+        // Pick 1 random immune enemy first (before pacifying others)
+        bool hasImmuneEnemy = (bool)_loudspeakerProgress.Call("has_immune_enemy");
+        if (aliveEnemies.Count > 0 && hasImmuneEnemy)
+        {
+            int immuneIdx = GD.RandRange(0, aliveEnemies.Count - 1);
+            var immuneEnemy = aliveEnemies[immuneIdx];
+            if (immuneEnemy.HasMethod("set_immune_to_pacifism"))
+            {
+                immuneEnemy.Call("set_immune_to_pacifism", true);
+                var posStr = immuneEnemy is Node2D n2d ? n2d.GlobalPosition.ToString() : "?";
+                LogToFile($"[Player.Loudspeaker] Level 6: enemy at {posStr} is immune to pacifism");
+            }
+            aliveEnemies.RemoveAt(immuneIdx);
+        }
+
+        // Pacify 50% of remaining enemies
+        aliveEnemies.Shuffle();
+        int pacifyCount = (int)(aliveEnemies.Count * 0.5f);
+        int pacified = 0;
+        for (int i = 0; i < pacifyCount; i++)
+        {
+            var enemy = aliveEnemies[i];
+            if (enemy.HasMethod("apply_pacifism"))
+            {
+                enemy.Call("apply_pacifism", 0.0f);
+                pacified++;
+            }
+        }
+        LogToFile($"[Player.Loudspeaker] Level 6: {pacified}/{aliveEnemies.Count + 1} enemies start as pacifists");
+    }
+
+    /// <summary>
+    /// Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerVictoryMessage()
+    {
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerVictoryCanvas";
+        canvas.Layer = 100;
+        AddChild(canvas);
+
+        // Victory message label
+        var label = new Label();
+        label.Text = "Нам нечего делить по этому мы не будем стрелять друг в друга.";
+        label.AddThemeFontSizeOverride("font_size", 36);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        label.SetAnchor(Side.Left, 0.0f);
+        label.SetAnchor(Side.Right, 1.0f);
+        label.SetAnchor(Side.Top, 0.3f);
+        label.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(label);
+
+        // "Click to continue" hint
+        var hint = new Label();
+        hint.Text = "[ нажмите, чтобы продолжить ]";
+        hint.AddThemeFontSizeOverride("font_size", 18);
+        hint.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f, 0.8f));
+        hint.HorizontalAlignment = HorizontalAlignment.Center;
+        hint.VerticalAlignment = VerticalAlignment.Center;
+        hint.SetAnchor(Side.Left, 0.0f);
+        hint.SetAnchor(Side.Right, 1.0f);
+        hint.SetAnchor(Side.Top, 0.65f);
+        hint.SetAnchor(Side.Bottom, 0.75f);
+        canvas.AddChild(hint);
+
+        // Invisible click-catcher panel
+        var panel = new ColorRect();
+        panel.Color = new Color(0, 0, 0, 0);
+        panel.SetAnchor(Side.Left, 0.0f);
+        panel.SetAnchor(Side.Right, 1.0f);
+        panel.SetAnchor(Side.Top, 0.0f);
+        panel.SetAnchor(Side.Bottom, 1.0f);
+        panel.MouseFilter = Control.MouseFilterEnum.Stop;
+        panel.GuiInput += (InputEvent ev) =>
+        {
+            if (ev is InputEventMouseButton mb && mb.Pressed)
+                ShowLoudspeakerEndScreen(canvas);
+        };
+        canvas.AddChild(panel);
+
+        LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
+    }
+
+    /// <summary>
+    /// Show end screen after player clicks on victory message (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerEndScreen(CanvasLayer victoryCanvas)
+    {
+        // Remove victory screen
+        if (Godot.GodotObject.IsInstanceValid(victoryCanvas))
+            victoryCanvas.QueueFree();
+
+        // Create end screen canvas
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerEndCanvas";
+        canvas.Layer = 101;
+        AddChild(canvas);
+
+        // Black background
+        var bg = new ColorRect();
+        bg.Color = new Color(0, 0, 0, 1);
+        bg.SetAnchor(Side.Left, 0.0f);
+        bg.SetAnchor(Side.Right, 1.0f);
+        bg.SetAnchor(Side.Top, 0.0f);
+        bg.SetAnchor(Side.Bottom, 1.0f);
+        canvas.AddChild(bg);
+
+        // "Конец" title
+        var title = new Label();
+        title.Text = "Конец";
+        title.AddThemeFontSizeOverride("font_size", 72);
+        title.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        title.VerticalAlignment = VerticalAlignment.Center;
+        title.SetAnchor(Side.Left, 0.0f);
+        title.SetAnchor(Side.Right, 1.0f);
+        title.SetAnchor(Side.Top, 0.2f);
+        title.SetAnchor(Side.Bottom, 0.45f);
+        canvas.AddChild(title);
+
+        // Thank you message
+        var thanks = new Label();
+        thanks.Text = "Спасибо за игру!";
+        thanks.AddThemeFontSizeOverride("font_size", 32);
+        thanks.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f, 1));
+        thanks.HorizontalAlignment = HorizontalAlignment.Center;
+        thanks.VerticalAlignment = VerticalAlignment.Center;
+        thanks.SetAnchor(Side.Left, 0.0f);
+        thanks.SetAnchor(Side.Right, 1.0f);
+        thanks.SetAnchor(Side.Top, 0.5f);
+        thanks.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(thanks);
+
+        LogToFile("[Player.Loudspeaker] End screen shown (Level 7)");
     }
 
     /// <summary>
@@ -6931,15 +7185,19 @@ public partial class Player : BaseCharacter
         if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
             _loudspeakerConeEffect.Call("play", aimDir);
 
-        // Effect chance: first use is always 100%, subsequent uses depend on level
-        float effectChance = isFirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+        // Effect chance: first use at level 1 is always 100% with max 1 enemy pacified.
+        // At level 2+ the regular chance applies even on first use (Issue #959 — Bug 4/5 fix).
+        int currentLevelForEffect = (int)_loudspeakerProgress.Get("current_level");
+        bool isLevel1FirstUse = isFirstUse && currentLevelForEffect == 1;
+        float effectChance = isLevel1FirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+        int maxPacify = isLevel1FirstUse ? 1 : int.MaxValue;
 
         // Notify all enemies on the map that a loud sound was made
         LoudspeakerAlertAllEnemies();
 
         // Apply pacifism effect to enemies in the cone sector
         float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
-        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
+        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance, maxPacify);
 
         int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
         int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
@@ -6989,7 +7247,7 @@ public partial class Player : BaseCharacter
     /// Rules: 50° half-angle cone, line-of-sight check, cover-within-500px exception,
     /// only unattacked enemies, effect_chance roll, hostility_chance roll per enemy.
     /// </summary>
-    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance)
+    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance, int maxPacify = int.MaxValue)
     {
         const float ConeHalfAngle = 0.872664625997f; // 50 degrees in radians
         const float CoverMaxDistance = 500.0f;
@@ -7001,6 +7259,9 @@ public partial class Player : BaseCharacter
 
         foreach (var enemy in enemies)
         {
+            if (pacifiedCount >= maxPacify)
+                break;
+
             if (!enemy.HasMethod("apply_pacifism"))
                 continue;
             if (!enemy.HasMethod("is_alive") || !(bool)enemy.Call("is_alive"))
@@ -7341,12 +7602,6 @@ public partial class Player : BaseCharacter
         // Trajectory glasses progress bar removed (Issue #1049).
         // Charge pips are shown by TrajectoryGlassesHUD for 300ms, then auto-hide.
         // The trajectory ray blinks during the last 2 seconds as a low-time warning.
-
-        // Draw drilling bullets charge bar (Issue #751)
-        if (_drillingBulletsEquipped && (_drillingChargeBarPending || !_drillingBulletsUsed))
-        {
-            DrawDrillingChargeBar();
-        }
 
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
