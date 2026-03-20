@@ -413,3 +413,105 @@ All 13 level scripts + nav_mesh_monitor.gd:
 - `scripts/levels/test_tier.gd`
 - `scripts/autoload/nav_mesh_monitor.gd` — updated comment (timer 0.5s still sufficient for 2 frames)
 - `docs/case-studies/issue-1188/game_log_20260320_102819.txt` — owner's session 6 game log
+
+---
+
+## Session 7 (2026-03-20) — CONFIRMED ROOT CAUSE: Wrong Source Geometry Scan Root
+
+### Owner Report (Session 7)
+Owner tested the Session 6 fix and reported:
+1. Enemies in PURSUING state still walk into walls
+2. Navmesh display still not working — "restore display as in main"
+
+Game logs: `docs/case-studies/issue-1188/game-logs/game_log_20260320_102819.txt` and `game_log_20260320_111647.txt`
+
+### Definitive Diagnostic Evidence (Session 7)
+
+Game log from Session 6 build contained the bake diagnostic log for the FIRST TIME:
+```
+[LabyrinthLevel] Baking navmesh (Issue #1188): carving walls from collision layer 4
+[LabyrinthLevel] Navmesh bake complete: 1 polygons (>1 means walls were carved)
+[BuildingLevel] Baking navmesh (Issue #1188): carving walls from collision layer 4
+[BuildingLevel] Navmesh bake complete: 1 polygons (>1 means walls were carved)
+```
+
+**1 polygon = bake ran but walls were NOT carved.** The bake produced only the floor outline as a single untrimmed polygon.
+
+All previous sessions (2–6) were fixing **timing issues** — but the timing was never the actual root cause. The bake was finding NO wall geometry because of a fundamentally wrong scene scanning scope.
+
+### THE Actual Root Cause: `source_geometry_mode = 0` Only Scans NavigationRegion2D Children
+
+**Godot 4.3 `NavigationPolygon.source_geometry_mode` values:**
+
+| Value | Name | What it scans |
+|-------|------|--------------|
+| 0 | `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` | Children of the **NavigationRegion2D** node itself |
+| 1 | `SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN` | All nodes in the named group + their children |
+| 2 | `SOURCE_GEOMETRY_GROUPS_EXPLICIT` | Only nodes explicitly in the named group |
+
+**Critical finding from Godot 4.3 source code** (`scene/2d/navigation_region_2d.cpp`):
+```cpp
+NavigationServer2D::get_singleton()->parse_source_geometry_data(
+    navigation_polygon, source_geometry_data, this);  // 'this' = NavigationRegion2D
+```
+
+When calling `bake_navigation_polygon()`, Godot passes **the NavigationRegion2D itself** as the root node. With `source_geometry_mode = 0`, the geometry parser scans `this` (NavigationRegion2D) and ALL its **descendants** — NOT the scene root or siblings.
+
+**Scene hierarchy in all affected levels:**
+```
+LevelName (Node2D — scene root)
+├── Environment (Node2D)
+│   ├── Walls (Node2D)
+│   │   ├── WallTop (StaticBody2D, collision_layer=4)   ← WALL
+│   │   ├── WallBottom (StaticBody2D, collision_layer=4) ← WALL
+│   │   └── ...
+│   └── InteriorWalls (Node2D)
+│       └── ... (StaticBody2D, collision_layer=4)       ← WALL
+└── NavigationRegion2D  ← scan starts HERE with mode=0
+    └── (NO children)  ← nothing to scan!
+```
+
+The walls are **siblings** of NavigationRegion2D (children of the scene root), not children of NavigationRegion2D. So `bake_navigation_polygon()` scanned zero nodes, found zero obstacles, and produced 1 polygon (the untrimmed floor outline).
+
+**This bug was present through all 6 sessions.** The timing fixes (Sessions 3–6) were necessary for other reasons but never addressed the actual geometry scanning problem.
+
+### Fix (Session 7): Use `NavigationServer2D.parse_source_geometry_data` with scene root
+
+Instead of `nav_region.bake_navigation_polygon(false)`, use the NavigationServer2D API directly with `self` (the level node = actual scene root) as the scan root:
+
+```gdscript
+## BEFORE (wrong — only scans NavigationRegion2D's own children):
+nav_region.bake_navigation_polygon(false)
+
+## AFTER (correct — scans ALL children of the scene root including walls):
+var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+var source_geometry := NavigationMeshSourceGeometryData2D.new()
+NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+```
+
+`self` is the level's GDScript class (e.g., `LabyrinthLevel`), which is the actual scene root node. Passing it to `parse_source_geometry_data` makes the parser scan ALL of LabyrinthLevel's children — including `Environment/Walls/WallTop` etc. — respecting `parsed_geometry_type` and `parsed_collision_mask` settings from the NavigationPolygon.
+
+### NavMesh Overlay Fix (Session 7)
+
+Restored `nav_mesh_monitor.gd` to the main branch version (reading `outlines` from the NavigationPolygon, not baked polygon triangles). The main branch approach works because:
+- Outlines are set in `.tscn` files and always available immediately
+- No timing coordination needed (no need to wait for bake)
+- Shows the walkable boundary rectangle — helpful for confirming navmesh extent
+
+### Expected Results After Session 7 Fix
+
+Game log should show:
+```
+[LabyrinthLevel] Baking navmesh (Issue #1188): scanning scene root for wall colliders on layer 4
+[LabyrinthLevel] Navmesh bake complete: N polygons (>1 means walls were carved)
+```
+
+Where `N >> 1` (typically 50–200 per level). This confirms walls were carved and NavigationAgent2D paths will route around them correctly.
+
+### Files Updated (Session 7)
+
+All 13 level scripts — same list as Session 6, same function `_bake_navmesh_after_physics_frame` updated to use `NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)` instead of `nav_region.bake_navigation_polygon(false)`.
+
+- `scripts/autoload/nav_mesh_monitor.gd` — restored to main branch version
+- `docs/case-studies/issue-1188/game-logs/game_log_20260320_111647.txt` — owner's Session 7 log
