@@ -86,6 +86,12 @@ var selected_enemy_type_index: int = 0
 ## Higher values let enemies navigate longer without giving up pursuit.
 var global_stuck_max_time: float = 20.0
 
+## Whether navigation mesh debug overlay is visible (Issue #1187).
+## When enabled, the AI navigation mesh is drawn on screen so level designers can see
+## where enemies can walk and verify the mesh is built correctly.
+## When disabled (default), no navigation mesh overlay is shown.
+var nav_mesh_visible_enabled: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -97,7 +103,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -313,6 +319,20 @@ func get_global_stuck_max_time() -> float:
 	return global_stuck_max_time
 
 
+## Set navigation mesh debug overlay visibility (Issue #1187).
+func set_nav_mesh_visible_enabled(enabled: bool) -> void:
+	if nav_mesh_visible_enabled != enabled:
+		nav_mesh_visible_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Navigation mesh visibility %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if navigation mesh debug overlay is visible (Issue #1187).
+func is_nav_mesh_visible_enabled() -> bool:
+	return nav_mesh_visible_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -331,6 +351,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "all_maps_unlocked", all_maps_unlocked)
 	config.set_value("experimental", "selected_enemy_type_index", selected_enemy_type_index)
 	config.set_value("experimental", "global_stuck_max_time", global_stuck_max_time)
+	config.set_value("experimental", "nav_mesh_visible_enabled", nav_mesh_visible_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -356,6 +377,7 @@ func _load_settings() -> void:
 		all_maps_unlocked = config.get_value("experimental", "all_maps_unlocked", false)
 		selected_enemy_type_index = config.get_value("experimental", "selected_enemy_type_index", 0)
 		global_stuck_max_time = config.get_value("experimental", "global_stuck_max_time", 20.0)
+		nav_mesh_visible_enabled = config.get_value("experimental", "nav_mesh_visible_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -373,6 +395,7 @@ func _load_settings() -> void:
 		all_maps_unlocked = false
 		selected_enemy_type_index = 0
 		global_stuck_max_time = 20.0
+		nav_mesh_visible_enabled = false
 
 
 ## Log a message to the file logger if available.
