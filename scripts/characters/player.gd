@@ -403,6 +403,9 @@ func _ready() -> void:
 	# Initialize jammer HUD icon (Issue #1036)
 	_init_jammer_hud()
 
+	# Apply item-specific player visual based on the equipped passive item (Issue #1142)
+	_apply_item_visual()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -4551,7 +4554,6 @@ func _init_armored_skin() -> void:
 
 	_armored_skin_active = true
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
-	_apply_armored_skin_visual()
 
 
 ## Apply the glassy armor shader to all player body sprites so the player
@@ -4608,6 +4610,33 @@ func _spawn_armored_skin_shards() -> void:
 
 		parent.add_child(shard)
 		shard.global_position = global_position
+
+
+# ============================================================================
+# Item Visual System (Issue #1142)
+# ============================================================================
+
+
+## Apply a passive visual effect to the player based on the currently equipped
+## active item.  This is the single entry point for all item-specific player
+## visuals.  Add a new branch here when a future item needs a visual effect.
+## Called once from _ready() after all item-init functions have run.
+func _apply_item_visual() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	var item_type: int = active_item_manager.current_active_item
+
+	match item_type:
+		active_item_manager.ActiveItemType.ARMORED_SKIN:
+			# Crystal/glass armor overlay — applied when Armored Skin is equipped (Issue #1142).
+			_apply_armored_skin_visual()
+		_:
+			# No passive visual for this item — nothing to do.
+			pass
+
+	FileLogger.info("[Player.ItemVisual] Visual applied for item type: %d" % item_type)
 
 
 # ============================================================================
