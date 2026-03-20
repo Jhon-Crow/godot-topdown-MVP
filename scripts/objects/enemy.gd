@@ -429,8 +429,9 @@ func _ready() -> void:
 	_init_death_animation()
 	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
 	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
-	if initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	if initial_state == AIState.SEARCHING: _has_left_idle = true; _transition_to_searching(global_position)  # Issue #1121
+	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
+	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
@@ -1342,21 +1343,17 @@ func _process_idle_state(delta: float) -> void:
 		else: _transition_to_combat()
 		return
 
-	# Check memory system for suspected player position (Issue #297)
-	# If we have high/medium confidence about player location, investigate
-	if _memory and _memory.has_target():
+	# Issue #297: Check memory for suspected player position. #1184: guard against IDLE→PURSUING→IDLE loop when PURSUING disabled.
+	var _ps_idle := get_node_or_null("/root/PerformanceSettings"); var _pursuing_enabled := _ps_idle == null or _ps_idle.is_ai_state_pursuing_enabled()
+	if _memory and _memory.has_target() and _pursuing_enabled:
 		if _memory.is_high_confidence():
-			# High confidence: Go investigate directly
 			_log_debug("High confidence (%.0f%%) - investigating suspected position" % (_memory.confidence * 100))
 			_log_to_file("Memory: high confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
+			_transition_to_pursuing(); return
 		elif _memory.is_medium_confidence():
-			# Medium confidence: Investigate cautiously (also use pursuing with cover-to-cover)
 			_log_debug("Medium confidence (%.0f%%) - cautiously investigating" % (_memory.confidence * 100))
 			_log_to_file("Memory: medium confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
+			_transition_to_pursuing(); return
 		# Low confidence: Continue normal patrol but may wander toward suspected area
 	# Execute idle behavior
 	match behavior_mode:

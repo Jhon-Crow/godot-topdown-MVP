@@ -248,3 +248,87 @@ The implementation addresses all five bottlenecks in priority order:
 ### Related Proposals and Issues
 - [Godot Proposals: Add `get_node_count_in_group()` — Issue #7080](https://github.com/godotengine/godot-proposals/issues/7080)
 - [Navigation Roadmap Issue #73566](https://github.com/godotengine/godot/issues/73566)
+
+---
+
+## Follow-Up Analysis: game_log_20260320_084817.txt (2026-03-20)
+
+### New Issues Reported
+
+After PR #1185 was drafted, the owner reported two new issues:
+1. "Enemies start shooting randomly (where player isn't)"
+2. "FPS not above 30 even when enemies are in IDLE"
+
+### Log Analysis Summary
+
+**Timeline (from game_log_20260320_084817.txt):**
+
+| Time | Event | FPS |
+|---|---|---|
+| 08:48:17 | 5 enemies spawn, game starts | ~60fps |
+| 08:48:19 | Shader warmup spike | 1fps (1-frame) |
+| 08:48:22 | Level loads with 10 enemies | ~60fps |
+| 08:48:28–08:49:07 | Player in combat with enemies | 10–29fps |
+| 08:49:07–08:49:31 | Enemies back in IDLE | **60fps** ✅ |
+| 08:49:20–08:49:25 | User toggles PerformanceSettings AI states | — |
+| 08:50:00 | Player shoots → Enemy4 receives intel (conf=0.7) | — |
+| 08:50:00–08:50:15 | Enemy4 loops IDLE→PURSUING→IDLE (360×/minute) | FPS drops |
+| 08:50:15 | PURSUING re-enabled | Normal behavior resumes |
+
+### Root Cause 1: Random Shooting (Muzzle Flash Detection)
+
+The user had **`Invincibility: true`** and the invisible player feature. Enemy muzzle flash detection (Issue #910) was triggering:
+- Enemy detected player's muzzle flash at position (441.7, 595.3)
+- Fired suppressive shot toward that position
+- Player had moved — looks like "random shooting to nowhere"
+
+This is **correct expected behavior** for suppressive fire against invisible players. Not a regression.
+
+### Root Cause 2: IDLE→PURSUING→IDLE State Loop (Regression)
+
+**Critical bug introduced in commit `1231eceb`** (compact enemy.gd to 5000 lines):
+
+The original 3-line spawn initialization was accidentally changed:
+
+```gdscript
+# BEFORE (main branch - correct):
+if initial_state == AIState.SEARCHING: _has_left_idle = true; _transition_to_searching(global_position)
+elif initial_state != AIState.IDLE: _current_state = initial_state
+else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn
+
+# AFTER (PR #1185 - regression):
+if initial_state != AIState.IDLE: _current_state = initial_state  # merged if/elif, lost else branch
+if initial_state == AIState.SEARCHING: _has_left_idle = true; _transition_to_searching(global_position)
+# else: _transition_to_idle() was MISSING
+```
+
+**Effect of missing `else: _transition_to_idle()`:**
+1. `_transition_to_idle()` is never called on spawn → `_hits_taken_in_encounter`, `_idle_scan_timer`, etc. not reset
+2. PerformanceSettings IDLE check at spawn is skipped (Issue #1202 regression)
+
+### Root Cause 3: IDLE→PURSUING Loop When State Disabled
+
+When PURSUING is disabled in PerformanceSettings:
+- `_process_idle_state()` sees medium/high confidence in memory → calls `_transition_to_pursuing()`
+- `_transition_to_pursuing()` checks: PURSUING disabled → calls `_transition_to_idle()` immediately
+- `_transition_to_idle()` resets `_idle_scan_timer = 0.0`
+- Next frame: same memory confidence → loop repeats → **360+ state transitions/second** observed
+
+This explains both the "random shooting" (loop caused state thrashing, enemies entered COMBAT briefly) and "30fps in IDLE" (the loop has significant CPU overhead even in IDLE state).
+
+### Fixes Applied
+
+**Fix 1** (in `_initialize_components()`): Restore the `else: _transition_to_idle()` call at spawn, restoring Issue #1202 behavior and proper IDLE initialization.
+
+**Fix 2** (in `_process_idle_state()`): Guard memory-based PURSUING transition with PerformanceSettings check. If PURSUING is disabled, skip the transition (stay in IDLE patrol) instead of creating a loop.
+
+```gdscript
+# Before (loops when PURSUING disabled):
+if _memory and _memory.has_target():
+    if _memory.is_high_confidence(): _transition_to_pursuing(); return
+
+# After (safe when PURSUING disabled):
+var _ps_idle := get_node_or_null("/root/PerformanceSettings"); var _pursuing_enabled := _ps_idle == null or _ps_idle.is_ai_state_pursuing_enabled()
+if _memory and _memory.has_target() and _pursuing_enabled:
+    if _memory.is_high_confidence(): _transition_to_pursuing(); return
+```
