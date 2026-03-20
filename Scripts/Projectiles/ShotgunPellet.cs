@@ -239,6 +239,9 @@ public partial class ShotgunPellet : Area2D
 
         // Set initial rotation based on direction
         UpdateRotation();
+
+        // Apply Dead Eye passive item damage multiplier and notify manager (Issue #1069)
+        ApplyDeadEyeMultiplier();
     }
 
     /// <summary>
@@ -795,6 +798,7 @@ public partial class ShotgunPellet : Area2D
         if (hitEnemy && IsPlayerPellet())
         {
             TriggerPlayerHitEffects();
+            NotifyDeadEyeHit();
         }
 
         EmitSignal(SignalName.Hit, area);
@@ -835,6 +839,55 @@ public partial class ShotgunPellet : Area2D
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Applies the Dead Eye passive item damage multiplier to this pellet (Issue #1069).
+    /// Also notifies the DeadEyeManager that a pellet was fired (starts/extends volley window).
+    /// Only applies when this is a player pellet and Dead Eye is equipped.
+    /// </summary>
+    private void ApplyDeadEyeMultiplier()
+    {
+        if (!IsPlayerPellet())
+        {
+            return;
+        }
+
+        var deadEyeManager = GetNodeOrNull("/root/DeadEyeManager");
+        if (deadEyeManager == null || !deadEyeManager.HasMethod("get_damage_multiplier"))
+        {
+            return;
+        }
+
+        // Notify manager a pellet was fired (starts/extends volley window)
+        if (deadEyeManager.HasMethod("notify_bullet_fired"))
+        {
+            deadEyeManager.Call("notify_bullet_fired");
+        }
+
+        // Apply Dead Eye multiplier to this pellet's damage
+        var multiplier = deadEyeManager.Call("get_damage_multiplier").AsSingle();
+        if (!Mathf.IsEqualApprox(multiplier, 1.0f))
+        {
+            Damage *= multiplier;
+        }
+    }
+
+    /// <summary>
+    /// Notifies the DeadEyeManager that a player pellet hit an enemy (Issue #1069).
+    /// </summary>
+    private void NotifyDeadEyeHit()
+    {
+        if (!IsPlayerPellet())
+        {
+            return;
+        }
+
+        var deadEyeManager = GetNodeOrNull("/root/DeadEyeManager");
+        if (deadEyeManager != null && deadEyeManager.HasMethod("notify_hit"))
+        {
+            deadEyeManager.Call("notify_hit");
+        }
     }
 
     /// <summary>

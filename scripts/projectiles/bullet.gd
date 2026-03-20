@@ -301,6 +301,9 @@ func _ready() -> void:
 	# Set initial rotation based on direction
 	_update_rotation()
 
+	# Apply Dead Eye passive item damage multiplier and notify manager (Issue #1069)
+	_apply_dead_eye_multiplier()
+
 	# Load breaker shrapnel scene if this is a breaker bullet
 	if is_breaker_bullet:
 		if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
@@ -689,6 +692,7 @@ func _on_area_entered(area: Area2D) -> void:
 		# Trigger hit effects if this is a player bullet hitting an enemy
 		if _is_player_bullet():
 			_trigger_player_hit_effects()
+			_notify_dead_eye_hit()
 
 		# Issue #829: If enemy penetration is enabled, bullet continues flying after hitting enemy.
 		# This is used by the RSh-12 revolver with its 12.7x55mm armor-piercing rounds.
@@ -956,6 +960,33 @@ func _is_player_bullet() -> bool:
 		return true
 
 	return false
+
+
+## Applies the Dead Eye passive item damage multiplier to this bullet (Issue #1069).
+## Also notifies the DeadEyeManager that a bullet was fired (starts/extends volley window).
+## Only applies when this is a player bullet and Dead Eye is equipped.
+func _apply_dead_eye_multiplier() -> void:
+	if not _is_player_bullet():
+		return
+	var dead_eye_manager: Node = get_node_or_null("/root/DeadEyeManager")
+	if dead_eye_manager == null or not dead_eye_manager.has_method("get_damage_multiplier"):
+		return
+	# Notify manager a bullet was fired (starts/extends volley window)
+	if dead_eye_manager.has_method("notify_bullet_fired"):
+		dead_eye_manager.notify_bullet_fired()
+	# Apply Dead Eye multiplier to this bullet's damage
+	var multiplier: float = dead_eye_manager.get_damage_multiplier()
+	if not is_equal_approx(multiplier, 1.0):
+		damage *= multiplier
+
+
+## Notifies the DeadEyeManager that a player bullet hit an enemy (Issue #1069).
+func _notify_dead_eye_hit() -> void:
+	if not _is_player_bullet():
+		return
+	var dead_eye_manager: Node = get_node_or_null("/root/DeadEyeManager")
+	if dead_eye_manager and dead_eye_manager.has_method("notify_hit"):
+		dead_eye_manager.notify_hit()
 
 
 ## Triggers hit effects via the HitEffectsManager autoload.

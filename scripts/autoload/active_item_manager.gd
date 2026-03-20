@@ -26,7 +26,8 @@ enum ActiveItemType {
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
-	COMBAT_DISPOSITION # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
+	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
+	DEAD_EYE           # Dead Eye - passive: starts with -20% damage, each hit adds +5%, resets on miss (Issue #1069)
 }
 
 ## Currently selected active item type.
@@ -58,7 +59,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
 	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
 	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
-	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
+	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
+	ActiveItemType.DEAD_EYE: true              # No unlock condition — freely available from start (Issue #1069)
 }
 
 ## Active item data for UI and selection.
@@ -162,6 +164,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Combat Disposition",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
 		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
+	},
+	ActiveItemType.DEAD_EYE: {
+		"name": "Dead Eye",
+		"icon_path": "res://assets/sprites/weapons/dead_eye_icon.png",
+		"description": "Dead Eye — passive: starts with -20% damage. Each hit increases damage by +5% (stacks). Missing resets damage to -20%."
 	}
 }
 
@@ -424,6 +431,11 @@ func reset_loudspeaker_progress() -> void:
 ## Check if auto-reload is currently equipped (Issue #1067).
 func has_auto_reload() -> bool:
 	return current_active_item == ActiveItemType.AUTO_RELOAD
+
+
+## Check if Dead Eye passive item is currently equipped (Issue #1069).
+func has_dead_eye() -> bool:
+	return current_active_item == ActiveItemType.DEAD_EYE
 
 
 ## Check if an active item type is unlocked.

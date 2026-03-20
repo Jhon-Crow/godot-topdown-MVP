@@ -128,6 +128,9 @@ public partial class SniperBullet : Area2D
 
         // Set initial rotation
         Rotation = Direction.Angle();
+
+        // Apply Dead Eye passive item damage multiplier and notify manager (Issue #1069)
+        ApplyDeadEyeMultiplier();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -321,6 +324,7 @@ public partial class SniperBullet : Area2D
         if (hitEnemy && IsPlayerBullet())
         {
             TriggerPlayerHitEffects();
+            NotifyDeadEyeHit();
         }
 
         // IMPORTANT: Do NOT destroy the bullet on enemy hit
@@ -470,6 +474,55 @@ public partial class SniperBullet : Area2D
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Applies the Dead Eye passive item damage multiplier to this bullet (Issue #1069).
+    /// Also notifies the DeadEyeManager that a bullet was fired (starts/extends volley window).
+    /// Only applies when this is a player bullet and Dead Eye is equipped.
+    /// </summary>
+    private void ApplyDeadEyeMultiplier()
+    {
+        if (!IsPlayerBullet())
+        {
+            return;
+        }
+
+        var deadEyeManager = GetNodeOrNull("/root/DeadEyeManager");
+        if (deadEyeManager == null || !deadEyeManager.HasMethod("get_damage_multiplier"))
+        {
+            return;
+        }
+
+        // Notify manager a bullet was fired (starts/extends volley window)
+        if (deadEyeManager.HasMethod("notify_bullet_fired"))
+        {
+            deadEyeManager.Call("notify_bullet_fired");
+        }
+
+        // Apply Dead Eye multiplier to this bullet's damage
+        var multiplier = deadEyeManager.Call("get_damage_multiplier").AsSingle();
+        if (!Mathf.IsEqualApprox(multiplier, 1.0f))
+        {
+            Damage *= multiplier;
+        }
+    }
+
+    /// <summary>
+    /// Notifies the DeadEyeManager that a player bullet hit an enemy (Issue #1069).
+    /// </summary>
+    private void NotifyDeadEyeHit()
+    {
+        if (!IsPlayerBullet())
+        {
+            return;
+        }
+
+        var deadEyeManager = GetNodeOrNull("/root/DeadEyeManager");
+        if (deadEyeManager != null && deadEyeManager.HasMethod("notify_hit"))
+        {
+            deadEyeManager.Call("notify_hit");
+        }
     }
 
     /// <summary>

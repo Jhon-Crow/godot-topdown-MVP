@@ -397,6 +397,9 @@ func _ready() -> void:
 	# Initialize recoil compensator if active item manager has it selected (Issue #1073)
 	_init_recoil_compensator()
 
+	# Initialize Dead Eye passive item if selected (Issue #1069)
+	_init_dead_eye()
+
 	# Initialize active item progress bar (Issue #700)
 	_init_active_item_progress_bar()
 
@@ -4420,6 +4423,51 @@ func has_loudspeaker() -> bool:
 ## Get the loudspeaker progress tracker (Issue #959).
 func get_loudspeaker_progress() -> LoudspeakerProgress:
 	return _loudspeaker_progress
+
+
+# ============================================================================
+# Dead Eye (Issue #1069)
+# ============================================================================
+
+## Preloaded Dead Eye HUD script.
+const DeadEyeHudScript = preload("res://scripts/ui/dead_eye_hud.gd")
+
+## Reference to the Dead Eye HUD node (red eye + counter displayed above player).
+var _dead_eye_hud: Node2D = null
+
+## Initialize the Dead Eye passive item if selected in ActiveItemManager.
+## Dead Eye starts combat with -20% damage and builds up +5% per hit, resetting on miss.
+func _init_dead_eye() -> void:
+	# Remove any existing HUD from previous level load
+	if _dead_eye_hud != null and is_instance_valid(_dead_eye_hud):
+		_dead_eye_hud.queue_free()
+		_dead_eye_hud = null
+
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	if not active_item_manager.has_method("has_dead_eye"):
+		return
+
+	var dead_eye_manager: Node = get_node_or_null("/root/DeadEyeManager")
+	if dead_eye_manager == null:
+		return
+
+	if not active_item_manager.has_dead_eye():
+		dead_eye_manager.set_active(false)
+		FileLogger.info("[Player.DeadEye] Dead Eye not selected in ActiveItemManager")
+		return
+
+	dead_eye_manager.set_active(true)
+	FileLogger.info("[Player.DeadEye] Dead Eye activated — starting with -20%% damage, +5%% per hit")
+
+	# Create HUD overlay (red eye + streak counter above player)
+	_dead_eye_hud = DeadEyeHudScript.new()
+	_dead_eye_hud.name = "DeadEyeHUD"
+	add_child(_dead_eye_hud)
+	_dead_eye_hud.initialize(dead_eye_manager)
+	FileLogger.info("[Player.DeadEye] Dead Eye HUD created")
 
 
 # ============================================================================

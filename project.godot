@@ -37,6 +37,7 @@ BlackMetalLightningEffectsManager="*res://scripts/autoload/black_metal_lightning
 ProgressManager="*res://scripts/autoload/progress_manager.gd"
 ReplayManager="*res://Scripts/Autoload/ReplayManager.cs"
 ActiveItemManager="*res://scripts/autoload/active_item_manager.gd"
+DeadEyeManager="*res://scripts/autoload/dead_eye_manager.gd"
 FlashbangPlayerEffectsManager="*res://scripts/autoload/flashbang_player_effects_manager.gd"
 ProjectilePoolManager="*res://scripts/autoload/projectile_pool_manager.gd"
 SceneLoader="*res://scripts/autoload/scene_loader.gd"
