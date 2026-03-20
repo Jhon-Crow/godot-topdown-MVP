@@ -325,7 +325,7 @@ func _setup_room_warm_lights() -> void:
 		# Large rooms — bigger lights
 		[Vector2(1918, 340),  0.9, 5.0, "ConferenceRoom"],
 		[Vector2(1918, 994),  0.9, 5.0, "BreakRoom"],
-		[Vector2(2074, 1630), 0.9, 5.0, "ServerRoom"],
+		[Vector2(2200, 1638), 0.9, 5.0, "ServerRoom"],
 		[Vector2(1200, 1724), 0.85, 4.5, "MainHall"],
 		# Smaller rooms — softer lights
 		[Vector2(290, 384),   0.7, 3.5, "Office1"],
