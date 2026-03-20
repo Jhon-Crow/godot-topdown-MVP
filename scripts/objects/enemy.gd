@@ -1510,14 +1510,13 @@ func _process_combat_state(delta: float) -> void:
 				_transition_to_pursuing()
 			return
 
-		# Move toward the clear shot target position
+		# Move toward the clear shot target position — use navmesh to avoid walls (Issue #1188)
 		var distance_to_target := global_position.distance_to(_clear_shot_target)
 		if distance_to_target > 15.0:
-			var move_direction := (_clear_shot_target - global_position).normalized()
-
-			# Apply enhanced wall avoidance with dynamic weighting
-			move_direction = _apply_wall_avoidance(move_direction)
-			velocity = move_direction * combat_move_speed
+			var moved := _move_to_target_nav(_clear_shot_target, combat_move_speed)
+			if not moved:
+				var move_direction := _apply_wall_avoidance((_clear_shot_target - global_position).normalized())
+				velocity = move_direction * combat_move_speed
 			rotation = direction_to_player.angle()  # Keep facing player
 
 			# Check if the new position now has a clear shot
@@ -1567,13 +1566,13 @@ func _process_combat_state(delta: float) -> void:
 		_log_debug("COMBAT approach phase started, moving toward player")
 	_combat_approach_timer += delta
 
-	# Move toward player while approaching
+	# Move toward player while approaching — use navmesh to navigate around walls (Issue #1188)
 	if _player:
-		var move_direction := direction_to_player
-
-		# Apply enhanced wall avoidance with dynamic weighting
-		move_direction = _apply_wall_avoidance(move_direction)
-		velocity = move_direction * combat_move_speed
+		# Use NavigationAgent2D to route around walls; fall back to wall avoidance if unavailable
+		var moved := _move_to_target_nav(_player.global_position, combat_move_speed)
+		if not moved:
+			var move_direction := _apply_wall_avoidance(direction_to_player)
+			velocity = move_direction * combat_move_speed
 		rotation = direction_to_player.angle()  # Always face player
 
 		# Can shoot while approaching (only after detection delay and if have clear shot)
@@ -2431,12 +2430,20 @@ func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / r
 	if _pacifist and _pacifist.is_retaliating():  ## Issue #959: pursue+shoot attacker; stay PACIFIST
 		var tgt: Node2D = _pacifist.attacker if _pacifist.attacker != null else _player
 		if tgt == null: velocity = Vector2.ZERO; return
-		velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed if global_position.distance_to(tgt.global_position) > 80.0 else Vector2.ZERO
+		# Use navmesh to route around walls toward attacker (Issue #1188)
+		if global_position.distance_to(tgt.global_position) > 80.0:
+			if not _move_to_target_nav(tgt.global_position, combat_move_speed):
+				velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed
+		else:
+			velocity = Vector2.ZERO
 		if _shoot_timer >= shoot_cooldown and _can_shoot() and (tgt.global_position - global_position).normalized().dot(_get_weapon_forward_direction()) > AIM_TOLERANCE_DOT: _shoot()
 		return
 	if not _has_valid_cover: _find_cover_position()
 	if not _has_valid_cover: velocity = Vector2.ZERO; return
-	if global_position.distance_to(_cover_position) > 20.0: velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
+	# Use navmesh to navigate to cover without wall-rubbing (Issue #1188)
+	if global_position.distance_to(_cover_position) > 20.0:
+		if not _move_to_target_nav(_cover_position, move_speed):
+			velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
 	else: velocity = Vector2.ZERO
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
@@ -3219,12 +3226,24 @@ func _find_pursuit_cover_toward_player() -> void:
 	else:
 		_has_pursuit_cover = false
 
-## Check if there's a clear path to a position (no walls blocking).
+## Check if there's a navigable path to a position using the navmesh (Issue #1188).
+## NavigationServer2D closest-point check handles corners that a single raycast misses.
 func _can_reach_position(target: Vector2) -> bool:
 	var world_2d := get_world_2d()
 	if world_2d == null:
 		return true  # Fail-open
 
+	# Primary check: use navmesh to verify the target point is on the walkable area.
+	# A target near (within 50px of) a navmesh point is considered reachable.
+	var nav_map := world_2d.navigation_map
+	if nav_map.is_valid():
+		var closest := NavigationServer2D.map_get_closest_point(nav_map, target)
+		if target.distance_to(closest) < 50.0:
+			return true
+		# Target is too far from navmesh — unreachable
+		return false
+
+	# Fallback: single raycast (straight-line only, misses corners — kept as fallback)
 	var space_state := world_2d.direct_space_state
 	if space_state == null:
 		return true  # Fail-open
