@@ -16,6 +16,7 @@ signal back_pressed
 @export var difficulty_menu_scene: PackedScene
 @export var sound_menu_scene: PackedScene
 @export var gameplay_menu_scene: PackedScene
+@export var performance_menu_scene: PackedScene
 @export var experimental_menu_scene: PackedScene
 
 ## Instantiated sub-menus.
@@ -23,6 +24,7 @@ var _controls_menu: CanvasLayer = null
 var _difficulty_menu: CanvasLayer = null
 var _sound_menu: CanvasLayer = null
 var _gameplay_menu: CanvasLayer = null
+var _performance_menu: CanvasLayer = null
 var _experimental_menu: CanvasLayer = null
 
 ## Reference to the menu container (hidden when a sub-menu is open).
@@ -31,6 +33,7 @@ var _experimental_menu: CanvasLayer = null
 @onready var difficulty_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DifficultyButton
 @onready var sound_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/SoundButton
 @onready var gameplay_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/GameplayButton
+@onready var performance_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/PerformanceButton
 @onready var experimental_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ExperimentalButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
@@ -40,6 +43,7 @@ func _ready() -> void:
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
 	sound_button.pressed.connect(_on_sound_pressed)
 	gameplay_button.pressed.connect(_on_gameplay_pressed)
+	performance_button.pressed.connect(_on_performance_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
@@ -51,6 +55,8 @@ func _ready() -> void:
 		sound_menu_scene = preload("res://scenes/ui/SoundMenu.tscn")
 	if gameplay_menu_scene == null:
 		gameplay_menu_scene = preload("res://scenes/ui/GameplayMenu.tscn")
+	if performance_menu_scene == null:
+		performance_menu_scene = preload("res://scenes/ui/PerformanceMenu.tscn")
 	if experimental_menu_scene == null:
 		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
 
@@ -95,6 +101,16 @@ func _on_gameplay_pressed() -> void:
 		add_child(_gameplay_menu)
 	else:
 		_gameplay_menu.show()
+
+
+func _on_performance_pressed() -> void:
+	menu_container.hide()
+	if _performance_menu == null:
+		_performance_menu = performance_menu_scene.instantiate()
+		_performance_menu.back_pressed.connect(_on_sub_back.bind(_performance_menu, performance_button))
+		add_child(_performance_menu)
+	else:
+		_performance_menu.show()
 
 
 func _on_experimental_pressed() -> void:

@@ -761,6 +761,11 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
+	# Issue #1186: performance toggle - skip AI processing when disabled
+	var _perf_settings: Node = get_node_or_null("/root/PerformanceSettings")
+	if _perf_settings and not _perf_settings.is_ai_enabled():
+		return
+
 	# Update flashbang status effect timers (Issue #432)
 	if _flashbang_status:
 		_flashbang_status.update(delta)
