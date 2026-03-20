@@ -67,6 +67,33 @@ In the game:
   3. Weapon-level: Inspects player's weapon children for `LaserSightEnabled` property or a visible `"LaserSight"` Line2D node.
 - `GameManager.register_kill()` now calls `active_item_manager.has_any_laser_sight_active()`.
 
+### Problem 3: C# Projectiles Not Passing `is_from_player` (Bug introduced in fix for Problem 1)
+
+**Reported in**: Owner comment 2026-03-20T06:09:14Z — "судя по таблице теперь вообще не защитываются убийства (даже из дробовика без прицела)" (kills from shotgun without laser sight not being counted at all)
+
+**Root cause**: The fix for Problem 1 added `is_from_player` parameter to the GDScript hit chain (`bullet.gd` → `hit_area.gd` → `enemy.gd`). However, C# projectiles (`ShotgunPellet.cs`, `Bullet.cs`, `SniperBullet.cs`, `BreakerDetonation.cs`) were calling `on_hit`, `TakeDamage`, or `on_hit_with_bullet_info_and_damage` **without** the `is_from_player` parameter.
+
+Evidence from `game_log_20260320_090631.txt`:
+```
+[ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false, player_kill: false)
+[GameManager] register_kill: skipping non-player kill (enemy-vs-enemy or ally-vs-enemy)
+```
+Even when using a **shotgun** (C# weapon), kills showed `player_kill: false` — because `ShotgunPellet.OnAreaEntered()` called `area.Call("on_hit")` (no player info) or `damageable.TakeDamage()` (no player info).
+
+The call stack for a shotgun hit was:
+1. `ShotgunPellet.OnAreaEntered()` → `area.Call("on_hit")` ← **no is_from_player!**
+2. `hit_area.on_hit()` → `parent.on_hit()` (no player param)
+3. `enemy.on_hit()` → `on_hit_with_bullet_info(..., is_from_player=false)`
+4. `_killed_by_player = false`
+5. `died_with_info.emit(is_player_kill=false)`
+6. `register_kill(false)` → kill skipped
+
+**Fix**: Updated all four C# projectile files to prefer calling `on_hit_with_bullet_info_and_damage` with `is_from_player` set correctly before falling back to `IDamageable`/`on_hit`:
+- `ShotgunPellet.cs`: Added `on_hit_with_bullet_info_and_damage` as highest-priority hit method, passing `IsPlayerPellet()`.
+- `Bullet.cs`: Added `on_hit_with_bullet_info_and_damage` as highest-priority hit method, passing `IsPlayerBullet()`.
+- `SniperBullet.cs`: Already called `on_hit_with_bullet_info_and_damage` but was missing the 6th `is_from_player` argument.
+- `BreakerDetonation.cs`: Added `isFromPlayer` param to `ApplyDamage()`; added `IsShooterPlayer()` helper.
+
 ---
 
 ## Files Changed
@@ -76,6 +103,10 @@ In the game:
 | `scripts/objects/enemy.gd` | Added `_killed_by_player: bool` field; added `is_from_player` param to `on_hit_with_bullet_info()`; updated `died_with_info` signal to carry `is_player_kill`; reset in `respawn()` |
 | `scripts/objects/hit_area.gd` | Added `is_from_player` param to `on_hit_with_bullet_info()` and `on_hit_with_bullet_info_and_damage()` |
 | `scripts/projectiles/bullet.gd` | Pass `_is_player_bullet()` as `from_player` in all `on_hit_*` calls |
+| `Scripts/Projectiles/ShotgunPellet.cs` | Prefer `on_hit_with_bullet_info_and_damage` over `on_hit`/`IDamageable`, passing `IsPlayerPellet()` |
+| `Scripts/Projectiles/Bullet.cs` | Prefer `on_hit_with_bullet_info_and_damage` over `IDamageable`/`on_hit`, passing `IsPlayerBullet()` |
+| `Scripts/Projectiles/SniperBullet.cs` | Pass `IsPlayerBullet()` as 6th arg to `on_hit_with_bullet_info_and_damage` |
+| `Scripts/Projectiles/BreakerDetonation.cs` | Add `isFromPlayer` param to `ApplyDamage()`; add `IsShooterPlayer()` helper |
 | `scripts/autoload/game_manager.gd` | `register_kill(is_player_kill: bool = true)` — skip non-player kills; use `has_any_laser_sight_active()` |
 | `scripts/autoload/active_item_manager.gd` | Added `has_any_laser_sight_active()` — checks all three laser sight sources |
 | `scripts/levels/*.gd` (12 files) | Moved `GameManager.register_kill()` from `_on_enemy_died()` to `_on_enemy_died_with_info(is_player_kill)` |
