@@ -306,7 +306,7 @@ const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing inte
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
-var _combat_count_cache: int = 0; var _combat_count_timer: float = 0.0; var _nav_map_rid: RID; var _perf_settings_node: Node = null; var _separation_frame: int = 0  ## Issue #1184
+var _combat_count_cache: int = 0; var _combat_count_timer: float = 0.0; var _nav_map_rid: RID; var _perf_settings_node: Node = null; var _exp_settings_node: Node = null; var _separation_frame: int = 0  ## Issue #1184
 var _memory_reset_confusion_timer: float = 0.0  ## Issue #318: blocks visibility after teleport
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for better player escape window
 ## [#409] SEARCHING on ally death; estimates player pos from bullet direction.
@@ -364,7 +364,7 @@ func _ready() -> void:
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
 	# Issue #1184: Stagger intel-share timer so enemies don't all fire group queries on the same frame.
 	_intel_share_timer = randf() * INTEL_SHARE_INTERVAL
-	_perf_settings_node = get_node_or_null("/root/PerformanceSettings"); _separation_frame = get_instance_id() % 3  ## Issue #1184: cache autoload; stagger separation
+	_perf_settings_node = get_node_or_null("/root/PerformanceSettings"); _exp_settings_node = get_node_or_null("/root/ExperimentalSettings"); _separation_frame = get_instance_id() % 3  ## Issue #1184: cache autoloads; stagger separation
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -797,10 +797,9 @@ func _physics_process(delta: float) -> void:
 			# Only count if NOT in direct player contact (can't see and shoot player)
 			if not (_can_see_player and _can_hit_player_from_current_position()):
 				_global_stuck_timer += delta
-				var _experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
-				if _experimental_settings != null and _experimental_settings.has_method("get_global_stuck_max_time"):
-					_effective_stuck_max_time = _experimental_settings.get_global_stuck_max_time()
+				if _exp_settings_node != null and _exp_settings_node.has_method("get_global_stuck_max_time"):  ## Issue #1184: use cached node
+					_effective_stuck_max_time = _exp_settings_node.get_global_stuck_max_time()
 				if _global_stuck_timer >= _effective_stuck_max_time:
 					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
 					_global_stuck_timer = 0.0
@@ -4102,9 +4101,10 @@ func _detect_perpendicular_opening(move_dir: Vector2) -> bool:
 func _process_corner_check(delta: float, move_dir: Vector2, state_name: String) -> void:
 	if _corner_check_timer > 0:
 		_corner_check_timer -= delta  # #347: rotation via _update_enemy_model_rotation()
+		if _corner_check_timer <= 0: _corner_check_cooldown = CORNER_CHECK_DURATION  ## Issue #1184: start cooldown AFTER timer expires (not together)
 	elif _corner_check_cooldown > 0: _corner_check_cooldown -= delta  ## Issue #1184: prevent P4↔P3 oscillation
 	elif _detect_perpendicular_opening(move_dir):
-		_corner_check_timer = CORNER_CHECK_DURATION; _corner_check_cooldown = CORNER_CHECK_DURATION  ## Issue #1184
+		_corner_check_timer = CORNER_CHECK_DURATION  ## Issue #1184: cooldown set when timer expires, not here
 		_log_to_file("%s corner check: angle %.1f°" % [state_name, rad_to_deg(_corner_check_angle)])
 
 ## Process guard behavior - scan for threats every IDLE_SCAN_INTERVAL seconds.
