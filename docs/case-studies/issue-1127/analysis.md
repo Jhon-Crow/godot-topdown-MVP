@@ -78,3 +78,68 @@ Items of type 1 (FLASHLIGHT), 7 (FORCE_FIELD), and 3 (TELEPORT_BRACERS) were sti
 
 ## Files Modified
 - `Scripts/Characters/Player.cs` — `HandleExperimentalSampleInput` (pool), `TriggerExperimentalSampleEffect` (cases 1, 3, 7, 16)
+
+---
+
+# Case Study Update — Feedback Round 4 (2026-03-20T06:47:58Z)
+
+## Attached Log
+- `game_log_20260320_094410.txt`
+
+## Bugs Reported
+
+### Bug 9: Teleport fires immediately (should show crosshair for 4s)
+**Owner report:** "телепорт срабатывает сразу (не отображается прицел в течении 4 секунд, должно быть как будто пробел зажат в течении 4 сек)"
+
+**Root cause (from log):**
+```
+[Player.ExperimentalSample] Teleport bracers: teleported from (150, 1000) to (830.39056, 998.66437)
+```
+Case 3 called `GlobalPosition = safeTarget` immediately without any delay. No crosshair/aiming phase.
+
+**Fix:** Now borrows the existing teleport bracers aim state:
+- Sets `_teleportBracersEquipped = true` and `_teleportAiming = true` so `_Draw()` renders the reticle
+- After 4-second timer: sets `_teleportAiming = false`, restores `_teleportBracersEquipped`, then executes teleport
+
+---
+
+### Bug 10: Breaching charges always fall back to homing (never place charge)
+**Owner report:** "возможно по той же причине не выходит использовать пробивные заряды"
+
+**Root cause (from log):**
+```
+[Player.ExperimentalSample] Breaching charges effect: homing burst triggered (no placed charges)
+```
+The code only tried to *detonate* existing charges, never *placed* new ones. `try_place_charge()` requires a wall within placement radius — since the code never called it, breaching charges always fell back to homing burst.
+
+**Fix:** Now calls `try_place_charge()` — if a wall is nearby, places the charge and schedules detonation after 1 second.
+
+---
+
+### Bug 11: Trajectory glasses don't show trajectory lines
+**Owner report:** "не работают очки траектории"
+
+**Root cause (from log):**
+```
+[Player.ExperimentalSample] Trajectory glasses: temporary effect node created
+[Player.ExperimentalSample] Trajectory glasses activated via experimental sample for 10,0s
+```
+The effect node was created but stored as a *local variable* `effectNode`, not in `_trajectoryGlassesEffect`. Since `_Draw()` checks `_trajectoryGlassesEquipped && _trajectoryGlassesEffect != null`, the trajectory lines were never rendered.
+
+**Fix:** Now stores the temp node in `_trajectoryGlassesEffect` and sets `_trajectoryGlassesEquipped = true`. Also creates the HUD node. After `TrajectoryGlassesDuration + 0.5s`, resets both fields only if they still point to the temp node.
+
+---
+
+### Bug 12: Recoil compensator activates but has no visible effect
+**Owner report:** "не работает компенсатор отдачи"
+
+**Root cause:**
+`IsRecoilCompensatorActive()` checks `_recoilCompensatorEquipped && _recoilCompensatorActive`. The previous fix set `_recoilCompensatorActive = true` but left `_recoilCompensatorEquipped = false` — so `IsRecoilCompensatorActive()` always returned false. Weapons check this flag before suppressing spread/screenshake.
+
+**Fix:** Also sets `_recoilCompensatorEquipped = true` for the duration and restores to previous value on timer expiry. Also sets `_recoilCompensatorCharge` so the charge bar is visible.
+
+---
+
+## Files Modified (Round 4)
+- `Scripts/Characters/Player.cs` — `TriggerExperimentalSampleEffect` (cases 3, 8, 12, 16)
+- `docs/case-studies/issue-1127/game_log_20260320_094410.txt` — added log

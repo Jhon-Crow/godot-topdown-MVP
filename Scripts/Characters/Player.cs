@@ -8534,16 +8534,29 @@ public partial class Player : BaseCharacter
                 LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
                 return HomingDuration;
 
-            case 3: // TELEPORT_BRACERS — teleport instantly to cursor position (Issue #1127)
+            case 3: // TELEPORT_BRACERS — show crosshair for 4s then teleport (Issue #1127)
             {
-                Vector2 cursorPos = GetGlobalMousePosition();
-                Vector2 safeTarget = GetSafeTeleportPosition(GlobalPosition, cursorPos);
-                Vector2 oldPos = GlobalPosition;
-                GlobalPosition = safeTarget;
-                ResetAllEnemyMemories("experimental sample teleport");
+                const float TeleportAimDuration = 4.0f;
+                // Show the teleport reticle by borrowing the teleport bracers aim state
+                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
+                bool wasEquipped = _teleportBracersEquipped;
+                bool wasAiming = _teleportAiming;
+                _teleportBracersEquipped = true;
+                _teleportAiming = true;
                 QueueRedraw();
-                LogToFile($"[Player.ExperimentalSample] Teleport bracers: teleported from {oldPos} to {safeTarget}");
-                return 1.0f;
+                LogToFile($"[Player.ExperimentalSample] Teleport bracers: aiming for {TeleportAimDuration}s, target={_teleportTargetPosition}");
+                GetTree().CreateTimer(TeleportAimDuration).Timeout += () =>
+                {
+                    if (!IsInstanceValid(this)) return;
+                    _teleportAiming = false;
+                    _teleportBracersEquipped = wasEquipped;
+                    Vector2 oldPos = GlobalPosition;
+                    GlobalPosition = _teleportTargetPosition;
+                    ResetAllEnemyMemories("experimental sample teleport");
+                    QueueRedraw();
+                    LogToFile($"[Player.ExperimentalSample] Teleport bracers: teleported from {oldPos} to {_teleportTargetPosition}");
+                };
+                return TeleportAimDuration;
             }
 
             case 4: // BFF_PENDANT — summon companion (always fire, even if already summoned — re-summon)
@@ -8634,28 +8647,66 @@ public partial class Player : BaseCharacter
                 return HomingDuration;
             }
 
-            case 8: // TRAJECTORY_GLASSES — activate (init temp instance if not equipped)
+            case 8: // TRAJECTORY_GLASSES — activate (init temp instance if not equipped, wire into draw path)
             {
-                Node? effectNode = _trajectoryGlassesEffect;
-                if (effectNode == null || !IsInstanceValid(effectNode))
+                // If not currently equipped, create a full temporary node and store it in
+                // _trajectoryGlassesEffect / _trajectoryGlassesEquipped so that _Draw() renders the lines.
+                bool tempCreated = false;
+                if (_trajectoryGlassesEffect == null || !IsInstanceValid(_trajectoryGlassesEffect))
                 {
                     var effectScript = GD.Load<Script>("res://scripts/effects/trajectory_glasses_effect.gd");
                     if (effectScript != null)
                     {
-                        effectNode = new Node();
-                        effectNode.SetScript(effectScript);
-                        effectNode.Name = "TrajectoryGlassesEffectTemp";
-                        AddChild(effectNode);
-                        effectNode.Call("initialize", this);
+                        var tempNode = new Node();
+                        tempNode.SetScript(effectScript);
+                        tempNode.Name = "TrajectoryGlassesEffectTemp";
+                        AddChild(tempNode);
+                        tempNode.Call("initialize", this);
                         if (CurrentWeapon != null)
-                            effectNode.Call("set_weapon", CurrentWeapon);
-                        LogToFile("[Player.ExperimentalSample] Trajectory glasses: temporary effect node created");
+                            tempNode.Call("set_weapon", CurrentWeapon);
+                        // Wire into draw path
+                        _trajectoryGlassesEffect = tempNode;
+                        _trajectoryGlassesEquipped = true;
+                        tempCreated = true;
+                        LogToFile("[Player.ExperimentalSample] Trajectory glasses: temporary effect node created and wired");
+                        // Also create HUD so charge pips are shown
+                        var hudScript = GD.Load<Script>("res://scripts/ui/trajectory_glasses_hud.gd");
+                        if (hudScript != null)
+                        {
+                            var hudNode = new Node2D();
+                            hudNode.SetScript(hudScript);
+                            hudNode.Name = "TrajectoryGlassesHUDTemp";
+                            AddChild(hudNode);
+                            hudNode.Call("initialize", _trajectoryGlassesEffect);
+                            _trajectoryGlassesHud = hudNode;
+                        }
                     }
                 }
-                if (effectNode != null && IsInstanceValid(effectNode))
+                if (_trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
                 {
-                    effectNode.Call("activate");
-                    LogToFile($"[Player.ExperimentalSample] Trajectory glasses activated via experimental sample for {TrajectoryGlassesDuration:F1}s");
+                    if (CurrentWeapon != null)
+                        _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+                    bool activated = (bool)_trajectoryGlassesEffect.Call("activate");
+                    LogToFile($"[Player.ExperimentalSample] Trajectory glasses activated={activated} via experimental sample for {TrajectoryGlassesDuration:F1}s");
+                    if (tempCreated)
+                    {
+                        // Auto-cleanup after duration if we created a temporary node
+                        var effectRef = _trajectoryGlassesEffect;
+                        var hudRef = _trajectoryGlassesHud;
+                        GetTree().CreateTimer(TrajectoryGlassesDuration + 0.5f).Timeout += () =>
+                        {
+                            if (!IsInstanceValid(this)) return;
+                            // Only reset the equipped fields if they still point at our temp node
+                            if (_trajectoryGlassesEffect == effectRef)
+                            {
+                                _trajectoryGlassesEquipped = false;
+                                _trajectoryGlassesEffect = null;
+                                _trajectoryGlassesHud = null;
+                            }
+                            if (IsInstanceValid(effectRef)) effectRef.QueueFree();
+                            if (hudRef != null && IsInstanceValid(hudRef)) hudRef.QueueFree();
+                        };
+                    }
                     return TrajectoryGlassesDuration;
                 }
                 // Fallback: homing burst
@@ -8696,14 +8747,55 @@ public partial class Player : BaseCharacter
                 return 2.0f;
             }
 
-            case 12: // BREACHING_CHARGES — detonate if charges placed; else homing burst
-                if (_breachingChargesEffect != null && IsInstanceValid(_breachingChargesEffect))
+            case 12: // BREACHING_CHARGES — place near wall and detonate; else homing burst (Issue #1127)
+            {
+                // Use existing effect node if equipped; otherwise create a temporary one
+                Node? bcEffect = _breachingChargesEffect;
+                bool bcTempCreated = false;
+                if (bcEffect == null || !IsInstanceValid(bcEffect))
                 {
-                    bool detonated = (bool)_breachingChargesEffect.Call("detonate");
-                    LogToFile($"[Player.ExperimentalSample] Breaching charges detonated: {detonated}");
-                    if (detonated) return 1.5f;
+                    var bcScript = GD.Load<Script>("res://scripts/effects/breaching_charges_effect.gd");
+                    if (bcScript != null)
+                    {
+                        bcEffect = new Node();
+                        bcEffect.SetScript(bcScript);
+                        bcEffect.Name = "BreachingChargesEffectTemp";
+                        AddChild(bcEffect);
+                        bcEffect.Call("initialize", this);
+                        bcTempCreated = true;
+                        LogToFile("[Player.ExperimentalSample] Breaching charges: temporary node created");
+                    }
                 }
-                // No placed charges — trigger homing burst as substitute
+                if (bcEffect != null && IsInstanceValid(bcEffect))
+                {
+                    // First try to detonate an already-placed charge
+                    bool hasPlaced = (bool)bcEffect.Get("has_placed_charge");
+                    if (hasPlaced)
+                    {
+                        bool detonated = (bool)bcEffect.Call("detonate");
+                        LogToFile($"[Player.ExperimentalSample] Breaching charges detonated existing charge: {detonated}");
+                        if (detonated) return 1.5f;
+                    }
+                    // Try to place a charge near a wall (requires wall within placement radius)
+                    bool placed = (bool)bcEffect.Call("try_place_charge");
+                    if (placed)
+                    {
+                        LogToFile("[Player.ExperimentalSample] Breaching charges: charge placed, detonating after 1s");
+                        var bcRef = bcEffect;
+                        GetTree().CreateTimer(1.0f).Timeout += () =>
+                        {
+                            if (IsInstanceValid(bcRef))
+                            {
+                                bool det = (bool)bcRef.Call("detonate");
+                                LogToFile($"[Player.ExperimentalSample] Breaching charges: detonated (delayed)={det}");
+                            }
+                            if (bcTempCreated && IsInstanceValid(bcRef)) bcRef.QueueFree();
+                        };
+                        return 2.0f;
+                    }
+                    if (bcTempCreated && IsInstanceValid(bcEffect)) bcEffect.QueueFree();
+                }
+                // Not near a wall — trigger homing burst as fallback
                 if (!_homingActive)
                 {
                     _homingActive = true;
@@ -8712,8 +8804,9 @@ public partial class Player : BaseCharacter
                     StartHomingScanner();
                     EmitSignal(SignalName.HomingActivated);
                 }
-                LogToFile("[Player.ExperimentalSample] Breaching charges effect: homing burst triggered (no placed charges)");
+                LogToFile("[Player.ExperimentalSample] Breaching charges: no wall nearby, homing burst triggered");
                 return HomingDuration;
+            }
 
             case 13: // ARMORED_SKIN — passive; trigger homing burst as visible effect
                 if (!_homingActive)
@@ -8760,10 +8853,19 @@ public partial class Player : BaseCharacter
             case 16: // RECOIL_COMPENSATOR — activate for 4 seconds (Issue #1127)
             {
                 const float RecoilEffectDuration = 4.0f;
+                bool rcWasEquipped = _recoilCompensatorEquipped;
+                // Temporarily mark as equipped so IsRecoilCompensatorActive() returns true
+                _recoilCompensatorEquipped = true;
                 _recoilCompensatorActive = true;
+                _recoilCompensatorCharge = RecoilEffectDuration;
+                QueueRedraw();
                 GetTree().CreateTimer(RecoilEffectDuration).Timeout += () =>
                 {
+                    if (!IsInstanceValid(this)) return;
                     _recoilCompensatorActive = false;
+                    _recoilCompensatorEquipped = rcWasEquipped;
+                    _recoilCompensatorCharge = 0.0f;
+                    QueueRedraw();
                 };
                 LogToFile($"[Player.ExperimentalSample] Recoil compensator activated for {RecoilEffectDuration}s");
                 return RecoilEffectDuration;
