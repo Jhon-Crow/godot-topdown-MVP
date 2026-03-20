@@ -17,14 +17,14 @@ const OFFSET_Y: float = -60.0
 ## Horizontal offset to the right of the player center.
 const OFFSET_X: float = 16.0
 
-## Size of the displayed icon in pixels (larger for better visibility).
-const ICON_SIZE: float = 48.0
+## Size of the displayed icon in pixels.
+const ICON_SIZE: float = 36.0
 
 ## Background circle radius.
-const BG_RADIUS: float = 30.0
+const BG_RADIUS: float = 22.0
 
 ## Countdown arc radius (slightly larger than the background circle).
-const ARC_RADIUS: float = 33.0
+const ARC_RADIUS: float = 25.0
 
 ## Width of the countdown arc stroke in pixels.
 const ARC_WIDTH: float = 4.0

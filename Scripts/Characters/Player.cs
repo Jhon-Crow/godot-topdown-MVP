@@ -8554,7 +8554,7 @@ public partial class Player : BaseCharacter
         {
             case 1: // FLASHLIGHT — activate for 4 seconds (Issue #1127)
             {
-                const float FlashlightEffectDuration = 4.0f;
+                const float FlashlightEffectDuration = 1.8f;
                 Node2D? flashNode = _flashlightNode;
                 if (flashNode == null || !IsInstanceValid(flashNode))
                 {
@@ -8598,7 +8598,7 @@ public partial class Player : BaseCharacter
 
             case 3: // TELEPORT_BRACERS — show crosshair for 2s then teleport (Issue #1127)
             {
-                const float TeleportAimDuration = 2.0f;
+                const float TeleportAimDuration = 1.8f;
                 // Borrow teleport bracers aim state; _teleportExperimentalActive prevents
                 // HandleTeleportBracersInput from firing the teleport on the next frame.
                 bool wasEquipped = _teleportBracersEquipped;
@@ -8673,7 +8673,7 @@ public partial class Player : BaseCharacter
 
             case 7: // FORCE_FIELD — activate for 4 seconds (Issue #1127)
             {
-                const float ForceFieldEffectDuration = 4.0f;
+                const float ForceFieldEffectDuration = 1.8f;
                 Node? ffNode = _forceFieldEffect;
                 if (ffNode == null || !IsInstanceValid(ffNode))
                 {
@@ -8836,9 +8836,9 @@ public partial class Player : BaseCharacter
                 return 2.0f;
             }
 
-            case 12: // BREACHING_CHARGES — place near wall (or at feet if no wall) and auto-detonate (Issue #1127)
+            case 12: // BREACHING_CHARGES — countdown 1.8s, place at end of timer, then detonate (Issue #1127)
             {
-                const float BreachingDetonateDelay = 2.0f;
+                const float BreachingTimerDuration = 1.8f;
                 // Use existing effect node if equipped; otherwise create a temporary one
                 Node? bcEffect = _breachingChargesEffect;
                 bool bcTempCreated = false;
@@ -8858,43 +8858,31 @@ public partial class Player : BaseCharacter
                 }
                 if (bcEffect != null && IsInstanceValid(bcEffect))
                 {
-                    // First try to detonate an already-placed charge
-                    bool hasPlaced = (bool)bcEffect.Get("has_placed_charge");
-                    if (hasPlaced)
-                    {
-                        bool detonated = (bool)bcEffect.Call("detonate");
-                        LogToFile($"[Player.ExperimentalSample] Breaching charges detonated existing charge: {detonated}");
-                        if (detonated) return 1.5f;
-                    }
-                    // Try to place a charge near a wall; if no wall, force-place at player feet
-                    bool placed = (bool)bcEffect.Call("try_place_charge");
-                    if (!placed)
-                    {
-                        // No wall nearby — place the charge at the player's current position
-                        // and set state directly so detonate() fires explosion/stun without wall breach
-                        bcEffect.Set("has_placed_charge", true);
-                        bcEffect.Set("_charge_position", GlobalPosition);
-                        bcEffect.Set("_charge_wall_direction", Vector2.Down);
-                        bcEffect.Set("_charged_walls", new Godot.Collections.Array());
-                        placed = true;
-                        LogToFile("[Player.ExperimentalSample] Breaching charges: no wall nearby, placed at player feet");
-                    }
-                    else
-                    {
-                        LogToFile("[Player.ExperimentalSample] Breaching charges: charge placed on wall");
-                    }
-                    LogToFile($"[Player.ExperimentalSample] Breaching charges: auto-detonating after {BreachingDetonateDelay}s");
+                    // Countdown runs for BreachingTimerDuration seconds; charge is placed and detonated at the end
+                    LogToFile($"[Player.ExperimentalSample] Breaching charges: placing and detonating after {BreachingTimerDuration}s");
                     var bcRef = bcEffect;
-                    GetTree().CreateTimer(BreachingDetonateDelay).Timeout += () =>
+                    GetTree().CreateTimer(BreachingTimerDuration).Timeout += () =>
                     {
-                        if (IsInstanceValid(bcRef))
+                        if (!IsInstanceValid(bcRef)) return;
+                        // Place charge near wall; if no wall, force-place at player feet
+                        bool placed = (bool)bcRef.Call("try_place_charge");
+                        if (!placed)
                         {
-                            bool det = (bool)bcRef.Call("detonate");
-                            LogToFile($"[Player.ExperimentalSample] Breaching charges: detonated (delayed)={det}");
+                            bcRef.Set("has_placed_charge", true);
+                            bcRef.Set("_charge_position", GlobalPosition);
+                            bcRef.Set("_charge_wall_direction", Vector2.Down);
+                            bcRef.Set("_charged_walls", new Godot.Collections.Array());
+                            LogToFile("[Player.ExperimentalSample] Breaching charges: no wall nearby, placed at player feet");
                         }
+                        else
+                        {
+                            LogToFile("[Player.ExperimentalSample] Breaching charges: charge placed on wall");
+                        }
+                        bool det = (bool)bcRef.Call("detonate");
+                        LogToFile($"[Player.ExperimentalSample] Breaching charges: detonated={det}");
                         if (bcTempCreated && IsInstanceValid(bcRef)) bcRef.QueueFree();
                     };
-                    return BreachingDetonateDelay;
+                    return BreachingTimerDuration;
                 }
                 LogToFile("[Player.ExperimentalSample] Breaching charges: failed to create effect node");
                 return 0.5f;
@@ -8944,7 +8932,7 @@ public partial class Player : BaseCharacter
 
             case 16: // RECOIL_COMPENSATOR — activate for 4 seconds (Issue #1127)
             {
-                const float RecoilEffectDuration = 4.0f;
+                const float RecoilEffectDuration = 1.8f;
                 // Use experimental timer: HandleRecoilCompensatorInput ticks it each frame
                 // so the effect stays active for the full 4 s without needing Space held.
                 _recoilCompensatorEquipped = true;
