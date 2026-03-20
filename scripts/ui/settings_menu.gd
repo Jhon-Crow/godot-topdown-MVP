@@ -39,13 +39,13 @@ var _optimization_menu: CanvasLayer = null
 
 
 func _ready() -> void:
-	# Setup tooltips for category buttons (Issue #1200)
-	controls_button.tooltip_text = "Controls: remap keyboard and mouse bindings"
-	difficulty_button.tooltip_text = "Difficulty: choose game difficulty and toggle Night Mode"
-	sound_button.tooltip_text = "Sound: adjust effects and music volume"
-	gameplay_button.tooltip_text = "Gameplay: blood amount, weapon hints display mode"
-	experimental_button.tooltip_text = "Experimental: advanced and debug features (FOV, AI prediction, replay, spawner, etc.)"
-	optimization_button.tooltip_text = "Optimization: performance settings (wall hit particles, etc.)"
+	# Setup short-name tooltips for category buttons (Issue #1200)
+	controls_button.tooltip_text = "Controls"
+	difficulty_button.tooltip_text = "Difficulty"
+	sound_button.tooltip_text = "Sound"
+	gameplay_button.tooltip_text = "Gameplay"
+	experimental_button.tooltip_text = "Experimental"
+	optimization_button.tooltip_text = "Optimization"
 
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)

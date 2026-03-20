@@ -17,11 +17,11 @@ signal back_pressed
 
 
 func _ready() -> void:
-	# Setup tooltips and hover highlights for settings rows (Issue #1200)
+	# Setup tooltips and label behaviour for settings rows (Issue #1200)
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EffectsContainer,
-			"Effects Volume: volume of all sound effects (gunshots, explosions, impacts)")
+			"Effects Volume")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/MusicContainer,
-			"Music Volume: volume of background music")
+			"Music Volume")
 
 	# Connect button and slider signals
 	effects_slider.value_changed.connect(_on_effects_volume_changed)
@@ -81,11 +81,36 @@ func _on_back_pressed() -> void:
 	back_pressed.emit()
 
 
-## Setup tooltip and hover highlight for a settings row container (Issue #1200).
-## Sets the tooltip on the container and all its children so it appears when
-## hovering anywhere over the row, including labels and checkboxes.
+## Setup tooltip and label behaviour for a settings row container (Issue #1200).
+## Sets a short name tooltip on the container and all its children so it appears
+## when hovering anywhere over the row. Also makes the container act as a label:
+## clicking anywhere on the row triggers the first interactive control inside
+## (CheckButton, Button, or OptionButton).
 func _setup_row_hover(container: Control, tooltip: String) -> void:
 	container.tooltip_text = tooltip
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
 	for child in container.get_children():
 		if child is Control:
 			child.tooltip_text = tooltip
+	container.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Forward a left-click on the row container to the first interactive control inside.
+func _on_row_gui_input(event: InputEvent, container: Control) -> void:
+	if event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and event.pressed:
+		for child in container.get_children():
+			if child is CheckButton:
+				# Setting button_pressed automatically emits toggled signal.
+				child.button_pressed = not child.button_pressed
+				container.accept_event()
+				return
+			if child is Button:
+				child.pressed.emit()
+				container.accept_event()
+				return
+			if child is OptionButton:
+				child.show_popup()
+				container.accept_event()
+				return

@@ -47,43 +47,43 @@ var enemies_table_menu: CanvasLayer = null
 
 
 func _ready() -> void:
-	# Setup tooltips and hover highlights for settings rows (Issue #1200)
+	# Setup tooltips and label behaviour for settings rows (Issue #1200)
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FOVContainer,
-			"Disable FOV Limitation: enemies have 360° vision when checked (100° cone by default)")
+			"Disable FOV Limitation")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ComplexGrenadeContainer,
-			"Complex Grenade Throwing: 3-step throw (G+RMB drag, hold, release) when enabled")
+			"Complex Grenade Throwing")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AIPredictionContainer,
-			"AI Player Prediction: enemies predict player movement after losing sight")
+			"AI Player Prediction")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DebugModeContainer,
-			"Debug Mode (F7): show debug overlay and visualizations in-game")
+			"Debug Mode")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/InvincibilityContainer,
-			"Invincibility (F6): player cannot take damage")
+			"Invincibility")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReplayContainer,
-			"Enable Replay Viewing: show 'Watch Replay' button after completing levels")
+			"Enable Replay Viewing")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/LoggingContainer,
-			"Enable Log Recording: write game events to a log file (disable to improve FPS)")
+			"Enable Log Recording")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyFlashlightBlindingContainer,
-			"Enemy Flashlight Blinding: enemy flashlights blind the player in night mode")
+			"Enemy Flashlight Blinding")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsCounterContainer,
-			"Show FPS Counter: display current FPS in the top-left corner")
+			"Show FPS Counter")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/FpsDropLoggingContainer,
-			"Log FPS Drops: log a warning when FPS drops below 30")
+			"Log FPS Drops")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllWeaponsUnlockedContainer,
-			"Unlock All Weapons: all weapons, grenades, and items available in the armory")
+			"Unlock All Weapons")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer,
-			"Unlock All Maps: all levels accessible without completing previous ones")
+			"Unlock All Maps")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer,
-			"Global Stuck Max Time: how long an enemy can stay in one spot before giving up pursuit")
+			"Global Stuck Max Time")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer,
-			"Show Nav Mesh: draw AI navigation mesh overlay to visualize where enemies can walk")
+			"Show Nav Mesh")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer,
-			"Delete Saves: erase all progress (completed levels, unlocked weapons)")
+			"Delete Saves")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer,
-			"View Unlock Table: shows which items are unlocked by completing levels at each rank")
+			"View Unlock Table")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer,
-			"View Enemies Table: shows which unique enemy types appear on each map")
+			"View Enemies Table")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemySpawnerContainer,
-			"Enemy Spawner: spawn any enemy type on the current map near the player")
+			"Enemy Spawner")
 
 	# Connect button signals
 	fov_checkbox.toggled.connect(_on_fov_toggled)
@@ -463,11 +463,36 @@ func _log(message: String) -> void:
 		print("[ExperimentalMenu] " + message)
 
 
-## Setup tooltip and hover highlight for a settings row container (Issue #1200).
-## Sets the tooltip on the container and all its children so it appears when
-## hovering anywhere over the row, including labels and checkboxes.
+## Setup tooltip and label behaviour for a settings row container (Issue #1200).
+## Sets a short name tooltip on the container and all its children so it appears
+## when hovering anywhere over the row. Also makes the container act as a label:
+## clicking anywhere on the row triggers the first interactive control inside
+## (CheckButton, Button, or OptionButton).
 func _setup_row_hover(container: Control, tooltip: String) -> void:
 	container.tooltip_text = tooltip
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
 	for child in container.get_children():
 		if child is Control:
 			child.tooltip_text = tooltip
+	container.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Forward a left-click on the row container to the first interactive control inside.
+func _on_row_gui_input(event: InputEvent, container: Control) -> void:
+	if event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and event.pressed:
+		for child in container.get_children():
+			if child is CheckButton:
+				# Setting button_pressed automatically emits toggled signal.
+				child.button_pressed = not child.button_pressed
+				container.accept_event()
+				return
+			if child is Button:
+				child.pressed.emit()
+				container.accept_event()
+				return
+			if child is OptionButton:
+				child.show_popup()
+				container.accept_event()
+				return
