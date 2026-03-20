@@ -47,6 +47,60 @@ var enemies_table_menu: CanvasLayer = null
 
 
 func _ready() -> void:
+	# Setup tooltips, hover highlight, and label behaviour for settings rows (Issue #1200)
+	var _vbox: Node = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+	_setup_row_hover(_vbox.get_node("FOVContainer"),
+			"Disable FOV Limitation",
+			_vbox.get_node("FOVDescription"))
+	_setup_row_hover(_vbox.get_node("ComplexGrenadeContainer"),
+			"Complex Grenade Throwing",
+			_vbox.get_node("ComplexGrenadeDescription"))
+	_setup_row_hover(_vbox.get_node("AIPredictionContainer"),
+			"AI Player Prediction",
+			_vbox.get_node("AIPredictionDescription"))
+	_setup_row_hover(_vbox.get_node("DebugModeContainer"),
+			"Debug Mode")
+	_setup_row_hover(_vbox.get_node("InvincibilityContainer"),
+			"Invincibility")
+	_setup_row_hover(_vbox.get_node("ReplayContainer"),
+			"Enable Replay Viewing",
+			_vbox.get_node("ReplayDescription"))
+	_setup_row_hover(_vbox.get_node("LoggingContainer"),
+			"Enable Log Recording",
+			_vbox.get_node("LoggingDescription"))
+	_setup_row_hover(_vbox.get_node("EnemyFlashlightBlindingContainer"),
+			"Enemy Flashlight Blinding",
+			_vbox.get_node("EnemyFlashlightBlindingDescription"))
+	_setup_row_hover(_vbox.get_node("FpsCounterContainer"),
+			"Show FPS Counter",
+			_vbox.get_node("FpsCounterDescription"))
+	_setup_row_hover(_vbox.get_node("FpsDropLoggingContainer"),
+			"Log FPS Drops",
+			_vbox.get_node("FpsDropLoggingDescription"))
+	_setup_row_hover(_vbox.get_node("AllWeaponsUnlockedContainer"),
+			"Unlock All Weapons",
+			_vbox.get_node("AllWeaponsUnlockedDescription"))
+	_setup_row_hover(_vbox.get_node("AllMapsUnlockedContainer"),
+			"Unlock All Maps",
+			_vbox.get_node("AllMapsUnlockedDescription"))
+	_setup_row_hover(_vbox.get_node("GlobalStuckMaxTimeContainer"),
+			"Global Stuck Max Time",
+			_vbox.get_node("GlobalStuckMaxTimeDescription"))
+	_setup_row_hover(_vbox.get_node("NavMeshVisibleContainer"),
+			"Show Nav Mesh",
+			_vbox.get_node("NavMeshVisibleDescription"))
+	_setup_row_hover(_vbox.get_node("DeleteSavesContainer"),
+			"Delete Saves",
+			_vbox.get_node("DeleteSavesDescription"))
+	_setup_row_hover(_vbox.get_node("UnlockTableContainer"),
+			"View Unlock Table",
+			_vbox.get_node("UnlockTableDescription"))
+	_setup_row_hover(_vbox.get_node("EnemiesTableContainer"),
+			"View Enemies Table",
+			_vbox.get_node("EnemiesTableDescription"))
+	_setup_row_hover(_vbox.get_node("EnemySpawnerContainer"),
+			"Enemy Spawner")
+
 	# Connect button signals
 	fov_checkbox.toggled.connect(_on_fov_toggled)
 	complex_grenade_checkbox.toggled.connect(_on_complex_grenade_toggled)
@@ -423,3 +477,75 @@ func _log(message: String) -> void:
 		file_logger.log_info("[ExperimentalMenu] " + message)
 	else:
 		print("[ExperimentalMenu] " + message)
+
+
+## Semi-transparent background colour drawn over a settings row on hover (Issue #1200).
+const ROW_HOVER_BG: Color = Color(1.0, 1.0, 1.0, 0.08)
+
+## Tracks which Control nodes currently have a hover background drawn on them.
+var _row_hover_bg: Dictionary = {}
+
+
+## Draw the hover background rect for a registered row node.
+func _draw_row_bg(node: Control) -> void:
+	if _row_hover_bg.get(node, false):
+		node.draw_rect(Rect2(Vector2.ZERO, node.size), ROW_HOVER_BG)
+
+
+## Setup tooltip, hover highlight, and label behaviour for a settings row (Issue #1200).
+## @param container   The HBoxContainer that holds the label + interactive control.
+## @param tooltip     Short name shown in the tooltip and applied to all child nodes.
+## @param description Optional sibling Label with the long description text.
+##                    When provided it receives the same tooltip, hover highlight,
+##                    and click-forwarding as the main container.
+func _setup_row_hover(container: Control, tooltip: String,
+		description: Control = null) -> void:
+	container.tooltip_text = tooltip
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
+	for child in container.get_children():
+		if child is Control:
+			child.tooltip_text = tooltip
+	_row_hover_bg[container] = false
+	container.draw.connect(_draw_row_bg.bind(container))
+	container.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+	container.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+	container.gui_input.connect(_on_row_gui_input.bind(container))
+	if description != null:
+		description.tooltip_text = tooltip
+		description.mouse_filter = Control.MOUSE_FILTER_STOP
+		_row_hover_bg[description] = false
+		description.draw.connect(_draw_row_bg.bind(description))
+		description.mouse_entered.connect(_on_row_hovered.bind(container, description, true))
+		description.mouse_exited.connect(_on_row_hovered.bind(container, description, false))
+		description.gui_input.connect(_on_row_gui_input.bind(container))
+
+
+## Apply or remove hover background on the row container and its description label.
+func _on_row_hovered(container: Control, description: Control,
+		hovered: bool) -> void:
+	_row_hover_bg[container] = hovered
+	container.queue_redraw()
+	if description != null:
+		_row_hover_bg[description] = hovered
+		description.queue_redraw()
+
+
+## Forward a left-click on the row container to the first interactive control inside.
+func _on_row_gui_input(event: InputEvent, container: Control) -> void:
+	if event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT \
+			and event.pressed:
+		for child in container.get_children():
+			if child is CheckButton:
+				# Setting button_pressed automatically emits toggled signal.
+				child.button_pressed = not child.button_pressed
+				container.accept_event()
+				return
+			if child is Button:
+				child.pressed.emit()
+				container.accept_event()
+				return
+			if child is OptionButton:
+				child.show_popup()
+				container.accept_event()
+				return

@@ -945,14 +945,12 @@ func _update_enemy_model_rotation() -> void:
 		_enemy_model.global_rotation = target_angle
 	elif angle_diff > 0:
 		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
-	else:
-		_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
+	else: _enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
 	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
 	_model_facing_left = aiming_left
 	if aiming_left:
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
-	else:
-		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+	else: _enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 ## Forces model to face direction immediately; ensures weapon sprite matches intended aim direction.
 func _force_model_to_face_direction(direction: Vector2) -> void:
@@ -3209,8 +3207,7 @@ func _find_pursuit_cover_toward_player() -> void:
 		_has_pursuit_cover = true
 		_current_cover_obstacle = best_obstacle
 		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
-	else:
-		_has_pursuit_cover = false
+	else: _has_pursuit_cover = false
 
 ## Check if there's a clear path to a position (no walls blocking).
 func _can_reach_position(target: Vector2) -> bool:
@@ -3365,8 +3362,7 @@ func _find_cover_position() -> void:
 		_cover_position = best_cover
 		_has_valid_cover = true
 		_log_debug("Found cover at: %s (hidden: %s)" % [_cover_position, found_hidden_cover])
-	else:
-		_has_valid_cover = false
+	else: _has_valid_cover = false
 
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
