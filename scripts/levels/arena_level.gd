@@ -795,28 +795,23 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("[ArenaLevel] NavigationRegion2D not found")
 		return
+	# Issue #1107: Bake after two physics frames so PhysicsServer2D registers walls
+	# and NavigationServer2D syncs before querying collision shapes (layer 4).
+	_bake_navmesh_after_physics_frame(nav_region)
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("[ArenaLevel] NavigationPolygon not found")
+
+## Bake navigation polygon after two physics frames — Issue #1107.
+## Frame 1: StaticBody2D collision shapes register with PhysicsServer2D.
+## Frame 2: NavigationServer2D syncs the map state so bake finds the walls.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if not is_instance_valid(nav_region):
 		return
-
-	print("[ArenaLevel] Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Arena playable area: 128 to 1792 (x), 128 to 952 (y).
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(128, 128),
-		Vector2(1792, 128),
-		Vector2(1792, 952),
-		Vector2(128, 952)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-	print("[ArenaLevel] Navigation mesh baked")
+	_log_to_file("Baking navmesh (#1107): carving walls from collision layer 4")
+	nav_region.bake_navigation_polygon(false)
+	var poly_count: int = nav_region.navigation_polygon.get_polygon_count() if nav_region.navigation_polygon else 0
+	_log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
 
 
 ## Setup player tracking and connect weapon signals.

@@ -208,33 +208,23 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
+	# Issue #1107: Bake after two physics frames so PhysicsServer2D registers walls
+	# and NavigationServer2D syncs before querying collision shapes (layer 4).
+	_bake_navmesh_after_physics_frame(nav_region)
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
+
+## Bake navigation polygon after two physics frames — Issue #1107.
+## Frame 1: StaticBody2D collision shapes register with PhysicsServer2D.
+## Frame 2: NavigationServer2D syncs the map state so bake finds the walls.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if not is_instance_valid(nav_region):
 		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
-	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(4064, 64),
-		Vector2(4064, 3024),
-		Vector2(64, 3024)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
-	print("Navigation mesh baked successfully")
+	_log_to_file("Baking navmesh (#1107): carving walls from collision layer 4")
+	nav_region.bake_navigation_polygon(false)
+	var poly_count: int = nav_region.navigation_polygon.get_polygon_count() if nav_region.navigation_polygon else 0
+	_log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
 
 
 ## Setup realistic visibility for the player (Issue #540).

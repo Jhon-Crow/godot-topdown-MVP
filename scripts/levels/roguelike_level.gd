@@ -660,6 +660,38 @@ func _setup_navigation() -> void:
 		nav_poly.agent_radius = 24.0
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
+	# Ensure the NavigationPolygon has a walkable outline covering the full room — Issue #1107.
+	# bake_navigation_polygon uses this as the bounding area to carve walls from.
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly != null and nav_poly.get_outline_count() == 0:
+		var margin: float = 32.0
+		nav_poly.add_outline(PackedVector2Array([
+			Vector2(-margin, -margin),
+			Vector2(ROOM_WIDTH + margin, -margin),
+			Vector2(ROOM_WIDTH + margin, ROOM_HEIGHT + margin),
+			Vector2(-margin, ROOM_HEIGHT + margin),
+		]))
+	# Issue #1107: Bake after two physics frames so PhysicsServer2D registers walls
+	# and NavigationServer2D syncs before querying collision shapes (layer 4).
+	_bake_navmesh_after_physics_frame(nav_region)
+
+
+## Bake navigation polygon after two physics frames — Issue #1107.
+## Frame 1: StaticBody2D collision shapes register with PhysicsServer2D.
+## Frame 2: NavigationServer2D syncs the map state so bake finds the walls.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if not is_instance_valid(nav_region):
+		return
+	var msg: String = "Baking navmesh (#1107): carving walls from collision layer 4"
+	print("[RoguelikeLevel] " + msg)
+	FileLogger.info("[RoguelikeLevel] " + msg)
+	nav_region.bake_navigation_polygon(false)
+	var poly_count: int = nav_region.navigation_polygon.get_polygon_count() if nav_region.navigation_polygon else 0
+	var msg2: String = "Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count
+	print("[RoguelikeLevel] " + msg2)
+	FileLogger.info("[RoguelikeLevel] " + msg2)
 
 
 func _setup_player_tracking() -> void:

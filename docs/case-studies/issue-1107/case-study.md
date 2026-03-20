@@ -243,6 +243,79 @@ Applied to both `_process_patrol()` and `_move_to_target_nav()`.
 
 ---
 
+---
+
+## Round 4 (2026-03-20): Navmesh Not Carving Walls — All Levels Broken
+
+### Problem Report
+
+User confirmed issue still not fixed (`game_log_20260320_110821.txt`, BuildingLevel):
+
+```
+[11:08:31] [ENEMY] [Enemy10] PATROL STUCK: pos=(1173.12, 1598.401) for 1.5s, skipping
+```
+
+Enemy10 (PATROL) got stuck within 4 seconds of spawning. Enemy7 was continuously oscillating (PATROL corner check every 0.1s). Player fired, enemies tried to pursue, but many were unable to navigate around walls.
+
+### Root Cause Found
+
+The navmesh was **never properly baking walls** in any level. Two overlapping bugs:
+
+**Bug 1 — Eight levels used broken async API (building, labyrinth, arena, revolver, test_tier, castle, city, labyrinth2):**
+```gdscript
+# ❌ BROKEN — NavigationServer2D.bake_from_source_geometry_data is async
+# Returns immediately before geometry is parsed. Produces 0 polygons.
+NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+```
+
+**Bug 2 — Even the "correct" levels (beach, docks, factory, decadence) called `bake_navigation_polygon(false)` synchronously in `_ready()`:**
+```gdscript
+# ❌ ALSO BROKEN — Godot 4's NavigationServer runs on a separate thread.
+# In _ready(), StaticBody2D shapes may not yet be registered with PhysicsServer2D.
+# Result: bake finds no wall geometry → produces flat rectangle navmesh.
+nav_region.bake_navigation_polygon(false)
+```
+
+**Bug 3 — Eight levels called `nav_poly.clear()` before the broken bake:**
+This erased the pre-existing outline from the `.tscn` file. When the async bake produced 0 polygons, the `clear()` call had already removed the only valid fallback outline. Result: enemies had a completely empty navmesh.
+
+### Fix
+
+All 12 level scripts now use `_bake_navmesh_after_physics_frame()`:
+
+```gdscript
+func _setup_navigation() -> void:
+    var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
+    if nav_region == null:
+        return
+    _bake_navmesh_after_physics_frame(nav_region)
+
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+    await get_tree().physics_frame  # Frame 1: StaticBody2D shapes register with PhysicsServer2D
+    await get_tree().physics_frame  # Frame 2: NavigationServer2D syncs the map state
+    if not is_instance_valid(nav_region):
+        return
+    _log_to_file("Baking navmesh (#1107): carving walls from collision layer 4")
+    nav_region.bake_navigation_polygon(false)
+    var poly_count: int = nav_region.navigation_polygon.get_polygon_count() if nav_region.navigation_polygon else 0
+    _log_to_file("Navmesh bake complete: %d polygons (>1 means walls were carved)" % poly_count)
+```
+
+**Why two physics frames are needed:**
+1. `await get_tree().physics_frame` (Frame 1): Godot's `_ready()` runs before the first physics step. After one physics frame, all `StaticBody2D` collision shapes are fully registered with `PhysicsServer2D`.
+2. `await get_tree().physics_frame` (Frame 2): `NavigationServer2D` runs on a **separate thread** and syncs with `PhysicsServer2D` at physics frame boundaries. After a second frame, it is ready to query wall geometry during the bake.
+
+**Verification:** After the fix, game log should show:
+```
+[BuildingLevel] Baking navmesh (#1107): carving walls from collision layer 4
+[BuildingLevel] Navmesh bake complete: 87 polygons (>1 means walls were carved)
+```
+
+poly_count > 1 confirms walls were carved correctly.
+
+---
+
 ## References
 
 - Godot 4 Navigation Docs: https://docs.godotengine.org/en/stable/tutorials/navigation/
@@ -251,8 +324,11 @@ Applied to both `_process_patrol()` and `_move_to_target_nav()`.
 - GitHub #57967: NavigationObstacle2D radius issue
 - GitHub #69988: Navigation Avoidance rework (Godot 4.1)
 - GitHub #88540: CharacterBody2D corner sticking
+- Godot issue #57022: NavigationServer2D sync timing (confirmed by smix8)
 - Project issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1107
+- Related PR: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1192
 - Game log: `docs/case-studies/issue-1107/game_log_20260317_211211.txt`
 - Game log 2: `docs/case-studies/issue-1107/game_log_20260318_122059.txt`
+- Game log 3 (Round 4): `docs/case-studies/issue-1107/game_log_20260320_110821.txt`
 - Screenshot (patrol stuck): `docs/case-studies/issue-1107/screenshot_20260317_wall_corner.png`
 - Screenshot (pursuing stuck): `docs/case-studies/issue-1107/screenshot_20260318_pursuing_wall_stuck.png`
