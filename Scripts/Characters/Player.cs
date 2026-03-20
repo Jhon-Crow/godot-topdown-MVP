@@ -1143,8 +1143,8 @@ public partial class Player : BaseCharacter
         }
         if (_leftArmSprite != null)
         {
-            _leftArmSprite.ZIndex = 0;  // Shoulder behind body (hidden under torso)
-            // RightForearm has z_as_relative=false in scene, so its z_index=4 is absolute (in front)
+            _leftArmSprite.ZIndex = 4;  // Shoulder visible (outer/gun-side arm segment)
+            // RightForearm has z_as_relative=false in scene, so its z_index=0 is absolute (hidden behind body)
         }
 
         // Connect to GameManager's debug mode signal for F7 toggle
@@ -3963,20 +3963,20 @@ public partial class Player : BaseCharacter
         if (_leftArmSprite != null)
         {
             _leftArmSprite.ZIndex = 0;
-            // RightForearm inherits z_index from parent RightShoulder automatically
+            // RightForearm has z_as_relative=false, so its z_index=0 absolute stays behind body regardless
         }
     }
 
     /// <summary>
-    /// Restore normal arm z-index (shoulder behind body, forearm in front via absolute z).
+    /// Restore normal arm z-index (shoulder visible at z=4, forearm hidden at absolute z=0).
     /// </summary>
     private void RestoreArmZIndex()
     {
-        // Normal state: shoulder at z_index 0 (behind body z=1)
-        // RightForearm has z_as_relative=false with z_index=4, so it stays in front regardless
+        // Normal state: shoulder visible (z=4, outer/gun-side arm segment)
+        // RightForearm has z_as_relative=false with z_index=0, so it stays behind body regardless
         if (_leftArmSprite != null)
         {
-            _leftArmSprite.ZIndex = 0;
+            _leftArmSprite.ZIndex = 4;
         }
     }
 
@@ -4090,13 +4090,12 @@ public partial class Player : BaseCharacter
     private void SetReloadAnimZIndex()
     {
         // During reload operations, arms should appear BELOW the weapon
-        // Weapon has z_index = 1, so set arms to 0
+        // Weapon has z_index = 1, so set shoulder to 0
         if (_leftArmSprite != null)
         {
             _leftArmSprite.ZIndex = 0;
         }
-        // RightForearm is a child of RightShoulder and inherits ZIndex automatically.
-        // No need to set it separately.
+        // RightForearm has z_as_relative=false with z_index=0 absolute — already hidden behind body.
     }
 
     /// <summary>

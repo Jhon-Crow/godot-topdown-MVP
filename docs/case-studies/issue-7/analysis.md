@@ -1,10 +1,9 @@
-# Case Study: Issue #7 — Arm Separation Bug (Right Shoulder not Attached to Body)
+# Case Study: Issue #7 — Arm Separation and Z-Index Layering Bugs
 
 ## Overview
 
-**Issue:** After the weapon system refactor (PR #1205 / Issue #7), the player's right arm (shoulder)
-appears detached from the body — specifically, it shows up "behind the back" instead of its correct
-position at the player's side.
+**Issue:** After the arm hierarchy refactor (PR #1205 / Issue #1204), the player's right arm appears
+detached from the body across multiple iterations of bug fixing.
 
 **Reported by:** @Jhon-Crow (repository owner)
 **Reported in:** PR #1205 comments, 2026-03-20
@@ -13,144 +12,124 @@ position at the player's side.
 
 ---
 
-## Visual Evidence
-
-### Broken State (after PR #1205)
-The right arm/shoulder appears disconnected from the body, displaced far to the lower-left ("behind the back"):
-
-![Broken state](./bug_current.png)
-
-### Expected State (before PR #1205)
-The right arm/shoulder sits naturally at the player's side:
-
-![Expected state](./bug_expected.png)
-
----
-
 ## Timeline / Sequence of Events
 
-1. **Issue #7 opened** — Request to create abstract weapon system (`BaseWeapon.cs`, `AssaultRifle.cs`)
-   with laser sight and magazine system.
+### Iteration 1 — Hierarchy fix (commit `1c2ba603`)
 
-2. **PR #1205 created** — AI solver refactored the player to use a new arm hierarchy:
-   - Renamed `LeftArm` → `RightShoulder` (upper arm)
-   - Renamed `RightArm` → `RightForearm`
-   - Made `RightForearm` a **child** of `RightShoulder` in the scene tree
-   - This was intended to fix PR #449 / Issue #1204 (arm elbow separation during grenade throw)
+**Fix:** Made `RightForearm` a child of `RightShoulder` in the scene tree.
 
-3. **GDScript (`scripts/characters/player.gd`)** was updated correctly:
-   - Only animates `_right_shoulder_sprite` (the shoulder)
-   - Never directly moves the forearm (it follows as a child node)
-   - `_base_right_arm_pos` is set to `Vector2.ZERO` and never used
+**Problem introduced:** `Scripts/Characters/Player.cs` `UpdateReloadAnimation()` still animated
+`_rightArmSprite.Position` toward `(0, 0)`, lerping the forearm away from the shoulder joint
+(its correct local offset is `(-26, 0)`). This caused the forearm to visually detach from the shoulder
+after each reload.
 
-4. **C# (`Scripts/Characters/Player.cs`)** was NOT fully updated:
-   - `_rightArmSprite` points to `RightShoulder/RightForearm` (the child node)
-   - `_baseRightArmPos` is set to `Vector2.Zero` (correct intent — forearm shouldn't be independently animated)
-   - BUT `UpdateReloadAnimation()` still animates `_rightArmSprite.Position` using
-     `_baseRightArmPos + ReloadArmRightXxx` offsets — all near `(0, 0)` in parent-local space
-   - The forearm's correct resting local position is `(-26, 0)` relative to the shoulder
-   - Lerping toward `(0, 0)` drags the forearm away from the shoulder joint every time a reload occurs
+### Iteration 2 — Stop animating forearm position in C# reload (commit `bc73d106`)
 
-5. **Bug manifests** — After any reload animation, the forearm's local position gets partially lerped
-   toward `(0, 0)`, causing progressive or full detachment from the shoulder.
+**Fix:** Removed `_rightArmSprite.Position` animation from C# `UpdateReloadAnimation()`.
+
+**Problem introduced:** Shoulder z_index was still 4 (same as original), meaning it appeared IN FRONT
+of the body. Owner feedback: "shoulder should be hidden under the body."
+
+### Iteration 3 — Fix z-index, add elbow bend (commit `f36f1844`)
+
+**Fix attempted:** Set `RightShoulder` z_index=0 (hidden), set `RightForearm` z_as_relative=false
+with z_index=4 (absolute, visible). Added `forearm_local_rot` to create elbow bend animation.
+
+**Problem introduced:** Z-index was applied to the WRONG node. The semantics are:
+- `RightShoulder` (position 24, 6) = the **outer/gun-side** arm segment — extends toward the weapon
+- `RightForearm` (position -2, 6 absolute) = the **inner/body-side** arm segment — overlaps the body
+
+Hiding the outer arm (shoulder at z=0) made the gun-side arm invisible, creating the visual
+appearance of a disconnected or missing arm.
+
+### Iteration 4 — Correct z-index assignment (current fix)
+
+**Fix:** Swap z-index values:
+- `RightShoulder` z_index=4: **visible** (outer/gun-side arm, extends toward weapon)
+- `RightForearm` z_as_relative=false, z_index=0: **hidden** behind body (inner/body-side arm, overlaps body)
 
 ---
 
 ## Root Cause Analysis
 
-### The Core Problem
+### The Core Confusion
 
-In `Scripts/Characters/Player.cs`, the `UpdateReloadAnimation()` method:
+The sprite naming creates a semantic trap:
+- **"RightShoulder"** sounds like the body-side piece (shoulder socket) → should be HIDDEN
+- **"RightForearm"** sounds like the far piece (gun-holding hand) → should be VISIBLE
 
-```csharp
-// _rightArmSprite = RightShoulder/RightForearm (child node, local offset (-26, 0))
-// _baseRightArmPos = Vector2.Zero  (was set to zero because "forearm follows parent")
+But in the actual scene layout:
+- `RightShoulder` is at position **(24, 6)** — **far from body center** (-4, 0), toward the gun
+- `RightForearm` is at absolute position **(-2, 6)** — **near body center**, overlapping the body
 
-rightArmTarget = _baseRightArmPos + ReloadArmRightHold;   // = (0,0) + (0,0) = (0,0)
-//   or...
-rightArmTarget = _baseRightArmPos + ReloadArmRightBoltPull; // = (0,0) + (-12,-4) = (-12,-4)
+The names describe the anatomical role of each sprite in the context of the original arm orientation
+(where the "shoulder" attaches at the body and the "forearm" extends outward), but since the player
+faces RIGHT in the default orientation:
+- The sprite at x=24 (far right) is the forearm/hand side
+- The sprite at x=-2 (near center) is the shoulder/elbow side
 
-// Then lerping the forearm's local position toward this target:
-_rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
+### Geometry
+
+Both sprites are 20x8 pixels (at scale 1.3 = 26x10.4 rendered):
+- `RightShoulder` center at (24, 6): spans x=11 to x=37 — **outside the body area, toward gun**
+- `RightForearm` center at (-2, 6): spans x=-15 to x=11 — **overlaps body, should be hidden**
+
+The body sprite is centered at (-4, 0) and extends to cover the shoulder/elbow area (x=-15 to x=6 approximately). This confirms that `RightForearm` (the body-side piece) should be hidden under the body, while `RightShoulder` (the gun-side piece) should remain visible.
+
+### Z-index Layout (Correct)
+
 ```
-
-The forearm starts at `(-26, 0)` in parent space (which is the correct elbow position).
-When lerped toward `(0, 0)` or `(-12, -4)`, it moves away from the shoulder joint,
-causing the visual separation.
-
-### Why The GDScript Version Was Fine
-
-The GDScript player (`scripts/characters/player.gd`) was updated correctly during the same PR:
-- Never touches `_right_forearm_sprite.position`
-- Only animates `_right_shoulder_sprite.position` (the parent)
-- The forearm inherits all position/rotation from the shoulder parent automatically
-
-The C# version was partially updated (correctly set `_baseRightArmPos = Vector2.Zero` and added
-comments about "forearm follows parent"), but the actual animation code that moves
-`_rightArmSprite.Position` was left untouched.
-
-### Why This Caused "Behind the Back" Appearance
-
-The `ReturnIdle` animation phase sets:
-```csharp
-rightArmTarget = _baseRightArmPos;  // = (0, 0)
+z=0 (hidden): RightForearm (body-side, overlaps body — hidden behind it)
+z=1:          Body
+z=3:          Head
+z=4:          RightShoulder (gun-side, visible in front), Weapon
+z=5:          Armband
 ```
-
-After a reload completes, the forearm lerps toward local position `(0, 0)` — which is the
-**shoulder sprite's own origin point**. In world space, this places the forearm at the shoulder's
-center, which visually appears as the forearm "collapsing" into the shoulder or appearing behind/
-inside the body.
 
 ---
 
-## Fix
+## Fix Summary
 
-**The fix is minimal**: remove all code that animates `_rightArmSprite.Position` and
-`_rightArmSprite.Rotation` in the C# `UpdateReloadAnimation()` method.
+### Scene files
 
-Since `_rightArmSprite` (`RightForearm`) is a **child** of `_leftArmSprite` (`RightShoulder`)
-in the scene tree, it automatically inherits all position, rotation, and scale transformations
-from the shoulder. No separate animation is needed or desired.
+- `scenes/characters/Player.tscn`
+- `scenes/characters/csharp/Player.tscn`
 
-The only thing that was still valid to set on `_rightArmSprite` was `ZIndex` (for layering during
-reload) — but since `ZIndex` on child nodes is relative to the parent when `z_as_relative = true`
-(Godot default), even this is inherited. The `ZIndex` manipulation can be kept on the left arm
-(shoulder) only.
+```
+RightShoulder: z_index=4  (was 0)
+RightForearm:  z_index=0, z_as_relative=false  (was z_index=4)
+```
 
-### Changed Lines in `Scripts/Characters/Player.cs`
+### Code files
 
-1. Remove `_rightArmSprite.ZIndex = 0` from `SetReloadAnimZIndex()` (lines 4086-4089)
-2. Remove `_rightArmSprite.Position`/`Rotation` lerp block from `UpdateReloadAnimation()` (lines 4232-4247)
-
-These changes align the C# behavior with the GDScript behavior and with the intent already
-documented in the comments ("forearm follows parent; no separate animation needed").
+- `scripts/characters/player.gd`: Set shoulder z_index=4 in init
+- `Scripts/Characters/Player.cs`: Set shoulder ZIndex=4 in init and `RestoreArmZIndex()`
 
 ---
 
 ## Prevention
 
-To prevent similar bugs in the future:
+1. **Naming vs geometry**: When z-index layering is determined by POSITION not just role, document
+   the actual screen position (e.g., "outer arm, x=24, toward gun") not just the anatomical name.
 
-1. **Code review** should check that when a node's parent changes (sibling→child), all animation
-   code referencing the child is also updated, not just initialization code.
+2. **Test z-index changes visually**: After changing z-index, verify in-game that all arm segments
+   appear correctly at idle AND during animations.
 
-2. **Comment the "why"** at animation call sites, not just at initialization. The initialization
-   code had correct comments ("forearm follows parent") but the animation code did not.
-
-3. **Consider removing unused references** — if `_rightArmSprite` should never be animated
-   directly, removing it (or making it clear it's read-only) would have prevented this.
+3. **Parent-child z-index with z_as_relative=false**: When using `z_as_relative=false` on a child
+   node, the z_index is absolute and independent of the parent. This means hiding the parent does NOT
+   hide the child. Always set z-index independently for each node that uses `z_as_relative=false`.
 
 ---
 
 ## Related Issues and PRs
 
-- Issue #1204 / PR #1205: The refactor that introduced this bug (arm hierarchy change)
-- Issue #448 / PR #449: Previous arm separation bug (different root cause — lerp divergence)
-- Issue #7: The original weapon system refactor request
+- Issue #1204 / PR #1205: The arm hierarchy refactor
+- Issue #448 / PR #449: Previous arm separation attempt (lerp divergence)
+- Issue #7: Original weapon system request
 
 ---
 
-## Logs and Data
+## Evidence
 
-- `bug_current.png` — Screenshot showing broken state (arm behind back)
-- `bug_expected.png` — Screenshot showing expected state (arm at side)
+- `bug_current.png` — Screenshot showing broken state (first iteration)
+- `bug_expected.png` — Screenshot showing expected state

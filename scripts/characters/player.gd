@@ -351,8 +351,8 @@ func _ready() -> void:
 	if _body_sprite:
 		_body_sprite.z_index = 1  # Body same level as weapon
 	if _right_shoulder_sprite:
-		_right_shoulder_sprite.z_index = 0  # Shoulder behind body (hidden under torso)
-	# RightForearm has z_as_relative=false in scene, so its z_index=4 is absolute (in front)
+		_right_shoulder_sprite.z_index = 4  # Shoulder visible (outer/gun-side arm segment)
+	# RightForearm has z_as_relative=false in scene, so its z_index=0 is absolute (hidden behind body)
 
 	# Note: Weapon pose detection is done in _process() after a few frames
 	# to ensure level scripts have finished adding weapons to the player.
