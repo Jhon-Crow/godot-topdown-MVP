@@ -4694,6 +4694,12 @@ const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
 ## Maximum charges per battle.
 const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
 
+## Preloaded icon popup script for the experimental sample (Issue #1127).
+const ExperimentalSampleItemPopupScript = preload("res://scripts/ui/experimental_sample_item_popup.gd")
+
+## Floating icon popup node shown above the player when an effect fires (Issue #1127).
+var _experimental_sample_popup: Node2D = null
+
 
 ## Initialize the experimental sample if the ActiveItemManager has it selected.
 func _init_experimental_sample() -> void:
@@ -4717,6 +4723,11 @@ func _init_experimental_sample() -> void:
 	FileLogger.info("[Player.ExperimentalSample] Equipped, charges this run: %d" % _experimental_sample_charges)
 	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
 	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
+
+	# Create floating item icon popup node (Issue #1127)
+	_experimental_sample_popup = ExperimentalSampleItemPopupScript.new()
+	_experimental_sample_popup.name = "ExperimentalSampleItemPopup"
+	add_child(_experimental_sample_popup)
 
 
 ## Handle experimental sample input: press Space to trigger a random active item effect.
@@ -4746,6 +4757,7 @@ func _handle_experimental_sample_input() -> void:
 	# or items that require equipment the player doesn't have), so every charge spend is meaningful.
 	const MAX_ATTEMPTS := 20
 	var effect_fired := false
+	var fired_type: int = -1
 	for attempt in range(MAX_ATTEMPTS):
 		var random_type: int = randi_range(1, 17)
 		FileLogger.info("[Player.ExperimentalSample] Charges remaining: %d — triggering random effect for type %d (attempt %d)" % [
@@ -4753,6 +4765,7 @@ func _handle_experimental_sample_input() -> void:
 		])
 		effect_fired = _trigger_experimental_sample_effect(random_type)
 		if effect_fired:
+			fired_type = random_type
 			break
 	if not effect_fired:
 		FileLogger.info("[Player.ExperimentalSample] All attempts yielded passive/skipped effects — homing fallback triggered")
@@ -4761,6 +4774,14 @@ func _handle_experimental_sample_input() -> void:
 		_play_homing_sound()
 		_start_homing_scanner()
 		homing_activated.emit()
+		fired_type = 2  # HOMING_BULLETS fallback
+
+	# Show floating icon popup for the triggered item (Issue #1127)
+	if fired_type >= 0 and _experimental_sample_popup and is_instance_valid(_experimental_sample_popup):
+		var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+		if active_item_manager and active_item_manager.has_method("get_active_item_icon_path"):
+			var icon_path: String = active_item_manager.get_active_item_icon_path(fired_type)
+			_experimental_sample_popup.show_icon(icon_path)
 
 
 ## Trigger the on-press effect of any active item type chosen by the experimental sample.
