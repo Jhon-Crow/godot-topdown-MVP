@@ -46,7 +46,7 @@ func _ready() -> void:
 	sound_button.tooltip_text = "Sound"
 	gameplay_button.tooltip_text = "Gameplay"
 	experimental_button.tooltip_text = "Experimental"
-	optimization_button.tooltip_text = "Optimization"
+	performance_button.tooltip_text = "Performance"
 
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
