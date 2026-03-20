@@ -6733,18 +6733,15 @@ public partial class Player : BaseCharacter
 
         LogToFile("[Player.Loudspeaker] Loudspeaker selected, initializing...");
 
-        // Load and instantiate the progress tracker
-        var progressScript = GD.Load<Script>("res://scripts/components/loudspeaker_progress.gd");
-        if (progressScript == null)
+        // Use the singleton LoudspeakerProgress from ActiveItemManager so progress persists
+        // across scene reloads and respawns (Issue #959 — Bug 1 fix for C# path).
+        var progressNode = activeItemManager.Get("loudspeaker_progress").AsGodotObject() as Node;
+        if (progressNode == null)
         {
-            LogToFile("[Player.Loudspeaker] WARNING: Failed to load loudspeaker_progress.gd");
+            LogToFile("[Player.Loudspeaker] WARNING: loudspeaker_progress singleton not found in ActiveItemManager");
             return;
         }
-
-        _loudspeakerProgress = new Node();
-        _loudspeakerProgress.SetScript(progressScript);
-        _loudspeakerProgress.Name = "LoudspeakerProgress";
-        AddChild(_loudspeakerProgress);
+        _loudspeakerProgress = progressNode;
 
         // Load and instantiate the cone visual effect
         var coneScript = GD.Load<Script>("res://scripts/effects/loudspeaker_cone_effect.gd");
@@ -6763,8 +6760,11 @@ public partial class Player : BaseCharacter
 
         _loudspeakerEquipped = true;
 
-        // Initialize charges for the current level (Issue #959)
-        _loudspeakerProgress.Call("reset_for_new_level");
+        // Reset per-run state (charges/cooldown/all_charges_used) on respawn.
+        // Do NOT call reset_for_new_level here — used_this_level must persist across
+        // deaths on the same map so the 100%/1-enemy first-use mechanic fires only once
+        // per level visit (Issue #959 — Bug 6 fix for C# path).
+        _loudspeakerProgress.Call("reset_for_respawn");
 
         // Create in-hand sprite shown during activation
         const string LoudspeakerTexturePath = "res://assets/sprites/weapons/loudspeaker_icon.png";
@@ -6786,7 +6786,204 @@ public partial class Player : BaseCharacter
 
         int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
         int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
-        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}");
+        int currentLevel = (int)_loudspeakerProgress.Get("current_level");
+        float effectChancePct = (float)_loudspeakerProgress.Call("get_effect_chance") * 100.0f;
+        bool usedThisLevelLog = (bool)_loudspeakerProgress.Get("used_this_level");
+        bool allChargesUsedLog = (bool)_loudspeakerProgress.Get("all_charges_used_this_level");
+        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, level: {currentLevel}, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}, effect: {effectChancePct:F0}%, used_this_level: {usedThisLevelLog}, all_charges_used: {allChargesUsedLog}");
+
+        // Apply level start states for levels 6 and 7 (Issue #959)
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (shouldStartWithPacifists || isVictoryState)
+            CallDeferred(MethodName.ApplyLoudspeakerLevelStartState);
+    }
+
+    /// <summary>
+    /// Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
+    /// Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
+    /// Level 7: ALL enemies start as pacifists; show victory message.
+    /// Called deferred from InitLoudspeaker so all enemy nodes are ready.
+    /// </summary>
+    private void ApplyLoudspeakerLevelStartState()
+    {
+        if (_loudspeakerProgress == null)
+            return;
+
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+            return;
+
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (isVictoryState)
+        {
+            // Level 7: ALL enemies become pacifists
+            LogToFile("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!");
+            foreach (var enemy in enemies)
+            {
+                if (enemy is Node enemyNode && enemyNode.HasMethod("apply_pacifism") && enemyNode.HasMethod("is_alive"))
+                {
+                    bool isAlive = (bool)enemyNode.Call("is_alive");
+                    if (isAlive)
+                        enemyNode.Call("apply_pacifism", 0.0f);
+                }
+            }
+            ShowLoudspeakerVictoryMessage();
+            return;
+        }
+
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        if (!shouldStartWithPacifists)
+            return;
+
+        // Level 6: 50% enemies start as pacifists; designate 1 as immune
+        var aliveEnemies = new Godot.Collections.Array<Node>();
+        foreach (var enemy in enemies)
+        {
+            if (enemy is Node enemyNode && enemyNode.HasMethod("is_alive"))
+            {
+                bool isAlive = (bool)enemyNode.Call("is_alive");
+                if (isAlive)
+                    aliveEnemies.Add(enemyNode);
+            }
+        }
+
+        // Pick 1 random immune enemy first (before pacifying others)
+        bool hasImmuneEnemy = (bool)_loudspeakerProgress.Call("has_immune_enemy");
+        if (aliveEnemies.Count > 0 && hasImmuneEnemy)
+        {
+            int immuneIdx = GD.RandRange(0, aliveEnemies.Count - 1);
+            var immuneEnemy = aliveEnemies[immuneIdx];
+            if (immuneEnemy.HasMethod("set_immune_to_pacifism"))
+            {
+                immuneEnemy.Call("set_immune_to_pacifism", true);
+                var posStr = immuneEnemy is Node2D n2d ? n2d.GlobalPosition.ToString() : "?";
+                LogToFile($"[Player.Loudspeaker] Level 6: enemy at {posStr} is immune to pacifism");
+            }
+            aliveEnemies.RemoveAt(immuneIdx);
+        }
+
+        // Pacify 50% of remaining enemies
+        aliveEnemies.Shuffle();
+        int pacifyCount = (int)(aliveEnemies.Count * 0.5f);
+        int pacified = 0;
+        for (int i = 0; i < pacifyCount; i++)
+        {
+            var enemy = aliveEnemies[i];
+            if (enemy.HasMethod("apply_pacifism"))
+            {
+                enemy.Call("apply_pacifism", 0.0f);
+                pacified++;
+            }
+        }
+        LogToFile($"[Player.Loudspeaker] Level 6: {pacified}/{aliveEnemies.Count + 1} enemies start as pacifists");
+    }
+
+    /// <summary>
+    /// Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerVictoryMessage()
+    {
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerVictoryCanvas";
+        canvas.Layer = 100;
+        AddChild(canvas);
+
+        // Victory message label
+        var label = new Label();
+        label.Text = "Нам нечего делить по этому мы не будем стрелять друг в друга.";
+        label.AddThemeFontSizeOverride("font_size", 36);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        label.SetAnchor(Side.Left, 0.0f);
+        label.SetAnchor(Side.Right, 1.0f);
+        label.SetAnchor(Side.Top, 0.3f);
+        label.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(label);
+
+        // "Click to continue" hint
+        var hint = new Label();
+        hint.Text = "[ нажмите, чтобы продолжить ]";
+        hint.AddThemeFontSizeOverride("font_size", 18);
+        hint.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f, 0.8f));
+        hint.HorizontalAlignment = HorizontalAlignment.Center;
+        hint.VerticalAlignment = VerticalAlignment.Center;
+        hint.SetAnchor(Side.Left, 0.0f);
+        hint.SetAnchor(Side.Right, 1.0f);
+        hint.SetAnchor(Side.Top, 0.65f);
+        hint.SetAnchor(Side.Bottom, 0.75f);
+        canvas.AddChild(hint);
+
+        // Invisible click-catcher panel
+        var panel = new ColorRect();
+        panel.Color = new Color(0, 0, 0, 0);
+        panel.SetAnchor(Side.Left, 0.0f);
+        panel.SetAnchor(Side.Right, 1.0f);
+        panel.SetAnchor(Side.Top, 0.0f);
+        panel.SetAnchor(Side.Bottom, 1.0f);
+        panel.MouseFilter = Control.MouseFilterEnum.Stop;
+        panel.GuiInput += (InputEvent ev) =>
+        {
+            if (ev is InputEventMouseButton mb && mb.Pressed)
+                ShowLoudspeakerEndScreen(canvas);
+        };
+        canvas.AddChild(panel);
+
+        LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
+    }
+
+    /// <summary>
+    /// Show end screen after player clicks on victory message (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerEndScreen(CanvasLayer victoryCanvas)
+    {
+        // Remove victory screen
+        if (Godot.GodotObject.IsInstanceValid(victoryCanvas))
+            victoryCanvas.QueueFree();
+
+        // Create end screen canvas
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerEndCanvas";
+        canvas.Layer = 101;
+        AddChild(canvas);
+
+        // Black background
+        var bg = new ColorRect();
+        bg.Color = new Color(0, 0, 0, 1);
+        bg.SetAnchor(Side.Left, 0.0f);
+        bg.SetAnchor(Side.Right, 1.0f);
+        bg.SetAnchor(Side.Top, 0.0f);
+        bg.SetAnchor(Side.Bottom, 1.0f);
+        canvas.AddChild(bg);
+
+        // "Конец" title
+        var title = new Label();
+        title.Text = "Конец";
+        title.AddThemeFontSizeOverride("font_size", 72);
+        title.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        title.VerticalAlignment = VerticalAlignment.Center;
+        title.SetAnchor(Side.Left, 0.0f);
+        title.SetAnchor(Side.Right, 1.0f);
+        title.SetAnchor(Side.Top, 0.2f);
+        title.SetAnchor(Side.Bottom, 0.45f);
+        canvas.AddChild(title);
+
+        // Thank you message
+        var thanks = new Label();
+        thanks.Text = "Спасибо за игру!";
+        thanks.AddThemeFontSizeOverride("font_size", 32);
+        thanks.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f, 1));
+        thanks.HorizontalAlignment = HorizontalAlignment.Center;
+        thanks.VerticalAlignment = VerticalAlignment.Center;
+        thanks.SetAnchor(Side.Left, 0.0f);
+        thanks.SetAnchor(Side.Right, 1.0f);
+        thanks.SetAnchor(Side.Top, 0.5f);
+        thanks.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(thanks);
+
+        LogToFile("[Player.Loudspeaker] End screen shown (Level 7)");
     }
 
     /// <summary>
@@ -6868,15 +7065,19 @@ public partial class Player : BaseCharacter
         if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
             _loudspeakerConeEffect.Call("play", aimDir);
 
-        // Effect chance: first use is always 100%, subsequent uses depend on level
-        float effectChance = isFirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+        // Effect chance: first use at level 1 is always 100% with max 1 enemy pacified.
+        // At level 2+ the regular chance applies even on first use (Issue #959 — Bug 4/5 fix).
+        int currentLevelForEffect = (int)_loudspeakerProgress.Get("current_level");
+        bool isLevel1FirstUse = isFirstUse && currentLevelForEffect == 1;
+        float effectChance = isLevel1FirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+        int maxPacify = isLevel1FirstUse ? 1 : int.MaxValue;
 
         // Notify all enemies on the map that a loud sound was made
         LoudspeakerAlertAllEnemies();
 
         // Apply pacifism effect to enemies in the cone sector
         float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
-        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
+        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance, maxPacify);
 
         int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
         int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
@@ -6926,7 +7127,7 @@ public partial class Player : BaseCharacter
     /// Rules: 50° half-angle cone, line-of-sight check, cover-within-500px exception,
     /// only unattacked enemies, effect_chance roll, hostility_chance roll per enemy.
     /// </summary>
-    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance)
+    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance, int maxPacify = int.MaxValue)
     {
         const float ConeHalfAngle = 0.872664625997f; // 50 degrees in radians
         const float CoverMaxDistance = 500.0f;
@@ -6938,6 +7139,9 @@ public partial class Player : BaseCharacter
 
         foreach (var enemy in enemies)
         {
+            if (pacifiedCount >= maxPacify)
+                break;
+
             if (!enemy.HasMethod("apply_pacifism"))
                 continue;
             if (!enemy.HasMethod("is_alive") || !(bool)enemy.Call("is_alive"))
