@@ -397,6 +397,8 @@ func _get_combo_color(combo: int) -> Color:
 
 
 ## Setup the navigation mesh for enemy pathfinding.
+## Issue #1216: Fixed baking — parse source geometry (walls, collision layer 4)
+## then bake synchronously so walls are excluded from the walkable area.
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -409,8 +411,9 @@ func _setup_navigation() -> void:
 		return
 
 	print("Baking navigation mesh...")
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, NavigationMeshSourceGeometryData2D.new())
-	nav_region.bake_navigation_polygon()
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 	print("Navigation mesh baked successfully")
 
 

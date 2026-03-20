@@ -648,6 +648,9 @@ func _spawn_player() -> void:
 ## Standard level setup
 ## ============================================================
 
+## Setup and bake the navigation mesh for enemy pathfinding.
+## Issue #1216: Parse source geometry (walls on collision layer 4) then bake
+## synchronously so walls are excluded from the walkable area.
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -660,6 +663,27 @@ func _setup_navigation() -> void:
 		nav_poly.agent_radius = 24.0
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
+
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		push_warning("[RoguelikeLevel] NavigationPolygon not found - enemy pathfinding will be limited")
+		return
+
+	# Define the walkable floor area outline for the room.
+	var floor_outline: PackedVector2Array = PackedVector2Array([
+		Vector2(0, 0),
+		Vector2(ROOM_WIDTH, 0),
+		Vector2(ROOM_WIDTH, ROOM_HEIGHT),
+		Vector2(0, ROOM_HEIGHT)
+	])
+	nav_poly.clear()
+	nav_poly.add_outline(floor_outline)
+
+	print("[RoguelikeLevel] Baking navigation mesh...")
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	print("[RoguelikeLevel] Navigation mesh baked successfully")
 
 
 func _setup_player_tracking() -> void:
