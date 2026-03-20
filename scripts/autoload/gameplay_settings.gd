@@ -13,6 +13,11 @@ signal settings_changed
 ## 0.0 = no blood, 1.0 = default, 2.0 = double, 3.0 = triple
 var blood_amount: float = 1.0
 
+## Whether wall hit dust particles are enabled (Issue #1145).
+## When enabled (default), a dust puff effect appears when bullets hit walls.
+## When disabled, no dust particles are spawned — improves FPS on low-end hardware.
+var wall_hit_particles_enabled: bool = true
+
 ## Settings file path for persistence.
 const SETTINGS_PATH: String = "user://gameplay_settings.cfg"
 
@@ -25,7 +30,7 @@ const MAX_BLOOD_AMOUNT: float = 3.0
 
 func _ready() -> void:
 	_load_settings()
-	_log_to_file("GameplaySettings initialized - blood_amount: %.2f" % blood_amount)
+	_log_to_file("GameplaySettings initialized - blood_amount: %.2f, wall_hit_particles: %s" % [blood_amount, wall_hit_particles_enabled])
 
 
 ## Sets the blood amount multiplier.
@@ -44,10 +49,26 @@ func get_blood_amount() -> float:
 	return blood_amount
 
 
+## Sets whether wall hit dust particles are enabled (Issue #1145).
+## @param enabled: true to show dust effects, false to skip them.
+func set_wall_hit_particles_enabled(enabled: bool) -> void:
+	if wall_hit_particles_enabled != enabled:
+		wall_hit_particles_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Wall hit particles %s" % ("enabled" if enabled else "disabled"))
+
+
+## Returns whether wall hit dust particles are enabled (Issue #1145).
+func is_wall_hit_particles_enabled() -> bool:
+	return wall_hit_particles_enabled
+
+
 ## Saves settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
 	config.set_value("gameplay", "blood_amount", blood_amount)
+	config.set_value("gameplay", "wall_hit_particles_enabled", wall_hit_particles_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("GameplaySettings: Failed to save settings: " + str(error))
@@ -60,8 +81,10 @@ func _load_settings() -> void:
 	if error == OK:
 		blood_amount = config.get_value("gameplay", "blood_amount", 1.0)
 		blood_amount = clamp(blood_amount, MIN_BLOOD_AMOUNT, MAX_BLOOD_AMOUNT)
+		wall_hit_particles_enabled = config.get_value("gameplay", "wall_hit_particles_enabled", true)
 	else:
 		blood_amount = 1.0
+		wall_hit_particles_enabled = true
 
 
 ## Logs a message via FileLogger if available.
