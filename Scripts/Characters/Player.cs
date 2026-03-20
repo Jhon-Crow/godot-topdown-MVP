@@ -1197,6 +1197,9 @@ public partial class Player : BaseCharacter
         // Initialize armored skin if active item manager has it selected (Issue #1045)
         InitArmoredSkin();
 
+        // Apply item-specific player visual based on the equipped passive item (Issue #1142)
+        ApplyItemVisual();
+
         // Initialize loudspeaker if active item manager has it selected (Issue #959)
         InitLoudspeaker();
 
@@ -6655,6 +6658,73 @@ public partial class Player : BaseCharacter
 
         _armoredSkinActive = true;
         LogToFile("[Player.ArmoredSkin] Armored skin active — shards will spawn when HP ≤2 and hit");
+    }
+
+    /// <summary>
+    /// Apply a passive visual effect to the player based on the currently equipped active item (Issue #1142).
+    /// This is the single entry point for all item-specific player visuals.
+    /// Add a new case here when a future item needs a visual effect.
+    /// Called once from Ready() after all Init*() functions have run.
+    /// </summary>
+    private void ApplyItemVisual()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            return;
+        }
+
+        int itemType = (int)activeItemManager.Get("current_active_item");
+
+        // Check for ARMORED_SKIN — crystal/glass armor overlay (Issue #1142).
+        if (activeItemManager.HasMethod("has_armored_skin") && (bool)activeItemManager.Call("has_armored_skin"))
+        {
+            ApplyArmoredSkinVisual();
+        }
+
+        LogToFile($"[Player.ItemVisual] Visual applied for item type: {itemType}");
+    }
+
+    /// <summary>
+    /// Apply the glassy armor shader to all player body sprites (Issue #1142).
+    /// Gives the player the same transparent crystal/glass armor appearance as enemies with Armored Skin.
+    /// </summary>
+    private void ApplyArmoredSkinVisual()
+    {
+        const string ArmorShaderPath = "res://scripts/shaders/armored_skin.gdshader";
+
+        if (!ResourceLoader.Exists(ArmorShaderPath))
+        {
+            LogToFile($"[Player.ArmoredSkin] WARNING: Shader not found: {ArmorShaderPath}");
+            return;
+        }
+
+        var shader = GD.Load<Godot.Shader>(ArmorShaderPath);
+        if (shader == null)
+        {
+            LogToFile("[Player.ArmoredSkin] WARNING: Failed to load armor shader");
+            return;
+        }
+
+        if (_playerModel == null)
+        {
+            LogToFile("[Player.ArmoredSkin] WARNING: _playerModel is null, skipping visual");
+            return;
+        }
+
+        int appliedCount = 0;
+        foreach (var child in _playerModel.GetChildren())
+        {
+            if (child is Sprite2D sprite)
+            {
+                var mat = new ShaderMaterial();
+                mat.Shader = shader;
+                sprite.Material = mat;
+                appliedCount++;
+            }
+        }
+
+        LogToFile($"[Player.ArmoredSkin] Armor shader applied to {appliedCount} sprites");
     }
 
     /// <summary>

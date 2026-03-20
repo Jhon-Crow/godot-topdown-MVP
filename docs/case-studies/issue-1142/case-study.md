@@ -164,11 +164,78 @@ resources keyed by `ActiveItemType`.
 
 ## Proposed Solution
 
-Add `_apply_item_visual()` as the central dispatcher for player item visuals, and call it once
-during `_ready()`.  The function uses a `match` block on `current_active_item` so every item
-has one clearly-labelled visual entry point.
+Add `ApplyItemVisual()` as the central dispatcher for player item visuals, called once during
+`Ready()` in `Player.cs`.  The function checks `has_armored_skin()` on `ActiveItemManager` and
+delegates to `ApplyArmoredSkinVisual()` for the crystal/glass armor overlay.
 
-Armored Skin is the first item wired into this system; subsequent items (e.g. a future "Burning
-Rounds" that tints the player orange) are added with one `match` branch.
+Armored Skin is the first item wired into this system; subsequent items add one check here.
 
 See the implementation diff in the pull request for PR #1179.
+
+---
+
+## Bug Report: Visual Not Working (2026-03-20)
+
+### Owner Comment
+
+> «не работает» (it doesn't work)
+
+The owner tested the game with Armored Skin equipped and the crystal armor visual did not appear.
+They also requested that build info (branch, commit, date) be added to the game log.
+
+### Log File Analysis
+
+**File:** `game_log_20260320_072454.txt` — downloaded from GitHub issue comment attachment.
+
+**Key observations:**
+
+1. **Log line at 07:24:54 (line 169):**
+   ```
+   [Player.ArmoredSkin] Armored skin active — shards will spawn when HP ≤2 and hit
+   ```
+   This matches **`Player.cs` line 6657** (C# code), not the GDScript `player.gd`.
+
+2. **No `[Player.ItemVisual]` log line anywhere in the log.** Our implementation of
+   `_apply_item_visual()` lives in `player.gd` (GDScript) and logs
+   `[Player.ItemVisual] Visual applied for item type: …` — its complete absence proves the
+   GDScript function was never called.
+
+3. **C# player confirmed:** Line 186 in the log:
+   ```
+   [LabyrinthLevel] MiniUzi already equipped by C# Player — skipping GDScript weapon swap
+   ```
+   The game uses `scenes/characters/csharp/Player.tscn` which is driven by `Scripts/Characters/Player.cs`,
+   **not** by `scripts/characters/player.gd`.
+
+### Root Cause
+
+**The visual dispatcher was implemented in the wrong script.**
+
+`scripts/characters/player.gd` (GDScript) is used only by the legacy GDScript player scene
+(`scenes/characters/Player.tscn`). The actual game uses the C# player
+(`scenes/characters/csharp/Player.tscn` → `Scripts/Characters/Player.cs`).
+
+All previous armored skin commits correctly modified `Player.cs` for the mechanics (shard spawning,
+HP bonus). The visual dispatch code was mistakenly added only to `player.gd`, so the C# player
+never called `ApplyArmoredSkinVisual()`.
+
+### Timeline
+
+| Time | Event |
+|------|-------|
+| 2026-03-18 | First PR draft: visual added to `player.gd` (GDScript) |
+| 2026-03-20 04:10 | Second session: dispatcher added to `player.gd` (GDScript) — still wrong file |
+| 2026-03-20 07:24 | Owner tests release build — visual missing, log attached |
+| 2026-03-20 | Root cause identified: C# player (`Player.cs`) needs the fix |
+
+### Fix Applied
+
+Added `ApplyItemVisual()` and `ApplyArmoredSkinVisual()` to `Scripts/Characters/Player.cs`:
+- `ApplyItemVisual()` — calls `ApplyArmoredSkinVisual()` when `has_armored_skin()` is true
+- `ApplyArmoredSkinVisual()` — loads `armored_skin.gdshader` and applies it as a `ShaderMaterial`
+  to all `Sprite2D` children of `_playerModel`
+- Called from `Ready()` after `InitArmoredSkin()`
+
+Also added build info logging to `file_logger.gd`:
+- Reads `res://build_info.cfg` (branch, commit, date) and logs it in the game log header
+- `build_info.cfg` is updated on each commit/push so every exported build is traceable
