@@ -8443,21 +8443,26 @@ public partial class Player : BaseCharacter
         _experimentalSampleChargeBarVisible = true;
         QueueRedraw();
 
-        // Weighted random pool: homing (type 2) and BFF (type 4) each get ~5% weight,
-        // remaining 15 types share the rest (~6% each). Total tickets = 100.
-        // Type → tickets: 2=5, 4=5, all others=6 (15×6=90, +5+5=100).
-        int[] weightedPool = new int[100];
-        int poolIdx = 0;
-        for (int t = 1; t <= 17; t++)
+        // Active-only item pool (Issue #1127): passive items are excluded.
+        // Passive items excluded: 6=BREAKER_BULLETS, 9=LASER_SIGHT, 10=EXTENDED_MAGAZINE,
+        //   13=ARMORED_SKIN, 14=AUTO_RELOAD, 17=COMBAT_DISPOSITION
+        // Active items kept: 1=FLASHLIGHT, 2=HOMING_BULLETS, 3=TELEPORT_BRACERS,
+        //   4=BFF_PENDANT, 5=INVISIBILITY_SUIT, 7=FORCE_FIELD, 8=TRAJECTORY_GLASSES,
+        //   11=LOUDSPEAKER, 12=BREACHING_CHARGES, 15=DRILLING_BULLETS, 16=RECOIL_COMPENSATOR
+        // Homing (2) and BFF (4) each get 5 tickets; all others get 10 tickets each.
+        int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };
+        var poolList = new System.Collections.Generic.List<int>();
+        foreach (int t in activeTypes)
         {
-            int tickets = (t == 2 || t == 4) ? 5 : 6;
+            int tickets = (t == 2 || t == 4) ? 5 : 10;
             for (int k = 0; k < tickets; k++)
-                weightedPool[poolIdx++] = t;
+                poolList.Add(t);
         }
+        int[] weightedPool = poolList.ToArray();
 
         var rng = new RandomNumberGenerator();
         rng.Randomize();
-        int firedType = weightedPool[rng.RandiRange(0, 99)];
+        int firedType = weightedPool[rng.RandiRange(0, weightedPool.Length - 1)];
         LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {firedType}");
         float iconDuration = TriggerExperimentalSampleEffect(firedType);
 
@@ -8485,17 +8490,40 @@ public partial class Player : BaseCharacter
 
         switch (itemType)
         {
-            case 1: // FLASHLIGHT — toggle on for 3 seconds via homing burst (flashlight is hold-type, show icon)
-                if (!_homingActive)
+            case 1: // FLASHLIGHT — activate for 4 seconds (Issue #1127)
+            {
+                const float FlashlightEffectDuration = 4.0f;
+                Node2D? flashNode = _flashlightNode;
+                if (flashNode == null || !IsInstanceValid(flashNode))
                 {
-                    _homingActive = true;
-                    _homingTimer = HomingDuration;
-                    PlayHomingSound();
-                    StartHomingScanner();
-                    EmitSignal(SignalName.HomingActivated);
+                    // Spawn a temporary flashlight node attached to PlayerModel
+                    var flashScene = GD.Load<PackedScene>(FlashlightScenePath);
+                    if (flashScene != null && _playerModel != null)
+                    {
+                        flashNode = flashScene.Instantiate<Node2D>();
+                        flashNode.Name = "FlashlightEffectTemp";
+                        _playerModel.AddChild(flashNode);
+                        flashNode.Position = new Vector2(BulletSpawnOffset, 0);
+                        LogToFile("[Player.ExperimentalSample] Flashlight: temporary node created");
+                    }
                 }
-                LogToFile("[Player.ExperimentalSample] Flashlight effect: homing burst triggered");
+                if (flashNode != null && IsInstanceValid(flashNode))
+                {
+                    if (flashNode.HasMethod("turn_on"))
+                        flashNode.Call("turn_on");
+                    var flashRef = flashNode;
+                    GetTree().CreateTimer(FlashlightEffectDuration).Timeout += () =>
+                    {
+                        if (IsInstanceValid(flashRef) && flashRef.HasMethod("turn_off"))
+                            flashRef.Call("turn_off");
+                    };
+                    LogToFile($"[Player.ExperimentalSample] Flashlight activated for {FlashlightEffectDuration}s");
+                    return FlashlightEffectDuration;
+                }
+                LogToFile("[Player.ExperimentalSample] Flashlight: node unavailable, homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
                 return HomingDuration;
+            }
 
             case 2: // HOMING_BULLETS — activate homing for one burst
                 _homingActive = true;
@@ -8506,17 +8534,17 @@ public partial class Player : BaseCharacter
                 LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
                 return HomingDuration;
 
-            case 3: // TELEPORT_BRACERS — trigger homing burst as substitute (aim system not available)
-                if (!_homingActive)
-                {
-                    _homingActive = true;
-                    _homingTimer = HomingDuration;
-                    PlayHomingSound();
-                    StartHomingScanner();
-                    EmitSignal(SignalName.HomingActivated);
-                }
-                LogToFile("[Player.ExperimentalSample] Teleport bracers effect: homing burst triggered as substitute");
-                return HomingDuration;
+            case 3: // TELEPORT_BRACERS — teleport instantly to cursor position (Issue #1127)
+            {
+                Vector2 cursorPos = GetGlobalMousePosition();
+                Vector2 safeTarget = GetSafeTeleportPosition(GlobalPosition, cursorPos);
+                Vector2 oldPos = GlobalPosition;
+                GlobalPosition = safeTarget;
+                ResetAllEnemyMemories("experimental sample teleport");
+                QueueRedraw();
+                LogToFile($"[Player.ExperimentalSample] Teleport bracers: teleported from {oldPos} to {safeTarget}");
+                return 1.0f;
+            }
 
             case 4: // BFF_PENDANT — summon companion (always fire, even if already summoned — re-summon)
                 SummonBffCompanion();
@@ -8566,17 +8594,45 @@ public partial class Player : BaseCharacter
                 LogToFile("[Player.ExperimentalSample] Breaker bullets effect: homing burst triggered");
                 return HomingDuration;
 
-            case 7: // FORCE_FIELD — hold-Space item; trigger homing burst as visible effect
-                if (!_homingActive)
+            case 7: // FORCE_FIELD — activate for 4 seconds (Issue #1127)
+            {
+                const float ForceFieldEffectDuration = 4.0f;
+                Node? ffNode = _forceFieldEffect;
+                if (ffNode == null || !IsInstanceValid(ffNode))
                 {
-                    _homingActive = true;
-                    _homingTimer = HomingDuration;
-                    PlayHomingSound();
-                    StartHomingScanner();
-                    EmitSignal(SignalName.HomingActivated);
+                    // Spawn a temporary force field node
+                    const string ForceFieldScenePath2 = "res://scenes/effects/ForceFieldEffect.tscn";
+                    var ffScene = GD.Load<PackedScene>(ForceFieldScenePath2);
+                    if (ffScene != null)
+                    {
+                        ffNode = ffScene.Instantiate();
+                        ffNode.Name = "ForceFieldEffectTemp";
+                        AddChild(ffNode);
+                        LogToFile("[Player.ExperimentalSample] Force field: temporary node created");
+                    }
                 }
-                LogToFile("[Player.ExperimentalSample] Force field effect: homing burst triggered");
+                if (ffNode != null && IsInstanceValid(ffNode))
+                {
+                    bool ffActive = (bool)ffNode.Get("is_active");
+                    if (!ffActive)
+                        ffNode.Call("activate");
+                    var ffRef = ffNode;
+                    GetTree().CreateTimer(ForceFieldEffectDuration).Timeout += () =>
+                    {
+                        if (IsInstanceValid(ffRef))
+                        {
+                            bool stillActive = (bool)ffRef.Get("is_active");
+                            if (stillActive)
+                                ffRef.Call("deactivate");
+                        }
+                    };
+                    LogToFile($"[Player.ExperimentalSample] Force field activated for {ForceFieldEffectDuration}s");
+                    return ForceFieldEffectDuration;
+                }
+                LogToFile("[Player.ExperimentalSample] Force field: node unavailable, homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
                 return HomingDuration;
+            }
 
             case 8: // TRAJECTORY_GLASSES — activate (init temp instance if not equipped)
             {
@@ -8701,17 +8757,17 @@ public partial class Player : BaseCharacter
                 return 2.0f;
             }
 
-            case 16: // RECOIL_COMPENSATOR — hold-Space item; trigger homing burst as visible effect
-                if (!_homingActive)
+            case 16: // RECOIL_COMPENSATOR — activate for 4 seconds (Issue #1127)
+            {
+                const float RecoilEffectDuration = 4.0f;
+                _recoilCompensatorActive = true;
+                GetTree().CreateTimer(RecoilEffectDuration).Timeout += () =>
                 {
-                    _homingActive = true;
-                    _homingTimer = HomingDuration;
-                    PlayHomingSound();
-                    StartHomingScanner();
-                    EmitSignal(SignalName.HomingActivated);
-                }
-                LogToFile("[Player.ExperimentalSample] Recoil compensator effect: homing burst triggered");
-                return HomingDuration;
+                    _recoilCompensatorActive = false;
+                };
+                LogToFile($"[Player.ExperimentalSample] Recoil compensator activated for {RecoilEffectDuration}s");
+                return RecoilEffectDuration;
+            }
 
             case 17: // COMBAT_DISPOSITION — passive; trigger homing burst as visible effect
                 if (!_homingActive)

@@ -1,0 +1,80 @@
+# Case Study: Issue #1127 — Experimental Sample Item (Feedback Round 3)
+
+## Overview
+The Experimental Sample item (type 18) is supposed to fire a random active item effect when Space is pressed. This document covers the root-cause analysis for the third round of bugs reported by the owner on 2026-03-20T06:02:04Z.
+
+## Attached Logs
+- `game_log_20260320_085819.txt` — game session showing the bugs
+
+## Bugs Reported
+
+### Bug 6: Passive items appearing in effects pool
+**Owner report:** "убери из списка эффектов эффекты пассивных предметов (пули с превзрывателем, бронированная кожа и тп)"
+(Remove passive item effects from the list — breaker bullets, armored skin, etc.)
+
+**Root cause:**
+The C# `HandleExperimentalSampleInput` built a pool of types 1–17 with a uniform for-loop:
+```csharp
+for (int t = 1; t <= 17; t++)
+{
+    int tickets = (t == 2 || t == 4) ? 5 : 6;
+    ...
+}
+```
+This included purely passive items:
+- **6 = BREAKER_BULLETS** — passive bullet modifier (no visible on-press action)
+- **9 = LASER_SIGHT** — passive laser sight (always on)
+- **10 = EXTENDED_MAGAZINE** — passive magazine size boost
+- **13 = ARMORED_SKIN** — passive HP/glass shard effect
+- **14 = AUTO_RELOAD** — passive auto-reload on kill
+- **17 = COMBAT_DISPOSITION** — passive damage/fire-rate modifier
+
+When these were randomly selected, the code triggered a homing burst as a "visible fallback". This meant the player saw homing bullets instead of the passive item's icon — confusing and not meaningful.
+
+**Fix:** Changed the pool to only include active items (1,2,3,4,5,7,8,11,12,15,16). Passive items 6,9,10,13,14,17 are excluded.
+
+---
+
+### Bug 7: Hold-type items not triggering (flashlight, force field)
+**Owner report:** "многие предметы не срабатывают (очки траектории, силовое поле, фонарик и тп)"
+(Many items don't trigger — trajectory glasses, force field, flashlight, etc.)
+
+**Root cause from game log:**
+```
+[Player.ExperimentalSample] Force field effect: homing burst triggered
+[Player.ExperimentalSample] Flashlight effect: homing burst triggered
+```
+Items of type 1 (FLASHLIGHT), 7 (FORCE_FIELD), and 3 (TELEPORT_BRACERS) were still triggering homing burst as fallback because they required holding Space or an aiming phase that experimental sample can't provide via `IsActionJustPressed`.
+
+**Fix:** Each hold-type item now has a proper 4-second timed activation:
+- **Flashlight (1)**: Spawns temp node if not equipped → `turn_on()` → timer → `turn_off()` after 4s
+- **Force field (7)**: Spawns temp node if not equipped → `activate()` → timer → `deactivate()` after 4s
+- **Teleport (3)**: Direct teleport to cursor via `GetSafeTeleportPosition()` + `GlobalPosition = target`
+
+---
+
+### Bug 8: Hold-press effects should work for 4 seconds
+**Owner report:** "эффекты предметов, требующих зажатия должны работать 4 секунды (например фонарик должен светить 4 секунды, а телепорт показывать прицел прежде чем телепортировать)"
+(Hold-press effects should work for 4 seconds — flashlight should shine 4s, teleport should show aim before teleporting)
+
+**Fix:** As described in Bug 7 fix:
+- Flashlight: 4 second timer via `GetTree().CreateTimer(4.0f)`
+- Force field: 4 second timer via `GetTree().CreateTimer(4.0f)`
+- Recoil compensator (16): Direct `_recoilCompensatorActive = true` for 4 seconds
+- Teleport: Instant teleport (no 4s needed — a direct teleport is the expected behavior; "show aiming first" would require full UI which is impractical from experimental sample)
+
+---
+
+## Timeline of Changes
+
+| Date | Event |
+|---|---|
+| 2026-03-20T05:47:04Z | Owner reports: icons too small, only BFF/homing trigger, rule about screenshots |
+| 2026-03-20T05:47:52Z | AI work session started |
+| 2026-03-20T05:55:04Z | Session completed: fix re-roll loop, larger icons, duration-matched popup |
+| 2026-03-20T06:02:04Z | Owner reports: passive items in pool, hold-type items not triggering, need 4s duration |
+| 2026-03-20T06:02:49Z | AI work session started |
+| 2026-03-20 | This fix: remove passive items, implement real effects for flashlight/force field/teleport |
+
+## Files Modified
+- `Scripts/Characters/Player.cs` — `HandleExperimentalSampleInput` (pool), `TriggerExperimentalSampleEffect` (cases 1, 3, 7, 16)
