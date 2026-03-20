@@ -2430,21 +2430,18 @@ func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / r
 	if _pacifist and _pacifist.is_retaliating():  ## Issue #959: pursue+shoot attacker; stay PACIFIST
 		var tgt: Node2D = _pacifist.attacker if _pacifist.attacker != null else _player
 		if tgt == null: velocity = Vector2.ZERO; return
-		# Use navmesh to route around walls toward attacker (Issue #1188)
-		if global_position.distance_to(tgt.global_position) > 80.0:
-			if not _move_to_target_nav(tgt.global_position, combat_move_speed):
-				velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed
-		else:
-			velocity = Vector2.ZERO
+		# Use navmesh to route around walls toward attacker; wall-avoidance fallback (Issue #1188)
+		if global_position.distance_to(tgt.global_position) > 80.0 and not _move_to_target_nav(tgt.global_position, combat_move_speed):
+			velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed
+		elif global_position.distance_to(tgt.global_position) <= 80.0: velocity = Vector2.ZERO
 		if _shoot_timer >= shoot_cooldown and _can_shoot() and (tgt.global_position - global_position).normalized().dot(_get_weapon_forward_direction()) > AIM_TOLERANCE_DOT: _shoot()
 		return
 	if not _has_valid_cover: _find_cover_position()
 	if not _has_valid_cover: velocity = Vector2.ZERO; return
-	# Use navmesh to navigate to cover without wall-rubbing (Issue #1188)
-	if global_position.distance_to(_cover_position) > 20.0:
-		if not _move_to_target_nav(_cover_position, move_speed):
-			velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
-	else: velocity = Vector2.ZERO
+	# Use navmesh to navigate to cover without wall-rubbing; wall-avoidance fallback (Issue #1188)
+	if global_position.distance_to(_cover_position) > 20.0 and not _move_to_target_nav(_cover_position, move_speed):
+		velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
+	elif global_position.distance_to(_cover_position) <= 20.0: velocity = Vector2.ZERO
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
@@ -3226,42 +3223,23 @@ func _find_pursuit_cover_toward_player() -> void:
 	else:
 		_has_pursuit_cover = false
 
-## Check if there's a navigable path to a position using the navmesh (Issue #1188).
-## NavigationServer2D closest-point check handles corners that a single raycast misses.
+## Check if a position is reachable via navmesh (Issue #1188). Handles corners that a raycast misses.
 func _can_reach_position(target: Vector2) -> bool:
 	var world_2d := get_world_2d()
-	if world_2d == null:
-		return true  # Fail-open
-
-	# Primary check: use navmesh to verify the target point is on the walkable area.
-	# A target near (within 50px of) a navmesh point is considered reachable.
+	if world_2d == null: return true  # Fail-open
+	# Primary: navmesh closest-point check — target is reachable if it's within 50px of walkable area
 	var nav_map := world_2d.navigation_map
 	if nav_map.is_valid():
-		var closest := NavigationServer2D.map_get_closest_point(nav_map, target)
-		if target.distance_to(closest) < 50.0:
-			return true
-		# Target is too far from navmesh — unreachable
-		return false
-
-	# Fallback: single raycast (straight-line only, misses corners — kept as fallback)
+		return NavigationServer2D.map_get_closest_point(nav_map, target).distance_to(target) < 50.0
+	# Fallback: single raycast (straight-line only, misses corners)
 	var space_state := world_2d.direct_space_state
-	if space_state == null:
-		return true  # Fail-open
-
+	if space_state == null: return true  # Fail-open
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position
-	query.to = target
-	query.collision_mask = 4  # Obstacles only (layer 3)
-	query.exclude = [get_rid()]
-
+	query.from = global_position; query.to = target
+	query.collision_mask = 4; query.exclude = [get_rid()]  # Obstacles only (layer 3)
 	var result := space_state.intersect_ray(query)
-	if result.is_empty():
-		return true  # No obstacle in the way
-
-	# Check if obstacle is beyond the target position (acceptable)
-	var hit_distance := global_position.distance_to(result["position"])
-	var target_distance := global_position.distance_to(target)
-	return hit_distance >= target_distance - 10.0  # 10 pixel tolerance
+	if result.is_empty(): return true
+	return global_position.distance_to(result["position"]) >= global_position.distance_to(target) - 10.0
 
 ## Find cover position closest to the player for assault positioning.
 func _find_cover_closest_to_player() -> void:
