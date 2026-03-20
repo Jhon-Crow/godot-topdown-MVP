@@ -130,7 +130,6 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
 var _original_hit_area_mask: int = 0
 var _overlapping_casings: Array[RigidBody2D] = []  ## Casings in CasingPusher (Issue #438)
-
 var _walk_anim_time: float = 0.0  ## Walking animation accumulator
 var _is_walking: bool = false  ## Currently walking (for anim)
 var _target_model_rotation: float = 0.0  ## Target rotation for smooth interpolation
@@ -196,7 +195,6 @@ var _cover_position: Vector2 = Vector2.ZERO  ## Cover position
 var _has_valid_cover: bool = false  ## Has valid cover
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
-
 var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
 var _threat_sphere: Area2D = null  ## Threat sphere Area2D for detecting nearby bullets
 var _bullets_in_threat_sphere: Array = []  ## Bullets currently in threat sphere
@@ -206,7 +204,6 @@ var _threat_memory_timer: float = 0.0  ## Memory timer for bullets that passed t
 const THREAT_MEMORY_DURATION: float = 0.5  ## Duration to remember bullet passage
 var _retreat_mode: RetreatMode = RetreatMode.FULL_HP  ## Current retreat mode determined by damage taken
 var _hits_taken_in_encounter: int = 0  ## Hits taken this encounter, resets on IDLE or retreat completion
-
 var _retreat_turn_timer: float = 0.0  ## Periodic cover turn timer
 const RETREAT_TURN_DURATION: float = 0.8  ## Duration to face cover (sec)
 const RETREAT_TURN_INTERVAL: float = 1.5  ## Turn interval (sec)
@@ -310,7 +307,6 @@ const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const SOUND_CASING_KICK_CONFIDENCE: float = 0.5  ## Issue #693: Casing kick - lower than reload
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
-
 const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Intel range with LOS (px)
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Intel range without LOS (px)
 var _intel_share_timer: float = 0.0; const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
@@ -322,7 +318,6 @@ const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally d
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
 var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
 var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
-
 var _killed_by_ricochet: bool = false  ## [Score] Killed by ricochet
 var _killed_by_penetration: bool = false  ## [Score] Killed by penetration
 
