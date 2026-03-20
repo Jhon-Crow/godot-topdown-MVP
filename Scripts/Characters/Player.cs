@@ -657,6 +657,13 @@ public partial class Player : BaseCharacter
     private Vector2 _teleportTargetPosition = Vector2.Zero;
 
     /// <summary>
+    /// When true, teleport is being aimed via Experimental Sample effect.
+    /// HandleTeleportBracersInput must skip its own logic while this is active
+    /// to avoid instantly executing the teleport on the next frame (Space not held).
+    /// </summary>
+    private bool _teleportExperimentalActive = false;
+
+    /// <summary>
     /// Player collision radius for teleport safety checks (matches Player.tscn CircleShape2D).
     /// </summary>
     private const float PlayerCollisionRadius = 16.0f;
@@ -879,6 +886,12 @@ public partial class Player : BaseCharacter
 
     /// <summary>Maximum charge duration in seconds.</summary>
     private const float RecoilCompensatorMaxCharge = 15.0f;
+
+    /// <summary>
+    /// When > 0, the recoil compensator is active via Experimental Sample (does not require Space held).
+    /// Counts down each frame and deactivates when it reaches 0.
+    /// </summary>
+    private float _recoilCompensatorExperimentalTimer = 0.0f;
 
     // Experimental Sample fields (Issue #1127)
     /// <summary>Whether the experimental sample is equipped (active item selected in armory).</summary>
@@ -4595,6 +4608,18 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Experimental Sample is managing the teleport aim phase — skip normal input handling
+        if (_teleportExperimentalActive)
+        {
+            // Still update target position so the reticle tracks the cursor
+            if (_teleportAiming)
+            {
+                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
+                QueueRedraw();
+            }
+            return;
+        }
+
         if (Input.IsActionPressed("flashlight_toggle"))
         {
             // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
@@ -7303,12 +7328,49 @@ public partial class Player : BaseCharacter
     private void HandleRecoilCompensatorInput(float delta)
     {
         if (!_recoilCompensatorEquipped)
+        {
+            // Tick the experimental-sample timer even when not normally equipped
+            if (_recoilCompensatorExperimentalTimer > 0.0f)
+            {
+                _recoilCompensatorExperimentalTimer -= delta;
+                if (_recoilCompensatorExperimentalTimer <= 0.0f)
+                {
+                    _recoilCompensatorExperimentalTimer = 0.0f;
+                    _recoilCompensatorActive = false;
+                    _recoilCompensatorEquipped = false;
+                    _recoilCompensatorCharge = 0.0f;
+                    QueueRedraw();
+                    LogToFile("[Player.RecoilCompensator] Experimental effect expired");
+                }
+            }
             return;
+        }
 
         // Fire rate boost: accelerate weapon fire timer by 10% while active
         if (_recoilCompensatorActive && CurrentWeapon != null)
         {
             CurrentWeapon.AccelerateFireTimer(delta * 0.1f);
+        }
+
+        // If active via experimental sample, tick that timer (ignores hold-key requirement)
+        if (_recoilCompensatorExperimentalTimer > 0.0f)
+        {
+            _recoilCompensatorExperimentalTimer -= delta;
+            if (_recoilCompensatorExperimentalTimer <= 0.0f)
+            {
+                _recoilCompensatorExperimentalTimer = 0.0f;
+                _recoilCompensatorActive = false;
+                _recoilCompensatorCharge = 0.0f;
+                QueueRedraw();
+                LogToFile("[Player.RecoilCompensator] Experimental effect expired");
+            }
+            else
+            {
+                // Keep active for fire-rate boost; don't consume the normal charge
+                if (_recoilCompensatorActive && CurrentWeapon != null)
+                    CurrentWeapon.AccelerateFireTimer(delta * 0.1f);
+            }
+            return;
         }
 
         if (Input.IsActionPressed("flashlight_toggle") && _recoilCompensatorCharge > 0.0f)
@@ -8449,12 +8511,12 @@ public partial class Player : BaseCharacter
         // Active items kept: 1=FLASHLIGHT, 2=HOMING_BULLETS, 3=TELEPORT_BRACERS,
         //   4=BFF_PENDANT, 5=INVISIBILITY_SUIT, 7=FORCE_FIELD, 8=TRAJECTORY_GLASSES,
         //   11=LOUDSPEAKER, 12=BREACHING_CHARGES, 15=DRILLING_BULLETS, 16=RECOIL_COMPENSATOR
-        // Homing (2) and BFF (4) each get 5 tickets; all others get 10 tickets each.
+        // Homing (2): 5 tickets (~5%); BFF (4): 2 tickets (~2%); all others: 10 tickets each.
         int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };
         var poolList = new System.Collections.Generic.List<int>();
         foreach (int t in activeTypes)
         {
-            int tickets = (t == 2 || t == 4) ? 5 : 10;
+            int tickets = t == 4 ? 2 : (t == 2 ? 5 : 10);
             for (int k = 0; k < tickets; k++)
                 poolList.Add(t);
         }
@@ -8537,17 +8599,19 @@ public partial class Player : BaseCharacter
             case 3: // TELEPORT_BRACERS — show crosshair for 4s then teleport (Issue #1127)
             {
                 const float TeleportAimDuration = 4.0f;
-                // Show the teleport reticle by borrowing the teleport bracers aim state
-                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
+                // Borrow teleport bracers aim state; _teleportExperimentalActive prevents
+                // HandleTeleportBracersInput from firing the teleport on the next frame.
                 bool wasEquipped = _teleportBracersEquipped;
-                bool wasAiming = _teleportAiming;
                 _teleportBracersEquipped = true;
                 _teleportAiming = true;
+                _teleportExperimentalActive = true;
+                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
                 QueueRedraw();
-                LogToFile($"[Player.ExperimentalSample] Teleport bracers: aiming for {TeleportAimDuration}s, target={_teleportTargetPosition}");
+                LogToFile($"[Player.ExperimentalSample] Teleport bracers: aiming for {TeleportAimDuration}s");
                 GetTree().CreateTimer(TeleportAimDuration).Timeout += () =>
                 {
                     if (!IsInstanceValid(this)) return;
+                    _teleportExperimentalActive = false;
                     _teleportAiming = false;
                     _teleportBracersEquipped = wasEquipped;
                     Vector2 oldPos = GlobalPosition;
@@ -8742,6 +8806,31 @@ public partial class Player : BaseCharacter
             case 11: // LOUDSPEAKER — apply pacification effect (always, without checking equipped)
             {
                 Vector2 aimDir = LoudspeakerGetAimDirection();
+                // Show cone visual (needs the cone effect node; create temp one if needed)
+                if (_loudspeakerConeEffect == null || !IsInstanceValid(_loudspeakerConeEffect))
+                {
+                    var coneScript = GD.Load<Script>("res://scripts/effects/loudspeaker_cone_effect.gd");
+                    if (coneScript != null)
+                    {
+                        var tempCone = new Node2D();
+                        tempCone.SetScript(coneScript);
+                        tempCone.Name = "LoudspeakerConeEffectTemp";
+                        AddChild(tempCone);
+                        _loudspeakerConeEffect = tempCone;
+                        LogToFile("[Player.ExperimentalSample] Loudspeaker: temporary cone effect node created");
+                        // Auto-cleanup after animation completes (approx 1 s)
+                        GetTree().CreateTimer(1.5f).Timeout += () =>
+                        {
+                            if (_loudspeakerConeEffect == tempCone)
+                                _loudspeakerConeEffect = null;
+                            if (IsInstanceValid(tempCone)) tempCone.QueueFree();
+                        };
+                    }
+                }
+                if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
+                    _loudspeakerConeEffect.Call("play", aimDir);
+                // Alert all enemies (draw attention) and pacify those in the cone
+                LoudspeakerAlertAllEnemies();
                 LoudspeakerApplyEffect(aimDir, 1.0f, 0.0f);
                 LogToFile("[Player.ExperimentalSample] Loudspeaker effect applied via experimental sample");
                 return 2.0f;
@@ -8780,9 +8869,10 @@ public partial class Player : BaseCharacter
                     bool placed = (bool)bcEffect.Call("try_place_charge");
                     if (placed)
                     {
-                        LogToFile("[Player.ExperimentalSample] Breaching charges: charge placed, detonating after 1s");
+                        const float BreachingDetonateDelay = 4.0f;
+                        LogToFile($"[Player.ExperimentalSample] Breaching charges: charge placed, detonating after {BreachingDetonateDelay}s");
                         var bcRef = bcEffect;
-                        GetTree().CreateTimer(1.0f).Timeout += () =>
+                        GetTree().CreateTimer(BreachingDetonateDelay).Timeout += () =>
                         {
                             if (IsInstanceValid(bcRef))
                             {
@@ -8791,7 +8881,7 @@ public partial class Player : BaseCharacter
                             }
                             if (bcTempCreated && IsInstanceValid(bcRef)) bcRef.QueueFree();
                         };
-                        return 2.0f;
+                        return BreachingDetonateDelay;
                     }
                     if (bcTempCreated && IsInstanceValid(bcEffect)) bcEffect.QueueFree();
                 }
@@ -8853,20 +8943,12 @@ public partial class Player : BaseCharacter
             case 16: // RECOIL_COMPENSATOR — activate for 4 seconds (Issue #1127)
             {
                 const float RecoilEffectDuration = 4.0f;
-                bool rcWasEquipped = _recoilCompensatorEquipped;
-                // Temporarily mark as equipped so IsRecoilCompensatorActive() returns true
+                // Use experimental timer: HandleRecoilCompensatorInput ticks it each frame
+                // so the effect stays active for the full 4 s without needing Space held.
                 _recoilCompensatorEquipped = true;
                 _recoilCompensatorActive = true;
-                _recoilCompensatorCharge = RecoilEffectDuration;
+                _recoilCompensatorExperimentalTimer = RecoilEffectDuration;
                 QueueRedraw();
-                GetTree().CreateTimer(RecoilEffectDuration).Timeout += () =>
-                {
-                    if (!IsInstanceValid(this)) return;
-                    _recoilCompensatorActive = false;
-                    _recoilCompensatorEquipped = rcWasEquipped;
-                    _recoilCompensatorCharge = 0.0f;
-                    QueueRedraw();
-                };
                 LogToFile($"[Player.ExperimentalSample] Recoil compensator activated for {RecoilEffectDuration}s");
                 return RecoilEffectDuration;
             }

@@ -143,3 +143,88 @@ The effect node was created but stored as a *local variable* `effectNode`, not i
 ## Files Modified (Round 4)
 - `Scripts/Characters/Player.cs` — `TriggerExperimentalSampleEffect` (cases 3, 8, 12, 16)
 - `docs/case-studies/issue-1127/game_log_20260320_094410.txt` — added log
+
+---
+
+# Case Study: Issue #1127 — Experimental Sample (Feedback Round 4)
+
+**Date:** 2026-03-20T07:12:17Z
+**Log:** `game_log_20260320_100804.txt`
+
+## Bugs Reported
+
+### Bug 13: Recoil compensator deactivates immediately
+
+**Owner report:** "не работает - компенсатор отдачи"
+
+**Root cause:**
+`HandleRecoilCompensatorInput` checks `Input.IsActionPressed("flashlight_toggle")` every frame.
+When the experimental sample activates recoil via `IsActionJustPressed`, Space is no longer held
+the very next frame → `else` branch sets `_recoilCompensatorActive = false` immediately.
+
+**Log evidence:**
+```
+[Player.ExperimentalSample] Recoil compensator activated for 4s
+[Player.RecoilCompensator] Deactivated, charge: 3,97 s   ← next frame
+```
+
+**Fix:** Added `_recoilCompensatorExperimentalTimer` field. When set, `HandleRecoilCompensatorInput`
+ticks this timer each frame and keeps `_recoilCompensatorActive = true` for the full 4 s
+without requiring Space to be held.
+
+---
+
+### Bug 14: Loudspeaker has no visual/sound effect
+
+**Owner report:** "не работает - громкоговоритель"
+
+**Root cause:**
+Case 11 only called `LoudspeakerApplyEffect()` (pacification logic) but did NOT:
+- Call `LoudspeakerAlertAllEnemies()` (enemy awareness)
+- Play the cone visual (`_loudspeakerConeEffect.play()`)
+
+**Fix:** Case 11 now:
+1. Creates a temporary cone effect node if `_loudspeakerConeEffect` is null
+2. Calls `play(aimDir)` on the cone node
+3. Calls `LoudspeakerAlertAllEnemies()` before applying the pacification effect
+
+---
+
+### Bug 15: Breaching charges explode after 1 second (should be 4 seconds)
+
+**Owner report:** "пробивной заряд должен закладываться и взрываться через 4 секунды"
+
+**Root cause:** Timer in case 12 used a 1.0f constant.
+
+**Fix:** Changed delay to `BreachingDetonateDelay = 4.0f` seconds.
+
+---
+
+### Bug 16: Teleport crosshair shows briefly then teleports immediately
+
+**Owner report:** "прицел телепорта отображается, но не 4 секунды а гораздо меньше"
+
+**Root cause:**
+When the experimental sample fires case 3, it sets `_teleportBracersEquipped = true` and
+`_teleportAiming = true`. But `HandleTeleportBracersInput` runs every `_PhysicsProcess` frame.
+Since Space was only just-pressed (not held), the `else if (_teleportAiming)` branch fires
+on the very next frame and executes `ExecuteTeleport()` immediately.
+
+**Fix:** Added `_teleportExperimentalActive` boolean flag. While true:
+- `HandleTeleportBracersInput` returns early (does NOT execute teleport)
+- The target position is still updated each frame so the reticle tracks the cursor
+The timer callback sets `_teleportExperimentalActive = false` then teleports.
+
+---
+
+### Bug 17: BFF should be even rarer
+
+**Owner report:** "сделай чтоб BFF выпадал ещё реже"
+
+**Root cause:** BFF had 5 tickets (~5%) in the weighted pool.
+
+**Fix:** Reduced BFF (type 4) from 5 → 2 tickets (~2%). Pool totals:
+- BFF (4): 2 tickets ≈ 2%
+- Homing (2): 5 tickets ≈ 5%
+- All 9 other active types: 10 tickets each ≈ 10%
+- Total: 2 + 5 + 90 = 97 tickets
