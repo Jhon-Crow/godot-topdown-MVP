@@ -526,9 +526,17 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	# Bake navmesh with walls (collision layer 4) carved out — Issue #1188
-	# call_deferred ensures StaticBody2D nodes are fully registered before baking
-	nav_region.bake_navigation_polygon.call_deferred(false)
+	# Bake navmesh after one physics frame so StaticBody2D shapes are registered
+	# with PhysicsServer2D — Issue #1188
+	_bake_navmesh_after_physics_frame(nav_region)
+
+
+## Bake navigation polygon after one physics frame to ensure all StaticBody2D
+## collision shapes are fully registered — Issue #1188.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+	await get_tree().physics_frame
+	if is_instance_valid(nav_region):
+		nav_region.bake_navigation_polygon(false)
 
 
 ## Setup tracking for the player.

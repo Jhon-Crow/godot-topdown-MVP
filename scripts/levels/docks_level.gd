@@ -176,7 +176,15 @@ func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region:
 		nav_region.navigation_polygon.agent_radius = 24.0
-		nav_region.bake_navigation_polygon.call_deferred(false)
+		_bake_navmesh_after_physics_frame(nav_region)
+
+
+## Bake navigation polygon after one physics frame to ensure all StaticBody2D
+## collision shapes are fully registered — Issue #1188.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+	await get_tree().physics_frame
+	if is_instance_valid(nav_region):
+		nav_region.bake_navigation_polygon(false)
 
 
 ## Configures camera limits to allow free movement across the entire Docks map.

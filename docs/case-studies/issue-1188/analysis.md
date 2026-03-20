@@ -254,3 +254,74 @@ func _setup_navigation() -> void:
 - `scripts/levels/revolver_level.gd` — removed clear()+add_outline()
 - `scripts/levels/test_tier.gd` — removed clear()+add_outline()
 - `docs/case-studies/issue-1188/game_log_20260320_090955.txt` — owner's session 4 game log
+
+---
+
+## Session 5 — Physics Frame Timing Fix (2026-03-20)
+
+### Owner Feedback (after Session 4)
+
+> "1. навмеш всё ещё не отображается (сверься с main)"
+> "2. противники всё ещё идут в стену"
+> (1. navmesh still not displaying. 2. enemies still walk into walls.)
+
+Screenshot: navmesh overlay shows **nothing** (not even a flat rectangle — unlike main).
+Game log saved: `docs/case-studies/issue-1188/logs/game_log_20260320_095119.txt`
+
+Key evidence from game log:
+- `PATROL STUCK: pos=(1200, 1601.992) for 1.5s` — Enemy10 stuck against a wall
+- `PATROL STUCK: pos=(1611.34, 898.8737) for 1.5s` — Enemy7 stuck against a wall
+- Repeated corner-check events at 89.9° — enemy hitting right-angle wall repeatedly
+
+### Root Cause: `call_deferred` Does NOT Guarantee Physics Registration
+
+Session 4's assumption was wrong. `call_deferred` schedules work at **idle time** — the end of the current frame's idle processing. However, in Godot 4's engine architecture:
+
+- `StaticBody2D` nodes register their collision shapes with `PhysicsServer2D` during `_enter_tree()` ✅
+- But `PhysicsServer2D` only **processes** these registrations (making them queryable) at **physics frame boundaries** (60Hz, every 16.7ms) ⚠️
+- `call_deferred` runs in the SAME frame as `_ready()` — the first idle period — BEFORE the first physics frame processes ⚠️
+- So `bake_navigation_polygon` runs, queries `PhysicsServer2D`, finds NO registered geometry, and produces 0 polygons
+
+After baking 0 polygons, `bake_navigation_polygon` clears the polygon AND the outlines (via an internal `clear()` call). This means:
+- `get_polygon_count()` = 0 → baked data unavailable
+- `get_outline_count()` = 0 → fallback also unavailable
+- Overlay shows **nothing** (compared to main's approach of showing the flat rectangle from the original outlines that were NOT cleared)
+
+### Fix: `await get_tree().physics_frame`
+
+Replaced `call_deferred` with an async function that waits for one physics frame:
+
+```gdscript
+## Bake navigation polygon after one physics frame to ensure all StaticBody2D
+## collision shapes are fully registered — Issue #1188.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+    await get_tree().physics_frame
+    if is_instance_valid(nav_region):
+        nav_region.bake_navigation_polygon(false)
+```
+
+`get_tree().physics_frame` is a signal that fires **after each physics step completes**. Awaiting it guarantees:
+1. All `_ready()` callbacks have run
+2. One full physics step has completed
+3. All `StaticBody2D` collision shapes are fully registered and queryable by `PhysicsServer2D`
+4. The navmesh bake correctly finds and carves all wall shapes
+
+### Files Updated (Session 5)
+
+All 13 level scripts updated to use `_bake_navmesh_after_physics_frame()` instead of `call_deferred`:
+- `scripts/levels/arena_level.gd`
+- `scripts/levels/beach_level.gd`
+- `scripts/levels/building_level.gd`
+- `scripts/levels/castle_level.gd`
+- `scripts/levels/city_level.gd`
+- `scripts/levels/decadence_level.gd`
+- `scripts/levels/docks_level.gd`
+- `scripts/levels/factory_level.gd`
+- `scripts/levels/labyrinth2_level.gd`
+- `scripts/levels/labyrinth_level.gd`
+- `scripts/levels/revolver_level.gd`
+- `scripts/levels/roguelike_level.gd`
+- `scripts/levels/test_tier.gd`
+- `scripts/autoload/nav_mesh_monitor.gd` — timer extended from 0.2s to 0.5s
+- `docs/case-studies/issue-1188/logs/game_log_20260320_095119.txt` — owner's session 5 game log
+- `docs/case-studies/issue-1188/screenshots/navmesh_session5.png` — owner's session 5 screenshot

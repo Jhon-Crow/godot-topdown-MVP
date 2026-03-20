@@ -408,11 +408,17 @@ func _setup_navigation() -> void:
 		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
 		return
 
-	print("Scheduling deferred navigation mesh bake...")
-	# call_deferred ensures StaticBody2D nodes are fully registered before baking —
-	# all StaticBody2D obstacles on parsed_collision_mask (layer 4) — Issue #1188
-	nav_region.bake_navigation_polygon.call_deferred(false)
-	print("Navigation mesh bake scheduled (deferred)")
+	# Bake navmesh after one physics frame so StaticBody2D shapes are registered
+	# with PhysicsServer2D — Issue #1188
+	_bake_navmesh_after_physics_frame(nav_region)
+
+
+## Bake navigation polygon after one physics frame to ensure all StaticBody2D
+## collision shapes are fully registered — Issue #1188.
+func _bake_navmesh_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+	await get_tree().physics_frame
+	if is_instance_valid(nav_region):
+		nav_region.bake_navigation_polygon(false)
 
 
 ## Setup enemy tracking and connect death signals.
