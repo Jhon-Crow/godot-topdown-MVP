@@ -351,8 +351,8 @@ func _ready() -> void:
 	if _body_sprite:
 		_body_sprite.z_index = 1  # Body same level as weapon
 	if _right_shoulder_sprite:
-		_right_shoulder_sprite.z_index = 4  # Shoulder above head (in front)
-	# RightForearm inherits z_index from parent RightShoulder automatically
+		_right_shoulder_sprite.z_index = 0  # Shoulder behind body (hidden under torso)
+	# RightForearm has z_as_relative=false in scene, so its z_index=4 is absolute (in front)
 
 	# Note: Weapon pose detection is done in _process() after a few frames
 	# to ensure level scripts have finished adding weapons to the player.
@@ -2262,48 +2262,55 @@ func _update_grenade_animation(delta: float) -> void:
 		progress = clampf(1.0 - (_grenade_anim_timer / _grenade_anim_duration), 0.0, 1.0)
 
 	# Calculate target position for the shoulder.
-	# RightForearm is a child of RightShoulder and follows the shoulder automatically —
-	# no separate forearm animation needed. This eliminates the elbow-separation bug.
+	# RightForearm is a child of RightShoulder — we animate shoulder for world movement,
+	# and forearm local rotation for elbow bend (forearm_local_rot = forearm_world_rot - shoulder_rot).
 	var shoulder_target := _base_left_arm_pos
 	var shoulder_rot := 0.0
+	var forearm_local_rot := 0.0  # Forearm rotation relative to shoulder (elbow bend)
 	var lerp_speed := ANIM_LERP_SPEED * delta
 
 	match _grenade_anim_phase:
 		GrenadeAnimPhase.GRAB_GRENADE:
-			# Arm pulls back to chest area to grab grenade
+			# Arm pulls back to chest area to grab grenade; forearm stays straight
 			shoulder_target = _base_left_arm_pos + ARM_LEFT_CHEST
 			shoulder_rot = deg_to_rad(ARM_ROT_GRAB)
+			forearm_local_rot = deg_to_rad(0.0 - ARM_ROT_GRAB)  # forearm world=0 → local = -shoulder
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		GrenadeAnimPhase.PULL_PIN:
-			# Arm at chest level to pull pin
+			# Arm at chest level to pull pin; forearm angled slightly for pin pull
 			shoulder_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
 			shoulder_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
+			forearm_local_rot = deg_to_rad(ARM_ROT_PIN_PULL - ARM_ROT_LEFT_AT_CHEST)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		GrenadeAnimPhase.HANDS_APPROACH:
 			# Arm at chest level, preparing to throw
 			shoulder_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
 			shoulder_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
+			forearm_local_rot = deg_to_rad(0.0 - ARM_ROT_LEFT_AT_CHEST)  # forearm world=0
 
 		GrenadeAnimPhase.TRANSFER:
 			# Arm drops back toward body, grenade in hand
 			shoulder_target = _base_left_arm_pos + ARM_LEFT_TRANSFER
 			shoulder_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED * 0.5)
+			forearm_local_rot = deg_to_rad(0.0 - ARM_ROT_LEFT_RELAXED * 0.5)
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 		GrenadeAnimPhase.WIND_UP:
-			# Arm fully winds up for throw; intensity controls how far back
+			# Arm fully winds up for throw; intensity controls how far back; no elbow bend
 			var wind_up_offset := ARM_RIGHT_WIND_MIN.lerp(ARM_RIGHT_WIND_MAX, _wind_up_intensity)
 			shoulder_target = _base_left_arm_pos + wind_up_offset
 			var wind_up_rot := lerpf(ARM_ROT_WIND_MIN, ARM_ROT_WIND_MAX, _wind_up_intensity)
 			shoulder_rot = deg_to_rad(wind_up_rot)
+			forearm_local_rot = 0.0  # Arm straight during wind-up
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta  # Responsive to input
 
 		GrenadeAnimPhase.THROW:
-			# Throwing motion — arm swings forward
+			# Throwing motion — arm swings forward; forearm follows through
 			shoulder_target = _base_left_arm_pos + ARM_RIGHT_THROW
 			shoulder_rot = deg_to_rad(ARM_ROT_THROW)
+			forearm_local_rot = 0.0  # Arm straight during throw
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 			# When throw animation completes, transition to return
@@ -2313,6 +2320,7 @@ func _update_grenade_animation(delta: float) -> void:
 		GrenadeAnimPhase.RETURN_IDLE:
 			# Arm returning to base position (back to holding weapon)
 			shoulder_target = _base_left_arm_pos
+			forearm_local_rot = 0.0
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 			# When return animation completes, end animation
@@ -2322,10 +2330,12 @@ func _update_grenade_animation(delta: float) -> void:
 				FileLogger.info("[Player.Grenade.Anim] Animation complete, returning to normal")
 
 	# Apply shoulder position with smooth interpolation.
-	# RightForearm is a child of RightShoulder and follows automatically — no separate animation.
+	# Apply forearm local rotation for elbow bend effect.
 	if _right_shoulder_sprite:
 		_right_shoulder_sprite.position = _right_shoulder_sprite.position.lerp(shoulder_target, lerp_speed)
 		_right_shoulder_sprite.rotation = lerpf(_right_shoulder_sprite.rotation, shoulder_rot, lerp_speed)
+	if _right_forearm_sprite:
+		_right_forearm_sprite.rotation = lerpf(_right_forearm_sprite.rotation, forearm_local_rot, lerp_speed)
 
 	# Update weapon sling animation
 	_update_weapon_sling(delta)
@@ -2431,29 +2441,34 @@ func _update_reload_animation(delta: float) -> void:
 	if _reload_anim_duration > 0:
 		progress = clampf(1.0 - (_reload_anim_timer / _reload_anim_duration), 0.0, 1.0)
 
-	# Calculate target position for the shoulder only.
-	# RightForearm is a child of RightShoulder and follows automatically — no separate animation.
+	# Calculate target position for the shoulder.
+	# RightForearm local rotation creates the elbow bend effect.
+	# forearm_local_rot = forearm_world_rot - shoulder_rot
 	var shoulder_target := _base_left_arm_pos
 	var shoulder_rot := 0.0
+	var forearm_local_rot := 0.0  # Forearm rotation relative to shoulder (elbow bend)
 	var lerp_speed := ANIM_LERP_SPEED * delta
 
 	match _reload_anim_phase:
 		ReloadAnimPhase.GRAB_MAGAZINE:
-			# Step 1: Arm pulls back to chest/vest to grab magazine
+			# Step 1: Arm pulls back to chest/vest; forearm stays at world-horizontal
 			shoulder_target = _base_left_arm_pos + RELOAD_ARM_LEFT_GRAB
 			shoulder_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_GRAB)
+			forearm_local_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_HOLD - RELOAD_ARM_ROT_LEFT_GRAB)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		ReloadAnimPhase.INSERT_MAGAZINE:
-			# Step 2: Arm moves forward to weapon magwell to insert magazine
+			# Step 2: Arm moves forward to weapon magwell
 			shoulder_target = _base_left_arm_pos + RELOAD_ARM_LEFT_INSERT
 			shoulder_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_INSERT)
+			forearm_local_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_STEADY - RELOAD_ARM_ROT_LEFT_INSERT)
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 		ReloadAnimPhase.PULL_BOLT:
-			# Step 3: Arm moves to support weapon while bolt is pulled
+			# Step 3: Arm supports weapon; forearm pulls bolt
 			shoulder_target = _base_left_arm_pos + RELOAD_ARM_LEFT_SUPPORT
 			shoulder_rot = deg_to_rad(RELOAD_ARM_ROT_LEFT_SUPPORT)
+			forearm_local_rot = deg_to_rad(RELOAD_ARM_ROT_RIGHT_BOLT - RELOAD_ARM_ROT_LEFT_SUPPORT)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 			# When bolt pull animation completes, transition to return idle
@@ -2463,6 +2478,7 @@ func _update_reload_animation(delta: float) -> void:
 		ReloadAnimPhase.RETURN_IDLE:
 			# Arm returning to normal weapon-holding position
 			shoulder_target = _base_left_arm_pos
+			forearm_local_rot = 0.0
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 			# When return animation completes, end animation
@@ -2470,11 +2486,12 @@ func _update_reload_animation(delta: float) -> void:
 				_reload_anim_phase = ReloadAnimPhase.NONE
 				FileLogger.info("[Player.Reload.Anim] Reload animation complete, returning to normal")
 
-	# Apply shoulder position with smooth interpolation.
-	# RightForearm is a child of RightShoulder and follows automatically — no separate animation.
+	# Apply shoulder position and forearm local rotation with smooth interpolation.
 	if _right_shoulder_sprite:
 		_right_shoulder_sprite.position = _right_shoulder_sprite.position.lerp(shoulder_target, lerp_speed)
 		_right_shoulder_sprite.rotation = lerpf(_right_shoulder_sprite.rotation, shoulder_rot, lerp_speed)
+	if _right_forearm_sprite:
+		_right_forearm_sprite.rotation = lerpf(_right_forearm_sprite.rotation, forearm_local_rot, lerp_speed)
 
 
 # ============================================================================

@@ -1143,8 +1143,8 @@ public partial class Player : BaseCharacter
         }
         if (_leftArmSprite != null)
         {
-            _leftArmSprite.ZIndex = 4;  // Shoulder above head (in front)
-            // RightForearm inherits z_index from parent RightShoulder automatically
+            _leftArmSprite.ZIndex = 0;  // Shoulder behind body (hidden under torso)
+            // RightForearm has z_as_relative=false in scene, so its z_index=4 is absolute (in front)
         }
 
         // Connect to GameManager's debug mode signal for F7 toggle
@@ -3855,10 +3855,11 @@ public partial class Player : BaseCharacter
             progress = Mathf.Clamp(1.0f - (_grenadeAnimTimer / _grenadeAnimDuration), 0.0f, 1.0f);
         }
 
-        // Calculate target position for the shoulder only.
-        // RightForearm is a child of RightShoulder and follows automatically — no separate animation.
+        // Calculate target position for the shoulder.
+        // RightForearm local rotation creates elbow bend: forearm_local_rot = forearm_world_rot - shoulder_rot.
         Vector2 shoulderTarget = _baseLeftArmPos;
         float shoulderRot = 0.0f;
+        float forearmLocalRot = 0.0f;  // Forearm rotation relative to shoulder (elbow bend)
         float lerpSpeed = AnimLerpSpeed * delta;
 
         // Set arm to lower z-index during grenade operations (below weapon)
@@ -3867,45 +3868,51 @@ public partial class Player : BaseCharacter
         switch (_grenadeAnimPhase)
         {
             case GrenadeAnimPhase.GrabGrenade:
-                // Arm pulls back to chest area to grab grenade
+                // Arm pulls back to chest area; forearm stays at world-horizontal
                 shoulderTarget = _baseLeftArmPos + ArmLeftChest;
                 shoulderRot = Mathf.DegToRad(ArmRotGrab);
+                forearmLocalRot = Mathf.DegToRad(0.0f - ArmRotGrab);  // forearm world=0 → local = -shoulder
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case GrenadeAnimPhase.PullPin:
-                // Arm at chest level to pull pin
+                // Arm at chest level; forearm angled for pin pull
                 shoulderTarget = _baseLeftArmPos + ArmLeftExtended;
                 shoulderRot = Mathf.DegToRad(ArmRotLeftAtChest);
+                forearmLocalRot = Mathf.DegToRad(ArmRotPinPull - ArmRotLeftAtChest);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case GrenadeAnimPhase.HandsApproach:
-                // Arm at chest level, preparing to throw
+                // Arm at chest level, preparing to throw; forearm stays at world-horizontal
                 shoulderTarget = _baseLeftArmPos + ArmLeftExtended;
                 shoulderRot = Mathf.DegToRad(ArmRotLeftAtChest);
+                forearmLocalRot = Mathf.DegToRad(0.0f - ArmRotLeftAtChest);
                 break;
 
             case GrenadeAnimPhase.Transfer:
-                // Arm drops back toward body, grenade in hand
+                // Arm drops back toward body; forearm stays at world-horizontal
                 shoulderTarget = _baseLeftArmPos + ArmLeftTransfer;
                 shoulderRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f);
+                forearmLocalRot = Mathf.DegToRad(0.0f - ArmRotLeftRelaxed * 0.5f);
                 lerpSpeed = AnimLerpSpeed * delta;
                 break;
 
             case GrenadeAnimPhase.WindUp:
-                // Arm winds up for throw; intensity controls how far back
+                // Arm winds up for throw; arm stays straight during wind-up
                 Vector2 windUpOffset = ArmRightWindMin.Lerp(ArmRightWindMax, _windUpIntensity);
                 shoulderTarget = _baseLeftArmPos + windUpOffset;
                 float windUpRot = Mathf.Lerp(ArmRotWindMin, ArmRotWindMax, _windUpIntensity);
                 shoulderRot = Mathf.DegToRad(windUpRot);
+                forearmLocalRot = 0.0f;  // Arm straight during wind-up
                 lerpSpeed = AnimLerpSpeedFast * delta; // Responsive to input
                 break;
 
             case GrenadeAnimPhase.Throw:
-                // Throwing motion — arm swings forward
+                // Throwing motion — arm swings forward; arm straight during throw
                 shoulderTarget = _baseLeftArmPos + ArmRightThrow;
                 shoulderRot = Mathf.DegToRad(ArmRotThrow);
+                forearmLocalRot = 0.0f;  // Arm straight during throw
                 lerpSpeed = AnimLerpSpeedFast * delta;
 
                 // When throw animation completes, transition to return
@@ -3918,6 +3925,7 @@ public partial class Player : BaseCharacter
             case GrenadeAnimPhase.ReturnIdle:
                 // Arm returning to base position (back to holding weapon)
                 shoulderTarget = _baseLeftArmPos;
+                forearmLocalRot = 0.0f;
                 lerpSpeed = AnimLerpSpeed * delta;
 
                 // When return animation completes, end animation
@@ -3931,12 +3939,15 @@ public partial class Player : BaseCharacter
                 break;
         }
 
-        // Apply shoulder position with smooth interpolation.
-        // RightForearm is a child of RightShoulder and follows automatically — no separate animation.
+        // Apply shoulder position and forearm local rotation with smooth interpolation.
         if (_leftArmSprite != null)
         {
             _leftArmSprite.Position = _leftArmSprite.Position.Lerp(shoulderTarget, lerpSpeed);
             _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, shoulderRot, lerpSpeed);
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, forearmLocalRot, lerpSpeed);
         }
 
         // Update weapon sling animation
@@ -3957,14 +3968,15 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Restore normal arm z-index (arm above weapon for normal aiming).
+    /// Restore normal arm z-index (shoulder behind body, forearm in front via absolute z).
     /// </summary>
     private void RestoreArmZIndex()
     {
-        // Normal state: shoulder at z_index 4 (in front, above head)
+        // Normal state: shoulder at z_index 0 (behind body z=1)
+        // RightForearm has z_as_relative=false with z_index=4, so it stays in front regardless
         if (_leftArmSprite != null)
         {
-            _leftArmSprite.ZIndex = 4;
+            _leftArmSprite.ZIndex = 0;
         }
     }
 
@@ -4108,10 +4120,11 @@ public partial class Player : BaseCharacter
             _reloadAnimTimer -= delta;
         }
 
-        // Calculate target positions for the shoulder (left arm sprite) only.
-        // RightForearm is a child of RightShoulder and follows automatically — no separate animation.
+        // Calculate target positions for the shoulder (left arm sprite).
+        // Forearm local rotation creates elbow bend: forearm_local_rot = forearm_world_rot - shoulder_rot.
         Vector2 leftArmTarget = _baseLeftArmPos;
         float leftArmRot = 0.0f;
+        float forearmLocalRot = 0.0f;  // Forearm rotation relative to shoulder (elbow bend)
         float lerpSpeed = AnimLerpSpeed * delta;
 
         // Set arms to lower z-index during reload operations (BELOW weapon)
@@ -4121,28 +4134,29 @@ public partial class Player : BaseCharacter
         switch (_reloadAnimPhase)
         {
             case ReloadAnimPhase.GrabMagazine:
-                // Step 1: Left arm moves to chest to grab new magazine
+                // Step 1: Left arm moves to chest to grab new magazine; forearm stays at world-horizontal
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftGrab;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftGrab);
+                forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightHold - ReloadArmRotLeftGrab);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case ReloadAnimPhase.InsertMagazine:
-                // Step 2: Left arm brings magazine to weapon magwell (at middle of weapon)
-                // User feedback: "step 2 should end at middle of weapon length, not at the end"
+                // Step 2: Left arm brings magazine to weapon magwell
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftInsert;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftInsert);
+                forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightSteady - ReloadArmRotLeftInsert);
                 lerpSpeed = AnimLerpSpeed * delta;
                 break;
 
             case ReloadAnimPhase.PullBolt:
                 // Step 3: Shoulder shifts to support position while bolt is pulled.
-                // The forearm (child node) follows the shoulder automatically.
                 leftArmTarget = _baseLeftArmPos + ReloadArmLeftSupport;
                 leftArmRot = Mathf.DegToRad(ReloadArmRotLeftSupport);
 
                 if (_boltPullSubPhase == 0)
                 {
+                    forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightBoltPull - ReloadArmRotLeftSupport);
                     lerpSpeed = AnimLerpSpeedFast * delta;
 
                     // Log bolt pull progress periodically
@@ -4162,6 +4176,7 @@ public partial class Player : BaseCharacter
                 }
                 else
                 {
+                    forearmLocalRot = Mathf.DegToRad(ReloadArmRotRightBoltReturn - ReloadArmRotLeftSupport);
                     lerpSpeed = AnimLerpSpeedFast * delta;
 
                     // Log bolt return progress periodically
@@ -4183,6 +4198,7 @@ public partial class Player : BaseCharacter
                 // Shoulder returning to base position
                 leftArmTarget = _baseLeftArmPos;
                 leftArmRot = 0.0f;
+                forearmLocalRot = 0.0f;
                 lerpSpeed = AnimLerpSpeed * delta;
 
                 // When return animation completes, end animation and restore z-index
@@ -4212,9 +4228,12 @@ public partial class Player : BaseCharacter
             LogToFile("[Player.Reload.Anim] WARNING: Left arm sprite is null during animation!");
         }
 
-        // RightForearm is a child of RightShoulder and follows the shoulder automatically —
-        // no separate position/rotation animation needed. Animating it independently would
-        // move it away from the elbow joint (local offset -26, 0), causing arm separation.
+        // Apply forearm local rotation for elbow bend effect.
+        // RightForearm local position (-26, 0) stays fixed — only rotation changes for the bend.
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, forearmLocalRot, lerpSpeed);
+        }
     }
 
     #endregion
