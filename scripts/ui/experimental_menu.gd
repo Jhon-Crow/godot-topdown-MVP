@@ -23,6 +23,7 @@ signal back_pressed
 @onready var all_maps_unlocked_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/AllMapsUnlockedContainer/AllMapsUnlockedCheckbox
 @onready var global_stuck_max_time_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeSlider
 @onready var global_stuck_max_time_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/GlobalStuckMaxTimeContainer/GlobalStuckMaxTimeValueLabel
+@onready var nav_mesh_visible_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/NavMeshVisibleContainer/NavMeshVisibleCheckbox
 @onready var delete_saves_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DeleteSavesContainer/DeleteSavesButton
 @onready var unlock_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/UnlockTableContainer/UnlockTableButton
 @onready var enemies_table_button: Button = $MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemiesTableContainer/EnemiesTableButton
@@ -60,6 +61,7 @@ func _ready() -> void:
 	all_weapons_unlocked_checkbox.toggled.connect(_on_all_weapons_unlocked_toggled)
 	all_maps_unlocked_checkbox.toggled.connect(_on_all_maps_unlocked_toggled)
 	global_stuck_max_time_slider.value_changed.connect(_on_global_stuck_max_time_changed)
+	nav_mesh_visible_checkbox.toggled.connect(_on_nav_mesh_visible_toggled)
 	delete_saves_button.pressed.connect(_on_delete_saves_pressed)
 	unlock_table_button.pressed.connect(_on_unlock_table_pressed)
 	enemies_table_button.pressed.connect(_on_enemies_table_pressed)
@@ -99,6 +101,7 @@ func _update_ui() -> void:
 	fps_drop_logging_checkbox.button_pressed = experimental_settings.is_fps_drop_logging_enabled()
 	all_weapons_unlocked_checkbox.button_pressed = experimental_settings.is_all_weapons_unlocked()
 	all_maps_unlocked_checkbox.button_pressed = experimental_settings.is_all_maps_unlocked()
+	nav_mesh_visible_checkbox.button_pressed = experimental_settings.is_nav_mesh_visible_enabled()
 
 	# Update global stuck max time slider
 	var stuck_time: float = experimental_settings.get_global_stuck_max_time()
@@ -133,6 +136,8 @@ func _update_ui() -> void:
 		status_parts.append("All weapons unlocked")
 	if experimental_settings.is_all_maps_unlocked():
 		status_parts.append("All maps unlocked")
+	if experimental_settings.is_nav_mesh_visible_enabled():
+		status_parts.append("Nav mesh visible")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -242,6 +247,13 @@ func _on_global_stuck_max_time_changed(value: float) -> void:
 	if experimental_settings:
 		experimental_settings.set_global_stuck_max_time(value)
 	global_stuck_max_time_value_label.text = "%ds" % int(value)
+
+
+func _on_nav_mesh_visible_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_nav_mesh_visible_enabled(enabled)
+	_update_ui()
 
 
 func _on_delete_saves_pressed() -> void:

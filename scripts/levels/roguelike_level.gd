@@ -1147,11 +1147,30 @@ func _spawn_treasure_pedestal() -> void:
 	glow_ring.position = Vector2(-PEDESTAL_SIZE * 1.1, -PEDESTAL_SIZE * 1.1)
 	pedestal.add_child(glow_ring)
 
-	# Visual: base platform (wider and taller than before)
+	# Visual: base platform — fake-3D volumetric pedestal (Issue #1180).
+	# Layer 1: bottom shadow (dark, shifted down-right to simulate depth)
+	var base_shadow := ColorRect.new()
+	base_shadow.size     = Vector2(PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.5)
+	base_shadow.color    = Color(0.18, 0.12, 0.05, 0.85)
+	base_shadow.position = Vector2(-PEDESTAL_SIZE * 0.75 + 4, PEDESTAL_SIZE * 0.1 + 4)
+	pedestal.add_child(base_shadow)
+	# Layer 2: side face (slightly darker than front, visible on right)
+	var base_side := ColorRect.new()
+	base_side.size     = Vector2(4, PEDESTAL_SIZE * 0.5)
+	base_side.color    = Color(0.35, 0.25, 0.10, 1.0)
+	base_side.position = Vector2(-PEDESTAL_SIZE * 0.75 + PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.1 + 2)
+	pedestal.add_child(base_side)
+	# Layer 3: top face highlight (lighter strip, simulates light on top edge)
+	var base_top := ColorRect.new()
+	base_top.size     = Vector2(PEDESTAL_SIZE * 1.5, 4)
+	base_top.color    = Color(0.80, 0.65, 0.35, 1.0)
+	base_top.position = Vector2(-PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.1)
+	pedestal.add_child(base_top)
+	# Layer 4: front face (main visible face)
 	var base := ColorRect.new()
-	base.size    = Vector2(PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.5)
+	base.size    = Vector2(PEDESTAL_SIZE * 1.5, PEDESTAL_SIZE * 0.5 - 4)
 	base.color   = PEDESTAL_BASE_COLOR
-	base.position = Vector2(-PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.1)
+	base.position = Vector2(-PEDESTAL_SIZE * 0.75, PEDESTAL_SIZE * 0.1 + 4)
 	pedestal.add_child(base)
 
 	# Visual: item icon — Bug fix #1166 (Bug 3): show actual icon texture without
@@ -1171,6 +1190,7 @@ func _spawn_treasure_pedestal() -> void:
 		var icon_tex = load(icon_path)
 		if icon_tex != null:
 			var icon_rect := TextureRect.new()
+			icon_rect.name = "ItemIcon"  # Named so _apply_pedestal_weapon can find and update it (Issue #1180)
 			icon_rect.texture = icon_tex
 			icon_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -1315,12 +1335,27 @@ func _apply_pedestal_weapon(player: Node2D, pedestal: Area2D) -> void:
 		_pedestal_item = old_weapon_id
 		pedestal.set_meta("pedestal_item", old_weapon_id)
 
-		# Update the icon on the pedestal to show the old weapon.
-		var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
-		if icon_rect and old_weapon_id in WEAPON_ICON_PATHS:
-			var tex: Texture2D = load(WEAPON_ICON_PATHS[old_weapon_id]) as Texture2D
-			if tex:
-				icon_rect.texture = tex
+		# Update the icon on the pedestal to show the old weapon (Issue #1180).
+		if old_weapon_id in WEAPON_ICON_PATHS:
+			var old_icon_path: String = WEAPON_ICON_PATHS[old_weapon_id]
+			if ResourceLoader.exists(old_icon_path):
+				var tex: Texture2D = load(old_icon_path) as Texture2D
+				if tex:
+					var icon_rect: TextureRect = pedestal.get_node_or_null("ItemIcon")
+					if icon_rect:
+						icon_rect.texture = tex
+					else:
+						# Icon node missing (e.g. fallback orb was used) — create it now.
+						var new_icon := TextureRect.new()
+						new_icon.name = "ItemIcon"
+						new_icon.texture = tex
+						new_icon.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+						new_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+						var icon_size := Vector2(PEDESTAL_SIZE, PEDESTAL_SIZE)
+						new_icon.custom_minimum_size = icon_size
+						new_icon.size = icon_size
+						new_icon.position = Vector2(-icon_size.x * 0.5, -PEDESTAL_SIZE * 1.1)
+						pedestal.add_child(new_icon)
 
 		# Update the item name label.
 		var item_lbl: Label = pedestal.get_node_or_null("ItemLabel")
