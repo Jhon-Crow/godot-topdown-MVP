@@ -1004,7 +1004,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 
 
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sp: Node = get_node_or_null("/root/SoundPropagation")
 		if sp and sp.has_method("emit_player_empty_click"):

@@ -1543,3 +1543,100 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
+
+[node name="SearchPathWaypoints" type="Node2D" parent="."]
+editor_description = "Pre-planned search path waypoints for enemy SEARCHING state (Issue #1246). Enemies traverse these in order starting from the nearest point to their current position."
+groups = ["search_path_waypoints"]
+
+[node name="TopLeft_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(200, 200)
+
+[node name="TopLeft_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(350, 420)
+
+[node name="ColA_Junction1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(750, 200)
+
+[node name="ColA_Junction2" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(750, 600)
+
+[node name="ColA_Junction3" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(750, 800)
+
+[node name="ColB_Junction1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1100, 200)
+
+[node name="ColB_Junction2" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1100, 700)
+
+[node name="ColC_Junction1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 200)
+
+[node name="ColC_Junction2" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 700)
+
+[node name="TopRight_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2700, 200)
+
+[node name="ColD_Junction1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2200, 200)
+
+[node name="ColD_Junction2" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2500, 500)
+
+[node name="ColE_Junction1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2900, 200)
+
+[node name="TopRight_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3100, 200)
+
+[node name="MidLeft_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(200, 1200)
+
+[node name="MidRow_Junction1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(650, 1400)
+
+[node name="MidRow_Junction2" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1100, 1200)
+
+[node name="MidRow_Junction3" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 1400)
+
+[node name="MidRow_Junction4" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2100, 1200)
+
+[node name="MidRow_Junction5" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2600, 1400)
+
+[node name="MidRight_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3100, 1200)
+
+[node name="LowLeft_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(200, 1800)
+
+[node name="LowRow_Junction1" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(650, 2050)
+
+[node name="LowRow_Junction2" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1100, 1800)
+
+[node name="LowRow_Junction3" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1600, 2050)
+
+[node name="LowRow_Junction4" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2100, 1800)
+
+[node name="LowRow_Junction5" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(2700, 2050)
+
+[node name="LowRight_Entry" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3100, 1800)
+
+[node name="BottomLeft_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(200, 2400)
+
+[node name="Bottom_Center" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(1650, 2350)
+
+[node name="BottomRight_Corner" type="Marker2D" parent="SearchPathWaypoints"]
+position = Vector2(3100, 2400)

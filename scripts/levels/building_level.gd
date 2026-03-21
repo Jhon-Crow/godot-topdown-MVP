@@ -71,6 +71,9 @@ var _replay_manager: Node = null
 ## Weapon hints component instance (Issue #809).
 var _weapon_hints_component: Node = null
 
+## Whether debug mode (F7) is active — controls passage waypoint visualization (#1226).
+var _debug_mode: bool = false
+
 
 ## Gets the ReplayManager autoload node.
 ## The ReplayManager is now a C# autoload that works reliably in exported builds,
@@ -122,6 +125,10 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+		if GameManager.has_signal("debug_mode_toggled"):
+			GameManager.debug_mode_toggled.connect(_on_debug_mode_toggled)
+		if GameManager.has_method("is_debug_mode_enabled"):
+			_debug_mode = GameManager.is_debug_mode_enabled(); if _debug_mode: queue_redraw()
 
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
@@ -526,31 +533,13 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
-		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
+	# Issue #1224: bake the nav mesh via NavigationRegion2D so walls are excluded from the
+	# walkable polygon and the nav mesh overlay displays the correct carved area.
+	# Using bake_navigation_polygon(false) (synchronous) ensures the map is ready before
+	# enemies start moving. parsed_geometry_type=1 + parsed_collision_mask=4 in the
+	# NavigationPolygon resource handle wall exclusion automatically.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(2464, 64),
-		Vector2(2464, 2064),
-		Vector2(64, 2064)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 
@@ -559,6 +548,9 @@ func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		return
+
+	# Find the ammo label early so _apply_building_ammo_config can update it (Issue #1259)
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Setup realistic visibility component (Issue #540)
 	_setup_realistic_visibility()
@@ -569,9 +561,6 @@ func _setup_player_tracking() -> void:
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
-
-	# Find the ammo label
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
@@ -1016,10 +1005,9 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 ## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
 ## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	# Notify all enemies that player tried to shoot with empty weapon
-	_broadcast_player_ammo_empty(true)
-	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
-	# This has shorter range than reload sound but still propagates through obstacles
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
@@ -1893,6 +1881,20 @@ func _disable_player_controls() -> void:
 
 	_log_to_file("Player controls disabled (level completed)")
 
+
+## Toggle debug mode (F7) — redraws passage waypoints (#1226).
+func _on_debug_mode_toggled(enabled: bool) -> void:
+	_debug_mode = enabled
+	queue_redraw()
+
+## Draw passage waypoints as green circles when debug mode (F7) is active (#1226).
+func _draw() -> void:
+	if not _debug_mode:
+		return
+	for wp in get_tree().get_nodes_in_group("passage_waypoints"):
+		var local_pos := wp.global_position - global_position
+		draw_circle(local_pos, 12.0, Color(0.2, 1.0, 0.3, 0.85))
+		draw_string(ThemeDB.fallback_font, local_pos + Vector2(14, 4), wp.name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 ## Log a message to the file logger if available.
 func _log_to_file(message: String) -> void:
