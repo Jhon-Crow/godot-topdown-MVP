@@ -68,6 +68,10 @@ const REFERENCE_DISTANCE: float = 50.0
 ## This prevents computation for very distant, inaudible sounds.
 const MIN_INTENSITY_THRESHOLD: float = 0.01
 
+## Signal emitted whenever a sound is propagated (Issue #1253).
+## Used by SoundVisualizer to draw debug circles showing propagation range.
+signal sound_emitted(sound_type: SoundType, position: Vector2, source_type: SourceType, propagation_distance: float)
+
 ## Registered sound listeners (typically enemies).
 ## Each listener must have an on_sound_heard(sound_type, position, source_type, source_node) method.
 var _listeners: Array = []
@@ -152,6 +156,9 @@ func unregister_listener(listener: Node2D) -> void:
 func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceType,
 				source_node: Node2D = null, custom_range: float = -1.0) -> void:
 	var propagation_distance: float = custom_range if custom_range > 0 else float(PROPAGATION_DISTANCES.get(sound_type, 1000.0))
+
+	# Notify SoundVisualizer for debug overlay (Issue #1253).
+	sound_emitted.emit(sound_type, position, source_type, propagation_distance)
 
 	var source_name: String = source_node.name if source_node else "null"
 	_log_debug("Sound emitted: type=%s, pos=%s, source=%s, range=%.0f" % [

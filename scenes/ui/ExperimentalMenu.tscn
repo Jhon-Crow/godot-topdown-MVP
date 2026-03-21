@@ -377,6 +377,27 @@ autowrap_mode = 2
 [node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="SoundVisualizerContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SoundVisualizerLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Sound Propagation"
+autowrap_mode = 2
+
+[node name="SoundVisualizerCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SoundVisualizerContainer"]
+layout_mode = 2
+
+[node name="SoundVisualizerDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws animated circles showing sound\npropagation range at each emission point.\nBlue = player, red = enemy, white = neutral.\nUseful for debugging shooting audibility."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12e" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="DeleteSavesContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
