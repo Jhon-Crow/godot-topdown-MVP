@@ -212,3 +212,80 @@ but couldn't overcome direct collisions when multiple enemies converged on the s
 - `08:07:57` — All enemies immediately start reporting "Stuck at wp 0, skipping"
 - Enemies skip through all search waypoints rapidly, never making progress
 - Pattern repeats with expanding search rings — enemies are gridlocked together
+
+---
+
+## Session 3 — Bug Report 2026-03-21 08:48 (post-session-2-fix)
+
+### Game Logs
+- `game_log_20260321_084500.txt` — LabyrinthLevel, 5 enemies, Hard difficulty (short run ~15s)
+- `game_log_20260321_084548.txt` — LabyrinthLevel, 10 enemies + Grenadier, Hard difficulty (long run ~2m)
+
+### Screenshot
+
+Owner reported enemies still collide and get stuck in corners. Screenshot shows multiple enemies
+with "(SEARCHING)" labels piled up at a corner/corridor mouth.
+
+### Root Cause 1: Narrow-Passage Detection Too Narrow
+
+**Symptom:** Enemies in PURSUING state pile up at corridor mouths and corners.
+
+**Root cause:** `NARROW_PASSAGE_HALF_WIDTH = 44px` required corridors narrower than 88px total to
+trigger tactical yielding. The LabyrinthLevel corridors near the Office 2 area appear to be
+90–120px wide — just outside the detection threshold. Enemies would pack in without yielding.
+
+**Fix:** Increased `NARROW_PASSAGE_HALF_WIDTH` from 44→64px. Now corridors up to 128px wide
+trigger tactical yielding when an ally is blocking ahead.
+
+**Fix:** Increased `ALLY_BLOCK_DETECTION_RANGE` from 80→100px. Blockers slightly farther ahead
+are now detected, giving yielding enemies more time to step aside.
+
+### Root Cause 2: SEARCHING Enemies Not Subject to Tactical Yielding
+
+**Symptom:** Searching enemies pile up in corridor mouths (visible in screenshot with SEARCHING
+labels clustered together).
+
+**Root cause:** `TacticalMovementComponent.check_and_yield()` was only called from
+`_move_to_target_nav()`, which handles PURSUING/COMBAT/FLANKING. The `_process_searching_state()`
+movement path had no yielding — searching enemies would all try to navigate the same corridor
+mouth simultaneously, colliding.
+
+**Fix:** Added `check_and_yield()` call in `_process_searching_state()` before the movement
+section. Searching enemies now yield in narrow passages just like pursuing enemies. The yielding
+frame also resets `_search_stuck_timer` so the stuck-skip doesn't fire while yielding.
+
+**Fix:** Added `reset_yield()` call in `_transition_to_searching()` so any lingering yield state
+from a prior PURSUING phase is cleared on transition.
+
+### Root Cause 3: Slow Stuck-Skip in SEARCHING Causes Long Collision Windows
+
+**Symptom:** Log shows `SEARCHING: Stuck at wp 3, skipping` — Enemy2 stuck for 2s at each
+blocked corner waypoint. Multiple searching enemies simultaneously occupy the same corner.
+
+**Root cause:** `SEARCH_STUCK_MAX_TIME = 2.0s` — enemies waited 2 seconds at each blocked
+waypoint before skipping to the next. When ORCA partially reduces velocity (e.g. 0.5 px/frame
+instead of 0), progress check (`< 10px`) fires but the timer runs for 2 full seconds. Multiple
+enemies stuck at the same corner for 2s each × multiple waypoints = long collision windows.
+
+**Fix:** Reduced `SEARCH_STUCK_MAX_TIME` from 2.0→0.8s. Searching enemies now skip unreachable
+waypoints ~2.5× faster, reducing the time window during which they pile up in corners.
+
+### Timeline (game_log_20260321_084548.txt)
+
+- `08:45:49` — 10 enemies spawned (Enemy1-10) + Grenadier
+- `08:45:52` — Scene transition to larger level with 10 enemies
+- `08:46:07` — Enemy7, Enemy10 (PATROL) start reporting PATROL STUCK repeatedly at same positions
+  (Enemy7 at ~(1610,897), Enemy10 at ~(1170,1600)) — patrol routes in tight corners
+- `08:46:44` — Enemy2 GLOBAL STUCK for 20s while PURSUING → enters SEARCHING at (885,698)
+- `08:46:44` — Enemy4 GLOBAL STUCK for 20s while PURSUING → enters SEARCHING at (548,976)
+- `08:46:45`–`08:47:13` — Enemy2 SEARCHING: stuck at wp3 (2s), then wp4 → expand outer ring,
+  stuck again at wp2 (2s) → expand again → eventually spots player at 08:47:33
+- `08:47:35` — Enemy3 enters SEARCHING at (548,975) — same location as Enemy4
+
+### Verification
+
+The new fixes address all three root causes:
+1. Wider detection (64px) catches LabyrinthLevel corridor widths
+2. SEARCHING now respects tactical yielding, so searching enemies don't pile up in corridor mouths
+3. Faster waypoint skip (0.8s) reduces collision window at corners
+

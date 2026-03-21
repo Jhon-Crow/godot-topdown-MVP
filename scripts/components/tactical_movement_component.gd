@@ -17,10 +17,12 @@ extends RefCounted
 
 
 ## Distance within which an ally ahead of us counts as "blocking the path".
-const ALLY_BLOCK_DETECTION_RANGE: float = 80.0
+## Increased from 80 → 100 px to detect blockers a bit earlier (#1249).
+const ALLY_BLOCK_DETECTION_RANGE: float = 100.0
 
 ## Half-width threshold: if both walls are closer than this, it's a narrow passage (px).
-const NARROW_PASSAGE_HALF_WIDTH: float = 44.0
+## Increased from 44 → 64 so corridor bottlenecks wider than 88 px are also detected (#1249).
+const NARROW_PASSAGE_HALF_WIDTH: float = 64.0
 
 ## How long to yield before forcing through (seconds).
 const YIELD_MAX_WAIT_TIME: float = 3.0
