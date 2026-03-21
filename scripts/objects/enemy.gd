@@ -4071,7 +4071,10 @@ func _process_patrol(delta: float) -> void:
 		_patrol_stuck_timer += delta
 		if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
 			_log_to_file("PATROL STUCK: pos=%s for %.1fs, skipping" % [global_position, _patrol_stuck_timer])
-			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO
+			# Issue #1218: advance to next patrol point instead of retrying blocked target.
+			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
+			_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
+			_is_waiting_at_patrol_point = false; velocity = Vector2.ZERO
 	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
 ## Detect openings perpendicular to movement (for corner checking). Issue #347: smooth rotation.

@@ -942,9 +942,9 @@ enable_flanking = true
 enable_cover = true
 
 [node name="Enemy7" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(1600, 900)
+position = Vector2(1650, 900)
 behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
+patrol_offsets = Array[Vector2]([Vector2(150, 0), Vector2(-200, 0)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -966,7 +966,7 @@ enable_cover = true
 [node name="Enemy10" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1200, 1550)
 behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(0, 150), Vector2(0, -100)])
+patrol_offsets = Array[Vector2]([Vector2(220, 0), Vector2(-220, 0)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
