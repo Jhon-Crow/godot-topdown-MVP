@@ -361,6 +361,7 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
+var _tactical_movement: TacticalMovementComponent = null  ## Issue #1249: Tactical movement coordination in narrow passages.
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -404,6 +405,8 @@ func _ready() -> void:
 	# Issue #1146: Hook ORCA avoidance velocity so NavigationAgent2D steers enemies apart.
 	if _nav_agent and _nav_agent.avoidance_enabled:
 		_nav_agent.velocity_computed.connect(_on_avoidance_velocity_computed)
+
+	_tactical_movement = TacticalMovementComponent.new(self)  # Issue #1249: narrow passage queuing
 
 	call_deferred("_log_spawn_info")  # Log spawn info after FileLogger loads
 	if bullet_scene == null:  # Preload bullet scene if not set in inspector
@@ -2588,6 +2591,7 @@ func _transition_to_combat() -> void:
 	_witnessed_ally_death = false; _suspected_directions.clear()
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 
 func _transition_to_seeking_cover() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_seeking_cover_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -2660,6 +2664,7 @@ func _transition_to_flanking() -> bool:
 	# Reset global stuck detection
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 	var msg := "FLANKING started: target=%s, side=%s, pos=%s" % [_flank_target, "right" if _flank_side > 0 else "left", global_position]
 	_log_debug(msg)
 	_log_to_file(msg)
@@ -2715,6 +2720,7 @@ func _transition_to_pursuing() -> void:
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
+	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 
 func _transition_to_assault() -> void:
 	var _ps := get_node_or_null("/root/PerformanceSettings"); if _ps and not _ps.is_ai_state_assault_enabled(): _transition_to_idle(); return  # Issue #1186
@@ -4473,19 +4479,10 @@ func _disable_hit_area_collision() -> void:
 
 ## Re-enables hit area collision after respawning (restores all collision properties).
 func _enable_hit_area_collision() -> void:
-	# Re-enable CollisionShape2D
-	if _hit_collision_shape:
-		_hit_collision_shape.disabled = false
-
-	# Restore original collision layers
+	if _hit_collision_shape: _hit_collision_shape.disabled = false
 	if _hit_area:
-		_hit_area.collision_layer = _original_hit_area_layer
-		_hit_area.collision_mask = _original_hit_area_mask
-
-	# Re-enable monitorable/monitoring
-	if _hit_area:
-		_hit_area.monitorable = true
-		_hit_area.monitoring = true
+		_hit_area.collision_layer = _original_hit_area_layer; _hit_area.collision_mask = _original_hit_area_mask
+		_hit_area.monitorable = true; _hit_area.monitoring = true
 
 ## Returns whether this enemy is currently alive (used by bullets to check pass-through).
 func is_alive() -> bool:
@@ -4493,24 +4490,10 @@ func is_alive() -> bool:
 
 ## Initialize the death animation component.
 func _init_death_animation() -> void:
-	# Create death animation component as a child node
-	_death_animation = DeathAnimationComponent.new()
-	_death_animation.name = "DeathAnimation"
-	add_child(_death_animation)
-
-	# Initialize with sprite references
-	_death_animation.initialize(
-		_body_sprite,
-		_head_sprite,
-		_left_arm_sprite,
-		_right_arm_sprite,
-		_enemy_model
-	)
-
-	# Connect signals
+	_death_animation = DeathAnimationComponent.new(); _death_animation.name = "DeathAnimation"; add_child(_death_animation)
+	_death_animation.initialize(_body_sprite, _head_sprite, _left_arm_sprite, _right_arm_sprite, _enemy_model)
 	_death_animation.death_animation_completed.connect(_on_death_animation_completed)
 	_death_animation.ragdoll_activated.connect(_on_ragdoll_activated)
-
 	_log_to_file("Death animation component initialized")
 
 ## Called when death animation completes (body at rest).
@@ -4558,6 +4541,7 @@ func _update_debug_label() -> void:
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	if _aggression: t += _aggression.get_debug_text()
+	if _tactical_movement: var _tm_info := _tactical_movement.get_debug_info(); if _tm_info != "": t += "\n" + _tm_info  # Issue #1249
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4730,6 +4714,15 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
+	# Issue #1249: Tactical yielding — let the closest enemy pass through narrow passages first.
+	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.FLANKING]:
+		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
+			var _wp: Vector2 = _tactical_movement.get_yield_position()
+			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
+				var _wd := _apply_wall_avoidance((_wp - global_position).normalized())
+				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: rotation = velocity.angle()
+			else: velocity = Vector2.ZERO
+			return true
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
 	direction = _apply_wall_avoidance(direction)
@@ -4755,19 +4748,15 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 	_avoidance_velocity = safe_velocity
 
-## Issue #1146: Compute a separation steering force that pushes this enemy away from
-## nearby allies. Returns the adjusted velocity with separation applied.
+## Issue #1146: Separation steering — push away from nearby allies.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
-		if body == self or not is_instance_valid(body):
-			continue
+		if body == self or not is_instance_valid(body): continue
 		var diff: Vector2 = global_position - (body as Node2D).global_position
 		var dist: float = diff.length()
-		if dist < SEPARATION_RADIUS and dist > 0.1:
-			sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
-	if sep_force != Vector2.ZERO:
-		vel += sep_force * SEPARATION_STRENGTH * delta
+		if dist < SEPARATION_RADIUS and dist > 0.1: sep_force += diff.normalized() * (SEPARATION_RADIUS - dist) / SEPARATION_RADIUS
+	if sep_force != Vector2.ZERO: vel += sep_force * SEPARATION_STRENGTH * delta
 	return vel
 
 ## Check if the navigation agent has a valid path to the target.
