@@ -204,6 +204,39 @@ The same room positions, energy values, scales, and shadow settings are used. Te
 
 **Guard clause added**: If `Environment/RoomLights` already exists (meaning GDScript ran normally), the fallback skips light creation to prevent duplicates.
 
+### Why the User Still Hit the Bug Despite `script_export_mode=0`
+
+The current `export_presets.cfg` already has `script_export_mode=0` (Text) — the primary workaround for the binary tokenization bug, applied during issue #416. However, the user's log path was:
+
+```
+I:/Загрузки/godot exe/источники света/Godot-Top-Down-Template.exe
+```
+
+"Загрузки" is Russian for "Downloads". The user was running a **previously downloaded executable** built before `script_export_mode=0` was set. Future builds from this branch will export GDScript as text, so the GDScript `_ready()` path will run correctly — but the `LevelInitFallback` fallback remains important for:
+1. Users who still have older exports
+2. Any future scenario where GDScript loading unexpectedly fails
+
+### Godot Binary Tokenization Bug — Research Findings
+
+**Introduced in**: Godot 4.3 via [PR #87634](https://github.com/godotengine/godot/pull/87634) — reintroduced binary tokenization of GDScript on export (existed in Godot 3.x, was absent from 4.x until 4.3).
+
+**Mechanism**: GDScript files are compiled to binary token format during export. The binary tokenizer silently corrupts certain constructs; the script "loads" successfully (a valid `GDScript` object is returned) but `.new()` fails silently — no error, no `null`, just a script that never instantiates. `_ready()` therefore never runs.
+
+**Detection**: The only reliable programmatic detection is calling `.reload()` on the loaded script — a non-zero return means errors exist.
+
+**Known triggers** ([#94150](https://github.com/godotengine/godot/issues/94150), [#96065](https://github.com/godotengine/godot/issues/96065), [#89403](https://github.com/godotengine/godot/issues/89403)):
+- Scripts using `class_name` globals referenced across addon boundaries
+- `preload`/`load()` chains involving globally registered script classes
+- Certain coroutine/`await` patterns in complex level scripts
+
+**Primary workaround**: Set `script_export_mode=0` (Text) in export settings — already applied in this project.
+
+**References**:
+- [godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150) — Binary tokens break exported builds with some addons
+- [godotengine/godot#96065](https://github.com/godotengine/godot/issues/96065) — `load()` returns GDScript despite parse error; `.new()` fails silently
+- [godotengine/godot#113577](https://github.com/godotengine/godot/issues/113577) — Errors when exporting with binary tokens (still open)
+- [godotengine/godot#87634](https://github.com/godotengine/godot/pull/87634) — PR that introduced the regression
+
 ### Why the Fallback Pattern Exists
 
 The `LevelInitFallback.cs` component was introduced as a mitigation for the Godot 4.3 binary tokenization bug that caused GDScript autoloads and level scripts to silently fail. See:
