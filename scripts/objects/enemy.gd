@@ -4588,6 +4588,11 @@ func get_search_current_waypoint_index() -> int: return _search_current_waypoint
 func get_nav_path() -> PackedVector2Array:
 	if _nav_agent == null: return PackedVector2Array()
 	return _nav_agent.get_current_navigation_path()
+## Returns the navigation map RID used by this enemy's NavigationAgent2D (Issue #1275: used by SearchPathMonitor to query wall-aware paths).
+## Returns an invalid RID if the navigation agent is unavailable.
+func get_nav_map() -> RID:
+	if _nav_agent == null: return RID()
+	return _nav_agent.get_navigation_map()
 
 func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)

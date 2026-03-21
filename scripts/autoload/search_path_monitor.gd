@@ -13,12 +13,16 @@ extends Node
 ##
 ## The overlay draws per type:
 ##   - A circle at each waypoint position
-##   - Lines connecting consecutive waypoints
+##   - Lines connecting consecutive waypoints via the actual navigation mesh path
+##     (wall-aware, using NavigationServer2D.map_get_path) so paths respect walls.
 ##   - For active paths: highlights the current target waypoint in yellow
 ##
 ## Issue #1251: Added as part of AI search path debugging tools.
 ##   Fix: Added active enemy search path visualization so paths are visible in all levels,
 ##   not just levels with predefined SearchPathWaypoints nodes.
+## Issue #1275: Fixed path lines to follow the navigation mesh instead of drawing
+##   straight lines through walls. Paths now use NavigationServer2D.map_get_path()
+##   between consecutive waypoints so wall boundaries are respected.
 
 ## Color for predefined waypoint circles and path lines (cyan).
 const PREDEFINED_PATH_COLOR := Color(0.0, 1.0, 0.8, 0.9)
@@ -118,6 +122,21 @@ func _log_info(message: String) -> void:
 	print("[SearchPathMonitor] " + message)
 
 
+## Compute the actual navigation mesh path between two world-space points.
+## Returns a PackedVector2Array following the nav mesh (wall-aware).
+## Falls back to a straight two-point segment if no valid nav map is available.
+static func _nav_path_between(nav_map: RID, from: Vector2, to: Vector2) -> PackedVector2Array:
+	if nav_map.is_valid():
+		var path := NavigationServer2D.map_get_path(nav_map, from, to, true)
+		if path.size() >= 2:
+			return path
+	# Fallback: straight line (no nav map or empty result)
+	var fallback := PackedVector2Array()
+	fallback.append(from)
+	fallback.append(to)
+	return fallback
+
+
 ## Inner class: a CanvasLayer that draws all search path data.
 ## Using a CanvasLayer ensures the overlay renders above the game world
 ## and is not affected by the camera transform.
@@ -153,6 +172,19 @@ class _SearchPathOverlay extends CanvasLayer:
 		if tree == null:
 			return
 
+		# Obtain a valid navigation map RID from any enemy that has one.
+		# This is used to compute wall-aware paths between waypoints (Issue #1275).
+		var nav_map: RID = RID()
+		var enemies: Array = tree.get_nodes_in_group("enemies")
+		for enemy in enemies:
+			if not is_instance_valid(enemy):
+				continue
+			if enemy.has_method("get_nav_map"):
+				var candidate: RID = enemy.get_nav_map()
+				if candidate.is_valid():
+					nav_map = candidate
+					break
+
 		# --- Predefined SearchPathWaypoints (static scene nodes) ---
 		var predefined_sets: Array = []
 		var path_nodes: Array = tree.get_nodes_in_group("search_path_waypoints")
@@ -170,7 +202,6 @@ class _SearchPathOverlay extends CanvasLayer:
 		# Collect from all enemies currently in SEARCHING state.
 		# AIState.SEARCHING == 9 (0-indexed enum from enemy.gd: IDLE=0..ASSAULT=8, SEARCHING=9)
 		var active_paths: Array = []
-		var enemies: Array = tree.get_nodes_in_group("enemies")
 		for enemy in enemies:
 			if not is_instance_valid(enemy):
 				continue
@@ -192,7 +223,7 @@ class _SearchPathOverlay extends CanvasLayer:
 				"enemy_pos": enemy.global_position
 			})
 
-		_draw_node.set_path_data(predefined_sets, active_paths)
+		_draw_node.set_path_data(predefined_sets, active_paths, nav_map)
 
 
 ## Inner draw node: performs the actual draw calls each frame.
@@ -205,10 +236,13 @@ class _SearchPathDrawNode extends Node2D:
 	var waypoint_radius: float = 10.0
 	var _predefined_sets: Array = []
 	var _active_paths: Array = []
+	## Navigation map RID used to compute wall-aware paths between waypoints (Issue #1275).
+	var _nav_map: RID = RID()
 
-	func set_path_data(predefined_sets: Array, active_paths: Array) -> void:
+	func set_path_data(predefined_sets: Array, active_paths: Array, nav_map: RID) -> void:
 		_predefined_sets = predefined_sets
 		_active_paths = active_paths
+		_nav_map = nav_map
 		queue_redraw()
 
 	func _draw() -> void:
@@ -216,11 +250,13 @@ class _SearchPathDrawNode extends Node2D:
 		for waypoints in _predefined_sets:
 			if waypoints.size() == 0:
 				continue
-			# Draw connecting lines (closed loop)
+			# Draw connecting lines as wall-aware nav paths (closed loop)
 			for i in range(waypoints.size()):
 				var from: Vector2 = waypoints[i]
 				var to: Vector2 = waypoints[(i + 1) % waypoints.size()]
-				draw_line(from, to, predefined_path_color, 2.0)
+				var nav_segment: PackedVector2Array = SearchPathMonitor._nav_path_between(_nav_map, from, to)
+				for j in range(nav_segment.size() - 1):
+					draw_line(nav_segment[j], nav_segment[j + 1], predefined_path_color, 2.0)
 			# Draw waypoint circles
 			for pos in waypoints:
 				draw_circle(pos, waypoint_radius, predefined_fill_color)
@@ -233,11 +269,13 @@ class _SearchPathDrawNode extends Node2D:
 			var enemy_pos: Vector2 = path_data["enemy_pos"]
 			if waypoints.size() == 0:
 				continue
-			# Draw connecting lines between waypoints (open path, not closed loop)
+			# Draw connecting lines as wall-aware nav paths between consecutive waypoints
 			for i in range(waypoints.size() - 1):
 				var from: Vector2 = waypoints[i]
 				var to: Vector2 = waypoints[i + 1]
-				draw_line(from, to, active_path_color, 2.0)
+				var nav_segment: PackedVector2Array = SearchPathMonitor._nav_path_between(_nav_map, from, to)
+				for j in range(nav_segment.size() - 1):
+					draw_line(nav_segment[j], nav_segment[j + 1], active_path_color, 2.0)
 			# Draw waypoint circles
 			for i in range(waypoints.size()):
 				var pos: Vector2 = waypoints[i]
@@ -247,8 +285,10 @@ class _SearchPathDrawNode extends Node2D:
 			if current_idx < waypoints.size():
 				var target_pos: Vector2 = waypoints[current_idx]
 				draw_circle(target_pos, waypoint_radius * 0.6, active_target_color)
-				# Draw line from enemy to current target
-				draw_line(enemy_pos, target_pos, active_target_color, 1.5)
+				# Draw line from enemy to current target using actual nav path
+				var to_target: PackedVector2Array = SearchPathMonitor._nav_path_between(_nav_map, enemy_pos, target_pos)
+				for j in range(to_target.size() - 1):
+					draw_line(to_target[j], to_target[j + 1], active_target_color, 1.5)
 
 	## Draw a circle outline using line segments.
 	func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
