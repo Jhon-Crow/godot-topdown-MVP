@@ -657,6 +657,13 @@ public partial class Player : BaseCharacter
     private Vector2 _teleportTargetPosition = Vector2.Zero;
 
     /// <summary>
+    /// When true, teleport is being aimed via Experimental Sample effect.
+    /// HandleTeleportBracersInput must skip its own logic while this is active
+    /// to avoid instantly executing the teleport on the next frame (Space not held).
+    /// </summary>
+    private bool _teleportExperimentalActive = false;
+
+    /// <summary>
     /// Player collision radius for teleport safety checks (matches Player.tscn CircleShape2D).
     /// </summary>
     private const float PlayerCollisionRadius = 16.0f;
@@ -879,6 +886,31 @@ public partial class Player : BaseCharacter
 
     /// <summary>Maximum charge duration in seconds.</summary>
     private const float RecoilCompensatorMaxCharge = 15.0f;
+
+    /// <summary>
+    /// When > 0, the recoil compensator is active via Experimental Sample (does not require Space held).
+    /// Counts down each frame and deactivates when it reaches 0.
+    /// </summary>
+    private float _recoilCompensatorExperimentalTimer = 0.0f;
+
+    // Experimental Sample fields (Issue #1127)
+    /// <summary>Whether the experimental sample is equipped (active item selected in armory).</summary>
+    private bool _experimentalSampleEquipped = false;
+
+    /// <summary>Remaining charges for this battle (1–5, randomised on level start).</summary>
+    private int _experimentalSampleCharges = 0;
+
+    /// <summary>Minimum charges assigned at level start.</summary>
+    private const int ExperimentalSampleMinCharges = 1;
+
+    /// <summary>Maximum charges assigned at level start.</summary>
+    private const int ExperimentalSampleMaxCharges = 5;
+
+    /// <summary>Whether the experimental sample charge bar should be drawn.</summary>
+    private bool _experimentalSampleChargeBarVisible = false;
+
+    /// <summary>Floating item icon popup node (GDScript) spawned on each effect fire.</summary>
+    private GodotObject _experimentalSamplePopup = null;
 
     #endregion
 
@@ -1197,6 +1229,9 @@ public partial class Player : BaseCharacter
         // Initialize armored skin if active item manager has it selected (Issue #1045)
         InitArmoredSkin();
 
+        // Apply item-specific player visual based on the equipped passive item (Issue #1142)
+        ApplyItemVisual();
+
         // Initialize loudspeaker if active item manager has it selected (Issue #959)
         InitLoudspeaker();
 
@@ -1205,6 +1240,9 @@ public partial class Player : BaseCharacter
 
         // Initialize recoil compensator if active item manager has it selected (Issue #1073)
         InitRecoilCompensator();
+
+        // Initialize experimental sample if active item manager has it selected (Issue #1127)
+        InitExperimentalSample();
 
         // Initialize jammer HUD prohibition sign (always created; visibility toggled at runtime) (Issue #1036)
         InitJammerHud();
@@ -1516,14 +1554,14 @@ public partial class Player : BaseCharacter
         // Handle recoil compensator input (hold Space to eliminate recoil/spread and boost fire rate) (Issue #1073)
         HandleRecoilCompensatorInput((float)delta);
 
+        // Handle experimental sample input (press Space to trigger random effect) (Issue #1127)
+        HandleExperimentalSampleInput();
+
         // Update trajectory glasses progress bar auto-hide timer (Issue #974)
         UpdateTrajectoryBarTimer((float)delta);
 
         // Handle drilling bullets input (press Space to activate, Issue #751)
         HandleDrillingBulletsInput();
-
-        // Update drilling bullets charge bar auto-hide timer (Issue #751)
-        UpdateDrillingBarTimer((float)delta);
 
         // Update jammer HUD visibility (Issue #1036)
         UpdateJammerHud();
@@ -4573,6 +4611,18 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Experimental Sample is managing the teleport aim phase — skip normal input handling
+        if (_teleportExperimentalActive)
+        {
+            // Still update target position so the reticle tracks the cursor
+            if (_teleportAiming)
+            {
+                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
+                QueueRedraw();
+            }
+            return;
+        }
+
         if (Input.IsActionPressed("flashlight_toggle"))
         {
             // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
@@ -5823,21 +5873,6 @@ public partial class Player : BaseCharacter
     private bool _drillingBulletsUsed = false;
 
     /// <summary>
-    /// Whether the charge bar auto-hide is pending (shown briefly after activation).
-    /// </summary>
-    private bool _drillingChargeBarPending = false;
-
-    /// <summary>
-    /// Timer for auto-hiding the drilling charge bar after activation.
-    /// </summary>
-    private float _drillingChargeBarHideTimer = 0.0f;
-
-    /// <summary>
-    /// Delay in seconds before hiding the drilling charge bar.
-    /// </summary>
-    private const float DrillingChargeBarHideDelay = 0.3f;
-
-    /// <summary>
     /// Initialize drilling bullets if the ActiveItemManager has them selected (Issue #751).
     /// One charge per battle — press Space to apply wall-piercing to current magazine.
     /// </summary>
@@ -5896,11 +5931,6 @@ public partial class Player : BaseCharacter
                     int magazineAmmo = activeAmmo;
                     CurrentWeapon.DrillingBulletsRemaining = magazineAmmo;
                     LogToFile($"[Player.DrillingBullets] Activated! Magazine has {magazineAmmo} drilling bullets. Charge consumed.");
-
-                    // Show charge bar briefly (now empty — charge spent)
-                    _drillingChargeBarPending = true;
-                    _drillingChargeBarHideTimer = DrillingChargeBarHideDelay;
-                    QueueRedraw();
                 }
                 else
                 {
@@ -5910,45 +5940,52 @@ public partial class Player : BaseCharacter
         }
     }
 
-    /// <summary>
-    /// Update drilling bullets progress bar auto-hide timer (Issue #751).
-    /// </summary>
-    private void UpdateDrillingBarTimer(float delta)
-    {
-        if (_drillingChargeBarPending)
-        {
-            _drillingChargeBarHideTimer -= delta;
-            if (_drillingChargeBarHideTimer <= 0.0f)
-            {
-                _drillingChargeBarPending = false;
-                QueueRedraw();
-            }
-        }
-    }
 
     /// <summary>
-    /// Draw the drilling bullets single-charge indicator.
-    /// Cyan = charge available, dark = charge used.
+    /// Draw segmented charge bar for Experimental Sample (Issue #1127).
+    /// Shows up to 5 charge pips above the player.
     /// </summary>
-    private void DrawDrillingChargeBar()
+    private void DrawExperimentalSampleChargeBar()
     {
         const float barWidth = 40.0f;
         const float barHeight = 6.0f;
-        const float barYOffset = -30.0f;
+        const float barYOffset = -38.0f; // slightly higher to avoid overlap with other bars
+        const float segmentGap = 2.0f;
         const float borderWidth = 1.0f;
 
-        bool chargeAvailable = !_drillingBulletsUsed;
-        Color fillColor = chargeAvailable
-            ? new Color(0.2f, 0.8f, 0.9f, 0.85f)   // Cyan — charge available
-            : new Color(0.2f, 0.2f, 0.2f, 0.4f);    // Dark grey — charge spent
+        int segmentCount = ExperimentalSampleMaxCharges;
+        int filledCount = _experimentalSampleCharges;
+
+        float totalGaps = segmentGap * (segmentCount - 1);
+        float segmentWidth = (barWidth - totalGaps) / segmentCount;
+        if (segmentWidth < 2.0f) segmentWidth = 2.0f;
+
+        float startX = -barWidth / 2.0f;
+        float percent = segmentCount > 0 ? (float)filledCount / segmentCount : 0.0f;
+        Color fillColor;
+        if (percent > 0.5f)
+            fillColor = new Color(0.5f, 0.3f, 0.9f, 0.85f); // Purple — full/high
+        else if (percent > 0.25f)
+            fillColor = new Color(0.8f, 0.5f, 0.9f, 0.85f); // Light purple — medium
+        else
+            fillColor = new Color(0.9f, 0.2f, 0.6f, 0.85f); // Pink/red — low
 
         Color bgColor = new Color(0.1f, 0.1f, 0.1f, 0.6f);
+        Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.4f);
         Color borderColor = new Color(0.3f, 0.3f, 0.3f, 0.7f);
 
-        Rect2 bgRect = new Rect2(-barWidth / 2.0f, barYOffset, barWidth, barHeight);
-        DrawRect(bgRect, bgColor);
-        DrawRect(bgRect, fillColor);
-        DrawRect(bgRect, borderColor, false, borderWidth);
+        for (int i = 0; i < segmentCount; i++)
+        {
+            float segX = startX + i * (segmentWidth + segmentGap);
+            Rect2 segRect = new Rect2(segX, barYOffset, segmentWidth, barHeight);
+
+            DrawRect(segRect, bgColor);
+            if (i < filledCount)
+                DrawRect(segRect, fillColor);
+            else
+                DrawRect(segRect, emptyColor);
+            DrawRect(segRect, borderColor, false, borderWidth);
+        }
     }
 
     #endregion
@@ -6669,6 +6706,12 @@ public partial class Player : BaseCharacter
     private bool _armoredSkinActive = false;
 
     /// <summary>
+    /// Overlay sprites added by ApplyArmoredSkinVisual (Issue #1142).
+    /// Stored so they can be freed when the armor shatters.
+    /// </summary>
+    private readonly System.Collections.Generic.List<Sprite2D> _armoredSkinOverlays = new();
+
+    /// <summary>
     /// Whether armored skin post-trigger immunity is active (Issue #1095).
     /// Set to true when shards are spawned; cleared after 0.1 seconds.
     /// Absorbs all subsequent damage calls from the same multi-hit explosion event
@@ -6721,6 +6764,114 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Apply a passive visual effect to the player based on the currently equipped active item (Issue #1142).
+    /// This is the single entry point for all item-specific player visuals.
+    /// Add a new case here when a future item needs a visual effect.
+    /// Called once from Ready() after all Init*() functions have run.
+    /// </summary>
+    private void ApplyItemVisual()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            return;
+        }
+
+        int itemType = (int)activeItemManager.Get("current_active_item");
+
+        // Check for ARMORED_SKIN — crystal/glass armor overlay (Issue #1142).
+        if (activeItemManager.HasMethod("has_armored_skin") && (bool)activeItemManager.Call("has_armored_skin"))
+        {
+            ApplyArmoredSkinVisual();
+        }
+
+        LogToFile($"[Player.ItemVisual] Visual applied for item type: {itemType}");
+    }
+
+    /// <summary>
+    /// Apply crystal armor overlay sprites on top of each player body part (Issue #1142).
+    /// Like The Binding of Isaac — a semi-transparent blue crystal overlay is added as a
+    /// child of each base sprite so it automatically follows all movements, flips, and
+    /// animations. Alpha is kept low so the player is clearly visible underneath.
+    /// </summary>
+    private void ApplyArmoredSkinVisual()
+    {
+        if (_playerModel == null)
+        {
+            LogToFile("[Player.ArmoredSkin] WARNING: _playerModel is null, skipping visual");
+            return;
+        }
+
+        // Map each body-part Sprite2D name to its crystal overlay texture path.
+        var overlayMap = new System.Collections.Generic.Dictionary<string, string>
+        {
+            { "Body",     "res://assets/sprites/characters/player/armored_skin/armored_skin_body.png" },
+            { "Head",     "res://assets/sprites/characters/player/armored_skin/armored_skin_head.png" },
+            { "LeftArm",  "res://assets/sprites/characters/player/armored_skin/armored_skin_left_arm.png" },
+            { "RightArm", "res://assets/sprites/characters/player/armored_skin/armored_skin_right_arm.png" },
+            { "Armband",  "res://assets/sprites/characters/player/armored_skin/armored_skin_armband.png" },
+        };
+
+        // 40% opacity — crystal armor is clearly visible while the player sprite underneath remains readable.
+        var overlayColor = new Color(1f, 1f, 1f, 0.4f);
+
+        int addedCount = 0;
+        foreach (var child in _playerModel.GetChildren())
+        {
+            if (child is not Sprite2D baseSprite)
+                continue;
+
+            string partName = baseSprite.Name;
+            if (!overlayMap.TryGetValue(partName, out string? overlayPath))
+                continue;
+
+            if (!ResourceLoader.Exists(overlayPath))
+            {
+                LogToFile($"[Player.ArmoredSkin] WARNING: Overlay texture not found: {overlayPath}");
+                continue;
+            }
+
+            var texture = GD.Load<Texture2D>(overlayPath);
+            if (texture == null)
+            {
+                LogToFile($"[Player.ArmoredSkin] WARNING: Failed to load overlay texture: {overlayPath}");
+                continue;
+            }
+
+            // Parent the overlay directly to the base sprite so it inherits all transforms
+            // (position, rotation, flip, scale) — the overlay moves exactly with the body part.
+            var overlay = new Sprite2D();
+            overlay.Name = $"{partName}ArmorOverlay";
+            overlay.Texture = texture;
+            overlay.Position = Vector2.Zero;
+            overlay.Offset = Vector2.Zero;
+            overlay.ZIndex = 1;
+            overlay.Modulate = overlayColor;
+
+            baseSprite.AddChild(overlay);
+            _armoredSkinOverlays.Add(overlay);
+            addedCount++;
+        }
+
+        LogToFile($"[Player.ArmoredSkin] Crystal armor overlays added: {addedCount} sprites");
+    }
+
+    /// <summary>
+    /// Remove all crystal armor overlay sprites (Issue #1142).
+    /// Called when the armor shatters so the visual matches the gameplay state.
+    /// </summary>
+    private void RemoveArmoredSkinVisual()
+    {
+        foreach (var overlay in _armoredSkinOverlays)
+        {
+            if (IsInstanceValid(overlay))
+                overlay.QueueFree();
+        }
+        _armoredSkinOverlays.Clear();
+        LogToFile("[Player.ArmoredSkin] Crystal armor overlays removed");
+    }
+
+    /// <summary>
     /// Spawn 20 glass/crystal shards in all directions from the player position (Issue #1045).
     /// Called when armored skin is active and player is at ≤2 HP while being hit.
     /// </summary>
@@ -6744,6 +6895,9 @@ public partial class Player : BaseCharacter
         {
             return;
         }
+
+        // Remove the crystal overlay sprites so the visual matches the gameplay state.
+        RemoveArmoredSkinVisual();
 
         LogToFile($"[Player.ArmoredSkin] Spawning {ArmoredSkinShardCount} glass shards (HP: {HealthComponent?.CurrentHealth ?? 0})");
 
@@ -6796,18 +6950,15 @@ public partial class Player : BaseCharacter
 
         LogToFile("[Player.Loudspeaker] Loudspeaker selected, initializing...");
 
-        // Load and instantiate the progress tracker
-        var progressScript = GD.Load<Script>("res://scripts/components/loudspeaker_progress.gd");
-        if (progressScript == null)
+        // Use the singleton LoudspeakerProgress from ActiveItemManager so progress persists
+        // across scene reloads and respawns (Issue #959 — Bug 1 fix for C# path).
+        var progressNode = activeItemManager.Get("loudspeaker_progress").AsGodotObject() as Node;
+        if (progressNode == null)
         {
-            LogToFile("[Player.Loudspeaker] WARNING: Failed to load loudspeaker_progress.gd");
+            LogToFile("[Player.Loudspeaker] WARNING: loudspeaker_progress singleton not found in ActiveItemManager");
             return;
         }
-
-        _loudspeakerProgress = new Node();
-        _loudspeakerProgress.SetScript(progressScript);
-        _loudspeakerProgress.Name = "LoudspeakerProgress";
-        AddChild(_loudspeakerProgress);
+        _loudspeakerProgress = progressNode;
 
         // Load and instantiate the cone visual effect
         var coneScript = GD.Load<Script>("res://scripts/effects/loudspeaker_cone_effect.gd");
@@ -6826,8 +6977,11 @@ public partial class Player : BaseCharacter
 
         _loudspeakerEquipped = true;
 
-        // Initialize charges for the current level (Issue #959)
-        _loudspeakerProgress.Call("reset_for_new_level");
+        // Reset per-run state (charges/cooldown/all_charges_used) on respawn.
+        // Do NOT call reset_for_new_level here — used_this_level must persist across
+        // deaths on the same map so the 100%/1-enemy first-use mechanic fires only once
+        // per level visit (Issue #959 — Bug 6 fix for C# path).
+        _loudspeakerProgress.Call("reset_for_respawn");
 
         // Create in-hand sprite shown during activation
         const string LoudspeakerTexturePath = "res://assets/sprites/weapons/loudspeaker_icon.png";
@@ -6849,7 +7003,204 @@ public partial class Player : BaseCharacter
 
         int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
         int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
-        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}");
+        int currentLevel = (int)_loudspeakerProgress.Get("current_level");
+        float effectChancePct = (float)_loudspeakerProgress.Call("get_effect_chance") * 100.0f;
+        bool usedThisLevelLog = (bool)_loudspeakerProgress.Get("used_this_level");
+        bool allChargesUsedLog = (bool)_loudspeakerProgress.Get("all_charges_used_this_level");
+        LogToFile($"[Player.Loudspeaker] Loudspeaker equipped, level: {currentLevel}, charges: {currentCharges}/{(maxCharges != -1 ? maxCharges.ToString() : "unlimited")}, effect: {effectChancePct:F0}%, used_this_level: {usedThisLevelLog}, all_charges_used: {allChargesUsedLog}");
+
+        // Apply level start states for levels 6 and 7 (Issue #959)
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (shouldStartWithPacifists || isVictoryState)
+            CallDeferred(MethodName.ApplyLoudspeakerLevelStartState);
+    }
+
+    /// <summary>
+    /// Apply loudspeaker level start state for levels 6 and 7 (Issue #959).
+    /// Level 6: 50% of enemies start as pacifists; 1 random enemy is immune.
+    /// Level 7: ALL enemies start as pacifists; show victory message.
+    /// Called deferred from InitLoudspeaker so all enemy nodes are ready.
+    /// </summary>
+    private void ApplyLoudspeakerLevelStartState()
+    {
+        if (_loudspeakerProgress == null)
+            return;
+
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        if (enemies.Count == 0)
+            return;
+
+        bool isVictoryState = (bool)_loudspeakerProgress.Call("is_victory_state");
+        if (isVictoryState)
+        {
+            // Level 7: ALL enemies become pacifists
+            LogToFile("[Player.Loudspeaker] Level 7 victory state — all enemies start as pacifists!");
+            foreach (var enemy in enemies)
+            {
+                if (enemy is Node enemyNode && enemyNode.HasMethod("apply_pacifism") && enemyNode.HasMethod("is_alive"))
+                {
+                    bool isAlive = (bool)enemyNode.Call("is_alive");
+                    if (isAlive)
+                        enemyNode.Call("apply_pacifism", 0.0f);
+                }
+            }
+            ShowLoudspeakerVictoryMessage();
+            return;
+        }
+
+        bool shouldStartWithPacifists = (bool)_loudspeakerProgress.Call("should_start_with_pacifists");
+        if (!shouldStartWithPacifists)
+            return;
+
+        // Level 6: 50% enemies start as pacifists; designate 1 as immune
+        var aliveEnemies = new Godot.Collections.Array<Node>();
+        foreach (var enemy in enemies)
+        {
+            if (enemy is Node enemyNode && enemyNode.HasMethod("is_alive"))
+            {
+                bool isAlive = (bool)enemyNode.Call("is_alive");
+                if (isAlive)
+                    aliveEnemies.Add(enemyNode);
+            }
+        }
+
+        // Pick 1 random immune enemy first (before pacifying others)
+        bool hasImmuneEnemy = (bool)_loudspeakerProgress.Call("has_immune_enemy");
+        if (aliveEnemies.Count > 0 && hasImmuneEnemy)
+        {
+            int immuneIdx = GD.RandRange(0, aliveEnemies.Count - 1);
+            var immuneEnemy = aliveEnemies[immuneIdx];
+            if (immuneEnemy.HasMethod("set_immune_to_pacifism"))
+            {
+                immuneEnemy.Call("set_immune_to_pacifism", true);
+                var posStr = immuneEnemy is Node2D n2d ? n2d.GlobalPosition.ToString() : "?";
+                LogToFile($"[Player.Loudspeaker] Level 6: enemy at {posStr} is immune to pacifism");
+            }
+            aliveEnemies.RemoveAt(immuneIdx);
+        }
+
+        // Pacify 50% of remaining enemies
+        aliveEnemies.Shuffle();
+        int pacifyCount = (int)(aliveEnemies.Count * 0.5f);
+        int pacified = 0;
+        for (int i = 0; i < pacifyCount; i++)
+        {
+            var enemy = aliveEnemies[i];
+            if (enemy.HasMethod("apply_pacifism"))
+            {
+                enemy.Call("apply_pacifism", 0.0f);
+                pacified++;
+            }
+        }
+        LogToFile($"[Player.Loudspeaker] Level 6: {pacified}/{aliveEnemies.Count + 1} enemies start as pacifists");
+    }
+
+    /// <summary>
+    /// Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerVictoryMessage()
+    {
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerVictoryCanvas";
+        canvas.Layer = 100;
+        AddChild(canvas);
+
+        // Victory message label
+        var label = new Label();
+        label.Text = "Нам нечего делить по этому мы не будем стрелять друг в друга.";
+        label.AddThemeFontSizeOverride("font_size", 36);
+        label.HorizontalAlignment = HorizontalAlignment.Center;
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        label.SetAnchor(Side.Left, 0.0f);
+        label.SetAnchor(Side.Right, 1.0f);
+        label.SetAnchor(Side.Top, 0.3f);
+        label.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(label);
+
+        // "Click to continue" hint
+        var hint = new Label();
+        hint.Text = "[ нажмите, чтобы продолжить ]";
+        hint.AddThemeFontSizeOverride("font_size", 18);
+        hint.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f, 0.8f));
+        hint.HorizontalAlignment = HorizontalAlignment.Center;
+        hint.VerticalAlignment = VerticalAlignment.Center;
+        hint.SetAnchor(Side.Left, 0.0f);
+        hint.SetAnchor(Side.Right, 1.0f);
+        hint.SetAnchor(Side.Top, 0.65f);
+        hint.SetAnchor(Side.Bottom, 0.75f);
+        canvas.AddChild(hint);
+
+        // Invisible click-catcher panel
+        var panel = new ColorRect();
+        panel.Color = new Color(0, 0, 0, 0);
+        panel.SetAnchor(Side.Left, 0.0f);
+        panel.SetAnchor(Side.Right, 1.0f);
+        panel.SetAnchor(Side.Top, 0.0f);
+        panel.SetAnchor(Side.Bottom, 1.0f);
+        panel.MouseFilter = Control.MouseFilterEnum.Stop;
+        panel.GuiInput += (InputEvent ev) =>
+        {
+            if (ev is InputEventMouseButton mb && mb.Pressed)
+                ShowLoudspeakerEndScreen(canvas);
+        };
+        canvas.AddChild(panel);
+
+        LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
+    }
+
+    /// <summary>
+    /// Show end screen after player clicks on victory message (Issue #959).
+    /// </summary>
+    private void ShowLoudspeakerEndScreen(CanvasLayer victoryCanvas)
+    {
+        // Remove victory screen
+        if (Godot.GodotObject.IsInstanceValid(victoryCanvas))
+            victoryCanvas.QueueFree();
+
+        // Create end screen canvas
+        var canvas = new CanvasLayer();
+        canvas.Name = "LoudspeakerEndCanvas";
+        canvas.Layer = 101;
+        AddChild(canvas);
+
+        // Black background
+        var bg = new ColorRect();
+        bg.Color = new Color(0, 0, 0, 1);
+        bg.SetAnchor(Side.Left, 0.0f);
+        bg.SetAnchor(Side.Right, 1.0f);
+        bg.SetAnchor(Side.Top, 0.0f);
+        bg.SetAnchor(Side.Bottom, 1.0f);
+        canvas.AddChild(bg);
+
+        // "Конец" title
+        var title = new Label();
+        title.Text = "Конец";
+        title.AddThemeFontSizeOverride("font_size", 72);
+        title.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        title.VerticalAlignment = VerticalAlignment.Center;
+        title.SetAnchor(Side.Left, 0.0f);
+        title.SetAnchor(Side.Right, 1.0f);
+        title.SetAnchor(Side.Top, 0.2f);
+        title.SetAnchor(Side.Bottom, 0.45f);
+        canvas.AddChild(title);
+
+        // Thank you message
+        var thanks = new Label();
+        thanks.Text = "Спасибо за игру!";
+        thanks.AddThemeFontSizeOverride("font_size", 32);
+        thanks.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f, 1));
+        thanks.HorizontalAlignment = HorizontalAlignment.Center;
+        thanks.VerticalAlignment = VerticalAlignment.Center;
+        thanks.SetAnchor(Side.Left, 0.0f);
+        thanks.SetAnchor(Side.Right, 1.0f);
+        thanks.SetAnchor(Side.Top, 0.5f);
+        thanks.SetAnchor(Side.Bottom, 0.7f);
+        canvas.AddChild(thanks);
+
+        LogToFile("[Player.Loudspeaker] End screen shown (Level 7)");
     }
 
     /// <summary>
@@ -6931,15 +7282,19 @@ public partial class Player : BaseCharacter
         if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
             _loudspeakerConeEffect.Call("play", aimDir);
 
-        // Effect chance: first use is always 100%, subsequent uses depend on level
-        float effectChance = isFirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+        // Effect chance: first use at level 1 is always 100% with max 1 enemy pacified.
+        // At level 2+ the regular chance applies even on first use (Issue #959 — Bug 4/5 fix).
+        int currentLevelForEffect = (int)_loudspeakerProgress.Get("current_level");
+        bool isLevel1FirstUse = isFirstUse && currentLevelForEffect == 1;
+        float effectChance = isLevel1FirstUse ? 1.0f : (float)_loudspeakerProgress.Call("get_effect_chance");
+        int maxPacify = isLevel1FirstUse ? 1 : int.MaxValue;
 
         // Notify all enemies on the map that a loud sound was made
         LoudspeakerAlertAllEnemies();
 
         // Apply pacifism effect to enemies in the cone sector
         float hostilityChance = (float)_loudspeakerProgress.Call("get_hostility_chance");
-        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance);
+        LoudspeakerApplyEffect(aimDir, effectChance, hostilityChance, maxPacify);
 
         int maxCharges = (int)_loudspeakerProgress.Call("get_max_charges");
         int currentCharges = (int)_loudspeakerProgress.Get("charges_remaining");
@@ -6989,7 +7344,7 @@ public partial class Player : BaseCharacter
     /// Rules: 50° half-angle cone, line-of-sight check, cover-within-500px exception,
     /// only unattacked enemies, effect_chance roll, hostility_chance roll per enemy.
     /// </summary>
-    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance)
+    private void LoudspeakerApplyEffect(Vector2 direction, float effectChance, float hostilityChance, int maxPacify = int.MaxValue)
     {
         const float ConeHalfAngle = 0.872664625997f; // 50 degrees in radians
         const float CoverMaxDistance = 500.0f;
@@ -7001,6 +7356,9 @@ public partial class Player : BaseCharacter
 
         foreach (var enemy in enemies)
         {
+            if (pacifiedCount >= maxPacify)
+                break;
+
             if (!enemy.HasMethod("apply_pacifism"))
                 continue;
             if (!enemy.HasMethod("is_alive") || !(bool)enemy.Call("is_alive"))
@@ -7090,12 +7448,49 @@ public partial class Player : BaseCharacter
     private void HandleRecoilCompensatorInput(float delta)
     {
         if (!_recoilCompensatorEquipped)
+        {
+            // Tick the experimental-sample timer even when not normally equipped
+            if (_recoilCompensatorExperimentalTimer > 0.0f)
+            {
+                _recoilCompensatorExperimentalTimer -= delta;
+                if (_recoilCompensatorExperimentalTimer <= 0.0f)
+                {
+                    _recoilCompensatorExperimentalTimer = 0.0f;
+                    _recoilCompensatorActive = false;
+                    _recoilCompensatorEquipped = false;
+                    _recoilCompensatorCharge = 0.0f;
+                    QueueRedraw();
+                    LogToFile("[Player.RecoilCompensator] Experimental effect expired");
+                }
+            }
             return;
+        }
 
         // Fire rate boost: accelerate weapon fire timer by 10% while active
         if (_recoilCompensatorActive && CurrentWeapon != null)
         {
             CurrentWeapon.AccelerateFireTimer(delta * 0.1f);
+        }
+
+        // If active via experimental sample, tick that timer (ignores hold-key requirement)
+        if (_recoilCompensatorExperimentalTimer > 0.0f)
+        {
+            _recoilCompensatorExperimentalTimer -= delta;
+            if (_recoilCompensatorExperimentalTimer <= 0.0f)
+            {
+                _recoilCompensatorExperimentalTimer = 0.0f;
+                _recoilCompensatorActive = false;
+                _recoilCompensatorCharge = 0.0f;
+                QueueRedraw();
+                LogToFile("[Player.RecoilCompensator] Experimental effect expired");
+            }
+            else
+            {
+                // Keep active for fire-rate boost; don't consume the normal charge
+                if (_recoilCompensatorActive && CurrentWeapon != null)
+                    CurrentWeapon.AccelerateFireTimer(delta * 0.1f);
+            }
+            return;
         }
 
         if (Input.IsActionPressed("flashlight_toggle") && _recoilCompensatorCharge > 0.0f)
@@ -7342,11 +7737,12 @@ public partial class Player : BaseCharacter
         // Charge pips are shown by TrajectoryGlassesHUD for 300ms, then auto-hide.
         // The trajectory ray blinks during the last 2 seconds as a low-time warning.
 
-        // Draw drilling bullets charge bar (Issue #751)
-        if (_drillingBulletsEquipped && (_drillingChargeBarPending || !_drillingBulletsUsed))
+        // Draw experimental sample charge bar (Issue #1127)
+        if (_experimentalSampleEquipped && _experimentalSampleChargeBarVisible)
         {
-            DrawDrillingChargeBar();
+            DrawExperimentalSampleChargeBar();
         }
+
 
         // Draw teleport targeting reticle if aiming (Issue #672)
         // Note: Charge count is displayed on the reticle itself (Issue #972)
@@ -8143,4 +8539,548 @@ public partial class Player : BaseCharacter
             return false;
         return (bool)activeItemManager.Call("is_active_item_jammed");
     }
+
+    #region Experimental Sample (Issue #1127)
+
+    /// <summary>
+    /// Initialize the experimental sample if it is the selected active item.
+    /// Randomises charge count (1–5) at the start of each level.
+    /// </summary>
+    private void InitExperimentalSample()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.ExperimentalSample] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_experimental_sample"))
+        {
+            LogToFile("[Player.ExperimentalSample] ActiveItemManager missing has_experimental_sample method");
+            return;
+        }
+
+        bool hasExperimentalSample = (bool)activeItemManager.Call("has_experimental_sample");
+        if (!hasExperimentalSample)
+        {
+            LogToFile("[Player.ExperimentalSample] Experimental sample not selected");
+            return;
+        }
+
+        _experimentalSampleEquipped = true;
+        var rng = new RandomNumberGenerator();
+        rng.Randomize();
+        _experimentalSampleCharges = rng.RandiRange(ExperimentalSampleMinCharges, ExperimentalSampleMaxCharges);
+
+        LogToFile($"[Player.ExperimentalSample] Equipped, charges this run: {_experimentalSampleCharges}");
+
+        // Show charge bar
+        _experimentalSampleChargeBarVisible = true;
+        QueueRedraw();
+
+        // Spawn floating icon popup child (GDScript node)
+        if (_experimentalSamplePopup == null || !IsInstanceValid((GodotObject)_experimentalSamplePopup))
+        {
+            var popupScript = GD.Load("res://scripts/ui/experimental_sample_item_popup.gd");
+            if (popupScript != null)
+            {
+                var popupNode = new Node2D();
+                popupNode.SetScript(popupScript);
+                popupNode.Name = "ExperimentalSampleItemPopup";
+                AddChild(popupNode);
+                _experimentalSamplePopup = popupNode;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle experimental sample input: press Space to trigger a random active item effect.
+    /// The randomly chosen effect can be ANY item type 1–17, even items the player has not unlocked.
+    /// </summary>
+    private void HandleExperimentalSampleInput()
+    {
+        if (!_experimentalSampleEquipped)
+            return;
+
+        if (!Input.IsActionJustPressed("flashlight_toggle"))
+            return;
+
+        // Issue #1036: Block active item use when jammed by a Radio Jammer enemy
+        if (IsActiveItemJammedVerbose())
+        {
+            LogToFile("[Player.ExperimentalSample] Space blocked by Radio Jammer (Issue #1036)");
+            return;
+        }
+
+        if (_experimentalSampleCharges <= 0)
+        {
+            LogToFile("[Player.ExperimentalSample] No charges remaining");
+            return;
+        }
+
+        _experimentalSampleCharges -= 1;
+
+        // Update charge bar
+        _experimentalSampleChargeBarVisible = true;
+        QueueRedraw();
+
+        // Active-only item pool (Issue #1127): passive items are excluded.
+        // Passive items excluded: 6=BREAKER_BULLETS, 9=LASER_SIGHT, 10=EXTENDED_MAGAZINE,
+        //   13=ARMORED_SKIN, 14=AUTO_RELOAD, 17=COMBAT_DISPOSITION
+        // Active items kept: 1=FLASHLIGHT, 2=HOMING_BULLETS, 3=TELEPORT_BRACERS,
+        //   4=BFF_PENDANT, 5=INVISIBILITY_SUIT, 7=FORCE_FIELD, 8=TRAJECTORY_GLASSES,
+        //   11=LOUDSPEAKER, 12=BREACHING_CHARGES, 15=DRILLING_BULLETS, 16=RECOIL_COMPENSATOR
+        // Homing (2): 5 tickets (~5%); BFF (4): 2 tickets (~2%); all others: 10 tickets each.
+        int[] activeTypes = { 1, 2, 3, 4, 5, 7, 8, 11, 12, 15, 16 };
+        var poolList = new System.Collections.Generic.List<int>();
+        foreach (int t in activeTypes)
+        {
+            int tickets = t == 4 ? 2 : (t == 2 ? 5 : 10);
+            for (int k = 0; k < tickets; k++)
+                poolList.Add(t);
+        }
+        int[] weightedPool = poolList.ToArray();
+
+        var rng = new RandomNumberGenerator();
+        rng.Randomize();
+        int firedType = weightedPool[rng.RandiRange(0, weightedPool.Length - 1)];
+        LogToFile($"[Player.ExperimentalSample] Charges remaining: {_experimentalSampleCharges} — triggering random effect for type {firedType}");
+        float iconDuration = TriggerExperimentalSampleEffect(firedType);
+
+        // Show floating icon popup for the triggered item (Issue #1127)
+        if (_experimentalSamplePopup != null && IsInstanceValid((GodotObject)_experimentalSamplePopup))
+        {
+            var activeItemMgr = GetNodeOrNull("/root/ActiveItemManager");
+            if (activeItemMgr != null && activeItemMgr.HasMethod("get_active_item_icon_path"))
+            {
+                string iconPath = (string)activeItemMgr.Call("get_active_item_icon_path", firedType);
+                if (!string.IsNullOrEmpty(iconPath))
+                    ((Node2D)_experimentalSamplePopup).Call("show_icon", iconPath, iconDuration);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Trigger the on-press effect of any active item type chosen by the experimental sample.
+    /// Every item type always fires — no re-rolling.
+    /// Returns the effect duration in seconds (used to keep the icon popup visible).
+    /// </summary>
+    private float TriggerExperimentalSampleEffect(int itemType)
+    {
+        LogToFile($"[Player.ExperimentalSample] Executing effect for type {itemType}");
+
+        switch (itemType)
+        {
+            case 1: // FLASHLIGHT — activate for 4 seconds (Issue #1127)
+            {
+                const float FlashlightEffectDuration = 1.8f;
+                Node2D? flashNode = _flashlightNode;
+                if (flashNode == null || !IsInstanceValid(flashNode))
+                {
+                    // Spawn a temporary flashlight node attached to PlayerModel
+                    var flashScene = GD.Load<PackedScene>(FlashlightScenePath);
+                    if (flashScene != null && _playerModel != null)
+                    {
+                        flashNode = flashScene.Instantiate<Node2D>();
+                        flashNode.Name = "FlashlightEffectTemp";
+                        _playerModel.AddChild(flashNode);
+                        flashNode.Position = new Vector2(BulletSpawnOffset, 0);
+                        LogToFile("[Player.ExperimentalSample] Flashlight: temporary node created");
+                    }
+                }
+                if (flashNode != null && IsInstanceValid(flashNode))
+                {
+                    if (flashNode.HasMethod("turn_on"))
+                        flashNode.Call("turn_on");
+                    var flashRef = flashNode;
+                    GetTree().CreateTimer(FlashlightEffectDuration).Timeout += () =>
+                    {
+                        if (IsInstanceValid(flashRef) && flashRef.HasMethod("turn_off"))
+                            flashRef.Call("turn_off");
+                    };
+                    LogToFile($"[Player.ExperimentalSample] Flashlight activated for {FlashlightEffectDuration}s");
+                    return FlashlightEffectDuration;
+                }
+                LogToFile("[Player.ExperimentalSample] Flashlight: node unavailable, homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                return HomingDuration;
+            }
+
+            case 2: // HOMING_BULLETS — activate homing for one burst
+                _homingActive = true;
+                _homingTimer = HomingDuration;
+                PlayHomingSound();
+                StartHomingScanner();
+                EmitSignal(SignalName.HomingActivated);
+                LogToFile($"[Player.ExperimentalSample] Homing effect triggered for {HomingDuration:F1}s");
+                return HomingDuration;
+
+            case 3: // TELEPORT_BRACERS — show crosshair for 2s then teleport (Issue #1127)
+            {
+                const float TeleportAimDuration = 1.8f;
+                // Borrow teleport bracers aim state; _teleportExperimentalActive prevents
+                // HandleTeleportBracersInput from firing the teleport on the next frame.
+                bool wasEquipped = _teleportBracersEquipped;
+                _teleportBracersEquipped = true;
+                _teleportAiming = true;
+                _teleportExperimentalActive = true;
+                _teleportTargetPosition = GetSafeTeleportPosition(GlobalPosition, GetGlobalMousePosition());
+                QueueRedraw();
+                LogToFile($"[Player.ExperimentalSample] Teleport bracers: aiming for {TeleportAimDuration}s");
+                GetTree().CreateTimer(TeleportAimDuration).Timeout += () =>
+                {
+                    if (!IsInstanceValid(this)) return;
+                    _teleportExperimentalActive = false;
+                    _teleportAiming = false;
+                    _teleportBracersEquipped = wasEquipped;
+                    Vector2 oldPos = GlobalPosition;
+                    GlobalPosition = _teleportTargetPosition;
+                    ResetAllEnemyMemories("experimental sample teleport");
+                    QueueRedraw();
+                    LogToFile($"[Player.ExperimentalSample] Teleport bracers: teleported from {oldPos} to {_teleportTargetPosition}");
+                };
+                return TeleportAimDuration;
+            }
+
+            case 4: // BFF_PENDANT — summon companion (always fire, even if already summoned — re-summon)
+                SummonBffCompanion();
+                LogToFile("[Player.ExperimentalSample] BFF companion summoned via experimental sample");
+                return 3.0f;
+
+            case 5: // INVISIBILITY_SUIT — activate (init temp instance if not equipped)
+            {
+                Node? effectNode = _invisibilitySuitEffect;
+                if (effectNode == null || !IsInstanceValid(effectNode))
+                {
+                    // Temporarily init invisibility effect for this activation
+                    var effectScript = GD.Load<Script>("res://scripts/effects/invisibility_suit_effect.gd");
+                    if (effectScript != null)
+                    {
+                        effectNode = new Node();
+                        effectNode.SetScript(effectScript);
+                        effectNode.Name = "InvisibilitySuitEffectTemp";
+                        AddChild(effectNode);
+                        effectNode.Call("initialize", this);
+                        LogToFile("[Player.ExperimentalSample] Invisibility suit: temporary effect node created");
+                    }
+                }
+                if (effectNode != null && IsInstanceValid(effectNode))
+                {
+                    effectNode.Call("activate");
+                    LogToFile("[Player.ExperimentalSample] Invisibility suit activated via experimental sample");
+                    // Duration from invisibility effect or default 3s
+                    float dur = effectNode.HasMethod("get_duration") ? (float)effectNode.Call("get_duration") : 3.0f;
+                    return dur;
+                }
+                // Fallback: homing burst
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                LogToFile("[Player.ExperimentalSample] Invisibility suit fallback: homing burst");
+                return HomingDuration;
+            }
+
+            case 6: // BREAKER_BULLETS — passive bullet modifier; apply homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Breaker bullets effect: homing burst triggered");
+                return HomingDuration;
+
+            case 7: // FORCE_FIELD — activate for 4 seconds (Issue #1127)
+            {
+                const float ForceFieldEffectDuration = 1.8f;
+                Node? ffNode = _forceFieldEffect;
+                if (ffNode == null || !IsInstanceValid(ffNode))
+                {
+                    // Spawn a temporary force field node
+                    const string ForceFieldScenePath2 = "res://scenes/effects/ForceFieldEffect.tscn";
+                    var ffScene = GD.Load<PackedScene>(ForceFieldScenePath2);
+                    if (ffScene != null)
+                    {
+                        ffNode = ffScene.Instantiate();
+                        ffNode.Name = "ForceFieldEffectTemp";
+                        AddChild(ffNode);
+                        LogToFile("[Player.ExperimentalSample] Force field: temporary node created");
+                    }
+                }
+                if (ffNode != null && IsInstanceValid(ffNode))
+                {
+                    bool ffActive = (bool)ffNode.Get("is_active");
+                    if (!ffActive)
+                        ffNode.Call("activate");
+                    var ffRef = ffNode;
+                    GetTree().CreateTimer(ForceFieldEffectDuration).Timeout += () =>
+                    {
+                        if (IsInstanceValid(ffRef))
+                        {
+                            bool stillActive = (bool)ffRef.Get("is_active");
+                            if (stillActive)
+                                ffRef.Call("deactivate");
+                        }
+                    };
+                    LogToFile($"[Player.ExperimentalSample] Force field activated for {ForceFieldEffectDuration}s");
+                    return ForceFieldEffectDuration;
+                }
+                LogToFile("[Player.ExperimentalSample] Force field: node unavailable, homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                return HomingDuration;
+            }
+
+            case 8: // TRAJECTORY_GLASSES — activate (init temp instance if not equipped, wire into draw path)
+            {
+                // If not currently equipped, create a full temporary node and store it in
+                // _trajectoryGlassesEffect / _trajectoryGlassesEquipped so that _Draw() renders the lines.
+                bool tempCreated = false;
+                if (_trajectoryGlassesEffect == null || !IsInstanceValid(_trajectoryGlassesEffect))
+                {
+                    var effectScript = GD.Load<Script>("res://scripts/effects/trajectory_glasses_effect.gd");
+                    if (effectScript != null)
+                    {
+                        var tempNode = new Node();
+                        tempNode.SetScript(effectScript);
+                        tempNode.Name = "TrajectoryGlassesEffectTemp";
+                        AddChild(tempNode);
+                        tempNode.Call("initialize", this);
+                        if (CurrentWeapon != null)
+                            tempNode.Call("set_weapon", CurrentWeapon);
+                        // Wire into draw path
+                        _trajectoryGlassesEffect = tempNode;
+                        _trajectoryGlassesEquipped = true;
+                        tempCreated = true;
+                        LogToFile("[Player.ExperimentalSample] Trajectory glasses: temporary effect node created and wired");
+                        // Also create HUD so charge pips are shown
+                        var hudScript = GD.Load<Script>("res://scripts/ui/trajectory_glasses_hud.gd");
+                        if (hudScript != null)
+                        {
+                            var hudNode = new Node2D();
+                            hudNode.SetScript(hudScript);
+                            hudNode.Name = "TrajectoryGlassesHUDTemp";
+                            AddChild(hudNode);
+                            hudNode.Call("initialize", _trajectoryGlassesEffect);
+                            _trajectoryGlassesHud = hudNode;
+                        }
+                    }
+                }
+                if (_trajectoryGlassesEffect != null && IsInstanceValid(_trajectoryGlassesEffect))
+                {
+                    if (CurrentWeapon != null)
+                        _trajectoryGlassesEffect.Call("set_weapon", CurrentWeapon);
+                    bool activated = (bool)_trajectoryGlassesEffect.Call("activate");
+                    LogToFile($"[Player.ExperimentalSample] Trajectory glasses activated={activated} via experimental sample for {TrajectoryGlassesDuration:F1}s");
+                    if (tempCreated)
+                    {
+                        // Auto-cleanup after duration if we created a temporary node
+                        var effectRef = _trajectoryGlassesEffect;
+                        var hudRef = _trajectoryGlassesHud;
+                        GetTree().CreateTimer(TrajectoryGlassesDuration + 0.5f).Timeout += () =>
+                        {
+                            if (!IsInstanceValid(this)) return;
+                            // Only reset the equipped fields if they still point at our temp node
+                            if (_trajectoryGlassesEffect == effectRef)
+                            {
+                                _trajectoryGlassesEquipped = false;
+                                _trajectoryGlassesEffect = null;
+                                _trajectoryGlassesHud = null;
+                            }
+                            if (IsInstanceValid(effectRef)) effectRef.QueueFree();
+                            if (hudRef != null && IsInstanceValid(hudRef)) hudRef.QueueFree();
+                        };
+                    }
+                    return TrajectoryGlassesDuration;
+                }
+                // Fallback: homing burst
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                LogToFile("[Player.ExperimentalSample] Trajectory glasses fallback: homing burst");
+                return HomingDuration;
+            }
+
+            case 9: // LASER_SIGHT — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Laser sight effect: homing burst triggered");
+                return HomingDuration;
+
+            case 10: // EXTENDED_MAGAZINE — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Extended magazine effect: homing burst triggered");
+                return HomingDuration;
+
+            case 11: // LOUDSPEAKER — apply pacification effect (always, without checking equipped)
+            {
+                Vector2 aimDir = LoudspeakerGetAimDirection();
+                // Show cone visual (needs the cone effect node; create temp one if needed)
+                if (_loudspeakerConeEffect == null || !IsInstanceValid(_loudspeakerConeEffect))
+                {
+                    var coneScript = GD.Load<Script>("res://scripts/effects/loudspeaker_cone_effect.gd");
+                    if (coneScript != null)
+                    {
+                        var tempCone = new Node2D();
+                        tempCone.SetScript(coneScript);
+                        tempCone.Name = "LoudspeakerConeEffectTemp";
+                        AddChild(tempCone);
+                        _loudspeakerConeEffect = tempCone;
+                        LogToFile("[Player.ExperimentalSample] Loudspeaker: temporary cone effect node created");
+                        // Auto-cleanup after animation completes (approx 1 s)
+                        GetTree().CreateTimer(1.5f).Timeout += () =>
+                        {
+                            if (_loudspeakerConeEffect == tempCone)
+                                _loudspeakerConeEffect = null;
+                            if (IsInstanceValid(tempCone)) tempCone.QueueFree();
+                        };
+                    }
+                }
+                if (_loudspeakerConeEffect != null && IsInstanceValid(_loudspeakerConeEffect))
+                    _loudspeakerConeEffect.Call("play", aimDir);
+                // Alert all enemies (draw attention) and pacify those in the cone
+                LoudspeakerAlertAllEnemies();
+                LoudspeakerApplyEffect(aimDir, 1.0f, 0.0f);
+                LogToFile("[Player.ExperimentalSample] Loudspeaker effect applied via experimental sample");
+                return 2.0f;
+            }
+
+            case 12: // BREACHING_CHARGES — countdown 1.8s, place at end of timer, then detonate (Issue #1127)
+            {
+                const float BreachingTimerDuration = 1.8f;
+                // Use existing effect node if equipped; otherwise create a temporary one
+                Node? bcEffect = _breachingChargesEffect;
+                bool bcTempCreated = false;
+                if (bcEffect == null || !IsInstanceValid(bcEffect))
+                {
+                    var bcScript = GD.Load<Script>("res://scripts/effects/breaching_charges_effect.gd");
+                    if (bcScript != null)
+                    {
+                        bcEffect = new Node();
+                        bcEffect.SetScript(bcScript);
+                        bcEffect.Name = "BreachingChargesEffectTemp";
+                        AddChild(bcEffect);
+                        bcEffect.Call("initialize", this);
+                        bcTempCreated = true;
+                        LogToFile("[Player.ExperimentalSample] Breaching charges: temporary node created");
+                    }
+                }
+                if (bcEffect != null && IsInstanceValid(bcEffect))
+                {
+                    // Countdown runs for BreachingTimerDuration seconds; charge is placed and detonated at the end
+                    LogToFile($"[Player.ExperimentalSample] Breaching charges: placing and detonating after {BreachingTimerDuration}s");
+                    var bcRef = bcEffect;
+                    GetTree().CreateTimer(BreachingTimerDuration).Timeout += () =>
+                    {
+                        if (!IsInstanceValid(bcRef)) return;
+                        // Place charge near wall; if no wall, force-place at player feet
+                        bool placed = (bool)bcRef.Call("try_place_charge");
+                        if (!placed)
+                        {
+                            bcRef.Set("has_placed_charge", true);
+                            bcRef.Set("_charge_position", GlobalPosition);
+                            bcRef.Set("_charge_wall_direction", Vector2.Down);
+                            bcRef.Set("_charged_walls", new Godot.Collections.Array());
+                            LogToFile("[Player.ExperimentalSample] Breaching charges: no wall nearby, placed at player feet");
+                        }
+                        else
+                        {
+                            LogToFile("[Player.ExperimentalSample] Breaching charges: charge placed on wall");
+                        }
+                        bool det = (bool)bcRef.Call("detonate");
+                        LogToFile($"[Player.ExperimentalSample] Breaching charges: detonated={det}");
+                        if (bcTempCreated && IsInstanceValid(bcRef)) bcRef.QueueFree();
+                    };
+                    return BreachingTimerDuration;
+                }
+                LogToFile("[Player.ExperimentalSample] Breaching charges: failed to create effect node");
+                return 0.5f;
+            }
+
+            case 13: // ARMORED_SKIN — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Armored skin effect: homing burst triggered");
+                return HomingDuration;
+
+            case 14: // AUTO_RELOAD — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Auto-reload effect: homing burst triggered");
+                return HomingDuration;
+
+            case 15: // DRILLING_BULLETS — apply drilling to current magazine (always, even if not equipped)
+            {
+                int activeAmmo = CurrentWeapon is Shotgun shotgunEx
+                    ? shotgunEx.ShellsInTube
+                    : (CurrentWeapon?.CurrentAmmo ?? 0);
+                if (CurrentWeapon != null && activeAmmo > 0)
+                {
+                    CurrentWeapon.DrillingBulletsRemaining = activeAmmo;
+                    LogToFile($"[Player.ExperimentalSample] Drilling bullets effect: {activeAmmo} drilling bullets applied to current magazine");
+                }
+                else
+                {
+                    if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                    LogToFile("[Player.ExperimentalSample] Drilling bullets effect: homing burst fallback (no ammo)");
+                }
+                return 2.0f;
+            }
+
+            case 16: // RECOIL_COMPENSATOR — activate for 4 seconds (Issue #1127)
+            {
+                const float RecoilEffectDuration = 1.8f;
+                // Use experimental timer: HandleRecoilCompensatorInput ticks it each frame
+                // so the effect stays active for the full 4 s without needing Space held.
+                _recoilCompensatorEquipped = true;
+                _recoilCompensatorActive = true;
+                _recoilCompensatorExperimentalTimer = RecoilEffectDuration;
+                QueueRedraw();
+                LogToFile($"[Player.ExperimentalSample] Recoil compensator activated for {RecoilEffectDuration}s");
+                return RecoilEffectDuration;
+            }
+
+            case 17: // COMBAT_DISPOSITION — passive; trigger homing burst as visible effect
+                if (!_homingActive)
+                {
+                    _homingActive = true;
+                    _homingTimer = HomingDuration;
+                    PlayHomingSound();
+                    StartHomingScanner();
+                    EmitSignal(SignalName.HomingActivated);
+                }
+                LogToFile("[Player.ExperimentalSample] Combat disposition effect: homing burst triggered");
+                return HomingDuration;
+
+            default:
+                LogToFile($"[Player.ExperimentalSample] Unknown item type {itemType} — homing fallback");
+                if (!_homingActive) { _homingActive = true; _homingTimer = HomingDuration; PlayHomingSound(); StartHomingScanner(); EmitSignal(SignalName.HomingActivated); }
+                return HomingDuration;
+        }
+    }
+
+    #endregion
 }

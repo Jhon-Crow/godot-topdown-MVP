@@ -20,8 +20,9 @@ This case study reconstructs the exact sequence of events from the game log, ide
 
 | File | Description |
 |---|---|
-| `game_log_20260318_092645.txt` | Original game log provided by the reporter |
-| `game_log_20260318_111928.txt` | Second game log provided after the first fix attempt — confirms the bug persisted |
+| `logs/game_log_20260318_092645.txt` | Original game log provided by the reporter (issue description) |
+| `logs/game_log_20260318_111928.txt` | Second game log provided after iteration 1 fix attempt — confirms bug persisted |
+| `logs/game_log_20260321_005835.txt` | Third game log provided after iteration 2 fix attempt — machete enemy still stuck in room 3 |
 
 ---
 
@@ -292,11 +293,42 @@ Two changes were made to `scripts/levels/roguelike_level.gd`:
 2. PURSUING: player visible within 400px → **immediately** COMBAT (no wait)
 3. Repeat → enemy appears frozen
 
-### Iteration 2 (current)
+### Iteration 2 (commit 67d43a13)
 
-**Fix 1 — `scripts/levels/roguelike_level.gd`**: Changed `nav_region.bake_navigation_polygon(false)` to `nav_region.bake_navigation_polygon.call_deferred(false)`. This defers the bake to the next frame, after `PhysicsServer2D` has registered all the wall/cover collision shapes.
+**Fix 1 — `scripts/levels/roguelike_level.gd`**: Changed `nav_region.bake_navigation_polygon(false)` to `nav_region.bake_navigation_polygon.call_deferred(false)`. This defers the bake to the next engine idle step, giving `PhysicsServer2D` time to register wall/cover collision shapes.
 
-**Fix 2 — `scripts/objects/enemy.gd`**: Added `_pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT` guard to the melee PURSUING→COMBAT transition, matching the guard already applied to ranged enemies. This breaks the oscillation loop even in the worst-case where nav fails.
+**Fix 2 — `scripts/objects/enemy.gd`**: Added `_pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT` guard to the melee PURSUING→COMBAT transition, matching the guard already applied to ranged enemies. This breaks the oscillation loop.
+
+**Result of Iteration 2 (third log — `game_log_20260321_005835.txt`):**
+- **Room 1**: Still shows `wps=0` at every search radius (lines 775–792), confirming nav mesh empty — **this binary was likely built before the fix merged**.
+- **Room 3**: Enemy_0 (machete) still cycles COMBAT→PURSUING, but the timer guard is working (≥2s between transitions). The new remaining issue: the enemy can navigate (rooms 2–3 may have valid nav) but still gets physically stuck when trying to reach the player through narrow corridors.
+
+### Root Cause of Iteration 2 Partial Failure
+
+**Bug C — `call_deferred` fires before physics server processes**: In Godot 4, `call_deferred` runs during idle processing of the **same engine step** — before the next physics frame. `StaticBody2D` nodes need at least one physics frame to be registered with `PhysicsServer2D`. Therefore `call_deferred` is not guaranteed to work; on some platforms/timings, the bake still sees no colliders.
+
+**Bug D — No fallback when nav mesh unavailable**: When `_move_to_target_nav()` returns `false` (nav unavailable, i.e., `is_navigation_finished() == true` with no path), the machete enemy's velocity is set to `Vector2.ZERO`. The enemy sits still, the stuck timer fires after 0.8s, and the cycle continues. Machete enemies should move directly toward the player as a fallback, since they are melee fighters who don't need cover-to-cover pathfinding.
+
+### Iteration 3 (current)
+
+**Fix 1 — `scripts/levels/roguelike_level.gd`**: Replaced `call_deferred` with an `async` helper function `_bake_nav_after_physics_frame` that uses `await get_tree().physics_frame` before calling `bake_navigation_polygon(false)`. This guarantees one physics frame elapses so `PhysicsServer2D` has registered all walls.
+
+```gdscript
+func _bake_nav_after_physics_frame(nav_region: NavigationRegion2D) -> void:
+    await get_tree().physics_frame  # Wait for PhysicsServer2D to register walls
+    if is_instance_valid(nav_region):
+        nav_region.bake_navigation_polygon(false)
+```
+
+**Fix 2 — `scripts/objects/enemy.gd`**: Added nav-unavailable fallback for machete COMBAT movement. When `_move_to_target_nav` returns `false`, use direct wall-avoidance movement toward the player instead of standing still:
+
+```gdscript
+# Issue #1165: If nav mesh unavailable (empty or not yet baked), move directly toward player
+if not _move_to_target_nav(tp, combat_move_speed):
+    velocity = _apply_wall_avoidance((tp - global_position).normalized()) * combat_move_speed
+```
+
+This ensures machete enemies always move toward the player, whether or not the nav mesh is available.
 
 ---
 

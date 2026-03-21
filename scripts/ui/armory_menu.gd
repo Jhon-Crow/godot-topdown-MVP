@@ -97,6 +97,9 @@ const MAX_GRENADE_ROWS_COLLAPSED: int = 1
 ## Number of columns in the weapon/grenade grids.
 const GRID_COLUMNS: int = 4
 
+## Number of columns in the special items grid.
+const SPECIAL_GRID_COLUMNS: int = 7
+
 ## Maximum number of visible active item rows before accordion hides the rest.
 const MAX_ACTIVE_ITEM_ROWS_COLLAPSED: int = 1
 
@@ -609,7 +612,7 @@ func _build_right_area() -> VBoxContainer:
 	# --- SPECIAL SECTION ---
 	_add_category_header(right_vbox, "SPECIAL")
 	_active_item_grid = GridContainer.new()
-	_active_item_grid.columns = GRID_COLUMNS
+	_active_item_grid.columns = SPECIAL_GRID_COLUMNS
 	_active_item_grid.layout_mode = 2
 	_active_item_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_active_item_grid.add_theme_constant_override("h_separation", 6)
@@ -618,7 +621,7 @@ func _build_right_area() -> VBoxContainer:
 
 	# Populate active item grid from ActiveItemManager
 	var active_item_index: int = 0
-	var max_visible_active_items: int = MAX_ACTIVE_ITEM_ROWS_COLLAPSED * GRID_COLUMNS
+	var max_visible_active_items: int = MAX_ACTIVE_ITEM_ROWS_COLLAPSED * SPECIAL_GRID_COLUMNS
 	if _active_item_manager:
 		for item_type in _active_item_manager.get_all_active_item_types():
 			var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)

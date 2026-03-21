@@ -1213,3 +1213,24 @@ func test_sniper_rifle_caliber_path() -> void:
 	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
 	assert_eq(config["caliber_path"], "res://resources/calibers/caliber_127x108.tres",
 		"SNIPER_RIFLE caliber_path should point to 12.7x108 caliber")
+
+
+# ============================================================================
+# SNIPER_RIFLE Ammo Count Fix - Issue #1161
+# ============================================================================
+
+
+func test_sniper_rifle_total_magazines_is_14() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	assert_eq(config["total_magazines"], 14,
+		"SNIPER_RIFLE total_magazines should be 14 (Issue #1161: 70 total rounds)")
+
+
+func test_sniper_rifle_total_ammo_is_70() -> void:
+	# Verify total ammo = magazine_size + (total_magazines - 1) * magazine_size
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[7]
+	var magazine_size: int = config["magazine_size"]
+	var total_magazines: int = config["total_magazines"]
+	var total_ammo: int = total_magazines * magazine_size
+	assert_eq(total_ammo, 70,
+		"SNIPER_RIFLE total ammo should be 70 (Issue #1161: magazine_size=5 * total_magazines=14)")
