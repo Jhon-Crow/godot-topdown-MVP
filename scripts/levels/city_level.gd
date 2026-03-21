@@ -244,22 +244,11 @@ func _setup_navigation() -> void:
 	if nav_region == null:
 		push_warning("NavigationRegion2D not found")
 		return
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found")
-		return
+	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
+	# is populated and visible via the nav mesh overlay. The NavigationPolygon
+	# resource in CityLevel.tscn already has the correct outlines.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(6064, 64),
-		Vector2(6064, 5064),
-		Vector2(64, 5064)
-	])
-	nav_poly.add_outline(floor_outline)
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 
