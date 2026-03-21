@@ -176,6 +176,8 @@ var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
+var _patrol_points_snapped: bool = false  ## #1216: tracks whether patrol points were snapped to the navmesh
+var _spawn_physics_frame: int = 0  ## #1216: physics frame at spawn, used to delay navmesh snap by 1 frame
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -365,6 +367,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -605,7 +608,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_log_to_file("Heard CASING_KICK at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
 		_last_known_player_position = position
 		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
-		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		if _current_state == AIState.IDLE and _has_left_idle: _transition_to_pursuing()  # #1216: only re-pursue if previously engaged
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
@@ -1324,22 +1327,18 @@ func _process_idle_state(delta: float) -> void:
 		else: _transition_to_combat()
 		return
 
-	# Check memory system for suspected player position (Issue #297)
-	# If we have high/medium confidence about player location, investigate
-	if _memory and _memory.has_target():
+	# Issue #297: re-pursue from memory only if enemy has previously engaged (#1216: gate on _has_left_idle
+	# so pure patrol/guard enemies don't walk toward the player just because an ally shared intel).
+	if _has_left_idle and _memory and _memory.has_target():
 		if _memory.is_high_confidence():
-			# High confidence: Go investigate directly
 			_log_debug("High confidence (%.0f%%) - investigating suspected position" % (_memory.confidence * 100))
 			_log_to_file("Memory: high confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
+			_transition_to_pursuing(); return
 		elif _memory.is_medium_confidence():
-			# Medium confidence: Investigate cautiously (also use pursuing with cover-to-cover)
 			_log_debug("Medium confidence (%.0f%%) - cautiously investigating" % (_memory.confidence * 100))
 			_log_to_file("Memory: medium confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
-		# Low confidence: Continue normal patrol but may wander toward suspected area
+			_transition_to_pursuing(); return
+		# Low confidence: Continue normal patrol
 	# Execute idle behavior
 	match behavior_mode:
 		BehaviorMode.PATROL: _process_patrol(delta)
@@ -4071,6 +4070,15 @@ func _calculate_lead_prediction() -> Vector2:
 func _process_patrol(delta: float) -> void:
 	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
 	if _patrol_points.is_empty(): return
+	# Issue #1216: Snap patrol points after 1 physics frame; only if within agent_radius*2 (avoid cross-wall snap).
+	if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
+		var nav_map: RID = _nav_agent.get_navigation_map()
+		if nav_map.is_valid():
+			var snap_thr := ((_nav_agent.path_desired_distance if _nav_agent.path_desired_distance > 0.0 else 50.0) * 2.0)
+			for i in range(_patrol_points.size()):
+				var snapped := NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
+				if _patrol_points[i].distance_to(snapped) <= snap_thr: _patrol_points[i] = snapped
+			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (Issue #1216)")
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
 		if _patrol_wait_timer >= patrol_wait_time:
@@ -4091,8 +4099,9 @@ func _process_patrol(delta: float) -> void:
 	if moved < PATROL_STUCK_DISTANCE_THRESHOLD:
 		_patrol_stuck_timer += delta
 		if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
-			_log_to_file("PATROL STUCK: pos=%s for %.1fs, skipping" % [global_position, _patrol_stuck_timer])
-			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO
+			_log_to_file("PATROL STUCK: pos=%s for %.1fs, advancing to next point" % [global_position, _patrol_stuck_timer])
+			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()  # #1216: skip stuck point
+			_is_waiting_at_patrol_point = true; _patrol_wait_timer = 0.0; velocity = Vector2.ZERO
 	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
 ## Detect openings perpendicular to movement (for corner checking). Issue #347: smooth rotation.
