@@ -209,31 +209,11 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
-		return
-
-	# Bake the navigation mesh to include physics obstacles from collision layer 4
-	# This is needed because we set parsed_geometry_type = 1 (static colliders)
-	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
+	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
+	# is populated and visible via the nav mesh overlay. The NavigationPolygon
+	# resource in TestTier.tscn already has the correct outlines.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	# Re-add the outline for the walkable floor area
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(64, 64),
-		Vector2(4064, 64),
-		Vector2(4064, 3024),
-		Vector2(64, 3024)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	# Use NavigationServer2D to bake from source geometry
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 
