@@ -798,7 +798,10 @@ func _physics_process(delta: float) -> void:
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
 			# Not making significant progress - increment stuck timer
 			# Only count if NOT in direct player contact (can't see and shoot player)
-			if not (_can_see_player and _can_hit_player_from_current_position()):
+			# Also skip while intentionally yielding to another enemy (#1249): yielding is a deliberate
+			# pause, not being stuck. Counting it would cause spurious SEARCHING transitions.
+			if not (_can_see_player and _can_hit_player_from_current_position()) \
+					and not (_tactical_movement and _tactical_movement.is_yielding):
 				_global_stuck_timer += delta
 				var _experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
@@ -813,7 +816,13 @@ func _physics_process(delta: float) -> void:
 						_flank_side_initialized = false
 						_flank_fail_count += 1
 						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-					_transition_to_searching(global_position)
+					# #1249 session 4: search from last known player position, not the stuck position.
+					# When stuck while pursuing, the enemy may be far from the player; searching from
+					# the stuck spot wastes time. Use the last known player position instead if available.
+					var _search_start := global_position
+					if _last_known_player_position != Vector2.ZERO:
+						_search_start = _last_known_player_position
+					_transition_to_searching(_search_start)
 					return  # Skip rest of physics process this frame
 		else:
 			# Making progress - reset stuck timer and update position
@@ -4687,7 +4696,10 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	# Issue #1249: Tactical yielding — let the closest enemy pass through narrow passages first.
-	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.FLANKING]:
+	# Do NOT yield in FLANKING: flanking has its own timeout+failure counter; interrupting it with a
+	# 3-second yield causes the flank attempt to time out, increments the failure count, and after
+	# 2 failures disables flanking entirely for this enemy. (#1249 session 4)
+	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
 		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
 			var _wp: Vector2 = _tactical_movement.get_yield_position()
 			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
