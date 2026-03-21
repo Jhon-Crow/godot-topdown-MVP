@@ -733,7 +733,7 @@ func test_machete_magazine_size_is_zero() -> void:
 
 func test_machete_weapon_loudness() -> void:
 	var config := WeaponConfigComponent.get_config(3)
-	assert_eq(config["weapon_loudness"], 200.0, "MACHETE weapon loudness should be 200.0")
+	assert_eq(config["weapon_loudness"], 108.9, "MACHETE weapon loudness should be 108.9 (Issue #1269: scaled by 800/1469 factor)")
 
 
 func test_machete_is_melee() -> void:

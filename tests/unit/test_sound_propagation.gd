@@ -97,7 +97,7 @@ func test_emit_sound_notifies_listener_in_range() -> void:
 
 	_sound_propagation.register_listener(listener)
 
-	# Emit a gunshot at origin (listener is 100 pixels away, well within 1500 range)
+	# Emit a gunshot at origin (listener is 100 pixels away, well within 800px range)
 	_sound_propagation.emit_sound(0, Vector2.ZERO, 0, null)  # GUNSHOT from PLAYER
 
 	assert_eq(listener.get_sound_count(), 1, "Listener should receive 1 sound")
@@ -110,7 +110,7 @@ func test_emit_sound_notifies_listener_in_range() -> void:
 
 func test_emit_sound_does_not_notify_listener_out_of_range() -> void:
 	var listener := MockListener.new()
-	listener.global_position = Vector2(1600, 0)  # Beyond ~1468.6 pixel gunshot range
+	listener.global_position = Vector2(1600, 0)  # Beyond 800px gunshot range (Issue #1269: PM baseline)
 	add_child(listener)
 
 	_sound_propagation.register_listener(listener)
@@ -227,8 +227,8 @@ func test_multiple_listeners_receive_sound() -> void:
 
 
 func test_get_propagation_distance_for_known_types() -> void:
-	# GUNSHOT = 0 (viewport diagonal ≈ 1468.6)
-	assert_almost_eq(_sound_propagation.get_propagation_distance(0), 1468.6, 0.1, "Gunshot should have viewport diagonal range")
+	# GUNSHOT = 0 (Issue #1269: PM baseline = 800px, all weapons scaled by factor 800/1469)
+	assert_almost_eq(_sound_propagation.get_propagation_distance(0), 800.0, 0.1, "Gunshot default should be 800px (PM baseline per issue #1269)")
 	# EXPLOSION = 1 (1.5x viewport diagonal)
 	assert_almost_eq(_sound_propagation.get_propagation_distance(1), 2200.0, 0.1, "Explosion should have 2200 range")
 	# FOOTSTEP = 2

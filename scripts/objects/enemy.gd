@@ -176,6 +176,8 @@ var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
+var _patrol_points_snapped: bool = false  ## #1216: tracks whether patrol points were snapped to the navmesh
+var _spawn_physics_frame: int = 0  ## #1216: physics frame at spawn, used to delay navmesh snap by 1 frame
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -365,6 +367,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	# Issue #883: Stagger vision checks across enemies so they don't all raycast on the same frame.
 	_vision_frame_offset = get_instance_id() % VISION_CHECK_INTERVAL
+	_spawn_physics_frame = Engine.get_physics_frames()  # #1216: delay navmesh snap by 1 physics frame
 
 	# Issue #934: Initialize BFF companion targeting component
 	_bff_targeting = BffTargetingComponent.new(self)
@@ -381,7 +384,7 @@ func _ready() -> void:
 	_setup_threat_sphere()
 	_initialize_goap_state()
 	_initialize_memory()
-	_connect_debug_mode_signal(); (func(): _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints")).call_deferred()  ## #1226: cache once after ready
+	_connect_debug_mode_signal(); (func(): var _es := get_node_or_null("/root/ExperimentalSettings"); var _wp_on: bool = (_es == null or not _es.has_method("is_passage_waypoints_enabled") or _es.is_passage_waypoints_enabled()); _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints") if _wp_on else []).call_deferred()  ## #1226: cache once after ready; #1267: skip if passage waypoints disabled
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_flashbang_status()
@@ -537,6 +540,8 @@ func _deferred_register_sound_listener() -> void:
 		_log_to_file("WARNING: Could not register as sound listener (SoundPropagation not found)")
 		push_warning("[%s] Could not register as sound listener - SoundPropagation not found" % name)
 
+func _combat_waypoint(t: Vector2, r: bool = false) -> Vector2:  ## Issue #1227: nearest pre-defined combat path waypoint.
+	var c: CombatPathComponent = get_tree().get_first_node_in_group("combat_path_components"); return (c.get_nearest_retreat_waypoint(global_position, t) if r else c.get_nearest_attacking_waypoint(global_position, t)) if c else Vector2.ZERO
 ## Unregister this enemy from sound propagation when dying or being destroyed.
 func _unregister_sound_listener() -> void:
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
@@ -603,7 +608,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_log_to_file("Heard CASING_KICK at %s, intensity=%.2f, dist=%.0f" % [position, intensity, distance])
 		_last_known_player_position = position
 		if _memory: _memory.update_position(position, SOUND_CASING_KICK_CONFIDENCE)
-		if _current_state == AIState.IDLE: _transition_to_pursuing()
+		if _current_state == AIState.IDLE and _has_left_idle: _transition_to_pursuing()  # #1216: only re-pursue if previously engaged
 		if _suppressive_fire: _suppressive_fire.try_shoot_on_sound(_player, position, "CASING_KICK")  # Issue #910
 		return
 
@@ -1322,22 +1327,18 @@ func _process_idle_state(delta: float) -> void:
 		else: _transition_to_combat()
 		return
 
-	# Check memory system for suspected player position (Issue #297)
-	# If we have high/medium confidence about player location, investigate
-	if _memory and _memory.has_target():
+	# Issue #297: re-pursue from memory only if enemy has previously engaged (#1216: gate on _has_left_idle
+	# so pure patrol/guard enemies don't walk toward the player just because an ally shared intel).
+	if _has_left_idle and _memory and _memory.has_target():
 		if _memory.is_high_confidence():
-			# High confidence: Go investigate directly
 			_log_debug("High confidence (%.0f%%) - investigating suspected position" % (_memory.confidence * 100))
 			_log_to_file("Memory: high confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
+			_transition_to_pursuing(); return
 		elif _memory.is_medium_confidence():
-			# Medium confidence: Investigate cautiously (also use pursuing with cover-to-cover)
 			_log_debug("Medium confidence (%.0f%%) - cautiously investigating" % (_memory.confidence * 100))
 			_log_to_file("Memory: medium confidence (%.2f) - transitioning to PURSUING" % _memory.confidence)
-			_transition_to_pursuing()
-			return
-		# Low confidence: Continue normal patrol but may wander toward suspected area
+			_transition_to_pursuing(); return
+		# Low confidence: Continue normal patrol
 	# Execute idle behavior
 	match behavior_mode:
 		BehaviorMode.PATROL: _process_patrol(delta)
@@ -3122,7 +3123,8 @@ func _find_pursuit_cover_toward_player() -> void:
 	if target_pos == global_position and _player == null:
 		_has_pursuit_cover = false
 		return
-
+	var wp_p := _combat_waypoint(target_pos)  # Issue #1227
+	if wp_p != Vector2.ZERO: _pursuit_next_cover = wp_p; _has_pursuit_cover = true; _current_cover_obstacle = null; return
 	var player_pos := target_pos
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
@@ -3250,7 +3252,8 @@ func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-
+	var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
+	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_distance: float = INF
@@ -3303,7 +3306,8 @@ func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-
+	var wp_r := _combat_waypoint(_player.global_position, true)  # Issue #1227: retreat path
+	if wp_r != Vector2.ZERO: _cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
 	# Issue #969: throttle 16-raycast cover search
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
@@ -3468,6 +3472,8 @@ func _has_clear_path_to(target: Vector2) -> bool:
 
 ## Find cover position closer to the flank target for cover-to-cover movement.
 func _find_flank_cover_toward_target() -> void:
+	var wp_f := _combat_waypoint(_flank_target)  # Issue #1227
+	if wp_f != Vector2.ZERO: _flank_next_cover = wp_f; _has_flank_cover = true; return
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_valid_cover: bool = false
@@ -4064,6 +4070,15 @@ func _calculate_lead_prediction() -> Vector2:
 func _process_patrol(delta: float) -> void:
 	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
 	if _patrol_points.is_empty(): return
+	# Issue #1216: Snap patrol points after 1 physics frame; only if within agent_radius*2 (avoid cross-wall snap).
+	if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_frames() > _spawn_physics_frame:
+		var nav_map: RID = _nav_agent.get_navigation_map()
+		if nav_map.is_valid():
+			var snap_thr := ((_nav_agent.path_desired_distance if _nav_agent.path_desired_distance > 0.0 else 50.0) * 2.0)
+			for i in range(_patrol_points.size()):
+				var snapped := NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
+				if _patrol_points[i].distance_to(snapped) <= snap_thr: _patrol_points[i] = snapped
+			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (Issue #1216)")
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
 		if _patrol_wait_timer >= patrol_wait_time:
@@ -4084,8 +4099,9 @@ func _process_patrol(delta: float) -> void:
 	if moved < PATROL_STUCK_DISTANCE_THRESHOLD:
 		_patrol_stuck_timer += delta
 		if _patrol_stuck_timer >= PATROL_STUCK_MAX_TIME:
-			_log_to_file("PATROL STUCK: pos=%s for %.1fs, skipping" % [global_position, _patrol_stuck_timer])
-			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO
+			_log_to_file("PATROL STUCK: pos=%s for %.1fs, advancing to next point" % [global_position, _patrol_stuck_timer])
+			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; _current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()  # #1216: skip stuck point
+			_is_waiting_at_patrol_point = true; _patrol_wait_timer = 0.0; velocity = Vector2.ZERO
 	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
 ## Detect openings perpendicular to movement (for corner checking). Issue #347: smooth rotation.
