@@ -7,101 +7,152 @@
 
 **Reporter suggestion:** Use `NavigationRegion2D` or fix the navmesh overlapping with walls. Use the most recent reliable approach.
 
-## Root Cause Analysis
+## Session 1 Root Cause Analysis (Committed: 95ce5af5)
 
-### What Works (Good)
+### Initial Hypothesis
 
-The game already uses Godot 4's `NavigationAgent2D` + `NavigationRegion2D` stack:
+The game already uses Godot 4's `NavigationAgent2D` + `NavigationRegion2D` stack with infrastructure in place:
 
 - All 13 levels have `NavigationRegion2D` nodes with `NavigationPolygon` set to bake from collision shapes on layer 4
 - All levels call `nav_region.bake_navigation_polygon(false)` at runtime in `_ready()`
 - Enemy nodes (`Enemy.tscn`) have `NavigationAgent2D` with `avoidance_enabled = true`, `radius = 24.0`
-- The helper `_move_to_target_nav(target_pos, speed)` correctly uses navmesh pathfinding (`_nav_agent.target_position`, `get_next_path_position()`) and includes corner-escape logic
+- The helper `_move_to_target_nav(target_pos, speed)` uses navmesh pathfinding
 
-Many states already use `_move_to_target_nav` correctly:
-- `PATROL` (fixed in #1119/#1220)
-- `SEEKING_COVER` → `_move_to_target_nav(_cover_position, ...)`
-- `RETREATING` → `_move_to_target_nav(_cover_position, ...)`
-- `FLANKING` → `_move_to_target_nav(_flank_target, ...)`
-- `PURSUING` → `_move_to_target_nav(target, ...)`
-- Machete `COMBAT` → `_move_to_target_nav(player_pos, ...)`
+Initial fix applied: replaced `_apply_wall_avoidance()` calls in COMBAT approach, seeking-clear-shot, and PACIFIST states with `_move_to_target_nav()`. This matched the pattern already used in PATROL, PURSUING, FLANKING, etc.
 
-### What Doesn't Work (Root Cause)
+### Why the First Fix Was Insufficient
 
-Several code paths still use **direct wall-avoidance raycasts only** (the old approach), bypassing navmesh pathfinding entirely:
+The reporter confirmed (comment on PR #1272) that enemies were still walking into walls after the fix: *"враги идёт в стену, опять не отображается навмеш"* ("enemies go into walls, navmesh still not displaying").
 
-#### 1. COMBAT approach phase (`_process_combat_state`, line ~1547)
-```gdscript
-var move_direction := direction_to_player      # ← straight line to player
-move_direction = _apply_wall_avoidance(move_direction)  # ← only raycast-based avoidance
-velocity = move_direction * combat_move_speed
+## Session 2 Root Cause Analysis (Game Log: game_log_20260321_134324.txt)
+
+### Evidence from Game Log
+
+The game log collected 2026-03-21T13:43:24 provides the definitive root cause evidence:
+
 ```
-When the player is behind a wall, the enemy will head straight toward them and get stuck pressing against the wall. The 8-ray wall-avoidance is insufficient for navigating around corners.
-
-#### 2. COMBAT seeking-clear-shot phase (`_process_combat_state`, line ~1492)
-```gdscript
-var move_direction := (_clear_shot_target - global_position).normalized()
-move_direction = _apply_wall_avoidance(move_direction)  # ← only raycast-based
-velocity = move_direction * combat_move_speed
+[13:43:24] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=1 vertex_count=4 outline_count=1
 ```
-Same issue for short-range repositioning to find a clear shot.
 
-#### 3. PACIFIST state retaliating movement (`_process_pacifist_state`, line ~2432)
-```gdscript
-velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed
+**The navmesh only ever has 1 polygon with 4 vertices — the outer rectangle only. No walls are carved.**
+
+This is reproduced consistently across every refresh throughout the entire session:
+- At startup: `poly_count=1 vertex_count=4`
+- After scene reload (13:44:22): `poly_count=1 vertex_count=4`
+- After another reload (13:44:33): `poly_count=1 vertex_count=4`
+- After every subsequent refresh: `poly_count=1 vertex_count=4`
+
+A correct navmesh for a labyrinth level would show 50–200+ polygons with many vertices (each wall creates cut-outs).
+
+### Root Cause: Wrong `source_geometry_mode`
+
+**File:** All level `.tscn` files (13 levels) — `NavigationPolygon` sub-resource
+
+**Problem:** `source_geometry_mode = 0` = `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN`
+
+In Godot 4, `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` scans the **children of the NavigationRegion2D node itself**. But `NavigationRegion2D` has **no children** — it is a leaf node in all levels:
+
 ```
-Retaliating pacifist uses direct line approach only.
-
-#### 4. PACIFIST state going to cover (`_process_pacifist_state`, line ~2437)
-```gdscript
-velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
+LabyrinthLevel (root)
+├── Environment            ← walls live here
+│   ├── Walls/
+│   │   ├── WallTop (StaticBody2D, collision_layer=4)
+│   │   └── ... (13 more StaticBody2D nodes)
+│   └── InteriorWalls/
+│       ├── HorizontalDivider (StaticBody2D, collision_layer=4)
+│       └── ... (20+ more StaticBody2D nodes)
+├── Entities/
+└── NavigationRegion2D    ← has NO children, sibling of Environment
 ```
-When the cover is behind a wall, the enemy bumps into the wall.
 
-## Existing Infrastructure
+When `bake_navigation_polygon(false)` is called with mode=0, it scans `NavigationRegion2D`'s children — finding zero physics bodies — and produces only the input outline (the rectangular boundary). The walls are never parsed, so the navmesh is just a flat rectangle that lets enemies walk anywhere, including through walls.
 
-### `_apply_wall_avoidance(direction)` (line ~3592)
-- Uses 8 `RayCast2D` nodes spread in front
-- Detects nearby walls and steers away
-- **Weakness:** Only local avoidance, cannot navigate around corners or through passages
+The `parsed_collision_mask = 4` and wall `collision_layer = 4` settings are correct — the problem is purely that the scan never reaches the wall nodes.
 
-### `_move_to_target_nav(target_pos, speed)` (line ~4703)
-- Sets `_nav_agent.target_position = target_pos`
-- Gets `_nav_agent.get_next_path_position()` as next waypoint
-- Calls `_apply_wall_avoidance()` on the nav direction
-- Includes corner-escape logic from slide collisions
-- **Strength:** True graph-based pathfinding; can route around walls
+### How `bake_navigation_polygon(false)` behaves with mode=0
 
-## Solution
+The key distinction in Godot 4's `NavigationPolygon.source_geometry_mode`:
 
-Replace direct `_apply_wall_avoidance()` calls in affected movement code with `_move_to_target_nav()`, matching the pattern already used in PATROL, PURSUING, FLANKING, etc.
+| Value | Enum | Scans |
+|-------|------|-------|
+| 0 | `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` | Children of the NavigationRegion2D itself |
+| 1 | `SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN` | Nodes in the named group AND their children |
+| 2 | `SOURCE_GEOMETRY_GROUPS` | Only nodes directly in the named group |
 
-### Changes Required
+The `source_geometry_group_name = "navigation_source"` was already set in all level files but was never used because mode=0 ignores groups entirely.
 
-**File:** `scripts/objects/enemy.gd`
+### Additional Evidence: bake_finished Never Fires
 
-1. **COMBAT approach** (line ~1547–1552): Replace direct movement with `_move_to_target_nav(_player.global_position, combat_move_speed)` while still facing the player.
+The game log shows no NavMeshMonitor refresh entries between `[13:43:24]` (startup) and `[13:44:21]` (scene reload). The `NavMeshMonitor` connects to `bake_finished` when a `NavigationRegion2D` is added — but `bake_finished` appears to not be emitted when mode=0 baking produces no new geometry changes vs the stored data.
 
-2. **COMBAT seeking-clear-shot** (line ~1492–1496): Replace direct movement with `_move_to_target_nav(_clear_shot_target, combat_move_speed)` while still facing the player.
+### Consequence for Pathfinding
 
-3. **PACIFIST retaliating** (line ~2432): Replace direct `_apply_wall_avoidance()` with `_move_to_target_nav(tgt.global_position, combat_move_speed)`.
+With a flat rectangular navmesh (no wall holes):
+- `NavigationAgent2D.get_next_path_position()` returns the direct line to the target
+- Enemies move in a straight line toward their target
+- When a wall is in the way, direct velocity hits the wall → enemy presses against it
+- Even `_move_to_target_nav()` (the fix from Session 1) cannot help because the pathfinding graph itself has no walls
+- The `_apply_wall_avoidance()` raycasts provide only local deflection, insufficient for corner navigation
 
-4. **PACIFIST going to cover** (line ~2437): Replace direct `_apply_wall_avoidance()` with `_move_to_target_nav(_cover_position, move_speed)`.
+## Fix Applied in Session 2
 
-## Godot 4 Best Practices for Navigation
+### Change 1: Fix source_geometry_mode in all 13 level `.tscn` files
 
-Based on Godot 4 docs and community guidance:
-- `NavigationAgent2D.target_position` → sets destination
-- `NavigationAgent2D.get_next_path_position()` → returns next waypoint along the baked navmesh path
-- `NavigationAgent2D.is_navigation_finished()` → true when arrived
-- `NavigationAgent2D.avoidance_enabled = true` → enables ORCA agent-to-agent avoidance
-- `NavigationAgent2D.velocity_computed` signal → gets ORCA-safe velocity (already wired up via `_on_avoidance_velocity_computed`)
+```
+source_geometry_mode = 0  →  source_geometry_mode = 1
+```
 
-The navmesh baking uses `parsed_geometry_type = PARSED_GEOMETRY_STATIC_COLLIDERS` with `parsed_collision_mask = 4` (wall layer), ensuring walls are carved out of the walkable area automatically.
+Mode `1` = `SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN`: scans nodes in the `navigation_source` group and all their children/descendants.
+
+### Change 2: Add Environment node to `navigation_source` group in all 13 level `.tscn` files
+
+```
+[node name="Environment" type="Node2D" parent="."]
+→
+[node name="Environment" type="Node2D" parent="." groups=["navigation_source"]]
+```
+
+The `Environment` node contains all wall `StaticBody2D` nodes with `collision_layer = 4`. By adding it to the group and using `SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN`, the bake now:
+1. Finds `Environment` (in group `navigation_source`)
+2. Recursively scans all its children (Walls, InteriorWalls, Cover, etc.)
+3. Finds all `StaticBody2D` with `collision_layer = 4`
+4. Uses their `CollisionShape2D` rectangles to carve holes in the navmesh
+
+### Change 3: Update RoguelikeLevel GDScript (dynamic room generation)
+
+`roguelike_level.gd` creates walls at runtime via `_create_wall()`. Changes:
+- Updated `_setup_navigation()` to use `SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN` and set `source_geometry_group_name = "navigation_source"`
+- Added `room_container.add_to_group("navigation_source")` in both `_build_room_scene()` and `_build_room_scene_treasure()` so the dynamically created room is in the group before baking
+
+### Expected Result
+
+After this fix, `bake_navigation_polygon(false)` will correctly produce:
+- `poly_count >> 1` (typically 30–200 triangles depending on level complexity)
+- `vertex_count >> 4` (many vertices carving around wall shapes)
+
+The NavMeshMonitor overlay will now show the actual walkable area (blue polygons between walls) instead of just the map boundary rectangle.
+
+Enemies using `_move_to_target_nav()` will now receive proper pathfinding routes that go around walls, corridors, and corners.
+
+## Timeline of Events
+
+| Time (log) | Event |
+|------------|-------|
+| 13:43:24 | Game starts, LabyrinthLevel loads |
+| 13:43:24 | NavMeshMonitor refreshes: `poly_count=1 vertex_count=4` — bake failed, only rectangle |
+| 13:43:24 | `_setup_navigation()` called → `bake_navigation_polygon(false)` → scans NavigationRegion2D children → zero walls found |
+| 13:43:24–13:44:20 | Enemies use `_move_to_target_nav()` but pathfinding routes straight through walls |
+| 13:43:30 | Enemy1: "No valid flank position (both sides behind walls)" |
+| 13:44:21 | Scene reloaded, NavMeshMonitor picks up new NavigationRegion2D |
+| 13:44:22 | NavMeshMonitor refresh after bake: still `poly_count=1 vertex_count=4` |
+| 13:44:25–37 | Multiple enemies PATROL STUCK, GLOBAL STUCK, FLANKING stuck |
 
 ## References
 
-- [Using NavigationAgents — Godot 4 docs](https://docs.godotengine.org/en/latest/tutorials/navigation/navigation_using_navigationagents.html)
+- Game log: `docs/case-studies/issue-1271/game_log_20260321_134324.txt`
+- [Godot 4: NavigationPolygon.source_geometry_mode](https://docs.godotengine.org/en/stable/classes/class_navigationpolygon.html#enum-navigationpolygon-sourcegeometrymode)
 - [2D navigation overview — Godot 4 docs](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_introduction_2d.html)
-- Issue #1119 / #1220: Similar fix for PATROL state
-- Issue #318: Previous navigation fix for PURSUING
+- [Using NavigationAgents — Godot 4 docs](https://docs.godotengine.org/en/latest/tutorials/navigation/navigation_using_navigationagents.html)
+- Issue #1119 / #1220: PATROL state navmesh fix (first time navmesh was used for enemies)
+- Issue #1107: Prior attempt at navmesh baking fix (used `NavigationServer2D.parse_source_geometry_data` approach, not merged)
+- PR #1272: Fix implementation

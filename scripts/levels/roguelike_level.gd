@@ -332,6 +332,7 @@ func _build_room_scene() -> void:
 	var room_container := Node2D.new()
 	room_container.name = "Room"
 	room_container.position = Vector2.ZERO
+	room_container.add_to_group("navigation_source")
 	add_child(room_container)
 
 	_build_room(room_container)
@@ -656,7 +657,8 @@ func _setup_navigation() -> void:
 		var nav_poly := NavigationPolygon.new()
 		nav_poly.parsed_geometry_type = NavigationPolygon.PARSED_GEOMETRY_STATIC_COLLIDERS
 		nav_poly.parsed_collision_mask = 4
-		nav_poly.source_geometry_mode  = NavigationPolygon.SOURCE_GEOMETRY_ROOT_NODE_CHILDREN
+		nav_poly.source_geometry_mode  = NavigationPolygon.SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN
+		nav_poly.source_geometry_group_name = "navigation_source"
 		nav_poly.agent_radius = 24.0
 		nav_region.navigation_polygon = nav_poly
 		add_child(nav_region)
@@ -1569,6 +1571,7 @@ func _build_room_scene_treasure() -> void:
 
 	var room_container := Node2D.new()
 	room_container.name = "Room"
+	room_container.add_to_group("navigation_source")
 	add_child(room_container)
 
 	# Floor — warm golden tone to distinguish from combat rooms
