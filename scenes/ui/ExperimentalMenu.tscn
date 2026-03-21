@@ -456,6 +456,24 @@ text = "When enabled, draws animated circles showing sound\npropagation range at
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="EnemyPathVisibleContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="EnemyPathVisibleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Enemy Nav Paths"
+autowrap_mode = 2
+
+[node name="EnemyPathVisibleCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/EnemyPathVisibleContainer"]
+layout_mode = 2
+
+[node name="EnemyPathVisibleDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled, draws the computed navigation path for\nevery active enemy. Color shows AI state:\nGray=Idle, Red=Combat/Assault, Orange=Cover,\nMagenta=Flanking, Yellow=Pursuing,\nCyan=Searching, White=Evading, Green=Pacifist."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="HSeparator12e" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

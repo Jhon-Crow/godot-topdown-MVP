@@ -4583,6 +4583,11 @@ func get_goap_world_state() -> Dictionary: return _goap_world_state.duplicate()
 func get_search_waypoints() -> Array[Vector2]: return _search_waypoints.duplicate()
 ## Returns the current search waypoint index (Issue #1251: used by SearchPathMonitor for visualization).
 func get_search_current_waypoint_index() -> int: return _search_current_waypoint_index
+## Returns the current NavigationAgent2D computed path in global coordinates (Issue #1277: used by EnemyPathMonitor for visualization).
+## Returns an empty array if the navigation agent is unavailable or no path is computed.
+func get_nav_path() -> PackedVector2Array:
+	if _nav_agent == null: return PackedVector2Array()
+	return _nav_agent.get_current_navigation_path()
 
 func set_player_reloading(is_reloading: bool) -> void:
 	var old: bool = _goap_world_state.get("player_reloading", false)
