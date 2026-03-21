@@ -45,11 +45,11 @@ const VIEWPORT_HEIGHT: float = 720.0
 const VIEWPORT_DIAGONAL: float = 1468.6  # sqrt(1280^2 + 720^2) ≈ 1468.6 pixels
 
 ## Propagation distances for each sound type (in pixels).
-## Gunshot range is approximately viewport diagonal for realistic gameplay.
+## Gunshot range is approximately 1/3 of the viewport diagonal (Issue #1269: reduced 3x).
 ## These define how far a sound can travel before becoming inaudible.
 ## Note: RELOAD, EMPTY_CLICK, and RELOAD_COMPLETE sounds propagate through walls (no line-of-sight check).
 const PROPAGATION_DISTANCES: Dictionary = {
-	SoundType.GUNSHOT: 1468.6,         ## Approximately viewport diagonal
+	SoundType.GUNSHOT: 489.5,          ## Issue #1269: 1/3 of viewport diagonal (reduced 3x)
 	SoundType.EXPLOSION: 2200.0,       ## 1.5x viewport diagonal
 	SoundType.FOOTSTEP: 180.0,         ## Very short range
 	SoundType.RELOAD: 900.0,           ## Loud mechanical sound - enemies hear through walls
