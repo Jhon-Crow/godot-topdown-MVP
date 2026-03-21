@@ -138,6 +138,9 @@ func _ready() -> void:
 	# Setup weapon hints (Issue #809)
 	_setup_weapon_hints()
 
+	# Register passage waypoints with enemies so AI can route across rooms (Issue #1226)
+	_setup_passage_waypoints()
+
 
 ## Initialize the ScoreManager for this level.
 func _initialize_score_manager() -> void:
@@ -552,6 +555,27 @@ func _setup_navigation() -> void:
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 
 	print("Navigation mesh baked successfully")
+
+
+## Collect passage waypoints from the scene and distribute them to all enemies (Issue #1226).
+## Enemies use these positions as guaranteed routing anchors when navigating across rooms.
+func _setup_passage_waypoints() -> void:
+	var waypoints_node: Node = get_node_or_null("Environment/PassageWaypoints")
+	if waypoints_node == null:
+		return
+	var waypoint_positions: Array[Vector2] = []
+	for child in waypoints_node.get_children():
+		if child is Marker2D:
+			waypoint_positions.append(child.global_position)
+	if waypoint_positions.is_empty():
+		return
+	var enemies_node: Node = get_node_or_null("Environment/Enemies")
+	if enemies_node == null:
+		return
+	for enemy in enemies_node.get_children():
+		if enemy.has_method("set_passage_waypoints"):
+			enemy.set_passage_waypoints(waypoint_positions)
+	print("Passage waypoints registered: %d waypoints across %d enemies" % [waypoint_positions.size(), enemies_node.get_child_count()])
 
 
 ## Setup tracking for the player.
