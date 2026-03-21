@@ -699,11 +699,22 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
-	# is populated and visible via the nav mesh overlay. The NavigationPolygon
-	# resource in LabyrinthLevel.tscn already has the correct outlines.
+	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
+	if nav_poly == null:
+		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
+		return
+
+	# Issue #1275: parse source geometry from the full scene tree so wall
+	# StaticBody2D nodes (collision_layer=4) are carved out of the nav mesh.
+	# Using NavigationServer2D.parse_source_geometry_data(nav_poly, source, self)
+	# scans from 'self' (the level root) rather than just NavigationRegion2D
+	# children, ensuring interior walls are included in the bake geometry.
+	# After baking, NavigationServer2D.map_get_path() returns wall-aware paths
+	# which the SearchPathMonitor uses to draw obstacle-respecting path lines.
 	print("Baking navigation mesh...")
-	nav_region.bake_navigation_polygon(false)
+	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
+	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 	print("Navigation mesh baked successfully")
 
 
