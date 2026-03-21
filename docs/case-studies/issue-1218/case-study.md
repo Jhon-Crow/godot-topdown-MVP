@@ -420,3 +420,50 @@ This issues a NavigationServer query every frame even when the target hasn't cha
 - Case Study #1107 (machete corner stuck): `docs/case-studies/issue-1107/case-study.md`
 - Case Study #1146 (enemy separation/ORCA): `docs/case-studies/issue-1146/analysis.md`
 - Case Study #1187 (nav mesh visibility): `docs/case-studies/issue-1187/case-study.md`
+
+---
+
+## Round 4 Analysis: Corner-Stuck Behavior (2026-03-21)
+
+### User Report
+
+From PR comment by @Jhon-Crow:
+> враги всё ещё застревают в углу / enemies are still getting stuck in a corner
+
+Screenshot shows enemies clustered at a wall corner near "OFFICE 2" in BuildingLevel, unable to navigate around it. Red arrow indicates desired path around the corner.
+
+### Game Log Analysis (`game_log_20260321_074422.txt`)
+
+Level: BuildingLevel. Player at (450, 971) with invincibility enabled. Key observations:
+
+1. **Enemy10 PATROL STUCK at (1200, 1424)** — patrol reached wall, skipped to next point after 1.5s
+2. **Enemy1, Enemy3, Enemy4 in PURSUING state** — continuous corner checks every frame for 30+ seconds with no progress toward player
+3. **Enemy2 FLANKING timeout** at (159, 662) after 5s stuck — flanked but couldn't reach player
+4. **Enemy10 repeatedly cycles** PURSUING→COMBAT→RETREATING→IN_COVER→SUPPRESSED→PURSUING without making spatial progress
+
+### Root Cause 5: Corner Escape Force Too Weak at Wall Junctions
+
+The existing corner escape logic in `_move_to_target_nav()` (Issue #1107) adds collision normal forces:
+
+```gdscript
+if _esc.length_squared() > 0.01:
+    direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
+```
+
+At a 90° wall corner, the collision normals from two perpendicular walls sum to a 45° diagonal. The nav direction points INTO the corner (toward the next waypoint around it). The blended result oscillates: the nav pull toward the corner fights the escape push, creating a near-zero velocity. The enemy trembles in place without making progress.
+
+The `_apply_wall_avoidance()` raycasts compound the problem: multiple raycasts detect both walls and produce conflicting avoidance vectors.
+
+### Root Cause 6: RETREATING State Used Raw Direction + Wall Avoidance
+
+`_process_retreat_full_hp()` and `_process_retreat_one_hit()` used `_get_nav_direction_to()` + `_apply_wall_avoidance()` without the full `_move_to_target_nav()` pipeline. This meant the retreat had no corner escape logic, ORCA avoidance, or slide collision handling — enemies could get stuck at walls when retreating to cover.
+
+### Fix Applied
+
+1. **Corner-stuck escalation in `_move_to_target_nav()`**: Added frame counter (`_nav_corner_stuck_frames`) that tracks how many frames the enemy has barely moved (<5px). After 10 frames stuck, computes a wall-slide direction (perpendicular to collision normals, aligned with nav direction) and progressively overrides the nav direction. The escalation ramps from 30% to 100% wall-slide over 10 additional frames, ensuring the enemy slides around the corner.
+
+2. **RETREATING uses `_move_to_target_nav()`**: Replaced raw `_get_nav_direction_to()` + `_apply_wall_avoidance()` in `_process_retreat_full_hp()` and `_process_retreat_one_hit()` with `_move_to_target_nav()` to get the full corner escape pipeline.
+
+3. **PACIFIST uses `_move_to_target_nav()`**: Replaced raw `_apply_wall_avoidance()` direction in `_process_pacifist_state()` with `_move_to_target_nav()` for cover movement and retaliation pursuit.
+
+4. **Cleaned up unused `_patrol_snapped_*` variables**: Removed dead code from the previous nav-snapping approach (superseded by `_move_to_target_nav()` from PR #1220).

@@ -177,7 +177,6 @@ var _current_patrol_index: int = 0
 var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
-var _patrol_snapped_target: Vector2 = Vector2.ZERO; var _patrol_snapped_index: int = -1  ## #1218: cached nav-snapped target per index (legacy, kept for compatibility)
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
@@ -256,6 +255,8 @@ var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 =
 const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance  ## Issue #1173: restored 1.5→4.0; machete wall-escape is handled by MACHETE_COMBAT_STUCK_MAX_TIME
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
+var _nav_corner_stuck_frames: int = 0; var _nav_corner_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1218: corner-stuck detection in _move_to_target_nav
+const NAV_CORNER_STUCK_FRAMES_THRESHOLD: int = 10; const NAV_CORNER_STUCK_DIST: float = 5.0  ## Frames threshold / min move distance to consider stuck
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
@@ -1906,16 +1907,10 @@ func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> voi
 			_log_debug("FULL_HP retreat: turning to check cover")
 
 		if _player:
-			# Face the player
-			_aim_at_player()
-
 			# Use navigation to move toward cover but keep facing player
-			var nav_direction: Vector2 = _get_nav_direction_to(_cover_position)
-			if nav_direction != Vector2.ZERO:
-				nav_direction = _apply_wall_avoidance(nav_direction)
-				velocity = nav_direction * combat_move_speed * 0.7  # Slower when backing up
-			else:
-				velocity = Vector2.ZERO
+			_move_to_target_nav(_cover_position, combat_move_speed * 0.7)  # Slower when backing up
+			# Face the player (override nav rotation)
+			_aim_at_player()
 
 			# Shoot with reduced accuracy (only after detection delay)
 			# Issue #934: also shoot at companion if visible
@@ -1944,24 +1939,17 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 			if _retreat_burst_remaining > 0:
 				_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0  # Spread across 4 shots max
 
-		# Gradually turn from player to cover during burst
+		# Use navigation to move toward cover (slower during burst)
+		_move_to_target_nav(_cover_position, combat_move_speed * 0.5)
+
+		# Gradually turn from player to cover during burst (override nav rotation)
 		if _player:
 			var direction_to_player: Vector2 = (_player.global_position - global_position).normalized()
-			var target_angle: float
-
-			# Interpolate rotation from player direction to cover direction
 			var burst_progress: float = 1.0 - (float(_retreat_burst_remaining) / 4.0)
 			var player_angle: float = direction_to_player.angle()
 			var cover_direction: Vector2 = (_cover_position - global_position).normalized()
 			var cover_angle: float = cover_direction.angle()
-			target_angle = lerp_angle(player_angle, cover_angle, burst_progress * 0.7)
-			rotation = target_angle
-
-		# Use navigation to move toward cover (slower during burst)
-		var nav_direction: Vector2 = _get_nav_direction_to(_cover_position)
-		if nav_direction != Vector2.ZERO:
-			nav_direction = _apply_wall_avoidance(nav_direction)
-			velocity = nav_direction * combat_move_speed * 0.5
+			rotation = lerp_angle(player_angle, cover_angle, burst_progress * 0.7)
 
 		# Check if burst is complete
 		if _retreat_burst_remaining <= 0:
@@ -2425,12 +2413,13 @@ func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / r
 	if _pacifist and _pacifist.is_retaliating():  ## Issue #959: pursue+shoot attacker; stay PACIFIST
 		var tgt: Node2D = _pacifist.attacker if _pacifist.attacker != null else _player
 		if tgt == null: velocity = Vector2.ZERO; return
-		velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed if global_position.distance_to(tgt.global_position) > 80.0 else Vector2.ZERO
+		if global_position.distance_to(tgt.global_position) > 80.0: _move_to_target_nav(tgt.global_position, combat_move_speed)
+		else: velocity = Vector2.ZERO
 		if _shoot_timer >= shoot_cooldown and _can_shoot() and (tgt.global_position - global_position).normalized().dot(_get_weapon_forward_direction()) > AIM_TOLERANCE_DOT: _shoot()
 		return
 	if not _has_valid_cover: _find_cover_position()
 	if not _has_valid_cover: velocity = Vector2.ZERO; return
-	if global_position.distance_to(_cover_position) > 20.0: velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
+	if global_position.distance_to(_cover_position) > 20.0: _move_to_target_nav(_cover_position, move_speed)
 	else: velocity = Vector2.ZERO
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
@@ -4062,7 +4051,6 @@ func _process_patrol(delta: float) -> void:
 		if _patrol_wait_timer >= patrol_wait_time:
 			_is_waiting_at_patrol_point = false; _patrol_wait_timer = 0.0
 			_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
-			_patrol_snapped_index = -1  # invalidate cache for new target
 		velocity = Vector2.ZERO; return
 	var target_point := _patrol_points[_current_patrol_index]
 	if _nav_agent == null:  # Fallback if nav agent unavailable
@@ -4082,7 +4070,6 @@ func _process_patrol(delta: float) -> void:
 			# Issue #1218: advance to next patrol point instead of retrying blocked target.
 			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 			_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
-			_patrol_snapped_index = -1  # invalidate cache so next index gets re-snapped
 			_is_waiting_at_patrol_point = false; velocity = Vector2.ZERO
 	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
@@ -4388,7 +4375,6 @@ func _reset() -> void:
 	_is_waiting_at_patrol_point = false
 	_patrol_wait_timer = 0.0
 	_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = Vector2.ZERO
-	_patrol_snapped_index = -1; _patrol_snapped_target = Vector2.ZERO
 	_current_state = AIState.IDLE
 	_has_valid_cover = false
 	_under_fire = false
@@ -4731,7 +4717,7 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 ## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
-	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
+	if direction == Vector2.ZERO: velocity = Vector2.ZERO; _nav_corner_stuck_frames = 0; return false
 	direction = _apply_wall_avoidance(direction)
 	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
 	var _esc: Vector2 = Vector2.ZERO
@@ -4739,6 +4725,20 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
 	elif velocity.length_squared() < 1.0:
 		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
+	# Issue #1218: Corner-stuck escalation — slide along wall when stuck at a corner.
+	if global_position.distance_to(_nav_corner_stuck_last_pos) < NAV_CORNER_STUCK_DIST:
+		_nav_corner_stuck_frames += 1
+		if _nav_corner_stuck_frames >= NAV_CORNER_STUCK_FRAMES_THRESHOLD:
+			var slide_dir: Vector2 = Vector2.ZERO
+			for _ci: int in range(get_slide_collision_count()):
+				var cn: Vector2 = get_slide_collision(_ci).get_normal()
+				var sa: Vector2 = Vector2(-cn.y, cn.x); var sb: Vector2 = Vector2(cn.y, -cn.x)
+				slide_dir += sa if sa.dot(direction) > sb.dot(direction) else sb
+			if slide_dir.length_squared() > 0.01:
+				var sf: float = clampf(float(_nav_corner_stuck_frames - NAV_CORNER_STUCK_FRAMES_THRESHOLD) / 10.0, 0.3, 1.0)
+				direction = (direction * (1.0 - sf) + slide_dir.normalized() * sf).normalized()
+			elif _esc.length_squared() > 0.01: direction = _esc.normalized()
+	else: _nav_corner_stuck_frames = 0; _nav_corner_stuck_last_pos = global_position
 	var intended_vel: Vector2 = direction * speed
 	# Issue #1146: Feed intended velocity to NavigationAgent2D ORCA so it can steer us away from other agents.
 	if _nav_agent and _nav_agent.avoidance_enabled:
