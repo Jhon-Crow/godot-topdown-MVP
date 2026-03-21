@@ -403,14 +403,10 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
-		return
-
+	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
+	# is populated and visible via the nav mesh overlay.
 	print("Baking navigation mesh...")
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, NavigationMeshSourceGeometryData2D.new())
-	nav_region.bake_navigation_polygon()
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 
