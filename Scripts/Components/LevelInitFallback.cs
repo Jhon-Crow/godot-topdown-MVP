@@ -107,9 +107,18 @@ public partial class LevelInitFallback : Node
     /// Check if GDScript _ready() already ran. If not, perform fallback initialization.
     /// Detection: If GDScript ran, it would have printed "Полигон loaded" and connected
     /// enemy signals. We check by looking for signs of initialization.
+    /// Issue #1271: Awaits one physics frame before checking so PhysicsServer2D has
+    /// registered all static body shapes — required for correct navmesh baking.
     /// </summary>
-    private void CheckAndInitialize()
+    private async void CheckAndInitialize()
     {
+        // Issue #1271: Await one physics frame so PhysicsServer2D has registered all
+        // static body collision shapes (walls, cover, obstacles) before we bake the navmesh.
+        // Without this, BakeNavigationPolygon() queries PhysicsServer2D before shapes are
+        // registered and produces 0 polygons — enemies cannot path and stand still.
+        LogToFile("Awaiting first physics frame for PhysicsServer2D shape registration (Issue #1271)...");
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+
         var parent = GetParent();
         if (parent == null) return;
 
@@ -197,6 +206,44 @@ public partial class LevelInitFallback : Node
 
         // 11. Setup warm ceiling lights (Issue #1206) — mirrors GDScript _setup_room_warm_lights()
         SetupRoomWarmLights(levelRoot);
+
+        // 12. Bake navigation mesh (Issue #1271)
+        // By the time we reach here, CheckAndInitialize() has already awaited one physics frame,
+        // so PhysicsServer2D has registered all static body shapes — the bake will carve walls correctly.
+        SetupNavigation(levelRoot);
+    }
+
+    /// <summary>
+    /// Bake the NavigationRegion2D navigation mesh so enemies can path around walls.
+    /// Issue #1271: Must be called after at least one physics frame so PhysicsServer2D
+    /// has registered all static body collision shapes.
+    /// </summary>
+    private void SetupNavigation(Node levelRoot)
+    {
+        var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+        if (navRegion == null)
+        {
+            LogToFile("WARNING: NavigationRegion2D not found - enemy pathfinding will be limited");
+            return;
+        }
+
+        var navPoly = navRegion.NavigationPolygon;
+        if (navPoly == null)
+        {
+            LogToFile("WARNING: NavigationPolygon not found on NavigationRegion2D");
+            return;
+        }
+
+        // Set agent_radius so navmesh is properly eroded from walls (enemies won't path along wall borders).
+        navPoly.AgentRadius = 24.0f;
+
+        LogToFile("Baking navigation mesh (C# fallback)...");
+        navRegion.BakeNavigationPolygon(false);
+
+        // Log polygon count for diagnostics.
+        var polyCount = navPoly.GetPolygonCount();
+        var vertexCount = navPoly.Vertices.Length;
+        LogToFile($"Navigation mesh baked (C# fallback): poly_count={polyCount} vertex_count={vertexCount}");
     }
 
     /// <summary>

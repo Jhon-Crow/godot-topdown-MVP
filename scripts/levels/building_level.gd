@@ -671,14 +671,18 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	# Issue #1224: bake the nav mesh via NavigationRegion2D so walls are excluded from the
-	# walkable polygon and the nav mesh overlay displays the correct carved area.
-	# Using bake_navigation_polygon(false) (synchronous) ensures the map is ready before
-	# enemies start moving. parsed_geometry_type=1 + parsed_collision_mask=4 in the
-	# NavigationPolygon resource handle wall exclusion automatically.
-	print("Baking navigation mesh...")
+	if nav_region.navigation_polygon == null:
+		push_warning("[BuildingLevel] NavigationPolygon not found - enemy pathfinding will be limited")
+		return
+	# Issue #1271: Set agent_radius before baking so navmesh is properly eroded from walls.
+	nav_region.navigation_polygon.agent_radius = 24.0
+	# Issue #1271: Await first physics frame so PhysicsServer2D has registered static body shapes.
+	# bake_navigation_polygon with PARSED_GEOMETRY_STATIC_COLLIDERS queries PhysicsServer2D,
+	# which only has shapes after the first physics frame sync (not during _ready()).
+	await get_tree().physics_frame
+	print("[BuildingLevel] Baking navigation mesh...")
 	nav_region.bake_navigation_polygon(false)
-	print("Navigation mesh baked successfully")
+	print("[BuildingLevel] Navigation mesh baked successfully")
 
 
 ## Setup tracking for the player.

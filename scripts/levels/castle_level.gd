@@ -238,12 +238,18 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
-	# is populated and visible via the nav mesh overlay. The NavigationPolygon
-	# resource in CastleLevel.tscn already has the correct outlines.
-	print("Baking navigation mesh...")
+	if nav_region.navigation_polygon == null:
+		push_warning("[CastleLevel] NavigationPolygon not found - enemy pathfinding will be limited")
+		return
+	# Issue #1271: Set agent_radius before baking so navmesh is properly eroded from walls.
+	nav_region.navigation_polygon.agent_radius = 24.0
+	# Issue #1271: Await first physics frame so PhysicsServer2D has registered static body shapes.
+	# bake_navigation_polygon with PARSED_GEOMETRY_STATIC_COLLIDERS queries PhysicsServer2D,
+	# which only has shapes after the first physics frame sync (not during _ready()).
+	await get_tree().physics_frame
+	print("[CastleLevel] Baking navigation mesh...")
 	nav_region.bake_navigation_polygon(false)
-	print("Navigation mesh baked successfully")
+	print("[CastleLevel] Navigation mesh baked successfully")
 
 
 ## Configure the player's camera to follow without limits.

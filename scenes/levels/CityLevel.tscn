@@ -20,12 +20,9 @@ size = Vector2(80, 32)
 polygon = PackedVector2Array(-40, -16, 40, -16, 40, 16, -40, 16)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_city"]
-vertices = PackedVector2Array(64, 64, 6064, 64, 6064, 5064, 64, 5064)
-polygons = [PackedInt32Array(0, 1, 2, 3)]
-outlines = [PackedVector2Array(64, 64, 6064, 64, 6064, 5064, 64, 5064)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
-source_geometry_mode = 0
+source_geometry_mode = 1
 source_geometry_group_name = &"navigation_source"
 agent_radius = 24.0
 
@@ -108,6 +105,7 @@ script = ExtResource("1_city")
 script = ExtResource("5_fallback")
 
 [node name="Environment" type="Node2D" parent="."]
+groups = ["navigation_source"]
 
 [node name="Background" type="ColorRect" parent="Environment"]
 offset_right = 6128.0

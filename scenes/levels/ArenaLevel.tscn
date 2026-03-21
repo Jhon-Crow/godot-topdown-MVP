@@ -17,12 +17,9 @@ size = Vector2(64, 1080)
 size = Vector2(64, 1080)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_arena"]
-vertices = PackedVector2Array(128, 128, 1792, 128, 1792, 952, 128, 952)
-polygons = [PackedInt32Array(0, 1, 2, 3)]
-outlines = [PackedVector2Array(128, 128, 1792, 128, 1792, 952, 128, 952)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
-source_geometry_mode = 0
+source_geometry_mode = 1
 source_geometry_group_name = &"navigation_source"
 agent_radius = 24.0
 
@@ -39,6 +36,7 @@ script = ExtResource("1_arena_level")
 navigation_polygon = SubResource("NavigationPolygon_arena")
 
 [node name="Environment" type="Node2D" parent="."]
+groups = ["navigation_source"]
 
 [node name="Background" type="ColorRect" parent="Environment"]
 offset_right = 1920.0

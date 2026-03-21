@@ -174,9 +174,21 @@ func _get_combo_color(combo: int) -> Color:
 
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
-	if nav_region:
-		nav_region.navigation_polygon.agent_radius = 24.0
-		nav_region.bake_navigation_polygon(false)
+	if nav_region == null:
+		push_warning("[DocksLevel] NavigationRegion2D not found")
+		return
+	if nav_region.navigation_polygon == null:
+		push_warning("[DocksLevel] NavigationPolygon not found - enemy pathfinding will be limited")
+		return
+	# Issue #1271: Set agent_radius before baking so navmesh is properly eroded from walls.
+	nav_region.navigation_polygon.agent_radius = 24.0
+	# Issue #1271: Await first physics frame so PhysicsServer2D has registered static body shapes.
+	# bake_navigation_polygon with PARSED_GEOMETRY_STATIC_COLLIDERS queries PhysicsServer2D,
+	# which only has shapes after the first physics frame sync (not during _ready()).
+	await get_tree().physics_frame
+	print("[DocksLevel] Baking navigation mesh...")
+	nav_region.bake_navigation_polygon(false)
+	print("[DocksLevel] Navigation mesh baked successfully")
 
 
 ## Configures camera limits to allow free movement across the entire Docks map.
