@@ -42,13 +42,10 @@ extends CharacterBody2D
 
 ## Color when at full health.
 @export var full_health_color: Color = Color(0.2, 0.6, 1.0, 1.0)
-
 ## Color when at low health (interpolates based on health percentage).
 @export var low_health_color: Color = Color(0.1, 0.2, 0.4, 1.0)
-
 ## Color to flash when hit.
 @export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
-
 ## Duration of hit flash effect in seconds.
 @export var hit_flash_duration: float = 0.1
 
@@ -56,35 +53,27 @@ extends CharacterBody2D
 ## The actual shake distance per shot is calculated as: intensity / fire_rate * 10
 ## Lower fire rate = larger shake per shot.
 @export var screen_shake_intensity: float = 5.0
-
-## Fire rate in shots per second (used for shake calculation).
-## Default is 10.0 to match the assault rifle.
+## Fire rate in shots per second (used for shake calculation). Default is 10.0.
 @export var fire_rate: float = 10.0
-
 ## Minimum recovery time for screen shake at minimum spread.
 @export var screen_shake_min_recovery: float = 0.25
-
 ## Maximum recovery time for screen shake at maximum spread (min 50ms).
 @export var screen_shake_max_recovery: float = 0.05
 
 ## Current ammunition count.
 var _current_ammo: int = 90
-
 ## Current health of the player.
 var _current_health: int = 5
-
 ## Whether the player is alive.
 var _is_alive: bool = true
 
 ## Reference to the player model node containing all sprites.
 @onready var _player_model: Node2D = $PlayerModel
-
 ## References to individual sprite parts for color changes.
 @onready var _body_sprite: Sprite2D = $PlayerModel/Body
 @onready var _head_sprite: Sprite2D = $PlayerModel/Head
 @onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
 @onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
-
 ## Reference to the casing pusher area (for pushing shell casings when walking over them).
 @onready var _casing_pusher: Area2D = $CasingPusher
 
@@ -115,59 +104,42 @@ var _shot_timer: float = 0.0
 
 ## Reload sequence state (0 = waiting for R, 1 = waiting for F, 2 = waiting for R).
 var _reload_sequence_step: int = 0
-
 ## Whether the player is currently in reload sequence (for Sequence mode).
 var _is_reloading_sequence: bool = false
-
 ## Whether the player is currently reloading (for Simple mode).
 var _is_reloading_simple: bool = false
-
 ## Timer for simple reload progress.
 var _reload_timer: float = 0.0
 
 ## Signal emitted when ammo changes.
 signal ammo_changed(current: int, maximum: int)
-
 ## Signal emitted when ammo is depleted.
 signal ammo_depleted
-
 ## Signal emitted when the player is hit.
 signal hit
-
 ## Signal emitted when health changes.
 signal health_changed(current: int, maximum: int)
-
 ## Signal emitted when the player dies.
 signal died
-
 ## Signal emitted when death animation completes.
 signal death_animation_completed
-
 ## Signal emitted when reload sequence progresses.
 signal reload_sequence_progress(step: int, total: int)
-
 ## Signal emitted when reload completes.
 signal reload_completed
-
 ## Signal emitted when reload starts (first step of sequence or simple reload).
 ## This signal notifies enemies that the player has begun reloading.
 signal reload_started
-
 ## Signal emitted when grenade count changes.
 signal grenade_changed(current: int, maximum: int)
-
 ## Signal emitted when a grenade is thrown.
 signal grenade_thrown
-
 ## Signal emitted when homing bullets charges change.
 signal homing_charges_changed(current: int, maximum: int)
-
 ## Signal emitted when homing bullets effect activates.
 signal homing_activated
-
 ## Signal emitted when homing bullets effect deactivates.
 signal homing_deactivated
-
 ## Signal emitted when experimental sample charges change (Issue #1127).
 signal experimental_sample_charges_changed(current: int, maximum: int)
 
@@ -4681,19 +4653,15 @@ func _init_armored_skin() -> void:
 	FileLogger.info("[Player.ArmoredSkin] Armored skin active — shards will spawn at low HP")
 
 
-## Apply the glassy armor shader to all player body sprites so the player
-## looks like it is covered in transparent crystal/glass armor (Issue #1142).
+## Apply the glassy armor shader to all player body sprites (Issue #1142).
 func _apply_armored_skin_visual() -> void:
 	const ARMOR_SHADER_PATH: String = "res://scripts/shaders/armored_skin.gdshader"
 	if not ResourceLoader.exists(ARMOR_SHADER_PATH):
 		FileLogger.info("[Player.ArmoredSkin] WARNING: Shader not found: %s" % ARMOR_SHADER_PATH)
 		return
 	var shader: Shader = load(ARMOR_SHADER_PATH)
-	if shader == null:
-		FileLogger.info("[Player.ArmoredSkin] WARNING: Failed to load armor shader")
-		return
-	if _player_model == null:
-		FileLogger.info("[Player.ArmoredSkin] WARNING: _player_model is null, skipping visual")
+	if shader == null or _player_model == null:
+		FileLogger.info("[Player.ArmoredSkin] WARNING: shader or model unavailable")
 		return
 	var applied_count: int = 0
 	for child in _player_model.get_children():
@@ -4705,34 +4673,27 @@ func _apply_armored_skin_visual() -> void:
 	FileLogger.info("[Player.ArmoredSkin] Armor shader applied to %d sprites" % applied_count)
 
 
-## Spawn 20 glass/crystal shards in all directions from the player position.
+## Spawn glass/crystal shards from the player position (Issue #1142).
 ## Called when armored skin is active and player is at ≤2 HP while being hit.
 func _spawn_armored_skin_shards() -> void:
 	if not ResourceLoader.exists(ARMORED_SKIN_SHARD_SCENE_PATH):
 		FileLogger.info("[Player.ArmoredSkin] WARNING: Shard scene not found: %s" % ARMORED_SKIN_SHARD_SCENE_PATH)
 		return
-
 	var shard_scene: PackedScene = load(ARMORED_SKIN_SHARD_SCENE_PATH)
 	if shard_scene == null:
 		FileLogger.info("[Player.ArmoredSkin] WARNING: Failed to load shard scene")
 		return
-
 	var parent: Node = get_parent()
 	if parent == null:
 		return
-
 	FileLogger.info("[Player.ArmoredSkin] Spawning %d glass shards (HP: %d)" % [ARMORED_SKIN_SHARD_COUNT, _current_health])
-
 	for i in range(ARMORED_SKIN_SHARD_COUNT):
 		var shard: Node2D = shard_scene.instantiate()
-
 		# Set direction and source_id before add_child so _ready() uses the correct values
 		var base_angle: float = (float(i) / float(ARMORED_SKIN_SHARD_COUNT)) * TAU
-		var angle_deviation: float = randf_range(-PI / ARMORED_SKIN_SHARD_COUNT, PI / ARMORED_SKIN_SHARD_COUNT)
-		var angle: float = base_angle + angle_deviation
+		var angle: float = base_angle + randf_range(-PI / ARMORED_SKIN_SHARD_COUNT, PI / ARMORED_SKIN_SHARD_COUNT)
 		shard.direction = Vector2(cos(angle), sin(angle)).normalized()
 		shard.source_id = get_instance_id()
-
 		parent.add_child(shard)
 		shard.global_position = global_position
 
@@ -4741,26 +4702,16 @@ func _spawn_armored_skin_shards() -> void:
 # Item Visual System (Issue #1142)
 # ============================================================================
 
-
-## Apply a passive visual effect to the player based on the currently equipped
-## active item.  This is the single entry point for all item-specific player
-## visuals.  Add a new branch here when a future item needs a visual effect.
-## Called once from _ready() after all item-init functions have run.
+## Apply a passive visual effect to the player based on the equipped active item.
+## Single entry point for item-specific player visuals; called once from _ready().
 func _apply_item_visual() -> void:
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager == null:
 		return
-
 	var item_type: int = active_item_manager.current_active_item
-
 	match item_type:
 		active_item_manager.ActiveItemType.ARMORED_SKIN:
-			# Crystal/glass armor overlay — applied when Armored Skin is equipped (Issue #1142).
 			_apply_armored_skin_visual()
-		_:
-			# No passive visual for this item — nothing to do.
-			pass
-
 	FileLogger.info("[Player.ItemVisual] Visual applied for item type: %d" % item_type)
 
 
@@ -4771,19 +4722,14 @@ func _apply_item_visual() -> void:
 
 ## Whether the recoil compensator is equipped.
 var _recoil_compensator_equipped: bool = false
-
 ## Whether the recoil compensator is currently active (Space held and charge > 0).
 var _recoil_compensator_active: bool = false
-
 ## Remaining charge in seconds (max 15 seconds).
 var _recoil_compensator_charge: float = 0.0
-
 ## Maximum charge duration in seconds.
 const RECOIL_COMPENSATOR_MAX_CHARGE: float = 15.0
-
 ## Fire rate multiplier when compensator is active (10% boost).
 const RECOIL_COMPENSATOR_FIRE_RATE_BOOST: float = 1.1
-
 ## Shoot cooldown timer for fire rate boost (seconds remaining until next shot allowed).
 var _recoil_compensator_shoot_cooldown: float = 0.0
 
@@ -4794,19 +4740,15 @@ func _init_recoil_compensator() -> void:
 	if active_item_manager == null:
 		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager not found")
 		return
-
 	if not active_item_manager.has_method("has_recoil_compensator"):
-		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager does not have has_recoil_compensator method")
+		FileLogger.info("[Player.RecoilCompensator] ActiveItemManager missing has_recoil_compensator")
 		return
-
 	if not active_item_manager.has_recoil_compensator():
 		FileLogger.info("[Player.RecoilCompensator] Recoil compensator not selected")
 		return
-
 	_recoil_compensator_equipped = true
 	_recoil_compensator_charge = RECOIL_COMPENSATOR_MAX_CHARGE
-
-	FileLogger.info("[Player.RecoilCompensator] Recoil compensator initialized, charge: %.1f s" % _recoil_compensator_charge)
+	FileLogger.info("[Player.RecoilCompensator] Initialized, charge: %.1f s" % _recoil_compensator_charge)
 
 
 ## Handle recoil compensator input: hold Space to activate, release to deactivate.
@@ -4814,27 +4756,19 @@ func _init_recoil_compensator() -> void:
 func _handle_recoil_compensator_input(delta: float) -> void:
 	if not _recoil_compensator_equipped:
 		return
-
-	# Update shoot cooldown timer
 	if _recoil_compensator_shoot_cooldown > 0.0:
 		_recoil_compensator_shoot_cooldown -= delta
-
 	if Input.is_action_pressed("flashlight_toggle") and _recoil_compensator_charge > 0.0:
-		# Activate: deplete charge
 		if not _recoil_compensator_active:
 			_recoil_compensator_active = true
 			FileLogger.info("[Player.RecoilCompensator] Activated, charge: %.2f s" % _recoil_compensator_charge)
-
 		_recoil_compensator_charge -= delta
 		if _recoil_compensator_charge <= 0.0:
 			_recoil_compensator_charge = 0.0
 			_recoil_compensator_active = false
 			FileLogger.info("[Player.RecoilCompensator] Charge depleted, deactivating")
-
-		# Update progress bar while active
 		_show_active_item_timer_bar(_recoil_compensator_charge, RECOIL_COMPENSATOR_MAX_CHARGE)
 	else:
-		# Deactivate when Space is released or charge is empty
 		if _recoil_compensator_active:
 			_recoil_compensator_active = false
 			FileLogger.info("[Player.RecoilCompensator] Deactivated, charge: %.2f s" % _recoil_compensator_charge)
