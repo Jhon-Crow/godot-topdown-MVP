@@ -381,7 +381,7 @@ func _ready() -> void:
 	_setup_threat_sphere()
 	_initialize_goap_state()
 	_initialize_memory()
-	_connect_debug_mode_signal(); call_deferred(func(): _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints"))  ## #1226: cache once after ready
+	_connect_debug_mode_signal(); (func(): _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints")).call_deferred()  ## #1226: cache once after ready
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_flashbang_status()

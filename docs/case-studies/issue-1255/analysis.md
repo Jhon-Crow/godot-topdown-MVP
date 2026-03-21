@@ -89,3 +89,55 @@ Create a **`WaypointMonitor`** autoload (following the `NavMeshMonitor` pattern)
 - Circle radius: 12px, label offset: +14px right (matches existing building_level style)
 - The overlay uses `follow_viewport_enabled = true` so it tracks the camera correctly
 - `building_level.gd`'s existing `_draw()` remains — it still works with F7. The new toggle is additive.
+
+---
+
+## Post-Implementation Incident: "AI Completely Broken" (2026-03-21)
+
+### Game Log
+Saved at: `game_log_20260321_084257.txt`
+
+### Timeline of Events
+
+| Time | Event |
+|---|---|
+| 08:02 | Owner tests build **before** PR #1255 — `has_died_signal=true` for all enemies, 5 enemies registered |
+| 08:42 | Owner tests build **from** PR #1255 branch — `has_died_signal=false` for all enemies, **0 enemies registered** |
+| 08:43 | Owner reports: "полностью сломан ai" (AI completely broken) |
+
+### Root Cause
+
+In commit `2d8ae94a` (reduce enemy.gd line count to 5000), the original:
+
+```gdscript
+_connect_debug_mode_signal(); call_deferred("_cache_passage_waypoints")
+```
+
+was changed to:
+
+```gdscript
+_connect_debug_mode_signal(); call_deferred(func(): _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints"))
+```
+
+In Godot 4, `Object.call_deferred(method: StringName, ...)` expects a **StringName** as the first argument. Passing a Callable (lambda) coerces it to a string (e.g., `"GDScriptLambda"`), causing a **runtime error** in `_ready()`. This prevents the waypoints cache from being populated.
+
+The correct Godot 4 syntax for deferred Callable execution is:
+```gdscript
+(func(): _passage_waypoints = ...).call_deferred()
+```
+
+Additionally, the intermediate `_cache_passage_waypoints()` function was removed, which is fine once the call site is fixed.
+
+**Why `has_died_signal=false`:** The runtime error in `_ready()` may cause the Godot script runtime to mark the instance as errored, which can prevent `has_signal()` from returning correct results in release builds. In debug builds the error is visible; in release builds it fails silently.
+
+### Fix Applied
+
+Changed `call_deferred(func(): ...)` to `(func(): ...).call_deferred()` in `enemy.gd:384`. Same line count (5000) — only the syntax was corrected.
+
+### Merge Conflict Resolution
+
+Between the broken build and the fix, `origin/main` was merged. Two PRs from main added features to the same files:
+- PR #1253: Sound propagation visualizer (adds `SoundVisualizer` autoload, `sound_visualizer_enabled` setting)
+- PR #1248: Nav mesh monitor fix
+
+Conflicts in `project.godot`, `experimental_settings.gd`, and `experimental_menu.gd` were resolved by **keeping both features** (waypoint toggle from #1255 and sound visualizer from #1253).
