@@ -4148,24 +4148,16 @@ func _initialize_idle_scan_targets() -> void:
 ## Called when a bullet enters the threat sphere.
 func _on_threat_area_entered(area: Area2D) -> void:
 	if not _is_position_visible_to_enemy(area.global_position):
-		_log_to_file("[#1228] Bullet at %s blocked by wall — no suppression" % area.global_position)
 		return  # Wall blocking line of sight — no suppression
 	# Issue #1228: only suppress from player bullets — ignore own and other enemies' bullets.
 	if "shooter_id" in area:
 		var bullet_shooter_id: int = area.shooter_id
-		if bullet_shooter_id == -1:
-			_log_to_file("[#1228] Bullet shooter_id=-1 (unknown) — no suppression")
-			return  # Unknown shooter — no suppression
+		if bullet_shooter_id == -1: return  # Unknown shooter — no suppression
 		var bullet_shooter: Object = instance_from_id(bullet_shooter_id)
-		if bullet_shooter == null:
-			_log_to_file("[#1228] Bullet shooter id=%d resolved to null — no suppression" % bullet_shooter_id)
-			return  # Shooter no longer exists — no suppression
+		if bullet_shooter == null: return  # Shooter no longer exists — no suppression
 		if not (bullet_shooter as Node).is_in_group("player"):
-			_log_to_file("[#1228] Bullet from non-player shooter '%s' — no suppression" % (bullet_shooter as Node).name)
+			_log_to_file("[#1228] Non-player bullet from '%s' — no suppression" % (bullet_shooter as Node).name)
 			return  # Bullet not from player (own or another enemy) — no suppression
-		_log_to_file("[#1228] Player bullet from '%s' entered threat sphere — suppression triggered" % (bullet_shooter as Node).name)
-	else:
-		_log_to_file("[#1228] Bullet has no shooter_id property — suppression triggered (fallback)")
 	_bullets_in_threat_sphere.append(area)
 	_threat_memory_timer = THREAT_MEMORY_DURATION
 	_log_debug("Bullet entered threat sphere, starting reaction delay...")
