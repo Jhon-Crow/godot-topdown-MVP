@@ -343,4 +343,32 @@ RELOAD and EMPTY_CLICK retain unconditional pursuit (player explicitly vulnerabl
 
 ---
 
-*Case study prepared: 2026-03-21*
+---
+
+## Session 5 — game_log_20260321_110936.txt (2026-03-21 11:09)
+
+**User report:** "possibly need to make adjustment for new enemy collisions (enemies now bump into walls instead of walking along them), update from main."
+
+**Log analysis:**
+
+| Observation | Detail |
+|---|---|
+| Levels visited | LabyrinthLevel → BuildingLevel (13s) → CastleLevel → [others] |
+| BuildingLevel enemies | 10 enemies spawned correctly; Enemy7 at (1700,870) and Enemy10 at (1200,1550) |
+| Patrol snaps | Enemy7 and Enemy10 both logged "Patrol points snapped to navmesh (Issue #1216)" ✓ |
+| Enemy10 patrol | Cycling E/W offsets (±200,0) as intended |
+| No STUCK events | No PATROL STUCK entries in BuildingLevel session |
+
+**Root Cause (Session 5): Patrol wall-pressing from old movement code**
+
+The user's build predates Issue #1220 fix (`_move_to_target_nav` for patrol). Prior to that fix,
+patrol used raw `_nav_agent.get_next_path_position()` direction without wall avoidance or ORCA
+steering. Enemies would walk directly toward the next nav waypoint and press against any wall
+they encountered.
+
+**Fix merged (Session 5):** Merged upstream/main which includes:
+- `_move_to_target_nav` for patrol (Issue #1220): patrol now uses wall-avoidance + ORCA + slide-collision corner escape
+- All prior #1216 fixes retained: `_has_left_idle` guards, patrol snap timing, Main Hall entrance widening
+- `nav_region.bake_navigation_polygon(false)` for labyrinth2 nav overlay (Issue #1224)
+
+*Case study updated: 2026-03-21*
