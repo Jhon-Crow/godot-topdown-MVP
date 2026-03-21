@@ -1486,14 +1486,10 @@ func _process_combat_state(delta: float) -> void:
 				_transition_to_pursuing()
 			return
 
-		# Move toward the clear shot target position
+		# Move toward the clear shot target position — use navmesh to avoid walls (#1271)
 		var distance_to_target := global_position.distance_to(_clear_shot_target)
 		if distance_to_target > 15.0:
-			var move_direction := (_clear_shot_target - global_position).normalized()
-
-			# Apply enhanced wall avoidance with dynamic weighting
-			move_direction = _apply_wall_avoidance(move_direction)
-			velocity = move_direction * combat_move_speed
+			_move_to_target_nav(_clear_shot_target, combat_move_speed)
 			rotation = direction_to_player.angle()  # Keep facing player
 
 			# Check if the new position now has a clear shot
@@ -1543,13 +1539,9 @@ func _process_combat_state(delta: float) -> void:
 		_log_debug("COMBAT approach phase started, moving toward player")
 	_combat_approach_timer += delta
 
-	# Move toward player while approaching
+	# Move toward player while approaching — use navmesh so enemy routes around walls (#1271)
 	if _player:
-		var move_direction := direction_to_player
-
-		# Apply enhanced wall avoidance with dynamic weighting
-		move_direction = _apply_wall_avoidance(move_direction)
-		velocity = move_direction * combat_move_speed
+		_move_to_target_nav(_player.global_position, combat_move_speed)
 		rotation = direction_to_player.angle()  # Always face player
 
 		# Can shoot while approaching (only after detection delay and if have clear shot)
@@ -2429,12 +2421,15 @@ func _process_pacifist_state(_d: float) -> void:  ## PACIFIST: hide in cover / r
 	if _pacifist and _pacifist.is_retaliating():  ## Issue #959: pursue+shoot attacker; stay PACIFIST
 		var tgt: Node2D = _pacifist.attacker if _pacifist.attacker != null else _player
 		if tgt == null: velocity = Vector2.ZERO; return
-		velocity = _apply_wall_avoidance((tgt.global_position - global_position).normalized()) * combat_move_speed if global_position.distance_to(tgt.global_position) > 80.0 else Vector2.ZERO
+		# Issue #1271: use navmesh to route around walls instead of direct wall-avoidance raycasts
+		if global_position.distance_to(tgt.global_position) > 80.0: _move_to_target_nav(tgt.global_position, combat_move_speed)
+		else: velocity = Vector2.ZERO
 		if _shoot_timer >= shoot_cooldown and _can_shoot() and (tgt.global_position - global_position).normalized().dot(_get_weapon_forward_direction()) > AIM_TOLERANCE_DOT: _shoot()
 		return
 	if not _has_valid_cover: _find_cover_position()
 	if not _has_valid_cover: velocity = Vector2.ZERO; return
-	if global_position.distance_to(_cover_position) > 20.0: velocity = _apply_wall_avoidance((_cover_position - global_position).normalized()) * move_speed
+	# Issue #1271: use navmesh to reach cover position instead of direct wall-avoidance raycasts
+	if global_position.distance_to(_cover_position) > 20.0: _move_to_target_nav(_cover_position, move_speed)
 	else: velocity = Vector2.ZERO
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
