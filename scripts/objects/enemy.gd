@@ -80,6 +80,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE, RPG, PM, MACHINE_GUN, SNIPER_RIF
 @export var start_invisible: bool = false  ## Start with invisibility cloak, reveal only when shooting/throwing grenade (Issue #1121).
 @export var initial_state: AIState = AIState.IDLE  ## Initial AI state on spawn (Issue #1121). SEARCHING starts enemy in search mode.
 @export var has_armored_skin: bool = false  ## Whether this enemy has Armored Skin passive item (Issue #1123).
+@export var search_path_node: NodePath = NodePath("")  ## Path to SearchPathWaypoints node. When set, enemies use pre-planned waypoints during SEARCHING instead of dynamic spiral (Issue #1225).
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -278,6 +279,8 @@ var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
 const SEARCH_STUCK_MAX_TIME: float = 2.0  ## Max stuck time
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
+var _search_path_node: Node2D = null  ## Cached reference to SearchPathWaypoints node (Issue #1225)
+var _using_predefined_search_path: bool = false  ## True when using predefined waypoints instead of spiral (Issue #1225)
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
 var _detection_timer: float = 0.0  ## Combat detection timer
@@ -2239,6 +2242,56 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
+## Load predefined search waypoints from a SearchPathWaypoints node (Issue #1225).
+## Returns true if a valid predefined path was loaded, false otherwise.
+## When a predefined path is available, the enemy starts from the waypoint nearest
+## to its current position and progresses toward the waypoint nearest to the last
+## known player position, traversing the entire path in order.
+func _load_predefined_search_path(near_pos: Vector2) -> bool:
+	# Resolve the search path node lazily (cache it)
+	if _search_path_node == null or not is_instance_valid(_search_path_node):
+		if search_path_node != NodePath(""):
+			_search_path_node = get_node_or_null(search_path_node)
+		if _search_path_node == null:
+			# Also try to find it automatically by group in the scene tree
+			var found := get_tree().get_nodes_in_group("search_path_waypoints")
+			if found.size() > 0:
+				_search_path_node = found[0]
+	if _search_path_node == null:
+		return false
+	# Collect all Marker2D children as ordered waypoints
+	var all_waypoints: Array[Vector2] = []
+	for child in _search_path_node.get_children():
+		if child is Marker2D:
+			all_waypoints.append(child.global_position)
+	if all_waypoints.is_empty():
+		return false
+	# Find nearest waypoint to enemy's current position
+	var start_idx := 0
+	var min_dist_start := INF
+	for i in range(all_waypoints.size()):
+		var d := global_position.distance_to(all_waypoints[i])
+		if d < min_dist_start:
+			min_dist_start = d
+			start_idx = i
+	# Find nearest waypoint to the search center (last known player position)
+	var target_idx := start_idx
+	var min_dist_target := INF
+	for i in range(all_waypoints.size()):
+		var d := near_pos.distance_to(all_waypoints[i])
+		if d < min_dist_target:
+			min_dist_target = d
+			target_idx = i
+	# Build waypoint list: from start_idx, wrap around full path, stop after one full loop
+	_search_waypoints.clear()
+	_search_current_waypoint_index = 0
+	var count := all_waypoints.size()
+	for i in range(count):
+		var idx := (start_idx + i) % count
+		_search_waypoints.append(all_waypoints[idx])
+	_log_debug("SEARCHING: Loaded %d predefined waypoints (start=%d, player_nearest=%d)" % [_search_waypoints.size(), start_idx, target_idx])
+	return true
+
 ## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear()
@@ -2297,6 +2350,12 @@ func _process_searching_state(delta: float) -> void:
 		_transition_to_combat()
 		return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
+		# Issue #1225: Predefined path exhausted — loop back to start for continued searching.
+		if _using_predefined_search_path and not _search_waypoints.is_empty():
+			_search_current_waypoint_index = 0
+			_search_moving_to_waypoint = true
+			_log_to_file("SEARCHING: Predefined path looped (wps=%d)" % _search_waypoints.size())
+			return
 		if _search_radius < SEARCH_MAX_RADIUS:
 			_search_radius += SEARCH_RADIUS_EXPANSION
 			_generate_search_waypoints()
@@ -2315,6 +2374,11 @@ func _process_searching_state(delta: float) -> void:
 			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
 			_transition_to_idle(); return
 	if _search_waypoints.is_empty():
+		# Issue #1225: Try reloading predefined path if it was previously used but now empty.
+		if _using_predefined_search_path:
+			_using_predefined_search_path = _load_predefined_search_path(_search_center)
+			if _using_predefined_search_path:
+				return
 		if _has_left_idle:  # Issue #330/#405: Regenerate from current position, clear old zones
 			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
 			# Issue #405: Clear visited zones to allow exploring new areas
@@ -2733,8 +2797,12 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	# Issue #354: Initialize stuck detection
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
-	_generate_search_waypoints()
-	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
+	# Issue #1225: Use predefined search path if available, otherwise fall back to dynamic spiral.
+	_using_predefined_search_path = _load_predefined_search_path(center_position)
+	if not _using_predefined_search_path:
+		_generate_search_waypoints()
+	var mode_str := "predefined" if _using_predefined_search_path else "spiral"
+	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % [mode_str, _search_center, _search_radius, _search_waypoints.size()]
 	_log_debug(msg); _log_to_file(msg)
 
 ## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
