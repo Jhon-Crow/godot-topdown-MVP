@@ -92,12 +92,9 @@ polygon = PackedVector2Array(-24, -24, 24, -24, 24, 24, -24, 24)
 polygon = PackedVector2Array(-60, -24, 60, -24, 60, 24, -60, 24)
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_factory"]
-vertices = PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)
-polygons = [PackedInt32Array(0, 1, 2, 3)]
-outlines = [PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)]
 parsed_geometry_type = 1
 parsed_collision_mask = 4
-source_geometry_mode = 0
+source_geometry_mode = 1
 source_geometry_group_name = &"navigation_source"
 agent_radius = 24.0
 
@@ -108,6 +105,7 @@ script = ExtResource("1_factory_level")
 script = ExtResource("5_fallback")
 
 [node name="Environment" type="Node2D" parent="."]
+groups = ["navigation_source"]
 
 [node name="Background" type="ColorRect" parent="Environment"]
 offset_right = 2528.0

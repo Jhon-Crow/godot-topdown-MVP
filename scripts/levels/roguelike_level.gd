@@ -679,6 +679,10 @@ func _setup_navigation() -> void:
 	nav_poly.clear()
 	nav_poly.add_outline(floor_outline)
 
+	# Issue #1271: Await first physics frame so PhysicsServer2D has registered static body shapes.
+	# parse_source_geometry_data with PARSED_GEOMETRY_STATIC_COLLIDERS queries PhysicsServer2D,
+	# which only has shapes after the first physics frame sync (not during _ready()).
+	await get_tree().physics_frame
 	print("[RoguelikeLevel] Baking navigation mesh...")
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
