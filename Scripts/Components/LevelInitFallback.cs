@@ -1261,12 +1261,14 @@ public partial class LevelInitFallback : Node
         fixture.Modulate = new Color(1.0f, 0.85f, 0.5f, 0.5f);
         lightNode.AddChild(fixture);
 
-        // The warm PointLight2D (shadows off — decorative ambient fill, same as GDScript version)
+        // The warm PointLight2D with soft shadows
         var light = new PointLight2D();
         light.Name = "PointLight";
         light.Color = new Color(1.0f, 0.75f, 0.3f, 1.0f);
         light.Energy = energy;
-        light.ShadowEnabled = false;
+        light.ShadowEnabled = true;
+        light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
+        light.ShadowFilterSmooth = 4.0f;
         light.Texture = lightTexture;
         light.TextureScale = scale;
         lightNode.AddChild(light);

@@ -381,16 +381,13 @@ func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale:
 	light_node.add_child(fixture)
 
 	# The actual PointLight2D
-	# Shadows are disabled: ceiling lights are decorative ambient fills and wall
-	# geometry (especially in small rooms like Office 2) would fully occlude the
-	# light cone, making it appear to not spread at all. Shadow detail is already
-	# provided by the moonlight window lights. Disabling also removes 6 extra
-	# shadow-map render passes per frame (Issue #1206).
 	var light := PointLight2D.new()
 	light.name = "PointLight"
 	light.color = Color(1.0, 0.75, 0.3, 1.0)   # Warm amber-orange
 	light.energy = energy
-	light.shadow_enabled = false
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0  # Soft shadow edges
 	light.texture = _create_warm_light_texture()
 	light.texture_scale = scale
 	light_node.add_child(light)
