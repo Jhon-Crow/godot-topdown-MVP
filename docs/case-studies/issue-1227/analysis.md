@@ -209,6 +209,63 @@ So penalty must exceed **1.008** for corridor enemies to prefer local corridor w
 
 ---
 
+## Bug 3: All PURSUING Enemies GLOBAL STUCK After Penalty Increase (2026-03-21)
+
+### Game logs
+
+- `game_log_20260321_111703.txt` — BuildingLevel test, all maps locked
+- `game_log_20260321_112257.txt` — BuildingLevel test, all maps unlocked
+
+### Observed Behavior
+
+After the Bug 2 fix (penalty 0.3→1.1), multiple enemies got GLOBAL STUCK in PURSUING state:
+
+| Enemy | Stuck position | Duration |
+|-------|---------------|----------|
+| Enemy1 | (309, 396) | 4.0s |
+| Enemy2 | (411, 663) | 4.0s |
+| Enemy3 | (718, 922) | 4.0s |
+| Enemy4 | (755, 916) | 4.0s |
+
+### Root Cause Analysis
+
+**The penalty=1.1 was too restrictive.** For any enemy far from the player, the travel distance to waypoints necessarily exceeds the net progress they produce (because waypoints are spread across rooms). With penalty=1.1, virtually every waypoint in the map scores negative:
+
+Example — Enemy1 at (309, 396), player at (450, 923):
+- `Office1_AttackFront` (290, 660): progress=238, travel=265, score = 238 − 265×1.1 = **−53** ❌
+- `Office2_ExitDoor` (440, 760): progress=382, travel=387, score = 382 − 387×1.1 = **−43** ❌
+
+No waypoint scores positively → fallback selects nearest within 350px = `Office1_AttackMid` (400, 400) at 91px. Enemy navigates there, arrives in ~0.3s, queries again — same zero-positive situation, picks same nearby fallback. The loop continues until the 4s GLOBAL STUCK timer fires.
+
+### Why penalty=1.1 Was Too High
+
+The penalty was derived from the cross-room routing constraint: to prevent corridor enemies (x≈1200) from routing into the Security Room (x≈620) through an impassable wall, the break-even penalty needed to exceed **1.008**. But this penalty level is fundamentally incompatible with same-room advances, where travel distance always equals or exceeds net progress.
+
+### Fix Applied (Bug 3 — 2026-03-21)
+
+**Two-parameter scoring in `combat_path_component.gd`:**
+
+1. **Reduced penalty: 1.1 → 0.5** — Allows same-room waypoints to score positively. At penalty=0.5, `Office2_ExitDoor` scores 382−387×0.5 = **+188** for Enemy1 ✅
+
+2. **Added `MAX_TRAVEL_DIST = 400.0` cap** — Waypoints more than 400px straight-line away from the enemy are excluded from scoring. This replaces the penalty as the cross-room filter:
+   - `Security_AttackSouthWest` (620, 940) is 583px from corridor enemy (1200, 1000): **excluded**
+   - `Corridor_AttackWest` (980, 856) is 263px from corridor enemy: **included**, scores +105 ✅
+
+Verification table (penalty=0.5, max_travel=400):
+
+| Scenario | Selected waypoint | Score |
+|----------|------------------|-------|
+| Enemy1 (309, 396) → player (450, 923) | Office2_ExitDoor | +188 |
+| Enemy2 (411, 663) → player (450, 923) | Office2_ExitDoor | +49 |
+| Enemy3 (718, 922) → player (450, 923) | Security_AttackSouthWest | +47 |
+| Enemy4 (755, 916) → player (450, 923) | Security_AttackSouthWest | +66 |
+| Corridor (1200, 1000) → player (620, 860) | Corridor_AttackWest | +105 |
+| Corridor (1200, 1000) → player (450, 923) | Corridor_AttackWest | +88 |
+
+All GLOBAL STUCK cases resolved without reintroducing cross-room wall-pressing.
+
+---
+
 ## Map Layout: BuildingLevel
 
 The BuildingLevel is ~2400×2000 pixels with the following rooms (from the .tscn):

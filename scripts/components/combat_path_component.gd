@@ -64,6 +64,13 @@ func _collect_markers_from(node: Node, out: Array[Vector2]) -> void:
 ## Keeps the fallback local so enemies don't navigate across rooms to escape corners.
 const FALLBACK_MAX_DIST: float = 350.0
 
+## Maximum straight-line travel distance to a candidate waypoint.
+## Prevents enemies from being routed to waypoints in other rooms that are
+## reachable on the scoring map but blocked by walls on the nav mesh.
+## E.g., corridor enemies (x≈1200) must not route to Security Room (x≈620)
+## through Room2_WallRight (x=912–936, no doorway, nav-mesh impassable).
+const MAX_TRAVEL_DIST: float = 400.0
+
 ## Return the nearest attacking waypoint that makes progress toward [toward_pos].
 ## [from_pos] is the enemy's current position.
 ## Returns Vector2.ZERO if no suitable waypoint exists.
@@ -91,14 +98,19 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 		if dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
 			nearest_fallback_dist = dist_from_me
 			nearest_fallback = wp
+		# Skip waypoints that are too far away; they likely require navigating around
+		# walls that make the straight-line score misleading (cross-room false positives).
+		if dist_from_me > MAX_TRAVEL_DIST:
+			continue
 		var wp_dist_to_target := wp.distance_to(toward_pos)
 		# Only score waypoints that bring us closer to the target
 		if wp_dist_to_target >= my_dist_to_target:
 			continue
-		# Score: progress toward target, penalise travel distance so that only waypoints
-		# reachable with a net gain (shorter detour than progress made) score positively.
+		# Score: progress toward target, penalise travel distance.
+		# Penalty 0.5 lets same-room advances score positively while avoiding
+		# borderline cross-room waypoints that require long detours around walls.
 		var progress := my_dist_to_target - wp_dist_to_target
-		var score := progress - dist_from_me * 1.1
+		var score := progress - dist_from_me * 0.5
 		if score > best_score:
 			best_score = score
 			best = wp
