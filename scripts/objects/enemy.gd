@@ -381,7 +381,7 @@ func _ready() -> void:
 	_setup_threat_sphere()
 	_initialize_goap_state()
 	_initialize_memory()
-	_connect_debug_mode_signal(); (func(): _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints")).call_deferred()  ## #1226: cache once after ready
+	_connect_debug_mode_signal(); (func(): var _es := get_node_or_null("/root/ExperimentalSettings"); var _wp_on: bool = (_es == null or not _es.has_method("is_passage_waypoints_enabled") or _es.is_passage_waypoints_enabled()); _passage_waypoints = get_tree().get_nodes_in_group("passage_waypoints") if _wp_on else []).call_deferred()  ## #1226: cache once after ready; #1267: skip if passage waypoints disabled
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_flashbang_status()

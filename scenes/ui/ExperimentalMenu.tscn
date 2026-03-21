@@ -398,6 +398,27 @@ autowrap_mode = 2
 [node name="HSeparator12d" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="PassageWaypointsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PassageWaypointsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Use Passage Waypoints"
+autowrap_mode = 2
+
+[node name="PassageWaypointsCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/PassageWaypointsContainer"]
+layout_mode = 2
+
+[node name="PassageWaypointsDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+text = "When enabled (default), enemies use pre-placed passage\nwaypoints to navigate through doorways on the Building map.\nWhen disabled, enemies fall back to the previous\ncover-seeking navigation without waypoints."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HSeparator12f" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="SoundVisualizerContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
