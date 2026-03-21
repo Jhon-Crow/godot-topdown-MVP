@@ -41,13 +41,21 @@ enum RoomType {
 	CITY         ## Urban: L-shaped cover blocks, car-like barriers
 }
 
-## Room size for procedural generation
+## Room size options for procedural generation (Issue #1240: larger, more varied rooms)
+## Three sizes: compact, standard, and large.
+const ROOM_SIZE_OPTIONS: Array = [
+	Vector2(1280.0, 720.0),   ## Compact — tight quarters, close combat
+	Vector2(1600.0, 900.0),   ## Standard — moderate space, balanced
+	Vector2(1920.0, 1080.0),  ## Large — open tactical arena, long sightlines
+]
+
+## Backwards-compatible aliases (used for fixed-size code paths like the tscn)
 const ROOM_WIDTH:  float = 1280.0
 const ROOM_HEIGHT: float = 720.0
 
-## Enemy count limits per room
+## Enemy count limits per room (Issue #1240: more enemies for tactical pressure)
 const ENEMIES_PER_ROOM_MIN: int = 3
-const ENEMIES_PER_ROOM_MAX: int = 4
+const ENEMIES_PER_ROOM_MAX: int = 5
 
 ## Number of rooms per run
 const MIN_ROOMS: int = 3
@@ -119,6 +127,12 @@ var _room_type: int = RoomType.LABYRINTH
 var _current_room_idx: int = 0
 ## Total rooms in this run
 var _total_rooms: int = 3
+
+## Dynamic room dimensions chosen at build time (Issue #1240)
+var _room_w: float = 1280.0
+var _room_h: float = 720.0
+## Layout variant index chosen at build time (Issue #1240: multiple variants per type)
+var _room_variant: int = 0
 
 var _player: Node2D = null
 
@@ -321,11 +335,19 @@ func _restore_loadout() -> void:
 ## ============================================================
 
 func _build_room_scene() -> void:
+	# Issue #1240: pick a random room size and layout variant each time.
+	var size_idx: int = randi() % ROOM_SIZE_OPTIONS.size()
+	var chosen_size: Vector2 = ROOM_SIZE_OPTIONS[size_idx]
+	_room_w = chosen_size.x
+	_room_h = chosen_size.y
+	_room_variant = randi() % 3  # 0, 1, or 2 — three layout variants per type
+	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d" % [_room_w, _room_h, _room_variant])
+
 	# Background
 	var bg := ColorRect.new()
 	bg.name  = "WorldBackground"
 	bg.position = Vector2(-200, -200)
-	bg.size     = Vector2(ROOM_WIDTH + 400, ROOM_HEIGHT + 400)
+	bg.size     = Vector2(_room_w + 400, _room_h + 400)
 	bg.color    = BG_COLOR
 	add_child(bg)
 
@@ -342,14 +364,14 @@ func _build_room(parent: Node) -> void:
 	var floor_color: Color = ROOM_FLOOR_COLORS.get(_room_type, FLOOR_COLOR)
 	var floor_rect := ColorRect.new()
 	floor_rect.position = Vector2(0, 0)
-	floor_rect.size     = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.size     = Vector2(_room_w, _room_h)
 	floor_rect.color    = floor_color
 	parent.add_child(floor_rect)
 
 	# Boundary walls — closed on all sides (single room, no corridors)
 	_build_room_boundary_closed(parent)
 
-	# Interior layout by type
+	# Interior layout by type — Issue #1240: each type now has 3 variants
 	match _room_type:
 		RoomType.LABYRINTH:
 			_build_labyrinth_interior(parent)
@@ -362,13 +384,14 @@ func _build_room(parent: Node) -> void:
 		RoomType.CITY:
 			_build_city_interior(parent)
 
-	print("[RoguelikeLevel] Room built: type=%s" % ROOM_TYPE_NAMES.get(_room_type, "?"))
+	print("[RoguelikeLevel] Room built: type=%s variant=%d size=%.0f×%.0f" % [
+		ROOM_TYPE_NAMES.get(_room_type, "?"), _room_variant, _room_w, _room_h])
 
 
 ## Fully-enclosed boundary walls (no corridor openings — single room).
 func _build_room_boundary_closed(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	var w: float = _room_w
+	var h: float = _room_h
 	var t: float = 24.0  ## Wall thickness
 	_create_wall(room_node, Rect2(0,     0,     w, t))   ## Top
 	_create_wall(room_node, Rect2(0,     h - t, w, t))   ## Bottom
@@ -377,112 +400,226 @@ func _build_room_boundary_closed(room_node: Node2D) -> void:
 
 
 ## ─── Labyrinth: horizontal and vertical divider walls ───────────────────────
+## Issue #1240: 3 variants for more variety.
 func _build_labyrinth_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	var w: float = _room_w
+	var h: float = _room_h
 	var opening: float = 140.0
-
-	# Horizontal divider at 1/3 height — gap on right side
-	_create_wall(room_node, Rect2(60, h * 0.33, w * 0.55, 20))
-	# Horizontal divider at 2/3 height — gap on left side
-	_create_wall(room_node, Rect2(w * 0.45, h * 0.66, w * 0.55 - 30, 20))
-	# Vertical divider at centre — gap in middle
-	_create_wall(room_node, Rect2(w * 0.5 - 10, 60, 20, h * 0.35))
-	_create_wall(room_node, Rect2(w * 0.5 - 10, h * 0.35 + opening, 20, h * 0.30))
-	# Short L-wall in upper-left quadrant
-	_create_wall(room_node, Rect2(120, h * 0.14, 140, 20))
-	_create_wall(room_node, Rect2(120, h * 0.14, 20, 80))
-	# Short L-wall in lower-right quadrant
-	_create_wall(room_node, Rect2(w - 260, h * 0.78, 140, 20))
-	_create_wall(room_node, Rect2(w - 280 + 140, h * 0.72, 20, 80))
+	match _room_variant:
+		0:
+			# Classic maze: two horizontal dividers + one vertical divider with gap
+			_create_wall(room_node, Rect2(60, h * 0.33, w * 0.55, 20))
+			_create_wall(room_node, Rect2(w * 0.45, h * 0.66, w * 0.55 - 30, 20))
+			_create_wall(room_node, Rect2(w * 0.5 - 10, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.5 - 10, h * 0.35 + opening, 20, h * 0.30))
+			_create_wall(room_node, Rect2(120, h * 0.14, 140, 20))
+			_create_wall(room_node, Rect2(120, h * 0.14, 20, 80))
+			_create_wall(room_node, Rect2(w - 260, h * 0.78, 140, 20))
+			_create_wall(room_node, Rect2(w - 280 + 140, h * 0.72, 20, 80))
+		1:
+			# T-junction maze: central horizontal wall + two vertical stubs creating 3 corridors
+			_create_wall(room_node, Rect2(60, h * 0.50, w * 0.35, 20))
+			_create_wall(room_node, Rect2(w * 0.65, h * 0.50, w * 0.35 - 60, 20))
+			# Upper channel wall
+			_create_wall(room_node, Rect2(w * 0.35, 60, 20, h * 0.28))
+			_create_wall(room_node, Rect2(w * 0.65, 60, 20, h * 0.28))
+			# Lower channel wall
+			_create_wall(room_node, Rect2(w * 0.35, h * 0.72, 20, h * 0.28))
+			_create_wall(room_node, Rect2(w * 0.65, h * 0.72, 20, h * 0.28))
+			# Short cross-pieces for cover
+			_create_wall(room_node, Rect2(w * 0.20, h * 0.22, 80, 20))
+			_create_wall(room_node, Rect2(w * 0.75, h * 0.72, 80, 20))
+		2:
+			# Spiral-ish: one long corridor divider + two alcove stubs + a central pillar
+			_create_wall(room_node, Rect2(60, h * 0.40, w * 0.60, 20))
+			_create_wall(room_node, Rect2(w * 0.40, h * 0.60, w * 0.60 - 60, 20))
+			# Left alcove
+			_create_wall(room_node, Rect2(60, h * 0.40, 20, h * 0.32))
+			# Right alcove
+			_create_wall(room_node, Rect2(w - 80, h * 0.30, 20, h * 0.32))
+			# Central pillar box
+			_create_wall(room_node, Rect2(w * 0.47, h * 0.40, 20, h * 0.20))
+			_create_wall(room_node, Rect2(w * 0.47, h * 0.40, w * 0.08, 20))
+			_create_wall(room_node, Rect2(w * 0.47, h * 0.60, w * 0.08, 20))
 
 
 ## ─── Building: walled sub-rooms with doorways ───────────────────────────────
+## Issue #1240: 3 variants.
 func _build_building_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	var w: float = _room_w
+	var h: float = _room_h
 	var opening: float = 100.0
-
-	# Vertical wall dividing left and right sub-rooms — doorway at mid-height
-	_create_wall(room_node, Rect2(w * 0.42, 60, 20, h * 0.35))
-	_create_wall(room_node, Rect2(w * 0.42, 60 + h * 0.35 + opening, 20, h - (60 + h * 0.35 + opening) - 60))
-
-	# Top-right alcove
-	_create_wall(room_node, Rect2(w * 0.60, 60, w * 0.22, 20))
-	_create_wall(room_node, Rect2(w * 0.82 - 20, 60, 20, h * 0.28))
-
-	# Bottom-left alcove
-	_create_wall(room_node, Rect2(60, h * 0.68, w * 0.22, 20))
-	_create_wall(room_node, Rect2(60, h * 0.54, 20, h * 0.14 + 20))
-
-	# Cover crate in left room
-	_create_cover(room_node, Rect2(w * 0.18, h * 0.42, 60, 60))
-	# Cover panel in right room
-	_create_cover(room_node, Rect2(w * 0.68, h * 0.55, 80, 20))
+	match _room_variant:
+		0:
+			# Classic: vertical divider with doorway, top-right alcove, bottom-left alcove
+			_create_wall(room_node, Rect2(w * 0.42, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.42, 60 + h * 0.35 + opening, 20, h - (60 + h * 0.35 + opening) - 60))
+			_create_wall(room_node, Rect2(w * 0.60, 60, w * 0.22, 20))
+			_create_wall(room_node, Rect2(w * 0.82 - 20, 60, 20, h * 0.28))
+			_create_wall(room_node, Rect2(60, h * 0.68, w * 0.22, 20))
+			_create_wall(room_node, Rect2(60, h * 0.54, 20, h * 0.14 + 20))
+			_create_cover(room_node, Rect2(w * 0.18, h * 0.42, 60, 60))
+			_create_cover(room_node, Rect2(w * 0.68, h * 0.55, 80, 20))
+		1:
+			# Three-room layout: top corridor + bottom corridor divided by horizontal wall
+			_create_wall(room_node, Rect2(60, h * 0.38, w * 0.38, 20))
+			_create_wall(room_node, Rect2(w * 0.38 + opening, h * 0.38, w * 0.62 - opening - 60, 20))
+			_create_wall(room_node, Rect2(60, h * 0.62, w * 0.38, 20))
+			_create_wall(room_node, Rect2(w * 0.38 + opening, h * 0.62, w * 0.62 - opening - 60, 20))
+			# Two vertical sub-dividers creating three lanes
+			_create_wall(room_node, Rect2(w * 0.38, 60, 20, h * 0.38))
+			_create_wall(room_node, Rect2(w * 0.62, h * 0.62, 20, h * 0.38))
+			# Cover objects
+			_create_cover(room_node, Rect2(w * 0.22, h * 0.48, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.48, 60, 24))
+		2:
+			# Fortress: outer ring of rooms with central open courtyard
+			# Left wing
+			_create_wall(room_node, Rect2(w * 0.26, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.26, h * 0.35 + opening, 20, h * 0.30))
+			# Right wing
+			_create_wall(room_node, Rect2(w * 0.74, 60, 20, h * 0.35))
+			_create_wall(room_node, Rect2(w * 0.74, h * 0.35 + opening, 20, h * 0.30))
+			# Top bar connecting wings
+			_create_wall(room_node, Rect2(w * 0.26, h * 0.24, w * 0.14, 20))
+			_create_wall(room_node, Rect2(w * 0.60, h * 0.24, w * 0.14, 20))
+			# Bottom bar
+			_create_wall(room_node, Rect2(w * 0.26, h * 0.76, w * 0.14, 20))
+			_create_wall(room_node, Rect2(w * 0.60, h * 0.76, w * 0.14, 20))
+			# Central cover pair
+			_create_cover(room_node, Rect2(w * 0.46, h * 0.40, 24, 80))
+			_create_cover(room_node, Rect2(w * 0.54, h * 0.40, 24, 80))
 
 
 ## ─── Beach: open field with scattered obstacles ─────────────────────────────
+## Issue #1240: 3 variants with more obstacles and tactical cover.
 func _build_beach_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
-
-	# Scattered crates and barrels
-	var positions: Array[Vector2] = [
-		Vector2(w * 0.18, h * 0.25),
-		Vector2(w * 0.18, h * 0.65),
-		Vector2(w * 0.40, h * 0.38),
-		Vector2(w * 0.40, h * 0.58),
-		Vector2(w * 0.62, h * 0.22),
-		Vector2(w * 0.62, h * 0.72),
-		Vector2(w * 0.80, h * 0.44),
-	]
-	for pos in positions:
-		var sz: float = 44.0 if (int(pos.x) % 2 == 0) else 32.0
-		_create_cover(room_node, Rect2(pos.x - sz * 0.5, pos.y - sz * 0.5, sz, sz))
-
-	# A low sandbag wall segment
-	_create_cover(room_node, Rect2(w * 0.55, h * 0.5 - 10, 120, 20))
+	var w: float = _room_w
+	var h: float = _room_h
+	match _room_variant:
+		0:
+			# Scattered crates and barrels (original, slightly expanded)
+			var positions: Array[Vector2] = [
+				Vector2(w * 0.18, h * 0.25),
+				Vector2(w * 0.18, h * 0.65),
+				Vector2(w * 0.40, h * 0.38),
+				Vector2(w * 0.40, h * 0.58),
+				Vector2(w * 0.62, h * 0.22),
+				Vector2(w * 0.62, h * 0.72),
+				Vector2(w * 0.80, h * 0.44),
+				Vector2(w * 0.28, h * 0.50),
+			]
+			for pos in positions:
+				var sz: float = 44.0 if (int(pos.x) % 2 == 0) else 32.0
+				_create_cover(room_node, Rect2(pos.x - sz * 0.5, pos.y - sz * 0.5, sz, sz))
+			_create_cover(room_node, Rect2(w * 0.55, h * 0.5 - 10, 120, 20))
+		1:
+			# Beachhead: two diagonal sandbag lines with gaps — flanking possible
+			_create_cover(room_node, Rect2(w * 0.22, h * 0.18, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.34, h * 0.30, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.46, h * 0.42, 100, 20))
+			# Second diagonal line (offset, creates crossfire)
+			_create_cover(room_node, Rect2(w * 0.30, h * 0.72, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.44, h * 0.60, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.58, h * 0.48, 100, 20))
+			# Far cover
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.28, 56, 56))
+			_create_cover(room_node, Rect2(w * 0.78, h * 0.68, 56, 56))
+		2:
+			# Debris field: irregular cluster in middle + lone outpost covers
+			for i in range(5):
+				var angle: float = i * TAU / 5.0
+				var cx: float = w * 0.50 + cos(angle) * w * 0.12
+				var cy: float = h * 0.50 + sin(angle) * h * 0.16
+				_create_cover(room_node, Rect2(cx - 24, cy - 24, 48, 48))
+			# Outpost covers near corners
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 36, 60))
+			_create_cover(room_node, Rect2(w * 0.80, h * 0.20, 36, 60))
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.70, 36, 60))
+			_create_cover(room_node, Rect2(w * 0.80, h * 0.70, 36, 60))
+			# Central chokepoint wall
+			_create_cover(room_node, Rect2(w * 0.42, h * 0.46, 20, 80))
 
 
 ## ─── Docks: parallel container walls ────────────────────────────────────────
+## Issue #1240: 3 variants — different container configurations.
 func _build_docks_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
-
-	# Three pairs of container walls (horizontal, parallel)
-	for row in range(3):
-		var y: float = h * (0.22 + row * 0.24)
-		# Left container
-		_create_wall(room_node, Rect2(80, y, w * 0.36, 22))
-		# Right container (offset)
-		_create_wall(room_node, Rect2(w * 0.52, y + 22, w * 0.36, 22))
-
-	# End container stack on left
-	_create_wall(room_node, Rect2(80, h * 0.22, 22, h * 0.22))
-	# End container stack on right
-	_create_wall(room_node, Rect2(w - 102, h * 0.46, 22, h * 0.22))
+	var w: float = _room_w
+	var h: float = _room_h
+	match _room_variant:
+		0:
+			# Classic: three pairs of offset container rows
+			for row in range(3):
+				var y: float = h * (0.22 + row * 0.24)
+				_create_wall(room_node, Rect2(80, y, w * 0.36, 22))
+				_create_wall(room_node, Rect2(w * 0.52, y + 22, w * 0.36, 22))
+			_create_wall(room_node, Rect2(80, h * 0.22, 22, h * 0.22))
+			_create_wall(room_node, Rect2(w - 102, h * 0.46, 22, h * 0.22))
+		1:
+			# Staggered containers: alternating left-leaning / right-leaning
+			for row in range(4):
+				var y: float = h * (0.18 + row * 0.18)
+				if row % 2 == 0:
+					_create_wall(room_node, Rect2(80, y, w * 0.32, 22))
+					_create_wall(room_node, Rect2(w * 0.56, y, w * 0.32, 22))
+				else:
+					_create_wall(room_node, Rect2(w * 0.12, y, w * 0.32, 22))
+					_create_wall(room_node, Rect2(w * 0.60, y, w * 0.30, 22))
+			# A lone container stack at centre-right
+			_create_wall(room_node, Rect2(w * 0.48, h * 0.36, 22, h * 0.28))
+		2:
+			# Warehouse: long corridors + cross-walls creating choke corners
+			_create_wall(room_node, Rect2(80, h * 0.30, w * 0.70, 22))
+			_create_wall(room_node, Rect2(w * 0.30, h * 0.70, w * 0.70 - 80, 22))
+			# Vertical cross-walls sealing off corners
+			_create_wall(room_node, Rect2(80, h * 0.30, 22, h * 0.20))
+			_create_wall(room_node, Rect2(w - 102, h * 0.50, 22, h * 0.20))
+			# Mid-room gap-cover pair
+			_create_cover(room_node, Rect2(w * 0.44, h * 0.46, 24, 80))
+			_create_cover(room_node, Rect2(w * 0.56, h * 0.46, 24, 80))
 
 
 ## ─── City: L-shaped cover blocks and barriers ───────────────────────────────
+## Issue #1240: 3 variants — different urban layout configurations.
 func _build_city_interior(room_node: Node2D) -> void:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
-
-	# L-shaped cover in upper-left
-	_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 100, 20))
-	_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 20, 80))
-
-	# L-shaped cover in lower-right
-	_create_cover(room_node, Rect2(w * 0.72, h * 0.68, 100, 20))
-	_create_cover(room_node, Rect2(w * 0.72 + 80, h * 0.60, 20, 80))
-
-	# Car-like long barriers
-	_create_cover(room_node, Rect2(w * 0.34, h * 0.42, 160, 32))
-	_create_cover(room_node, Rect2(w * 0.60, h * 0.30, 160, 32))
-
-	# Bollard cluster
-	for i in range(3):
-		_create_cover(room_node, Rect2(w * 0.46 + i * 36, h * 0.60, 24, 24))
+	var w: float = _room_w
+	var h: float = _room_h
+	match _room_variant:
+		0:
+			# Classic: two L-shapes + two car barriers + bollard cluster
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 20, 80))
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.68, 100, 20))
+			_create_cover(room_node, Rect2(w * 0.72 + 80, h * 0.60, 20, 80))
+			_create_cover(room_node, Rect2(w * 0.34, h * 0.42, 160, 32))
+			_create_cover(room_node, Rect2(w * 0.60, h * 0.30, 160, 32))
+			for i in range(3):
+				_create_cover(room_node, Rect2(w * 0.46 + i * 36, h * 0.60, 24, 24))
+		1:
+			# Crossroads: four corner covers + two parallel road barriers in the centre
+			# Corner barricades
+			_create_cover(room_node, Rect2(w * 0.12, h * 0.18, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.18, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.12, h * 0.72, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.72, 80, 20))
+			# Central road dividers
+			_create_cover(room_node, Rect2(w * 0.38, h * 0.35, 180, 24))
+			_create_cover(room_node, Rect2(w * 0.38, h * 0.60, 180, 24))
+			# Lone pillar at centre
+			_create_cover(room_node, Rect2(w * 0.49, h * 0.46, 32, 48))
+		2:
+			# Alley: walled corridor down the middle + flanking cover on both sides
+			# Left flank cover
+			_create_cover(room_node, Rect2(w * 0.16, h * 0.28, 28, 100))
+			_create_cover(room_node, Rect2(w * 0.16, h * 0.60, 28, 80))
+			# Right flank cover
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.28, 28, 100))
+			_create_cover(room_node, Rect2(w * 0.76, h * 0.60, 28, 80))
+			# Central alley walls (two long pieces with gap — the alley)
+			_create_wall(room_node, Rect2(w * 0.36, 60, 20, h * 0.33))
+			_create_wall(room_node, Rect2(w * 0.36, h * 0.33 + 120, 20, h * 0.33))
+			_create_wall(room_node, Rect2(w * 0.64, 60, 20, h * 0.33))
+			_create_wall(room_node, Rect2(w * 0.64, h * 0.33 + 120, 20, h * 0.33))
 
 
 ## ============================================================
@@ -496,8 +633,8 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		return
 
 	var positions: Array[Vector2] = _get_enemy_positions(_room_type)
-	# More enemies each level (cap at positions.size() and an absolute max of 6)
-	var level_enemy_max: int = min(ENEMIES_PER_ROOM_MAX + (GameManager.roguelike_current_level - 1), 6)
+	# More enemies each level (cap at positions.size() and an absolute max of 8, Issue #1240)
+	var level_enemy_max: int = min(ENEMIES_PER_ROOM_MAX + (GameManager.roguelike_current_level - 1), 8)
 	var count: int = randi_range(ENEMIES_PER_ROOM_MIN, min(level_enemy_max, positions.size()))
 
 	# Shuffle positions
@@ -514,7 +651,15 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 		enemy.weapon_type   = _random_enemy_weapon(_room_type)
 		enemy.behavior_mode = _random_enemy_behavior(i)
 		if enemy.behavior_mode == 0:  # PATROL
-			enemy.patrol_offsets = [Vector2(80, 0), Vector2(-80, 0)]
+			# Issue #1240: varied patrol routes — choose from several patterns
+			var patrol_patterns: Array = [
+				[Vector2(100, 0), Vector2(-100, 0)],             # Horizontal
+				[Vector2(0, 80), Vector2(0, -80)],              # Vertical
+				[Vector2(120, 0), Vector2(-120, 0)],             # Wide horizontal
+				[Vector2(80, 60), Vector2(-80, -60)],            # Diagonal
+				[Vector2(100, 0), Vector2(0, 80), Vector2(-100, 0)],  # L-shaped
+			]
+			enemy.patrol_offsets = patrol_patterns[randi() % patrol_patterns.size()]
 		# Difficulty scaling: each level adds 1 to enemy health pool (Issue #1166)
 		var level_bonus: int = max(0, GameManager.roguelike_current_level - 1)
 		enemy.min_health = 1 + level_bonus
@@ -533,8 +678,9 @@ func _spawn_enemies_in_room(room_node: Node2D) -> void:
 
 
 func _get_enemy_positions(room_type: int) -> Array[Vector2]:
-	var w: float = ROOM_WIDTH
-	var h: float = ROOM_HEIGHT
+	# Issue #1240: use dynamic room dimensions; return 8 positions for more enemies.
+	var w: float = _room_w
+	var h: float = _room_h
 	match room_type:
 		RoomType.LABYRINTH:
 			return [
@@ -543,6 +689,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.60, h * 0.22),
 				Vector2(w * 0.60, h * 0.76),
 				Vector2(w * 0.80, h * 0.50),
+				Vector2(w * 0.38, h * 0.50),
+				Vector2(w * 0.70, h * 0.38),
+				Vector2(w * 0.70, h * 0.62),
 			]
 		RoomType.BUILDING:
 			return [
@@ -551,6 +700,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.70, h * 0.30),
 				Vector2(w * 0.70, h * 0.70),
 				Vector2(w * 0.50, h * 0.50),
+				Vector2(w * 0.34, h * 0.50),
+				Vector2(w * 0.84, h * 0.50),
+				Vector2(w * 0.56, h * 0.22),
 			]
 		RoomType.BEACH:
 			return [
@@ -559,6 +711,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.55, h * 0.50),
 				Vector2(w * 0.75, h * 0.30),
 				Vector2(w * 0.75, h * 0.68),
+				Vector2(w * 0.46, h * 0.22),
+				Vector2(w * 0.46, h * 0.78),
+				Vector2(w * 0.85, h * 0.50),
 			]
 		RoomType.DOCKS:
 			return [
@@ -567,6 +722,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.40, h * 0.70),
 				Vector2(w * 0.65, h * 0.50),
 				Vector2(w * 0.82, h * 0.50),
+				Vector2(w * 0.28, h * 0.50),
+				Vector2(w * 0.56, h * 0.30),
+				Vector2(w * 0.56, h * 0.70),
 			]
 		RoomType.CITY:
 			return [
@@ -575,6 +733,9 @@ func _get_enemy_positions(room_type: int) -> Array[Vector2]:
 				Vector2(w * 0.46, h * 0.70),
 				Vector2(w * 0.72, h * 0.50),
 				Vector2(w * 0.86, h * 0.22),
+				Vector2(w * 0.86, h * 0.78),
+				Vector2(w * 0.60, h * 0.50),
+				Vector2(w * 0.30, h * 0.22),
 			]
 		_:
 			return [
@@ -604,9 +765,11 @@ func _random_enemy_weapon(room_type: int) -> int:
 
 func _random_enemy_behavior(enemy_index: int) -> int:
 	# BehaviorMode: PATROL=0, GUARD=1
+	# Issue #1240: more balanced mix — 50% patrol, 50% guard (was 33/67).
+	# First enemy is still a guard to ensure the room is immediately threatening.
 	if enemy_index == 0:
 		return 1  # First enemy is always a guard
-	return 0 if (randi() % 3 == 0) else 1  # 33% patrol, 67% guard
+	return randi() % 2  # 50% patrol, 50% guard
 
 
 ## ============================================================
@@ -639,7 +802,7 @@ func _spawn_player() -> void:
 	player.name = "Player"
 
 	# Spawn at the left-centre of the room, just inside the boundary wall
-	player.position = Vector2(80.0, ROOM_HEIGHT * 0.5)
+	player.position = Vector2(80.0, _room_h * 0.5)
 	entities_node.add_child(player)
 	print("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
 
@@ -745,9 +908,9 @@ func _setup_exit_zone() -> void:
 
 	_exit_zone = exit_scene.instantiate()
 
-	# Place near the right wall, vertically centred
-	var exit_x: float = ROOM_WIDTH - 120.0
-	var exit_y: float = ROOM_HEIGHT * 0.5
+	# Place near the right wall, vertically centred (use dynamic room size)
+	var exit_x: float = _room_w - 120.0
+	var exit_y: float = _room_h * 0.5
 	_exit_zone.position    = Vector2(exit_x, exit_y)
 	_exit_zone.zone_width  = 100.0
 	_exit_zone.zone_height = 100.0
@@ -1131,7 +1294,7 @@ func _spawn_treasure_pedestal() -> void:
 	pedestal.z_index = 10
 
 	# Position at room centre
-	pedestal.position = Vector2(ROOM_WIDTH * 0.5, ROOM_HEIGHT * 0.5)
+	pedestal.position = Vector2(_room_w * 0.5, _room_h * 0.5)
 
 	# Collision circle (larger than visual so the player can't miss it)
 	var col := CollisionShape2D.new()
@@ -1558,10 +1721,14 @@ func _start_next_level() -> void:
 
 ## Build the treasure room scene: simple open floor, no enemies, warm golden colours.
 func _build_room_scene_treasure() -> void:
+	# Treasure room always uses standard size for readability
+	_room_w = ROOM_WIDTH
+	_room_h = ROOM_HEIGHT
+
 	var bg := ColorRect.new()
 	bg.name  = "WorldBackground"
 	bg.position = Vector2(-200, -200)
-	bg.size     = Vector2(ROOM_WIDTH + 400, ROOM_HEIGHT + 400)
+	bg.size     = Vector2(_room_w + 400, _room_h + 400)
 	bg.color    = Color(0.08, 0.06, 0.02, 1.0)  ## Dark warm background
 	add_child(bg)
 
@@ -1572,7 +1739,7 @@ func _build_room_scene_treasure() -> void:
 	# Floor — warm golden tone to distinguish from combat rooms
 	var floor_rect := ColorRect.new()
 	floor_rect.position = Vector2(0, 0)
-	floor_rect.size     = Vector2(ROOM_WIDTH, ROOM_HEIGHT)
+	floor_rect.size     = Vector2(_room_w, _room_h)
 	floor_rect.color    = Color(0.22, 0.18, 0.08, 1.0)
 	room_container.add_child(floor_rect)
 
@@ -1581,8 +1748,8 @@ func _build_room_scene_treasure() -> void:
 	# Decorative pillars in the four corners (treasure room feel)
 	var pillar_size := Vector2(40, 40)
 	var offsets := [
-		Vector2(60, 60), Vector2(ROOM_WIDTH - 100, 60),
-		Vector2(60, ROOM_HEIGHT - 100), Vector2(ROOM_WIDTH - 100, ROOM_HEIGHT - 100),
+		Vector2(60, 60), Vector2(_room_w - 100, 60),
+		Vector2(60, _room_h - 100), Vector2(_room_w - 100, _room_h - 100),
 	]
 	for pos in offsets:
 		_create_cover(room_container, Rect2(pos.x, pos.y, pillar_size.x, pillar_size.y))
