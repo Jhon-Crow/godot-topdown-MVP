@@ -267,6 +267,9 @@ func _ready() -> void:
 	# Setup window lights in corridors without enemies
 	_setup_window_lights()
 
+	# Setup cold ceiling lights in all rooms (Issue #1208)
+	_setup_room_cold_lights()
+
 	# Show tutorial hints for basic controls (Issue #808)
 	_setup_tutorial_hints()
 
@@ -502,6 +505,131 @@ func _create_ambient_moonlight(parent: Node2D) -> void:
 	ambient.energy = 0.06
 	ambient.shadow_enabled = false
 	parent.add_child(ambient)
+
+
+## Setup cold ceiling lights in all rooms (Issue #1208).
+## Adds dim PointLight2D nodes with a cold blue tint to simulate fluorescent
+## laboratory lighting. Energy and scale are lower than the warm BuildingLevel
+## lights to keep the atmosphere tense and cold.
+##
+## Room centers (derived from InteriorWall positions in the scene):
+## - Generator Room:  ~(400, 270)   — upper-left, left of x=750 wall
+## - Control Room:    ~(1500, 220)  — upper-right, between x=1050 and x=1920
+## - Storage Hall:    ~(220, 840)   — lower-left, left of x=450 wall
+## - Corridor Area:   ~(700, 380)   — centre passage between rooms
+## - Server Room:     ~(1100, 900)  — lower-centre, below y=680 wall
+## - Pipe/Elec Room:  ~(1700, 700)  — right side, between pipe and elec walls
+func _setup_room_cold_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Container node for all room lights
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Cold blue-tinted dim lights for each room.
+	# Energy is ~25% lower than the warm BuildingLevel equivalents.
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Upper-left — Generator Room
+		[Vector2(400, 270),  0.65, 3.5, "GeneratorRoom"],
+		# Upper-right — Control Room (larger space)
+		[Vector2(1500, 220), 0.65, 4.0, "ControlRoom"],
+		# Lower-left — Storage Hall
+		[Vector2(220, 840),  0.55, 3.0, "StorageHall"],
+		# Centre passage
+		[Vector2(700, 380),  0.50, 3.0, "Corridor"],
+		# Lower-centre — Server Room
+		[Vector2(1100, 900), 0.65, 3.5, "ServerRoom"],
+		# Right side — Pipe/Electrical Room
+		[Vector2(1700, 700), 0.55, 3.0, "PipeElecRoom"],
+	]
+
+	for cfg in room_configs:
+		_create_room_cold_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[LabyrinthLevel] Cold ceiling lights placed in all rooms (Issue #1208)")
+
+
+## Create a single cold ceiling light at the given room-center position.
+## Uses a Sprite2D fixture (not ColorRect/Control) so it never intercepts mouse
+## events and cannot break pause-menu clicks.
+## @param parent: Container node.
+## @param pos: World-space position (room center).
+## @param energy: Light brightness (lower → dimmer and more atmospheric).
+## @param scale: Texture scale controlling the light radius.
+## @param room_name: Name suffix for the node (debug convenience).
+func _create_room_cold_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "ColdLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small round ceiling lamp fixture — cold white-blue tint, semi-transparent.
+	# Sprite2D is a Node2D and never blocks input, unlike Control-based nodes.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(0.7, 0.85, 1.0, 0.45)  # Pale cold blue, semi-transparent
+	light_node.add_child(fixture)
+
+	# The actual PointLight2D — cold blue tint, shadows on.
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(0.55, 0.75, 1.0, 1.0)   # Cold blue-white
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 3.0
+	light.shadow_color = Color(0.0, 0.0, 0.05, 0.65)
+	light.texture = _create_cold_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the cold room lights.
+## Uses the same power-law circular falloff as the warm BuildingLevel lights
+## so there are no hard visible edges — the light fades naturally to black.
+func _create_cold_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the ceiling lamp fixture visual.
+## Draws a soft-edged disc so the fixture looks round, matching the
+## circular PointLight2D pool beneath it.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 func _process(_delta: float) -> void:
@@ -889,9 +1017,6 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
-	if GameManager:
-		GameManager.register_kill()
-
 	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		print("All enemies eliminated! Labyrinth cleared!")
 		_level_cleared = true
@@ -899,7 +1024,10 @@ func _on_enemy_died() -> void:
 
 
 ## Called when an enemy dies with special kill information.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
+	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
+	if GameManager:
+		GameManager.register_kill(is_player_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)

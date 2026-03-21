@@ -40,6 +40,14 @@ var _experimental_menu: CanvasLayer = null
 
 
 func _ready() -> void:
+	# Setup short-name tooltips for category buttons (Issue #1200)
+	controls_button.tooltip_text = "Controls"
+	difficulty_button.tooltip_text = "Difficulty"
+	sound_button.tooltip_text = "Sound"
+	gameplay_button.tooltip_text = "Gameplay"
+	experimental_button.tooltip_text = "Experimental"
+	performance_button.tooltip_text = "Performance"
+
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
 	sound_button.pressed.connect(_on_sound_pressed)

@@ -26,7 +26,8 @@ enum ActiveItemType {
 	AUTO_RELOAD,       # Auto-reload on kill - passive: magazine is 2.1x smaller, refilled from reserve on each kill (Issue #1067)
 	DRILLING_BULLETS,  # Drilling bullets - press Space to give current magazine wall-piercing bullets (Issue #751)
 	RECOIL_COMPENSATOR, # Recoil compensator - hold Space to eliminate recoil/spread and boost fire rate 10% (Issue #1073)
-	COMBAT_DISPOSITION # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
+	COMBAT_DISPOSITION, # Combat Disposition - passive: +0.77 damage and +1.1 fire rate on start; on hit: -6.0 damage and -7.2 fire rate (Issue #1047)
+	EXPERIMENTAL_SAMPLE # Experimental Sample - press Space to fire a random active item effect (even unowned). 1–5 charges per battle, randomised on level start (Issue #1127)
 }
 
 ## Currently selected active item type.
@@ -36,9 +37,10 @@ var current_active_item: int = ActiveItemType.NONE
 ## Unlocked active items tracking.
 ## NONE is always unlocked (it's not a real item).
 ## FLASHLIGHT (Polygon D+), TELEPORT_BRACERS (Double Corridor D+),
-## INVISIBILITY_SUIT (Beach S + Building S), and HOMING_BULLETS
-## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S)
-## have unlock conditions (Issue #894, Issue #1000).
+## INVISIBILITY_SUIT (Beach S + Building S), HOMING_BULLETS
+## (Labyrinth S + Building S + Polygon S + Castle S + Double Corridor S),
+## and LASER_SIGHT (1000 kills without laser sight equipped)
+## have unlock conditions (Issue #894, Issue #1000, Issue #1196).
 var unlocked_active_items: Dictionary = {
 	ActiveItemType.NONE: true,
 	ActiveItemType.FLASHLIGHT: false,          # Condition: Polygon D+
@@ -49,7 +51,7 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.BREAKER_BULLETS: true,      # No unlock condition — freely available from start
 	ActiveItemType.FORCE_FIELD: true,          # No unlock condition — freely available from start
 	ActiveItemType.TRAJECTORY_GLASSES: true,   # No unlock condition — freely available from start (Issue #744)
-	ActiveItemType.LASER_SIGHT: true,          # No unlock condition — freely available from start (Issue #947)
+	ActiveItemType.LASER_SIGHT: false,         # Condition: 1000 kills without laser sight equipped (Issue #1196)
 	ActiveItemType.EXTENDED_MAGAZINE: true,    # No unlock condition — freely available from start (Issue #1065)
 	ActiveItemType.LOUDSPEAKER: true,          # No unlock condition — freely available from start (Issue #959)
 	ActiveItemType.BREACHING_CHARGES: true,    # No unlock condition — freely available from start (Issue #1043)
@@ -57,7 +59,8 @@ var unlocked_active_items: Dictionary = {
 	ActiveItemType.AUTO_RELOAD: true,          # No unlock condition — freely available from start (Issue #1067)
 	ActiveItemType.DRILLING_BULLETS: true,     # No unlock condition — freely available from start (Issue #751)
 	ActiveItemType.RECOIL_COMPENSATOR: true,   # No unlock condition — freely available from start (Issue #1073)
-	ActiveItemType.COMBAT_DISPOSITION: true    # No unlock condition — freely available from start (Issue #1047)
+	ActiveItemType.COMBAT_DISPOSITION: true,   # No unlock condition — freely available from start (Issue #1047)
+	ActiveItemType.EXPERIMENTAL_SAMPLE: true   # No unlock condition — freely available from start (Issue #1127)
 }
 
 ## Active item data for UI and selection.
@@ -161,6 +164,12 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Combat Disposition",
 		"icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png",
 		"description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces damage by 6.0 and fire rate by 7.2."
+	},
+	ActiveItemType.EXPERIMENTAL_SAMPLE: {
+		"name": "Experimental Sample",
+		"icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png",
+		"description": "Experimental Sample — press Space to trigger a random active item effect (including items not yet unlocked). 1–5 charges per battle, randomised on level start.",
+		"activation_hint": "Press Space to trigger random effect"
 	}
 }
 
@@ -355,6 +364,11 @@ func has_combat_disposition() -> bool:
 	return current_active_item == ActiveItemType.COMBAT_DISPOSITION
 
 
+## Check if experimental sample is currently equipped (Issue #1127).
+func has_experimental_sample() -> bool:
+	return current_active_item == ActiveItemType.EXPERIMENTAL_SAMPLE
+
+
 ## Get the laser sight color (purple).
 ## Used by weapons to show purple laser when laser sight item is equipped.
 func get_laser_sight_color() -> Color:
@@ -365,6 +379,40 @@ func get_laser_sight_color() -> Color:
 ## Returns true when laser sight active item is equipped (Issue #947).
 func should_force_laser_sight() -> bool:
 	return current_active_item == ActiveItemType.LASER_SIGHT
+
+
+## Check if any laser sight is currently active on the player's weapon, from any source.
+## This includes: the Laser Sight active item (purple), Power Fantasy blue laser (difficulty),
+## or a weapon-level built-in laser sight (e.g. AssaultRifle's red laser).
+## Used by Issue #1196 to determine if kills should NOT count toward the Laser Sight unlock.
+func has_any_laser_sight_active() -> bool:
+	# 1. Active item laser sight (purple)
+	if has_laser_sight():
+		return true
+	# 2. Power Fantasy blue laser sight (difficulty-based)
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("should_force_blue_laser_sight"):
+		if difficulty_manager.should_force_blue_laser_sight():
+			return true
+	# 3. Weapon-level built-in laser sight (e.g. AssaultRifle's red laser).
+	# Check if the player's current weapon has a visible "LaserSight" Line2D node.
+	var players := get_tree().get_nodes_in_group("player") if get_tree() else []
+	for player in players:
+		if not is_instance_valid(player):
+			continue
+		for child in player.get_children():
+			# Check GDScript weapon with a laser_sight_enabled property or "has_laser_sight"
+			if child.has_method("get_laser_sight_enabled"):
+				if child.get_laser_sight_enabled():
+					return true
+			# Check for a Line2D node named "LaserSight" that is visible
+			var laser_node: Node = child.get_node_or_null("LaserSight")
+			if laser_node and laser_node.visible:
+				return true
+			# Check C# weapon: LaserSightEnabled exported property
+			if child.get("LaserSightEnabled") != null and child.get("LaserSightEnabled"):
+				return true
+	return false
 
 
 ## Notify loudspeaker progression that a level was completed (Issue #959).

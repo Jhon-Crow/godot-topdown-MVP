@@ -670,12 +670,13 @@ func _on_area_entered(area: Area2D) -> void:
 		var effective_damage: float = damage * damage_multiplier
 
 		# Call on_hit with extended parameters if supported, otherwise use basic call
+		var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source
 		if area.has_method("on_hit_with_bullet_info_and_damage"):
-			# Pass full bullet information including damage amount
-			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage)
+			# Pass full bullet information including damage amount and player kill source
+			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player)
 		elif area.has_method("on_hit_with_bullet_info"):
 			# Legacy path - pass bullet info without explicit damage (will use default)
-			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated)
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
@@ -1634,9 +1635,10 @@ func _breaker_apply_explosion_damage(center: Vector2) -> void:
 ## Applies damage to a target.
 func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
 	var hit_direction := (target.global_position - global_position).normalized()
+	var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source for unlock conditions
 
 	if target.has_method("on_hit_with_bullet_info_and_damage"):
-		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount)
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount, from_player)
 	elif target.has_method("on_hit_with_info"):
 		target.on_hit_with_info(hit_direction, null)
 	elif target.has_method("on_hit"):
