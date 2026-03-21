@@ -147,6 +147,68 @@ Changed `get_nearest_attacking_waypoint` to track the raw-nearest waypoint as a 
 
 ---
 
+## Post-Implementation Bug 2: Enemies Walk Into Walls in PURSUING State (2026-03-21)
+
+### Evidence
+
+**Game log:** `game_log_20260321_073157.txt` (collected 2026-03-21)
+**Screenshot:** `pursuing_wall_bug_screenshot.png` — multiple enemies pressed against the right wall of Security Room (Room 2) while in PURSUING state.
+
+User report: "все враги в состоянии Pursuing идут в стену" (all enemies in Pursuing state walk into a wall).
+
+### Root Cause Analysis
+
+**Key architectural fact:**
+`Room2_WallRight` at x=912–936 spans y=600–1000 with **NO doorway**. The corridor (x=964–1376, y=712–1012) is separated from the Security Room (x=524–912) by this unbroken wall. The only path from the corridor into the Security Room is by going **around the top** of Room2_WallRight (y<600).
+
+Additionally, the nav agent radius is 24px. The gap between Room2_WallRight (x=936) and the left edge of Corridor_WallTop (x=964) is only 28px — narrower than 2×agent_radius (48px). The nav mesh treats this as impassable, so corridor enemies can only enter the Security Room via the long route around y<600.
+
+**Bug scenario:**
+- Corridor enemies (e.g., Enemy3 at (1200, 1000)) enter PURSUING state toward player at (450, 943)
+- `get_nearest_attacking_waypoint` scores `Security_AttackSouthWest` (620, 940) very highly: progress=581px, penalty=580*0.3=174, score=407
+- `Corridor_AttackWest` (980, 856) scores only: progress=219, penalty=221*0.3=66, score=153
+- Security Room interior waypoints WIN over corridor waypoints despite requiring enemies to navigate around the full height of Room2_WallRight
+- The nav mesh routes enemies LEFT along the corridor toward x=924 (right edge of Room2_WallRight), then UP to y<600 to get around — creating a path where enemies press against the wall while turning
+- Result: **enemies appear to walk into Room2_WallRight**
+
+**Root cause (two layers):**
+1. **Scoring penalty too low** (0.3): Security Room interior waypoints win for corridor enemies because high progress gain outweighs the 0.3× distance penalty. The penalty must be high enough that a waypoint requiring twice the straight-line detour scores negatively.
+2. **Fallback had no distance cap**: The corner-escape fallback returned ANY nearest waypoint regardless of distance, routing enemies across rooms.
+
+**Mathematical analysis (why penalty ≥ 1.01 is needed):**
+For Enemy3 at (1200, 1000) targeting player at (450, 943):
+- `Security_AttackSouthWest` (620, 940): progress=581, dist=580 → needs penalty < 1.002 to win
+- `Corridor_AttackWest` (980, 856): progress=219, dist=221 → at penalty=1.1: score=219-243=-24
+- Break-even: 581-580p = 219-221p → 359p = 362 → p=1.008
+
+So penalty must exceed **1.008** for corridor enemies to prefer local corridor waypoints over distant Security Room waypoints.
+
+### Fix Applied (2026-03-21)
+
+**1. Increased scoring penalty in `combat_path_component.gd`:**
+- Changed distance penalty multiplier from `0.3` → `1.1`
+- Now only waypoints that can be reached with a net navigation gain score positively
+- Corridor enemies naturally select their nearest corridor waypoints first, then chain toward the Security Room via the correct top-entry path
+
+**2. Limited fallback to local radius in `combat_path_component.gd`:**
+- Added `FALLBACK_MAX_DIST = 350.0` constant
+- The corner-escape fallback now only uses waypoints within 350px straight-line distance
+- Prevents cross-room waypoint selection via fallback path
+
+**3. Repositioned `Office2_AttackApproach`:**
+- Was at (460, 870): below the doorway gap (y=800–1000 covered by wall), required enemies to navigate around and then back down — confusing path
+- Moved to (350, 800): in the open left corridor area, accessible from both the doorway gap and the corridor below Office 1
+
+**4. Added `Security_TopEntry` at (800, 560):**
+- Provides a routing anchor for enemies inside the Security Room that need to navigate through the top-open area (above Room2_WallRight top at y=600)
+
+**Corrected pursuit behavior after fix:**
+- Enemy3 at (1200, 1000): all Security Room waypoints score negative (penalty 1.1 × distance > progress). Fallback selects `Corridor_AttackCenter` (1164, 856) at 148px → enemy moves left through corridor. Next call finds `Corridor_AttackWest` (980, 856) at 187px, then eventually approaches Security Room from the top entry.
+- Enemy2 at (900, 950) inside Security Room: `Security_AttackSouthWest` (620, 940) scores 0 → barely a progress waypoint. Fallback at 280px selects it → enemy moves toward player via waypoint chain.
+- No more cross-room wall pressing.
+
+---
+
 ## Map Layout: BuildingLevel
 
 The BuildingLevel is ~2400×2000 pixels with the following rooms (from the .tscn):

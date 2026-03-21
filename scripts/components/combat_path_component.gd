@@ -60,13 +60,17 @@ func _collect_markers_from(node: Node, out: Array[Vector2]) -> void:
 		_collect_markers_from(child, out)
 
 
+## Maximum straight-line distance for the corner-escape fallback waypoint.
+## Keeps the fallback local so enemies don't navigate across rooms to escape corners.
+const FALLBACK_MAX_DIST: float = 350.0
+
 ## Return the nearest attacking waypoint that makes progress toward [toward_pos].
 ## [from_pos] is the enemy's current position.
 ## Returns Vector2.ZERO if no suitable waypoint exists.
 ##
 ## When no waypoint is strictly closer to the target than the enemy (enemy already
-## very close, or cornered near the target), falls back to the nearest waypoint by
-## raw distance so the enemy can use it as a navigation anchor to escape corners.
+## very close, or cornered near the target), falls back to the nearest waypoint
+## within FALLBACK_MAX_DIST so the enemy can escape corners without crossing rooms.
 func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> Vector2:
 	if _attacking_waypoints.is_empty():
 		return Vector2.ZERO
@@ -74,7 +78,7 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 	var my_dist_to_target := from_pos.distance_to(toward_pos)
 	var best := Vector2.ZERO
 	var best_score := -INF
-	# Fallback: closest waypoint by raw distance (used when no progress waypoint found)
+	# Fallback: closest nearby waypoint (corner-escape only, capped by FALLBACK_MAX_DIST)
 	var nearest_fallback := Vector2.ZERO
 	var nearest_fallback_dist := INF
 
@@ -83,22 +87,23 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 		# Skip waypoints that are essentially where we already are
 		if dist_from_me < 20.0:
 			continue
-		# Track the raw-nearest waypoint as a fallback
-		if dist_from_me < nearest_fallback_dist:
+		# Track the raw-nearest nearby waypoint as a local fallback
+		if dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
 			nearest_fallback_dist = dist_from_me
 			nearest_fallback = wp
 		var wp_dist_to_target := wp.distance_to(toward_pos)
 		# Only score waypoints that bring us closer to the target
 		if wp_dist_to_target >= my_dist_to_target:
 			continue
-		# Score: progress toward target, penalise distance from current position
+		# Score: progress toward target, penalise travel distance so that only waypoints
+		# reachable with a net gain (shorter detour than progress made) score positively.
 		var progress := my_dist_to_target - wp_dist_to_target
-		var score := progress - dist_from_me * 0.3
+		var score := progress - dist_from_me * 1.1
 		if score > best_score:
 			best_score = score
 			best = wp
 
-	# If no progress waypoint found, use the nearest one as a corner-escape anchor
+	# If no progress waypoint found, use the nearest local one as a corner-escape anchor
 	if best == Vector2.ZERO:
 		return nearest_fallback
 	return best

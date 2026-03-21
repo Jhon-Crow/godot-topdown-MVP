@@ -1140,7 +1140,10 @@ position = Vector2(400, 400)
 position = Vector2(440, 760)
 
 [node name="Office2_AttackApproach" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
-position = Vector2(460, 870)
+position = Vector2(350, 800)
+
+[node name="Security_TopEntry" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
+position = Vector2(800, 560)
 
 [node name="Security_AttackEntrance" type="Marker2D" parent="CombatPathComponent/AttackingPaths"]
 position = Vector2(560, 730)
