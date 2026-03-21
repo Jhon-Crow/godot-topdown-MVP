@@ -350,17 +350,9 @@ func _setup_room_warm_lights() -> void:
 	print("[BuildingLevel] Warm ceiling lights placed in all rooms (Issue #1206)")
 
 
-## Cached shared textures for room lights — created once, reused by every room.
-## Avoids per-pixel GDScript loops and eliminates duplicate GPU texture uploads.
-var _warm_light_texture_cache: GradientTexture2D = null
-var _lamp_fixture_texture_cache: GradientTexture2D = null
-
-
 ## Create a single warm ceiling light at the given room-center position.
-## Uses a soft radial GradientTexture2D (GPU-generated, zero CPU pixel loops)
-## with NO shadows — ceiling lights are decorative ambient fills; the moonlight
-## windows already supply shadow detail. Disabling shadows removes 6 shadow-map
-## render passes per frame, which was the main source of the performance drop.
+## Uses a soft radial gradient that fades smoothly to black, producing a natural
+## "overhead lamp" feel with no hard visible edge.
 ## @param parent: Container node.
 ## @param pos: World-space position (room center).
 ## @param energy: Light brightness (0–1 range, typical 0.7–0.9).
@@ -377,70 +369,68 @@ func _create_room_warm_light(parent: Node2D, pos: Vector2, energy: float, scale:
 	# cannot break pause-menu or UI clicks.
 	var fixture := Sprite2D.new()
 	fixture.name = "Fixture"
-	fixture.texture = _get_lamp_fixture_texture()
+	fixture.texture = _create_lamp_fixture_texture()
 	fixture.modulate = Color(1.0, 0.85, 0.5, 0.5)  # Pale warm amber, semi-transparent
 	light_node.add_child(fixture)
 
-	# The actual PointLight2D — shadows OFF for performance.
-	# Ceiling lights are decorative ambient fills; shadow detail comes from moonlight.
+	# The actual PointLight2D
 	var light := PointLight2D.new()
 	light.name = "PointLight"
 	light.color = Color(1.0, 0.75, 0.3, 1.0)   # Warm amber-orange
 	light.energy = energy
-	light.shadow_enabled = false  # Perf: 6 shadow-map passes removed (Issue #1206)
-	light.texture = _get_warm_light_texture()
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 3.0
+	light.shadow_color = Color(0.0, 0.0, 0.0, 0.6)
+	light.texture = _create_warm_light_texture()
 	light.texture_scale = scale
 	light_node.add_child(light)
 
 
-## Return the shared warm-light GradientTexture2D, creating it on first call.
-## GradientTexture2D is rasterised by the GPU driver — no GDScript pixel loops.
-## All 6 room lights share this single texture object (one GPU upload total).
-func _get_warm_light_texture() -> GradientTexture2D:
-	if _warm_light_texture_cache != null:
-		return _warm_light_texture_cache
+## Create a soft radial gradient texture for the warm room lights.
+## Uses a smooth natural falloff (bright core → gentle taper → complete black).
+## No abrupt cutoff — the light fades organically like a real overhead lamp.
+func _create_warm_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
 
-	var gradient := Gradient.new()
-	# Bright core (0 %) → smooth natural falloff → black at the rim (100 %)
-	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))   # centre: full white
-	gradient.add_point(0.15, Color(0.78, 0.78, 0.78, 1.0))
-	gradient.add_point(0.35, Color(0.42, 0.42, 0.42, 1.0))
-	gradient.add_point(0.55, Color(0.16, 0.16, 0.16, 1.0))
-	gradient.add_point(0.72, Color(0.04, 0.04, 0.04, 1.0))
-	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))    # edge: pure black
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
 
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 256   # 256 is ample at texture_scale 3.5–5× (Issue #1206 perf)
-	texture.height = 256
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(0.5, 0.0)
-	_warm_light_texture_cache = texture
-	return texture
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = center, 1 = edge
+			# Smooth inverse-square-ish falloff using a cosine curve:
+			# bright centre → smooth mid-field → natural fade at rim
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
 
 
-## Return the shared lamp-fixture GradientTexture2D, creating it on first call.
-## Replaces the per-pixel ImageTexture loop with a GPU-rasterised radial gradient.
-## All 6 room lights share this single texture object (one GPU upload total).
-func _get_lamp_fixture_texture() -> GradientTexture2D:
-	if _lamp_fixture_texture_cache != null:
-		return _lamp_fixture_texture_cache
+## Create a small circular texture for the lamp fixture visual indicator.
+## Returns a soft-edged disc so the fixture looks like a round ceiling lamp,
+## not a square. Drawn with per-pixel math so the disc has smooth anti-aliased edges.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
 
-	var gradient := Gradient.new()
-	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))   # centre: opaque white
-	gradient.add_point(0.6, Color(1.0, 1.0, 1.0, 0.5))
-	gradient.set_color(1, Color(1.0, 1.0, 1.0, 0.0))    # edge: fully transparent
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
 
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 32
-	texture.height = 32
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(0.5, 0.0)
-	_lamp_fixture_texture_cache = texture
-	return texture
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				# Full brightness in the core, soft fade toward the rim
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
 
 
 ## Setup window lights in corridors and rooms without enemies (Issue #593).
