@@ -168,3 +168,59 @@ Fix: set `nav_region.navigation_polygon.agent_radius = 24.0` before baking in al
 - Issue #1146: ORCA avoidance between enemies
 - Issue #1216: Patrol point navmesh snap
 - Issue #1224: Navmesh bake / overlay fix
+
+---
+
+## Follow-up Bug: Enemies Stuck on BuildingLevel in Exported Build
+
+### Reported: 2026-03-21 (PR #1274 comment by Jhon-Crow)
+
+**Symptom**: Enemies on the Building map get stuck immediately — path building appears wrong.
+
+**Log Evidence** (`game_log_20260321_142614.txt`):
+```
+[NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=1 vertex_count=4 outline_count=1
+[LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+[ENEMY] [Enemy1] GLOBAL STUCK: pos=(309.8324, 401.9335) for 3.0s, State: PURSUING -> SEARCHING
+```
+
+### Root Cause: LevelInitFallback skips navigation baking
+
+`BuildingLevel` (and other levels) uses a C# `LevelInitFallback` component to handle initialization
+when the GDScript `_ready()` fails to execute — a known issue with Godot 4.3 binary tokenization
+(godotengine/godot#94150) in exported builds.
+
+The GDScript `_ready()` in `building_level.gd` calls `_setup_navigation()`, which sets
+`agent_radius = 24.0` and calls `bake_navigation_polygon(false)`. Without this bake, the navmesh
+stays as the raw 4-vertex rectangle stored in the `.tscn` (no walls carved out), so all enemies
+treat the entire level as open space but then physically collide with walls — causing them to get
+stuck in the navigation system.
+
+The `LevelInitFallback.cs` handled enemy tracking, UI, score, etc. but **never called
+`bake_navigation_polygon()`** — so every time GDScript failed to run, the navmesh had no wall
+awareness.
+
+### Timeline of Events
+
+1. **Exported build loads BuildingLevel** — GDScript `_ready()` fails to execute (Godot 4.3 bug)
+2. **LevelInitFallback.CheckAndInitialize()** detects GDScript didn't run, executes C# fallback
+3. **Fallback skips nav baking** — navmesh remains as 4-vertex rectangle (no walls)
+4. **NavMeshMonitor confirms**: `poly_count=1 vertex_count=4` — only the outer boundary polygon
+5. **Enemies receive path to player** — path goes through walls (navmesh doesn't know about them)
+6. **Enemies move toward player, hit physical wall collision** — motion blocked, nav agent stuck
+7. **Stuck detector fires** after 2-3s, enemy enters SEARCHING state
+
+### Fix
+
+Added `SetupNavigation()` as step 0 in `LevelInitFallback.PerformFallbackInit()`:
+```csharp
+var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+navPoly.AgentRadius = 24.0f;
+navRegion.BakeNavigationPolygon(false);
+```
+
+This mirrors the GDScript `_setup_navigation()` and ensures the navmesh is always baked with
+proper wall erosion whether or not GDScript executes.
+
+**Affected levels** (those with `LevelInitFallback`): BuildingLevel, CityLevel, DocksLevel,
+FactoryLevel, RevolverLevel, TestTier.

@@ -153,6 +153,9 @@ public partial class LevelInitFallback : Node
 
         LogToFile("Полигон loaded (C# fallback) - Tactical Combat Arena");
 
+        // 0. Bake navigation mesh so enemies can navigate around walls (Issue #1273)
+        SetupNavigation(levelRoot);
+
         // 1. Setup enemy tracking
         SetupEnemyTracking(levelRoot);
 
@@ -194,6 +197,35 @@ public partial class LevelInitFallback : Node
 
         // 10. Update GDScript properties so they are in sync
         SyncGDScriptProperties(levelRoot);
+    }
+
+    /// <summary>
+    /// Bake the navigation mesh so enemies can path around walls (Issue #1273).
+    /// Mirrors the _setup_navigation() call in GDScript level scripts.
+    /// agent_radius = 24.0 matches the enemy CollisionShape2D radius so the baked
+    /// navmesh erodes 24px from all walls, preventing enemies from pathing into them.
+    /// </summary>
+    private void SetupNavigation(Node levelRoot)
+    {
+        var navRegion = levelRoot.GetNodeOrNull<NavigationRegion2D>("NavigationRegion2D");
+        if (navRegion == null)
+        {
+            LogToFile("WARNING: NavigationRegion2D not found - enemy pathfinding may be broken");
+            return;
+        }
+
+        var navPoly = navRegion.NavigationPolygon;
+        if (navPoly == null)
+        {
+            LogToFile("WARNING: NavigationPolygon is null - cannot bake navmesh");
+            return;
+        }
+
+        // Issue #1273: set agent_radius = 24px (enemy CollisionShape2D radius) so the
+        // baked navmesh erodes 24px from all walls, ensuring enemies never path into walls.
+        navPoly.AgentRadius = 24.0f;
+        navRegion.BakeNavigationPolygon(false);
+        LogToFile("Navigation mesh baked (C# fallback, Issue #1273): agent_radius=24");
     }
 
     /// <summary>
