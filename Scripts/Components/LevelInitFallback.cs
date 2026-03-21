@@ -653,8 +653,10 @@ public partial class LevelInitFallback : Node
         }
     }
 
-    private void OnEnemyDiedWithInfo(bool isRicochetKill, bool isPenetrationKill)
+    private void OnEnemyDiedWithInfo(bool isRicochetKill, bool isPenetrationKill, bool isPlayerKill)
     {
+        // Issue #1259: signature must match enemy.gd died_with_info(is_ricochet_kill, is_penetration_kill, is_player_kill)
+        // Issue #1196 added is_player_kill as the 3rd param. Mismatched arity silently dropped all score calls.
         var scoreManager = GetNodeOrNull("/root/ScoreManager");
         if (scoreManager != null && scoreManager.HasMethod("register_kill"))
             scoreManager.Call("register_kill", isRicochetKill, isPenetrationKill);

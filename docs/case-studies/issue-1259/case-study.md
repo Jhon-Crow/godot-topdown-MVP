@@ -202,6 +202,79 @@ Mirrors the full button set from `city_level.gd._add_score_screen_buttons()`:
 
 ---
 
+---
+
+## Follow-Up Bugs (2026-03-21 session 3, `game_log_20260321_095221.txt`)
+
+### Follow-Up Issue D: Combo counter not working in BuildingLevel
+
+**Reporter comment:** "не работает счётчик комбо." (combo counter not working)
+**Log:** `game_log_20260321_095221.txt`
+
+**Evidence:** In LabyrinthLevel (GDScript path), kills correctly log:
+```
+[ScoreManager] Kill registered. Combo: 1 (points: 500)
+[ScoreManager] Kill registered. Combo: 2 (points: 1500)
+```
+In BuildingLevel (C# fallback path), enemies die (e.g. `[ENEMY] [Enemy4] Enemy died`) but
+**no `[ScoreManager] Kill registered` lines appear at all**. The combo counter displays nothing.
+
+**Root cause:** Issue #1196 added a 3rd parameter to the enemy `died_with_info` signal:
+```gdscript
+# enemy.gd line 96
+signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool)
+```
+`LevelInitFallback.cs` connected to this signal with a handler that accepted only **2 parameters**:
+```csharp
+// Old — signature mismatch, Godot silently drops the call
+private void OnEnemyDiedWithInfo(bool isRicochetKill, bool isPenetrationKill)
+```
+In Godot 4, a signal connection where the callable parameter count mismatches the signal argument count
+causes the call to fail silently. As a result `scoreManager.register_kill()` was never called for any
+kill in BuildingLevel, so combo was always 0.
+
+**Fix:** Updated `OnEnemyDiedWithInfo` to accept all 3 parameters:
+```csharp
+// Fixed — accepts all 3 params from died_with_info signal
+private void OnEnemyDiedWithInfo(bool isRicochetKill, bool isPenetrationKill, bool isPlayerKill)
+```
+`isPlayerKill` is accepted but not forwarded to `scoreManager.register_kill()` (which only takes
+`isRicochetKill` and `isPenetrationKill`), matching what GDScript `_on_enemy_died_with_info` does.
+
+---
+
+### Follow-Up Issue E: FPS drops in BuildingLevel
+
+**Reporter comment:** "очень сильно проседает fps" (FPS drops severely)
+**Log:** 112 FPS drop events detected across the session; 36 in the final BuildingLevel run alone,
+ranging from 1–27 fps (threshold 30).
+
+**Evidence analysis:**
+
+| Factor | Observation |
+|--------|-------------|
+| Enemy count | 10 enemies in BuildingLevel vs 5 in LabyrinthLevel — 2× AI computation |
+| Sound propagation | Every shot queries 10 sound listeners (vs 5), logged heavily |
+| Blood decals | 965 decals accumulated in the final BuildingLevel session (no limit by design, per issue #293/#370) |
+| Debug features ON | ExperimentalSettings: `nav_mesh_visible: true`, `sound_visualizer: true`, `fps_counter: true` |
+| Sound visualizer | Calls `queue_redraw()` every process frame when enabled — significant draw overhead |
+| NavMesh overlay | Redraws on every `NavigationRegion2D` scene-tree event |
+
+**Scene-load FPS drops** (e.g. 1 fps at line 265) are expected: `[SceneLoader] Background load started`
+confirms Godot is streaming the level in the background on the same thread.
+
+**Root cause verdict:** The FPS drops are caused by a combination of:
+1. 2× enemy count (10 vs 5) driving proportionally more AI, sound propagation, and blood decal events
+2. User had `sound_visualizer` and `nav_mesh_visible` debug features enabled — both add per-frame draw calls
+3. 965 accumulated blood decals rendering each frame (unlimited by project requirement)
+
+**No regression was introduced by this PR.** The performance characteristics are inherent to BuildingLevel
+(10 enemies) and the experimental debug overlays the user had enabled. To improve performance:
+- Disable `sound_visualizer` and `nav_mesh_visible` in the Experimental menu during normal play
+- The Performance menu's "Blood decals" toggle can also be disabled to eliminate the decal overhead
+
+---
+
 ## 8. Related Issues
 
 - [godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150) — GDScript binary tokenization bug in Godot 4.3
@@ -211,3 +284,4 @@ Mirrors the full button set from `city_level.gd._add_score_screen_buttons()`:
 - Issue #897 — Armory button on score screen (gold highlight when items available)
 - Issue #949 — M16/AK+GL should have 2 magazines on Building level
 - Issue #1067 — Auto-reload passive item and `ApplyAutoReloadAfterLevelAmmoConfig`
+- Issue #1196 — `died_with_info` signal gained 3rd param `is_player_kill` (triggered combo bug in C# fallback)
