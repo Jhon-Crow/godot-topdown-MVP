@@ -172,8 +172,15 @@ func _get_combo_color(combo: int) -> Color:
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region:
-		nav_region.navigation_polygon.agent_radius = 24.0
-		nav_region.bake_navigation_polygon(false)
+		# Issue #1273: use explicit parse_source_geometry_data + bake_from_source_geometry_data
+		# so walls are correctly subtracted from the walkable navmesh polygon.
+		var nav_poly := nav_region.navigation_polygon
+		if nav_poly == null:
+			return
+		nav_poly.agent_radius = 24.0
+		var source_geometry := NavigationMeshSourceGeometryData2D.new()
+		NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+		NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 
 
 func _setup_player_tracking() -> void:

@@ -88,6 +88,39 @@ Update `idle_state.gd` and `pursuing_state.gd` to use `_move_to_target_nav()` in
 
 ---
 
+## Follow-up: Root Cause Confirmed by Game Log (2026-03-21)
+
+Owner attached `game_log_20260321_160320.txt` (saved to this folder). Key finding:
+
+```
+[NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=1 vertex_count=4 outline_count=1
+```
+
+This appears **every level load** — the navmesh always has exactly 1 polygon with 4 vertices (a flat rectangle). This means **walls are not being subtracted from the navmesh**, so `NavigationAgent2D` paths straight through them.
+
+### Root Cause: `bake_navigation_polygon(false)` Does Not Parse Nested Walls
+
+All level scripts called `nav_region.bake_navigation_polygon(false)`. Despite the NavigationPolygon having `parsed_geometry_type = 1` (STATIC_COLLIDERS) and `parsed_collision_mask = 4` (layer 3, walls), this API call did **not** successfully parse the wall `StaticBody2D` nodes that live under `Environment/Walls/` — a nested subtree of the scene root.
+
+The fix is to use the explicit two-step baking API (already used correctly in `roguelike_level.gd`):
+
+```gdscript
+var source_geometry := NavigationMeshSourceGeometryData2D.new()
+NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
+NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
+```
+
+Passing `self` (the scene root) to `parse_source_geometry_data` guarantees the full scene tree is scanned, including all nested `StaticBody2D` nodes on collision layer 4.
+
+This fix was applied to all 11 level scripts:
+- `labyrinth_level.gd`, `labyrinth2_level.gd`, `building_level.gd`, `arena_level.gd`
+- `revolver_level.gd`, `test_tier.gd`, `castle_level.gd`, `city_level.gd`
+- `docks_level.gd`, `factory_level.gd`, `beach_level.gd`, `decadence_level.gd`
+
+After this fix, the NavMeshMonitor should show `poly_count > 1` and `vertex_count > 4`, confirming walls are being subtracted from the walkable area.
+
+---
+
 ## References
 
 - [Godot NavigationAgent2D docs](https://docs.godotengine.org/en/stable/classes/class_navigationagent2d.html)
