@@ -1296,9 +1296,9 @@ func _setup_sunlight() -> void:
 	# Bright but not overwhelming — keeps the outdoor daylight feel.
 	light.energy = 1.2
 	light.shadow_enabled = true
-	# PCF3 instead of PCF5 to avoid multiple-shadow ghost artifacts on the player.
-	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF3
-	light.shadow_filter_smooth = 2.0
+	# SHADOW_FILTER_NONE gives crisp single shadows without PCF5's ghost duplicates.
+	# (Godot 4.3 valid values: NONE=0, PCF5=1, PCF13=2 — PCF3 does not exist.)
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_NONE
 	# Slight warm tint in shadows for a realistic sun effect.
 	light.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
 	light.texture = _create_sunlight_texture()
