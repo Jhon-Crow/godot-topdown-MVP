@@ -138,6 +138,49 @@ Test cases:
 
 ---
 
+## Game Log Evidence (2026-03-21)
+
+A game log was provided by the repository owner after the initial fix was posted as a PR draft (still unmerged). The log is from a **release binary built from the main branch** (without the fix), which confirms the bug persists in the unpatched version.
+
+**Log file:** `docs/case-studies/issue-1228/game_log_20260321_064834.txt`
+
+### Key Findings from Log Analysis
+
+**Player shot timestamps:**
+```
+06:48:54 — Player (MakarovPM) shot at (450, 781)
+06:49:18 — Player (MakarovPM) shot
+06:49:21 — Player (MakarovPM) shot
+06:49:36 — Player (MakarovPM) shot
+06:49:53 — Player (MakarovPM) shot
+06:49:59 — Player (MakarovPM) shot
+06:50:01 — Player (MakarovPM) shot
+06:50:05 — Player (MakarovPM) shot
+```
+
+**Suppression events with causal analysis:**
+| Timestamp | Enemy | Time since last player shot | Likely cause |
+|-----------|-------|-----------------------------|--------------|
+| 06:48:55 | Enemy3 | 1s | ✅ Player bullet (correct) |
+| 06:48:56 | Enemy3 | 2s | ✅ Player bullet (correct) |
+| 06:49:00 | Enemy3, Enemy4 | **6s** | ❌ Enemy bullet cross-suppression (BUG) |
+| 06:49:05 | Enemy3 | **11s** | ❌ Enemy bullet cross-suppression (BUG) |
+| 06:49:07 | Enemy2 | **13s** | ❌ Enemy bullet cross-suppression (BUG) |
+| 06:49:11 | Enemy3 | **17s** | ❌ Enemy bullet cross-suppression (BUG) |
+| 06:49:13 | Enemy4 | **19s** | ❌ Enemy bullet cross-suppression (BUG) |
+| 06:49:14 | Enemy2, Enemy3 | **20s** | ❌ Enemy bullet cross-suppression (BUG) |
+| 06:49:26 | Enemy2 | 5-8s | Ambiguous |
+| 06:49:37/38 | Enemy4, Enemy3 | 1-2s | ✅ Player bullet (correct) |
+| 06:49:55 | Enemy4, Enemy3 | 2s | ✅ Player bullet (correct) |
+
+**Conclusion:** The suppression events at 06:49:00–06:49:14 occur 6–20 seconds after the last player shot, far beyond any bullet's flight time. These are clearly caused by enemy bullets cross-suppressing each other — confirming the bug described in the issue. The game had 10 enemies all firing simultaneously, and their bullets were triggering each other's threat spheres in a cascade.
+
+### Why the User Reported the Issue After Fix Was Posted
+
+The PR (#1233) with the fix was posted as a DRAFT on 2026-03-21 and **not yet merged** to main. The user ran a release binary built from the **main branch** (without the fix), so the bug was still present in their test. The fix on the PR branch correctly addresses the root cause.
+
+---
+
 ## Files Changed
 
 | File | Change |
