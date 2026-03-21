@@ -168,3 +168,47 @@ Tests for:
 - Godot NavigationAgent2D avoidance docs
 - Issue #604 (grenadier wait pattern) — closest in-codebase precedent
 - Issue #1146 (ORCA + separation) — the original separation work
+
+---
+
+## Session 2 — Bug Report 2026-03-21 (post-initial-fix)
+
+### Game Log
+`game_log_20260321_080731.txt` — LabyrinthLevel, 5+5 enemies, Hard difficulty.
+
+### Bug 1: Enemies stop moving while PURSUING
+
+**Symptom:** Owner reported enemies stop moving during PURSUING.
+
+**Root cause (confirmed by code review):**
+`_should_yield_to_closer_ally()` in `TacticalMovementComponent` iterated **all** enemies in the
+`"enemies"` group — including enemies in other rooms. In a level with 10+ enemies, most pursuing
+enemies had at least one other enemy that happened to be closer to the player, so 4-5 enemies
+would simultaneously yield (velocity = 0). Only the single closest enemy ever moved.
+
+**Fix:** Added `YIELD_NEARBY_RADIUS = 200 px` check. Only enemies within 200 px of the yielding
+enemy can trigger a yield. Enemies in other rooms are ignored.
+
+### Bug 2: Enemies collide while SEARCHING
+
+**Symptom:** Owner reported enemies collide while searching. Log shows repeated
+`SEARCHING: Stuck at wp N, skipping` entries for all searching enemies simultaneously,
+indicating they bumped into each other and triggered stuck detection.
+
+**Root cause (confirmed by code review):**
+`_process_searching_state()` computed velocity directly (`velocity = dir * move_speed * 0.7`)
+and called `move_and_slide()` directly without feeding the velocity to `NavigationAgent2D.set_velocity()`.
+This meant the ORCA avoidance callback (`_on_avoidance_velocity_computed`) was never triggered
+during SEARCHING — enemies could not steer around each other. Separation force was applied afterwards
+but couldn't overcome direct collisions when multiple enemies converged on the same search waypoints.
+
+**Fix:** Before `move_and_slide()`, call `_nav_agent.set_velocity(intended_search_vel)` and use
+`_avoidance_velocity` if ORCA has already computed a safe velocity. This is identical to how
+`_move_to_target_nav()` handles it for PURSUING/COMBAT states.
+
+### Timeline
+- `08:07:54` — Player becomes invisible (used invisibility suit), enemies lose target
+- `08:07:55` — All 4 active enemies enter SEARCHING simultaneously at nearly the same position
+- `08:07:57` — All enemies immediately start reporting "Stuck at wp 0, skipping"
+- Enemies skip through all search waypoints rapidly, never making progress
+- Pattern repeats with expanding search rings — enemies are gridlocked together

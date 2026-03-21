@@ -153,8 +153,13 @@ func _is_ally_blocking_path(move_dir: Vector2) -> bool:
 	return false
 
 
-## Returns true if there is an ally enemy that is closer to the player than we are.
-## That ally has priority to pass through the narrow passage first.
+## Maximum distance (px) within which an ally can trigger a yield.
+## Only enemies within this range can cause a passage conflict — enemies in other rooms must not.
+const YIELD_NEARBY_RADIUS: float = 200.0
+
+## Returns true if there is a NEARBY ally enemy that is closer to the player than we are.
+## "Nearby" means within YIELD_NEARBY_RADIUS — allies in other rooms are ignored.
+## That nearby ally has priority to pass through the narrow passage first.
 func _should_yield_to_closer_ally() -> bool:
 	if enemy == null:
 		return false
@@ -167,9 +172,13 @@ func _should_yield_to_closer_ally() -> bool:
 	for body: Node in enemy.get_tree().get_nodes_in_group("enemies"):
 		if body == enemy or not is_instance_valid(body):
 			continue
-		var ally_dist: float = (body as Node2D).global_position.distance_to(player.global_position)
+		# Only consider allies that are close enough to share the same passage.
+		var ally_pos: Vector2 = (body as Node2D).global_position
+		if enemy.global_position.distance_to(ally_pos) > YIELD_NEARBY_RADIUS:
+			continue  # Ally is in a different area — skip
+		var ally_dist: float = ally_pos.distance_to(player.global_position)
 		if ally_dist < my_dist - 20.0:  # 20px hysteresis to prevent flickering
-			return true  # An ally is closer → we yield
+			return true  # A nearby ally is closer → we yield
 
 	return false
 

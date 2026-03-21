@@ -2352,9 +2352,10 @@ func _process_searching_state(delta: float) -> void:
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7; move_and_slide(); _push_casings()  # Issue #341
-				# Issue #354: Stuck detection
-				var progress := global_position.distance_to(_search_last_progress_position)
+				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching
+				velocity = (_avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else _sv) if (_nav_agent and _nav_agent.avoidance_enabled) else _sv
+				move_and_slide(); _push_casings()  # Issue #341
+				var progress := global_position.distance_to(_search_last_progress_position)  # Issue #354: Stuck detection
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
