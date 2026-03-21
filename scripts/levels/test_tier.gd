@@ -654,10 +654,9 @@ func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
 ## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
 ## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	# Notify all enemies that player tried to shoot with empty weapon
-	_broadcast_player_ammo_empty(true)
-	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
-	# This has shorter range than reload sound but still propagates through obstacles
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
