@@ -4749,7 +4749,9 @@ func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
 	_avoidance_velocity = safe_velocity
 
 ## Issue #1146: Separation steering — push away from nearby allies.
+## Issue #1249: Skip separation while yielding so the passing enemy isn't pushed aside.
 func _apply_separation_force(vel: Vector2, delta: float) -> Vector2:
+	if _tactical_movement and _tactical_movement.is_yielding: return vel  # #1249: yielding — don't push
 	var sep_force: Vector2 = Vector2.ZERO
 	for body in get_tree().get_nodes_in_group("enemies"):
 		if body == self or not is_instance_valid(body): continue
