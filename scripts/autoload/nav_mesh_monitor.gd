@@ -12,11 +12,16 @@ extends Node
 ## it works in exported (release) builds as well.
 ##
 ## Issue #1187: Added as part of AI navigation debugging tools.
+## Issue #1224: Fixed to read baked polygon data (get_polygon/get_vertices) instead of
+##              raw input outlines (get_outline), and to refresh after bake_finished.
 
 ## Color for the nav mesh polygon fill.
 const NAV_MESH_FILL_COLOR := Color(0.0, 0.5, 1.0, 0.25)
 ## Color for the nav mesh polygon outline.
 const NAV_MESH_OUTLINE_COLOR := Color(0.0, 0.8, 1.0, 0.85)
+## Delay after a NavigationRegion2D is added before refreshing, to allow the
+## deferred bake (call_deferred) to complete first.
+const BAKE_WAIT_SECONDS := 0.2
 
 ## The overlay node used for custom drawing.
 var _overlay: _NavMeshOverlay = null
@@ -66,10 +71,15 @@ func _ensure_overlay() -> void:
 
 
 ## Re-apply after a new NavigationRegion2D is added (e.g. after scene load).
+## Connects to bake_finished signal for accurate post-bake refresh, with a
+## timer fallback in case the bake was not triggered or already completed.
 func _on_node_added(node: Node) -> void:
 	if node is NavigationRegion2D:
-		# Defer refresh so the polygon data is fully populated
-		call_deferred("_deferred_refresh")
+		# Connect to bake_finished so the overlay refreshes after walls are carved.
+		if not node.bake_finished.is_connected(_deferred_refresh):
+			node.bake_finished.connect(_deferred_refresh)
+		# Also schedule a timer refresh as fallback (covers pre-baked navmesh data).
+		get_tree().create_timer(BAKE_WAIT_SECONDS).timeout.connect(_deferred_refresh)
 
 
 func _deferred_refresh() -> void:
@@ -97,7 +107,10 @@ class _NavMeshOverlay extends CanvasLayer:
 		_draw_node.outline_color = outline_color
 		add_child(_draw_node)
 
-	## Collect all NavigationRegion2D nodes and pass their polygons to the draw node.
+	## Collect all NavigationRegion2D nodes and pass their baked polygons to the draw node.
+	## Reads triangulated baked data (get_polygon_count / get_polygon / get_vertices)
+	## which reflects the actual walkable area after walls are carved out — not the raw
+	## input outlines which only show the floor boundary.
 	func refresh() -> void:
 		if _draw_node == null:
 			return
@@ -111,9 +124,25 @@ class _NavMeshOverlay extends CanvasLayer:
 			var nav_poly: NavigationPolygon = region.navigation_polygon
 			if nav_poly == null:
 				continue
-			# Collect each outline contour from the baked polygon
-			var outline_count: int = nav_poly.get_outline_count()
-			if outline_count > 0:
+			# Read baked triangulated polygon data (set by bake_navigation_polygon).
+			# This reflects the actual walkable area with walls carved out.
+			var poly_count: int = nav_poly.get_polygon_count()
+			if poly_count > 0:
+				var all_vertices: PackedVector2Array = nav_poly.get_vertices()
+				for i in range(poly_count):
+					var indices: PackedInt32Array = nav_poly.get_polygon(i)
+					if indices.size() < 3:
+						continue
+					var verts: PackedVector2Array = PackedVector2Array()
+					for idx in indices:
+						verts.append(all_vertices[idx])
+					polygons.append({
+						"vertices": verts,
+						"global_transform": region.global_transform
+					})
+			else:
+				# Fall back to outlines if no baked data yet (bake not completed)
+				var outline_count: int = nav_poly.get_outline_count()
 				for i in range(outline_count):
 					var outline: PackedVector2Array = nav_poly.get_outline(i)
 					if outline.size() >= 3:
@@ -121,20 +150,6 @@ class _NavMeshOverlay extends CanvasLayer:
 							"vertices": outline,
 							"global_transform": region.global_transform
 						})
-			else:
-				# Fall back to vertices from the polygon mesh itself
-				var vertex_count: int = nav_poly.get_polygon_count()
-				for i in range(vertex_count):
-					var indices: PackedInt32Array = nav_poly.get_polygon(i)
-					if indices.size() < 3:
-						continue
-					var verts: PackedVector2Array = PackedVector2Array()
-					for idx in indices:
-						verts.append(nav_poly.get_vertices()[idx])
-					polygons.append({
-						"vertices": verts,
-						"global_transform": region.global_transform
-					})
 		_draw_node.set_polygons(polygons)
 
 	## Recursively find all NavigationRegion2D nodes under root.
