@@ -98,6 +98,12 @@ var nav_mesh_visible_enabled: bool = false
 ## When disabled (default), no waypoint overlay is shown.
 var passage_waypoints_visible_enabled: bool = false
 
+## Whether passage waypoints are used for enemy navigation (Issue #1267).
+## When enabled, enemies use pre-placed passage waypoints to guide navigation
+## through narrow doorways and corridors on the Building map.
+## When disabled (default), enemies fall back to the previous cover-seeking behavior without waypoints.
+var passage_waypoints_enabled: bool = false
+
 ## Whether the sound propagation visualizer is enabled (Issue #1253).
 ## When enabled, animated circles are drawn at each sound emission point showing
 ## the propagation radius. Blue = player, red = enemy, white = neutral/environment.
@@ -116,7 +122,7 @@ func _ready() -> void:
 	var file_logger: Node = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("set_logging_enabled"):
 		file_logger.set_logging_enabled(logging_enabled)
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Passage waypoints visible: %s, Sound visualizer: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, passage_waypoints_visible_enabled, sound_visualizer_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s, Replay: %s, Logging: %s, Enemy flashlight blinding: %s, FPS counter: %s, FPS drop logging: %s, All weapons unlocked: %s, All maps unlocked: %s, Global stuck max time: %.1fs, Nav mesh visible: %s, Passage waypoints visible: %s, Passage waypoints: %s, Sound visualizer: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled, replay_enabled, logging_enabled, enemy_flashlight_blinding_enabled, fps_counter_enabled, fps_drop_logging_enabled, all_weapons_unlocked, all_maps_unlocked, global_stuck_max_time, nav_mesh_visible_enabled, passage_waypoints_visible_enabled, passage_waypoints_enabled, sound_visualizer_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -374,6 +380,20 @@ func is_passage_waypoints_visible_enabled() -> bool:
 	return passage_waypoints_visible_enabled
 
 
+## Set passage waypoints navigation enabled/disabled (Issue #1267).
+func set_passage_waypoints_enabled(enabled: bool) -> void:
+	if passage_waypoints_enabled != enabled:
+		passage_waypoints_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Passage waypoints navigation %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if passage waypoints navigation is enabled (Issue #1267).
+func is_passage_waypoints_enabled() -> bool:
+	return passage_waypoints_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -394,6 +414,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "global_stuck_max_time", global_stuck_max_time)
 	config.set_value("experimental", "nav_mesh_visible_enabled", nav_mesh_visible_enabled)
 	config.set_value("experimental", "passage_waypoints_visible_enabled", passage_waypoints_visible_enabled)
+	config.set_value("experimental", "passage_waypoints_enabled", passage_waypoints_enabled)
 	config.set_value("experimental", "sound_visualizer_enabled", sound_visualizer_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
@@ -422,6 +443,7 @@ func _load_settings() -> void:
 		global_stuck_max_time = config.get_value("experimental", "global_stuck_max_time", 20.0)
 		nav_mesh_visible_enabled = config.get_value("experimental", "nav_mesh_visible_enabled", false)
 		passage_waypoints_visible_enabled = config.get_value("experimental", "passage_waypoints_visible_enabled", false)
+		passage_waypoints_enabled = config.get_value("experimental", "passage_waypoints_enabled", false)
 		sound_visualizer_enabled = config.get_value("experimental", "sound_visualizer_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
@@ -442,6 +464,7 @@ func _load_settings() -> void:
 		global_stuck_max_time = 20.0
 		nav_mesh_visible_enabled = false
 		passage_waypoints_visible_enabled = false
+		passage_waypoints_enabled = false
 		sound_visualizer_enabled = false
 
 

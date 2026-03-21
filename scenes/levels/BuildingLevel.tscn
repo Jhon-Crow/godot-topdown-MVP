@@ -974,20 +974,23 @@ enable_cover = true
 
 [node name="PassageWaypoints" type="Node2D" parent="Environment"]
 
+[node name="P0_Office1_Upper_to_Corridor" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
+position = Vector2(512, 132)
+
 [node name="P1_Office1_to_Corridor" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
 position = Vector2(512, 650)
 
 [node name="P2_Office2_to_Corridor" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(950, 700)
+position = Vector2(716, 800)
 
 [node name="P3_Corridor_to_Conference" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(1376, 500)
+position = Vector2(1376, 656)
 
 [node name="P4_Corridor_to_BreakRoom" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(1376, 900)
+position = Vector2(1340, 744)
 
 [node name="P5_BreakRoom_to_ServerRoom" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(1688, 1194)
+position = Vector2(1688, 1256)
 
 [node name="P6_Lobby_Left" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
 position = Vector2(140, 1400)
@@ -1002,13 +1005,13 @@ position = Vector2(750, 1400)
 position = Vector2(950, 1400)
 
 [node name="P10_Storage_Entrance_Left" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(200, 1600)
+position = Vector2(200, 1680)
 
 [node name="P11_Storage_Entrance_Right" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(550, 1750)
+position = Vector2(512, 1650)
 
 [node name="P12_ServerRoom_Lower" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(1700, 1750)
+position = Vector2(1750, 1750)
 
 [node name="RoomLabels" type="Node2D" parent="Environment"]
 
