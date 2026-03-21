@@ -516,17 +516,17 @@ collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MainHall_WallTop"]
-offset_left = -200.0
+offset_left = -100.0
 offset_top = -12.0
-offset_right = 200.0
+offset_right = 100.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/MainHall_WallTop"]
-shape = SubResource("RectangleShape2D_interior_wall_h")
+shape = SubResource("RectangleShape2D_interior_wall_short_h")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/InteriorWalls/MainHall_WallTop"]
-occluder = SubResource("OccluderPolygon2D_interior_wall_h")
+occluder = SubResource("OccluderPolygon2D_interior_wall_short_h")
 
 [node name="CornerFills" type="Node2D" parent="Environment"]
 
@@ -603,7 +603,7 @@ shape = SubResource("RectangleShape2D_corner_fill")
 occluder = SubResource("OccluderPolygon2D_corner_fill")
 
 [node name="MainHall_CornerTL" type="StaticBody2D" parent="Environment/CornerFills"]
-position = Vector2(1000, 1388)
+position = Vector2(1100, 1388)
 collision_layer = 4
 collision_mask = 0
 
@@ -621,7 +621,7 @@ shape = SubResource("RectangleShape2D_corner_fill")
 occluder = SubResource("OccluderPolygon2D_corner_fill")
 
 [node name="MainHall_CornerTR" type="StaticBody2D" parent="Environment/CornerFills"]
-position = Vector2(1400, 1388)
+position = Vector2(1300, 1388)
 collision_layer = 4
 collision_mask = 0
 

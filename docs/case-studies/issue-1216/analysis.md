@@ -279,6 +279,61 @@ if not _patrol_points_snapped and _nav_agent != null and Engine.get_physics_fram
 
 ---
 
+## Session 4 (2026-03-21): Main Hall Isolated + CASING_KICK Idle Pursuit
+
+### New Logs
+- `logs/game_log_20260321_065153.txt` — Lab+Building session: Enemy1 IDLE→PURSUING via memory (confidence 0.62)
+- `logs/game_log_20260321_065417.txt` — Building: Enemy10 cycling stuck at y=1424
+- `logs/game_log_20260321_072808.txt` — Lab+Building: Enemy10 wall-patrol cycle, corner checks near ±180°
+- `screenshot_office2_stuck.png` — user screenshot of stuck enemy in lower-left office 2
+
+### Root Cause 4: Main Hall Corridor Completely Isolated
+
+After the snap fix, Enemy10's patrol points `(1000,1550)`, `(1200,1550)`, `(1400,1550)` all
+mapped to y=1424 (wall boundary). The reason: entrance gaps on both sides of `MainHall_WallTop`
+are only 40 px wide, below the minimum passable width of `2 × agent_radius = 48 px`.
+
+```
+Gap left:  [936, 976] = 40 px  → IMPASSABLE (agent diameter = 48 px)
+Gap right: [1424, 1464] = 40 px → IMPASSABLE
+```
+
+The main hall is a completely isolated navmesh island; `map_get_closest_point` returns the
+globally nearest point on the CONNECTED navmesh, which is the wall boundary at y=1424.
+
+**Fix applied:** Shorten `MainHall_WallTop` from 400×24 to 200×24 (use
+`RectangleShape2D_interior_wall_short_h`), move `MainHall_CornerTL` from (1000,1388) to
+(1100,1388), `MainHall_CornerTR` from (1400,1388) to (1300,1388). Entrance gaps now 140 px.
+
+Also added snap distance guard in `_process_patrol`: only snap if closest navmesh point is
+within `path_desired_distance × 2` of original, preventing cross-wall snaps.
+
+### Root Cause 5: PATROL STUCK Does Not Advance Index Immediately
+
+When stuck, the handler set `_is_waiting_at_patrol_point = true` which eventually advances
+the index after `patrol_wait_time` seconds. But if the wait timer was reset, the index
+wasn't advanced, and the enemy could retry the stuck point.
+
+**Fix applied:** Explicitly increment `_current_patrol_index` at stuck-detection time:
+```gdscript
+_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
+```
+
+### Root Cause 6: CASING_KICK Sound Sets `_has_left_idle` on Pure IDLE Enemies
+
+CASING_KICK handler called `_transition_to_pursuing()` unconditionally from IDLE
+(line 607), which set `_has_left_idle = true`. Enemy then returns to IDLE after failed
+search, and ally intel with medium confidence (≥ 0.6) triggers pursuit again.
+
+**Fix applied:** Guard CASING_KICK pursuit with `_has_left_idle`:
+```gdscript
+if _current_state == AIState.IDLE and _has_left_idle: _transition_to_pursuing()
+```
+
+RELOAD and EMPTY_CLICK retain unconditional pursuit (player explicitly vulnerable).
+
+---
+
 ## 9. Online References
 
 - [Godot 4 Navigation Overview](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_overview.html) — explains parse/bake pipeline
