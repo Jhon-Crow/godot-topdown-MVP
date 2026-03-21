@@ -7,6 +7,10 @@ extends Node
 ## Total enemies killed in current session.
 var kills: int = 0
 
+## Cumulative kills made without the Laser Sight active item equipped.
+## Persists across sessions — used as the unlock condition for Laser Sight (Issue #1196).
+var kills_without_laser_sight: int = 0
+
 ## Total shots fired in current session.
 var shots_fired: int = 0
 
@@ -64,6 +68,10 @@ const WEAPON_SCENES: Dictionary = {
 
 ## Signal emitted when an enemy is killed (for screen effects).
 signal enemy_killed
+
+## Signal emitted when kills_without_laser_sight changes (for kill-based unlock checks).
+## Issue #1196.
+signal kills_without_laser_sight_updated(new_count: int)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -230,10 +238,32 @@ func register_hit() -> void:
 
 
 ## Registers an enemy kill.
-func register_kill() -> void:
+## @param is_player_kill: Whether the kill was made by the player (not enemy-vs-enemy). Issue #1196.
+## Also increments kills_without_laser_sight only for player kills without any laser sight active (Issue #1196).
+func register_kill(is_player_kill: bool = true) -> void:
 	kills += 1
 	enemy_killed.emit()
 	stats_updated.emit()
+	# Only count kills made by the player toward the Laser Sight unlock condition (Issue #1196).
+	# Kills by enemies against other enemies do not count.
+	if not is_player_kill:
+		_log_to_file("register_kill: skipping non-player kill (enemy-vs-enemy or ally-vs-enemy)")
+		return
+	# Track kills made without ANY laser sight active (used for the Laser Sight unlock condition).
+	# This covers all laser sight sources: active item, Power Fantasy difficulty, or weapon-level (Issue #1196).
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	var has_laser: bool = false
+	if active_item_manager and active_item_manager.has_method("has_any_laser_sight_active"):
+		has_laser = active_item_manager.has_any_laser_sight_active()
+	elif active_item_manager and active_item_manager.has_method("has_laser_sight"):
+		# Fallback: only check active item (e.g. early startup tests).
+		has_laser = active_item_manager.has_laser_sight()
+	if not has_laser:
+		kills_without_laser_sight += 1
+		kills_without_laser_sight_updated.emit(kills_without_laser_sight)
+		_log_to_file("kills_without_laser_sight: %d" % kills_without_laser_sight)
+	else:
+		_log_to_file("register_kill: laser sight active — kill not counted toward unlock condition")
 
 
 ## Returns the current accuracy as a percentage (0-100).

@@ -81,6 +81,64 @@ Add a `collected_passive_items: Array` to `ActiveItemManager` that stores all pa
 
 ---
 
+---
+
+## Deep Case Study — Game Log Evidence (2026-03-21)
+
+The owner provided `game_log_20260321_004046.txt` (run at 00:40:46 Moscow time, posted
+as bug report at 2026-03-20 21:45 UTC = 00:45 Moscow time). This log was captured from a
+**pre-fix build** (without PR #1195) and directly confirms both reported bugs.
+
+### Timeline Reconstructed from Log
+
+| Log Line | Time | Event |
+|---|---|---|
+| 1 | 00:40:46 | Game starts on LabyrinthLevel |
+| 251 | 00:40:50 | Player enters RoguelikeLevel |
+| 741 | 00:40:57 | Combat room 1 cleared |
+| 2121 | 00:41:09 | Combat room 2 cleared |
+| 2560 | 00:41:25 | Combat room 3 cleared |
+| **2565** | **00:41:27** | **Level 1 Treasure Room** — pedestal: "АК-74 + ГП" (weapon) |
+| 2643 | 00:41:35 | Player exits treasure room — **no weapon pickup** |
+| 4472 | 00:41:48 | Combat room cleared |
+| 5166 | 00:42:03 | Combat room cleared |
+| 5849 | 00:42:17 | Combat room cleared |
+| **6193** | **00:42:27** | **Level 2 Treasure Room** — pedestal: "Auto-Reload" (passive) |
+| **6259** | 00:42:30 | `Active item changed from None to Auto-Reload` ← OLD `set_active_item()` |
+| 6263 | 00:42:32 | Player exits treasure room (but auto-reload NOT yet active in player!) |
+| **9007** | **00:43:20** | **Level 3 Treasure Room** — Player._ready() runs → `Auto-reload active` (line 9047) |
+| 9054 | 00:43:20 | Pedestal: "Breaker Bullets" (passive) |
+| 9145 | 00:43:39 | Player exits Level 3 treasure room |
+| 10043 | 00:43:51 | Next combat room → **if Breaker Bullets picked up, `set_active_item(BREAKER_BULLETS)` would have replaced Auto-Reload** |
+
+### Key Observations from Log
+
+1. **Bug 1 confirmed** (line 6259): `ActiveItemManager.set_active_item()` is used for
+   passive items. The log says "Active item **changed from None** to Auto-Reload" — this is
+   the `set_active_item()` code path, which writes to `current_active_item`. Picking a second
+   passive would have overwritten this.
+
+2. **Bug 2 confirmed** (lines 6233 vs 9047): Auto-Reload was "not selected" at Level 2's
+   `_ready()` (line 6233), then picked up at 00:42:30 (line 6259). But the player's internal
+   flag `_autoReloadActive` only became `true` at Level 3's `_ready()` (line 9047 — full 1
+   minute later). Effect was **delayed by one full room transition**.
+
+3. **Pedestal returns** (not directly visible in this log for passives, but confirmed by
+   the code path): When a passive displaced an existing item via `set_active_item()`, the
+   old item would go back to the pedestal (the active-item swap logic). This is the
+   "passive items return to pedestal" bug reported by the owner.
+
+### Why the Bugs Occur
+
+The entire roguelike item system was originally designed around **active items** that the
+player deliberately chooses between. The "passive items don't displace" feature was added
+later (PR #1166) by reusing `set_active_item(type, false)` — a shortcut that avoided the
+level restart but didn't properly separate passive accumulation from active swapping.
+
+The single-slot `current_active_item` integer was never designed to hold multiple items.
+
+---
+
 ## Existing Similar Patterns in Codebase
 
 - **Roguelike weapon persistence:** `GameManager.roguelike_run_weapon` persists weapon across rooms. Same pattern used for passive items via `GameManager`.
