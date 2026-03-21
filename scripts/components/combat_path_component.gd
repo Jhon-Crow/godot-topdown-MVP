@@ -25,6 +25,7 @@ var has_paths: bool = false
 
 
 func _ready() -> void:
+	add_to_group("combat_path_components")
 	_collect_paths()
 
 

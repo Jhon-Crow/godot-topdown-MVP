@@ -357,7 +357,6 @@ var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenad
 var _grenade_throw_facing_direction: Vector2 = Vector2.ZERO  ## Issue #712: Facing direction for grenade throw.
 var _is_facing_for_grenade_throw: bool = false  ## Issue #712: Whether forcing rotation for throw.
 var _invisibility: EnemyInvisibilityComponent = null  ## Issue #1121: Invisibility cloak component.
-var _combat_path_component: Node = null  ## [Issue #1227] Pre-defined combat paths for this level.
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -431,8 +430,6 @@ func _ready() -> void:
 	elif initial_state != AIState.IDLE: _current_state = initial_state  # Issue #1121: initial state override
 	else: _transition_to_idle()  # Issue #1202: honor IDLE disable at spawn (redirects to SEARCHING if IDLE is disabled)
 	if start_invisible: _invisibility = EnemyInvisibilityComponent.new(); _invisibility.name = "InvisibilityComponent"; add_child(_invisibility); _invisibility.initialize(_enemy_model)  # Issue #1121
-	# Issue #1227: Find CombatPathComponent in the level to use pre-defined combat paths.
-	call_deferred("_find_combat_path_component")
 
 ## Initialize health with random value between min and max. Black Metal mode (#958) reduces HP by 25%.
 func _initialize_health() -> void:
@@ -537,14 +534,8 @@ func _deferred_register_sound_listener() -> void:
 		_log_to_file("WARNING: Could not register as sound listener (SoundPropagation not found)")
 		push_warning("[%s] Could not register as sound listener - SoundPropagation not found" % name)
 
-## Issue #1227: Find CombatPathComponent in the level tree (deferred so level is ready).
-func _find_combat_path_component() -> void:
-	_combat_path_component = get_tree().get_root().find_child("CombatPathComponent", true, false)
-	if _combat_path_component and _combat_path_component.has_method("get_nearest_attacking_waypoint"):
-		_log_to_file("CombatPathComponent found — pre-defined combat paths active")
-	else:
-		_combat_path_component = null
-
+func _combat_waypoint(t: Vector2, r: bool = false) -> Vector2:  ## Issue #1227: nearest pre-defined combat path waypoint.
+	var c: CombatPathComponent = get_tree().get_first_node_in_group("combat_path_components"); return (c.get_nearest_retreat_waypoint(global_position, t) if r else c.get_nearest_attacking_waypoint(global_position, t)) if c else Vector2.ZERO
 ## Unregister this enemy from sound propagation when dying or being destroyed.
 func _unregister_sound_listener() -> void:
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
@@ -3126,16 +3117,8 @@ func _find_pursuit_cover_toward_player() -> void:
 	if target_pos == global_position and _player == null:
 		_has_pursuit_cover = false
 		return
-
-	# Issue #1227: Use pre-defined attacking path waypoint if available — avoids expensive raycasts.
-	if _combat_path_component != null:
-		var wp: Vector2 = _combat_path_component.get_nearest_attacking_waypoint(global_position, target_pos)
-		if wp != Vector2.ZERO:
-			_pursuit_next_cover = wp
-			_has_pursuit_cover = true
-			_current_cover_obstacle = null
-			return
-
+	var wp_p := _combat_waypoint(target_pos)  # Issue #1227
+	if wp_p != Vector2.ZERO: _pursuit_next_cover = wp_p; _has_pursuit_cover = true; _current_cover_obstacle = null; return
 	var player_pos := target_pos
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
@@ -3260,15 +3243,8 @@ func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-
-	# Issue #1227: Use pre-defined attacking path waypoint (closest to player) if available.
-	if _combat_path_component != null:
-		var wp: Vector2 = _combat_path_component.get_nearest_attacking_waypoint(global_position, _player.global_position)
-		if wp != Vector2.ZERO:
-			_cover_position = wp
-			_has_valid_cover = true
-			return
-
+	var wp_a := _combat_waypoint(_player.global_position)  # Issue #1227
+	if wp_a != Vector2.ZERO: _cover_position = wp_a; _has_valid_cover = true; return
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_distance: float = INF
@@ -3321,16 +3297,8 @@ func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
 		return
-
-	# Issue #1227: Use pre-defined retreat path waypoint if available — avoids expensive raycasts.
-	if _combat_path_component != null:
-		var wp: Vector2 = _combat_path_component.get_nearest_retreat_waypoint(global_position, _player.global_position)
-		if wp != Vector2.ZERO:
-			_cover_position = wp
-			_has_valid_cover = true
-			_last_cover_search_time = Time.get_ticks_msec() / 1000.0
-			return
-
+	var wp_r := _combat_waypoint(_player.global_position, true)  # Issue #1227: retreat path
+	if wp_r != Vector2.ZERO: _cover_position = wp_r; _has_valid_cover = true; _last_cover_search_time = Time.get_ticks_msec() / 1000.0; return
 	# Issue #969: throttle 16-raycast cover search
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if _has_valid_cover and current_time - _last_cover_search_time < COVER_SEARCH_COOLDOWN: return
@@ -3495,14 +3463,8 @@ func _has_clear_path_to(target: Vector2) -> bool:
 
 ## Find cover position closer to the flank target for cover-to-cover movement.
 func _find_flank_cover_toward_target() -> void:
-	# Issue #1227: Use pre-defined attacking path waypoint if available — avoids expensive raycasts.
-	if _combat_path_component != null and _player != null:
-		var wp: Vector2 = _combat_path_component.get_nearest_attacking_waypoint(global_position, _flank_target)
-		if wp != Vector2.ZERO:
-			_flank_next_cover = wp
-			_has_flank_cover = true
-			return
-
+	var wp_f := _combat_waypoint(_flank_target)  # Issue #1227
+	if wp_f != Vector2.ZERO: _flank_next_cover = wp_f; _has_flank_cover = true; return
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
 	var found_valid_cover: bool = false
