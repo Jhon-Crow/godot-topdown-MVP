@@ -177,6 +177,7 @@ var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
+var _patrol_points_snapped: bool = false  ## #1216: tracks whether patrol points were snapped to the navmesh
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
 var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
@@ -4054,6 +4055,13 @@ func _calculate_lead_prediction() -> Vector2:
 func _process_patrol(delta: float) -> void:
 	# Issue #1119: NavigationAgent2D routing replaces direct direction+wall avoidance (wall-rubbing fix).
 	if _patrol_points.is_empty(): return
+	# Issue #1216: On first tick snap patrol points to nearest valid navmesh position so that
+	# points inside eroded obstacle zones don't cause permanent PATROL STUCK loops.
+	if not _patrol_points_snapped and _nav_agent != null:
+		var nav_map: RID = _nav_agent.get_navigation_map()
+		if nav_map.is_valid():
+			for i in range(_patrol_points.size()): _patrol_points[i] = NavigationServer2D.map_get_closest_point(nav_map, _patrol_points[i])
+			_patrol_points_snapped = true; _log_to_file("Patrol points snapped to navmesh (Issue #1216)")
 	if _is_waiting_at_patrol_point:
 		_patrol_wait_timer += delta
 		if _patrol_wait_timer >= patrol_wait_time:
