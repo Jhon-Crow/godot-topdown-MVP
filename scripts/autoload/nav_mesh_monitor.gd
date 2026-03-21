@@ -19,9 +19,10 @@ extends Node
 const NAV_MESH_FILL_COLOR := Color(0.0, 0.5, 1.0, 0.25)
 ## Color for the nav mesh polygon outline.
 const NAV_MESH_OUTLINE_COLOR := Color(0.0, 0.8, 1.0, 0.85)
-## Delay after a NavigationRegion2D is added before refreshing, to allow the
-## deferred bake (call_deferred) to complete first.
-const BAKE_WAIT_SECONDS := 0.2
+## Delay after a NavigationRegion2D is added before refreshing.
+## Increased to 1.0s to ensure bake_navigation_polygon(false) completes
+## before the fallback timer reads polygon data.
+const BAKE_WAIT_SECONDS := 1.0
 
 ## The overlay node used for custom drawing.
 var _overlay: _NavMeshOverlay = null
@@ -113,9 +114,12 @@ class _NavMeshOverlay extends CanvasLayer:
 	var _draw_node: _NavMeshDrawNode = null
 
 	func _ready() -> void:
-		# Render above game world (layer 10) but below UI (layer 100+)
-		layer = 10
-		# Follow the viewport camera so world-space coordinates in _draw() align correctly
+		# Render above all game world elements (layer 50) and above most UI (default layer 1).
+		# CinemaEffects uses layer 99; we stay below that so debug overlay doesn't cover vignette.
+		layer = 50
+		# Follow the viewport camera so world-space coordinates in _draw() align correctly.
+		# With follow_viewport_enabled=true, drawing at world coordinates maps directly
+		# to the correct screen position regardless of camera position.
 		follow_viewport_enabled = true
 		_draw_node = _NavMeshDrawNode.new()
 		_draw_node.fill_color = fill_color
@@ -134,22 +138,32 @@ class _NavMeshOverlay extends CanvasLayer:
 	## input outlines which only show the floor boundary.
 	func refresh() -> void:
 		if _draw_node == null:
+			_log_inner("refresh: _draw_node is null, skipping")
 			return
 		var polygons: Array = []
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
+			_log_inner("refresh: SceneTree is null, skipping")
 			return
 		# Search all NavigationRegion2D nodes in the current scene
 		var nav_regions: Array = _find_nav_regions(tree.root)
+		_log_inner("refresh started: found %d NavigationRegion2D node(s)" % nav_regions.size())
 		var baked_count: int = 0
 		var outline_count_total: int = 0
 		for region in nav_regions:
+			if not is_instance_valid(region):
+				_log_inner("refresh: region is invalid, skipping")
+				continue
 			var nav_poly: NavigationPolygon = region.navigation_polygon
 			if nav_poly == null:
+				_log_inner("refresh: region '%s' has null navigation_polygon" % region.name)
 				continue
 			# Read baked triangulated polygon data (set by bake_navigation_polygon).
 			# This reflects the actual walkable area with walls carved out.
 			var poly_count: int = nav_poly.get_polygon_count()
+			var vertex_count: int = nav_poly.get_vertices().size()
+			_log_inner("refresh: region '%s' poly_count=%d vertex_count=%d outline_count=%d" % [
+				region.name, poly_count, vertex_count, nav_poly.get_outline_count()])
 			if poly_count > 0:
 				var all_vertices: PackedVector2Array = nav_poly.get_vertices()
 				for i in range(poly_count):
@@ -176,16 +190,18 @@ class _NavMeshOverlay extends CanvasLayer:
 						})
 				outline_count_total += outline_count
 		_draw_node.set_polygons(polygons)
-		_log_inner("refresh: %d region(s), %d baked tri(s), %d outline(s), %d draw polys" % [
+		_log_inner("refresh done: %d region(s), %d baked poly(s), %d outline(s), %d draw polys" % [
 			nav_regions.size(), baked_count, outline_count_total, polygons.size()])
 
-	## Log a message (inner class helper — accesses FileLogger via SceneTree).
+	## Log a message (inner class helper — accesses FileLogger via absolute path).
 	func _log_inner(message: String) -> void:
+		# Use /root/FileLogger absolute path — same as the outer class _log() method
+		# to ensure consistent logging regardless of inner class context.
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree == null:
 			print("[NavMeshMonitor] " + message)
 			return
-		var file_logger: Node = tree.root.get_node_or_null("FileLogger")
+		var file_logger: Node = tree.root.get_node_or_null("/root/FileLogger")
 		if file_logger and file_logger.has_method("log_info"):
 			file_logger.log_info("[NavMeshMonitor] " + message)
 		else:

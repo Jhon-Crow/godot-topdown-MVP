@@ -177,6 +177,77 @@ The user's "still not working" report is based on testing an **old exported buil
 
 ---
 
+---
+
+## Follow-up 2: Second Game Log from 2026-03-21 (PR #1229 still in draft)
+
+**File:** `game_log_20260321_070957.txt` (attached to PR #1229 comment by Jhon-Crow, ~1h later)
+
+**Owner's comment (translated):** "possibly displaying nav mesh on a lower layer? because right now it looks like it's not working"
+
+### Log Analysis
+
+| Field | Value |
+|-------|-------|
+| Build | Exported release (Debug build: false) |
+| Engine | Godot 4.3-stable (official) |
+| Build info | not available (build_info.cfg not found) — **new build with PR #1229 fix** |
+| Executable path | `I:/Загрузки/godot exe/experimental/Godot-Top-Down-Template.exe` |
+
+### Key difference from first log
+
+**`[NavMeshMonitor]` log entries ARE present** — this is a new exported build that includes the PR #1229 fix. The fix was deployed.
+
+### Sequence of events in the log
+
+| Timestamp | Event | Significance |
+|-----------|-------|--------------|
+| 07:09:58 | `NavMeshMonitor ready` | Fix is deployed |
+| 07:09:58 | `Overlay shown with 0 polygon(s)` | No nav regions in tree yet at startup |
+| 07:10:04 | `Overlay hidden` | User toggled nav mesh OFF |
+| 07:10:07 | `NavigationRegion2D added: NavigationRegion2D` | Level (LabyrinthLevel) entered tree |
+| 07:10:07 | `Overlay hidden` (×2) | `_deferred_refresh` runs, but nav mesh is OFF |
+| 07:10:14 | `Overlay shown with 0 polygon(s)` | User toggled nav mesh ON — but 0 polygons! |
+| 07:10:16 | `NavigationRegion2D added` | Second load (BuildingLevel) |
+| 07:10:16 | `Overlay shown with 0 polygon(s)` + `Overlay refreshed with 0 polygon(s)` | Timer fires, still 0 polygons |
+
+### Root causes identified (deeper investigation in this session)
+
+**Root Cause A: Timer fires before bake completes (race condition)**
+
+The 0.2s fallback timer in `_on_node_added` fires at ~07:10:07.2, but `BuildingLevel._ready()` (which calls `bake_navigation_polygon(false)`) takes longer than 0.2s to complete due to complex setup (enemy tracking, sound propagation registration, etc.). The timer fires while the scene is still initializing, reading stale polygon data.
+
+Evidence: Lines 602-603 show `Overlay shown with 0 polygon(s)` and `Overlay refreshed with 0 polygon(s)` — both at timestamp `07:10:16`, which is BEFORE BuildingLevel `_ready()` finishes (enemies start initializing at line 604+).
+
+**Fix:** Increase `BAKE_WAIT_SECONDS` from `0.2` to `1.0` so the timer fires after the level's `_ready()` completes.
+
+**Root Cause B: `_log_inner` in inner class may not write to FileLogger**
+
+The `refresh()` method inside `_NavMeshOverlay` calls `_log_inner()` which uses `tree.root.get_node_or_null("FileLogger")` (relative path). The outer class `_log()` uses `get_node_or_null("/root/FileLogger")` (absolute path). This caused `refresh: N region(s)...` lines to silently fall through to `print()` instead of the FileLogger, making it impossible to diagnose region counts and polygon counts from the game log.
+
+Evidence: `refresh: X region(s)...` messages are completely absent from the log file, despite `refresh()` being called (we know because `Overlay shown/refreshed` messages appear from `_deferred_refresh`).
+
+**Fix:** Change `_log_inner` to use the same absolute path `/root/FileLogger` as the outer class `_log()`.
+
+**Root Cause C: CanvasLayer layer too low (owner's concern)**
+
+The nav mesh overlay was at CanvasLayer `layer = 10`. While this is above the game world (layer 0) and UI (layer 1), other effects like CinemaEffects use layer 99. If any visual effect were at layers 11-49, it could partially obscure the overlay.
+
+**Fix:** Increase to `layer = 50` — above all game content but below CinemaEffects (99) and other cinematic post-processing overlays.
+
+### Additional diagnostic logging added
+
+`refresh()` now logs per-region details:
+```
+[NavMeshMonitor] refresh started: found 1 NavigationRegion2D node(s)
+[NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=42 vertex_count=168 outline_count=1
+[NavMeshMonitor] refresh done: 1 region(s), 42 baked poly(s), 0 outline(s), 42 draw polys
+```
+
+This will allow diagnosing whether the region is found and whether polygon data is populated.
+
+---
+
 ## References
 
 - Issue #1187: Original nav mesh visibility request
@@ -187,3 +258,4 @@ The user's "still not working" report is based on testing an **old exported buil
 - Commit `56cdf595` (branch `issue-1224-feba1278811f`): PR #1229 — applies the same fix to all 8 affected levels
 - Godot 4 docs: [NavigationPolygon](https://docs.godotengine.org/en/stable/classes/class_navigationpolygon.html) — `get_polygon()` / `get_vertices()` hold baked data; `get_outline()` holds input boundaries
 - Game log: `game_log_20260321_064641.txt` (from Jhon-Crow's comment on PR #1229, 2026-03-21)
+- Game log 2: `game_log_20260321_070957.txt` (from Jhon-Crow's comment on PR #1229, 2026-03-21 ~1h later)
