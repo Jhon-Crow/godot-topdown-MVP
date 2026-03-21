@@ -20,6 +20,8 @@ const NAV_MESH_OUTLINE_COLOR := Color(0.0, 0.8, 1.0, 0.85)
 
 ## The overlay node used for custom drawing.
 var _overlay: _NavMeshOverlay = null
+## Deferred refresh is pending (throttle multiple rapid node_added signals into one refresh).
+var _refresh_pending: bool = false
 
 
 func _ready() -> void:
@@ -66,13 +68,17 @@ func _ensure_overlay() -> void:
 
 
 ## Re-apply after a new NavigationRegion2D is added (e.g. after scene load).
+## Throttled: multiple rapid node_added signals (e.g. during level load) are merged
+## into a single deferred refresh to avoid stalling the main thread.
 func _on_node_added(node: Node) -> void:
-	if node is NavigationRegion2D:
-		# Defer refresh so the polygon data is fully populated
+	if node is NavigationRegion2D and not _refresh_pending:
+		_refresh_pending = true
+		# Defer to next frame so all nodes finish adding before we scan
 		call_deferred("_deferred_refresh")
 
 
 func _deferred_refresh() -> void:
+	_refresh_pending = false
 	_apply_settings()
 	if _overlay != null and is_instance_valid(_overlay) and _overlay.visible:
 		_overlay.refresh()

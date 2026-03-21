@@ -176,6 +176,7 @@ var _current_patrol_index: int = 0
 var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _patrol_stuck_timer: float = 0.0; var _patrol_stuck_last_position: Vector2 = Vector2.ZERO  ## #1119: patrol stuck detection
+var _patrol_snapped_target: Vector2 = Vector2.ZERO; var _patrol_snapped_index: int = -1  ## #1218: cached nav-snapped target per index
 const PATROL_STUCK_MAX_TIME: float = 1.5; const PATROL_STUCK_DISTANCE_THRESHOLD: float = 20.0  ## #1119: stuck thresholds
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
@@ -4052,15 +4053,19 @@ func _process_patrol(delta: float) -> void:
 		if _patrol_wait_timer >= patrol_wait_time:
 			_is_waiting_at_patrol_point = false; _patrol_wait_timer = 0.0
 			_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
+			_patrol_snapped_index = -1  # invalidate cache for new target
 		velocity = Vector2.ZERO; return
 	var target_point := _patrol_points[_current_patrol_index]
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
 		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
 	# Issue #1218: snap patrol target to nearest navigable point so wall-embedded offsets don't trap the enemy.
-	var nav_map := get_world_2d().navigation_map
-	var snapped_target := NavigationServer2D.map_get_closest_point(nav_map, target_point)
-	_nav_agent.target_position = snapped_target
+	# Cache the snapped result per patrol index to avoid calling map_get_closest_point every frame.
+	if _patrol_snapped_index != _current_patrol_index:
+		var nav_map := get_world_2d().navigation_map
+		_patrol_snapped_target = NavigationServer2D.map_get_closest_point(nav_map, target_point)
+		_patrol_snapped_index = _current_patrol_index
+	_nav_agent.target_position = _patrol_snapped_target
 	if _nav_agent.is_navigation_finished():
 		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return
 	var dir := (_nav_agent.get_next_path_position() - global_position).normalized()
@@ -4074,6 +4079,7 @@ func _process_patrol(delta: float) -> void:
 			# Issue #1218: advance to next patrol point instead of retrying blocked target.
 			_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 			_current_patrol_index = (_current_patrol_index + 1) % _patrol_points.size()
+			_patrol_snapped_index = -1  # invalidate cache so next index gets re-snapped
 			_is_waiting_at_patrol_point = false; velocity = Vector2.ZERO
 	else: _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position
 
@@ -4379,6 +4385,7 @@ func _reset() -> void:
 	_is_waiting_at_patrol_point = false
 	_patrol_wait_timer = 0.0
 	_patrol_stuck_timer = 0.0; _patrol_stuck_last_position = Vector2.ZERO
+	_patrol_snapped_index = -1; _patrol_snapped_target = Vector2.ZERO
 	_current_state = AIState.IDLE
 	_has_valid_cover = false
 	_under_fire = false

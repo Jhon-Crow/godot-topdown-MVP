@@ -309,6 +309,101 @@ This is a minor improvement; it won't route around corners, but reduces wall-hug
 
 ---
 
+---
+
+## Round 2 Analysis: Remaining Issues After Initial Fix (2026-03-21)
+
+### Logs Analyzed
+
+| Log File | Level | Key Findings |
+|---|---|---|
+| `game_log_20260320_235331.txt` | BuildingLevel | Enemy7/Enemy10 patrol stuck — old nav bake pattern |
+| `game_log_20260320_235426.txt` | BuildingLevel | Same stuck patterns — confirmed root cause |
+| `game_log_20260321_065153.txt` | LabyrinthLevel → BuildingLevel | Enemy10 stuck at (1200,1424), Enemy7 stuck; IDLE→PURSUING via memory |
+| `game_log_20260321_065417.txt` | LabyrinthLevel | Patrol corner check oscillation in Enemy3 |
+| `game_log_20260321_065842.txt` | LabyrinthLevel → BuildingLevel | **Enemy7 still stuck at (1611.806, 900); FPS: 2-3 fps; Enemy10 sees player on spawn** |
+
+Screenshot: `office2_stuck_screenshot.png` — two enemies in IDLE state visible near Office 2 top-left; red arrow indicates bottom-left stuck area.
+
+### New Root Cause A: Enemy7 Stuck at Table2 East Nav Boundary
+
+**Geometry analysis (BuildingLevel.tscn):**
+
+- `Table2` at (1550, 950), shape `cover_table` (80×80px):
+  - Physical bounds: x:[1510,1590], y:[910,990]
+  - With agent_radius=24: **nav exclusion x:[1486,1614], y:[886,1014]**
+- `Room4_WallTop` at (1576, 788), shape `interior_wall_h` (400×24px):
+  - Physical bounds: x:[1376,1776], y:[776,800]
+  - With agent_radius=24: **nav exclusion x:[1352,1800], y:[752,824]**
+- Enemy7 spawn (after previous fix): (1650, 900)
+- Patrol targets: (1800, 900) [east], (1450, 900) [west]
+
+**Why it gets stuck at x=1611:**
+
+Enemy7 at x=1650 is only 36px east of Table2's east nav exclusion (x=1614). The nav agent routes Enemy7 WEST first (to patrol target index 0 = spawn position), bringing it to x=1611 — just inside Table2's nav exclusion east boundary. The corridor between Table2 (x=1614) and spawn (x=1650) is only 36px, narrower than one agent body. The enemy gets pinned against the nav exclusion boundary and oscillates due to corner-check interference.
+
+Additionally, patrol target (1800, 900) sits at exactly x=1800 — the eastern nav exclusion boundary of Room4_WallTop (1776+24=1800). At this boundary, the snapped target is at the absolute edge of navigable space and the path may oscillate or round-trip.
+
+**Fix:** Move Enemy7 spawn **far east** to (2000, 900), well clear of Table2 and Room4_WallTop. Offsets (+200, 0)/(-200, 0) give targets (2200, 900) and (1800, 900) in the open Room5 corridor. Alternatively, patrol in a north-south direction within the wider open space.
+
+### New Root Cause B: FPS Drops (2-3 fps on BuildingLevel)
+
+**Evidence from `game_log_20260321_065842.txt`:**
+```
+[06:58:45] [WARN] [FPS] Drop detected: 1 fps
+[06:58:54] [WARN] [FPS] Drop detected: 3 fps
+[06:58:57] [WARN] [FPS] Drop detected: 3 fps
+[06:58:59] [WARN] [FPS] Drop detected: 3 fps
+... (repeating every 1-2 seconds throughout the session)
+```
+
+The user has `Nav mesh visible: true` in ExperimentalSettings. The `nav_mesh_monitor.gd` autoload:
+1. Connects `get_tree().node_added` to `_on_node_added` → fires for **every node** added during level loading
+2. `_on_node_added` calls `call_deferred("_deferred_refresh")` for every `NavigationRegion2D` found
+3. `_deferred_refresh()` calls `refresh()` which traverses the entire scene tree searching for nav regions
+
+With 10 enemies × ~15 child nodes each = ~150 `node_added` signals during BuildingLevel load. Each fires a `_deferred_refresh`. While deferred calls are coalesced somewhat, this still causes excessive refreshes.
+
+**During gameplay**: `map_get_closest_point()` is called **every frame** for every patrol enemy in `_process_patrol()`. With 2 patrol enemies at 60fps = 120 NavServer2D queries/second. This is not the main FPS culprit.
+
+**Primary FPS culprit**: The nav mesh polygon overlay (`_draw()` in `_NavMeshDrawNode`) runs every frame. After our `bake_navigation_polygon(false)` fix, the nav polygon is now a complex shape (walls subtracted from floor polygon) with many vertices. The custom `draw_polygon` + `draw_polyline` on a complex polygon with many points runs every frame.
+
+**Contributing factor**: The user has the nav mesh overlay enabled as a debug tool — this is expected to cause performance overhead. The fix is to either (a) optimize the overlay drawing, or (b) add a clear warning that nav mesh visible mode impacts FPS.
+
+**Additional factor**: The `source_geometry_mode = 0` (ROOT_NODE_CHILDREN) means baking must traverse the entire scene tree, which may cause a main-thread stall during `_ready()`. This causes the initial `1 fps` drop at load time.
+
+### New Root Cause C: Enemy10 Engages Player Immediately on Spawn
+
+**Evidence:**
+- Enemy10 spawns at (1200, 1550)
+- Player spawns at (450, 1250)
+- Distance: √((1200-450)² + (1550-1250)²) = √(562500+90000) ≈ 808px
+- Line 487: `[Enemy10] Player distracted - priority attack triggered` — immediately after spawn
+- This fires because Enemy10 has **line of sight** to the player across the main hall
+
+**Analysis:** The MainHall has walls:
+- `MainHall_WallTop` at (1200, 1388), x:[1000,1400], y:[1376,1400] — blocks y=1388 but not y=1400+
+- `MainHall_WallLeft` at (900, 1600), y:[1400,1800] — blocks x=900 area
+- `MainHall_WallRight` at (1500, 1600), y:[1400,1800] — blocks x=1500 area
+
+The hallway from y=1400 to y=1600 between x=900 and x=1500 is open. Player at (450,1250) and Enemy10 at (1200,1550): the line of sight passes through the corridor opening. Enemy10 spawns already alert because the player is visible from its spawn position.
+
+**This is NOT a code bug** — it's a level design issue. The player's entry position (450,1250) is within detection range of Enemy10's patrol spawn (1200,1550) with clear LoS. Fix: either move Enemy10 further east or add an occluding wall between the player spawn area and the main hall entrance.
+
+### New Root Cause D: map_get_closest_point Called Every Frame in Patrol Hot Path
+
+In `_process_patrol()` (line 4062):
+```gdscript
+var snapped_target := NavigationServer2D.map_get_closest_point(nav_map, target_point)
+_nav_agent.target_position = snapped_target
+```
+
+This issues a NavigationServer query every frame even when the target hasn't changed. The nav agent's `target_position` setter already validates and snaps internally. The additional `map_get_closest_point` call adds redundant work.
+
+**Fix:** Cache the snapped target and only re-snap when the patrol index changes.
+
+---
+
 ## References
 
 - [Godot docs: Using NavigationAgents](https://docs.godotengine.org/en/stable/tutorials/navigation/navigation_using_navigationagents.html)
