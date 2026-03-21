@@ -181,10 +181,42 @@ The PR (#1233) with the fix was posted as a DRAFT on 2026-03-21 and **not yet me
 
 ---
 
+## Second Game Log (2026-03-21 07:08)
+
+After the first analysis was posted in the PR, the repository owner provided a second log: `game_log_20260321_070804.txt`. This log was also from an **unpatched main-branch binary** (`Build info: not available (build_info.cfg not found)`).
+
+**Log file:** `docs/case-studies/issue-1228/game_log_20260321_070804.txt`
+
+### Key Findings from Second Log
+
+The second log is shorter (2,464 lines vs 7,391) and covers ~45 seconds of gameplay (07:08:04–07:08:49). The suppression pattern is identical to the first log:
+
+| Timestamp | Enemy | State Change | Context |
+|-----------|-------|--------------|---------|
+| 07:08:23 | Enemy1 | IN_COVER → SUPPRESSED | 0s after Enemy1 shot (own bullet) |
+| 07:08:26 | Enemy1 | SUPPRESSED → IN_COVER | — |
+| 07:08:27 | Enemy3 | IN_COVER → SUPPRESSED | Enemy4/Enemy3 shooting nearby |
+| 07:08:29 | Enemy1, Enemy2, Enemy7 | IN_COVER → SUPPRESSED | Multiple enemies firing simultaneously |
+| 07:08:31 | Enemy4 | IN_COVER → SUPPRESSED | Cascade continues |
+
+At 07:08:23, Enemy1 transitions RETREATING → IN_COVER and immediately → SUPPRESSED within the same second. At that moment, Enemy1 just fired (`Sound emitted: type=GUNSHOT, source=ENEMY (Enemy1)` at 07:08:23). This is the classic self-suppression bug — Enemy1 fires, its own bullet enters its own threat sphere, and it immediately goes SUPPRESSED.
+
+No `[#1228]` log messages appear in this log (those would only appear with the patched code from this PR), confirming the test was run on the unpatched binary.
+
+### Confirmation
+
+Both logs confirm the **same bug in the same unpatched main branch binary**. The fix in this PR (PR #1233) has not been merged and the owner's executable does not contain it. Once merged and a new binary is built, the `[#1228]` log lines will confirm the fix is active.
+
+The updated `_on_threat_area_entered` now also emits detailed `[#1228]` log lines for every bullet decision (rejected/accepted), making it easy to verify the fix in future game logs.
+
+---
+
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `scripts/objects/enemy.gd` | Fixed `_on_threat_area_entered` to use faction-aware check |
+| `scripts/objects/enemy.gd` | Fixed `_on_threat_area_entered` to use faction-aware check, added `[#1228]` diagnostic log lines |
 | `tests/unit/test_enemy_self_suppression_1228.gd` | New unit tests for the fix |
 | `docs/case-studies/issue-1228/case-study.md` | This document |
+| `docs/case-studies/issue-1228/game_log_20260321_064834.txt` | First game log (unpatched build) |
+| `docs/case-studies/issue-1228/game_log_20260321_070804.txt` | Second game log (unpatched build, confirms same bug) |
