@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://decadence_level_1035"]
+[gd_scene load_steps=31 format=3 uid="uid://decadence_level_1035"]
 
 [ext_resource type="Script" path="res://scripts/levels/decadence_level.gd" id="1_decadence_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -55,6 +55,15 @@ size = Vector2(200, 48)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_sofa"]
 size = Vector2(120, 48)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_table"]
+polygon = PackedVector2Array(-40, -40, 40, -40, 40, 40, -40, 40)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_bar"]
+polygon = PackedVector2Array(-100, -24, 100, -24, 100, 24, -100, 24)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_cover_sofa"]
+polygon = PackedVector2Array(-60, -24, 60, -24, 60, 24, -60, 24)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_h"]
 polygon = PackedVector2Array(-1232, -16, 1232, -16, 1232, 16, -1232, 16)
@@ -289,6 +298,14 @@ shadow_enabled = true
 
 [node name="GlowLight_DanceNeon1_2" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
 position = Vector2(1175, 403)
+color = Color(1.0, 0.1, 0.6, 1)
+energy = 1.4
+texture = SubResource("GradientTexture2D_neon_pink")
+texture_scale = 8.0
+shadow_enabled = true
+
+[node name="GlowLight_DanceNeon1_3" type="PointLight2D" parent="Environment/NeonAccents/DanceFloorNeon1"]
+position = Vector2(950, 403)
 color = Color(1.0, 0.1, 0.6, 1)
 energy = 1.4
 texture = SubResource("GradientTexture2D_neon_pink")
@@ -617,6 +634,9 @@ color = Color(0.4, 0.15, 0.1, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/BarCounter"]
 shape = SubResource("RectangleShape2D_cover_bar")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/BarCounter"]
+occluder = SubResource("OccluderPolygon2D_cover_bar")
+
 [node name="BarTable1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1600, 480)
 collision_layer = 4
@@ -631,6 +651,9 @@ color = Color(0.3, 0.1, 0.15, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/BarTable1"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/BarTable1"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="BarTable2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2100, 480)
@@ -647,6 +670,9 @@ color = Color(0.3, 0.1, 0.15, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/BarTable2"]
 shape = SubResource("RectangleShape2D_cover_table")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/BarTable2"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
+
 [node name="VIPSofa1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(200, 300)
 collision_layer = 4
@@ -661,6 +687,9 @@ color = Color(0.5, 0.05, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/VIPSofa1"]
 shape = SubResource("RectangleShape2D_cover_sofa")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/VIPSofa1"]
+occluder = SubResource("OccluderPolygon2D_cover_sofa")
 
 [node name="VIPSofa2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(350, 500)
@@ -677,6 +706,9 @@ color = Color(0.5, 0.05, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/VIPSofa2"]
 shape = SubResource("RectangleShape2D_cover_sofa")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/VIPSofa2"]
+occluder = SubResource("OccluderPolygon2D_cover_sofa")
+
 [node name="DanceTable1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(700, 700)
 collision_layer = 4
@@ -691,6 +723,9 @@ color = Color(0.2, 0.05, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/DanceTable1"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/DanceTable1"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="DanceTable2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1200, 900)
@@ -707,6 +742,9 @@ color = Color(0.2, 0.05, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/DanceTable2"]
 shape = SubResource("RectangleShape2D_cover_table")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/DanceTable2"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
+
 [node name="DanceTable3" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(700, 1050)
 collision_layer = 4
@@ -721,6 +759,9 @@ color = Color(0.2, 0.05, 0.3, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/DanceTable3"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/DanceTable3"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="StorageCrate1" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(1650, 1500)
@@ -737,6 +778,9 @@ color = Color(0.3, 0.2, 0.1, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/StorageCrate1"]
 shape = SubResource("RectangleShape2D_cover_table")
 
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/StorageCrate1"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
+
 [node name="StorageCrate2" type="StaticBody2D" parent="Environment/Cover"]
 position = Vector2(2200, 1700)
 collision_layer = 4
@@ -751,6 +795,9 @@ color = Color(0.3, 0.2, 0.1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/StorageCrate2"]
 shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/StorageCrate2"]
+occluder = SubResource("OccluderPolygon2D_cover_table")
 
 [node name="AreaLabels" type="Node2D" parent="Environment"]
 
