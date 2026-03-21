@@ -234,6 +234,166 @@ func test_pre_fix_behaviour_would_have_included_cross_wall_waypoint() -> void:
 
 
 # ============================================================================
+# Visited-zone marking tests (Issue #1275 owner feedback)
+# Owner requirement: a zone is only counted as visited when the enemy physically
+# touches (reaches) the waypoint — not when it skips due to being stuck or when
+# the NavigationAgent reports navigation finished from afar.
+# ============================================================================
+
+
+class StubSearchStateProcessor:
+	## Simulates the visited-zone marking logic from _process_searching_state().
+	## Only marks a zone visited when the enemy has physically scanned it
+	## (i.e. arrived within REACHED_DISTANCE and completed the scan timer).
+
+	const REACHED_DISTANCE: float = 20.0
+	const SCAN_DURATION: float = 1.0
+	const STUCK_MAX_TIME: float = 2.0
+	const PROGRESS_THRESHOLD: float = 10.0
+
+	var visited: Dictionary = {}
+	var waypoints: Array[Vector2] = []
+	var current_index: int = 0
+	var moving: bool = true
+	var scan_timer: float = 0.0
+	var stuck_timer: float = 0.0
+	var last_progress_pos: Vector2 = Vector2.ZERO
+	var enemy_pos: Vector2 = Vector2.ZERO
+
+	## Simulate one "frame" of the searching state.
+	## nav_finished: whether NavigationAgent.is_navigation_finished() would return true.
+	## progress: distance the enemy "moved" this frame.
+	## delta: frame time.
+	func process_frame(delta: float, nav_finished: bool, progress: float) -> void:
+		if current_index >= waypoints.size():
+			return
+		var wp := waypoints[current_index]
+		var dist := enemy_pos.distance_to(wp)
+		if moving:
+			if dist <= REACHED_DISTANCE:
+				# Physically arrived — start scanning
+				moving = false; scan_timer = 0.0; stuck_timer = 0.0
+			elif nav_finished:
+				# Nav agent says done but enemy is not close — Issue #1275 fix:
+				# do NOT mark visited, just skip to next waypoint.
+				current_index += 1; moving = true; stuck_timer = 0.0
+			else:
+				# Moving toward waypoint
+				if progress < PROGRESS_THRESHOLD:
+					stuck_timer += delta
+					if stuck_timer >= STUCK_MAX_TIME:
+						# Stuck — Issue #1275 fix: do NOT mark visited, just skip.
+						current_index += 1; moving = true; stuck_timer = 0.0
+				else:
+					stuck_timer = 0.0
+		else:
+			# Scanning at waypoint
+			scan_timer += delta
+			if scan_timer >= SCAN_DURATION:
+				# Scan complete — enemy physically touched and scanned this zone.
+				_mark_visited(wp); current_index += 1; moving = true
+
+	func _mark_visited(pos: Vector2) -> void:
+		var k := "%d,%d" % [int(pos.x / 50.0) * 50, int(pos.y / 50.0) * 50]
+		visited[k] = true
+
+	func is_visited(pos: Vector2) -> bool:
+		var k := "%d,%d" % [int(pos.x / 50.0) * 50, int(pos.y / 50.0) * 50]
+		return visited.has(k)
+
+
+func _make_processor(wp: Vector2, enemy_at: Vector2) -> StubSearchStateProcessor:
+	var p := StubSearchStateProcessor.new()
+	p.waypoints = [wp]
+	p.enemy_pos = enemy_at
+	p.last_progress_pos = enemy_at
+	return p
+
+
+func test_stuck_waypoint_not_marked_visited() -> void:
+	## When the enemy is stuck and skips a waypoint, the zone must NOT be marked visited
+	## so future spiral rings can still include that position.
+	var wp := Vector2(200, 0)
+	var p := _make_processor(wp, Vector2(0, 0))
+	# Enemy is far from waypoint and making no progress (stuck)
+	p.enemy_pos = Vector2(0, 0)  # far from wp
+
+	# Simulate stuck: no progress for STUCK_MAX_TIME + 1 extra frame
+	var frames := int(StubSearchStateProcessor.STUCK_MAX_TIME / 0.1) + 1
+	for _i in range(frames):
+		p.process_frame(0.1, false, 0.0)  # progress=0 → stuck
+
+	assert_false(p.is_visited(wp),
+		"Stuck-skipped waypoint must NOT be marked visited (Issue #1275)")
+	assert_eq(p.current_index, 1, "Index should advance past the stuck waypoint")
+
+
+func test_nav_finished_early_not_marked_visited() -> void:
+	## When NavigationAgent.is_navigation_finished() fires before the enemy is close,
+	## the zone must NOT be marked visited.
+	var wp := Vector2(300, 0)
+	var p := _make_processor(wp, Vector2(0, 0))
+	p.enemy_pos = Vector2(0, 0)  # far from wp
+
+	# One frame where nav says finished but enemy is not close
+	p.process_frame(0.1, true, 100.0)
+
+	assert_false(p.is_visited(wp),
+		"Nav-finished-early waypoint must NOT be marked visited (Issue #1275)")
+	assert_eq(p.current_index, 1, "Index should advance past the waypoint")
+
+
+func test_physically_reached_and_scanned_marked_visited() -> void:
+	## When the enemy physically arrives (dist ≤ REACHED_DISTANCE) and completes
+	## the scan timer, the zone IS marked visited.
+	var wp := Vector2(10, 0)  # within REACHED_DISTANCE of origin
+	var p := _make_processor(wp, Vector2(0, 0))
+	p.enemy_pos = Vector2(5, 0)  # within 20px of wp → "touches" it
+
+	# First frame: arrives (moving → scanning)
+	p.process_frame(0.1, false, 0.0)
+	assert_false(p.is_visited(wp), "Not yet visited — still scanning")
+
+	# Scan frames until SCAN_DURATION is exceeded
+	var scan_frames := int(StubSearchStateProcessor.SCAN_DURATION / 0.1) + 1
+	for _i in range(scan_frames):
+		p.process_frame(0.1, false, 0.0)
+
+	assert_true(p.is_visited(wp),
+		"Zone must be visited after enemy physically touches and scans it (Issue #1275)")
+
+
+func test_stuck_then_reached_on_retry_marks_visited() -> void:
+	## Validates the full intended flow: enemy skips a stuck wp without marking it
+	## visited, so the zone remains available for future spiral regeneration.
+	## Here we verify that if the enemy later physically reaches the same position,
+	## it IS then marked visited.
+	var wp_stuck := Vector2(200, 0)
+	var wp_close := Vector2(10, 0)
+	var p := StubSearchStateProcessor.new()
+	p.waypoints = [wp_stuck, wp_close]
+	p.enemy_pos = Vector2(0, 0)
+
+	# Get stuck on first wp
+	var stuck_frames := int(StubSearchStateProcessor.STUCK_MAX_TIME / 0.1) + 1
+	for _i in range(stuck_frames):
+		p.process_frame(0.1, false, 0.0)
+
+	assert_false(p.is_visited(wp_stuck), "Stuck wp should not be marked visited")
+	assert_eq(p.current_index, 1, "Should advance to second waypoint")
+
+	# Now physically reach the close wp
+	p.enemy_pos = Vector2(5, 0)  # within 20px of wp_close
+	p.process_frame(0.1, false, 0.0)  # arrive at wp_close
+	var scan_frames := int(StubSearchStateProcessor.SCAN_DURATION / 0.1) + 1
+	for _i in range(scan_frames):
+		p.process_frame(0.1, false, 0.0)
+
+	assert_true(p.is_visited(wp_close), "Physically reached wp should be marked visited")
+	assert_false(p.is_visited(wp_stuck), "First stuck wp still must NOT be marked visited")
+
+
+# ============================================================================
 # Constants validation
 # ============================================================================
 

@@ -2354,7 +2354,9 @@ func _process_searching_state(delta: float) -> void:
 		else:
 			_nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
-				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+				# Issue #1275: Do not mark visited — enemy didn't physically touch the waypoint.
+				# Skip to next waypoint without marking as visited so future spiral rings can still include this zone.
+				_search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
@@ -2366,7 +2368,9 @@ func _process_searching_state(delta: float) -> void:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
 						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
-						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+						# Issue #1275: Do not mark visited — enemy was stuck and never touched the waypoint.
+						# Skipping without marking visited so the zone can be reconsidered later.
+						_search_current_waypoint_index += 1
 						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 						_search_last_progress_position = global_position; return
 				else:

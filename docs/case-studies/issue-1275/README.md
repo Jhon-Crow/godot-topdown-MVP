@@ -132,6 +132,93 @@ on the nav mesh (so the spiral doesn't cross walls on the spiral-tracking level 
 
 ---
 
+## Follow-up: Second Root Cause Found (PR #1276 owner feedback)
+
+After PR #1276 was opened, the repository owner tested the fix and reported:
+
+> "enemies still go towards walls during searching — a zone should only be counted as
+> visited when the enemy model actually touches it."
+
+**Game log:** `game_log_20260321_143638.txt` (attached in this folder).
+
+Key excerpt from the log showing the problem:
+```
+[14:37:13] [ENEMY] [Enemy1] SEARCHING: Stuck at wp 0, skipping
+[14:37:15] [ENEMY] [Enemy1] SEARCHING: Stuck at wp 1, skipping
+...
+[14:37:18] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=175 wps=4
+```
+
+Enemies repeatedly get stuck at waypoints and skip them. Because the old code called
+`_mark_zone_visited(target_waypoint)` **even when skipping due to stuck** (Issue #354 code)
+and **even when `NavigationAgent.is_navigation_finished()` fired prematurely** (enemy not close
+to the waypoint), zones were being incorrectly marked as visited. This caused:
+
+1. Zones near walls that the nav agent couldn't reach precisely were marked visited.
+2. Those zones were excluded from future spiral ring generation.
+3. The spiral kept expanding outward without revisiting the unreachable-but-nearby zones.
+4. Enemies walked toward wall-adjacent waypoints they couldn't actually reach.
+
+### Second Root Cause
+
+In `_process_searching_state()` (`scripts/objects/enemy.gd`):
+
+```gdscript
+# OLD (broken): marks visited even when enemy never touched the waypoint
+if _nav_agent.is_navigation_finished():
+    _mark_zone_visited(target_waypoint)  # ← wrong: nav finished ≠ enemy arrived
+    _search_current_waypoint_index += 1; ...
+
+if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:
+    _mark_zone_visited(target_waypoint)  # ← wrong: stuck ≠ enemy arrived
+    _search_current_waypoint_index += 1; ...
+```
+
+### Second Fix
+
+Remove `_mark_zone_visited()` from the stuck-skip path and the nav-finished-prematurely path.
+A zone is marked visited **only** after the enemy physically arrives (distance ≤ 20 px)
+and completes the scan timer:
+
+```gdscript
+# NEW (correct): only mark visited after physical arrival + scan
+if _nav_agent.is_navigation_finished():
+    # Skip without marking visited — nav done ≠ physically touched
+    _search_current_waypoint_index += 1; ...
+
+if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:
+    # Skip without marking visited — stuck ≠ physically touched
+    _search_current_waypoint_index += 1; ...
+
+# ... later, after scan completes (enemy WAS close enough to start scanning):
+if _search_scan_timer >= SEARCH_SCAN_DURATION:
+    _mark_zone_visited(target_waypoint)  # ← correct: enemy physically scanned the zone
+```
+
+This matches the owner's stated requirement: **a point is visited only when the enemy
+model touches it.**
+
+---
+
+## Files Changed (complete)
+
+- `scripts/objects/enemy.gd`:
+  - Added `_is_path_navigable(from_pos, to_pos)` helper (beside `_is_waypoint_navigable`)
+  - Modified `_generate_search_waypoints()` to validate path connectivity per waypoint
+  - Ensured `current_pos` advance in spiral only moves to nav-mesh points
+  - Fixed `_process_searching_state()`: removed `_mark_zone_visited()` from stuck-skip
+    and nav-finished-prematurely paths (Issue #1275 owner feedback)
+
+- `tests/unit/test_search_path_wall_awareness.gd`:
+  - Unit tests for path-connectivity filtering (original fix)
+  - Unit tests for visited-zone marking logic: stuck skip, nav-finished-early, and
+    physical-arrival scenarios (second fix)
+
+- `docs/case-studies/issue-1275/game_log_20260321_143638.txt`:
+  - Game log from owner's test session showing enemies stuck during SEARCHING
+
+---
+
 ## References
 
 - Godot 4 NavigationServer2D docs: `map_get_path` returns `PackedVector2Array`
