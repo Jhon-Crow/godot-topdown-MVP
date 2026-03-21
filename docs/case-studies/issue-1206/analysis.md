@@ -150,5 +150,62 @@ Each of the 6 `_create_room_warm_light()` calls created fresh `ImageTexture` obj
 ## Files Changed
 
 - `scripts/levels/building_level.gd` — Added `_setup_room_warm_lights()`, `_create_room_warm_light()`, `_get_warm_light_texture()`, `_get_lamp_fixture_texture()` and a call in `_ready()`.
+- `Scripts/Components/LevelInitFallback.cs` — Added `SetupRoomWarmLights()`, `CreateRoomWarmLight()`, `CreateWarmLightTexture()`, `CreateLampFixtureTexture()` to handle the fallback path (Session 3 fix).
 - `docs/case-studies/issue-1206/game_log_20260320_103853.txt` — Game runtime log captured before warm lights were added (no warm-light entries; baseline reference).
+- `docs/case-studies/issue-1206/logs/game_log_20260321_140325.txt` — Game log showing lights completely absent (GDScript fallback path active).
 - `docs/case-studies/issue-1206/analysis.md` — This document.
+
+---
+
+## Incident: Lights Completely Disappear (2026-03-21T14:03)
+
+### Timeline
+
+| Time | Event |
+|------|-------|
+| 2026-03-20T07:42 | Session 1: Warm ceiling lights implemented in GDScript `building_level.gd` |
+| 2026-03-20T20:43 | Session 1: Performance drop reported; shadows disabled, GradientTexture2D used |
+| 2026-03-21T10:54 | Session 2: Office 2 light spread fixed (shadow_enabled=false), menu buttons fixed (merge main) |
+| 2026-03-21T14:03 | **User reports lights have completely disappeared** |
+
+### Root Cause: GDScript `_ready()` Silently Fails in Exported Build
+
+The game log at `14:03:30` contains this critical entry:
+
+```
+[LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+```
+
+This is caused by the **Godot 4.3 binary tokenization bug** ([godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150), [#96065](https://github.com/godotengine/godot/issues/96065)):
+
+- When Godot exports a project, GDScript files are compiled to binary tokens by default (`script_export_mode=2`).
+- In Godot 4.3, the binary tokenizer can silently corrupt certain GDScript constructs, causing `_ready()` to fail without any error message.
+- The game has a C# fallback (`LevelInitFallback.cs`) that detects when GDScript `_ready()` didn't run and re-performs critical gameplay initialization (enemy tracking, score, replay, etc.).
+- **However, `LevelInitFallback.cs` did not include the warm ceiling lights setup** — only the gameplay-critical code was replicated.
+
+### Evidence from Game Log
+
+The expected log entry `[BuildingLevel] Warm ceiling lights placed in all rooms (Issue #1206)` is **completely absent** from the Session 3 log. All other initialization (enemy tracking, score, replay) was handled by `LevelInitFallback`.
+
+The `ExperimentalSettings` log shows `Realistic visibility: false` — this means `CanvasModulate` darkening was NOT applied in this session, so even the existing window moonlight effects may have been less visible.
+
+### Fix Applied (Session 3 — 2026-03-21)
+
+Added `SetupRoomWarmLights()` and helper methods to `LevelInitFallback.cs`, mirroring the GDScript implementation exactly:
+
+| Method | GDScript equivalent |
+|--------|---------------------|
+| `SetupRoomWarmLights()` | `_setup_room_warm_lights()` |
+| `CreateRoomWarmLight()` | `_create_room_warm_light()` |
+| `CreateWarmLightTexture()` | `_create_warm_light_texture()` |
+| `CreateLampFixtureTexture()` | `_create_lamp_fixture_texture()` |
+
+The same room positions, energy values, scales, and shadow settings are used. Textures are generated once and reused for all 6 rooms (same caching strategy as the GDScript version).
+
+**Guard clause added**: If `Environment/RoomLights` already exists (meaning GDScript ran normally), the fallback skips light creation to prevent duplicates.
+
+### Why the Fallback Pattern Exists
+
+The `LevelInitFallback.cs` component was introduced as a mitigation for the Godot 4.3 binary tokenization bug that caused GDScript autoloads and level scripts to silently fail. See:
+- `docs/case-studies/issue-416/README.md` — Full investigation of the binary tokenization bug
+- `docs/case-studies/issue-486/README.md` — ReplayManager C# rewrite (same root cause)
