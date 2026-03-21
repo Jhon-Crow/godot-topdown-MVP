@@ -99,10 +99,10 @@ var nav_mesh_visible_enabled: bool = false
 var passage_waypoints_visible_enabled: bool = false
 
 ## Whether passage waypoints are used for enemy navigation (Issue #1267).
-## When enabled (default), enemies use pre-placed passage waypoints to guide navigation
+## When enabled, enemies use pre-placed passage waypoints to guide navigation
 ## through narrow doorways and corridors on the Building map.
-## When disabled, enemies fall back to the previous cover-seeking behavior without waypoints.
-var passage_waypoints_enabled: bool = true
+## When disabled (default), enemies fall back to the previous cover-seeking behavior without waypoints.
+var passage_waypoints_enabled: bool = false
 
 ## Whether the sound propagation visualizer is enabled (Issue #1253).
 ## When enabled, animated circles are drawn at each sound emission point showing
@@ -443,7 +443,7 @@ func _load_settings() -> void:
 		global_stuck_max_time = config.get_value("experimental", "global_stuck_max_time", 20.0)
 		nav_mesh_visible_enabled = config.get_value("experimental", "nav_mesh_visible_enabled", false)
 		passage_waypoints_visible_enabled = config.get_value("experimental", "passage_waypoints_visible_enabled", false)
-		passage_waypoints_enabled = config.get_value("experimental", "passage_waypoints_enabled", true)
+		passage_waypoints_enabled = config.get_value("experimental", "passage_waypoints_enabled", false)
 		sound_visualizer_enabled = config.get_value("experimental", "sound_visualizer_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
@@ -464,7 +464,7 @@ func _load_settings() -> void:
 		global_stuck_max_time = 20.0
 		nav_mesh_visible_enabled = false
 		passage_waypoints_visible_enabled = false
-		passage_waypoints_enabled = true
+		passage_waypoints_enabled = false
 		sound_visualizer_enabled = false
 
 
