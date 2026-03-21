@@ -92,6 +92,61 @@ The enemy AI queries this component when entering combat states. If a pre-define
 
 ---
 
+## Post-Implementation Bug: Enemy Stuck in Lower-Left Corner of Office 2
+
+### Evidence
+
+**Game log:** `game_log_20260321_071457.txt` (collected 2026-03-21)
+**Screenshot:** `office2_stuck_screenshot.png` — multiple enemies clustered in the lower-left corner of Office 2
+
+Key log entry:
+```
+[07:15:39] [ENEMY] [Enemy4] GLOBAL STUCK: pos=(556.7175, 975.9302) for 20.0s without player contact, State: PURSUING -> SEARCHING
+```
+
+Note: No `[CombatPathComponent]` log line appears in the game log, meaning the tested binary predates the CombatPathComponent addition.
+
+### Root Cause Analysis
+
+**Office 2 (Room2) geometry (from BuildingLevel.tscn):**
+- Boundaries: x=524–912, y=712–1000
+- Left wall: `Room2_WallLeft` at x=512, covering y=800–1000
+- Bottom wall: `Room2_WallBottom` at y=1012, covering x=512–912
+- Doorway (gap in left wall): x≈512, y=700–800
+- Player typical position: (450, 910) — open corridor left of Office 2
+
+**Stuck scenario reconstruction:**
+1. Enemy4 spawns at (800, 900), enters PURSUING state
+2. Enemy4 navigates into the lower-left corner: pos=(556, 975)
+3. Player is at (450, 910): distance from enemy = **124px**
+4. `get_nearest_attacking_waypoint` checks all attacking waypoints:
+   - `Security_AttackEntrance` (560, 730): 211px from player — **farther than enemy** (124px) → rejected
+   - `Security_AttackCenter` (720, 860): 275px from player → rejected
+   - All other waypoints: even farther → rejected
+5. Function returns `Vector2.ZERO` → fallback raycast logic runs
+6. Raycast cover-search finds wall positions in the same corner → enemy cycles between corner positions → **GLOBAL STUCK at 20s**
+
+**Root cause (two layers):**
+1. **Waypoint coverage gap**: No waypoints exist in the lower-south area of Office 2 or in the doorway exit area. When the player approaches from outside, enemies in the deep corner of the room cannot find any waypoint that is "closer to the player than the enemy already is."
+2. **Waypoint scoring logic too strict**: `get_nearest_attacking_waypoint` requires a waypoint to be strictly closer to the target than the enemy. When the enemy is very close to the player (cornered scenario), all relevant waypoints in the room are farther from the player, returning `Vector2.ZERO` and triggering the broken raycast fallback.
+
+### Fix Applied
+
+**1. New waypoints in `BuildingLevel.tscn` (AttackingPaths):**
+- `Office2_ExitDoor` at (440, 760): Just outside the Office 2 doorway gap — gives enemies a navigation anchor to exit the room
+- `Office2_AttackApproach` at (460, 870): Open corridor south-left of Office 2 — intermediate position between doorway and player
+- `Security_AttackSouthWest` at (620, 940): South-west area inside Office 2 — draws enemies stuck in that corner toward the center of the room
+
+**2. Scoring fallback in `combat_path_component.gd`:**
+Changed `get_nearest_attacking_waypoint` to track the raw-nearest waypoint as a fallback. When no "progress waypoint" (closer to target than enemy) exists, return the nearest waypoint instead of `Vector2.ZERO`. This ensures enemies in corners always have a waypoint to navigate toward, breaking the corner cycle.
+
+**Corrected pursuit path for stuck scenario:**
+1. Enemy at (556, 975): nearest fallback → `Security_AttackSouthWest` (620, 940), dist≈67px. Enemy moves there.
+2. Enemy at (620, 940): player at (450, 910), dist≈172px. Now `Office2_AttackApproach` (460, 870) is 166px from player — **progress waypoint found**! Enemy navigates toward doorway exit.
+3. Enemy at (460, 870): player at (450, 910), dist≈41px. Enemy directly engages.
+
+---
+
 ## Map Layout: BuildingLevel
 
 The BuildingLevel is ~2400×2000 pixels with the following rooms (from the .tscn):

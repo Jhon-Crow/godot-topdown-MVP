@@ -63,6 +63,10 @@ func _collect_markers_from(node: Node, out: Array[Vector2]) -> void:
 ## Return the nearest attacking waypoint that makes progress toward [toward_pos].
 ## [from_pos] is the enemy's current position.
 ## Returns Vector2.ZERO if no suitable waypoint exists.
+##
+## When no waypoint is strictly closer to the target than the enemy (enemy already
+## very close, or cornered near the target), falls back to the nearest waypoint by
+## raw distance so the enemy can use it as a navigation anchor to escape corners.
 func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> Vector2:
 	if _attacking_waypoints.is_empty():
 		return Vector2.ZERO
@@ -70,15 +74,22 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 	var my_dist_to_target := from_pos.distance_to(toward_pos)
 	var best := Vector2.ZERO
 	var best_score := -INF
+	# Fallback: closest waypoint by raw distance (used when no progress waypoint found)
+	var nearest_fallback := Vector2.ZERO
+	var nearest_fallback_dist := INF
 
 	for wp in _attacking_waypoints:
-		var wp_dist_to_target := wp.distance_to(toward_pos)
-		# Only consider waypoints that bring us closer to the target
-		if wp_dist_to_target >= my_dist_to_target:
-			continue
 		var dist_from_me := from_pos.distance_to(wp)
 		# Skip waypoints that are essentially where we already are
 		if dist_from_me < 20.0:
+			continue
+		# Track the raw-nearest waypoint as a fallback
+		if dist_from_me < nearest_fallback_dist:
+			nearest_fallback_dist = dist_from_me
+			nearest_fallback = wp
+		var wp_dist_to_target := wp.distance_to(toward_pos)
+		# Only score waypoints that bring us closer to the target
+		if wp_dist_to_target >= my_dist_to_target:
 			continue
 		# Score: progress toward target, penalise distance from current position
 		var progress := my_dist_to_target - wp_dist_to_target
@@ -87,6 +98,9 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 			best_score = score
 			best = wp
 
+	# If no progress waypoint found, use the nearest one as a corner-escape anchor
+	if best == Vector2.ZERO:
+		return nearest_fallback
 	return best
 
 
