@@ -68,10 +68,11 @@ script = ExtResource("1_docks_level")
 script = ExtResource("5_fallback")
 
 [node name="SunLight" type="DirectionalLight2D" parent="."]
-position = Vector2(2564, -500)
+position = Vector2(4000, -500)
+rotation = 0.3
 color = Color(0.7, 0.8, 1, 1)
 energy = 0.7
-height = 0.0
+height = 0.5
 shadow_enabled = true
 shadow_color = Color(0, 0, 0, 0.85)
 shadow_filter = 1
