@@ -228,7 +228,6 @@ var _pursuit_cover_wait_timer: float = 0.0  ## Cover wait timer (Pursuit State)
 const PURSUIT_COVER_WAIT_DURATION: float = 1.5  ## Wait at cover (sec)
 var _pursuit_next_cover: Vector2 = Vector2.ZERO  ## Next cover position
 var _has_pursuit_cover: bool = false  ## Has valid pursuit cover
-var _passage_waypoints: Array[Vector2] = []  ## [#1226] Passage waypoints provided by the level for cross-room routing
 var _current_cover_obstacle: Object = null  ## Current cover obstacle
 var _pursuit_approaching: bool = false  ## Approaching with no cover
 var _pursuit_approach_timer: float = 0.0  ## Approach phase timer
@@ -3210,34 +3209,13 @@ func _find_pursuit_cover_toward_player() -> void:
 		_current_cover_obstacle = best_obstacle
 		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
 	else:
-		# [#1226] No cover found via raycasts — fall back to nearest passage waypoint that
-		# brings us closer to the player. This guarantees cross-room routing through doorways.
 		_has_pursuit_cover = false
-		if not _passage_waypoints.is_empty():
-			var best_waypoint: Vector2 = Vector2.ZERO
-			var best_waypoint_dist: float = INF
-			for wp in _passage_waypoints:
-				var wp_dist_to_player := wp.distance_to(player_pos)
-				# Only consider waypoints that are closer to the player than we currently are
-				if wp_dist_to_player >= my_distance_to_player:
-					continue
-				var wp_dist_from_me := global_position.distance_to(wp)
-				# Skip waypoints that are too close (already standing in this passage)
-				if wp_dist_from_me < 50.0:
-					continue
-				# Pick the waypoint closest to us that still makes progress toward the player
-				if wp_dist_from_me < best_waypoint_dist:
-					best_waypoint_dist = wp_dist_from_me
-					best_waypoint = wp
-			if best_waypoint != Vector2.ZERO:
-				_pursuit_next_cover = best_waypoint
-				_has_pursuit_cover = true
-				_log_debug("[#1226] No cover found, routing through passage waypoint at %s" % best_waypoint)
-
-## Register passage waypoints for cross-room navigation routing (Issue #1226).
-## Called by the level script after scene setup to provide doorway anchor positions.
-func set_passage_waypoints(waypoints: Array[Vector2]) -> void:
-	_passage_waypoints = waypoints
+		var best_wp := Vector2.ZERO; var best_d := INF
+		for wp in get_tree().get_nodes_in_group("passage_waypoints"):
+			var d := global_position.distance_to(wp.global_position)
+			if wp.global_position.distance_to(player_pos) < my_distance_to_player and d >= 50.0 and d < best_d:
+				best_d = d; best_wp = wp.global_position
+		if best_wp != Vector2.ZERO: _pursuit_next_cover = best_wp; _has_pursuit_cover = true
 
 ## Check if there's a clear path to a position (no walls blocking).
 func _can_reach_position(target: Vector2) -> bool:
