@@ -285,3 +285,4 @@ confirms Godot is streaming the level in the background on the same thread.
 - Issue #949 — M16/AK+GL should have 2 magazines on Building level
 - Issue #1067 — Auto-reload passive item and `ApplyAutoReloadAfterLevelAmmoConfig`
 - Issue #1196 — `died_with_info` signal gained 3rd param `is_player_kill` (triggered combo bug in C# fallback)
+- Issue #1050 — Armory button gold highlight should be removed after all unlocks are claimed (fix ported to C# fallback)

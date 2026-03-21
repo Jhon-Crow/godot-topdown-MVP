@@ -967,8 +967,41 @@ public partial class LevelInitFallback : Node
             armoryMenu.Set("layer", 100);
             armoryMenu.Set("opened_from_score_screen", true);
             GetTree()?.Root.AddChild(armoryMenu);
+            // Issue #1050: Remove gold highlight from armory button if all available items
+            // have been unlocked — matches _remove_armory_button_gold_style() in GDScript levels.
             if (armoryMenu.HasSignal("back_pressed"))
-                armoryMenu.Connect("back_pressed", Callable.From(() => armoryMenu.QueueFree()));
+                armoryMenu.Connect("back_pressed", Callable.From(() =>
+                {
+                    armoryMenu.QueueFree();
+                    RemoveArmoryButtonGoldStyle();
+                }));
+            if (armoryMenu.HasSignal("apply_pressed_from_score_screen"))
+                armoryMenu.Connect("apply_pressed_from_score_screen", Callable.From(() =>
+                    RemoveArmoryButtonGoldStyle()));
+        }
+    }
+
+    /// <summary>
+    /// Remove the gold highlight from the ArmoryButton when no items remain to unlock.
+    /// The button stays visible but loses its gold styling and reverts to plain "Armory" text.
+    /// Matches _remove_armory_button_gold_style() in GDScript level scripts (Issue #1050).
+    /// </summary>
+    private void RemoveArmoryButtonGoldStyle()
+    {
+        var unlockManager = GetNodeOrNull("/root/UnlockManager");
+        bool hasAvailableUnlock = unlockManager != null
+            && unlockManager.HasMethod("has_any_available_unlock")
+            && unlockManager.Call("has_any_available_unlock").AsBool();
+        if (hasAvailableUnlock)
+            return; // Still items to unlock — keep the highlight
+
+        var currentScene = GetTree()?.CurrentScene;
+        var armoryBtn = currentScene?.FindChild("ArmoryButton", true, false) as Button;
+        if (armoryBtn != null)
+        {
+            armoryBtn.Text = "Armory";
+            armoryBtn.RemoveThemeColorOverride("font_color");
+            armoryBtn.RemoveThemeStyleboxOverride("normal");
         }
     }
 
