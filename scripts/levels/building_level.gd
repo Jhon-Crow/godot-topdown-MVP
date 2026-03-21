@@ -549,6 +549,9 @@ func _setup_player_tracking() -> void:
 	if _player == null:
 		return
 
+	# Find the ammo label early so _apply_building_ammo_config can update it (Issue #1259)
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
+
 	# Setup realistic visibility component (Issue #540)
 	_setup_realistic_visibility()
 
@@ -558,9 +561,6 @@ func _setup_player_tracking() -> void:
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
-
-	# Find the ammo label
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
 	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
