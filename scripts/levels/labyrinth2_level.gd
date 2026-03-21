@@ -6,7 +6,7 @@ extends Node2D
 ## making navigation more maze-like and challenging.
 ## Features:
 ## - Larger labyrinth layout (~3200x2400 pixels) for more exploration
-## - 15 enemies distributed across many rooms (more than BuildingLevel), including a machine gunner
+## - 17 enemies distributed across many rooms (more than BuildingLevel), including a machine gunner and 2 invisible searching enemies (Issue #1121)
 ## - More rooms with narrower corridors for a true labyrinth feel
 ## - Score tracking with Hotline Miami style ranking system
 
@@ -355,6 +355,10 @@ func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+	# Issue #959: Re-check level completion when a retaliating pacifist finishes retaliation.
+	if _current_enemy_count <= 0 and not _level_cleared and not _has_retaliating_pacifists():
+		_level_cleared = true
+		_activate_exit_zone()
 
 
 ## Called when combo changes.
@@ -421,6 +425,9 @@ func _setup_enemy_tracking() -> void:
 		if enemy.has_signal("died"):
 			enemy.died.connect(_on_enemy_died)
 			_enemies.append(enemy)
+		# Issue #959: Connect to pacifist signal - pacifists count as eliminated for level completion
+		if enemy.has_signal("became_pacifist"):
+			enemy.became_pacifist.connect(_on_enemy_became_pacifist.bind(enemy))
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -504,10 +511,34 @@ func _on_enemy_died() -> void:
 	_update_enemy_count_label()
 	_trigger_saturation_effect()
 
-	if _current_enemy_count <= 0:
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
 		_level_cleared = true
 		_activate_exit_zone()
 		print("[Labyrinth2Level] All enemies eliminated! Go to exit.")
+
+
+## Called when an enemy becomes a pacifist (Issue #959).
+func _on_enemy_became_pacifist(enemy: Node) -> void:
+	_current_enemy_count -= 1
+	# Issue #959: Do not count pacifist again when it dies - already counted here
+	if is_instance_valid(enemy) and enemy.died.is_connected(_on_enemy_died):
+		enemy.died.disconnect(_on_enemy_died)
+	_update_enemy_count_label()
+	print("[Labyrinth2Level] Enemy became pacifist - counting as eliminated")
+	if _current_enemy_count <= 0 and not _has_retaliating_pacifists():
+		_level_cleared = true
+		_activate_exit_zone()
+		print("[Labyrinth2Level] All enemies eliminated or pacified! Go to exit.")
+
+
+## Returns true if any enemy is a pacifist who is currently retaliating (attacking the player).
+## Level should not complete while any enemy is still a threat (Issue #959).
+func _has_retaliating_pacifists() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.has_method("is_alive") and enemy.is_alive():
+			if enemy.has_method("is_retaliating") and enemy.is_retaliating():
+				return true
+	return false
 
 
 ## Called by GameManager when an enemy is killed (for score tracking).
@@ -573,6 +604,10 @@ func _complete_level_with_score() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
+		# Notify loudspeaker progression (Issue #959)
+		var aim: Node = get_node_or_null("/root/ActiveItemManager")
+		if aim and aim.has_method("notify_level_completed"):
+			aim.notify_level_completed(score_data.get("kills", 0) > 0)
 		_show_score_screen(score_data)
 	else:
 		# Fallback to simple victory message if ScoreManager not available

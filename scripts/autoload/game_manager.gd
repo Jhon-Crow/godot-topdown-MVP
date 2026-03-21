@@ -7,6 +7,10 @@ extends Node
 ## Total enemies killed in current session.
 var kills: int = 0
 
+## Cumulative kills made without the Laser Sight active item equipped.
+## Persists across sessions — used as the unlock condition for Laser Sight (Issue #1196).
+var kills_without_laser_sight: int = 0
+
 ## Total shots fired in current session.
 var shots_fired: int = 0
 
@@ -65,6 +69,10 @@ const WEAPON_SCENES: Dictionary = {
 ## Signal emitted when an enemy is killed (for screen effects).
 signal enemy_killed
 
+## Signal emitted when kills_without_laser_sight changes (for kill-based unlock checks).
+## Issue #1196.
+signal kills_without_laser_sight_updated(new_count: int)
+
 ## Signal emitted when player dies.
 signal player_died
 
@@ -96,6 +104,66 @@ var _f8_spawn_triggered: bool = false
 
 ## Hold duration in seconds required to trigger F8 spawn (Issue #1112).
 const F8_HOLD_THRESHOLD: float = 0.2
+
+## ── Roguelike session state (Issue #1061) ─────────────────────────────────
+## Persists across room-to-room scene reloads so the run can advance
+## one room at a time (Binding of Isaac style).
+
+## Whether a roguelike run is currently active.
+var roguelike_active: bool = false
+
+## 0-based index of the room currently being played.
+var roguelike_current_room: int = 0
+
+## Total number of rooms planned for this run (3–5, chosen at run start).
+var roguelike_total_rooms: int = 0
+
+## Predetermined sequence of RoomType values for the full run.
+## Stored as Array so the room order is fixed for the entire run.
+var roguelike_room_types: Array = []
+
+## Initial random seed for the run (for reproducibility / future sharing).
+var roguelike_run_seed: int = 0
+
+## Accumulated kills across all rooms in the current run.
+var roguelike_total_kills: int = 0
+
+## Accumulated shots across all rooms in the current run.
+var roguelike_total_shots: int = 0
+
+## Accumulated hits across all rooms in the current run.
+var roguelike_total_hits: int = 0
+
+## Saved weapon selection before roguelike started (restored on exit/death).
+var roguelike_saved_weapon: String = ""
+
+## Current stage/level number within the roguelike run (1 = first level, increments each time
+## all rooms of a level are cleared and the treasure room is passed).
+var roguelike_current_level: int = 1
+
+## Whether the player is currently inside the treasure room
+## (the special room shown between a completed level and the next level).
+var roguelike_in_treasure_room: bool = false
+
+## Weapon the player is currently carrying through the roguelike run.
+## Set when the player picks up a weapon from a treasure pedestal.
+## Empty string means the default Makarov PM starting weapon.
+var roguelike_run_weapon: String = ""
+
+## Resets all roguelike session variables to their default (not-in-run) state.
+func roguelike_reset_session() -> void:
+	roguelike_active = false
+	roguelike_current_room = 0
+	roguelike_total_rooms = 0
+	roguelike_room_types = []
+	roguelike_run_seed = 0
+	roguelike_total_kills = 0
+	roguelike_total_shots = 0
+	roguelike_total_hits = 0
+	roguelike_saved_weapon = ""
+	roguelike_current_level = 1
+	roguelike_in_treasure_room = false
+	roguelike_run_weapon = ""
 
 
 func _ready() -> void:
@@ -166,10 +234,32 @@ func register_hit() -> void:
 
 
 ## Registers an enemy kill.
-func register_kill() -> void:
+## @param is_player_kill: Whether the kill was made by the player (not enemy-vs-enemy). Issue #1196.
+## Also increments kills_without_laser_sight only for player kills without any laser sight active (Issue #1196).
+func register_kill(is_player_kill: bool = true) -> void:
 	kills += 1
 	enemy_killed.emit()
 	stats_updated.emit()
+	# Only count kills made by the player toward the Laser Sight unlock condition (Issue #1196).
+	# Kills by enemies against other enemies do not count.
+	if not is_player_kill:
+		_log_to_file("register_kill: skipping non-player kill (enemy-vs-enemy or ally-vs-enemy)")
+		return
+	# Track kills made without ANY laser sight active (used for the Laser Sight unlock condition).
+	# This covers all laser sight sources: active item, Power Fantasy difficulty, or weapon-level (Issue #1196).
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	var has_laser: bool = false
+	if active_item_manager and active_item_manager.has_method("has_any_laser_sight_active"):
+		has_laser = active_item_manager.has_any_laser_sight_active()
+	elif active_item_manager and active_item_manager.has_method("has_laser_sight"):
+		# Fallback: only check active item (e.g. early startup tests).
+		has_laser = active_item_manager.has_laser_sight()
+	if not has_laser:
+		kills_without_laser_sight += 1
+		kills_without_laser_sight_updated.emit(kills_without_laser_sight)
+		_log_to_file("kills_without_laser_sight: %d" % kills_without_laser_sight)
+	else:
+		_log_to_file("register_kill: laser sight active — kill not counted toward unlock condition")
 
 
 ## Returns the current accuracy as a percentage (0-100).
@@ -341,7 +431,9 @@ func _spawn_selected_enemy_at_player() -> void:
 		{"name": "Shotgun", "weapon_type": 1, "behavior": 1},
 		{"name": "UZI (SMG)", "weapon_type": 2, "behavior": 1},
 		{"name": "Machete (melee)", "weapon_type": 3, "behavior": 1},
-		{"name": "Machine Gunner (PKM)", "weapon_type": 4, "behavior": 1},
+		{"name": "RPG + PM pistol", "weapon_type": 4, "behavior": 1},
+		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
+		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
 	]
 	if selected_idx < 0 or selected_idx >= types.size():

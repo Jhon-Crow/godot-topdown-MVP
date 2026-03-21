@@ -85,6 +85,18 @@ const CASING_KICK_PROPAGATION_COOLDOWN: float = 0.4
 ## Timestamp of the last CASING_KICK propagation (for throttling).
 var _last_casing_kick_time: float = -999.0
 
+## Issue #1145: Minimum interval (seconds) between EMPTY_CLICK sound propagations.
+## When the player holds the trigger with an empty magazine, the weapon fires at full rate
+## (e.g. Mini UZI ~15/sec) and each pull calls emit_player_empty_click(). With 10 enemies
+## listening, this produces 150+ enemy callbacks per second — causing FPS drops to ~26fps.
+## Throttling to once per 0.4s (same cooldown as CASING_KICK) eliminates the flooding
+## while still alerting enemies that the player's weapon is empty. Enemies only need one
+## notification to react; repeated clicks within the same second are redundant.
+const EMPTY_CLICK_PROPAGATION_COOLDOWN: float = 0.4
+
+## Timestamp of the last EMPTY_CLICK propagation (for throttling).
+var _last_empty_click_time: float = -999.0
+
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
@@ -265,7 +277,16 @@ func emit_player_reload(position: Vector2, source_node: Node2D = null) -> void:
 
 ## Convenience method to emit an empty click sound from the player.
 ## This sound propagates through walls but at shorter range than reload.
+##
+## Issue #1145: Throttled to at most once every EMPTY_CLICK_PROPAGATION_COOLDOWN seconds.
+## High-fire-rate weapons (e.g. MiniUzi ~15 shots/sec) spam this call continuously while
+## the trigger is held on an empty magazine, flooding all listeners with redundant alerts.
+## Enemies need only one notification to update their state — additional clicks are ignored.
 func emit_player_empty_click(position: Vector2, source_node: Node2D = null) -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _last_empty_click_time < EMPTY_CLICK_PROPAGATION_COOLDOWN:
+		return  # Throttled: too soon since last EMPTY_CLICK propagation
+	_last_empty_click_time = current_time
 	emit_sound(SoundType.EMPTY_CLICK, position, SourceType.PLAYER, source_node)
 
 

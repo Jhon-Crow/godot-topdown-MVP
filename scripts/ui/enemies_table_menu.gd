@@ -372,6 +372,12 @@ func refresh() -> void:
 	_log("EnemiesTableMenu refreshed")
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("pause"):
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
+
+
 func _on_back_pressed() -> void:
 	back_pressed.emit()
 

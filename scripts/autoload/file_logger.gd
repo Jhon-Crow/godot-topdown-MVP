@@ -103,7 +103,27 @@ func _log_startup_info() -> void:
 	log_info("Debug build: %s" % OS.is_debug_build())
 	log_info("Engine version: %s" % Engine.get_version_info().get("string", "unknown"))
 	log_info("Project: %s" % ProjectSettings.get_setting("application/config/name", "unknown"))
+	_log_build_info()
 	log_info("-" .repeat(60))
+
+
+## Log build information (branch, commit, date) from build_info.cfg if it exists.
+func _log_build_info() -> void:
+	const BUILD_INFO_PATH: String = "res://build_info.cfg"
+	if not ResourceLoader.exists(BUILD_INFO_PATH):
+		log_info("Build info: not available (build_info.cfg not found)")
+		return
+	var cfg := ConfigFile.new()
+	var err := cfg.load(BUILD_INFO_PATH)
+	if err != OK:
+		log_info("Build info: not available (failed to load build_info.cfg)")
+		return
+	var branch: String = cfg.get_value("build", "branch", "unknown")
+	var commit: String = cfg.get_value("build", "commit", "unknown")
+	var date: String = cfg.get_value("build", "date", "unknown")
+	log_info("Build branch: %s" % branch)
+	log_info("Build commit: %s" % commit)
+	log_info("Build date: %s" % date)
 
 
 ## Close the log file properly.
