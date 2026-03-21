@@ -224,3 +224,84 @@ proper wall erosion whether or not GDScript executes.
 
 **Affected levels** (those with `LevelInitFallback`): BuildingLevel, CityLevel, DocksLevel,
 FactoryLevel, RevolverLevel, TestTier.
+
+---
+
+## Follow-up Bug 2: Bake Runs But Finds No Walls — Physics Server Not Ready
+
+### Reported: 2026-03-21 (PR #1274 comment by Jhon-Crow)
+
+**Symptom**: After the first fix (SetupNavigation added to LevelInitFallback), enemies on
+BuildingLevel still get stuck at obstacles — including the middle desk in "office 2".
+
+**Screenshot**: `screenshot_office2.png` — enemies clustered at central desk in office 2.
+
+**Log Evidence** (`game_log_20260321_144232.txt`):
+```
+[LevelInitFallback] Navigation mesh baked (C# fallback): agent_radius=24
+[NavMeshMonitor] poly_count=1 vertex_count=4   ← STILL no walls carved!
+[ENEMY] [Grenadier] GLOBAL STUCK: pos=(1539.21, 348.0655) for 3.0s
+[ENEMY] [Enemy7] GLOBAL STUCK: pos=(1413.212, 891.2099) for 3.0s
+[ENEMY] [Enemy2] GLOBAL STUCK: pos=(411.8196, 663.933) for 3.0s
+... (all 10 enemies stuck at multiple wall positions)
+```
+
+### Root Cause: BakeNavigationPolygon Called Before PhysicsServer2D Registers Shapes
+
+`BakeNavigationPolygon(false)` with `parsed_geometry_type = PARSED_GEOMETRY_STATIC_COLLIDERS`
+queries the `PhysicsServer2D` for the collision shapes of all static bodies matching the
+`parsed_collision_mask`. However, static bodies register their collision shapes with the
+physics server **during the first physics frame sync** — not during scene tree entry.
+
+The `LevelInitFallback._Ready()` uses `CallDeferred` to run `CheckAndInitialize()` at the
+end of the current frame. At this point, all nodes have entered the scene tree and `_ready()`
+methods have run — **but no physics frame has been processed yet**. The `PhysicsServer2D`
+has no record of any static body shapes (walls, desks, obstacles) when `BakeNavigationPolygon`
+queries it. The bake completes successfully but finds zero obstacles, leaving the navmesh
+as the raw 4-vertex floor rectangle.
+
+**Evidence from NavMeshMonitor sequence**:
+1. `bake_finished` signal fires → NavMeshMonitor refreshes → STILL shows `poly_count=1 vertex_count=4`
+2. `LevelInitFallback` logs "Navigation mesh baked" (bake completed but found no walls)
+3. NavMeshMonitor refreshes again (timer fallback) → STILL `poly_count=1 vertex_count=4`
+
+A correctly baked mesh with 20+ wall shapes and `agent_radius=24` would show `poly_count >> 1`
+and `vertex_count >> 4`. The consistently `poly_count=1 vertex_count=4` result is diagnostic.
+
+### Timeline of Events
+
+1. **Exported build loads BuildingLevel** — GDScript `_ready()` fails (Godot 4.3 bug)
+2. **LevelInitFallback._Ready()** calls `CallDeferred(CheckAndInitialize)`
+3. **Frame end**: `CheckAndInitialize()` runs — GDScript didn't run, fallback starts
+4. **`BakeNavigationPolygon(false)` called** — PhysicsServer2D queried for static bodies
+5. **PhysicsServer2D returns no shapes** — first physics frame not yet processed
+6. **Bake result: `poly_count=1 vertex_count=4`** — raw floor rectangle, no walls carved
+7. **Enemies receive paths through walls** — hit physical collision, get stuck everywhere
+8. **Stuck detector fires** after 3s — ALL enemies enter SEARCHING state
+
+### Fix
+
+Converted `CheckAndInitialize()` to `async` and added
+`await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame)` before performing fallback
+init. This ensures the PhysicsServer2D has processed its first frame and registered all
+static body shapes before `BakeNavigationPolygon` queries them.
+
+```csharp
+private async void CheckAndInitialize()
+{
+    // ... detect GDScript didn't run ...
+
+    // Await one physics frame so PhysicsServer2D registers all static body shapes.
+    // BakeNavigationPolygon with PARSED_GEOMETRY_STATIC_COLLIDERS queries the physics
+    // server; calling it before the first physics frame finds no walls (Issue #1273).
+    await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+
+    LogToFile("performing C# fallback initialization");
+    _didInitialize = true;
+    PerformFallbackInit();
+}
+```
+
+After this fix, `NavMeshMonitor` should show `poly_count >> 1` confirming walls are carved.
+`SetupNavigation()` now also logs `poly_count` and `vertex_count` after baking so future logs
+can immediately confirm whether the bake succeeded.

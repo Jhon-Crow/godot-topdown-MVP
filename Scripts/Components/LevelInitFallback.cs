@@ -107,8 +107,15 @@ public partial class LevelInitFallback : Node
     /// Check if GDScript _ready() already ran. If not, perform fallback initialization.
     /// Detection: If GDScript ran, it would have printed "Полигон loaded" and connected
     /// enemy signals. We check by looking for signs of initialization.
+    ///
+    /// Issue #1273 (follow-up): This method is async so we can await one physics frame
+    /// before baking the navigation mesh. BakeNavigationPolygon uses the PhysicsServer2D
+    /// to locate static colliders (walls). Static bodies register their shapes with the
+    /// physics server during the first physics frame sync — calling BakeNavigationPolygon
+    /// before that frame yields an empty result (poly_count=1, vertex_count=4, no walls
+    /// carved out). Awaiting GetTree().PhysicsFrame ensures shapes are registered.
     /// </summary>
-    private void CheckAndInitialize()
+    private async void CheckAndInitialize()
     {
         var parent = GetParent();
         if (parent == null) return;
@@ -137,7 +144,15 @@ public partial class LevelInitFallback : Node
             return;
         }
 
-        // GDScript didn't run - perform fallback initialization
+        // GDScript didn't run - perform fallback initialization.
+        // Issue #1273: await one physics frame before init so PhysicsServer2D has
+        // registered all static body collision shapes. BakeNavigationPolygon with
+        // parsed_geometry_type=STATIC_COLLIDERS queries the physics server for wall
+        // shapes; without this await it finds nothing and the navmesh stays as the
+        // raw 4-vertex floor rectangle (enemies path through walls and get stuck).
+        LogToFile("GDScript _ready() did NOT execute - awaiting physics frame for navmesh bake (Issue #1273)");
+        await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
+
         LogToFile("GDScript _ready() did NOT execute - performing C# fallback initialization");
         _didInitialize = true;
         PerformFallbackInit();
@@ -225,7 +240,12 @@ public partial class LevelInitFallback : Node
         // baked navmesh erodes 24px from all walls, ensuring enemies never path into walls.
         navPoly.AgentRadius = 24.0f;
         navRegion.BakeNavigationPolygon(false);
-        LogToFile("Navigation mesh baked (C# fallback, Issue #1273): agent_radius=24");
+        // Log poly_count so we can verify walls were carved out in exported builds.
+        // A properly baked mesh has poly_count > 1; poly_count=1 vertex_count=4 means
+        // the bake ran before PhysicsServer2D registered static body shapes (Issue #1273).
+        int polyCount = navPoly.GetPolygonCount();
+        int vertexCount = navPoly.GetVertices().Length;
+        LogToFile($"Navigation mesh baked (C# fallback, Issue #1273): agent_radius=24 poly_count={polyCount} vertex_count={vertexCount}");
     }
 
     /// <summary>
