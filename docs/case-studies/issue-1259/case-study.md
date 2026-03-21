@@ -148,10 +148,66 @@ New unit tests added to `tests/unit/test_level_scripts.gd`:
 
 ---
 
-## 7. Related Issues
+## 7. Follow-Up Issues Found (game_log_20260321_085325.txt)
+
+After the initial fix, the owner reported three additional issues from a new session log.
+
+### Follow-Up Issue A: Architecture — `_process_retreat_multiple_hits` removed as hack
+
+The previous iteration removed the `_process_retreat_multiple_hits` function from `enemy.gd` and inlined
+similar code to get the file below the 5000-line CI limit. This violated code integrity (the function
+is a proper state handler matching the `RetreatMode.MULTIPLE_HITS` enum entry).
+
+**Root cause:** `enemy.gd` in main was 5008 lines; after merging new upstream commits it became 4992.
+The proper fix was to merge upstream and restore the deleted function — giving 5000 lines exactly.
+
+**Fix:** Merged upstream/main (which had a proper 4999-line `enemy.gd`), then restored:
+- `_process_retreat_multiple_hits(delta, direction_to_cover)` function body
+- `_process_assault_state` comment+separate assignments (un-inlined)
+
+### Follow-Up Issue B: AK+GL has 30 more ammo than expected
+
+**Evidence (log line 341):** `[Player.Weapon] Equipped AKGL (ammo: 30/30)` — then LevelInitFallback runs,
+no ammo reinit logged, and the default 4 magazines (30+90) are used instead of 2 (30+30).
+
+**Root cause:** `LevelInitFallback.ConnectWeaponSignals()` connects to weapon signals and shows initial
+ammo, but never calls `ReinitializeMagazines(2, true)` for AKGL/M16. This is BuildingLevel-specific
+config that the GDScript `_apply_building_ammo_config()` handles, but the C# fallback didn't replicate it.
+
+**Fix:** Added `ApplyBuildingLevelAmmoConfig(weapon)` call inside `ConnectWeaponSignals()`.
+Detects `levelRoot.Name == "BuildingLevel"` and calls `ReinitializeMagazines(baseMagazines, true)`
+for AKGL and AssaultRifle weapons, respecting the DifficultyManager ammo multiplier (Issue #949/#1259).
+
+### Follow-Up Issue C: Score screen shows only Restart, missing Next Level / Levels / Armory buttons
+
+**Evidence (log lines 1389–1403):** After the player reached exit, `LevelInitFallback` fired
+`Player reached exit — showing score!` and `ScoreManager` completed the level. Then ~3 seconds later
+the scene reloaded as BuildingLevel again — no navigation buttons were ever shown.
+
+**Root cause:** `LevelInitFallback.ShowScoreScreen()` created the animated score screen and called
+`show_animated_score()`, but never connected to the `animation_completed` signal. All GDScript level
+scripts (CityLevel, TestTier, RevolverLevel, etc.) connect to `animation_completed` and then add:
+- `→ Next Level` button (if a next level exists in the campaign)
+- `↻ Restart (Q)` button
+- `☰ Level Select` button
+- `★ Armory — Items Available!` button (conditional on UnlockManager)
+
+The C# fallback skipped all of this, so only the built-in "Press Q to restart" hint was visible.
+
+**Fix:** Added `OnScoreAnimationCompleted(Node container)` method connected to `animation_completed`.
+Mirrors the full button set from `city_level.gd._add_score_screen_buttons()`:
+- `GetNextLevelPath()` uses the same level ordering as all GDScript levels
+- Armory button uses gold styling when items are available (Issue #897)
+- Focus set to NextLevelButton or RestartButton as fallback
+
+---
+
+## 8. Related Issues
 
 - [godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150) — GDScript binary tokenization bug in Godot 4.3
 - Issue #540 — realistic visibility component setup (same `_setup_player_tracking` function)
 - Issue #636 — Makarov PM 2.5x ammo multiplier
 - Issue #886 — GrenadeTimer GDScript/C# duplicate handling
+- Issue #897 — Armory button on score screen (gold highlight when items available)
 - Issue #949 — M16/AK+GL should have 2 magazines on Building level
+- Issue #1067 — Auto-reload passive item and `ApplyAutoReloadAfterLevelAmmoConfig`

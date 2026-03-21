@@ -337,6 +337,61 @@ public partial class LevelInitFallback : Node
             weapon.Call("ConfigureAmmoForEnemyCount", _initialEnemyCount);
             LogToFile($"Configured silenced pistol ammo for {_initialEnemyCount} enemies");
         }
+
+        // BuildingLevel-specific ammo config: M16/AK+GL limited to 2 magazines (Issue #949, #1259)
+        ApplyBuildingLevelAmmoConfig(weapon);
+    }
+
+    /// <summary>
+    /// Apply BuildingLevel-specific ammo limits (2 magazines for M16/AKGL) when running as fallback
+    /// for BuildingLevel (Issue #949, #1259). Other levels use default ammo counts.
+    /// </summary>
+    private void ApplyBuildingLevelAmmoConfig(Node weapon)
+    {
+        var levelRoot = GetParent();
+        if (levelRoot == null) return;
+
+        // Only apply on BuildingLevel
+        if (levelRoot.Name != "BuildingLevel") return;
+
+        // M16 (AssaultRifle) and AK+GL should have 2 magazines (30+30) on Building level
+        bool isLimitedWeapon = weapon.Name == "AKGL" || weapon.Name == "AssaultRifle";
+        if (!isLimitedWeapon) return;
+
+        int baseMagazines = 2;
+
+        // Respect Power Fantasy ammo multiplier if active
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null && difficultyManager.HasMethod("get_ammo_multiplier"))
+        {
+            int multiplier = difficultyManager.Call("get_ammo_multiplier").AsInt32();
+            if (multiplier > 1)
+            {
+                baseMagazines *= multiplier;
+                LogToFile($"BuildingLevel: Power Fantasy mode - {weapon.Name} magazines multiplied by {multiplier}x");
+            }
+        }
+
+        if (weapon.HasMethod("ReinitializeMagazines"))
+        {
+            weapon.Call("ReinitializeMagazines", baseMagazines, true);
+            LogToFile($"BuildingLevel: {weapon.Name} magazines reinitialized to {baseMagazines} (C# fallback, Issue #1259)");
+        }
+
+        // Refresh ammo display after reinitializing
+        var currentAmmo = weapon.Get("CurrentAmmo");
+        var reserveAmmo = weapon.Get("ReserveAmmo");
+        if (currentAmmo.VariantType != Variant.Type.Nil && reserveAmmo.VariantType != Variant.Type.Nil)
+        {
+            UpdateAmmoLabelMagazine(currentAmmo.AsInt32(), reserveAmmo.AsInt32());
+        }
+
+        // Apply auto-reload magazine size reduction if active (Issue #1067)
+        if (_player != null && _player.HasMethod("ApplyAutoReloadAfterLevelAmmoConfig"))
+        {
+            _player.Call("ApplyAutoReloadAfterLevelAmmoConfig");
+            LogToFile($"BuildingLevel: Re-applied auto-reload magazine reduction after ammo config for {weapon.Name}");
+        }
     }
 
     /// <summary>
@@ -760,6 +815,12 @@ public partial class LevelInitFallback : Node
             var scoreScreen = new Node();
             scoreScreen.SetScript(animatedScoreScreenScript);
             parent.AddChild(scoreScreen);
+            // Connect animation_completed signal to add navigation buttons (Issue #1259)
+            if (scoreScreen.HasSignal("animation_completed"))
+            {
+                scoreScreen.Connect("animation_completed",
+                    new Callable(this, MethodName.OnScoreAnimationCompleted));
+            }
             if (scoreScreen.HasMethod("show_animated_score"))
             {
                 scoreScreen.Call("show_animated_score", ui, scoreData);
@@ -769,6 +830,176 @@ public partial class LevelInitFallback : Node
         {
             ShowVictoryMessage();
         }
+    }
+
+    /// <summary>
+    /// Called when score animation finishes — add navigation buttons (Issue #1259).
+    /// Mirrors _add_score_screen_buttons() in GDScript level scripts.
+    /// </summary>
+    private void OnScoreAnimationCompleted(Node container)
+    {
+        _scoreShown = true;
+
+        // Spacer
+        var spacer = new Control();
+        spacer.CustomMinimumSize = new Vector2(0, 10);
+        container.AddChild(spacer);
+
+        var buttonsContainer = new VBoxContainer();
+        buttonsContainer.Name = "ButtonsContainer";
+        buttonsContainer.Alignment = BoxContainer.AlignmentMode.Center;
+        buttonsContainer.AddThemeConstantOverride("separation", 10);
+        container.AddChild(buttonsContainer);
+
+        // Next Level button (if there is a next level)
+        string nextLevelPath = GetNextLevelPath();
+        if (nextLevelPath != "")
+        {
+            var nextButton = new Button();
+            nextButton.Name = "NextLevelButton";
+            nextButton.Text = "→ Next Level";
+            nextButton.CustomMinimumSize = new Vector2(200, 40);
+            nextButton.AddThemeFontSizeOverride("font_size", 18);
+            nextButton.Pressed += () => OnNextLevelPressed(nextLevelPath);
+            buttonsContainer.AddChild(nextButton);
+        }
+
+        // Restart button
+        var restartButton = new Button();
+        restartButton.Name = "RestartButton";
+        restartButton.Text = "↻ Restart (Q)";
+        restartButton.CustomMinimumSize = new Vector2(200, 40);
+        restartButton.AddThemeFontSizeOverride("font_size", 18);
+        restartButton.Pressed += OnRestartPressed;
+        buttonsContainer.AddChild(restartButton);
+
+        // Level Select button
+        var levelSelectButton = new Button();
+        levelSelectButton.Name = "LevelSelectButton";
+        levelSelectButton.Text = "☰ Level Select";
+        levelSelectButton.CustomMinimumSize = new Vector2(200, 40);
+        levelSelectButton.AddThemeFontSizeOverride("font_size", 18);
+        levelSelectButton.Pressed += OnLevelSelectPressed;
+        buttonsContainer.AddChild(levelSelectButton);
+
+        // Armory button (shown when unlock items are available, Issue #897)
+        var unlockManager = GetNodeOrNull("/root/UnlockManager");
+        if (unlockManager != null && unlockManager.HasMethod("has_any_available_unlock")
+            && unlockManager.Call("has_any_available_unlock").AsBool())
+        {
+            var armoryButton = new Button();
+            armoryButton.Name = "ArmoryButton";
+            armoryButton.Text = "★ Armory — Items Available!";
+            armoryButton.CustomMinimumSize = new Vector2(200, 40);
+            armoryButton.AddThemeFontSizeOverride("font_size", 18);
+            armoryButton.AddThemeColorOverride("font_color", new Color(1.0f, 0.85f, 0.2f, 1.0f));
+            var armoryStyle = new StyleBoxFlat();
+            armoryStyle.BgColor = new Color(0.28f, 0.22f, 0.08f, 0.9f);
+            armoryStyle.BorderColor = new Color(1.0f, 0.8f, 0.1f, 1.0f);
+            armoryStyle.BorderWidthLeft = 2;
+            armoryStyle.BorderWidthRight = 2;
+            armoryStyle.BorderWidthTop = 2;
+            armoryStyle.BorderWidthBottom = 2;
+            armoryStyle.CornerRadiusTopLeft = 4;
+            armoryStyle.CornerRadiusTopRight = 4;
+            armoryStyle.CornerRadiusBottomLeft = 4;
+            armoryStyle.CornerRadiusBottomRight = 4;
+            armoryButton.AddThemeStyleboxOverride("normal", armoryStyle);
+            armoryButton.Pressed += OnArmoryPressed;
+            buttonsContainer.AddChild(armoryButton);
+        }
+
+        Input.MouseMode = Input.MouseModeEnum.Confined;
+        if (nextLevelPath != "")
+        {
+            var nextBtn = buttonsContainer.GetNodeOrNull<Button>("NextLevelButton");
+            nextBtn?.GrabFocus();
+        }
+        else
+        {
+            restartButton.GrabFocus();
+        }
+    }
+
+    private void OnNextLevelPressed(string levelPath)
+    {
+        Input.MouseMode = Input.MouseModeEnum.ConfinedHidden;
+        var tree = GetTree();
+        if (tree != null)
+        {
+            var err = tree.ChangeSceneToFile(levelPath);
+            if (err != Error.Ok)
+                Input.MouseMode = Input.MouseModeEnum.Confined;
+        }
+    }
+
+    private void OnRestartPressed()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager != null && gameManager.HasMethod("restart_scene"))
+            gameManager.Call("restart_scene");
+        else
+            GetTree()?.ReloadCurrentScene();
+    }
+
+    private void OnLevelSelectPressed()
+    {
+        var levelsMenuScript = GD.Load<Script>("res://scripts/ui/levels_menu.gd");
+        if (levelsMenuScript != null)
+        {
+            var levelsMenu = new CanvasLayer();
+            levelsMenu.SetScript(levelsMenuScript);
+            levelsMenu.Layer = 100;
+            GetTree()?.Root.AddChild(levelsMenu);
+            if (levelsMenu.HasSignal("back_pressed"))
+                levelsMenu.Connect("back_pressed", Callable.From(() => levelsMenu.QueueFree()));
+        }
+    }
+
+    private void OnArmoryPressed()
+    {
+        var armoryMenuScene = GD.Load<PackedScene>("res://scenes/ui/ArmoryMenu.tscn");
+        if (armoryMenuScene != null)
+        {
+            var armoryMenu = armoryMenuScene.Instantiate<CanvasLayer>();
+            armoryMenu.Set("layer", 100);
+            armoryMenu.Set("opened_from_score_screen", true);
+            GetTree()?.Root.AddChild(armoryMenu);
+            if (armoryMenu.HasSignal("back_pressed"))
+                armoryMenu.Connect("back_pressed", Callable.From(() => armoryMenu.QueueFree()));
+        }
+    }
+
+    /// <summary>
+    /// Returns the path of the next level in the campaign order, or empty string if last.
+    /// Matches the level ordering in GDScript _get_next_level_path().
+    /// </summary>
+    private string GetNextLevelPath()
+    {
+        var tree = GetTree();
+        if (tree == null) return "";
+
+        string currentPath = tree.CurrentScene?.SceneFilePath ?? "";
+        string[] levelPaths = new[]
+        {
+            "res://scenes/levels/LabyrinthLevel.tscn",
+            "res://scenes/levels/BuildingLevel.tscn",
+            "res://scenes/levels/TestTier.tscn",
+            "res://scenes/levels/CastleLevel.tscn",
+            "res://scenes/levels/RevolverLevel.tscn",
+            "res://scenes/levels/CityLevel.tscn",
+            "res://scenes/levels/BeachLevel.tscn",
+            "res://scenes/levels/DocksLevel.tscn",
+            "res://scenes/levels/FactoryLevel.tscn",
+            "res://scenes/levels/DecadenceLevel.tscn",
+            "res://scenes/levels/Labyrinth2Level.tscn",
+        };
+        for (int i = 0; i < levelPaths.Length; i++)
+        {
+            if (levelPaths[i] == currentPath && i + 1 < levelPaths.Length)
+                return levelPaths[i + 1];
+        }
+        return "";
     }
 
     private void ShowVictoryMessage()

@@ -1888,7 +1888,7 @@ func _process_retreating_state(delta: float) -> void:
 	match _retreat_mode:
 		RetreatMode.FULL_HP: _process_retreat_full_hp(delta, direction_to_cover)
 		RetreatMode.ONE_HIT: _process_retreat_one_hit(delta, direction_to_cover)
-		RetreatMode.MULTIPLE_HITS: _process_retreat_one_hit(delta, direction_to_cover)  ## Same behavior as ONE_HIT (Issue #169)
+		RetreatMode.MULTIPLE_HITS: _process_retreat_multiple_hits(delta, direction_to_cover)
 
 ## Process FULL_HP retreat: walk backwards facing player, shoot with reduced accuracy.
 func _process_retreat_full_hp(delta: float, _direction_to_cover: Vector2) -> void:
@@ -1974,6 +1974,11 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 	else:
 		# After burst, run to cover without shooting using navigation
 		_move_to_target_nav(_cover_position, combat_move_speed)
+
+## Process MULTIPLE_HITS retreat: quick burst of 2-4 shots then run to cover (same as ONE_HIT).
+func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void:
+	# Same behavior as ONE_HIT - quick burst then escape
+	_process_retreat_one_hit(delta, direction_to_cover)
 
 ## Process PURSUING state - move cover-to-cover toward player or vulnerability sound.
 func _process_pursuing_state(delta: float) -> void:
@@ -2208,8 +2213,11 @@ func _process_pursuing_state(delta: float) -> void:
 
 ## Process ASSAULT state - disabled per issue #169. Immediately transitions to COMBAT.
 func _process_assault_state(_delta: float) -> void:
-	_in_assault = false; _assault_ready = false  # Disabled per issue #169
+	# ASSAULT state is disabled per issue #169
+	# Immediately transition to COMBAT state
 	_log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT")
+	_in_assault = false
+	_assault_ready = false
 	_transition_to_combat()
 
 ## Load predefined search waypoints from SearchPathWaypoints node (Issue #1225). Returns true if loaded.
