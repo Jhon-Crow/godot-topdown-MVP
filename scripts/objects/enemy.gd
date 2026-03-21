@@ -254,6 +254,7 @@ var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 =
 const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Max stuck time / min move distance  ## Issue #1173: restored 1.5→4.0; machete wall-escape is handled by MACHETE_COMBAT_STUCK_MAX_TIME
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
+var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
 var _search_center: Vector2 = Vector2.ZERO; var _search_radius: float = 100.0  ## Search center / current radius (Search State - Issue #322)
@@ -843,13 +844,16 @@ func _physics_process(delta: float) -> void:
 	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting
 		velocity = Vector2.ZERO; _update_debug_label(); _update_walk_animation(delta)
 		_apply_machete_attack_animation(); move_and_slide(); _push_casings()
-		if debug_label_enabled: queue_redraw()
+		if debug_label_enabled:
+			_debug_draw_timer += delta
+			if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()  # Issue #1220: throttle to 10 Hz
 		return
 	_process_ai_state(delta)
 
 	_update_debug_label()
-	if debug_label_enabled:  # Request redraw for debug visualization
-		queue_redraw()
+	if debug_label_enabled:  # Issue #1220: throttle FOV cone redraws to 10 Hz (was every frame → 33 raycasts/enemy/frame at 60 fps)
+		_debug_draw_timer += delta
+		if _debug_draw_timer >= DEBUG_DRAW_INTERVAL: _debug_draw_timer = 0.0; queue_redraw()
 
 	_update_walk_animation(delta)  # Update walking animation based on movement
 	_apply_machete_attack_animation()  # Issue #595: machete swing animation
@@ -4064,12 +4068,12 @@ func _process_patrol(delta: float) -> void:
 	if _nav_agent == null:  # Fallback if nav agent unavailable
 		if global_position.distance_to(target_point) < 5.0: _is_waiting_at_patrol_point = true; velocity = Vector2.ZERO; return
 		var d := (target_point - global_position).normalized(); velocity = d * move_speed; rotation = d.angle(); return
-	_nav_agent.target_position = target_point
-	if _nav_agent.is_navigation_finished():
+	# Issue #1220: use _move_to_target_nav so patrol gets the same wall-avoidance + ORCA +
+	# slide-collision corner-escape used by PURSUING/FLANKING, preventing wall-pressing.
+	if not _move_to_target_nav(target_point, move_speed):
 		_is_waiting_at_patrol_point = true; _patrol_stuck_timer = 0.0; _patrol_stuck_last_position = global_position; velocity = Vector2.ZERO; return
-	var dir := (_nav_agent.get_next_path_position() - global_position).normalized()
-	velocity = dir * move_speed; move_and_slide(); _push_casings()
-	if dir.length() > 0.1: rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta); _process_corner_check(delta, dir, "PATROL")
+	var dir := velocity.normalized()
+	if dir.length() > 0.1: _process_corner_check(delta, dir, "PATROL")
 	var moved := global_position.distance_to(_patrol_stuck_last_position)  # Stuck detection
 	if moved < PATROL_STUCK_DISTANCE_THRESHOLD:
 		_patrol_stuck_timer += delta
