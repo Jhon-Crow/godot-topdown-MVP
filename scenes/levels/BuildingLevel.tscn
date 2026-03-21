@@ -980,10 +980,10 @@ position = Vector2(512, 132)
 position = Vector2(512, 650)
 
 [node name="P2_Office2_to_Corridor" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(716, 756)
+position = Vector2(700, 740)
 
 [node name="P3_Corridor_to_Conference" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(1340, 650)
+position = Vector2(1376, 656)
 
 [node name="P4_Corridor_to_BreakRoom" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
 position = Vector2(1340, 744)
@@ -1004,7 +1004,7 @@ position = Vector2(750, 1400)
 position = Vector2(950, 1400)
 
 [node name="P10_Storage_Entrance_Left" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
-position = Vector2(82, 1630)
+position = Vector2(200, 1680)
 
 [node name="P11_Storage_Entrance_Right" type="Marker2D" parent="Environment/PassageWaypoints" groups=["passage_waypoints"]]
 position = Vector2(512, 1650)
