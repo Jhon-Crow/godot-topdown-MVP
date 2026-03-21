@@ -237,6 +237,27 @@ public partial class LevelInitFallback : Node
         // Set agent_radius so navmesh is properly eroded from walls (enemies won't path along wall borders).
         navPoly.AgentRadius = 24.0f;
 
+        // Issue #1271: Add a bounding outline so the bake has a traversable area to carve walls from.
+        // NavigationPolygon.bake() requires at least one outline polygon defining the walkable boundary
+        // before it can subtract wall collision shapes. Without an outline, poly_count=0 even when
+        // GROUPS_WITH_CHILDREN mode and static colliders are correctly configured.
+        var bg = levelRoot.GetNodeOrNull<ColorRect>("Environment/Background");
+        if (bg != null)
+        {
+            var w = bg.Size.X;
+            var h = bg.Size.Y;
+            navPoly.ClearOutlines();
+            navPoly.AddOutline(new Vector2[]
+            {
+                new Vector2(0, 0), new Vector2(w, 0), new Vector2(w, h), new Vector2(0, h)
+            });
+            LogToFile($"Navigation outline set to level bounds: {w}x{h}");
+        }
+        else
+        {
+            LogToFile("WARNING: Environment/Background not found - bake may produce 0 polygons without an outline");
+        }
+
         LogToFile("Baking navigation mesh (C# fallback)...");
         navRegion.BakeNavigationPolygon(false);
 

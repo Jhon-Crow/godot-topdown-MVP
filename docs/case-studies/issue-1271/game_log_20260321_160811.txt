@@ -1,0 +1,1154 @@
+[16:08:11] [INFO] ============================================================
+[16:08:11] [INFO] GAME LOG STARTED
+[16:08:11] [INFO] ============================================================
+[16:08:11] [INFO] Timestamp: 2026-03-21T16:08:11
+[16:08:11] [INFO] Log file: I:/Загрузки/godot exe/nav mesh/game_log_20260321_160811.txt
+[16:08:11] [INFO] Executable: I:/Загрузки/godot exe/nav mesh/Godot-Top-Down-Template.exe
+[16:08:11] [INFO] OS: Windows
+[16:08:11] [INFO] Debug build: false
+[16:08:11] [INFO] Engine version: 4.3-stable (official)
+[16:08:11] [INFO] Project: Godot Top-Down Template
+[16:08:11] [INFO] Build info: not available (build_info.cfg not found)
+[16:08:11] [INFO] ------------------------------------------------------------
+[16:08:11] [INFO] [GameManager] GameManager ready
+[16:08:11] [INFO] [ScoreManager] ScoreManager ready
+[16:08:11] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[16:08:11] [INFO] [DifficultyManager] Loaded difficulty: Easy (value: 0)
+[16:08:11] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[16:08:11] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[16:08:11] [INFO] [ImpactEffects] Explosion light pool initialized: 12 lights pre-created
+[16:08:11] [INFO] [ImpactEffects] Dust effect pool initialized: 16 effects pre-created
+[16:08:11] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[16:08:11] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:08:11] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[16:08:11] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[16:08:11] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[16:08:11] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[16:08:11] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[16:08:11] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[16:08:11] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[16:08:11] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:08:11] [INFO] [LastChance] Last chance shader loaded successfully
+[16:08:11] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[16:08:11] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[16:08:11] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[16:08:11] [INFO] [LastChance]   Sepia intensity: 0.70
+[16:08:11] [INFO] [LastChance]   Brightness: 0.60
+[16:08:11] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[16:08:11] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[16:08:11] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/DefensiveGrenade.tscn
+[16:08:11] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/AggressionGasGrenade.tscn
+[16:08:11] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV: true, Complex grenades: false, AI prediction: true, Debug: false, Invincibility: true, Realistic visibility: false, Replay: false, Logging: true, Enemy flashlight blinding: false, FPS counter: true, FPS drop logging: true, All weapons unlocked: true, All maps unlocked: true, Global stuck max time: 3.0s, Nav mesh visible: true, Search path visible: true, Passage waypoints visible: true, Passage waypoints: false, Sound visualizer: false, Enemy path visible: true
+[16:08:11] [INFO] [NavMeshMonitor] NavMeshMonitor ready
+[16:08:11] [INFO] [NavMeshMonitor] Overlay node created
+[16:08:11] [INFO] [NavMeshMonitor] refresh started: found 1 NavigationRegion2D node(s)
+[16:08:11] [INFO] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=0 vertex_count=0 outline_count=0
+[16:08:11] [INFO] [NavMeshMonitor] refresh done: 1 region(s), 0 baked poly(s), 0 outline(s), 0 draw polys
+[16:08:11] [INFO] [NavMeshMonitor] Overlay shown with 0 polygon(s)
+[16:08:11] [INFO] [EnemyPathMonitor] EnemyPathMonitor: overlay created
+[16:08:11] [INFO] [SoundSettings] SoundSettings initialized - effects: 0.29, music: 1.00
+[16:08:11] [INFO] [GameplaySettings] GameplaySettings initialized - blood_amount: 1.00, wall_hit_particles: true
+[16:08:11] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[16:08:11] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+[16:08:11] [INFO] [CinemaEffects] Created effects layer at layer 99
+[16:08:11] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[16:08:11] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[16:08:11] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[16:08:11] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[16:08:11] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[16:08:11] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[16:08:11] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[16:08:11] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[16:08:11] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[16:08:11] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[16:08:11] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[16:08:11] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[16:08:11] [INFO] [GrenadeTimerHelper] Autoload ready
+[16:08:11] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[16:08:11] [INFO] [PowerFantasy] Saturation shader loaded successfully
+[16:08:11] [INFO] [PowerFantasy] PowerFantasyEffectsManager ready - Configuration:
+[16:08:11] [INFO] [PowerFantasy]   Kill effect duration: 300ms
+[16:08:11] [INFO] [PowerFantasy]   Grenade effect duration: 2000ms (2.0s)
+[16:08:11] [INFO] [BlackMetalEffectsManager] BlackMetalEffectsManager initializing...
+[16:08:11] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+[16:08:11] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+[16:08:11] [INFO] [BlackMetalEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[16:08:11] [INFO] [BlackMetalEffectsManager] Black Metal filter DISABLED
+[16:08:11] [INFO] [BlackMetalLightningEffectsManager] BlackMetalLightningEffectsManager initializing...
+[16:08:11] [INFO] [BlackMetalLightningEffectsManager] Lightning bolt drawer created (v10 - no shader, pure draw calls)
+[16:08:11] [INFO] [BlackMetalLightningEffectsManager] Connected to GameManager.enemy_killed signal
+[16:08:11] [INFO] [BlackMetalLightningEffectsManager] Starting shader warmup (Issue #343 pattern)...
+[16:08:11] [INFO] [ProgressManager] ProgressManager ready, loaded 1 entries
+[16:08:11] [INFO] [ReplayManager] ReplayManager ready (C# version loaded and _Ready called)
+[16:08:11] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[16:08:11] [INFO] [FlashbangPlayer] Flashbang player shader loaded successfully
+[16:08:11] [INFO] [FlashbangPlayer] Starting shader warmup (Issue #343 fix)...
+[16:08:11] [INFO] [FlashbangPlayer] FlashbangPlayerEffectsManager ready
+[16:08:11] [INFO] [FlashbangPlayer]   Duration range: 1.0-5.0 seconds
+[16:08:11] [INFO] [SceneLoader] SceneLoader initialized
+[16:08:11] [INFO] [PersistManager] Loading saved state from user://game_state.cfg
+[16:08:11] [INFO] [PersistManager] Restored unlocked weapon: makarov_pm
+[16:08:11] [INFO] [PersistManager] Restored unlocked weapon: m16
+[16:08:11] [INFO] [PersistManager] Restored unlocked weapon: mini_uzi
+[16:08:11] [INFO] [PersistManager] Restored kills_without_laser_sight: 24
+[16:08:11] [INFO] [GameManager] Weapon selected: shotgun
+[16:08:11] [INFO] [PersistManager] Restored selected weapon: shotgun
+[16:08:11] [INFO] [PersistManager] Restored unlocked grenade type: 0
+[16:08:11] [INFO] [PersistManager] Restored unlocked grenade type: 3
+[16:08:11] [INFO] [PersistManager] Restored selected grenade type: 0
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 0
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 4
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 6
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 7
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 8
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 10
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 11
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 12
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 13
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 14
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 15
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 16
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 17
+[16:08:11] [INFO] [PersistManager] Restored unlocked active item type: 18
+[16:08:11] [INFO] [ActiveItemManager] Active item changed from None to Invisibility
+[16:08:11] [INFO] [PersistManager] Restored selected active item type: 5
+[16:08:11] [INFO] [PersistManager] Loudspeaker progress restored: level 1, levels_completed=0
+[16:08:11] [INFO] [PersistManager] State loaded successfully
+[16:08:11] [INFO] [PersistManager] PersistManager ready
+[16:08:11] [INFO] [UnlockManager] UnlockManager ready
+[16:08:11] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["m16", "makarov_pm", "ak_gl", "shotgun", "mini_uzi", "sniper", "revolver"]
+[16:08:11] [INFO] [PerformanceSettings] PerformanceSettings initialized - particles: true, blood_decals: true, screen_shake: true, explosion_lights: true, ai: true
+[16:08:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:11] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[16:08:11] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[16:08:11] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[16:08:11] [ENEMY] [Enemy1] Death animation component initialized
+[16:08:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:11] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[16:08:11] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[16:08:11] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[16:08:11] [ENEMY] [Enemy2] Death animation component initialized
+[16:08:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:11] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[16:08:11] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[16:08:11] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[16:08:11] [ENEMY] [Enemy3] Death animation component initialized
+[16:08:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:11] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[16:08:11] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[16:08:11] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[16:08:11] [ENEMY] [Enemy4] Death animation component initialized
+[16:08:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:11] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[16:08:11] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[16:08:11] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[16:08:11] [ENEMY] [Enemy5] Death animation component initialized
+[16:08:11] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:11] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[16:08:11] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[16:08:11] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[16:08:11] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:08:11] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[16:08:11] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+[16:08:11] [INFO] [Player.Weapon] Removed default MakarovPM
+[16:08:11] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 0/8)
+[16:08:11] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:08:11] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:08:11] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:08:11] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[16:08:11] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[16:08:11] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[16:08:11] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[16:08:11] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[16:08:11] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[16:08:11] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[16:08:11] [INFO] [Player.InvisibilitySuit] Invisibility suit is selected, initializing...
+[16:08:11] [INFO] [InvisibilitySuit] Shader loaded successfully
+[16:08:11] [INFO] [InvisibilitySuit] Activation sound loaded
+[16:08:11] [INFO] [InvisibilitySuit] Deactivation sound loaded
+[16:08:11] [INFO] [InvisibilitySuit] Initialized with player: Player, charges: 2/2
+[16:08:11] [INFO] [Player.InvisibilitySuit] Invisibility suit equipped, charges: 2
+[16:08:11] [INFO] [Player.InvisibilitySuit] Charge bar created
+[16:08:11] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[16:08:11] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[16:08:11] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[16:08:11] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[16:08:11] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[16:08:11] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[16:08:11] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[16:08:11] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[16:08:11] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[16:08:11] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[16:08:11] [INFO] [Player.ItemVisual] Visual applied for item type: 5
+[16:08:11] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[16:08:11] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[16:08:11] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[16:08:11] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[16:08:11] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[16:08:11] [INFO] [Player.Jammer] JammerHUD initialized
+[16:08:11] [INFO] [Player] Ready! Ammo: 0/8, Grenades: 1/3, Health: 4/4
+[16:08:11] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:08:11] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[16:08:11] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+[16:08:11] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+[16:08:11] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+[16:08:11] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+[16:08:11] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+[16:08:11] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+[16:08:11] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+[16:08:11] [INFO] [LabyrinthLevel] Setting up weapon: shotgun
+[16:08:11] [INFO] [LabyrinthLevel] Shotgun already equipped by C# Player - skipping GDScript weapon swap
+[16:08:11] [INFO] [ScoreManager] Level started with 5 enemies
+[16:08:11] [INFO] [ScoreManager] Custom rank thresholds set: S=0.70 A+=0.55 A=0.38 B=0.22 C=0.12 D=0.06
+[16:08:12] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+[16:08:12] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+[16:08:12] [INFO] [ReplayManager] Replay data cleared
+[16:08:12] [INFO] [LabyrinthLevel] Previous replay data cleared
+[16:08:12] [INFO] [ReplayManager] Detected player weapon: Shotgun
+[16:08:12] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[16:08:12] [INFO] [ReplayManager] Level: LabyrinthLevel
+[16:08:12] [INFO] [ReplayManager] Player: Player (valid: True)
+[16:08:12] [INFO] [ReplayManager] Enemies count: 5
+[16:08:12] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/shotgun_topdown.png
+[16:08:12] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[16:08:12] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[16:08:12] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[16:08:12] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[16:08:12] [INFO] [ReplayManager]   Enemy 4: Enemy5
+[16:08:12] [INFO] [LabyrinthLevel] Replay recording started successfully
+[16:08:12] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=5
+[16:08:12] [ENEMY] [Enemy3] Patrol points snapped to navmesh (Issue #1216)
+[16:08:12] [INFO] [CinemaEffects] Found player node: Player
+[16:08:12] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[16:08:12] [INFO] [PersistManager] Navigating to last played level: res://scenes/levels/BuildingLevel.tscn
+[16:08:12] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+[16:08:12] [INFO] [UnlockManager] Reset condition-gated items to locked state
+[16:08:12] [INFO] [UnlockManager] Restored saved unlock for weapon: mini_uzi
+[16:08:12] [INFO] [UnlockManager] Skipped restore for weapon 'silenced_pistol' (condition not met — treating as corrupt save)
+[16:08:12] [INFO] [UnlockManager] Skipped restore for weapon 'ak_gl' (condition not met — treating as corrupt save)
+[16:08:12] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[16:08:12] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[16:08:12] [ENEMY] [Enemy1] Registered as sound listener
+[16:08:12] [ENEMY] [Enemy1] Spawned at (400, 300), hp: 1, behavior: GUARD
+[16:08:12] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[16:08:12] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[16:08:12] [ENEMY] [Enemy2] Registered as sound listener
+[16:08:12] [ENEMY] [Enemy2] Spawned at (900, 950), hp: 2, behavior: GUARD
+[16:08:12] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[16:08:12] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[16:08:12] [ENEMY] [Enemy3] Registered as sound listener
+[16:08:12] [ENEMY] [Enemy3] Spawned at (1200, 1000), hp: 2, behavior: PATROL
+[16:08:12] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[16:08:12] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[16:08:12] [ENEMY] [Enemy4] Registered as sound listener
+[16:08:12] [ENEMY] [Enemy4] Spawned at (1650, 650), hp: 1, behavior: GUARD
+[16:08:12] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[16:08:12] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[16:08:12] [ENEMY] [Enemy5] Registered as sound listener
+[16:08:12] [ENEMY] [Enemy5] Spawned at (1500, 300), hp: 2, behavior: GUARD
+[16:08:12] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[16:08:12] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(150,1000), corner_timer=0.00
+[16:08:12] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(150,1000), corner_timer=0.00
+[16:08:12] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(150,1000), corner_timer=0.00
+[16:08:12] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:08:12] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[16:08:12] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[16:08:12] [INFO] [PenultimateHit] Shader warmup complete in 1098 ms
+[16:08:12] [INFO] [LastChance] Shader warmup complete in 1096 ms
+[16:08:12] [INFO] [CinemaEffects] Cinema shader warmup complete in 1006 ms
+[16:08:12] [INFO] [BlackMetalEffectsManager] Shader warmup complete in 998 ms
+[16:08:12] [INFO] [BlackMetalLightningEffectsManager] Shader warmup complete in 0 ms
+[16:08:12] [INFO] [FlashbangPlayer] Shader warmup complete in 995 ms
+[16:08:12] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[16:08:12] [INFO] [SceneLoader] ERROR: Invalid resource: res://scenes/levels/BuildingLevel.tscn
+[16:08:12] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 1393 ms
+[16:08:12] [INFO] [SceneLoader] Background load started successfully
+[16:08:13] [WARN] [FPS] Drop detected: 6 fps (threshold: 30)
+[16:08:13] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=5
+[16:08:14] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=5
+[16:08:15] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=5
+[16:08:16] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(306.6667, 1000), source=PLAYER (Player), range=600, listeners=5
+[16:08:16] [ENEMY] [Enemy2] Heard player EMPTY_CLICK at (306.6667, 1000), intensity=0.01, distance=595
+[16:08:16] [ENEMY] [Enemy2] Vulnerability sound triggered pursuit - transitioning from IDLE to PURSUING
+[16:08:16] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=4, self=0
+[16:08:16] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 15° spread at pos=(306.6667, 1000)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=5,5, distance=57,5px, pos=(293.6443, 943.95276)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=9,0, distance=61,0px, pos=(296.45993, 939.8169)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=4,8, distance=56,8px, pos=(298.5869, 943.77905)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=9,1, distance=61,1px, pos=(297.9297, 939.5239)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=0,7, distance=52,7px, pos=(301.40054, 947.58405)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=-4,6, distance=47,4px, pos=(302.20312, 952.84894)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=-6,5, distance=45,5px, pos=(303.99603, 954.54645)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=12,6, distance=64,6px, pos=(305.59644, 935.4411)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=-1,0, distance=51,0px, pos=(306.42892, 949.0126)
+[16:08:16] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=-12,0, distance=40,0px, pos=(308.37604, 960.0736)
+[16:08:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(306.6667, 1000), source=PLAYER (Shotgun), range=800, listeners=5
+[16:08:16] [ENEMY] [Enemy1] Heard gunshot at (306.6667, 1000), intensity=0.01, distance=706
+[16:08:16] [ENEMY] [Enemy2] Heard gunshot at (306.6667, 1000), intensity=0.01, distance=595
+[16:08:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0
+[16:08:16] [ENEMY] [Enemy1] ROT_CHANGE: none -> P2:combat_state, state=COMBAT, target=97.6°, current=0.0°, player=(306,1000), corner_timer=0.00
+[16:08:16] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=175.2°, current=11.3°, player=(306,1000), corner_timer=0.00
+[16:08:16] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=595), can_see=false
+[16:08:16] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=5
+[16:08:17] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[16:08:17] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:17] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[16:08:17] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[16:08:17] [INFO] [Shotgun.FIX#445] dragStartPos=(271, 640), aimDir=(-0,14, -0,99)
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [INFO] [Shotgun.FIX#445v7] Mouse at top edge (Y=0), need PumpUp - recentering cursor
+[16:08:17] [INFO] [Shotgun.FIX#445v7] Cursor recentered to (640, 360)
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:17] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=5
+[16:08:17] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:17] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[16:08:17] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(31,4, 314,6), length=316,1, ActionState=Ready
+[16:08:17] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[16:08:18] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:18] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[16:08:18] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+[16:08:18] [INFO] [Shotgun.FIX#445] dragStartPos=(712, 1314), aimDir=(0,78, 0,63)
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:18] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=7/8
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:18] [INFO] [Shotgun.FIX#243] RMB released after 2 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[16:08:18] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(36,1, -276,5), length=278,9, ActionState=Ready
+[16:08:18] [INFO] [Shotgun.EVENT] MMB event: pressed=True (was False), isDragging=False
+[16:08:18] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:18] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=5
+[16:08:18] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[16:08:18] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[16:08:18] [INFO] [Shotgun.FIX#445] dragStartPos=(742, 957), aimDir=(0,78, 0,63)
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-28,1, 206,4), length=208,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=True
+[16:08:18] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell
+[16:08:18] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[16:08:18] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-26,7, 208,4), length=210,1, ActionState=Ready
+[16:08:18] [INFO] [Shotgun.FIX#477] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True, shellLoadedMidDrag=False => shouldLoadShell=True
+[16:08:18] [INFO] [Shotgun.FIX#477] Loading shell (MMB was held during drag)
+[16:08:18] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=7/8, Tutorial=False, ReserveAmmo=12
+[16:08:18] [INFO] [Shotgun.FIX#243] Shell LOADED - 8/8 shells in tube
+[16:08:18] [INFO] [Shotgun.FIX#1025] Tube full after loading - transitioning to WaitingToClose
+[16:08:19] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:19] [INFO] [Shotgun.EVENT] MMB event: pressed=False (was True), isDragging=False
+[16:08:19] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[16:08:19] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=WaitingToClose
+[16:08:19] [INFO] [Shotgun.FIX#445] dragStartPos=(835, 922), aimDir=(0,78, 0,63)
+[16:08:19] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:19] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 8 shells
+[16:08:19] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:19] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:19] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[16:08:19] [INFO] [Shotgun.FIX#243] RMB released after 8 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[16:08:19] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-84,8, 370,0), length=379,6, ActionState=Ready
+[16:08:19] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[16:08:19] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=5
+[16:08:19] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:20] [ENEMY] [Enemy2] GLOBAL STUCK: pos=(741.2258, 933.511) for 3.0s without player contact, State: PURSUING -> SEARCHING
+[16:08:20] [ENEMY] [Enemy2] SEARCHING started (spiral): center=(741.2258, 933.511), radius=100, waypoints=1
+[16:08:20] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:20] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=True, enemies=5
+[16:08:20] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:21] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:21] [ENEMY] [Enemy2] SEARCHING: No waypoints, relocated center (741.2258, 933.511)->(741.2258, 933.511), cleared zones (wps=1)
+[16:08:21] [INFO] [ReplayManager] Recording frame 540 (9,0s): player_valid=True, enemies=5
+[16:08:21] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:22] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:22] [INFO] [ReplayManager] Recording frame 600 (10,0s): player_valid=True, enemies=5
+[16:08:23] [INFO] [ReplayManager] Recording frame 660 (11,0s): player_valid=True, enemies=5
+[16:08:23] [INFO] [Player] Invincibility mode: ON
+[16:08:24] [INFO] [ReplayManager] Recording frame 720 (12,0s): player_valid=True, enemies=5
+[16:08:25] [INFO] [ReplayManager] Recording frame 780 (13,0s): player_valid=True, enemies=5
+[16:08:26] [INFO] [ReplayManager] Recording frame 840 (14,0s): player_valid=True, enemies=5
+[16:08:27] [INFO] [ReplayManager] Recording frame 900 (15,0s): player_valid=True, enemies=5
+[16:08:28] [INFO] [ReplayManager] Recording frame 960 (16,0s): player_valid=True, enemies=5
+[16:08:29] [INFO] [ReplayManager] Recording frame 1020 (17,0s): player_valid=True, enemies=5
+[16:08:30] [INFO] [ReplayManager] Recording frame 1080 (18,0s): player_valid=True, enemies=5
+[16:08:31] [INFO] [ReplayManager] Recording frame 1140 (19,0s): player_valid=True, enemies=5
+[16:08:32] [INFO] [ReplayManager] Recording frame 1200 (20,0s): player_valid=True, enemies=5
+[16:08:33] [INFO] [ReplayManager] Recording frame 1260 (21,0s): player_valid=True, enemies=5
+[16:08:34] [INFO] [ReplayManager] Recording frame 1320 (22,0s): player_valid=True, enemies=5
+[16:08:35] [INFO] [ReplayManager] Recording frame 1380 (23,0s): player_valid=True, enemies=5
+[16:08:35] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:36] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:36] [ENEMY] [Enemy2] SEARCHING: No waypoints, relocated center (741.2258, 933.511)->(741.2258, 933.511), cleared zones (wps=1)
+[16:08:36] [INFO] [ReplayManager] Recording frame 1440 (24,0s): player_valid=True, enemies=5
+[16:08:36] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:37] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:37] [INFO] [ReplayManager] Recording frame 1500 (25,0s): player_valid=True, enemies=5
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:37] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:38] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:38] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:38] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:38] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:38] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:38] [ENEMY] [Enemy2] SEARCHING: No waypoints, relocated center (741.2258, 933.511)->(741.2258, 933.511), cleared zones (wps=1)
+[16:08:38] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:38] [INFO] [ReplayManager] Recording frame 1560 (26,0s): player_valid=True, enemies=5
+[16:08:39] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:39] [INFO] [Player.Debug] Debug mode toggled: ON
+[16:08:39] [INFO] [NavMeshMonitor] refresh started: found 1 NavigationRegion2D node(s)
+[16:08:39] [INFO] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=0 vertex_count=0 outline_count=0
+[16:08:39] [INFO] [NavMeshMonitor] refresh done: 1 region(s), 0 baked poly(s), 0 outline(s), 0 draw polys
+[16:08:39] [INFO] [NavMeshMonitor] Overlay shown with 0 polygon(s)
+[16:08:39] [INFO] [ExperimentalSettings] Debug mode enabled
+[16:08:39] [INFO] [GameManager] Debug mode toggled: ON
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:39] [ENEMY] [Enemy2] SEARCHING: No waypoints, relocated center (741.2258, 933.511)->(741.2258, 933.511), cleared zones (wps=1)
+[16:08:39] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:39] [INFO] [ReplayManager] Recording frame 1620 (27,0s): player_valid=True, enemies=5
+[16:08:40] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:40] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:40] [INFO] [ReplayManager] Recording frame 1680 (28,0s): player_valid=True, enemies=5
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:40] [ENEMY] [Enemy2] SEARCHING: No waypoints, relocated center (741.2258, 933.511)->(741.2258, 933.511), cleared zones (wps=1)
+[16:08:41] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:41] [INFO] [ReplayManager] Recording frame 1740 (29,0s): player_valid=True, enemies=5
+[16:08:41] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:42] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:42] [ENEMY] [Enemy2] SEARCHING: No waypoints, relocated center (741.2258, 933.511)->(741.2258, 933.511), cleared zones (wps=1)
+[16:08:42] [INFO] [ReplayManager] Recording frame 1800 (30,0s): player_valid=True, enemies=5
+[16:08:42] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:43] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:43] [INFO] [ReplayManager] Recording frame 1860 (31,0s): player_valid=True, enemies=5
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:43] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:43] [ENEMY] [Enemy2] SEARCHING: No waypoints, relocated center (741.2258, 933.511)->(741.2258, 933.511), cleared zones (wps=1)
+[16:08:44] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:44] [INFO] [ReplayManager] Recording frame 1920 (32,0s): player_valid=True, enemies=5
+[16:08:44] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:44] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:44] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:44] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:44] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:44] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:44] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:44] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:45] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:45] [INFO] [ReplayManager] Recording frame 1980 (33,0s): player_valid=True, enemies=5
+[16:08:46] [INFO] [PersistManager] State saved to user://game_state.cfg
+[16:08:46] [INFO] [PersistManager] Last level saved: res://scenes/levels/BuildingLevel.tscn
+[16:08:46] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+[16:08:46] [INFO] [ReplayManager] Recording frame 2040 (34,0s): player_valid=True, enemies=5
+[16:08:46] [INFO] [SceneLoader] Background load started successfully
+[16:08:46] [INFO] [SceneLoader] Background load complete: res://scenes/levels/BuildingLevel.tscn
+[16:08:46] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 4)
+[16:08:46] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 3)
+[16:08:46] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 2)
+[16:08:46] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 1)
+[16:08:46] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 0)
+[16:08:46] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[16:08:46] [INFO] [SceneLoader] Scene changed successfully
+[16:08:46] [INFO] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[16:08:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:46] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[16:08:46] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[16:08:46] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[16:08:46] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[16:08:46] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:08:46] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:08:46] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[16:08:46] [INFO] [PowerFantasy] Resetting all effects (scene change detected)
+[16:08:46] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+[16:08:46] [INFO] [FlashbangPlayer] Resetting flashbang player effects (scene change)
+[16:08:46] [ENEMY] [Enemy1] Death animation component initialized
+[16:08:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:46] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[16:08:46] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[16:08:46] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[16:08:47] [ENEMY] [Enemy2] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[16:08:47] [ENEMY] [Enemy3] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[16:08:47] [ENEMY] [Enemy4] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Grenadier] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Grenadier] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Grenadier] BloodyFeetComponent ready on Grenadier
+[16:08:47] [ENEMY] [Grenadier] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[16:08:47] [ENEMY] [Enemy6] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[16:08:47] [ENEMY] [Enemy7] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[16:08:47] [ENEMY] [Enemy8] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[16:08:47] [ENEMY] [Enemy9] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[16:08:47] [ENEMY] [Enemy10] Death animation component initialized
+[16:08:47] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[16:08:47] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[16:08:47] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[16:08:47] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[16:08:47] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:08:47] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[16:08:47] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+[16:08:47] [INFO] [Player.Weapon] Removed default MakarovPM
+[16:08:47] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 0/8)
+[16:08:47] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:08:47] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:08:47] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:08:47] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[16:08:47] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[16:08:47] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[16:08:47] [INFO] [Player.Flashlight] No flashlight selected in ActiveItemManager
+[16:08:47] [INFO] [Player.TeleportBracers] No teleport bracers selected in ActiveItemManager
+[16:08:47] [INFO] [Player.Homing] No homing bullets selected in ActiveItemManager
+[16:08:47] [INFO] [Player.BffPendant] No BFF pendant selected in ActiveItemManager
+[16:08:47] [INFO] [Player.InvisibilitySuit] Invisibility suit is selected, initializing...
+[16:08:47] [INFO] [InvisibilitySuit] Shader loaded successfully
+[16:08:47] [INFO] [InvisibilitySuit] Activation sound loaded
+[16:08:47] [INFO] [InvisibilitySuit] Deactivation sound loaded
+[16:08:47] [INFO] [InvisibilitySuit] Initialized with player: Player, charges: 2/2
+[16:08:47] [INFO] [Player.InvisibilitySuit] Invisibility suit equipped, charges: 2
+[16:08:47] [INFO] [Player.InvisibilitySuit] Charge bar created
+[16:08:47] [INFO] [Player.BreakerBullets] Breaker bullets not selected in ActiveItemManager
+[16:08:47] [INFO] [Player.DrillingBullets] Drilling bullets not selected in ActiveItemManager
+[16:08:47] [INFO] [Player.CombatDisposition] Combat Disposition not selected in ActiveItemManager
+[16:08:47] [INFO] [Player.ForceField] Force field not selected in ActiveItemManager
+[16:08:47] [INFO] [Player.TrajectoryGlasses] Checking trajectory glasses...
+[16:08:47] [INFO] [Player.TrajectoryGlasses] No trajectory glasses selected in ActiveItemManager
+[16:08:47] [INFO] [Player.BreachingCharges] Checking breaching charges...
+[16:08:47] [INFO] [Player.BreachingCharges] No breaching charges selected in ActiveItemManager
+[16:08:47] [INFO] [Player.ArmoredSkin] Checking armored skin...
+[16:08:47] [INFO] [Player.ArmoredSkin] No armored skin selected in ActiveItemManager
+[16:08:47] [INFO] [Player.ItemVisual] Visual applied for item type: 5
+[16:08:47] [INFO] [Player.Loudspeaker] Checking loudspeaker...
+[16:08:47] [INFO] [Player.Loudspeaker] No loudspeaker selected in ActiveItemManager
+[16:08:47] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+[16:08:47] [INFO] [Player.RecoilCompensator] Recoil compensator not selected in ActiveItemManager
+[16:08:47] [INFO] [Player.ExperimentalSample] Experimental sample not selected
+[16:08:47] [INFO] [Player.Jammer] JammerHUD initialized
+[16:08:47] [INFO] [Player] Ready! Ammo: 0/8, Grenades: 1/3, Health: 2/4
+[16:08:47] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:08:47] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[16:08:47] [INFO] [CinemaEffects] Found player node: Player
+[16:08:47] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[16:08:47] [ENEMY] [Enemy1] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[16:08:47] [ENEMY] [Enemy2] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[16:08:47] [ENEMY] [Enemy3] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[16:08:47] [ENEMY] [Enemy4] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 3, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Grenadier] Blood detector created and attached to Grenadier
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Grenadier (total: 5)
+[16:08:47] [ENEMY] [Grenadier] Registered as sound listener
+[16:08:47] [ENEMY] [Grenadier] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[16:08:47] [ENEMY] [Enemy6] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[16:08:47] [ENEMY] [Enemy7] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy7] Spawned at (1700, 870), hp: 4, behavior: PATROL
+[16:08:47] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[16:08:47] [ENEMY] [Enemy8] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 4, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[16:08:47] [ENEMY] [Enemy9] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 2, behavior: GUARD
+[16:08:47] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[16:08:47] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[16:08:47] [ENEMY] [Enemy10] Registered as sound listener
+[16:08:47] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 3, behavior: PATROL
+[16:08:47] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[16:08:47] [INFO] [LevelInitFallback] Awaiting first physics frame for PhysicsServer2D shape registration (Issue #1271)...
+[16:08:47] [INFO] [LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+[16:08:47] [INFO] [LevelInitFallback] Полигон loaded (C# fallback) - Tactical Combat Arena
+[16:08:47] [INFO] [LevelInitFallback] Found Environment/Enemies node with 10 children
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy1': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy2': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy3': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy4': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Grenadier': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy6': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy7': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy8': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy9': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Child 'Enemy10': has_died_signal=True
+[16:08:47] [INFO] [LevelInitFallback] Enemy tracking complete: 10 enemies registered
+[16:08:47] [INFO] [LevelInitFallback] Realistic visibility component added to player (night mode)
+[16:08:47] [INFO] [ScoreManager] Level started with 10 enemies
+[16:08:47] [INFO] [LevelInitFallback] ScoreManager initialized with 10 enemies
+[16:08:47] [INFO] [LevelInitFallback] Exit zone created at position (120, 1544)
+[16:08:47] [INFO] [ReplayManager] Replay data cleared
+[16:08:47] [INFO] [ReplayManager] Detected player weapon: Shotgun
+[16:08:47] [INFO] [ReplayManager] === REPLAY RECORDING STARTED ===
+[16:08:47] [INFO] [ReplayManager] Level: BuildingLevel
+[16:08:47] [INFO] [ReplayManager] Player: Player (valid: True)
+[16:08:47] [INFO] [ReplayManager] Enemies count: 10
+[16:08:47] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/shotgun_topdown.png
+[16:08:47] [INFO] [ReplayManager]   Enemy 0: Enemy1
+[16:08:47] [INFO] [ReplayManager]   Enemy 1: Enemy2
+[16:08:47] [INFO] [ReplayManager]   Enemy 2: Enemy3
+[16:08:47] [INFO] [ReplayManager]   Enemy 3: Enemy4
+[16:08:47] [INFO] [ReplayManager]   Enemy 4: Grenadier
+[16:08:47] [INFO] [ReplayManager]   Enemy 5: Enemy6
+[16:08:47] [INFO] [ReplayManager]   Enemy 6: Enemy7
+[16:08:47] [INFO] [ReplayManager]   Enemy 7: Enemy8
+[16:08:47] [INFO] [ReplayManager]   Enemy 8: Enemy9
+[16:08:47] [INFO] [ReplayManager]   Enemy 9: Enemy10
+[16:08:47] [INFO] [LevelInitFallback] Replay recording started with 10 enemies
+[16:08:47] [INFO] [LevelInitFallback] GDScript properties synced
+[16:08:47] [INFO] [LevelInitFallback] Warm ceiling lights placed in all rooms (Issue #1206, C# fallback)
+[16:08:47] [INFO] [LevelInitFallback] Baking navigation mesh (C# fallback)...
+[16:08:47] [INFO] [NavMeshMonitor] refresh started: found 1 NavigationRegion2D node(s)
+[16:08:47] [INFO] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=0 vertex_count=0 outline_count=0
+[16:08:47] [INFO] [NavMeshMonitor] refresh done: 1 region(s), 0 baked poly(s), 0 outline(s), 0 draw polys
+[16:08:47] [INFO] [NavMeshMonitor] Overlay shown with 0 polygon(s)
+[16:08:47] [INFO] [NavMeshMonitor] refresh started: found 1 NavigationRegion2D node(s)
+[16:08:47] [INFO] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=0 vertex_count=0 outline_count=0
+[16:08:47] [INFO] [NavMeshMonitor] refresh done: 1 region(s), 0 baked poly(s), 0 outline(s), 0 draw polys
+[16:08:47] [INFO] [NavMeshMonitor] Overlay refreshed with 0 polygon(s)
+[16:08:47] [INFO] [LevelInitFallback] Navigation mesh baked (C# fallback): poly_count=0 vertex_count=0
+[16:08:47] [INFO] [ReplayManager] Recording frame 0 (0,0s): player_valid=True, enemies=10
+[16:08:47] [ENEMY] [Enemy7] Patrol points snapped to navmesh (Issue #1216)
+[16:08:47] [ENEMY] [Enemy10] Patrol points snapped to navmesh (Issue #1216)
+[16:08:47] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [ENEMY] [Grenadier] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=78.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[16:08:47] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:08:47] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[16:08:47] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[16:08:47] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:08:47] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:08:47] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:08:47] [INFO] [LastChance] Found player: Player
+[16:08:47] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:08:47] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:08:47] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:08:47] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[16:08:47] [ENEMY] [Enemy1] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy2] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy3] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy4] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Grenadier] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy6] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy7] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy8] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy9] Player ammo empty: false -> true
+[16:08:47] [ENEMY] [Enemy10] Player ammo empty: false -> true
+[16:08:47] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(450, 1138.667), source=PLAYER (Player), range=600, listeners=10
+[16:08:47] [ENEMY] [Enemy2] Heard player EMPTY_CLICK at (450, 1138.667), intensity=0.01, distance=591
+[16:08:47] [ENEMY] [Enemy2] Vulnerability sound triggered pursuit - transitioning from IDLE to PURSUING
+[16:08:47] [ENEMY] [Enemy3] Heard player EMPTY_CLICK at (450, 1138.667), intensity=0.01, distance=462
+[16:08:47] [ENEMY] [Enemy3] Vulnerability sound triggered pursuit - transitioning from IDLE to PURSUING
+[16:08:47] [ENEMY] [Enemy4] Heard player EMPTY_CLICK at (450, 1138.667), intensity=0.01, distance=424
+[16:08:47] [ENEMY] [Enemy4] Vulnerability sound triggered pursuit - transitioning from IDLE to PURSUING
+[16:08:47] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=7, self=0
+[16:08:47] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 15° spread at pos=(450, 1138.6666)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=-1,9, distance=50,1px, pos=(433.67825, 1091.3206)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=-3,0, distance=49,0px, pos=(435.5844, 1091.8794)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=-12,5, distance=39,5px, pos=(439.93668, 1100.519)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=14,1, distance=66,1px, pos=(434.2454, 1074.4453)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=3,5, distance=55,5px, pos=(439.12094, 1084.2181)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=-12,7, distance=39,3px, pos=(442.9078, 1100.0522)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=3,8, distance=55,8px, pos=(439.5394, 1083.8916)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=-1,0, distance=51,0px, pos=(443.59317, 1088.0836)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=9,4, distance=61,4px, pos=(444.91968, 1077.4292)
+[16:08:47] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=15,0, distance=67,0px, pos=(445.86063, 1071.8398)
+[16:08:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1138.667), source=PLAYER (Shotgun), range=800, listeners=10
+[16:08:47] [ENEMY] [Enemy2] Heard gunshot at (450, 1138.667), intensity=0.01, distance=591
+[16:08:47] [ENEMY] [Enemy3] Heard gunshot at (450, 1138.667), intensity=0.01, distance=462
+[16:08:47] [ENEMY] [Enemy4] Heard gunshot at (450, 1138.667), intensity=0.01, distance=424
+[16:08:47] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=7, self=0
+[16:08:47] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=803), can_see=false
+[16:08:47] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=85.1°, current=45.0°, player=(450,1138), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=591), can_see=false
+[16:08:47] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=122.8°, current=-33.8°, player=(450,1138), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=462), can_see=false
+[16:08:47] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=145.7°, current=-67.5°, player=(450,1138), corner_timer=0.00
+[16:08:47] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=424), can_see=false
+[16:08:47] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1478), can_see=false
+[16:08:47] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1651), can_see=false
+[16:08:47] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1279), can_see=false
+[16:08:47] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1483), can_see=false
+[16:08:47] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1700), can_see=false
+[16:08:47] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=855), can_see=false
+[16:08:47] [INFO] [NavMeshMonitor] refresh started: found 1 NavigationRegion2D node(s)
+[16:08:47] [INFO] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=0 vertex_count=0 outline_count=0
+[16:08:47] [INFO] [NavMeshMonitor] refresh done: 1 region(s), 0 baked poly(s), 0 outline(s), 0 draw polys
+[16:08:47] [INFO] [NavMeshMonitor] Overlay shown with 0 polygon(s)
+[16:08:47] [INFO] [NavMeshMonitor] refresh started: found 1 NavigationRegion2D node(s)
+[16:08:47] [INFO] [NavMeshMonitor] refresh: region 'NavigationRegion2D' poly_count=0 vertex_count=0 outline_count=0
+[16:08:47] [INFO] [NavMeshMonitor] refresh done: 1 region(s), 0 baked poly(s), 0 outline(s), 0 draw polys
+[16:08:47] [INFO] [NavMeshMonitor] Overlay refreshed with 0 polygon(s)
+[16:08:47] [INFO] [ReplayManager] Recording frame 60 (1,0s): player_valid=True, enemies=10
+[16:08:48] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[16:08:48] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P4:velocity, state=RETREATING, target=36.8°, current=88.3°, player=(450,1017), corner_timer=0.00
+[16:08:48] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[16:08:48] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=636), can_see=false
+[16:08:48] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=306), can_see=false
+[16:08:48] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=213), can_see=false
+[16:08:48] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=357), can_see=false
+[16:08:48] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1394), can_see=false
+[16:08:48] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1587), can_see=false
+[16:08:48] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1254), can_see=false
+[16:08:48] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1528), can_see=false
+[16:08:48] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1750), can_see=false
+[16:08:48] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=949), can_see=false
+[16:08:48] [INFO] [ReplayManager] Recording frame 120 (2,0s): player_valid=True, enemies=10
+[16:08:49] [INFO] [ReplayManager] Recording frame 180 (3,0s): player_valid=True, enemies=10
+[16:08:50] [INFO] [ReplayManager] Recording frame 240 (4,0s): player_valid=True, enemies=10
+[16:08:51] [INFO] [ReplayManager] Recording frame 300 (5,0s): player_valid=True, enemies=10
+[16:08:52] [INFO] [ReplayManager] Recording frame 360 (6,0s): player_valid=True, enemies=10
+[16:08:53] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=590), can_see=false
+[16:08:53] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=260), can_see=false
+[16:08:53] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=187), can_see=false
+[16:08:53] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=351), can_see=false
+[16:08:53] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1374), can_see=false
+[16:08:53] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1572), can_see=false
+[16:08:53] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:53] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1544), can_see=false
+[16:08:53] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1766), can_see=false
+[16:08:53] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=979), can_see=false
+[16:08:53] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[16:08:53] [INFO] [ReplayManager] Recording frame 420 (7,0s): player_valid=True, enemies=10
+[16:08:53] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:53] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:53] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:53] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:53] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:53] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:53] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:53] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:53] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:53] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:54] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:54] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:54] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:54] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:54] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:54] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:54] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:54] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:54] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:54] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:54] [INFO] [ReplayManager] Recording frame 480 (8,0s): player_valid=True, enemies=10
+[16:08:55] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:55] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:55] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:55] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:55] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:55] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:55] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:55] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:55] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:55] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:55] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:55] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:55] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:55] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:55] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:55] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:55] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:55] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:55] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:55] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:55] [INFO] [ReplayManager] Recording frame 540 (9,0s): player_valid=True, enemies=10
+[16:08:56] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:56] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:56] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:56] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:56] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:56] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:56] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:56] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:56] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:56] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:56] [ENEMY] [Enemy3] GLOBAL STUCK: pos=(616.9728, 836.5532) for 3.0s without player contact, State: PURSUING -> SEARCHING
+[16:08:56] [ENEMY] [Enemy3] SEARCHING started (spiral): center=(616.9728, 836.5532), radius=100, waypoints=1
+[16:08:56] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:56] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:56] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:56] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:56] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:56] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:56] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:56] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:56] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:56] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:56] [INFO] [ReplayManager] Recording frame 600 (10,0s): player_valid=True, enemies=10
+[16:08:56] [ENEMY] [Enemy4] GLOBAL STUCK: pos=(779.1348, 904.5955) for 3.0s without player contact, State: PURSUING -> SEARCHING
+[16:08:56] [ENEMY] [Enemy4] SEARCHING started (spiral): center=(779.1348, 904.5955), radius=100, waypoints=1
+[16:08:57] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:57] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:57] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:57] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:57] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:57] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:57] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:57] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:57] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:57] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:57] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:57] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:57] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:57] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:57] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:57] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:57] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:57] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:57] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:57] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:57] [ENEMY] [Enemy3] SEARCHING: No waypoints, relocated center (616.9728, 836.5532)->(616.9728, 836.5532), cleared zones (wps=1)
+[16:08:57] [INFO] [ReplayManager] Recording frame 660 (11,0s): player_valid=True, enemies=10
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:58] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:58] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:58] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:58] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:58] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:58] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:58] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:58] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:58] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:58] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:58] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=925 wps=1
+[16:08:58] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:58] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:58] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:58] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:58] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:58] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:58] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:58] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:58] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:58] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=175 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=250 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=325 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=400 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=475 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=550 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=625 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=700 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=775 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=850 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=925 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1000 wps=0
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1075 wps=0
+[16:08:58] [INFO] [ReplayManager] Recording frame 720 (12,0s): player_valid=True, enemies=10
+[16:08:58] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1150 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1225 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1300 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1375 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1450 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1525 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1600 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1675 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1750 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1825 wps=0
+[16:08:59] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=575), can_see=false
+[16:08:59] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=245), can_see=false
+[16:08:59] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=181), can_see=false
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1900 wps=0
+[16:08:59] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=329), can_see=false
+[16:08:59] [ENEMY] [Grenadier] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1368), can_see=false
+[16:08:59] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1568), can_see=false
+[16:08:59] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1251), can_see=false
+[16:08:59] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1549), can_see=false
+[16:08:59] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1771), can_see=false
+[16:08:59] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=989), can_see=false
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=1975 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=2050 wps=0
+[16:08:59] [ENEMY] [Enemy3] SEARCHING: No waypoints, relocated center (616.9728, 836.5532)->(616.9728, 836.5532), cleared zones (wps=1)
+[16:08:59] [INFO] ------------------------------------------------------------
+[16:08:59] [INFO] GAME LOG ENDED: 2026-03-21T16:08:59
+[16:08:59] [INFO] ============================================================

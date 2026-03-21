@@ -95,6 +95,39 @@ their collision shapes with PhysicsServer2D during the first physics frame.
 
 On some levels with complex scenes, the bake call may also run before shapes are registered.
 
+### Root Cause 6: Missing outline polygon on NavigationPolygon (CONFIRMED, session 2)
+
+**Log 4 (game_log_20260321_160811.txt)** — user tested with session-1 fix applied:
+```
+[LevelInitFallback] Awaiting first physics frame...  ← physics frame fix is present
+[LevelInitFallback] Navigation mesh baked: poly_count=0 vertex_count=0  ← STILL 0!
+```
+
+Root cause analysis of Godot 4.3 engine source (`nav_mesh_generator_2d.cpp`) reveals:
+
+`bake_navigation_polygon()` has a critical guard before processing:
+```cpp
+if (outline_count == 0 && traversable_outlines.size() == 0) {
+    return;  // No traversable area defined → 0 polygons
+}
+```
+
+**StaticBody2D collision shapes define OBSTACLES (holes), NOT the traversable area.**
+
+The baking pipeline works as:
+- `NavigationPolygon.add_outline()` → defines the **walkable boundary** (required)
+- `StaticBody2D` collision shapes → **subtracted** from that area (walls become holes)
+
+Without an outline polygon, the bake has nothing to subtract walls from → returns immediately
+with `poly_count=0` regardless of how correct the geometry mode and physics frame timing are.
+
+Most levels had no `outlines` array in their `.tscn` `NavigationPolygon` sub-resource, and
+no code to add one dynamically before baking. The `clear()` call in the previous session's
+fix may have also cleared any existing outlines.
+
+**CastleLevel exception**: CastleLevel's `.tscn` has `outlines = [PackedVector2Array(...)]`
+defining the castle boundary perimeter — this is why CastleLevel would work but others don't.
+
 ---
 
 ## Solution
@@ -138,6 +171,39 @@ Set `nav_region.navigation_polygon.agent_radius = 24.0` before calling
 
 The agent radius erodes the navmesh inward from walls, preventing enemies from
 pathfinding through wall borders.
+
+### Fix 6: Add bounding outline polygon before baking (session 2)
+
+In every GDScript level `_setup_navigation()` and in `LevelInitFallback.SetupNavigation()`,
+add the level's walkable area as an outline polygon before calling bake:
+
+```gdscript
+# GDScript (in each level's _setup_navigation):
+var bg: ColorRect = get_node_or_null("Environment/Background")
+if bg != null:
+    var w := bg.size.x
+    var h := bg.size.y
+    nav_region.navigation_polygon.clear_outlines()
+    nav_region.navigation_polygon.add_outline(PackedVector2Array([
+        Vector2(0, 0), Vector2(w, 0), Vector2(w, h), Vector2(0, h)
+    ]))
+```
+
+```csharp
+// C# (LevelInitFallback.SetupNavigation):
+var bg = levelRoot.GetNodeOrNull<ColorRect>("Environment/Background");
+if (bg != null)
+{
+    navPoly.ClearOutlines();
+    navPoly.AddOutline(new Vector2[] {
+        new Vector2(0, 0), new Vector2(bg.Size.X, 0),
+        new Vector2(bg.Size.X, bg.Size.Y), new Vector2(0, bg.Size.Y)
+    });
+}
+```
+
+CastleLevel is exempt — its outline is the irregular castle perimeter boundary defined
+in `CastleLevel.tscn`, which must not be cleared.
 
 ---
 

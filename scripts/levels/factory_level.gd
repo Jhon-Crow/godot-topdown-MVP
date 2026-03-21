@@ -149,9 +149,16 @@ func _setup_navigation() -> void:
 		return
 	# Issue #1271: Set agent_radius before baking so navmesh is properly eroded from walls.
 	nav_region.navigation_polygon.agent_radius = 24.0
+	# Issue #1271: Add bounding outline so the bake has a traversable area to carve walls from.
+	var bg: ColorRect = get_node_or_null("Environment/Background")
+	if bg != null:
+		var w := bg.size.x
+		var h := bg.size.y
+		nav_region.navigation_polygon.clear_outlines()
+		nav_region.navigation_polygon.add_outline(PackedVector2Array([
+			Vector2(0, 0), Vector2(w, 0), Vector2(w, h), Vector2(0, h)
+		]))
 	# Issue #1271: Await first physics frame so PhysicsServer2D has registered static body shapes.
-	# bake_navigation_polygon with PARSED_GEOMETRY_STATIC_COLLIDERS queries PhysicsServer2D,
-	# which only has shapes after the first physics frame sync (not during _ready()).
 	await get_tree().physics_frame
 	print("[FactoryLevel] Baking navigation mesh...")
 	nav_region.bake_navigation_polygon(false)

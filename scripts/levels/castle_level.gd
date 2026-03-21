@@ -243,9 +243,10 @@ func _setup_navigation() -> void:
 		return
 	# Issue #1271: Set agent_radius before baking so navmesh is properly eroded from walls.
 	nav_region.navigation_polygon.agent_radius = 24.0
+	# Issue #1271: CastleLevel keeps the castle-boundary outline polygon defined in CastleLevel.tscn
+	# (the irregular castle perimeter shape). We do NOT clear it — it IS the traversable area.
+	# Other levels without a pre-defined outline add a rectangular bounding box here.
 	# Issue #1271: Await first physics frame so PhysicsServer2D has registered static body shapes.
-	# bake_navigation_polygon with PARSED_GEOMETRY_STATIC_COLLIDERS queries PhysicsServer2D,
-	# which only has shapes after the first physics frame sync (not during _ready()).
 	await get_tree().physics_frame
 	print("[CastleLevel] Baking navigation mesh...")
 	nav_region.bake_navigation_polygon(false)
