@@ -60,6 +60,9 @@ func _ready() -> void:
 	# Setup weapon hints (Issue #809)
 	_setup_weapon_hints()
 
+	# Add sunlight source off-screen in the top-right corner (Issue #1234)
+	_setup_sunlight()
+
 
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -1269,6 +1272,60 @@ func _disable_player_controls() -> void:
 		_player.velocity = Vector2.ZERO
 
 	_log_to_file("Player controls disabled (level completed)")
+
+
+## Place a single sunlight source off-screen in the top-right corner.
+## The light simulates sunlight illuminating the whole beach map.
+## Obstacles with LightOccluder2D (rocks, huts) will cast shadows.
+## Position (2700, -200) is outside the map frame (map bounds: 64–2464 x, 64–2064 y).
+func _setup_sunlight() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	var sun_node := Node2D.new()
+	sun_node.name = "Sunlight"
+	# Off-screen top-right corner — outside the visible map frame.
+	sun_node.position = Vector2(2700, -200)
+	environment.add_child(sun_node)
+
+	var light := PointLight2D.new()
+	light.name = "SunPointLight"
+	# Warm golden-yellow sunlight color.
+	light.color = Color(1.0, 0.92, 0.7, 1.0)
+	# Bright but not overwhelming — keeps the outdoor daylight feel.
+	light.energy = 1.2
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0
+	# Slight warm tint in shadows for a realistic sun effect.
+	light.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
+	light.texture = _create_sunlight_texture()
+	# Scale large enough to cover the entire map from the off-screen position.
+	# The farthest corner (bottom-left ~64,2064) is ~3500 px away; scale 14 * 256 = 3584 px.
+	light.texture_scale = 14.0
+	sun_node.add_child(light)
+
+	print("[BeachLevel] Sunlight placed off-screen at top-right corner (Issue #1234)")
+
+
+## Create a smooth radial gradient texture for the sunlight.
+## Uses power-law falloff so the light fades naturally with no hard edge.
+func _create_sunlight_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
 
 
 func _log_to_file(message: String) -> void:

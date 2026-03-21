@@ -387,6 +387,14 @@ class MockBeachLevel extends MockLevelBase:
 	## Whether the score screen is currently shown.
 	var _score_shown: bool = false
 
+	## Sunlight configuration (Issue #1234).
+	## The sun is placed off-screen in the top-right corner to simulate outdoor daylight.
+	var sunlight_position: Vector2 = Vector2(2700, -200)
+	var sunlight_color: Color = Color(1.0, 0.92, 0.7, 1.0)
+	var sunlight_energy: float = 1.2
+	var sunlight_texture_scale: float = 14.0
+	var sunlight_shadow_enabled: bool = true
+
 	## Level ordering — Labyrinth Complex is last.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
@@ -1555,6 +1563,51 @@ func test_beach_level_saturation_constants() -> void:
 		"Beach level saturation duration should be 0.15 seconds")
 	assert_eq(beach_level.SATURATION_INTENSITY, 0.25,
 		"Beach level saturation intensity should be 0.25")
+
+
+# ============================================================================
+# BeachLevel Sunlight Tests (Issue #1234)
+# ============================================================================
+
+
+func test_beach_level_sunlight_position_is_offscreen_top_right() -> void:
+	## Sunlight must be off-screen in the top-right corner (outside map bounds 64–2464 x, 64–2064 y).
+	assert_true(beach_level.sunlight_position.x > 2464,
+		"Sunlight x position should be outside right map boundary (>2464)")
+	assert_true(beach_level.sunlight_position.y < 64,
+		"Sunlight y position should be above top map boundary (<64)")
+
+
+func test_beach_level_sunlight_color_is_warm() -> void:
+	## Sunlight should be warm (golden-yellow), not cold blue.
+	assert_almost_eq(beach_level.sunlight_color.r, 1.0, 0.01,
+		"Sunlight red channel should be 1.0 (full)")
+	assert_true(beach_level.sunlight_color.g > 0.85,
+		"Sunlight green channel should be high (warm golden)")
+	assert_true(beach_level.sunlight_color.b < 0.85,
+		"Sunlight blue channel should be lower than green (warm, not cold)")
+
+
+func test_beach_level_sunlight_energy_is_bright() -> void:
+	## Sunlight must be bright enough to illuminate the whole outdoor scene.
+	assert_true(beach_level.sunlight_energy >= 1.0,
+		"Sunlight energy should be at least 1.0 for outdoor daylight")
+
+
+func test_beach_level_sunlight_covers_whole_map() -> void:
+	## texture_scale * 256 must reach the farthest map corner from the sun position.
+	## Bottom-left corner of the map is approximately (64, 2064).
+	var far_corner := Vector2(64, 2064)
+	var dist := beach_level.sunlight_position.distance_to(far_corner)
+	var light_radius := beach_level.sunlight_texture_scale * 256.0
+	assert_true(light_radius >= dist,
+		"Sunlight radius (scale*256=%.0f) must reach farthest corner (dist=%.0f)" % [light_radius, dist])
+
+
+func test_beach_level_sunlight_shadows_enabled() -> void:
+	## Shadows must be enabled so obstacles (rocks, huts) block the sunlight.
+	assert_true(beach_level.sunlight_shadow_enabled,
+		"Sunlight shadows must be enabled for obstacles to cast shadows")
 
 
 # ============================================================================
