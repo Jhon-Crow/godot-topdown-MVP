@@ -277,7 +277,7 @@ var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=sna
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 var _search_stuck_timer: float = 0.0  ## Stuck timer (Issue #354: Stuck detection for SEARCHING)
 var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
-const SEARCH_STUCK_MAX_TIME: float = 0.8  ## Max stuck time (#1249: faster skip so ORCA-blocked searching enemies don't pile up)
+const SEARCH_STUCK_MAX_TIME: float = 0.8  ## Max stuck time (#1249: 2.0→0.8 s, faster skip of blocked search waypoints)
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 var _search_path_node: Node2D = null  ## SearchPathWaypoints node cache (Issue #1225)
@@ -2352,23 +2352,19 @@ func _process_searching_state(delta: float) -> void:
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				# #1249: Tactical yield applies in SEARCHING too — don't pile up in corridor mouths.
-				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):
-					velocity = Vector2.ZERO; move_and_slide(); _push_casings()  # Issue #341
-					_search_stuck_timer = 0.0; _search_last_progress_position = global_position; return  # Yielding — reset stuck timer
+				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):  # #1249: yield in SEARCHING too
+					velocity = Vector2.ZERO; move_and_slide(); _push_casings(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching
 				velocity = (_avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else _sv) if (_nav_agent and _nav_agent.avoidance_enabled) else _sv
 				move_and_slide(); _push_casings()  # Issue #341
-				var progress := global_position.distance_to(_search_last_progress_position)  # Issue #354: Stuck detection
+				var progress := global_position.distance_to(_search_last_progress_position)  # #354: Stuck detection
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
 						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
 						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
-						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
-						_search_last_progress_position = global_position; return
-				else:
-					_search_stuck_timer = 0.0; _search_last_progress_position = global_position
+						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
+				else: _search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
 					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
@@ -2753,9 +2749,8 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
-	# Issue #354: Initialize stuck detection
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
-	if _tactical_movement: _tactical_movement.reset_yield()  # #1249: clear any lingering yield on SEARCHING entry
+	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
+	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
 	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
