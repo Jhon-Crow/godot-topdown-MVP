@@ -2035,7 +2035,7 @@ public partial class SniperRifle : BaseWeapon
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 3000.0f;
+            float loudness = WeaponData?.Loudness ?? 1633.8f;  // Issue #1269: scaled 800/1469 from 3000
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }

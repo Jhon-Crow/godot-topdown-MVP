@@ -34,7 +34,8 @@ class MockActiveItemManager:
 		AUTO_RELOAD = 14,
 		DRILLING_BULLETS = 15,
 		RECOIL_COMPENSATOR = 16,
-		COMBAT_DISPOSITION = 17
+		COMBAT_DISPOSITION = 17,
+		EXPERIMENTAL_SAMPLE = 18
 	}
 
 	## Currently selected active item type
@@ -59,7 +60,8 @@ class MockActiveItemManager:
 		14: {"name": "Auto-Reload", "icon_path": "res://assets/sprites/weapons/auto_reload_icon.png", "description": "Auto-reload — passive: magazine capacity is reduced 2.1x, but the magazine is fully restocked from reserves on each kill."},
 		15: {"name": "Drilling Bullets", "icon_path": "res://assets/sprites/weapons/drilling_bullets_icon.png", "description": "Drilling bullets — press Space to apply wall-piercing effect to the current magazine."},
 		16: {"name": "Recoil Compensator", "icon_path": "res://assets/sprites/weapons/recoil_compensator_icon.png", "description": "Recoil compensator — hold Space to eliminate recoil and spread completely, and increase fire rate by 10%."},
-		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces bonuses."}
+		17: {"name": "Combat Disposition", "icon_path": "res://assets/sprites/weapons/combat_disposition_icon.png", "description": "Combat Disposition — passive: +0.77 damage and +1.1 fire rate on start. Taking damage reduces bonuses."},
+		18: {"name": "Experimental Sample", "icon_path": "res://assets/sprites/weapons/experimental_sample_icon.png", "description": "Experimental Sample — press Space to trigger a random active item effect.", "activation_hint": "Press Space to trigger random effect"}
 	}
 
 	## Check if laser sight is currently equipped (Issue #947)
@@ -266,11 +268,11 @@ func test_total_active_items_includes_laser_sight() -> void:
 		"All active item types should include LASER_SIGHT")
 
 
-func test_active_item_count_is_seventeen() -> void:
-	# NONE + 17 items = 18 total (EXTENDED_MAGAZINE added by Issue #1065, DRILLING_BULLETS added by Issue #751, RECOIL_COMPENSATOR added by Issue #1073, COMBAT_DISPOSITION added by Issue #1047)
+func test_active_item_count_is_eighteen() -> void:
+	# NONE + 18 items = 19 total (EXPERIMENTAL_SAMPLE added by Issue #1127)
 	var all_types := manager.get_all_active_item_types()
-	assert_eq(all_types.size(), 18,
-		"Should have 18 active item types total (NONE + 17 items including LASER_SIGHT, EXTENDED_MAGAZINE, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS, RECOIL_COMPENSATOR, and COMBAT_DISPOSITION)")
+	assert_eq(all_types.size(), 19,
+		"Should have 19 active item types total (NONE + 18 items including LASER_SIGHT, EXTENDED_MAGAZINE, LOUDSPEAKER, BREACHING_CHARGES, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS, RECOIL_COMPENSATOR, COMBAT_DISPOSITION, and EXPERIMENTAL_SAMPLE)")
 
 
 # ============================================================================

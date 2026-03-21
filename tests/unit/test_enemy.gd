@@ -46,7 +46,7 @@ class MockEnemy:
 	var detection_range: float = 0.0
 	var shoot_cooldown: float = 0.1
 	var bullet_spawn_offset: float = 30.0
-	var weapon_loudness: float = 1469.0
+	var weapon_loudness: float = 800.0
 	var min_health: int = 2
 	var max_health: int = 4
 	var threat_sphere_radius: float = 100.0

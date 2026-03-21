@@ -267,6 +267,9 @@ func _ready() -> void:
 	# Setup window lights in corridors without enemies
 	_setup_window_lights()
 
+	# Setup cold ceiling lights in all rooms (Issue #1208)
+	_setup_room_cold_lights()
+
 	# Show tutorial hints for basic controls (Issue #808)
 	_setup_tutorial_hints()
 
@@ -388,6 +391,14 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.name = "RealisticVisibilityComponent"
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
+
+	# Tint the visibility light to match the cold-blue laboratory atmosphere
+	# so it blends with the room cold lights (Color(0.55, 0.75, 1.0)) instead
+	# of washing them out with a warm-white glow (Issue #1263).
+	# Color is deeper blue (lower R) to avoid white cast; energy is reduced
+	# from the default 1.5 so it no longer overpowers the room cold lights (≤0.65).
+	visibility_component.set_light_color(Color(0.45, 0.65, 1.0))
+	visibility_component.set_light_energy(0.8)
 	print("[LabyrinthLevel] Realistic visibility component added to player")
 
 
@@ -504,6 +515,131 @@ func _create_ambient_moonlight(parent: Node2D) -> void:
 	parent.add_child(ambient)
 
 
+## Setup cold ceiling lights in all rooms (Issue #1208).
+## Adds dim PointLight2D nodes with a cold blue tint to simulate fluorescent
+## laboratory lighting. Energy and scale are lower than the warm BuildingLevel
+## lights to keep the atmosphere tense and cold.
+##
+## Room centers (derived from InteriorWall positions in the scene):
+## - Generator Room:  ~(400, 270)   — upper-left, left of x=750 wall
+## - Control Room:    ~(1500, 220)  — upper-right, between x=1050 and x=1920
+## - Storage Hall:    ~(220, 840)   — lower-left, left of x=450 wall
+## - Corridor Area:   ~(700, 380)   — centre passage between rooms
+## - Server Room:     ~(1100, 900)  — lower-centre, below y=680 wall
+## - Pipe/Elec Room:  ~(1700, 700)  — right side, between pipe and elec walls
+func _setup_room_cold_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Container node for all room lights
+	var room_lights_node := Node2D.new()
+	room_lights_node.name = "RoomLights"
+	environment.add_child(room_lights_node)
+
+	# Cold blue-tinted dim lights for each room.
+	# Energy is ~25% lower than the warm BuildingLevel equivalents.
+	# Format: [position, energy, texture_scale, label]
+	var room_configs: Array = [
+		# Upper-left — Generator Room
+		[Vector2(400, 270),  0.65, 3.5, "GeneratorRoom"],
+		# Upper-right — Control Room (larger space)
+		[Vector2(1500, 220), 0.65, 4.0, "ControlRoom"],
+		# Lower-left — Storage Hall
+		[Vector2(220, 840),  0.55, 3.0, "StorageHall"],
+		# Centre passage
+		[Vector2(700, 380),  0.50, 3.0, "Corridor"],
+		# Lower-centre — Server Room
+		[Vector2(1100, 900), 0.65, 3.5, "ServerRoom"],
+		# Right side — Pipe/Electrical Room
+		[Vector2(1700, 700), 0.55, 3.0, "PipeElecRoom"],
+	]
+
+	for cfg in room_configs:
+		_create_room_cold_light(room_lights_node, cfg[0], cfg[1], cfg[2], cfg[3])
+
+	print("[LabyrinthLevel] Cold ceiling lights placed in all rooms (Issue #1208)")
+
+
+## Create a single cold ceiling light at the given room-center position.
+## Uses a Sprite2D fixture (not ColorRect/Control) so it never intercepts mouse
+## events and cannot break pause-menu clicks.
+## @param parent: Container node.
+## @param pos: World-space position (room center).
+## @param energy: Light brightness (lower → dimmer and more atmospheric).
+## @param scale: Texture scale controlling the light radius.
+## @param room_name: Name suffix for the node (debug convenience).
+func _create_room_cold_light(parent: Node2D, pos: Vector2, energy: float, scale: float, room_name: String) -> void:
+	var light_node := Node2D.new()
+	light_node.name = "ColdLight_%s" % room_name
+	light_node.position = pos
+	parent.add_child(light_node)
+
+	# Small round ceiling lamp fixture — cold white-blue tint, semi-transparent.
+	# Sprite2D is a Node2D and never blocks input, unlike Control-based nodes.
+	var fixture := Sprite2D.new()
+	fixture.name = "Fixture"
+	fixture.texture = _create_lamp_fixture_texture()
+	fixture.modulate = Color(0.7, 0.85, 1.0, 0.45)  # Pale cold blue, semi-transparent
+	light_node.add_child(fixture)
+
+	# The actual PointLight2D — cold blue tint, shadows on.
+	var light := PointLight2D.new()
+	light.name = "PointLight"
+	light.color = Color(0.55, 0.75, 1.0, 1.0)   # Cold blue-white
+	light.energy = energy
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 3.0
+	light.shadow_color = Color(0.0, 0.0, 0.05, 0.65)
+	light.texture = _create_cold_light_texture()
+	light.texture_scale = scale
+	light_node.add_child(light)
+
+
+## Create a soft radial gradient texture for the cold room lights.
+## Uses the same power-law circular falloff as the warm BuildingLevel lights
+## so there are no hard visible edges — the light fades naturally to black.
+func _create_cold_light_texture() -> ImageTexture:
+	var size := 512
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # 256 px
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			var t := clampf(dist / outer_r, 0.0, 1.0)  # 0 = centre, 1 = edge
+			var brightness := pow(1.0 - t, 2.2)
+			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
+
+	return ImageTexture.create_from_image(image)
+
+
+## Create a small circular texture for the ceiling lamp fixture visual.
+## Draws a soft-edged disc so the fixture looks round, matching the
+## circular PointLight2D pool beneath it.
+func _create_lamp_fixture_texture() -> ImageTexture:
+	var size := 32
+	var center := Vector2(size * 0.5, size * 0.5)
+	var outer_r := size * 0.5  # full disc radius
+
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	for y in range(size):
+		for x in range(size):
+			var dist := Vector2(x, y).distance_to(center)
+			if dist >= outer_r:
+				image.set_pixel(x, y, Color(0.0, 0.0, 0.0, 0.0))
+			else:
+				var t := clampf(dist / outer_r, 0.0, 1.0)
+				var alpha := pow(1.0 - t, 1.5)
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+
+	return ImageTexture.create_from_image(image)
+
+
 func _process(_delta: float) -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
@@ -563,26 +699,11 @@ func _setup_navigation() -> void:
 		push_warning("NavigationRegion2D not found - enemy pathfinding will be limited")
 		return
 
-	var nav_poly: NavigationPolygon = nav_region.navigation_polygon
-	if nav_poly == null:
-		push_warning("NavigationPolygon not found - enemy pathfinding will be limited")
-		return
-
+	# Issue #1224: use bake_navigation_polygon(false) so the baked polygon data
+	# is populated and visible via the nav mesh overlay. The NavigationPolygon
+	# resource in LabyrinthLevel.tscn already has the correct outlines.
 	print("Baking navigation mesh...")
-	nav_poly.clear()
-
-	var floor_outline: PackedVector2Array = PackedVector2Array([
-		Vector2(48, 48),
-		Vector2(1968, 48),
-		Vector2(1968, 1128),
-		Vector2(48, 1128)
-	])
-	nav_poly.add_outline(floor_outline)
-
-	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
-	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
-	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
-
+	nav_region.bake_navigation_polygon(false)
 	print("Navigation mesh baked successfully")
 
 
@@ -1025,7 +1146,9 @@ func _on_shell_count_changed(shell_count: int, capacity: int) -> void:
 
 ## Called when player runs out of ammo in current magazine.
 func _on_player_ammo_depleted() -> void:
-	_broadcast_player_ammo_empty(true)
+	# Issue #1261: Do NOT broadcast ammo-empty to all enemies globally — that bypasses the
+	# sound range system and lets out-of-earshot enemies react to the empty click.
+	# The EMPTY_CLICK sound emitted below already sets player_ammo_empty on enemies within range.
 	if _player:
 		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
