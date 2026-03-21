@@ -5,7 +5,14 @@
 **Issue:** The nav mesh display toggle in the experimental menu stopped working after the initial
 custom overlay implementation from issue #1187.
 
-**Root causes identified (two separate bugs):**
+**Root causes identified (confirmed by game log `game_log_20260321_080244.txt`):**
+
+0. **`_draw_node` is always null — the primary bug confirmed by the game log.**
+   `_NavMeshOverlay._draw_node` was initialized in `_ready()`, but `_ready()` fires
+   **deferred** (next frame) after `add_child()`. Since `refresh()` was called immediately
+   after `add_child(_overlay)`, `_draw_node` was always null and all drawing was skipped.
+   The log shows `"refresh: _draw_node is null, skipping"` on **every single call**
+   throughout the entire session — even 1 second after the NavigationRegion2D was added.
 
 1. **`nav_mesh_monitor.gd` was reading raw input outlines instead of baked polygon data.**
    After `bake_navigation_polygon(false)`, Godot populates `get_polygon_count()`/`get_vertices()`
@@ -38,15 +45,58 @@ custom overlay implementation from issue #1187.
 
 2. **Issue #1224 opened (2026-03-21):** Owner reports the toggle still doesn't work.
 
-3. **Root cause analysis:** The custom overlay reads `get_outline_count()`/`get_outline()`,
-   which returns the raw input boundary (unchanged after baking). Baked data
-   (`get_polygon_count()`, `get_vertices()`) is what the level scripts populate,
-   but several levels used `NavigationServer2D.bake_from_source_geometry_data` which
-   does NOT update the `NavigationPolygon`'s internal baked data.
+3. **Root cause analysis round 1 (PR #1248 initial):** The custom overlay reads
+   `get_outline_count()`/`get_outline()`, which returns the raw input boundary (unchanged
+   after baking). Baked data (`get_polygon_count()`, `get_vertices()`) is what the level
+   scripts populate, but several levels used `NavigationServer2D.bake_from_source_geometry_data`
+   which does NOT update the `NavigationPolygon`'s internal baked data.
 
-4. **Fix applied:** See Implementation section below.
+4. **Owner reports still broken (2026-03-21 08:04 UTC):** `game_log_20260321_080244.txt`
+   attached. Log analysis reveals `"refresh: _draw_node is null, skipping"` on every single
+   call. This is a deeper bug: `_draw_node` is never non-null because it was initialized in
+   `_ready()` which fires deferred, not synchronously.
+
+5. **Root cause analysis round 2 (this session):** The `_init()` fix moves `_draw_node`
+   initialization to before the node is added to the tree, making it available immediately.
+   See Implementation section below.
 
 ## Root Cause Analysis
+
+### Bug 0: `_draw_node` always null — primary bug confirmed by game log
+
+**Evidence from `game_log_20260321_080244.txt`:**
+```
+[08:02:44] [NavMeshMonitor] NavMeshMonitor ready
+[08:02:44] [NavMeshMonitor] Overlay node created
+[08:02:44] [NavMeshMonitor] refresh: _draw_node is null, skipping    ← ALWAYS NULL
+[08:02:44] [NavMeshMonitor] Overlay shown with 0 polygon(s)
+...
+[08:02:49] [NavMeshMonitor] NavigationRegion2D added: NavigationRegion2D
+[08:02:49] [NavMeshMonitor] refresh: _draw_node is null, skipping    ← STILL NULL
+[08:02:49] [NavMeshMonitor] Overlay shown with 0 polygon(s)
+[08:02:50] [NavMeshMonitor] refresh: _draw_node is null, skipping    ← STILL NULL (1s later)
+```
+The pattern repeats on every level change. `_draw_node` is **never** non-null.
+
+**Root cause — Godot `_ready()` is deferred:**
+```
+_ensure_overlay():
+  _overlay = _NavMeshOverlay.new()   # _init() runs, _ready() NOT yet called
+  root.add_child(_overlay)           # schedules _ready() for next frame
+  # (immediate) calls _overlay.refresh() → _draw_node is null → skips
+
+# Next frame:
+  _NavMeshOverlay._ready() runs → creates _draw_node
+  # But no refresh() is called after this point
+```
+
+In Godot 4, `_ready()` is called **deferred** — it fires at the end of the current frame
+after all `add_child()` calls complete. Any code calling `refresh()` immediately after
+`add_child(_overlay)` will see `_draw_node == null`.
+
+**Fix:** Move `_draw_node` initialization from `_ready()` to `_init()`. `_init()` runs
+synchronously inside `.new()`, so `_draw_node` is non-null immediately after
+`_NavMeshOverlay.new()` — before `add_child()` is even called.
 
 ### Bug 1: Wrong data source in `nav_mesh_monitor.gd`
 
@@ -95,11 +145,14 @@ silently and all inner-class log messages went to stdout instead of the log file
 
 ### `scripts/autoload/nav_mesh_monitor.gd`
 
+- **[Bug 0 fix]** Move `_draw_node` creation from `_NavMeshOverlay._ready()` to
+  `_NavMeshOverlay._init()` so it is available synchronously after `.new()`, before
+  `_ready()` fires deferred.
 - Read baked polygon data (`get_polygon_count()` / `get_polygon()` / `get_vertices()`)
   as primary data source; fall back to outlines only if baked data is absent.
 - Connect to `NavigationRegion2D.bake_finished` signal in `_on_node_added()`.
 - Add `BAKE_WAIT_SECONDS = 1.0` timer fallback (was `call_deferred` / 0.2s).
-- Change `layer = 10` → `layer = 50` in `_NavMeshOverlay._ready()`.
+- Change `layer = 10` → `layer = 50` in `_NavMeshOverlay._init()`.
 - Fix `_log_inner()` to use absolute path `/root/FileLogger`.
 - Add `[NavMeshMonitor]` prefix logging throughout for diagnostics.
 

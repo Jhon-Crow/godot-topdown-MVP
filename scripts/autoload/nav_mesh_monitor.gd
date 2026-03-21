@@ -111,9 +111,11 @@ class _NavMeshOverlay extends CanvasLayer:
 	var fill_color: Color = Color(0.0, 0.5, 1.0, 0.25)
 	var outline_color: Color = Color(0.0, 0.8, 1.0, 0.85)
 	## The Node2D child that does the actual drawing.
+	## Initialized in _init() so it is available immediately after .new(),
+	## before _ready() fires (which is deferred to the next frame by add_child).
 	var _draw_node: _NavMeshDrawNode = null
 
-	func _ready() -> void:
+	func _init() -> void:
 		# Render above all game world elements (layer 50) and above most UI (default layer 1).
 		# CinemaEffects uses layer 99; we stay below that so debug overlay doesn't cover vignette.
 		layer = 50
@@ -121,6 +123,10 @@ class _NavMeshOverlay extends CanvasLayer:
 		# With follow_viewport_enabled=true, drawing at world coordinates maps directly
 		# to the correct screen position regardless of camera position.
 		follow_viewport_enabled = true
+		# IMPORTANT: _draw_node must be created here in _init(), NOT in _ready().
+		# _ready() is deferred to the next frame after add_child(), so if refresh()
+		# is called immediately after _NavMeshOverlay.new() + add_child(), _draw_node
+		# would still be null. _init() runs synchronously during .new().
 		_draw_node = _NavMeshDrawNode.new()
 		_draw_node.fill_color = fill_color
 		_draw_node.outline_color = outline_color
