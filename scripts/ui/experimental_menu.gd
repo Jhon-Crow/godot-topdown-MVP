@@ -394,7 +394,7 @@ func _on_settings_changed() -> void:
 
 
 ## Enemy spawner: populate enemy type dropdown.
-## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN, 7=SNIPER_RIFLE).
+## Each entry stores weapon_type int as metadata (0=RIFLE, 1=SHOTGUN, 2=UZI, 3=MACHETE, 4=RPG, 5=PM, 6=MACHINE_GUN, 7=SNIPER_RIFLE, 8=REVOLVER).
 ## Restores the previously selected enemy type from ExperimentalSettings (Issue #1112).
 func _setup_enemy_spawner() -> void:
 	enemy_type_option.clear()
@@ -407,6 +407,7 @@ func _setup_enemy_spawner() -> void:
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+		{"name": "SWAT Shieldbearer", "weapon_type": 8, "behavior": 1, "has_swat_shield": true, "scene": "res://scenes/objects/EnemySwatShield.tscn"},  # Issue #1242
 	]
 	for t in types:
 		enemy_type_option.add_item(t["name"])
@@ -421,11 +422,6 @@ func _setup_enemy_spawner() -> void:
 
 ## Spawn the selected enemy type near the player on the current map.
 func _on_spawn_enemy_pressed() -> void:
-	var scene: PackedScene = load("res://scenes/objects/Enemy.tscn")
-	if scene == null:
-		spawn_status_label.text = "Error: Enemy.tscn not found."
-		return
-
 	var current_scene: Node = get_tree().current_scene
 	if current_scene == null:
 		spawn_status_label.text = "Error: No active scene."
@@ -442,6 +438,16 @@ func _on_spawn_enemy_pressed() -> void:
 	# Instantiate and configure.
 	var idx: int = enemy_type_option.selected
 	var meta: Dictionary = enemy_type_option.get_item_metadata(idx) if idx >= 0 else {"weapon_type": 0, "behavior": 1}
+
+	# Use scene override if provided (e.g. EnemySwatShield.tscn for the shieldbearer).
+	var scene_path: String = meta.get("scene", "res://scenes/objects/Enemy.tscn")
+	if not ResourceLoader.exists(scene_path):
+		scene_path = "res://scenes/objects/Enemy.tscn"
+	var scene: PackedScene = load(scene_path)
+	if scene == null:
+		spawn_status_label.text = "Error: Scene not found: %s" % scene_path
+		return
+
 	var enemy: Node = scene.instantiate()
 	enemy.global_position = spawn_pos
 	if enemy.get("weapon_type") != null:
@@ -450,6 +456,8 @@ func _on_spawn_enemy_pressed() -> void:
 		enemy.set("behavior_mode", meta.get("behavior", 1))
 	if enemy.get("destroy_on_death") != null:
 		enemy.set("destroy_on_death", true)
+	if meta.has("has_swat_shield") and enemy.get("has_swat_shield") != null:
+		enemy.set("has_swat_shield", meta.get("has_swat_shield", false))
 
 	# Add to Environment/Enemies node if it exists, otherwise directly to scene.
 	var enemies_node: Node = current_scene.find_child("Enemies", true, false)

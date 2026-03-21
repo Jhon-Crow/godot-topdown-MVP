@@ -435,10 +435,15 @@ func _spawn_selected_enemy_at_player() -> void:
 		{"name": "Machine Gunner (PKM)", "weapon_type": 6, "behavior": 1},
 		{"name": "Sniper (ASVK)", "weapon_type": 7, "behavior": 1},
 		{"name": "Patrol Rifle", "weapon_type": 0, "behavior": 0},
+		{"name": "SWAT Shieldbearer", "weapon_type": 8, "behavior": 1, "has_swat_shield": true, "scene": "res://scenes/objects/EnemySwatShield.tscn"},  # Issue #1242
 	]
 	if selected_idx < 0 or selected_idx >= types.size():
 		selected_idx = 0
 	var meta: Dictionary = types[selected_idx]
+
+	# Use scene override if provided (e.g. EnemySwatShield.tscn for the shieldbearer).
+	if meta.has("scene") and ResourceLoader.exists(meta["scene"]):
+		scene = load(meta["scene"])
 
 	# Instantiate and configure.
 	var enemy: Node = scene.instantiate()
@@ -449,6 +454,8 @@ func _spawn_selected_enemy_at_player() -> void:
 		enemy.set("behavior_mode", meta.get("behavior", 1))
 	if enemy.get("destroy_on_death") != null:
 		enemy.set("destroy_on_death", true)
+	if meta.has("has_swat_shield") and enemy.get("has_swat_shield") != null:
+		enemy.set("has_swat_shield", meta.get("has_swat_shield", false))
 
 	# Add to Enemies node if it exists, otherwise directly to scene.
 	var enemies_node: Node = current_scene.find_child("Enemies", true, false)
