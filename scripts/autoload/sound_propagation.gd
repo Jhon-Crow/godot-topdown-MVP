@@ -182,11 +182,10 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 	if _listeners.size() < prev_count:
 		_log_to_file("Cleaned up %d invalid listeners" % (prev_count - _listeners.size()))
 
-	# Notify all listeners within range
+	# Notify all listeners within range  (Issue #1261: below_threshold tracking removed)
 	var listeners_notified := 0
 	var listeners_out_of_range := 0
 	var listeners_skipped_self := 0
-	var listeners_below_threshold := 0
 
 	for listener: Node2D in _listeners:
 		if not is_instance_valid(listener):
@@ -200,26 +199,26 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		# Check if listener is within propagation range
 		var distance: float = listener.global_position.distance_to(position)
 		if distance <= propagation_distance:
-			# Calculate sound intensity using inverse square law
-			# Intensity = 1.0 at reference distance, falls off with 1/r²
+			# Calculate sound intensity using inverse square law.
+			# Intensity = 1.0 at reference distance, falls off with 1/r².
+			# Issue #1261: intensity is passed for confidence scaling only — it must NOT
+			# gate notification delivery. Any listener inside propagation_distance is by
+			# definition "able to hear" this sound; skipping them via MIN_INTENSITY_THRESHOLD
+			# caused enemies beyond ~500 px to receive zero alerts even when well within range.
 			var intensity: float = calculate_intensity(distance)
 
-			# Only notify if intensity is above threshold
-			if intensity >= MIN_INTENSITY_THRESHOLD:
-				# Notify the listener with intensity information
-				if listener.has_method("on_sound_heard_with_intensity"):
-					listener.on_sound_heard_with_intensity(sound_type, position, source_type, source_node, intensity)
-					listeners_notified += 1
-				elif listener.has_method("on_sound_heard"):
-					listener.on_sound_heard(sound_type, position, source_type, source_node)
-					listeners_notified += 1
-			else:
-				listeners_below_threshold += 1
+			# Notify the listener with intensity information
+			if listener.has_method("on_sound_heard_with_intensity"):
+				listener.on_sound_heard_with_intensity(sound_type, position, source_type, source_node, intensity)
+				listeners_notified += 1
+			elif listener.has_method("on_sound_heard"):
+				listener.on_sound_heard(sound_type, position, source_type, source_node)
+				listeners_notified += 1
 		else:
 			listeners_out_of_range += 1
 
-	_log_to_file("Sound result: notified=%d, out_of_range=%d, self=%d, below_threshold=%d" % [
-		listeners_notified, listeners_out_of_range, listeners_skipped_self, listeners_below_threshold
+	_log_to_file("Sound result: notified=%d, out_of_range=%d, self=%d" % [
+		listeners_notified, listeners_out_of_range, listeners_skipped_self
 	])
 
 	if listeners_notified > 0:
